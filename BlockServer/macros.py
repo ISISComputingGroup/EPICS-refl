@@ -1,0 +1,10 @@
+import os
+
+MACROS = {
+    "$(MYPVPREFIX)": os.environ['MYPVPREFIX'],
+    "$(EPICS_KIT_ROOT)": os.environ['EPICS_KIT_ROOT'],
+    "$(ICPCONFIGROOT)": os.environ['ICPCONFIGROOT']
+}
+
+BLOCKSERVER_PREFIX = MACROS["$(MYPVPREFIX)"] + "CS:BLOCKSERVER:"
+PVPREFIX_MACRO = "$(MYPVPREFIX)"
