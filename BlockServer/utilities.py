@@ -72,6 +72,12 @@ def check_config_name_valid(name):
     if re.match(r"[A-Za-z0-9_]*", name) is None:
         raise Exception("Config contains invalid characters: " + name)
 
+def parse_xml_removing_namespace(file_path):
+    it = ElementTree.iterparse(file_path)
+    for _, el in it:
+        if ':' in el.tag:
+            el.tag = el.tag.split('}',1)[1]
+    return it.root
 
 if __name__ == '__main__':
     write_to_ioc_log("Hello")

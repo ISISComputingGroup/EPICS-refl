@@ -8,7 +8,7 @@ call %MYDIRBLOCK%..\..\config_env_base.bat
 set EPICS_CAS_INTF_ADDR_LIST=127.0.0.1
 set EPICS_CAS_BEACON_ADDR_LIST=127.255.255.255
 
-set MYDIRGATE=%MYDIRBLOCK%..\..\..\gateway
+set MYDIRGATE=%MYDIRBLOCK%..\..\gateway
 if exist "%ICPSETTINGSDIR%/gwblock.pvlist" (
     set GWBLOCK_PVLIST=%ICPSETTINGSDIR%/gwblock.pvlist
 ) else (

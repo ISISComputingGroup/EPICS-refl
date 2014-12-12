@@ -2,7 +2,7 @@ import os
 import re
 from shutil import copyfile
 from collections import OrderedDict
-from xml.etree import ElementTree
+from utilities import parse_xml_removing_namespace
 
 from config.containers import Group
 from xml_converter import ConfigurationXmlConverter
@@ -39,25 +39,25 @@ class ConfigurationFileManager(object):
         #Open the block file first
         blocks_path = path + "/" + FILENAME_BLOCKS
         if os.path.isfile(blocks_path):
-            root = ConfigurationFileManager.parse_xml_removing_namespace(blocks_path)
+            root = parse_xml_removing_namespace(blocks_path)
             ConfigurationXmlConverter.blocks_from_xml(root, blocks, groups)
 
         #Import the groups
         groups_path = path + "/" + FILENAME_GROUPS
         if os.path.isfile(groups_path):
-            root = ConfigurationFileManager.parse_xml_removing_namespace(groups_path)
+            root = parse_xml_removing_namespace(groups_path)
             ConfigurationXmlConverter.groups_from_xml(root, groups, blocks)
 
         #Import the IOCs
         iocs_path = path + "/" + FILENAME_IOCS
         if os.path.isfile(iocs_path):
-            root = ConfigurationFileManager.parse_xml_removing_namespace(iocs_path)
+            root = parse_xml_removing_namespace(iocs_path)
             ConfigurationXmlConverter.ioc_from_xml(root, iocs)
 
         #Import the subconfigs
         subconfig_path = path + "/" + FILENAME_SUBCONFIGS
         if os.path.isfile(subconfig_path):
-            root = ConfigurationFileManager.parse_xml_removing_namespace(subconfig_path)
+            root = parse_xml_removing_namespace(subconfig_path)
             ConfigurationXmlConverter.subconfigs_from_xml(root, subconfigs)
 
         # Set properties in the config
@@ -67,14 +67,6 @@ class ConfigurationFileManager(object):
         configuration.subconfigs = subconfigs
         configuration.name = config_name.replace("\\", "")
         return configuration
-
-    @staticmethod
-    def parse_xml_removing_namespace(file_path):
-        it = ElementTree.iterparse(file_path)
-        for _, el in it:
-            if ':' in el.tag:
-                el.tag = el.tag.split('}',1)[1]
-        return it.root
 
 
     @staticmethod

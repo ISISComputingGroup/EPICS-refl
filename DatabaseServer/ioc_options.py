@@ -1,7 +1,7 @@
 class IocOptions(object):
     """Contains the possible macros and pvsets of an IOC"""
     # TODO: inheritance relation with other IOC container?
-    def __init__(self, name, macros=None, pvsets=None):
+    def __init__(self, name, macros=None, pvsets=None, pvs=None):
         if macros is None:
             self.macros = dict()
         else:

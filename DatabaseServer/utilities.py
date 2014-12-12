@@ -51,6 +51,13 @@ def write_to_ioc_log(message, severity, src):
             sock.close()
 
 
+def parse_xml_removing_namespace(file_path):
+    it = ElementTree.iterparse(file_path)
+    for _, el in it:
+        if ':' in el.tag:
+            el.tag = el.tag.split('}',1)[1]
+    return it.root
+
 def print_and_log(message, severity="INFO", src="BLOCKSVR"):
     print "%s: %s" % (severity, message)
     write_to_ioc_log(message, severity, src)

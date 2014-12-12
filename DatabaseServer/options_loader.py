@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from xml.etree import ElementTree
+from utilities import print_and_log, parse_xml_removing_namespace
 import os
 from ioc_options import IocOptions
 
@@ -22,9 +23,10 @@ class OptionsLoader(object):
     def get_options(path):
         iocs = OrderedDict()
         if os.path.isfile(path):
-            tree = ElementTree.parse(path)
-            root = tree.getroot()
+            root = parse_xml_removing_namespace(path)
             OptionsLoader._options_from_xml(root, iocs)
+        else:
+            print_and_log("Cannot find config path: " + str(path), "MINOR")
         return iocs
 
     @staticmethod
@@ -40,13 +42,12 @@ class OptionsLoader(object):
                 macros_xml = i.findall("./" + CONFIG_PART + "/" + TAG_MACROS + "/" + TAG_MACRO)
                 for m in macros_xml:
                     iocs[n.upper()].macros[m.attrib[TAG_NAME]] = {TAG_DESCRIPTION: m.attrib[TAG_DESCRIPTION],
-                                                                  TAG_PATTERN: m.attrib[TAG_PATTERN]}
+                                                                  TAG_PATTERN: m.attrib.get(TAG_PATTERN)}
 
                 # Get any pvsets
                 pvsets_xml = i.findall("./" + CONFIG_PART + "/" + TAG_PVSETS + "/" + TAG_PVSET)
                 for p in pvsets_xml:
                     iocs[n.upper()].pvsets[p.attrib[TAG_NAME]] = {TAG_DESCRIPTION: p.attrib[TAG_DESCRIPTION]}
-
 
                 # Get any pvs
                 pvs_xml = i.findall("./" + CONFIG_PART + "/" + TAG_PVS + "/" + TAG_PV)
