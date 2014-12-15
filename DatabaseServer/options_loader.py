@@ -1,6 +1,5 @@
 from collections import OrderedDict
-from xml.etree import ElementTree
-from utilities import print_and_log, parse_xml_removing_namespace
+from server_common.utilities import print_and_log, parse_xml_removing_namespace
 import os
 from ioc_options import IocOptions
 

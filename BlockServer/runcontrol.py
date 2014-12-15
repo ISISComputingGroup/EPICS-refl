@@ -1,7 +1,7 @@
-from channel_access import caget, caput
+from server_common.channel_access import caget, caput
 from config.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
 from time import sleep
-from utilities import print_and_log
+from server_common.utilities import print_and_log
 
 TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
 RC_PV = "CS:IOC:RUNCTRL_01:DEVIOS:SysReset"

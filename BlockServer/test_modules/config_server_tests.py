@@ -1,6 +1,5 @@
 import unittest
 import os
-import sqlite3
 import shutil
 import json
 from config_server import ConfigServerManager

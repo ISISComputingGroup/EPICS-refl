@@ -4,11 +4,10 @@ import os
 import json
 from threading import Thread, RLock
 from time import sleep
-from utilities import compress_and_hex, dehex_and_decompress
+from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log
 from gateway import Gateway
 from config_server import ConfigServerManager
-from utilities import print_and_log
-from channel_access_server import CAServer
+from server_common.channel_access_server import CAServer
 from inactive_config_server import InactiveConfigServer
 from macros import MACROS, BLOCKSERVER_PREFIX
 

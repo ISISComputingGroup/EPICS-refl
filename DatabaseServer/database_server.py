@@ -2,7 +2,7 @@ from pcaspy import Driver, SimpleServer
 import os
 from time import sleep
 import argparse
-from utilities import compress_and_hex, dehex_and_decompress, print_and_log
+from server_common.utilities import compress_and_hex, print_and_log
 from sqlite_wrapper import SqliteWrapper
 import json
 from threading import Thread, RLock

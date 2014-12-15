@@ -1,6 +1,6 @@
-from utilities import dehex_and_decompress
+from server_common.utilities import dehex_and_decompress
 import json
-from channel_access import caget
+from server_common.channel_access import caget
 
 
 class DatabaseServerClient(object):

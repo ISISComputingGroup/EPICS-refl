@@ -2,7 +2,7 @@ import os
 import re
 from shutil import copyfile
 from collections import OrderedDict
-from utilities import parse_xml_removing_namespace
+from server_common.utilities import parse_xml_removing_namespace
 
 from config.containers import Group
 from xml_converter import ConfigurationXmlConverter

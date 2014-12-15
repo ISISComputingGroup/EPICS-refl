@@ -1,7 +1,7 @@
 import sqlite3
 import os
 from threading import Thread, RLock
-from utilities import print_and_log
+from server_common.utilities import print_and_log
 
 
 class SqliteWrapper(object):

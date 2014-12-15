@@ -1,6 +1,7 @@
 import zlib
 import datetime
 import socket
+import re
 from xml.etree import ElementTree
 
 IOCLOG_HOST = "127.0.0.1"
@@ -25,7 +26,7 @@ def parse_boolean(string):
         raise ValueError(str(string) + ': Attribute must be "true" or "false"')
 
 
-def write_to_ioc_log(message, severity, src):
+def write_to_ioc_log(message, severity="INFO", src="BLOCKSVR"):
     msg_time = datetime.datetime.utcnow()
     msg_time_str = msg_time.isoformat()
     if msg_time.utcoffset() is None:
@@ -50,6 +51,25 @@ def write_to_ioc_log(message, severity, src):
         if sock is not None:
             sock.close()
 
+
+def print_and_log(message, severity="INFO", src="BLOCKSVR"):
+    print "%s: %s" % (severity, message)
+    write_to_ioc_log(message, severity, src)
+
+def value_list_to_xml(list, grp, group_tag, item_tag):
+    #Helper function to convert a list of values to XML
+    if len(list) > 0:
+        xml_list = ElementTree.SubElement(grp, group_tag)
+        for n, c in list.iteritems():
+            xml_item = ElementTree.SubElement(xml_list, item_tag)
+            xml_item.set("name", n)
+            for cn, cv in c.iteritems():
+                xml_item.set(str(cn), str(cv))
+
+
+def check_config_name_valid(name):
+    if re.match(r"[A-Za-z0-9_]*", name) is None:
+        raise Exception("Config contains invalid characters: " + name)
 
 def parse_xml_removing_namespace(file_path):
     it = ElementTree.iterparse(file_path)

@@ -1,8 +1,7 @@
 import unittest
 import os
-import json
 
-from config.configuration import Configuration, SubConfiguration
+from config.configuration import Configuration
 from config.configuration import GRP_NONE
 from config.containers import IOC
 from mocks.mock_configuration import MockConfigurationFileManager

@@ -6,7 +6,7 @@ from collections import OrderedDict
 from config.constants import GRP_NONE
 from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY
 from config.containers import Group
-from utilities import check_config_name_valid
+from server_common.utilities import check_config_name_valid
 from macros import PVPREFIX_MACRO
 
 

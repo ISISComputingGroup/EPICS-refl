@@ -1,5 +1,5 @@
-from channel_access import caget, caput
-from utilities import print_and_log
+from server_common.channel_access import caget, caput
+from server_common.utilities import print_and_log
 
 
 class Gateway(object):

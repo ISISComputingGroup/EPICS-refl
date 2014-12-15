@@ -2,7 +2,6 @@ import unittest
 import os
 
 from config.configuration import Configuration
-from config.configuration import GRP_NONE
 
 from mocks.mock_configuration import MockConfigurationFileManager
 from mocks.mock_configuration import MockConfigurationXmlConverter

@@ -5,7 +5,7 @@ import urllib2
 from subprocess import Popen
 import xml.etree.ElementTree as eTree
 from xml.dom import minidom
-from utilities import print_and_log
+from server_common.utilities import print_and_log
 
 
 class ArchiverManager(object):

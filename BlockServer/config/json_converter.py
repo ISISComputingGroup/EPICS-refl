@@ -1,7 +1,6 @@
 import json
 from collections import OrderedDict
 
-from containers import Group
 from constants import GRP_NONE
 
 

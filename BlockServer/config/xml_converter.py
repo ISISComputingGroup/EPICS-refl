@@ -1,6 +1,6 @@
 from xml.etree import ElementTree
 from xml.dom import minidom
-from utilities import *
+from server_common.utilities import *
 
 from containers import Group, Block, IOC
 from constants import *

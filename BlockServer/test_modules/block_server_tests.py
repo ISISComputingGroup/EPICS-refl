@@ -5,8 +5,8 @@ import json
 from time import sleep
 import xml.etree.ElementTree as eTree
 from collections import OrderedDict
-from channel_access import caget, caput
-from utilities import compress_and_hex, dehex_and_decompress
+from server_common.channel_access import caget, caput
+from server_common.utilities import compress_and_hex, dehex_and_decompress
 
 #This assumes the block_server is run using start_blockserver_for_tests.bat
 #and the command line is set up to use EPICS

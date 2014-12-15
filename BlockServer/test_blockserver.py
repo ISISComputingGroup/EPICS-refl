@@ -9,7 +9,7 @@ from test_modules.configuration_json_tests import TestConfigurationJsonConverter
 from test_modules.container_tests import TestContainersSequence
 from test_modules.config_holder_tests import TestConfigHolderSequence
 
-DEFAULT_DIRECTORY = '..\\..\\test-reports'
+DEFAULT_DIRECTORY = '..\\..\\..\\test-reports'
 
 if __name__ == '__main__':
     # get output directory from command line arguments

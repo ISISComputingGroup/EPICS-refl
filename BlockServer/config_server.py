@@ -5,7 +5,7 @@ from config.constants import AUTOSAVE_NAME, IOCS_NOT_TO_STOP, RUNCONTROL_IOC, RU
     COMPONENT_DIRECTORY
 from procserv_utils import ProcServWrapper
 from runcontrol import RunControlManager
-from utilities import print_and_log
+from server_common.utilities import print_and_log
 from config.json_converter import ConfigurationJsonConverter
 from config_holder import ConfigHolder
 from database_server_client import DatabaseServerClient
