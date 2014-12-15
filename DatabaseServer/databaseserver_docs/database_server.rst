@@ -107,3 +107,16 @@ Read Commands
             ["IN:DEMO:SIMPLE:VALUE2", "ai", "Another description", "SIMPLE"]
          ]'
 
+**BLOCKSERVER:INTERESTING_PVS:*ioc*:*level***
+
+::
+
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:INTERESTING_PVS:*ioc*:*level*
+    Gets the details for PVs within the ioc *ioc* and with an interest level of *level*.
+    Returns a compressed and hexed JSON list of interesting PVs.
+    Example JSON (dehexed and decompressed):
+        '[
+            ["IN:DEMO:SIMPLE:VALUE1", "ai", "A description", "SIMPLE"],
+            ["IN:DEMO:SIMPLE:VALUE2", "ai", "Another description", "SIMPLE"]
+         ]'
+		 
