@@ -99,3 +99,14 @@ class IOC(object):
                 'simlevel': self.simlevel, 'pvs': self.dict_to_list(self.pvs),
                 'pvsets': self.dict_to_list(self.pvsets), 'macros': self.dict_to_list(self.macros),
                 'subconfig': self.subconfig}
+
+class MetaData(object):
+    """Represents the metadata from a config"""
+
+    def __init__(self, config_name, pv_name="", description=""):
+        self.name = config_name
+        self.pv = pv_name
+        self.description = description
+
+    def to_dict(self):
+        return {'name': self.name, 'pv': self.pv, 'description': self.description}

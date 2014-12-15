@@ -15,6 +15,8 @@ BLOCK_SCHEMA = "blocks/1.0"
 GROUP_SCHEMA = "groups/1.0"
 COMPONENT_SCHEMA = "components/1.0"
 
+TAG_META = "meta"
+TAG_DESC = "description"
 
 class ConfigurationXmlConverter(object):
     """Converts configuration data to and from XML"""
@@ -68,6 +70,19 @@ class ConfigurationXmlConverter(object):
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, sub in subconfigs.iteritems():
             ConfigurationXmlConverter._subconfig_to_xml(root, name)
+        return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
+
+    @staticmethod
+    def meta_to_xml(data):
+        """Generates an XML representation of the meta data for each config"""
+        root = ElementTree.Element(TAG_META)
+
+        desc_xml = ElementTree.SubElement(root, TAG_DESC)
+        desc_xml.text = data.description
+
+        pv_xml = ElementTree.SubElement(root, TAG_PV)
+        pv_xml.text = data.pv
+
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
     @staticmethod
@@ -269,6 +284,15 @@ class ConfigurationXmlConverter(object):
             n = i.attrib[TAG_NAME]
             if n is not None and n != "":
                 subconfigs[n.lower()] = None
+
+    @staticmethod
+    def meta_from_xml(root_xml, data):
+        """Populates the supplied MetaData object based on an XML tree"""
+        description = root_xml.find("./" + TAG_DESC).text
+        pv = root_xml.find("./" + TAG_PV).text
+
+        data.description = description
+        data.pv = pv
 
     @staticmethod
     def _replace_macros(name):

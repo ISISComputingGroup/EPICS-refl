@@ -4,7 +4,7 @@ import unittest
 from xml.etree import ElementTree
 from collections import OrderedDict
 
-from config.containers import Group, Block, IOC
+from config.containers import Group, Block, IOC, MetaData
 from config.xml_converter import ConfigurationXmlConverter
 
 
@@ -80,6 +80,13 @@ IOCS_XML = u"""
     </ioc>
 </iocs>"""
 
+META_XML = u"""<?xml version="1.0" ?>
+<meta>
+<description>A test description</description>
+<pv>TEST_PV</pv>
+</meta>
+"""
+
 CONFIG_XML = u"""<?xml version="1.0" ?>
 <ioc_configs>
 	<ioc_config name="TESTIOC1">
@@ -153,6 +160,9 @@ def make_iocs():
         iocs["TESTIOC" + str(i)].pvsets["TESTIOC" + str(i) + "PVSET"] = {"enabled": True}
     return iocs
 
+def make_meta():
+    meta = MetaData('Test', 'TEST_PV', 'A test description')
+    return meta
 
 class TestConfigurationXmlConverterSequence(unittest.TestCase):
     def setUp(self):
@@ -198,6 +208,18 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
 
         #assert
         self.assertEqual(iocs_xml.strip(), IOCS_XML.strip())
+
+    def test_meta_to_xml_converts_correctly(self):
+        # arrange
+        xc = self.xml_converter
+        meta = make_meta()
+
+        #act
+        meta_xml = xc.meta_to_xml(meta)
+        meta_xml = strip_out_whitespace(meta_xml)
+
+        #assert
+        self.assertEqual(meta_xml.strip(), META_XML.strip())
 
     def test_xml_to_blocks_converts_correctly(self):
         # arrange
@@ -289,3 +311,18 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
             for pn, v in ioc.pvsets.iteritems():
                 self.assertEqual(pn, n + "PVSET")
                 self.assertTrue(v)
+
+    def test_xml_to_meta_converts_correctly(self):
+        #arrange
+        xc = self.xml_converter
+        root_xml = ElementTree.fromstring(META_XML)
+        meta = MetaData('Test')
+
+        #act
+        xc.meta_from_xml(root_xml, meta)
+        expected_meta = make_meta()
+
+        #assert
+        self.assertEqual(meta.name, expected_meta.name)
+        self.assertEqual(meta.pv, expected_meta.pv)
+        self.assertEqual(meta.description, expected_meta.description)
