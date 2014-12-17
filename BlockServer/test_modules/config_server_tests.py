@@ -298,6 +298,11 @@ class TestConfigServerSequence(unittest.TestCase):
         cs.save_as_subconfig(json.dumps("TEST_CONFIG3"))
         confs = json.loads(cs.get_subconfigs_json())
         self.assertEqual(len(confs), 3)
+        for conf in confs:
+            self.assertEqual(len(conf), 3)
+            self.assertTrue("name" in conf)
+            self.assertTrue("pv" in conf)
+            self.assertTrue("description" in conf)
         self.assertTrue("TEST_CONFIG1" in [conf.get('name') for conf in confs])
         self.assertTrue("TEST_CONFIG2" in [conf.get('name') for conf in confs])
         self.assertTrue("TEST_CONFIG3" in [conf.get('name') for conf in confs])

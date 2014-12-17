@@ -17,6 +17,7 @@ def create_dummy_config():
     config.add_block("TESTBLOCK4", "PV4", "NONE", False)
     config.add_ioc("SIMPLE1")
     config.add_ioc("SIMPLE2")
+    config.set_name("DUMMY")
     return config
 
 
@@ -34,6 +35,11 @@ class TestConfigHolderSequence(unittest.TestCase):
         path = os.path.abspath(CONFIG_PATH)
         if os.path.isdir(path):
             shutil.rmtree(path)
+
+    def test_dummy_name(self):
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+
+        self.assertEqual(ch.get_config_name(), "DUMMY")
 
     def test_dummy_config_blocks(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
@@ -165,6 +171,16 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(subs), 0)
 
     def test_dummy_config_components_add_subconfig(self):
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+
+        sub = create_dummy_subconfig()
+        ch.add_subconfig("TESTSUBCONFIG", sub)
+
+        subs = ch.get_component_names()
+        self.assertEqual(len(subs), 1)
+        self.assertTrue("TESTSUBCONFIG".lower() in subs)
+
+    def test_dummy_config_components_add_remove_subconfig(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
 
         sub = create_dummy_subconfig()
@@ -303,11 +319,14 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(details['groups']), 0)
         self.assertEqual(len(details['iocs']), 0)
         self.assertEqual(len(details['components']), 0)
+        self.assertEqual(details['name'], "")
+        self.assertEqual(details['description'], "")
 
     def test_get_config_details(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
         details = ch.get_config_details()
 
+        self.assertEqual(details["name"], "DUMMY")
         self.assertEqual(len(details['blocks']), 4)
         blks = [x['name'] for x in details['blocks']]
         self.assertTrue("TESTBLOCK1" in blks)
@@ -526,7 +545,8 @@ class TestConfigHolderSequence(unittest.TestCase):
                            [{"blocks": ["TESTBLOCK1"], "name": "Group1", "subconfig": None},
                             {"blocks": ["TESTBLOCK2"], "name": "Group2", "subconfig": None},
                             {"blocks": ["TESTBLOCK3"], "name": "NONE", "subconfig": None}],
-                       "name": "TESTCONFIG"
+                       "name": "TESTCONFIG",
+                       "description": "Test Description"
         }
         ch.set_config_details_from_json(new_details)
         details = ch.get_config_details()
@@ -550,6 +570,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(details['components'][0]['name'], "TESTSUBCONFIG")
 
         self.assertEqual(details['name'], "TESTCONFIG")
+        self.assertEqual(details['description'], "Test Description")
 
     def test_set_config_details_nonexistant_block_in_group_is_removed(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
@@ -659,7 +680,8 @@ class TestConfigHolderSequence(unittest.TestCase):
                        "blocks": [],
                        "components": [],
                        "groups": [],
-                       "name": "EMPTYCONFIG"
+                       "name": "EMPTYCONFIG",
+                       "description": ""
         }
         ch.set_config_details_from_json(new_details)
 
@@ -669,6 +691,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(details['blocks']), 0)
         self.assertEqual(len(details['components']), 0)
         self.assertEqual(len(details['groups']), 0)
+        self.assertEqual(details['description'], "")
         self.assertEqual(details['name'], "EMPTYCONFIG")
 
 
