@@ -59,7 +59,7 @@ class ConfigHolder(object):
 
         if name.lower() not in self._components:
             # Add it
-            component.name = name
+            component.set_name(name)
             self._components[name.lower()] = component
             self._config.subconfigs[name.lower()] = None  # Does not need to actual hold anything
         else:
@@ -150,11 +150,11 @@ class ConfigHolder(object):
         self._config.groups[GRP_NONE.lower()].blocks = homeless_blocks
 
     def get_config_name(self):
-        return self._config.name
+        return self._config.get_name()
 
     def set_config_name(self, name):
         check_config_name_valid(name)
-        self._config.name = name
+        self._config.set_name(name)
 
     def get_ioc_names(self):
         iocs = self._config.iocs.keys()
@@ -230,7 +230,8 @@ class ConfigHolder(object):
             config['iocs'] = self._iocs_to_list()
             # Just return the names of the components
             config['components'] = self._comps_to_list()
-            config['name'] = self._config.name
+            config['name'] = self._config.get_name()
+            config['description'] = self._config.meta.description
         else:
             # TODO: This!
             pass
@@ -239,7 +240,7 @@ class ConfigHolder(object):
     def _comps_to_list(self):
         comps = list()
         for cn, cv in self._components.iteritems():
-            comps.append({'name': cv.name})
+            comps.append({'name': cv.get_name()})
         return comps
 
     def _blocks_to_list(self, expand_macro=False):
@@ -310,6 +311,8 @@ class ConfigHolder(object):
                     self.set_group_details(details['groups'])
             if "name" in details:
                 self.set_config_name(details["name"])
+            if "description" in details:
+                self._config.meta.description = details["description"]
             if "components" in details:
                 # List of dicts
                 for args in details["components"]:
@@ -375,12 +378,11 @@ class ConfigHolder(object):
             return self._filemanager.load_config(path, name, self._macros)
 
     def save_config(self, name):
-        check_config_name_valid(name)
         if self._is_subconfig:
-            self._config.name = name
+            self.set_config_name(name)
             self._filemanager.save_config(self._config, self._component_path, name)
         else:
-            self._config.name = name
+            self.set_config_name(name)
             self._filemanager.save_config(self._config, self._config_path, name)
 
     def update_runcontrol_settings_for_saving(self, rc_data):

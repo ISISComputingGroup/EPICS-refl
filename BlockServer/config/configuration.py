@@ -1,7 +1,7 @@
 """Contains all the code for creating a configuration"""
 from collections import OrderedDict
 
-from config.containers import Group, Block, IOC
+from config.containers import Group, Block, IOC, MetaData
 from config.constants import GRP_NONE
 from macros import PVPREFIX_MACRO
 
@@ -15,7 +15,7 @@ class Configuration(object):
         self.macros = macros
         self.groups = OrderedDict()
         self.iocs = OrderedDict()
-        self.name = ""
+        self.meta = MetaData("")
         self.subconfigs = OrderedDict()
         self.is_component = False
 
@@ -106,5 +106,11 @@ class Configuration(object):
                     blk.rc_enabled = rc_data[blk.name]['ENABLE']
                     blk.rc_lowlimit = rc_data[blk.name]['LOW']
                     blk.rc_highlimit = rc_data[blk.name]['HIGH']
+
+    def get_name(self):
+        return self.meta.name
+
+    def set_name(self, name):
+        self.meta.name = name
 
 

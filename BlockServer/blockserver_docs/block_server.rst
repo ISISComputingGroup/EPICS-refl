@@ -94,14 +94,21 @@ Read Commands
 ::
 
     Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:CONFIGS
-    Returns a list of the available configurations as compressed then hexed JSON (CHAR waveform)
-
+    Returns a list of the available configurations, including descriptions and the pv associated with the configuration, as compressed then hexed JSON (CHAR waveform)
+	Example JSON (dehexed and decompressed):
+		'[{"name": "Test Config", "description": "A test configuration", "pv": "TEST_CONFIG"}
+		  {"name": "Another Config", "description": "To test again", "pv": "ANOTHER_CONFIG"}
+		  {"name": "TeSt CoNfIg", "description": "This config has the same name", "pv": "TEST_CONFIG1"}]'
+	
 **BLOCKSERVER:COMPS**
 
 ::
 
     Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:COMPS
-    Returns a list of the components available as compressed then hexed JSON (CHAR waveform)
+    Returns a list of the components available, including descriptions and the pv associated with the configuration, as compressed then hexed JSON (CHAR waveform)
+		'[{"name": "Test Subconfig", "description": "A test component", "pv": "TEST_SUBCONFIG"}
+		  {"name": "Another Subconfig", "description": "To test again", "pv": "ANOTHER_SUBCONFIG"}
+		  {"name": "TeSt SuBCoNfIg", "description": "This component has the same name", "pv": "TEST_SUBCONFIG1"}]'
 
 **BLOCKSERVER:CONFIG_COMPS**
 
@@ -147,6 +154,7 @@ Read Commands
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}]
           "name": "TESTCONFIG1"
+		  "description": "A test configuration"
          }'
 
 **BLOCKSERVER:*config_name*:GET_CONFIG_DETAILS**
@@ -172,6 +180,7 @@ Read Commands
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}]
           "name": "TESTCONFIG1"
+		  "description": "A test configuration"
          }'	
 		 
 **BLOCKSERVER:*component_name*:GET_COMPONENT_DETAILS**
@@ -195,6 +204,7 @@ Read Commands
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}]
           "name": "TESTCONFIG1"
+		  "description": "A test configuration"
          }'	
 		 
 		 
@@ -433,6 +443,7 @@ Write Commands
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}]
           "name": "TESTCONFIG1"
+		  "description": "A test configuration"
          }'
 
 **BLOCKSERVER:SAVE_NEW_CONFIG**
@@ -460,5 +471,6 @@ Write Commands
 					{"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
 					{"blocks": ["testblock3"], "name": "NONE", "subconfig": null}]
 		  "name": "TESTCONFIG1"
+		  "description": "A test configuration"
 		 }'
 

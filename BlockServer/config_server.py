@@ -10,6 +10,7 @@ from config.json_converter import ConfigurationJsonConverter
 from config_holder import ConfigHolder
 from database_server_client import DatabaseServerClient
 from macros import BLOCKSERVER_PREFIX
+from config.file_manager import ConfigurationFileManager
 
 
 class ConfigServerManager(object):
@@ -232,26 +233,41 @@ class ConfigServerManager(object):
     def get_config_folder(self):
         return self._config_folder
 
-    def get_configs(self):
+    def get_config_metas(self):
         config_folder = os.path.abspath(self._conf_path)
         configs = []
         if os.path.isdir(config_folder):
-            configs = [f for f in os.listdir(config_folder) if os.path.isdir(os.path.join(config_folder, f))]
+            #TODO: this is inefficient, better to only load the ones that may have changed
+            configs = [ConfigurationFileManager.load_meta_data(config_folder, f) for f in os.listdir(config_folder)
+                       if os.path.isdir(os.path.join(config_folder, f))]
         return configs
 
-    def get_configs_json(self):
-        return json.dumps(self.get_configs()).encode('ascii', 'replace')
+    def get_config_names(self):
+        return [conf.name for conf in self.get_config_metas()]
 
-    def get_subconfigs(self):
+    def get_configs_json(self):
+        configs_string = list()
+        for config in self.get_config_metas():
+            configs_string.append(config.to_dict())
+        return json.dumps(configs_string).encode('ascii', 'replace')
+
+    def get_subconfig_metas(self):
         """Returns a list of the available sub-configurations"""
         config_folder = os.path.abspath(self._comp_path)
         configs = []
         if os.path.isdir(config_folder):
-            configs = [f for f in os.listdir(config_folder) if os.path.isdir(os.path.join(config_folder, f))]
+            configs = [ConfigurationFileManager.load_meta_data(config_folder, f) for f in os.listdir(config_folder)
+                       if os.path.isdir(os.path.join(config_folder, f))]
         return configs
 
     def get_subconfigs_json(self):
-        return json.dumps(self.get_subconfigs()).encode('ascii', 'replace')
+        configs_string = list()
+        for config in self.get_subconfig_metas():
+            configs_string.append(config.to_dict())
+        return json.dumps(configs_string).encode('ascii', 'replace')
+
+    def get_subconfig_names(self):
+        return [conf.name for conf in self.get_subconfig_metas()]
 
     def get_block_prefix_json(self):
         return json.dumps(self._macros["$(MYPVPREFIX)"] + self._block_prefix).encode('ascii', 'replace')

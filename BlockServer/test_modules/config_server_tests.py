@@ -197,9 +197,9 @@ class TestConfigServerSequence(unittest.TestCase):
         cs.save_config(json.dumps("TEST_CONFIG3"))
         confs = json.loads(cs.get_configs_json())
         self.assertEqual(len(confs), 3)
-        self.assertTrue("TEST_CONFIG1" in confs)
-        self.assertTrue("TEST_CONFIG2" in confs)
-        self.assertTrue("TEST_CONFIG3" in confs)
+        self.assertTrue("TEST_CONFIG1" in [conf.get('name') for conf in confs])
+        self.assertTrue("TEST_CONFIG2" in [conf.get('name') for conf in confs])
+        self.assertTrue("TEST_CONFIG3" in [conf.get('name') for conf in confs])
 
     def test_get_block_prefix(self):
         cs = self.configserver
@@ -298,9 +298,9 @@ class TestConfigServerSequence(unittest.TestCase):
         cs.save_as_subconfig(json.dumps("TEST_CONFIG3"))
         confs = json.loads(cs.get_subconfigs_json())
         self.assertEqual(len(confs), 3)
-        self.assertTrue("TEST_CONFIG1" in confs)
-        self.assertTrue("TEST_CONFIG2" in confs)
-        self.assertTrue("TEST_CONFIG3" in confs)
+        self.assertTrue("TEST_CONFIG1" in [conf.get('name') for conf in confs])
+        self.assertTrue("TEST_CONFIG2" in [conf.get('name') for conf in confs])
+        self.assertTrue("TEST_CONFIG3" in [conf.get('name') for conf in confs])
 
     def test_dump_status(self):
         cs = self.configserver

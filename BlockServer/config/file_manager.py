@@ -8,13 +8,13 @@ from config.containers import Group
 from xml_converter import ConfigurationXmlConverter
 
 from config.constants import GRP_NONE, AUTOSAVE_NAME
-from config.configuration import Configuration
+from config.configuration import Configuration, MetaData
 
 FILENAME_BLOCKS = "blocks.xml"
 FILENAME_GROUPS = "groups.xml"
 FILENAME_IOCS = "iocs.xml"
 FILENAME_SUBCONFIGS = "components.xml"
-
+FILENAME_META = "meta.xml"
 
 class ConfigurationFileManager(object):
     """Saves and loads configuration data from file"""
@@ -60,12 +60,15 @@ class ConfigurationFileManager(object):
             root = parse_xml_removing_namespace(subconfig_path)
             ConfigurationXmlConverter.subconfigs_from_xml(root, subconfigs)
 
+        #Import the metadata
+        meta = ConfigurationFileManager.load_meta_data(root_path, config_name)
+
         # Set properties in the config
         configuration.blocks = blocks
         configuration.groups = groups
         configuration.iocs = iocs
         configuration.subconfigs = subconfigs
-        configuration.name = config_name.replace("\\", "")
+        configuration.meta = meta
         return configuration
 
 
@@ -88,6 +91,7 @@ class ConfigurationFileManager(object):
         blocks_xml = ConfigurationXmlConverter.blocks_to_xml(configuration.blocks, configuration.macros)
         groups_xml = ConfigurationXmlConverter.groups_to_xml(configuration.groups)
         iocs_xml = ConfigurationXmlConverter.iocs_to_xml(configuration.iocs)
+        meta_xml = ConfigurationXmlConverter.meta_to_xml(configuration.meta)
         try:
             subconfigs_xml = ConfigurationXmlConverter.subconfigs_to_xml(configuration.subconfigs)
         except:
@@ -110,6 +114,10 @@ class ConfigurationFileManager(object):
         #Save subconfigs
         with open(path + '/' + FILENAME_SUBCONFIGS, 'w') as f:
             f.write(subconfigs_xml)
+
+        #Save meta
+        with open(path + '/' + FILENAME_META, 'w') as f:
+            f.write(meta_xml)
 
     @staticmethod
     def backup_old_config_file(path, name):
@@ -134,3 +142,12 @@ class ConfigurationFileManager(object):
         print root_path
         if not os.path.isdir(root_path + '/' + name):
             raise Exception("Subconfig does not exist")
+
+    @staticmethod
+    def load_meta_data(root_path, config_name):
+        meta = MetaData(config_name)
+        meta_path = os.path.abspath(root_path) + "\\" + config_name + '/' + FILENAME_META
+        if os.path.isfile(meta_path):
+            root = parse_xml_removing_namespace(meta_path)
+            ConfigurationXmlConverter.meta_from_xml(root, meta)
+        return meta

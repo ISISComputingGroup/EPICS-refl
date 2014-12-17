@@ -573,10 +573,10 @@ class BlockServer(Driver):
 
     def create_config_pvs(self):
         # Creates the pvs to get data on other available configs+components
-        for config in self._configserver.get_configs():
+        for config in self._configserver.get_config_names():
             #TODO: it may be better to load file only when asked for but harder from a software structure POV
             self.update_config_pv(config)
-        for comp in self._configserver.get_subconfigs():
+        for comp in self._configserver.get_subconfig_names():
             self.update_comp_pv(comp)
 
     def update_config_pv(self, config):

@@ -288,11 +288,13 @@ class ConfigurationXmlConverter(object):
     @staticmethod
     def meta_from_xml(root_xml, data):
         """Populates the supplied MetaData object based on an XML tree"""
-        description = root_xml.find("./" + TAG_DESC).text
-        pv = root_xml.find("./" + TAG_PV).text
+        description = root_xml.find("./" + TAG_DESC)
+        if description is not None:
+            data.description = description.text
 
-        data.description = description
-        data.pv = pv
+        pv = root_xml.find("./" + TAG_PV)
+        if pv is not None:
+            data.pv = pv.text
 
     @staticmethod
     def _replace_macros(name):
