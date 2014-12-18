@@ -17,7 +17,8 @@ class Block(object):
 
     def _get_pv(self):
         pv_name = self.pv
-        if self.local:
+        # Check starts with as may have already been provided
+        if self.local and not pv_name.startswith(PVPREFIX_MACRO):
             pv_name = PVPREFIX_MACRO + self.pv
         return pv_name
 

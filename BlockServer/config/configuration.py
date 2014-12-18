@@ -27,7 +27,7 @@ class Configuration(object):
 
         if local:
             # Strip off the MYPVPREFIX in the PV name (not the block name!)
-            read_pv = pv.replace(self.macros[PVPREFIX_MACRO], "")
+            pv = pv.replace(self.macros[PVPREFIX_MACRO], "")
         self.blocks[name.lower()] = Block(name, pv, local, **kwargs)
 
         if not group is None:
