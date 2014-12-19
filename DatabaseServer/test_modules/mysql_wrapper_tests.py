@@ -11,79 +11,59 @@ SAMPLE_PVS = ["PARS:SAMPLE:AOI", "PARS:SAMPLE:GEOMETRY", "PARS:SAMPLE:WIDTH"]
 
 
 def generate_fake_db(iocdb):
-    cnx = mysql.connector.connect(user="root", password="isis@instdb99", host="127.0.0.1")
+    import sys
+    import shutil
+    import os
+    import fileinput
+    #create the schema file
+    schemapath = os.path.join(os.environ['EPICS_KIT_ROOT'],'iocstartup\\iocdb_mysql_schema.txt')
+    testpath = os.path.join(os.environ['EPICS_KIT_ROOT'],'iocstartup\\test_iocdb_mysql_schema.txt')
+    schemafile = open(schemapath, 'r')
+    testfile = open(testpath, 'w')
+    for line in schemafile:
+        if not line.isspace():
+            if line[:3] == "-- " or line[0] == "#":
+                pass
+            else:
+                testfile.write(line.replace('iocdb',iocdb))
+    schemafile.close()
+    testfile.close()
+    sqlpath = os.environ['MYSQL']
+    # command = "%s --user=isis_test --password=isis@test99 < %s" % (sqlpath,testpath)
+    # command = command.replace('\\','\\\\')
+    # print command
+    # os.system(command)
+    #Note that the account below is the test account, and is only available on localhost
+    cnx = mysql.connector.connect(user="isis_test", password="isis@test99", host="localhost")
     cursor = cnx.cursor()
-    #create the user and the database
-    sql = []
-    sql.append("GRANT SELECT,UPDATE ON %s.* TO test@localhost IDENTIFIED BY '$test'" % iocdb)
-    sql.append("GRANT SELECT,UPDATE ON %s.* TO test@'%%' IDENTIFIED BY '$test'" % iocdb)
-    sql.append("FLUSH PRIVILEGES")
-    sql.append("DROP DATABASE IF EXISTS %s" % iocdb)
-    sql.append("CREATE DATABASE %s" % iocdb)
-    for line in sql:
-        cursor.execute(line)
+    # sqlpath = testpath.replace(os.path.sep, '\\\\')
+    # sql = "source %s" % sqlpath
+    testfile = open(testpath, 'r')
+    # for line in testfile:
+    #     print line
+    #     cursor.execute(line, multi=True)
+    # sql = " ".join(testfile.readlines())
+    sql = testfile.read()
+    #sql = "".join(testfile.readlines())
+    #print sql
+    # try:
+    #     cursor.execute(sql)
+    # except mysql.connector.Error as err:
+    #     print "************"
+    #     print err.errno
+    #     if err.errno != -1:
+    #         print "This is not the error you are looking for"
+    #     pass
+    for result in cursor.execute(sql,multi = True):
+        pass
+    cnx.commit()
     cursor.close()
-    cnx.close
+    cnx.disconnect()
     #Move the connection to the appropriate database for ease of table creation
-    cnx = mysql.connector.connect(user="test", password="$test", host="127.0.0.1", database = iocdb)
+    cnx = mysql.connector.connect(user=iocdb, password="$" + iocdb, host="127.0.0.1", database = iocdb)
     cursor = cnx.cursor()
-    #Drop, create and fill the tables
-    sql = []
-    sql.append("DROP TABLE IF EXISTS iocs")
-    sql.append("DROP TABLE IF EXISTS pvs")
-    sql.append("DROP TABLE IF EXISTS pvinfo")
-    sql.append("DROP TABLE IF EXISTS iocrt")
-    sql.append(
-        """
-        CREATE TABLE IF NOT EXISTS iocs (
-            iocname VARCHAR(100) PRIMARY KEY NOT NULL COMMENT 'IOC Name',
-	        dir VARCHAR(100) COMMENT 'IOC boot directory',
-	        consoleport INT COMMENT 'procServ console port',
-	        logport INT COMMENT 'procServ read-only log port',
-	        exe VARCHAR(100) COMMENT 'procServ file to execute',
-	        cmd VARCHAR(100) COMMENT 'procServ command argument',
-	        UNIQUE(consoleport),
-	        UNIQUE(logport)
-        )
-        """
-    )
-    sql.append(
-        """
-        CREATE TABLE IF NOT EXISTS pvs(
-            pvname VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_bin PRIMARY KEY NOT NULL,
-	        record_type VARCHAR(100),
-	        record_desc VARCHAR(100),
-	        iocname VARCHAR(100) NOT NULL,
-	        FOREIGN KEY(iocname) REFERENCES iocs(iocname) ON DELETE CASCADE ON UPDATE CASCADE
-	    )
-	    """
-    )
-    sql.append(
-        """
-        CREATE TABLE IF NOT EXISTS pvinfo(
-            pvname VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-	        infoname VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL COMMENT 'DB info field name',
-	        value VARCHAR(100),
-	        FOREIGN KEY(pvname) REFERENCES pvs(pvname) ON DELETE CASCADE ON UPDATE CASCADE,
-	        PRIMARY KEY(pvname, infoname)
-        )
-        """
-    )
-    sql.append(
-        """
-        CREATE TABLE IF NOT EXISTS iocrt(
-            iocname VARCHAR(100) PRIMARY KEY NOT NULL,
-	        pid INT COMMENT 'IOC process id',
-	        start_time TIMESTAMP COMMENT 'Time IOC last started',
-	        stop_time TIMESTAMP COMMENT 'Time IOC last stopped',
-	        running INT COMMENT '1 if running, 0 if stopped',
-	        exe_path VARCHAR(100) COMMENT 'path to IOC executable',
-	        FOREIGN KEY(iocname) REFERENCES iocs(iocname) ON DELETE CASCADE ON UPDATE CASCADE
-        )
-        """
-    )
-    for line in sql:
-        cursor.execute(line)
+
+    #Populate the tables for testing
     sql = []
     count = 0
     for iocname in ['SIMPLE1', "SIMPLE2", "TESTIOC"]:
@@ -117,7 +97,7 @@ def generate_fake_db(iocdb):
         cursor.execute(line)
     cnx.commit()
     cursor.close()
-    cnx.close
+    cnx.disconnect()
 
 generate_fake_db(TEST_DB)
 
