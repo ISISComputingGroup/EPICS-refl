@@ -1,20 +1,20 @@
-from pcaspy import Driver
+from pcaspy import Driver, SimpleServer
 import os
 from time import sleep
 import argparse
 from server_common.utilities import compress_and_hex, print_and_log
-from sqlite_wrapper import SqliteWrapper
+#TODO update the database wrapper, and rename to avoid database reference in code
+#from sqlite_wrapper import SqliteWrapper as dbwrap
+from mysql_wrapper import MySQLWrapper as dbwrap
 import json
 from threading import Thread, RLock
 from procserv_utils import ProcServWrapper
 from options_holder import OptionsHolder
 from options_loader import OptionsLoader
-from server_common.channel_access_server import CAServer
 
-IOCDB = 'iocs.sq3'
+#IOCDB = 'iocs.sq3'
+IOCDB = 'iocdb'
 IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
-
-INTEREST_LEVELS = ['HIGH', 'MEDIUM', 'LOW']
 
 MACROS = {
     "$(MYPVPREFIX)": os.environ['MYPVPREFIX'],
@@ -52,14 +52,13 @@ PVDB = {
 
 
 class DatabaseServer(Driver):
-    def __init__(self, db_file, options_folder, ca_server):
+    def __init__(self, dbid, options_folder):
         super(DatabaseServer, self).__init__()
         self._options_holder = OptionsHolder(options_folder, OptionsLoader())
-        self._ca_server = ca_server
 
         # Initialise database connection
         try:
-            self._db = SqliteWrapper(MACROS["$(EPICS_KIT_ROOT)"] + db_file, ProcServWrapper(), MACROS["$(MYPVPREFIX)"])
+            self._db = dbwrap(dbid, ProcServWrapper(), MACROS["$(MYPVPREFIX)"])
             self._db.check_db_okay()
             print_and_log("Connected to database", "INFO", "DBSVR")
         except Exception as err:
@@ -72,12 +71,6 @@ class DatabaseServer(Driver):
             monitor_thread = Thread(target=self.update_ioc_monitors, args=())
             monitor_thread.daemon = True  # Daemonise thread
             monitor_thread.start()
-
-        # Create PVs to list interesting IOC PVs
-        try:
-            self.create_interest_pvs()
-        except Exception as err:
-            print_and_log("Could not create PVs: " + str(err), "ERROR")
 
     def read(self, reason):
         # This is called by CA
@@ -111,7 +104,6 @@ class DatabaseServer(Driver):
                 # Update them
                 with self.monitor_lock:
                     self.updatePVs()
-                    self.create_interest_pvs()
             sleep(1)
 
     def encode4return(self, data):
@@ -143,19 +135,6 @@ class DatabaseServer(Driver):
         else:
             return list()
 
-    def create_interest_pvs(self):
-        for ioc in self._db.get_iocs().keys():
-            for level in INTEREST_LEVELS:
-                self.update_interest_pv(level, ioc)
-
-    def update_interest_pv(self, level, ioc):
-        # Updates pvs with new data (creates them if not already made)
-        if level not in INTEREST_LEVELS:
-            raise Exception("Interest level not recognised: " + level)
-
-        pv_list = self.encode4return(self._get_interesting_pvs(level, ioc))
-        self._ca_server.updatePV("INTERESTING_PVS:" + ioc + ":" + level, pv_list)
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -179,9 +158,9 @@ if __name__ == '__main__':
         # Create it then
         os.makedirs(os.path.abspath(OPTIONS_DIR))
 
-    SERVER = CAServer(BLOCKSERVER_PREFIX)
+    SERVER = SimpleServer()
     SERVER.createPV(BLOCKSERVER_PREFIX, PVDB)
-    DRIVER = DatabaseServer(IOCDB, OPTIONS_DIR, SERVER)
+    DRIVER = DatabaseServer(IOCDB, OPTIONS_DIR)
 
     # Process CA transactions
     while True:
