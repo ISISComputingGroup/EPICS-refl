@@ -29,7 +29,7 @@ def generate_fake_db(iocdb):
     schemafile.close()
     testfile.close()
     #Note that the account below is the test account, and is only available on localhost
-    cnx = mysql.connector.connect(user="isis_test", password="isis@test99", host="localhost")
+    cnx = mysql.connector.connect(user="isis_test", password="test@isis99", host="localhost")
     cursor = cnx.cursor()
     testfile = open(testpath, 'r')
     sql = testfile.read()
