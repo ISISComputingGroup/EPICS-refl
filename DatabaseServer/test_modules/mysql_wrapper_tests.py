@@ -28,32 +28,11 @@ def generate_fake_db(iocdb):
                 testfile.write(line.replace('iocdb',iocdb))
     schemafile.close()
     testfile.close()
-    sqlpath = os.environ['MYSQL']
-    # command = "%s --user=isis_test --password=isis@test99 < %s" % (sqlpath,testpath)
-    # command = command.replace('\\','\\\\')
-    # print command
-    # os.system(command)
     #Note that the account below is the test account, and is only available on localhost
     cnx = mysql.connector.connect(user="isis_test", password="isis@test99", host="localhost")
     cursor = cnx.cursor()
-    # sqlpath = testpath.replace(os.path.sep, '\\\\')
-    # sql = "source %s" % sqlpath
     testfile = open(testpath, 'r')
-    # for line in testfile:
-    #     print line
-    #     cursor.execute(line, multi=True)
-    # sql = " ".join(testfile.readlines())
     sql = testfile.read()
-    #sql = "".join(testfile.readlines())
-    #print sql
-    # try:
-    #     cursor.execute(sql)
-    # except mysql.connector.Error as err:
-    #     print "************"
-    #     print err.errno
-    #     if err.errno != -1:
-    #         print "This is not the error you are looking for"
-    #     pass
     for result in cursor.execute(sql,multi = True):
         pass
     cnx.commit()
@@ -62,7 +41,6 @@ def generate_fake_db(iocdb):
     #Move the connection to the appropriate database for ease of table creation
     cnx = mysql.connector.connect(user=iocdb, password="$" + iocdb, host="127.0.0.1", database = iocdb)
     cursor = cnx.cursor()
-
     #Populate the tables for testing
     sql = []
     count = 0
@@ -85,7 +63,6 @@ def generate_fake_db(iocdb):
             sql.append("""INSERT INTO `%s`.`pvs` (`pvname`, `record_type`, `record_desc`, `iocname`) VALUES ('%s','%s','%s','%s')""" % (iocdb, pv, 'ai', 'Fake procserv pv for testing', iocname))
     # Add sample and beamline parameters
     sql.append("""INSERT INTO `%s`.`iocs` (`iocname`, `dir`, `consoleport`, `logport`, `exe`, `cmd`) VALUES ('%s','%s','%s','%s','%s','%s')""" % (iocdb,'INSTETC', 'fake_dir', count, count, 'fake_exe', 'fake_cmd'))
-    row = ("INSTETC", 'fake_dir', count, count, 'fake_exe', 'fake_cmd')
     pvnames = list(SAMPLE_PVS)
     pvnames.extend(BL_PVS)
     for pv in pvnames:
