@@ -3,7 +3,7 @@ import xmlrunner
 import argparse
 
 from test_modules.sqlite_wrapper_tests import TestSqliteWrapperSequence
-from test_modules.mysql_wrapper_tests import TestMySQLWrapperSequence
+#from test_modules.mysql_wrapper_tests import TestMySQLWrapperSequence
 from test_modules.options_holder_tests import TestOptionsHolderSequence
 
 
@@ -19,11 +19,11 @@ if __name__ == '__main__':
 
     # Load tests from test suites
     sqlite_suite = unittest.TestLoader().loadTestsFromTestCase(TestSqliteWrapperSequence)
-    mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestMySQLWrapperSequence)
+    #mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestMySQLWrapperSequence)
     options_holder_suite = unittest.TestLoader().loadTestsFromTestCase(TestOptionsHolderSequence)
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
     xmlrunner.XMLTestRunner(output=xml_dir).run(sqlite_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite)
+    #xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite)
     xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite)
     print "------ UNIT TESTS COMPLETE ------\n\n"
