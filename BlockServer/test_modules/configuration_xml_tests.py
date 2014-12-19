@@ -4,8 +4,8 @@ import unittest
 from xml.etree import ElementTree
 from collections import OrderedDict
 
-from config.containers import Group, Block, IOC, MetaData
-from config.xml_converter import ConfigurationXmlConverter
+from BlockServer.config.containers import Group, Block, IOC, MetaData
+from BlockServer.config.xml_converter import ConfigurationXmlConverter
 
 
 PVPREFIX = 'MYPVPREFIX'

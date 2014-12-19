@@ -4,11 +4,11 @@ from shutil import copyfile
 from collections import OrderedDict
 from server_common.utilities import parse_xml_removing_namespace
 
-from config.containers import Group
+from BlockServer.config.containers import Group
 from xml_converter import ConfigurationXmlConverter
 
-from config.constants import GRP_NONE, AUTOSAVE_NAME
-from config.configuration import Configuration, MetaData
+from BlockServer.config.constants import GRP_NONE, AUTOSAVE_NAME
+from BlockServer.config.configuration import Configuration, MetaData
 
 FILENAME_BLOCKS = "blocks.xml"
 FILENAME_GROUPS = "groups.xml"

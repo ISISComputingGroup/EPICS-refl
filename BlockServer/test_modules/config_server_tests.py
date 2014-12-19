@@ -2,7 +2,7 @@ import unittest
 import os
 import shutil
 import json
-from config_server import ConfigServerManager
+from BlockServer.config_server import ConfigServerManager
 
 from mocks.mock_configuration import MockConfiguration
 

@@ -1,9 +1,9 @@
 import unittest
 import os
 import shutil
-from config_holder import ConfigHolder
-from config.configuration import Configuration
-from macros import MACROS
+from BlockServer.config_server import ConfigHolder
+from BlockServer.config.configuration import Configuration
+from BlockServer.macros import MACROS
 
 
 CONFIG_PATH = "./test_configs/"

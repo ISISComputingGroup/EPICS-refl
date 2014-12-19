@@ -1,7 +1,7 @@
 __author__ = 'ffv81422'
-from inactive_configs import InactiveConfigManager
-from config_server import ConfigServerManager
-from mocks.mock_ca_server import MockCAServer
+from BlockServer.inactive_configs import InactiveConfigManager
+from BlockServer.config_server import ConfigServerManager
+from BlockServer.mocks.mock_ca_server import MockCAServer
 from server_common.utilities import dehex_and_decompress
 import unittest
 import json

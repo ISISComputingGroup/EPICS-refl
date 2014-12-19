@@ -1,9 +1,9 @@
 """Contains all the code for creating a configuration"""
 from collections import OrderedDict
 
-from config.containers import Group, Block, IOC, MetaData
-from config.constants import GRP_NONE
-from macros import PVPREFIX_MACRO
+from BlockServer.config.containers import Group, Block, IOC, MetaData
+from BlockServer.config.constants import GRP_NONE
+from BlockServer.macros import PVPREFIX_MACRO
 
 
 class Configuration(object):

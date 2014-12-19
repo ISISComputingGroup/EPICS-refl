@@ -4,7 +4,7 @@ from server_common.utilities import *
 
 from containers import Group, Block, IOC
 from constants import *
-from macros import PVPREFIX_MACRO
+from BlockServer.macros import PVPREFIX_MACRO
 
 KEY_NONE = GRP_NONE.lower()
 TAG_ENABLED = 'enabled'
