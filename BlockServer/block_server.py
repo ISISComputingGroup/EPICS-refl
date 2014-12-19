@@ -8,8 +8,8 @@ from server_common.utilities import compress_and_hex, dehex_and_decompress, prin
 from gateway import Gateway
 from config_server import ConfigServerManager
 from server_common.channel_access_server import CAServer
-from inactive_config_server import InactiveConfigServer
 from macros import MACROS, BLOCKSERVER_PREFIX
+from inactive_configs import InactiveConfigManager
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
@@ -158,8 +158,13 @@ class BlockServer(Driver):
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX,  PVLIST_FILE)
         self._configserver = None
         self._status = "INITIALISING"
-        self._ca_server = ca_server
-        self._inactive_configserver = InactiveConfigServer(CONFIG_DIR, MACROS)
+
+        # Import data about all configs
+        try:
+            self._inactive_configs = InactiveConfigManager(CONFIG_DIR, MACROS, ca_server)
+        except Exception as err:
+            print_and_log("Error creating inactive config list: " + str(err), "ERROR")
+
 
         # Threading stuff
         self.monitor_lock = RLock()
@@ -198,12 +203,6 @@ class BlockServer(Driver):
         self.update_blocks_monitors()
         self.update_config_monitors()
 
-        # Create PVs for configs
-        try:
-            self.create_config_pvs()
-        except Exception as err:
-            print_and_log("Could not create configuration PVs: " + str(err), "ERROR")
-
     def read(self, reason):
         # This is called by CA
         if reason == 'BLOCKNAMES':
@@ -215,11 +214,11 @@ class BlockServer(Driver):
         elif reason == 'CONFIG_IOCS':
             value = compress_and_hex(self._configserver.get_config_iocs_json())
         elif reason == 'CONFIGS':
-            value = compress_and_hex(self._configserver.get_configs_json())
+            value = compress_and_hex(self._inactive_configs.get_configs_json())
         elif reason == 'CONFIG_COMPS':
             value = compress_and_hex(self._configserver.get_conf_subconfigs_json())
         elif reason == 'COMPS':
-            value = compress_and_hex(self._configserver.get_subconfigs_json())
+            value = compress_and_hex(self._inactive_configs.get_subconfigs_json())
         elif reason == 'GET_RC_OUT':
             value = compress_and_hex(self._configserver.get_out_of_range_pvs())
         elif reason == 'GET_RC_PARS':
@@ -414,8 +413,8 @@ class BlockServer(Driver):
         elif reason == 'SAVE_NEW_CONFIG':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._inactive_configserver.set_config_details(data)
-                self.save_config(self._inactive_configserver.get_config_name_json(), active_config=False)
+                self._inactive_configs.update_config_from_json(data)
+                self.update_config_monitors()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -423,8 +422,8 @@ class BlockServer(Driver):
         elif reason == 'SAVE_NEW_COMPONENT':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._inactive_configserver.set_config_details(data)
-                self.save_as_subconfig(self._inactive_configserver.get_config_name_json(), active_config=False)
+                self._inactive_configs.update_subconfig_from_json(data)
+                self.update_comp_monitor()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -484,24 +483,18 @@ class BlockServer(Driver):
         self._configserver.remove_subconfigs(config)
         self._initialise_config(False, True)
 
-    def save_config(self, config, active_config=True):
+    def save_config(self, config):
         name = json.loads(config)
         print_and_log("Saving configuration: %s" % name)
-        if active_config:
-            self._configserver.save_config(config)
-        else:
-            self._check_inactive()
-            self._inactive_configserver.save_config(config)
-        self.update_config_pv(name)
+        self._configserver.save_config(config)
+        self._inactive_configs.update_config_from_file(config)
         self.update_config_monitors()
 
-    def save_as_subconfig(self, config, active_config=True):
+    def save_as_subconfig(self, config):
         name = json.loads(config)
         print_and_log("Trying to save as sub-configuration: %s" % name)
-        if active_config:
-            self._configserver.save_as_subconfig(config)
-        else:
-            self._inactive_configserver.save_as_subconfig(config)
+        self._configserver.save_as_subconfig(config)
+        self._inactive_configs.update_subconfig_from_file(config)
         self.update_config_monitors()
         self.update_comp_monitor()
 
@@ -522,13 +515,13 @@ class BlockServer(Driver):
         # set the config name
         self.setParam("CONFIG", compress_and_hex(self._configserver.get_config_name_json()))
         # set the available configs
-        self.setParam("CONFIGS", compress_and_hex(self._configserver.get_configs_json()))
+        self.setParam("CONFIGS", compress_and_hex(self._inactive_configs.get_configs_json()))
         # Update them
         with self.monitor_lock:
             self.updatePVs()
 
     def update_comp_monitor(self):
-        self.setParam("COMPS", compress_and_hex(self._configserver.get_subconfigs_json()))
+        self.setParam("COMPS", compress_and_hex(self._inactive_configs.get_subconfigs_json()))
         # Update them
         with self.monitor_lock:
             self.updatePVs()
@@ -571,31 +564,9 @@ class BlockServer(Driver):
         d['status'] = self._status
         return json.dumps(d).encode('ascii', 'replace')
 
-    def create_config_pvs(self):
-        # Creates the pvs to get data on other available configs+components
-        for config in self._configserver.get_config_names():
-            #TODO: it may be better to load file only when asked for but harder from a software structure POV
-            self.update_config_pv(config)
-        for comp in self._configserver.get_subconfig_names():
-            self.update_comp_pv(comp)
-
-    def update_config_pv(self, config):
-        # Updates pvs with new data (creates them if not already made)
-        config_data = self.get_saved_config_json(config, False)
-        self._ca_server.updatePV(config + ":GET_CONFIG_DETAILS", compress_and_hex(config_data))
-
-    def update_comp_pv(self, comp):
-        # Updates pvs with new data (creates them if not already made)
-        comp_data = self.get_saved_config_json(comp, True)
-        self._ca_server.updatePV(comp + ":GET_COMPONENT_DETAILS", compress_and_hex(comp_data))
-
-    def get_saved_config_json(self, config, is_subconfig=False):
-        self._inactive_configserver.load_config(config, is_subconfig)
-        return self._inactive_configserver.get_config_details_json()
-
-    def _check_inactive(self):
-        if self._inactive_configserver.get_config_name_json() == self._configserver.get_config_name_json():
-            raise Exception("Configuration in use")
+    # def _check_inactive(self):
+    #     if self._inactive_configserver.get_config_name_json() == self._configserver.get_config_name_json():
+    #         raise Exception("Configuration in use")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

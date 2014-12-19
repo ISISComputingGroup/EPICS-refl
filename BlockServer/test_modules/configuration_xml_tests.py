@@ -83,7 +83,6 @@ IOCS_XML = u"""
 META_XML = u"""<?xml version="1.0" ?>
 <meta>
 <description>A test description</description>
-<pv>TEST_PV</pv>
 </meta>
 """
 
@@ -161,7 +160,7 @@ def make_iocs():
     return iocs
 
 def make_meta():
-    meta = MetaData('Test', 'TEST_PV', 'A test description')
+    meta = MetaData('Test', description='A test description')
     return meta
 
 class TestConfigurationXmlConverterSequence(unittest.TestCase):
@@ -324,5 +323,4 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
 
         #assert
         self.assertEqual(meta.name, expected_meta.name)
-        self.assertEqual(meta.pv, expected_meta.pv)
         self.assertEqual(meta.description, expected_meta.description)

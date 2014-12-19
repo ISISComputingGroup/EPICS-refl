@@ -188,26 +188,9 @@ class TestConfigServerSequence(unittest.TestCase):
         cs = self.configserver
         self.assertRaises(Exception, lambda _: cs.load_config(json.dumps("DOES_NOT_EXIST")))
 
-    def test_get_configs_string(self):
-        cs = self.configserver
-        confs = json.loads(cs.get_configs_json())
-        self.assertEqual(len(confs), 0)
-        cs.save_config(json.dumps("TEST_CONFIG1"))
-        cs.save_config(json.dumps("TEST_CONFIG2"))
-        cs.save_config(json.dumps("TEST_CONFIG3"))
-        confs = json.loads(cs.get_configs_json())
-        self.assertEqual(len(confs), 3)
-        self.assertTrue("TEST_CONFIG1" in [conf.get('name') for conf in confs])
-        self.assertTrue("TEST_CONFIG2" in [conf.get('name') for conf in confs])
-        self.assertTrue("TEST_CONFIG3" in [conf.get('name') for conf in confs])
-
     def test_get_block_prefix(self):
         cs = self.configserver
         self.assertEquals(json.loads(cs.get_block_prefix_json()), MACROS["$(MYPVPREFIX)"] + "BLOCK_PREFIX:")
-
-    def test_get_subconfigs_json(self):
-        cs = self.configserver
-        self.assertTrue(cs.get_conf_subconfigs_json() == "[]")
 
     def test_get_config_name(self):
         cs = self.configserver
@@ -288,24 +271,6 @@ class TestConfigServerSequence(unittest.TestCase):
         # No read pv
         data = [{"name": "TESTBLOCK1", 'group': "GROUP1", 'local': False, 'visible': False}]
         self.assertRaises(Exception, cs.add_blocks_json, data)
-
-    def test_get_subconfigs_string(self):
-        cs = self.configserver
-        confs = json.loads(cs.get_subconfigs_json())
-        self.assertEqual(len(confs), 0)
-        cs.save_as_subconfig(json.dumps("TEST_CONFIG1"))
-        cs.save_as_subconfig(json.dumps("TEST_CONFIG2"))
-        cs.save_as_subconfig(json.dumps("TEST_CONFIG3"))
-        confs = json.loads(cs.get_subconfigs_json())
-        self.assertEqual(len(confs), 3)
-        for conf in confs:
-            self.assertEqual(len(conf), 3)
-            self.assertTrue("name" in conf)
-            self.assertTrue("pv" in conf)
-            self.assertTrue("description" in conf)
-        self.assertTrue("TEST_CONFIG1" in [conf.get('name') for conf in confs])
-        self.assertTrue("TEST_CONFIG2" in [conf.get('name') for conf in confs])
-        self.assertTrue("TEST_CONFIG3" in [conf.get('name') for conf in confs])
 
     def test_dump_status(self):
         cs = self.configserver

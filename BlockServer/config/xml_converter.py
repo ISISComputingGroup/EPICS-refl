@@ -80,9 +80,6 @@ class ConfigurationXmlConverter(object):
         desc_xml = ElementTree.SubElement(root, TAG_DESC)
         desc_xml.text = data.description
 
-        pv_xml = ElementTree.SubElement(root, TAG_PV)
-        pv_xml.text = data.pv
-
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
     @staticmethod
@@ -291,10 +288,6 @@ class ConfigurationXmlConverter(object):
         description = root_xml.find("./" + TAG_DESC)
         if description is not None:
             data.description = description.text
-
-        pv = root_xml.find("./" + TAG_PV)
-        if pv is not None:
-            data.pv = pv.text
 
     @staticmethod
     def _replace_macros(name):

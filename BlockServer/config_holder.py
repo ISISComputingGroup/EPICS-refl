@@ -6,7 +6,6 @@ from collections import OrderedDict
 from config.constants import GRP_NONE
 from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY
 from config.containers import Group
-from server_common.utilities import check_config_name_valid
 from macros import PVPREFIX_MACRO
 
 
@@ -153,7 +152,6 @@ class ConfigHolder(object):
         return self._config.get_name()
 
     def set_config_name(self, name):
-        check_config_name_valid(name)
         self._config.set_name(name)
 
     def get_ioc_names(self):
@@ -366,7 +364,6 @@ class ConfigHolder(object):
 
 
     def load_config(self, name, is_subconfig=False, set_subconfig_names=True):
-        check_config_name_valid(name)
         if is_subconfig:
             path = self._component_path
             comp = self._filemanager.load_config(path, name, self._macros)
@@ -395,3 +392,6 @@ class ConfigHolder(object):
     def _retrieve_cache(self):
         self._config = copy.deepcopy(self._cached_config)
         self._components = copy.deepcopy(self._cached_components)
+
+    def get_config_meta(self):
+        return self._config.meta

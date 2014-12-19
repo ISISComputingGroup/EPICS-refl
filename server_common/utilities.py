@@ -67,9 +67,10 @@ def value_list_to_xml(list, grp, group_tag, item_tag):
                 xml_item.set(str(cn), str(cv))
 
 
-def check_config_name_valid(name):
+def check_pv_name_valid(name):
     if re.match(r"[A-Za-z0-9_]*", name) is None:
-        raise Exception("Config contains invalid characters: " + name)
+        return False
+    return True
 
 def parse_xml_removing_namespace(file_path):
     it = ElementTree.iterparse(file_path)
