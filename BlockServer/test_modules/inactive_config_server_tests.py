@@ -150,9 +150,11 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self._test_is_configuration_json(data, "TEST_SUBCONFIG1")
 
     def test_update_config_from_json(self):
+        pass
         #TODO: this
 
     def test_update_subconfig_from_json(self):
+        pass
         #TODO: this
 
     def test_configs_json(self):
