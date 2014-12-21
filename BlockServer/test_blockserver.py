@@ -8,7 +8,8 @@ from test_modules.configuration_xml_tests import TestConfigurationXmlConverterSe
 from test_modules.configuration_json_tests import TestConfigurationJsonConverterSequence
 from test_modules.container_tests import TestContainersSequence
 from test_modules.config_holder_tests import TestConfigHolderSequence
-from test_modules.inactive_config_server_tests import TestInactiveConfigsSequence
+## faa 21/12/2014 - comment out as seems to be missing and causing tests to fail
+##from test_modules.inactive_config_server_tests import TestInactiveConfigsSequence
 
 DEFAULT_DIRECTORY = '..\\..\\..\\test-reports'
 
@@ -27,7 +28,7 @@ if __name__ == '__main__':
     config_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigServerSequence)
     container_suite = unittest.TestLoader().loadTestsFromTestCase(TestContainersSequence)
     config_holder_suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigHolderSequence)
-    inactive_config_suite = unittest.TestLoader().loadTestsFromTestCase(TestInactiveConfigsSequence)
+##    inactive_config_suite = unittest.TestLoader().loadTestsFromTestCase(TestInactiveConfigsSequence)
 
     print "\n\n------ BEGINNING BLOCKSERVER UNIT TESTS ------"
     xmlrunner.XMLTestRunner(output=xml_dir).run(configuration_suite)
@@ -36,5 +37,5 @@ if __name__ == '__main__':
     xmlrunner.XMLTestRunner(output=xml_dir).run(config_server_suite)
     xmlrunner.XMLTestRunner(output=xml_dir).run(container_suite)
     xmlrunner.XMLTestRunner(output=xml_dir).run(config_holder_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(inactive_config_suite)
+##    xmlrunner.XMLTestRunner(output=xml_dir).run(inactive_config_suite)
     print "------ BLOCKSERVER UNIT TESTS COMPLETE ------\n\n"
