@@ -1,13 +1,17 @@
+# Add root path for access to server_commons
+import os
+import sys
+sys.path.insert(0, os.path.abspath("."))
+# Standard imports
 from pcaspy import Driver
 import argparse
-import os
 import json
 from threading import Thread, RLock
 from time import sleep
-from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log
 from gateway import Gateway
 from config_server import ConfigServerManager
 from server_common.channel_access_server import CAServer
+from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log
 from macros import MACROS, BLOCKSERVER_PREFIX
 from inactive_configs import InactiveConfigManager
 
@@ -142,8 +146,8 @@ PVDB = {
         'count': 64000,
     },
     'SAVE_NEW_COMPONENT': {
-    'type': 'char',
-    'count': 64000,
+        'type': 'char',
+        'count': 64000,
     },
     'SERVER_STATUS': {
         'type': 'char',
@@ -164,7 +168,6 @@ class BlockServer(Driver):
             self._inactive_configs = InactiveConfigManager(CONFIG_DIR, MACROS, ca_server)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "ERROR")
-
 
         # Threading stuff
         self.monitor_lock = RLock()

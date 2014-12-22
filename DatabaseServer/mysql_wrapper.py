@@ -1,8 +1,7 @@
-import sqlite3
 import mysql.connector
-import os
-from threading import Thread, RLock
+from threading import RLock
 from server_common.utilities import print_and_log
+
 
 class MySQLWrapper(object):
     def __init__(self, dbid, procserver, prefix):
@@ -18,7 +17,7 @@ class MySQLWrapper(object):
             conn.close()
 
     def __open_connection(self):
-        conn = mysql.connector.connect(user="iocdb", password="$iocdb", host="127.0.0.1", database = self._dbid)
+        conn = mysql.connector.connect(user="iocdb", password="$iocdb", host="127.0.0.1", database=self._dbid)
         curs = conn.cursor()
         # Check db exists
         curs.execute("SHOW TABLES")

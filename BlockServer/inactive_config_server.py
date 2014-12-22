@@ -1,5 +1,3 @@
-__author__ = 'ffv81422'
-
 from config_holder import ConfigHolder
 import json
 
