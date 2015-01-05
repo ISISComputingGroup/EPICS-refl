@@ -2,9 +2,9 @@ import unittest
 import json
 from collections import OrderedDict
 
-from BlockServer.config.containers import Group, Block, IOC
-from BlockServer.config.json_converter import ConfigurationJsonConverter
-from BlockServer.config.constants import GRP_NONE
+from config.containers import Group, Block, IOC
+from config.json_converter import ConfigurationJsonConverter
+from config.constants import GRP_NONE
 
 
 GROUPS_JSON = \

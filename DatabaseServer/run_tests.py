@@ -1,3 +1,8 @@
+# Add root path for access to server_commons
+import os
+import sys
+sys.path.insert(0, os.path.abspath(".."))
+# Standard imports
 import unittest
 import xmlrunner
 import argparse

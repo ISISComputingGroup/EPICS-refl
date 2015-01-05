@@ -1,11 +1,11 @@
 import unittest
 import os
 
-from BlockServer.config.configuration import Configuration
+from config.configuration import Configuration
 
-from BlockServer.mocks.mock_configuration import MockConfigurationFileManager
-from BlockServer.mocks.mock_configuration import MockConfigurationXmlConverter
-from BlockServer.mocks.mock_configuration import MockConfigurationJsonConverter
+from mocks.mock_configuration import MockConfigurationFileManager
+from mocks.mock_configuration import MockConfigurationXmlConverter
+from mocks.mock_configuration import MockConfigurationJsonConverter
 
 PVPREFIX = 'MYPVPREFIX'
 
