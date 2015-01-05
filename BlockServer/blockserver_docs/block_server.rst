@@ -152,8 +152,8 @@ Read Commands
           "groups":
                    [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
-                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}]
-          "name": "TESTCONFIG1"
+                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
+          "name": "TESTCONFIG1",
 		  "description": "A test configuration"
          }'
 
@@ -178,8 +178,8 @@ Read Commands
           "groups":
                    [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
-                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}]
-          "name": "TESTCONFIG1"
+                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
+          "name": "TESTCONFIG1",
 		  "description": "A test configuration"
          }'	
 		 
@@ -202,8 +202,8 @@ Read Commands
           "groups":
                    [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
-                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}]
-          "name": "TESTCONFIG1"
+                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
+          "name": "TESTCONFIG1",
 		  "description": "A test configuration"
          }'	
 		 
@@ -441,8 +441,8 @@ Write Commands
           "groups":
                    [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
-                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}]
-          "name": "TESTCONFIG1"
+                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
+          "name": "TESTCONFIG1",
 		  "description": "A test configuration"
          }'
 
@@ -469,8 +469,8 @@ Write Commands
 		  "groups":
 				   [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
 					{"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
-					{"blocks": ["testblock3"], "name": "NONE", "subconfig": null}]
-		  "name": "TESTCONFIG1"
+					{"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
+		  "name": "TESTCONFIG1",
 		  "description": "A test configuration"
 		 }'
 
