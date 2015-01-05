@@ -1,4 +1,3 @@
-from xml.etree import ElementTree
 from xml.dom import minidom
 from server_common.utilities import *
 

@@ -1,6 +1,3 @@
-__author__ = 'ffv81422'
-
-
 class MockCAServer(object):
     def __init__(self):
         self.pv_list = dict()

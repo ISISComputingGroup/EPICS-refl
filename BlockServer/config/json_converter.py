@@ -1,6 +1,5 @@
 import json
 from collections import OrderedDict
-
 from constants import GRP_NONE
 
 
