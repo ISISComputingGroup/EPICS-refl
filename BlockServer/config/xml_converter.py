@@ -286,7 +286,7 @@ class ConfigurationXmlConverter(object):
         """Populates the supplied MetaData object based on an XML tree"""
         description = root_xml.find("./" + TAG_DESC)
         if description is not None:
-            data.description = description.text
+            data.description = description.text if description.text is not None else ""
 
     @staticmethod
     def _replace_macros(name):
