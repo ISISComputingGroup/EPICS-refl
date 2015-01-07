@@ -14,8 +14,10 @@ class ConfigHolder(object):
                  test_config=None):
         if test_config is None:
             self._config = Configuration(macros)
+            self._test_mode = False
         else:
             self._config = test_config
+            self._test_mode = True
         self._components = OrderedDict()
         self._is_subconfig = is_subconfig
         self._macros = macros
@@ -377,10 +379,10 @@ class ConfigHolder(object):
     def save_config(self, name):
         if self._is_subconfig:
             self.set_config_name(name)
-            self._filemanager.save_config(self._config, self._component_path, name)
+            self._filemanager.save_config(self._config, self._component_path, name, self._test_mode)
         else:
             self.set_config_name(name)
-            self._filemanager.save_config(self._config, self._config_path, name)
+            self._filemanager.save_config(self._config, self._config_path, name, self._test_mode)
 
     def update_runcontrol_settings_for_saving(self, rc_data):
         self._config.update_runcontrol_settings_for_saving(rc_data)
@@ -395,3 +397,6 @@ class ConfigHolder(object):
 
     def get_config_meta(self):
         return self._config.meta
+
+    def set_testing_mode(self, mode):
+        self._test_mode = mode

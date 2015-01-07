@@ -1,14 +1,14 @@
 import os
-import re
-from shutil import copyfile
 from collections import OrderedDict
-from server_common.utilities import parse_xml_removing_namespace
+from server_common.utilities import parse_xml_removing_namespace, print_and_log
 
 from BlockServer.config.containers import Group
 from xml_converter import ConfigurationXmlConverter
 
 from BlockServer.config.constants import GRP_NONE, AUTOSAVE_NAME
 from BlockServer.config.configuration import Configuration, MetaData
+
+from config_version_control import ConfigVersionControl, NotUnderVersionControl
 
 FILENAME_BLOCKS = "blocks.xml"
 FILENAME_GROUPS = "groups.xml"
@@ -73,20 +73,13 @@ class ConfigurationFileManager(object):
 
 
     @staticmethod
-    def save_config(configuration, root_path, config_name):
+    def save_config(configuration, root_path, config_name, test_mode = False):
         """Saves the current configuration with the specified name"""
         config_folder = os.path.abspath(root_path) + "\\" + config_name
         path = os.path.abspath(config_folder)
         if not os.path.isdir(path):
             #create the directory
             os.makedirs(path)
-
-        if config_name != AUTOSAVE_NAME:
-            #Create a copy of the previous save
-            ConfigurationFileManager.backup_old_config_file(path, FILENAME_BLOCKS)
-            ConfigurationFileManager.backup_old_config_file(path, FILENAME_GROUPS)
-            ConfigurationFileManager.backup_old_config_file(path, FILENAME_IOCS)
-            ConfigurationFileManager.backup_old_config_file(path, FILENAME_SUBCONFIGS)
 
         blocks_xml = ConfigurationXmlConverter.blocks_to_xml(configuration.blocks, configuration.macros)
         groups_xml = ConfigurationXmlConverter.groups_to_xml(configuration.groups)
@@ -97,7 +90,6 @@ class ConfigurationFileManager(object):
         except:
             #Is a subconfig, so no subconfigs
             subconfigs_xml = ConfigurationXmlConverter.subconfigs_to_xml(dict())
-
 
         #Save blocks
         with open(path + '/' + FILENAME_BLOCKS, 'w') as f:
@@ -119,23 +111,21 @@ class ConfigurationFileManager(object):
         with open(path + '/' + FILENAME_META, 'w') as f:
             f.write(meta_xml)
 
+        if not test_mode:
+            ConfigurationFileManager.add_configs_to_version_control(root_path, config_name, config_name + " modified")
+
     @staticmethod
-    def backup_old_config_file(path, name):
-        if os.path.isfile(path + '/' + name):
-            high = 0
-            for f in os.listdir(path):
-                m = re.match("^" + name + "\.(\d+)", f)
-                if m:
-                    index = int(m.groups()[0])
-                    if high is None:
-                        high = index
-                    elif index > high:
-                        high = index
-            try:
-                print "Creating backup copy of %s" % name
-                copyfile(path + '/' + name, path + '/' + name + ".%s" % (high+1))
-            except Exception as err:
-                print "Could not create backup copy of %s. Reason %s" % (name, err)
+    def add_configs_to_version_control(root_path, config_name, commit_message):
+        # Create version control manager
+        try:
+            vc = ConfigVersionControl(root_path)
+        except NotUnderVersionControl as err:
+            print_and_log(err, "INFO")
+        except Exception as err:
+            print_and_log("Error in applying version control: " + str(err), "ERROR")
+        else:
+            vc.add(root_path + '/' + config_name)
+            vc.commit(commit_message)
 
     @staticmethod
     def subconfig_exists(root_path, name):

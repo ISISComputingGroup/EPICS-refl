@@ -61,7 +61,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
             shutil.rmtree(path)
 
     def test_initialisation_with_no_configs_in_directory(self):
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer())
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer(), test_mode=True)
         confs = ic.get_config_names()
         self.assertEqual(len(confs), 0)
         subconfs = ic.get_subconfig_names()
@@ -69,7 +69,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_initialisation_with_configs_in_directory(self):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer())
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer(), test_mode=True)
         confs = ic.get_config_names()
         self.assertEqual(len(confs), 2)
         self.assertTrue("TEST_CONFIG1" in confs)
@@ -77,7 +77,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_initialisation_with_subconfigs_in_directory(self):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer())
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer(), test_mode=True)
         confs = ic.get_subconfig_names()
         self.assertEqual(len(confs), 2)
         self.assertTrue("TEST_SUBCONFIG1" in confs)
@@ -86,7 +86,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_initialisation_with_configs_in_directory_pv(self):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         ms = MockCAServer()
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms)
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms, test_mode=True)
 
         self.assertEqual(len(ms.pv_list), 2)
         self.assertTrue("TEST_CONFIG1:GET_CONFIG_DETAILS" in ms.pv_list.keys())
@@ -97,7 +97,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_initialisation_with_subconfigs_in_directory_pv(self):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
         ms = MockCAServer()
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms)
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms, test_mode=True)
 
         self.assertEqual(len(ms.pv_list), 2)
         self.assertTrue("TEST_SUBCONFIG1:GET_COMPONENT_DETAILS" in ms.pv_list.keys())
@@ -108,7 +108,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_initialisation_pv_config_data(self):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         ms = MockCAServer()
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms)
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms, test_mode=True)
         data = ms.pv_list.get("TEST_CONFIG1:GET_CONFIG_DETAILS")
         data = json.loads(dehex_and_decompress(data))
 
@@ -119,7 +119,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_initialisation_pv_config_data(self):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
         ms = MockCAServer()
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms)
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms, test_mode=True)
         data = ms.pv_list.get("TEST_SUBCONFIG1:GET_COMPONENT_DETAILS")
         data = json.loads(dehex_and_decompress(data))
 
@@ -127,7 +127,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_config_from_file(self):
         ms = MockCAServer()
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms)
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms, test_mode=True)
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
 
         confs = json.loads(ic.get_configs_json())
@@ -151,7 +151,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_subconfig_from_file(self):
         ms = MockCAServer()
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms)
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms, test_mode=True)
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
 
         confs = json.loads(ic.get_subconfigs_json())
@@ -174,7 +174,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self._test_is_configuration_json(data, "TEST_SUBCONFIG1")
 
     def test_update_config_from_json(self):
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer())
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer(), test_mode=True)
         ic.update_config_from_json(strip_out_whitespace(VALID_CONFIG_JSON))
 
         confs = json.loads(ic.get_configs_json())
@@ -187,7 +187,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(subconfs), 0)
 
     def test_update_subconfig_from_json(self):
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer())
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer(), test_mode=True)
         ic.update_subconfig_from_json(strip_out_whitespace(VALID_CONFIG_JSON))
 
         subconfs = json.loads(ic.get_subconfigs_json())
@@ -201,7 +201,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_configs_json(self):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer())
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer(), test_mode=True)
         confs = json.loads(ic.get_configs_json())
         for conf in confs:
             self.assertEqual(len(conf), 3)
@@ -213,7 +213,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_subconfigs_json(self):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer())
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, MockCAServer(), test_mode=True)
         confs = json.loads(ic.get_subconfigs_json())
         for conf in confs:
             self.assertEqual(len(conf), 3)
@@ -246,7 +246,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_config_pv_of_repeated_name(self):
         ms = MockCAServer()
         create_configs(["TEST CONFIG", "TEST_CONFIG", "TEST_CO!NFIG", "TEST_CONFIG1"])
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms)
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms, test_mode=True)
         confs = json.loads(ic.get_configs_json())
 
         self.assertEqual(len(confs), 4)
@@ -264,7 +264,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_subconfig_pv_of_repeated_name(self):
         ms = MockCAServer()
         create_subconfigs(["TEST SUBCONFIG", "TEST_SUBCONFIG", "TEST_SUBCO!NFIG", "TEST_SUBCONFIG1"])
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms)
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms, test_mode=True)
         confs = json.loads(ic.get_subconfigs_json())
 
         self.assertEqual(len(confs), 4)
@@ -283,7 +283,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ms = MockCAServer()
         create_configs(["TEST CONFIG AND SUBCONFIG", "TEST_CONFIG_AND_SUBCONFIG"])
         create_subconfigs(["TEST CONFIG AND SUBCONFIG", "TEST_CONFIG_AND_SUBCONFIG"])
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms)
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms, test_mode=True)
 
         confs = json.loads(ic.get_configs_json())
         self.assertEqual(len(confs), 2)
@@ -309,7 +309,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def _test_pv_changed_but_not_name(self, config_name, expected_pv_name):
         ms = MockCAServer()
         create_configs([config_name])
-        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms)
+        ic = InactiveConfigManager(TEST_DIRECTORY, MACROS, ms, test_mode=True)
         confs = json.loads(ic.get_configs_json())
 
         self.assertEqual(len(confs), 1)

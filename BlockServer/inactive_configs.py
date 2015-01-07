@@ -1,5 +1,3 @@
-__author__ = 'ffv81422'
-
 from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY
 from inactive_config_server import InactiveConfigServerManager
 from server_common.utilities import compress_and_hex
@@ -11,8 +9,8 @@ class InactiveConfigManager(object):
     ''' Class to handle data on all available configurations and manage their associated pvs
     '''
 
-    def __init__(self, config_folder, macros, server):
-        self._configserver = InactiveConfigServerManager(config_folder, macros)
+    def __init__(self, config_folder, macros, server, test_mode=False):
+        self._configserver = InactiveConfigServerManager(config_folder, macros, test_mode=test_mode)
         self._config_metas = dict()
         self._subconfig_metas = dict()
         self._ca_server = server

@@ -44,6 +44,7 @@ class ConfigServerManager(object):
 
     def _set_testing_mode(self):
         self._archive_manager.set_testing_mode(True)
+        self._config_holder.set_testing_mode(True)
         from mocks.mock_procserv_utils import MockProcServWrapper
         self._procserve_wrapper = MockProcServWrapper()
         from mocks.mock_runcontrol import MockRunControlManager

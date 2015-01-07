@@ -3,10 +3,15 @@ import json
 
 
 class InactiveConfigServerManager(object):
+    ''' Class to hold individual inactive configs
+    '''
 
-    def __init__(self, config_folder, macros):
+    def __init__(self, config_folder, macros, test_mode=False):
         self._config_holder = ConfigHolder(config_folder, macros)
         self._inactive_config_metas = dict()
+
+        if test_mode:
+            self._config_holder.set_testing_mode(True)
 
     def load_config(self, name, is_subconfig=False):
         config = self._config_holder.load_config(name, is_subconfig, False)
