@@ -488,18 +488,18 @@ class BlockServer(Driver):
         self._configserver.remove_subconfigs(config)
         self._initialise_config(False, True)
 
-    def save_config(self, config):
-        name = json.loads(config)
+    def save_config(self, json_name):
+        name = json.loads(json_name)
         print_and_log("Saving configuration: %s" % name)
-        self._configserver.save_config(config)
-        self._inactive_configs.update_config_from_file(config)
+        self._configserver.save_config(json_name)
+        self._inactive_configs.update_config_from_file(name)
         self.update_config_monitors()
 
-    def save_as_subconfig(self, config):
-        name = json.loads(config)
+    def save_as_subconfig(self, json_name):
+        name = json.loads(json_name)
         print_and_log("Trying to save as sub-configuration: %s" % name)
-        self._configserver.save_as_subconfig(config)
-        self._inactive_configs.update_subconfig_from_file(config)
+        self._configserver.save_as_subconfig(json_name)
+        self._inactive_configs.update_subconfig_from_file(name)
         self.update_config_monitors()
         self.update_comp_monitor()
 
