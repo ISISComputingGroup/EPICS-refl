@@ -1,14 +1,14 @@
 # Add root path for access to server_commons
 import os
 import sys
-sys.path.insert(0, os.path.abspath("."))
+sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
+
+
 # Standard imports
 from pcaspy import Driver, SimpleServer
 from time import sleep
 import argparse
 from server_common.utilities import compress_and_hex, print_and_log
-#TODO update the database wrapper, and rename to avoid database reference in code
-#from sqlite_wrapper import SqliteWrapper as dbwrap
 from mysql_wrapper import MySQLWrapper as dbwrap
 import json
 from threading import Thread, RLock
@@ -16,7 +16,6 @@ from procserv_utils import ProcServWrapper
 from options_holder import OptionsHolder
 from options_loader import OptionsLoader
 
-#IOCDB = 'iocs.sq3'
 IOCDB = 'iocdb'
 IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
 

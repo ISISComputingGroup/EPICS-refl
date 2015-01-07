@@ -1,7 +1,9 @@
 # Add root path for access to server_commons
 import os
 import sys
-sys.path.insert(0, os.path.abspath("."))
+sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
+
+
 # Standard imports
 from pcaspy import Driver
 import argparse
@@ -567,9 +569,6 @@ class BlockServer(Driver):
         d['status'] = self._status
         return json.dumps(d).encode('ascii', 'replace')
 
-    # def _check_inactive(self):
-    #     if self._inactive_configserver.get_config_name_json() == self._configserver.get_config_name_json():
-    #         raise Exception("Configuration in use")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
