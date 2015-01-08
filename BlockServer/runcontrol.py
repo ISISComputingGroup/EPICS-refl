@@ -21,7 +21,7 @@ class RunControlManager(object):
             for bn, blk in blocks.iteritems():
                 f.write('dbLoadRecords("$(RUNCONTROL)/db/runcontrol.db","P=$(MYPVPREFIX),PV=$(MYPVPREFIX)CS:SB:%s")\n'
                         % blk.name)
-            #Need an extra blank line
+            # Need an extra blank line
             f.write("\n")
         except Exception as err:
             print err
@@ -55,13 +55,13 @@ class RunControlManager(object):
         return settings
 
     def archive_current_values(self, blocks):
-        #Go round the blocks and copy the settings as they currently stand
+        # Go round the blocks and copy the settings as they currently stand
         self._stored_settings = self.get_runcontrol_settings(blocks)
 
     def restore_archived_settings(self, blocks):
         if self._stored_settings is not None:
             for n, val in self._stored_settings.iteritems():
-                #Only reapply settings for blocks that still exist
+                # Only reapply settings for blocks that still exist
                 if n.lower() in blocks:
                     self._set_rc_values(n, val)
 
@@ -81,7 +81,7 @@ class RunControlManager(object):
                 self._set_rc_values(blk.name, settings)
 
     def set_runcontrol_settings(self, data):
-        #Data should be a dictionary of dictionaries
+        # Data should be a dictionary of dictionaries
         for bn, settings in data.iteritems():
             if settings is not None:
                 self._set_rc_values(bn, settings)
@@ -98,13 +98,12 @@ class RunControlManager(object):
         print_and_log("Waiting for runcontrol IOC to start")
         while True:
             sleep(2)
-            #See if the IOC has restarted by looking for a standard PV
+            # See if the IOC has restarted by looking for a standard PV
             try:
                 ans = caget(self._prefix + RC_PV)
             except Exception as err:
-                #Probably has timed out
+                # Probably has timed out
                 ans = None
             if ans is not None:
                 print_and_log("Runcontrol IOC started")
                 break
-

@@ -9,7 +9,7 @@ from pcaspy import Driver, SimpleServer
 from time import sleep
 import argparse
 from server_common.utilities import compress_and_hex, print_and_log
-from mysql_wrapper import MySQLWrapper as dbwrap
+from mysql_wrapper import MySQLWrapper as dbWrap
 import json
 from threading import Thread, RLock
 from procserv_utils import ProcServWrapper
@@ -61,7 +61,7 @@ class DatabaseServer(Driver):
 
         # Initialise database connection
         try:
-            self._db = dbwrap(dbid, ProcServWrapper(), MACROS["$(MYPVPREFIX)"])
+            self._db = dbWrap(dbid, ProcServWrapper(), MACROS["$(MYPVPREFIX)"])
             self._db.check_db_okay()
             print_and_log("Connected to database", "INFO", "DBSVR")
         except Exception as err:

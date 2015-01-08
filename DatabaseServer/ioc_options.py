@@ -28,4 +28,5 @@ class IocOptions(object):
         return out_list
 
     def to_dict(self):
-        return {'macros': self.dict_to_list(self.macros), 'pvsets': self.dict_to_list(self.pvsets), 'pvs': self.dict_to_list(self.pvs)}
+        return {'macros': self.dict_to_list(self.macros), 'pvsets': self.dict_to_list(self.pvsets),
+                'pvs': self.dict_to_list(self.pvs)}

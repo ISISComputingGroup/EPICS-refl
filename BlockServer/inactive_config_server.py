@@ -3,8 +3,7 @@ import json
 
 
 class InactiveConfigServerManager(object):
-    ''' Class to hold individual inactive configs
-    '''
+    """Class to hold individual inactive configs"""
 
     def __init__(self, config_folder, macros, test_mode=False):
         self._config_holder = ConfigHolder(config_folder, macros)

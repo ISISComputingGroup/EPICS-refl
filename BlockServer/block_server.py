@@ -499,7 +499,7 @@ class BlockServer(Driver):
         name = json.loads(json_name)
         print_and_log("Trying to save as sub-configuration: %s" % name)
         self._configserver.save_as_subconfig(json_name)
-        self._inactive_configs.update_subconfig_from_file(name)
+        self._inactive_configs.update_comp_from_file(name)
         self.update_config_monitors()
         self.update_comp_monitor()
 

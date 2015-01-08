@@ -1,6 +1,6 @@
 import sqlite3
 import os
-from threading import Thread, RLock
+from threading import RLock
 from server_common.utilities import print_and_log
 
 

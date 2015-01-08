@@ -54,7 +54,7 @@ class ConfigHolder(object):
             self._is_subconfig = False
 
     def add_subconfig(self, name, component):
-        #Add it to the holder
+        # Add it to the holder
         if self._is_subconfig:
             raise Exception("Can not add a component to a component")
 
@@ -113,7 +113,7 @@ class ConfigHolder(object):
                     # If group exists then append with subconfig group
                     # But don't add any duplicate blocks or blocks that don't exist
                     for bn in grp.blocks:
-                        if not bn in groups[gn].blocks and bn not in used_blocks and bn in blocks:
+                        if bn not in groups[gn].blocks and bn not in used_blocks and bn in blocks:
                             groups[gn].blocks.append(bn)
                             used_blocks.append(bn)
         return groups
@@ -202,13 +202,15 @@ class ConfigHolder(object):
             else:
                 raise Exception("No component called %s" % subconfig)
 
-    def add_ioc(self, name, subconfig=None, autostart=True, restart=True, macros=None, pvs=None, pvsets=None, simlevel=None):
+    def add_ioc(self, name, subconfig=None, autostart=True, restart=True, macros=None, pvs=None, pvsets=None,
+                simlevel=None):
         # TODO: use IOC object instead?
         if subconfig is None:
             self._config.add_ioc(name, None, autostart, restart, macros, pvs, pvsets, simlevel)
         else:
             if subconfig.lower() in self._components:
-                self._components[subconfig.lower()].add_ioc(name, subconfig, autostart, restart, macros, pvs, pvsets, simlevel)
+                self._components[subconfig.lower()].add_ioc(name, subconfig, autostart, restart, macros, pvs, pvsets,
+                                                            simlevel)
             else:
                 raise Exception("No component called %s" % subconfig)
 
@@ -322,7 +324,7 @@ class ConfigHolder(object):
             self._retrieve_cache()
             raise
 
-    def _to_dict (self, json_list):
+    def _to_dict(self, json_list):
         if json_list is None:
             return None
         out = dict()
@@ -363,7 +365,6 @@ class ConfigHolder(object):
                 v.subconfig = name
             for n, v in comp.iocs.iteritems():
                 v.subconfig = name
-
 
     def load_config(self, name, is_subconfig=False, set_subconfig_names=True):
         if is_subconfig:

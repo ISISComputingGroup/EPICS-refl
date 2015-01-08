@@ -50,15 +50,15 @@ class ConfigServerManager(object):
         from mocks.mock_runcontrol import MockRunControlManager
         self._runcontrol = MockRunControlManager()
 
-    def add_blocks_json(self, input):
-        if input is None:
+    def add_blocks_json(self, rawjson):
+        if rawjson is None:
             raise Exception("Failed to add block as no parameters were supplied")
-        data = json.loads(input)
+        data = json.loads(rawjson)
         for blk in data:
             self._config_holder.add_block(blk)
 
-    def remove_blocks(self, input):
-        data = json.loads(input)
+    def remove_blocks(self, rawjson):
+        data = json.loads(rawjson)
         for blk in data:
             self._config_holder.remove_block(blk)
         self.create_runcontrol_pvs()
@@ -66,8 +66,8 @@ class ConfigServerManager(object):
     def get_blocks(self):
         return self._config_holder.get_block_details()
 
-    def edit_blocks_json(self, input):
-        data = json.loads(input)
+    def edit_blocks_json(self, rawjson):
+        data = json.loads(rawjson)
         for blk in data:
             self._config_holder.edit_block(blk)
         self.create_runcontrol_pvs()
@@ -94,8 +94,8 @@ class ConfigServerManager(object):
         config = self._config_holder.get_config_name()
         return json.dumps(config).encode('ascii', 'replace')
 
-    def add_iocs(self, input):
-        data = json.loads(input)
+    def add_iocs(self, rawjson):
+        data = json.loads(rawjson)
         for ioc in data:
             self._add_ioc(ioc)
 
@@ -107,8 +107,8 @@ class ConfigServerManager(object):
         else:
             raise Exception("Could not start IOC %s as it does not exist" % iocname)
 
-    def remove_iocs(self, input):
-        data = json.loads(input)
+    def remove_iocs(self, rawjson):
+        data = json.loads(rawjson)
         for ioc in data:
             self._remove_ioc(ioc)
 
@@ -121,9 +121,9 @@ class ConfigServerManager(object):
     def _get_config_iocs_details(self):
         return self._config_holder.get_ioc_details()
 
-    def save_config(self, input):
+    def save_config(self, rawjson):
         # The config name comes as JSON
-        conf = json.loads(input)
+        conf = json.loads(rawjson)
         self._save_config(conf)
 
     def _save_config(self, name):
@@ -164,8 +164,8 @@ class ConfigServerManager(object):
     def get_ioc_state(self, ioc):
         return self._procserve_wrapper.get_ioc_status(self._macros["$(MYPVPREFIX)"], ioc)
 
-    def start_iocs(self, input):
-        data = json.loads(input)
+    def start_iocs(self, rawjson):
+        data = json.loads(rawjson)
         for ioc in data:
             self._start_ioc(ioc)
 
@@ -188,16 +188,16 @@ class ConfigServerManager(object):
             except Exception as err:
                 print_and_log("Could not (re)start IOC %s: %s" % (n, str(err)))
 
-    def restart_iocs(self, input):
-        data = json.loads(input)
+    def restart_iocs(self, rawjson):
+        data = json.loads(rawjson)
         for ioc in data:
             self._restart_ioc(ioc)
 
     def _restart_ioc(self, ioc):
         self._procserve_wrapper.restart_ioc(self._macros["$(MYPVPREFIX)"], ioc)
 
-    def stop_iocs(self, input):
-        data = json.loads(input)
+    def stop_iocs(self, rawjson):
+        data = json.loads(rawjson)
         for ioc in data:
             # Check it is okay to stop it
             if ioc.startswith(IOCS_NOT_TO_STOP):
@@ -244,8 +244,8 @@ class ConfigServerManager(object):
             print_and_log("Could not retrieve IOC list: %s" % str(err), "ERROR")
             return []
 
-    def add_subconfigs(self, input):
-        data = json.loads(input)
+    def add_subconfigs(self, rawjson):
+        data = json.loads(rawjson)
         for name in data:
             comp = self._config_holder.load_config(name, True)
             self._config_holder.add_subconfig(name, comp)
@@ -254,8 +254,8 @@ class ConfigServerManager(object):
                 if self.get_ioc_state(ioc.name) == "SHUTDOWN":
                     self._start_ioc(ioc.name)
 
-    def remove_subconfigs(self, input):
-        data = json.loads(input)
+    def remove_subconfigs(self, rawjson):
+        data = json.loads(rawjson)
         for name in data:
             self._config_holder.remove_subconfig(name)
 
@@ -314,4 +314,3 @@ class ConfigServerManager(object):
 
     def set_config_details(self, data):
         self._config_holder.set_config_details_from_json(json.loads(data))
-

@@ -56,8 +56,9 @@ def print_and_log(message, severity="INFO", src="BLOCKSVR"):
     print "%s: %s" % (severity, message)
     write_to_ioc_log(message, severity, src)
 
+
 def value_list_to_xml(list, grp, group_tag, item_tag):
-    #Helper function to convert a list of values to XML
+    # Helper function to convert a list of values to XML
     if len(list) > 0:
         xml_list = ElementTree.SubElement(grp, group_tag)
         for n, c in list.iteritems():
@@ -72,12 +73,14 @@ def check_pv_name_valid(name):
         return False
     return True
 
+
 def parse_xml_removing_namespace(file_path):
     it = ElementTree.iterparse(file_path)
     for _, el in it:
         if ':' in el.tag:
             el.tag = el.tag.split('}',1)[1]
     return it.root
+
 
 def print_and_log(message, severity="INFO", src="BLOCKSVR"):
     print "%s: %s" % (severity, message)

@@ -4,7 +4,7 @@ import re
 
 class DynamicStringPV(cas.casPV):
     def __init__(self, data):
-        cas.casPV.__init__(self)
+        super(DynamicStringPV, self).__init__()
         self.stored_value = cas.gdd()
         self.stored_value.setPrimType(cas.aitEnumUint8)
         self.stored_value.put(data)
@@ -29,11 +29,10 @@ class DynamicStringPV(cas.casPV):
     def bestExternalType(self):
         return cas.aitEnumUint8
 
+
 class CAServer(SimpleServer):
-
     def __init__(self, pv_prefix):
-        SimpleServer.__init__(self)
-
+        super(CAServer, self).__init__()
         self._pvs = dict()
         self._prefix = pv_prefix
 
@@ -61,7 +60,7 @@ class CAServer(SimpleServer):
         else:
             return SimpleServer.pvAttach(self, context, fullname)
 
-    def registerPV(self, name, data = ''):
+    def registerPV(self, name, data=''):
         if name not in self._pvs:
             self._pvs[name] = DynamicStringPV(data)
 
@@ -73,7 +72,7 @@ class CAServer(SimpleServer):
 
 
 if __name__ == '__main__':
-    #here for testing
+    # Here for testing
     prefix = 'MTEST:'
     pvdb = { 'STATIC' : {} }
 
