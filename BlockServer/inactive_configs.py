@@ -5,10 +5,9 @@ import os
 import json
 import re
 
-class InactiveConfigManager(object):
-    ''' Class to handle data on all available configurations and manage their associated pvs
-    '''
 
+class InactiveConfigManager(object):
+    """ Class to handle data on all available configurations and manage their associated PVs"""
     def __init__(self, config_folder, macros, server, test_mode=False):
         self._configserver = InactiveConfigServerManager(config_folder, macros, test_mode=test_mode)
         self._config_metas = dict()
