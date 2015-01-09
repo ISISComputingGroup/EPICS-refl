@@ -11,11 +11,12 @@ import json
 from threading import Thread, RLock
 from time import sleep
 from gateway import Gateway
+from active_config_server import ActiveConfigServerManager
 from config_server import ConfigServerManager
 from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log
 from macros import MACROS, BLOCKSERVER_PREFIX
-from inactive_configs import InactiveConfigManager
+from all_configs_list import InactiveConfigListManager
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
@@ -162,12 +163,12 @@ class BlockServer(Driver):
     def __init__(self, ca_server):
         super(BlockServer, self).__init__()
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX,  PVLIST_FILE)
-        self._configserver = None
+        self._active_configserver = None
         self._status = "INITIALISING"
 
         # Import data about all configs
         try:
-            self._inactive_configs = InactiveConfigManager(CONFIG_DIR, MACROS, ca_server)
+            self._inactive_configs = InactiveConfigListManager(CONFIG_DIR, ca_server)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "ERROR")
 
@@ -191,7 +192,7 @@ class BlockServer(Driver):
 
     def initialise_configserver(self):
         # This is in a seperate method so it can be sent to the thread queue
-        self._configserver = ConfigServerManager(CONFIG_DIR, MACROS,
+        self._active_configserver = ActiveConfigServerManager(CONFIG_DIR, MACROS,
                                                  ARCHIVE_UPLOADER, ARCHIVE_SETTINGS, BLOCK_PREFIX)
         try:
             if self._gateway.exists():
@@ -202,7 +203,7 @@ class BlockServer(Driver):
                 self.load_last_config()
         except Exception as err:
             print_and_log("Could not load last configuration. Message was: %s" % err, "ERROR")
-            self._configserver.clear_config()
+            self._active_configserver.clear_config()
 
         # Update monitors to current values
         self.update_blocks_monitors()
@@ -211,25 +212,25 @@ class BlockServer(Driver):
     def read(self, reason):
         # This is called by CA
         if reason == 'BLOCKNAMES':
-            value = compress_and_hex(self._configserver.get_blocknames_json())
+            value = compress_and_hex(self._active_configserver.get_blocknames_json())
         elif reason == 'GROUPS':
-            value = compress_and_hex(self._configserver.get_groupings_json())
+            value = compress_and_hex(self._active_configserver.get_groupings_json())
         elif reason == 'CONFIG':
-            value = compress_and_hex(self._configserver.get_config_name_json())
+            value = compress_and_hex(self._active_configserver.get_config_name_json())
         elif reason == 'CONFIG_IOCS':
-            value = compress_and_hex(self._configserver.get_config_iocs_json())
+            value = compress_and_hex(self._active_configserver.get_config_iocs_json())
         elif reason == 'CONFIGS':
             value = compress_and_hex(self._inactive_configs.get_configs_json())
         elif reason == 'CONFIG_COMPS':
-            value = compress_and_hex(self._configserver.get_conf_subconfigs_json())
+            value = compress_and_hex(self._active_configserver.get_conf_subconfigs_json())
         elif reason == 'COMPS':
             value = compress_and_hex(self._inactive_configs.get_subconfigs_json())
         elif reason == 'GET_RC_OUT':
-            value = compress_and_hex(self._configserver.get_out_of_range_pvs())
+            value = compress_and_hex(self._active_configserver.get_out_of_range_pvs())
         elif reason == 'GET_RC_PARS':
-            value = compress_and_hex(self._configserver.get_runcontrol_settings_json())
+            value = compress_and_hex(self._active_configserver.get_runcontrol_settings_json())
         elif reason == "GET_CURR_CONFIG_DETAILS":
-            value = compress_and_hex(self._configserver.get_config_details())
+            value = compress_and_hex(self._active_configserver.get_config_details())
         elif reason == "SERVER_STATUS":
             value = compress_and_hex(self.get_server_status())
         else:
@@ -243,7 +244,7 @@ class BlockServer(Driver):
         if reason == 'ADD_BLOCKS':
             try:
                 data = dehex_and_decompress(value)
-                self._configserver.add_blocks_json(data)
+                self._active_configserver.add_blocks_json(data)
                 self.update_blocks_monitors()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -251,7 +252,7 @@ class BlockServer(Driver):
                 print_and_log(str(err), "ERROR")
         elif reason == 'REMOVE_BLOCKS':
             try:
-                self._configserver.remove_blocks(dehex_and_decompress(value))
+                self._active_configserver.remove_blocks(dehex_and_decompress(value))
                 self.update_blocks_monitors()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -260,7 +261,7 @@ class BlockServer(Driver):
         elif reason == 'EDIT_BLOCKS':
             try:
                 data = dehex_and_decompress(value)
-                self._configserver.edit_blocks_json(data)
+                self._active_configserver.edit_blocks_json(data)
                 self.update_blocks_monitors()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -293,7 +294,7 @@ class BlockServer(Driver):
         elif reason == 'SAVE_CONFIG':
             try:
                 data = dehex_and_decompress(value)
-                self.save_config(data)
+                self.save_active_config(data)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -310,14 +311,14 @@ class BlockServer(Driver):
         elif reason == 'SAVE_COMP':
             try:
                 data = dehex_and_decompress(value)
-                self.save_as_subconfig(data)
+                self.save_active_as_subconfig(data)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex("Error: " + str(err))
                 print_and_log(str(err), "ERROR")
         elif reason == 'CLEAR_CONFIG':
             try:
-                self._configserver.clear_config()
+                self._active_configserver.clear_config()
                 self._initialise_config()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -325,10 +326,10 @@ class BlockServer(Driver):
                 print_and_log(str(err), "ERROR")
         elif reason == 'ACTION_CHANGES':
             try:
-                self.autosave_config()
-                self._gateway.set_new_aliases(self._configserver.get_blocks())
-                self._configserver.update_archiver()
-                self._configserver.create_runcontrol_pvs()
+                self.autosave_active_config()
+                self._gateway.set_new_aliases(self._active_configserver.get_blocks())
+                self._active_configserver.update_archiver()
+                self._active_configserver.create_runcontrol_pvs()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -336,9 +337,9 @@ class BlockServer(Driver):
         elif reason == 'SET_GROUPS':
             try:
                 data = dehex_and_decompress(value)
-                self._configserver.set_groupings_json(data)
+                self._active_configserver.set_groupings_json(data)
                 self.update_blocks_monitors()
-                self.autosave_config()
+                self.autosave_active_config()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -346,7 +347,7 @@ class BlockServer(Driver):
         elif reason == 'START_IOCS':
             try:
                 data = dehex_and_decompress(value)
-                self._configserver.start_iocs(data)
+                self._active_configserver.start_iocs(data)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -354,7 +355,7 @@ class BlockServer(Driver):
         elif reason == 'STOP_IOCS':
             try:
                 data = dehex_and_decompress(value)
-                self._configserver.stop_iocs(data)
+                self._active_configserver.stop_iocs(data)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -362,7 +363,7 @@ class BlockServer(Driver):
         elif reason == 'RESTART_IOCS':
             try:
                 data = dehex_and_decompress(value)
-                self._configserver.restart_iocs(data)
+                self._active_configserver.restart_iocs(data)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -370,8 +371,8 @@ class BlockServer(Driver):
         elif reason == 'ADD_IOCS':
             try:
                 data = dehex_and_decompress(value)
-                self._configserver.add_iocs(data)
-                self.autosave_config()
+                self._active_configserver.add_iocs(data)
+                self.autosave_active_config()
                 self.update_config_iocs_monitors()
                 # Should we start the IOC?
                 value = compress_and_hex(json.dumps("OK"))
@@ -381,8 +382,8 @@ class BlockServer(Driver):
         elif reason == 'REMOVE_IOCS':
             try:
                 data = dehex_and_decompress(value)
-                self._configserver.remove_iocs(data)
-                self.autosave_config()
+                self._active_configserver.remove_iocs(data)
+                self.autosave_active_config()
                 self.update_config_iocs_monitors()
                 # Should we stop the IOC?
                 value = compress_and_hex(json.dumps("OK"))
@@ -391,7 +392,7 @@ class BlockServer(Driver):
                 print_and_log(str(err), "ERROR")
         elif reason == 'DUMP_STATUS':
             try:
-                self._configserver.dump_status()
+                self._active_configserver.dump_status()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -399,7 +400,7 @@ class BlockServer(Driver):
         elif reason == 'SET_RC_PARS':
             try:
                 data = dehex_and_decompress(value)
-                self._configserver.set_runcontrol_settings_json(data)
+                self._active_configserver.set_runcontrol_settings_json(data)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -407,8 +408,8 @@ class BlockServer(Driver):
         elif reason == 'SET_CURR_CONFIG_DETAILS':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._configserver.set_config_details(data)
-                self.save_config(self._configserver.get_config_name_json())
+                self._active_configserver.set_config_details(data)
+                self.save_active_config(self._active_configserver.get_config_name_json())
                 self.update_blocks_monitors()
                 self.update_get_details_monitors()
                 value = compress_and_hex(json.dumps("OK"))
@@ -418,8 +419,7 @@ class BlockServer(Driver):
         elif reason == 'SAVE_NEW_CONFIG':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._inactive_configs.update_config_from_json(data)
-                self.update_config_monitors()
+                self.save_inactive_config(data)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -427,7 +427,7 @@ class BlockServer(Driver):
         elif reason == 'SAVE_NEW_COMPONENT':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._inactive_configs.update_subconfig_from_json(data)
+                self.save_inactive_subconfig(data)
                 self.update_comp_monitor()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -441,10 +441,10 @@ class BlockServer(Driver):
         return status
 
     def load_last_config(self):
-        last = self._configserver.load_last_config()
+        last = self._active_configserver.load_last_config()
         if last is None:
             print_and_log("Could not retrieve last configuration - starting blank configuration")
-            self._configserver.clear_config()
+            self._active_configserver.clear_config()
         else:
             print_and_log("Loaded last configuration: %s" % last)
         self._initialise_config()
@@ -453,24 +453,24 @@ class BlockServer(Driver):
         # First stop all IOCS, then start the ones for the config
         # TODO: Should we stop all configs?
         if restart_iocs:
-            self._configserver.stop_iocs_and_start_config_iocs()
+            self._active_configserver.stop_iocs_and_start_config_iocs()
         # Set up the gateway
         if init_gateway:
-            self._gateway.set_new_aliases(self._configserver.get_blocks())
+            self._gateway.set_new_aliases(self._active_configserver.get_blocks())
         self.update_blocks_monitors()
         self.update_config_monitors()
         self.update_config_iocs_monitors()
-        self._configserver.update_archiver()
+        self._active_configserver.update_archiver()
 
     def load_config(self, value, is_subconfig=False):
         try:
             config = dehex_and_decompress(value)
             if is_subconfig:
                 print_and_log("Loading sub-configuration: %s" % config)
-                self._configserver.load_config(config, True)
+                self._active_configserver.load_config(config, True)
             else:
                 print_and_log("Loading configuration: %s" % config)
-                self._configserver.load_config(config)
+                self._active_configserver.load_config(config)
             # If we get this far then assume the config is okay
             self._initialise_config()
             self.update_get_details_monitors()
@@ -479,46 +479,61 @@ class BlockServer(Driver):
 
     def add_subconfigs(self, config):
         # When adding a subconfig the IOCs in it are started
-        self._configserver.add_subconfigs(config)
+        self._active_configserver.add_subconfigs(config)
         # We need to refresh the gateway
         self._initialise_config(False, True)
 
     def remove_subconfigs(self, config):
         # When removing a subconfig we need to refresh the gateway
-        self._configserver.remove_subconfigs(config)
+        self._active_configserver.remove_subconfigs(config)
         self._initialise_config(False, True)
 
-    def save_config(self, json_name):
-        name = json.loads(json_name)
-        print_and_log("Saving configuration: %s" % name)
-        self._configserver.save_config(json_name)
-        self._inactive_configs.update_config_from_file(name)
+    def save_inactive_config(self, json_data):
+        inactive = ConfigServerManager(CONFIG_DIR, MACROS)
+        inactive.set_config_details(json_data)
+        print_and_log("Saving configuration: %s" % inactive.get_config_name())
+        inactive.save_config()
+        self._inactive_configs.update_config_list(inactive)
         self.update_config_monitors()
 
-    def save_as_subconfig(self, json_name):
+    def save_inactive_subconfig(self, json_data):
+        inactive = ConfigServerManager(CONFIG_DIR, MACROS)
+        inactive.set_config_details(json_data)
+        print_and_log("Saving sub-configuration: %s" % inactive.get_config_name())
+        inactive.save_as_subconfig()
+        self._inactive_configs.update_config_list(inactive, True)
+        self.update_comp_monitors()
+
+    def save_active_config(self, json_name):
         name = json.loads(json_name)
-        print_and_log("Trying to save as sub-configuration: %s" % name)
-        self._configserver.save_as_subconfig(json_name)
-        self._inactive_configs.update_comp_from_file(name)
+        print_and_log("Saving active configuration as: %s" % name)
+        self._active_configserver.save_config(json_name)
+        self._inactive_configs.update_config_list(self._active_configserver)
         self.update_config_monitors()
+
+    def save_active_as_subconfig(self, json_name):
+        name = json.loads(json_name)
+        print_and_log("Trying to save active configuration as sub-configuration: %s" % name)
+        self._active_configserver.save_as_subconfig(json_name)
+        self._inactive_configs.update_config_list(self._active_configserver)
         self.update_comp_monitor()
 
-    def autosave_config(self):
-        self._configserver.autosave_config()
+    def autosave_active_config(self):
+        self._active_configserver.autosave_config()
 
     def update_blocks_monitors(self):
         # Blocks
-        self.setParam("BLOCKNAMES", compress_and_hex(self._configserver.get_blocknames_json()))
+        self.setParam("BLOCKNAMES", compress_and_hex(self._active_configserver.get_blocknames_json()))
         # Groups
         # Update the PV, so that groupings are updated for any CA monitors
-        self.setParam("GROUPS", compress_and_hex(self._configserver.get_groupings_json()))
+        self.setParam("GROUPS", compress_and_hex(self._active_configserver.get_groupings_json()))
         # Update them
         with self.monitor_lock:
             self.updatePVs()
 
     def update_config_monitors(self):
         # set the config name
-        self.setParam("CONFIG", compress_and_hex(self._configserver.get_config_name_json()))
+        self.setParam("CONFIG", compress_and_hex(self._active_configserver.get_config_name_json()))
         # set the available configs
         self.setParam("CONFIGS", compress_and_hex(self._inactive_configs.get_configs_json()))
         # Update them
@@ -533,8 +548,8 @@ class BlockServer(Driver):
 
     def update_ioc_monitors(self):
         while True:
-            if self._configserver is not None:
-                self.setParam("CONFIG_IOCS", compress_and_hex(self._configserver.get_config_iocs_json()))
+            if self._active_configserver is not None:
+                self.setParam("CONFIG_IOCS", compress_and_hex(self._active_configserver.get_config_iocs_json()))
                 self.setParam("SERVER_STATUS", compress_and_hex(self.get_server_status()))
                 # Update them
                 with self.monitor_lock:
@@ -542,11 +557,11 @@ class BlockServer(Driver):
             sleep(2)
 
     def update_config_iocs_monitors(self):
-        self.setParam("CONFIG_IOCS", compress_and_hex(self._configserver.get_config_iocs_json()))
+        self.setParam("CONFIG_IOCS", compress_and_hex(self._active_configserver.get_config_iocs_json()))
         self.updatePVs()
 
     def update_get_details_monitors(self):
-        self.setParam("GET_CURR_CONFIG_DETAILS", compress_and_hex(self._configserver.get_config_details()))
+        self.setParam("GET_CURR_CONFIG_DETAILS", compress_and_hex(self._active_configserver.get_config_details()))
         with self.monitor_lock:
             self.updatePVs()
 

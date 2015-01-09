@@ -2,7 +2,7 @@ import unittest
 import os
 import shutil
 import json
-from config_server import ConfigServerManager
+from active_config_server import ActiveConfigServerManager
 
 from mocks.mock_configuration import MockConfiguration
 
@@ -35,16 +35,16 @@ def create_grouping(groups):
     return ans
 
 
-# Note that the ConfigServerManager contains an instance of the Configuration class and hands a lot of
+# Note that the ActiveConfigServerManager contains an instance of the Configuration class and hands a lot of
 #   work off to this object. Rather than testing whether the functionality in the configuration class works
 #   correctly (e.g. by checking that a block has been edited properly after calling configuration.edit_block),
-#   we should instead test that ConfigServerManager passes the correct parameters to the Configuration object. We are
-#   testing that ConfigServerManager correctly interfaces with Configuration, not testing the functionality of
+#   we should instead test that ActiveConfigServerManager passes the correct parameters to the Configuration object. We are
+#   testing that ActiveConfigServerManager correctly interfaces with Configuration, not testing the functionality of
 #   Configuration, which is done in Configuration's own suite of tests.
 class TestConfigServerSequence(unittest.TestCase):
     def setUp(self):
         # Create in test mode
-        self.configserver = ConfigServerManager("./test_configs/", MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+        self.configserver = ActiveConfigServerManager("./test_configs/", MACROS, None, "archive.xml", "BLOCK_PREFIX:",
                                                 test_mode=True)
 
     def tearDown(self):
