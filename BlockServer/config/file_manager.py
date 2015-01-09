@@ -73,7 +73,7 @@ class ConfigurationFileManager(object):
 
 
     @staticmethod
-    def save_config(configuration, root_path, config_name, test_mode = False):
+    def save_config(configuration, root_path, config_name, test_mode=False):
         """Saves the current configuration with the specified name"""
         config_folder = os.path.abspath(root_path) + "\\" + config_name
         path = os.path.abspath(config_folder)
@@ -112,11 +112,11 @@ class ConfigurationFileManager(object):
             f.write(meta_xml)
 
         if not test_mode:
-            ConfigurationFileManager.add_configs_to_version_control(root_path, config_name, config_name + " modified")
+            ConfigurationFileManager.add_configs_to_version_control(root_path, [config_name], config_name + " modified")
 
     @staticmethod
-    def add_configs_to_version_control(root_path, config_name, commit_message):
-        # Create version control manager
+    def add_configs_to_version_control(root_path, config_names, commit_message):
+        ''' Takes a list of configs, adds them to version control and commits '''
         try:
             vc = ConfigVersionControl(root_path)
         except NotUnderVersionControl as err:
@@ -124,7 +124,8 @@ class ConfigurationFileManager(object):
         except Exception as err:
             print_and_log("Error in applying version control: " + str(err), "ERROR")
         else:
-            vc.add(root_path + '/' + config_name)
+            for config in config_names:
+                vc.add(root_path + '/' + config)
             vc.commit(commit_message)
 
     @staticmethod

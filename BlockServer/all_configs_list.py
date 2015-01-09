@@ -1,4 +1,5 @@
 from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY
+from config.file_manager import ConfigurationFileManager
 from macros import MACROS
 from config_server import ConfigServerManager
 from server_common.utilities import print_and_log, compress_and_hex
@@ -67,14 +68,24 @@ class InactiveConfigListManager(object):
         return pv
 
     def _import_configs(self):
-        # Creates the pvs and gets meta data
-        for config_name in self.get_config_names():
+        # Create the pvs and get meta data
+        config_list = self.get_config_names()
+        subconfig_list = self.get_subconfig_names()
+
+        for config_name in config_list:
             config = self._load_config(config_name)
             self.update_config_list(config)
 
-        for comp_name in self.get_subconfig_names():
+        for comp_name in subconfig_list:
             config = self._load_config(comp_name, True)
             self.update_config_list(config, True)
+
+        # Add files to version control
+        ConfigurationFileManager.add_configs_to_version_control(
+            self._conf_path, config_list, "Blockserver started: all configs updated")
+
+        ConfigurationFileManager.add_configs_to_version_control(
+            self._comp_path, subconfig_list, "Blockserver started: all subconfigs updated")
 
     def _load_config(self, name, is_subconfig=False):
         config = ConfigServerManager(self._config_folder, MACROS)
