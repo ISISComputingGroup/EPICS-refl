@@ -492,8 +492,8 @@ class BlockServer(Driver):
         inactive = ConfigServerManager(CONFIG_DIR, MACROS)
         inactive.set_config_details(json_data)
         config_name = inactive.get_config_name()
-        print_and_log("Saving configuration: %s" % config_name)
         self._check_config_inactive(config_name)
+        print_and_log("Saving configuration: %s" % config_name)
         inactive.save_config()
         self._inactive_configs.update_config_list(inactive)
         self.update_config_monitors()
@@ -502,11 +502,11 @@ class BlockServer(Driver):
         inactive = ConfigServerManager(CONFIG_DIR, MACROS)
         inactive.set_config_details(json_data)
         config_name = inactive.get_config_name()
-        print_and_log("Saving sub-configuration: %s" % config_name)
         self._check_config_inactive(config_name, True)
+        print_and_log("Saving sub-configuration: %s" % config_name)
         inactive.save_as_subconfig()
         self._inactive_configs.update_config_list(inactive, True)
-        self.update_comp_monitors()
+        self.update_comp_monitor()
 
     def save_active_config(self, json_name):
         name = json.loads(json_name)
@@ -591,7 +591,7 @@ class BlockServer(Driver):
     def _check_config_inactive(self, inactive_name, is_subconfig=False):
         if not is_subconfig:
             if inactive_name == self._active_configserver.get_config_name():
-                raise ValueError("Use SET_CURR_CONFIG_DETAILS to change the active config")
+                raise ValueError("Cannot change config, use SET_CURR_CONFIG_DETAILS to change the active config")
         else:
             pass
             #TODO: check not a component of active
