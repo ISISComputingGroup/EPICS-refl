@@ -10,9 +10,9 @@ import argparse
 from test_modules.sqlite_wrapper_tests import TestSqliteWrapperSequence
 from test_modules.mysql_wrapper_tests import TestMySQLWrapperSequence
 from test_modules.options_holder_tests import TestOptionsHolderSequence
+from test_modules.database_server_test_mysql import TestDatabaseServer
 
-
-DEFAULT_DIRECTORY = '..\\..\\test-reports'
+DEFAULT_DIRECTORY = '..\\..\\..\\test-reports'
 
 if __name__ == '__main__':
     # get output directory from command line arguments
@@ -26,9 +26,11 @@ if __name__ == '__main__':
     sqlite_suite = unittest.TestLoader().loadTestsFromTestCase(TestSqliteWrapperSequence)
     mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestMySQLWrapperSequence)
     options_holder_suite = unittest.TestLoader().loadTestsFromTestCase(TestOptionsHolderSequence)
+    database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
     xmlrunner.XMLTestRunner(output=xml_dir).run(sqlite_suite)
     xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite)
     xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite)
+    xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite)
     print "------ UNIT TESTS COMPLETE ------\n\n"

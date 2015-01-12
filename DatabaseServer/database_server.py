@@ -16,6 +16,7 @@ from threading import Thread, RLock
 from procserv_utils import ProcServWrapper
 from options_holder import OptionsHolder
 from options_loader import OptionsLoader
+from mocks.mock_procserv_utils import MockProcServWrapper
 
 IOCDB = 'iocdb'
 IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
@@ -56,21 +57,27 @@ PVDB = {
 
 
 class DatabaseServer(Driver):
-    def __init__(self, ca_server, dbid, options_folder):
-        super(DatabaseServer, self).__init__()
+    def __init__(self, ca_server, dbid, options_folder, test_mode=False):
+        if test_mode:
+            ps = MockProcServWrapper()
+            prefix = ""
+        else:
+            super(DatabaseServer, self).__init__()
+            ps = ProcServWrapper
+            prefix = MACROS["$(MYPVPREFIX)"]
         self._ca_server = ca_server
         self._options_holder = OptionsHolder(options_folder, OptionsLoader())
 
         # Initialise database connection
         try:
-            self._db = dbWrap(dbid, ProcServWrapper(), MACROS["$(MYPVPREFIX)"])
+            self._db = dbWrap(dbid, ps, prefix)
             self._db.check_db_okay()
             print_and_log("Connected to database", "INFO", "DBSVR")
         except Exception as err:
             self._db = None
             print_and_log("Problem initialising DB connection: %s" % err, "ERROR", "DBSVR")
 
-        if self._db is not None:
+        if self._db is not None and not test_mode:
             # Start a background thread for keeping track of running IOCs
             self.monitor_lock = RLock()
             monitor_thread = Thread(target=self.update_ioc_monitors, args=())
