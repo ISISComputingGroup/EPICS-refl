@@ -9,6 +9,7 @@ from pcaspy import Driver, SimpleServer
 from time import sleep
 import argparse
 from server_common.utilities import compress_and_hex, print_and_log
+from server_common.channel_access_server import CAServer
 from mysql_wrapper import MySQLWrapper as dbWrap
 import json
 from threading import Thread, RLock
@@ -55,8 +56,9 @@ PVDB = {
 
 
 class DatabaseServer(Driver):
-    def __init__(self, dbid, options_folder):
+    def __init__(self, ca_server, dbid, options_folder):
         super(DatabaseServer, self).__init__()
+        self._ca_server = ca_server
         self._options_holder = OptionsHolder(options_folder, OptionsLoader())
 
         # Initialise database connection
@@ -104,6 +106,7 @@ class DatabaseServer(Driver):
             if self._db is not None:
                 self._db.update_iocs_status()
                 self.setParam("IOCS", self.encode4return(self._get_iocs_info()))
+                self._update_individual_interesting_pvs()
                 # Update them
                 with self.monitor_lock:
                     self.updatePVs()
@@ -125,6 +128,12 @@ class DatabaseServer(Driver):
             return self._db.get_interesting_pvs(level, ioc)
         else:
             return list()
+
+    def _update_individual_interesting_pvs(self):
+        for level in ["HIGH", "MEDIUM"]:
+            for iocname in self._db.get_iocs().keys():
+                pvs = self._get_interesting_pvs(level, iocname)
+                self._ca_server.updatePV("INTERESTING_PVS:" + iocname + ":" + level, self.encode4return(pvs))
 
     def get_sample_par_names(self):
         if self._db is not None:
@@ -161,9 +170,9 @@ if __name__ == '__main__':
         # Create it then
         os.makedirs(os.path.abspath(OPTIONS_DIR))
 
-    SERVER = SimpleServer()
+    SERVER = CAServer(BLOCKSERVER_PREFIX)
     SERVER.createPV(BLOCKSERVER_PREFIX, PVDB)
-    DRIVER = DatabaseServer(IOCDB, OPTIONS_DIR)
+    DRIVER = DatabaseServer(SERVER, IOCDB, OPTIONS_DIR)
 
     # Process CA transactions
     while True:

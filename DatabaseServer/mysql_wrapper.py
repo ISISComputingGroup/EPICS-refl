@@ -145,6 +145,11 @@ class MySQLWrapper(object):
             c.execute(sqlquery)
             # Get as a plain list of lists
             values = [list(element) for element in c.fetchall()]
+            # Convert any bytearrays
+            for i, pv in enumerate(values):
+                for j, element in enumerate(pv):
+                    if type(element) == bytearray:
+                        values[i][j] = element.decode("utf-8")
         except Exception as err:
             print_and_log("issue with getting interesting PVs: %s" % err, "ERROR", "DBSVR")
         finally:
