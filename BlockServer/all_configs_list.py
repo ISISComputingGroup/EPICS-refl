@@ -10,11 +10,12 @@ import re
 
 class InactiveConfigListManager(object):
     """ Class to handle data on all available configurations and manage their associated PVs"""
-    def __init__(self, config_folder, server):
+    def __init__(self, config_folder, server, test_mode=False):
         self._config_metas = dict()
         self._subconfig_metas = dict()
         self._ca_server = server
         self._config_folder = config_folder
+        self._test_mode = test_mode
 
         self._conf_path = os.path.abspath(config_folder + CONFIG_DIRECTORY)
         self._comp_path = os.path.abspath(config_folder + COMPONENT_DIRECTORY)
@@ -81,11 +82,12 @@ class InactiveConfigListManager(object):
             self.update_config_list(config, True)
 
         # Add files to version control
-        ConfigurationFileManager.add_configs_to_version_control(
-            self._conf_path, config_list, "Blockserver started: all configs updated")
+        if not self._test_mode:
+            ConfigurationFileManager.add_configs_to_version_control(
+                self._conf_path, config_list, "Blockserver started: all configs updated")
 
-        ConfigurationFileManager.add_configs_to_version_control(
-            self._comp_path, subconfig_list, "Blockserver started: all subconfigs updated")
+            ConfigurationFileManager.add_configs_to_version_control(
+                self._comp_path, subconfig_list, "Blockserver started: all subconfigs updated")
 
     def _load_config(self, name, is_subconfig=False):
         config = ConfigServerManager(self._config_folder, MACROS)
@@ -132,3 +134,9 @@ class InactiveConfigListManager(object):
             else:
                 pv_name = self._create_pv_name(config_name, True)
         return pv_name
+
+    def delete_configs(self, configs, are_subconfigs=True):
+        ''' Takes a json list of configs and removes them from the file system and any relevant pvs '''
+        #convert from json
+        #
+
