@@ -62,9 +62,12 @@ class ConfigServerManager(object):
     def get_config_meta(self):
         return self._config_holder.get_config_meta()
 
+    def get_conf_subconfigs(self):
+        return self._config_holder.get_component_names()
+
     def get_conf_subconfigs_json(self):
         """Gets a list of sub-configurations in the current config"""
-        return json.dumps(self._config_holder.get_component_names()).encode('ascii', 'replace')
+        return json.dumps(self.get_conf_subconfigs()).encode('ascii', 'replace')
 
     def get_config_folder(self):
         return self._config_folder

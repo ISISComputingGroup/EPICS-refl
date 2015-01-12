@@ -495,7 +495,7 @@ class BlockServer(Driver):
         self._check_config_inactive(config_name)
         print_and_log("Saving configuration: %s" % config_name)
         inactive.save_config()
-        self._inactive_configs.update_config_list(inactive)
+        self._inactive_configs.update_a_config_in_list(inactive)
         self.update_config_monitors()
 
     def save_inactive_subconfig(self, json_data):
@@ -505,21 +505,21 @@ class BlockServer(Driver):
         self._check_config_inactive(config_name, True)
         print_and_log("Saving sub-configuration: %s" % config_name)
         inactive.save_as_subconfig()
-        self._inactive_configs.update_config_list(inactive, True)
+        self._inactive_configs.update_a_config_in_list(inactive, True)
         self.update_comp_monitor()
 
     def save_active_config(self, json_name):
         name = json.loads(json_name)
         print_and_log("Saving active configuration as: %s" % name)
         self._active_configserver.save_config(json_name)
-        self._inactive_configs.update_config_list(self._active_configserver)
+        self._inactive_configs.update_a_config_in_list(self._active_configserver)
         self.update_config_monitors()
 
     def save_active_as_subconfig(self, json_name):
         name = json.loads(json_name)
         print_and_log("Trying to save active configuration as sub-configuration: %s" % name)
         self._active_configserver.save_as_subconfig(json_name)
-        self._inactive_configs.update_config_list(self._active_configserver)
+        self._inactive_configs.update_a_config_in_list(self._active_configserver)
         self.update_comp_monitor()
 
     def autosave_active_config(self):

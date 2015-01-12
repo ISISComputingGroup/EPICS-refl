@@ -6,7 +6,10 @@ from server_common.utilities import print_and_log, compress_and_hex
 import os
 import json
 import re
+from sets import Set
 
+GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
+GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
 
 class InactiveConfigListManager(object):
     """ Class to handle data on all available configurations and manage their associated PVs"""
@@ -22,10 +25,10 @@ class InactiveConfigListManager(object):
 
         self._import_configs()
 
-    def get_config_names(self):
+    def _get_config_names(self):
         return self._get_file_list(os.path.abspath(self._conf_path))
 
-    def get_subconfig_names(self):
+    def _get_subconfig_names(self):
         return self._get_file_list(os.path.abspath(self._comp_path))
 
     def _get_file_list(self, path):
@@ -36,12 +39,14 @@ class InactiveConfigListManager(object):
 
     def get_configs_json(self):
         configs_string = list()
+        self._update_whole_config_list()
         for config in self._config_metas.values():
             configs_string.append(config.to_dict())
         return json.dumps(configs_string).encode('ascii', 'replace')
 
     def get_subconfigs_json(self):
         configs_string = list()
+        self._update_whole_config_list(True)
         for config in self._subconfig_metas.values():
             configs_string.append(config.to_dict())
         return json.dumps(configs_string).encode('ascii', 'replace')
@@ -70,16 +75,16 @@ class InactiveConfigListManager(object):
 
     def _import_configs(self):
         # Create the pvs and get meta data
-        config_list = self.get_config_names()
-        subconfig_list = self.get_subconfig_names()
+        config_list = self._get_config_names()
+        subconfig_list = self._get_subconfig_names()
 
         for config_name in config_list:
             config = self._load_config(config_name)
-            self.update_config_list(config)
+            self.update_a_config_in_list(config)
 
         for comp_name in subconfig_list:
             config = self._load_config(comp_name, True)
-            self.update_config_list(config, True)
+            self.update_a_config_in_list(config, True)
 
         # Add files to version control
         if not self._test_mode:
@@ -96,20 +101,20 @@ class InactiveConfigListManager(object):
 
     def _update_config_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(self._config_metas[name].pv + ":GET_CONFIG_DETAILS", compress_and_hex(data))
+        self._ca_server.updatePV(self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(data))
 
     def _update_subconfig_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(self._subconfig_metas[name].pv + ":GET_COMPONENT_DETAILS", compress_and_hex(data))
+        self._ca_server.updatePV(self._subconfig_metas[name].pv + GET_SUBCONFIG_PV, compress_and_hex(data))
 
-    def update_config_list(self, config, is_subconfig=False):
+    def update_a_config_in_list(self, config, is_subconfig=False):
         ''' Takes a ConfigServerManager object and updates the list of meta data and the individual PVs '''
         name = config.get_config_name()
 
         #get pv name (create if doesn't exist)
         pv_name = self._get_pv_name(name, is_subconfig)
 
-        #get meat data from config
+        #get meta data from config
         meta = config.get_config_meta()
         meta.pv = pv_name
 
@@ -120,6 +125,18 @@ class InactiveConfigListManager(object):
         else:
             self._config_metas[name] = meta
             self._update_config_pv(name, config.get_config_details())
+
+    def _update_whole_config_list(self, is_subconfig=False):
+        # This method is only required as there is no filewatcher
+        if not is_subconfig:
+            name_list = self._get_config_names()
+            for config_name in name_list:
+                self.update_a_config_in_list(self._load_config(config_name))
+        else:
+            name_list = self._get_subconfig_names()
+            for subconfig_name in name_list:
+                self.update_a_config_in_list(self._load_config(subconfig_name, True), True)
+
 
     def _get_pv_name(self, config_name, is_subconfig=False):
         ''' Returns the name of the pv corresponding to config_name, this name is generated if not already created '''
@@ -135,8 +152,15 @@ class InactiveConfigListManager(object):
                 pv_name = self._create_pv_name(config_name, True)
         return pv_name
 
-    def delete_configs(self, configs, are_subconfigs=True):
-        ''' Takes a json list of configs and removes them from the file system and any relevant pvs '''
-        #convert from json
-        #
-
+    def delete_configs(self, json_configs, active_config, are_subconfigs=True):
+        ''' Takes a json list of configs and removes them from the file system and any relevant pvs.
+           The method also requires the active config object to check against '''
+        delete_list = Set(json.loads(json_configs))
+        if not are_subconfigs:
+            delete_list.discard(active_config.get_config_name())
+            for config in delete_list.intersection(Set(self._config_metas.keys())):
+                if config in self._config_metas:
+                    del self._config_metas[config]
+                    self._ca_server.deletePV(config + CONFIG_DIRECTORY)
+        else:
+            pass

@@ -63,15 +63,15 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_initialisation_with_no_configs_in_directory(self):
         ic = InactiveConfigListManager(TEST_DIRECTORY, MockCAServer(), test_mode=True)
-        confs = ic.get_config_names()
+        confs = ic._get_config_names()
         self.assertEqual(len(confs), 0)
-        subconfs = ic.get_subconfig_names()
+        subconfs = ic._get_subconfig_names()
         self.assertEqual(len(subconfs), 0)
 
     def test_initialisation_with_configs_in_directory(self):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         ic = InactiveConfigListManager(TEST_DIRECTORY, MockCAServer(), test_mode=True)
-        confs = ic.get_config_names()
+        confs = ic._get_config_names()
         self.assertEqual(len(confs), 2)
         self.assertTrue("TEST_CONFIG1" in confs)
         self.assertTrue("TEST_CONFIG2" in confs)
@@ -79,7 +79,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_initialisation_with_subconfigs_in_directory(self):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
         ic = InactiveConfigListManager(TEST_DIRECTORY,MockCAServer(), test_mode=True)
-        confs = ic.get_subconfig_names()
+        confs = ic._get_subconfig_names()
         self.assertEqual(len(confs), 2)
         self.assertTrue("TEST_SUBCONFIG1" in confs)
         self.assertTrue("TEST_SUBCONFIG2" in confs)
@@ -130,7 +130,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ics = InactiveConfigListManager(TEST_DIRECTORY, MockCAServer(), test_mode=True)
         ic = ConfigServerManager(TEST_DIRECTORY, MACROS)
         ic.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
-        ics.update_config_list(ic)
+        ics.update_a_config_in_list(ic)
 
         confs = json.loads(ics.get_configs_json())
         self.assertEqual(len(confs), 1)
@@ -145,7 +145,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ics = InactiveConfigListManager(TEST_DIRECTORY, MockCAServer(), test_mode=True)
         ic = ConfigServerManager(TEST_DIRECTORY, MACROS)
         ic.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
-        ics.update_config_list(ic, True)
+        ics.update_a_config_in_list(ic, True)
 
         confs = json.loads(ics.get_subconfigs_json())
         self.assertEqual(len(confs), 1)
