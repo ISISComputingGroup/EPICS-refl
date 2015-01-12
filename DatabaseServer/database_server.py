@@ -60,17 +60,15 @@ class DatabaseServer(Driver):
     def __init__(self, ca_server, dbid, options_folder, test_mode=False):
         if test_mode:
             ps = MockProcServWrapper()
-            prefix = ""
         else:
             super(DatabaseServer, self).__init__()
-            ps = ProcServWrapper
-            prefix = MACROS["$(MYPVPREFIX)"]
+            ps = ProcServWrapper()
         self._ca_server = ca_server
         self._options_holder = OptionsHolder(options_folder, OptionsLoader())
 
         # Initialise database connection
         try:
-            self._db = dbWrap(dbid, ps, prefix)
+            self._db = dbWrap(dbid, ps, MACROS["$(MYPVPREFIX)"])
             self._db.check_db_okay()
             print_and_log("Connected to database", "INFO", "DBSVR")
         except Exception as err:
