@@ -1,4 +1,5 @@
 import os
+import shutil
 from collections import OrderedDict
 from server_common.utilities import parse_xml_removing_namespace, print_and_log
 
@@ -25,7 +26,7 @@ class ConfigurationFileManager(object):
         config_folder = os.path.abspath(root_path) + "\\" + config_name
         path = os.path.abspath(config_folder)
         if not os.path.isdir(path):
-            raise Exception("Configuration could not be found")
+            raise Exception("Configuration could not be found: " + config_name)
 
         # Create empty containers
         blocks = OrderedDict()
@@ -61,7 +62,11 @@ class ConfigurationFileManager(object):
             ConfigurationXmlConverter.subconfigs_from_xml(root, subconfigs)
 
         #Import the metadata
-        meta = ConfigurationFileManager.load_meta_data(root_path, config_name)
+        meta = MetaData(config_name)
+        meta_path = path + '/' + FILENAME_META
+        if os.path.isfile(meta_path):
+            root = parse_xml_removing_namespace(meta_path)
+            ConfigurationXmlConverter.meta_from_xml(root, meta)
 
         # Set properties in the config
         configuration.blocks = blocks
@@ -135,10 +140,8 @@ class ConfigurationFileManager(object):
             raise Exception("Subconfig does not exist")
 
     @staticmethod
-    def load_meta_data(root_path, config_name):
-        meta = MetaData(config_name)
-        meta_path = os.path.abspath(root_path) + "\\" + config_name + '/' + FILENAME_META
-        if os.path.isfile(meta_path):
-            root = parse_xml_removing_namespace(meta_path)
-            ConfigurationXmlConverter.meta_from_xml(root, meta)
-        return meta
+    def delete_configs(root_path, config_names):
+        for config in config_names:
+            path = root_path + '/' + config
+            if os.path.isdir(path):
+                shutil.rmtree(path)

@@ -187,8 +187,8 @@ Read Commands
 
 ::
 
-	Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:*config_name*:GET_CONFIG_DETAILS
-	Returns a compressed and hexed JSON dictionary describing the configuration named *config_name*.
+	Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:*config_name*:GET_COMPONENT_DETAILS
+	Returns a compressed and hexed JSON dictionary describing the component named *component_name*.
 	Example JSON (dehexed and decompressed):
         '{"iocs":
                  [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
@@ -203,8 +203,8 @@ Read Commands
                    [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
-          "name": "TESTCONFIG1",
-		  "description": "A test configuration"
+          "name": "TESTCOMP1",
+		  "description": "A test component"
          }'	
 		 
 		 
@@ -474,3 +474,48 @@ Write Commands
 		  "description": "A test configuration"
 		 }'
 
+**BLOCKSERVER:SAVE_NEW_COMPONENT**
+
+::
+
+	Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:SAVE_NEW_COMPONENT abcdefabdcdefabcdef1234567890
+	Saves a component to xml files without effecting the current configuration. This will give an error if trying to save over components of the current configuration but will allow overwrites of other saved configurations.
+	Requires compressed and hexed JSON dictionary.
+	
+	Example JSON (dehexed and decompressed):
+		'{"iocs":
+				 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
+				  {"simlevel": "recsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
+				 ],
+		  "blocks":
+				   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
+					{"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
+					{"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true}
+				   ],
+		  "groups":
+				   [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
+					{"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
+					{"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
+		  "name": "TESTCOMP1",
+		  "description": "A test component"
+		 }'		 
+		 
+**BLOCKSERVER:DELETE_CONFIGS**
+
+::
+
+    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:DELETE_CONFIGS abcdefabdcdefabcdef1234567890
+    Removes a configuration or configurations from the BlockServer and filesystem. Requires a compressed and hexed JSON list of configuration names to remove.
+    If this is done in error the configuration can be recovered from version control. For removing one configuration only, create a list of one item.
+
+    Returns "OK" or an error message (compressed and hexed JSON).
+	
+**BLOCKSERVER:DELETE_COMPONENTS**
+
+::
+
+    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:DELETE_COMPONENTS abcdefabdcdefabcdef1234567890
+    Removes a component or components from the BlockServer and filesystem. Requires a compressed and hexed JSON list of component names to remove.
+    If this is done in error the component can be recovered from version control. For removing one component only, create a list of one item.
+
+    Returns "OK" or an error message (compressed and hexed JSON).

@@ -6,7 +6,6 @@ from server_common.utilities import print_and_log, compress_and_hex
 import os
 import json
 import re
-from sets import Set
 
 GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
 GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
@@ -152,15 +151,45 @@ class InactiveConfigListManager(object):
                 pv_name = self._create_pv_name(config_name, True)
         return pv_name
 
-    def delete_configs(self, json_configs, active_config, are_subconfigs=True):
+    def update_version_control_pre_delete(self, folder, files):
+        if not self._test_mode:
+            ConfigurationFileManager.add_configs_to_version_control(folder, files,
+                                    "Updating version control prior to deleting: " + str(files))
+
+    def update_version_control_post_delete(self, folder, files):
+        if not self._test_mode:
+            ConfigurationFileManager.add_configs_to_version_control(folder, [],
+                                    "Deleted: " + str(files))
+
+    def delete_configs(self, json_configs, active_config, are_subconfigs=False):
         ''' Takes a json list of configs and removes them from the file system and any relevant pvs.
            The method also requires the active config object to check against '''
-        delete_list = Set(json.loads(json_configs))
+        delete_list = set(json.loads(json_configs))
+        original_len = len(delete_list)
         if not are_subconfigs:
             delete_list.discard(active_config.get_config_name())
-            for config in delete_list.intersection(Set(self._config_metas.keys())):
-                if config in self._config_metas:
-                    del self._config_metas[config]
-                    self._ca_server.deletePV(config + CONFIG_DIRECTORY)
+            if len(delete_list) < original_len:
+                raise Exception("Cannot delete currently active configuration")
+            self.update_version_control_pre_delete(self._conf_path, delete_list)
+            delete_list.intersection(set(self._config_metas.keys()))
+            if len(delete_list) < original_len:
+                print_and_log("Delete list contains unknown configurations", "INFO")
+            for config in delete_list:
+                del self._config_metas[config]
+                self._ca_server.deletePV(config + GET_CONFIG_PV)
+            ConfigurationFileManager.delete_configs(self._conf_path, delete_list)
+            self.update_version_control_post_delete(self._comp_path, delete_list)
         else:
-            pass
+            delete_list.difference_update(active_config.get_conf_subconfigs())
+            if len(delete_list) < original_len:
+                raise Exception("Cannot delete components within currently active configuration")
+            self.update_version_control_pre_delete(self._comp_path, delete_list)
+            delete_list.intersection(set(self._subconfig_metas.keys()))
+            if len(delete_list) < original_len:
+                print_and_log("Delete list contains unknown components", "INFO")
+            for comp in delete_list:
+                del self._subconfig_metas[comp]
+                self._ca_server.deletePV(comp + GET_SUBCONFIG_PV)
+            ConfigurationFileManager.delete_configs(self._comp_path, delete_list)
+            self.update_version_control_post_delete(self._comp_path, delete_list)
+            #TODO: what shall we do with configurations that need these comps?

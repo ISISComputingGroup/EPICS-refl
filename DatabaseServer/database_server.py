@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 
 # Standard imports
-from pcaspy import Driver, SimpleServer
+from pcaspy import Driver
 from time import sleep
 import argparse
 from server_common.utilities import compress_and_hex, print_and_log

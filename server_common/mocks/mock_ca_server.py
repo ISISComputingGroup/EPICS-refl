@@ -4,3 +4,6 @@ class MockCAServer(object):
 
     def updatePV(self, pv_name, data):
         self.pv_list[pv_name] = data
+
+    def deletePV(self, pv_name):
+        del self.pv_list[pv_name]

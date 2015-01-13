@@ -156,6 +156,14 @@ PVDB = {
         'type': 'char',
         'count': 1000,
     },
+    'DELETE_CONFIGS': {
+        'type': 'char',
+        'count': 64000,
+    },
+    'DELETE_COMPONENTS': {
+        'type': 'char',
+        'count': 64000,
+    },
 }
 
 
@@ -211,30 +219,34 @@ class BlockServer(Driver):
 
     def read(self, reason):
         # This is called by CA
-        if reason == 'BLOCKNAMES':
-            value = compress_and_hex(self._active_configserver.get_blocknames_json())
-        elif reason == 'GROUPS':
-            value = compress_and_hex(self._active_configserver.get_groupings_json())
-        elif reason == 'CONFIG':
-            value = compress_and_hex(self._active_configserver.get_config_name_json())
-        elif reason == 'CONFIG_IOCS':
-            value = compress_and_hex(self._active_configserver.get_config_iocs_json())
-        elif reason == 'CONFIGS':
-            value = compress_and_hex(self._inactive_configs.get_configs_json())
-        elif reason == 'CONFIG_COMPS':
-            value = compress_and_hex(self._active_configserver.get_conf_subconfigs_json())
-        elif reason == 'COMPS':
-            value = compress_and_hex(self._inactive_configs.get_subconfigs_json())
-        elif reason == 'GET_RC_OUT':
-            value = compress_and_hex(self._active_configserver.get_out_of_range_pvs())
-        elif reason == 'GET_RC_PARS':
-            value = compress_and_hex(self._active_configserver.get_runcontrol_settings_json())
-        elif reason == "GET_CURR_CONFIG_DETAILS":
-            value = compress_and_hex(self._active_configserver.get_config_details())
-        elif reason == "SERVER_STATUS":
-            value = compress_and_hex(self.get_server_status())
-        else:
-            value = self.getParam(reason)
+        try:
+            if reason == 'BLOCKNAMES':
+                value = compress_and_hex(self._active_configserver.get_blocknames_json())
+            elif reason == 'GROUPS':
+                value = compress_and_hex(self._active_configserver.get_groupings_json())
+            elif reason == 'CONFIG':
+                value = compress_and_hex(self._active_configserver.get_config_name_json())
+            elif reason == 'CONFIG_IOCS':
+                value = compress_and_hex(self._active_configserver.get_config_iocs_json())
+            elif reason == 'CONFIGS':
+                value = compress_and_hex(self._inactive_configs.get_configs_json())
+            elif reason == 'CONFIG_COMPS':
+                value = compress_and_hex(self._active_configserver.get_conf_subconfigs_json())
+            elif reason == 'COMPS':
+                value = compress_and_hex(self._inactive_configs.get_subconfigs_json())
+            elif reason == 'GET_RC_OUT':
+                value = compress_and_hex(self._active_configserver.get_out_of_range_pvs())
+            elif reason == 'GET_RC_PARS':
+                value = compress_and_hex(self._active_configserver.get_runcontrol_settings_json())
+            elif reason == "GET_CURR_CONFIG_DETAILS":
+                value = compress_and_hex(self._active_configserver.get_config_details())
+            elif reason == "SERVER_STATUS":
+                value = compress_and_hex(self.get_server_status())
+            else:
+                value = self.getParam(reason)
+        except Exception as err:
+                value = compress_and_hex(json.dumps("Error: " + str(err)))
+                print_and_log(str(err), "ERROR")
         return value
 
     def write(self, reason, value):
@@ -429,6 +441,22 @@ class BlockServer(Driver):
                 data = dehex_and_decompress(value).strip('"')
                 self.save_inactive_subconfig(data)
                 self.update_comp_monitor()
+                value = compress_and_hex(json.dumps("OK"))
+            except Exception as err:
+                value = compress_and_hex(json.dumps("Error: " + str(err)))
+                print_and_log(str(err), "ERROR")
+        elif reason == 'DELETE_CONFIGS':
+            try:
+                data = dehex_and_decompress(value).strip('"')
+                self._inactive_configs.delete_configs(data, self._active_configserver)
+                value = compress_and_hex(json.dumps("OK"))
+            except Exception as err:
+                value = compress_and_hex(json.dumps("Error: " + str(err)))
+                print_and_log(str(err), "ERROR")
+        elif reason == 'DELETE_COMPONENTS':
+            try:
+                data = dehex_and_decompress(value).strip('"')
+                self._inactive_configs.delete_configs(data, self._active_configserver, True)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))

@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 from config_server import ConfigServerManager
+from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY
 
 MACROS = {
     "$(MYPVPREFIX)": "",
@@ -15,6 +16,9 @@ MACROS = {
 }
 
 TEST_DIRECTORY = "./test_configs"
+
+GET_CONFIG_PV = "GET_CONFIG_DETAILS"
+GET_SUBCONFIG_PV = "GET_COMPONENT_DETAILS"
 
 VALID_CONFIG_JSON = u"""{
         "iocs": [{
@@ -90,10 +94,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
 
         self.assertEqual(len(ms.pv_list), 2)
-        self.assertTrue("TEST_CONFIG1:GET_CONFIG_DETAILS" in ms.pv_list.keys())
-        self.assertTrue("TEST_CONFIG2:GET_CONFIG_DETAILS" in ms.pv_list.keys())
-        self.assertFalse("TEST_CONFIG1:GET_COMPONENT_DETAILS" in ms.pv_list.keys())
-        self.assertFalse("TEST_CONFIG2:GET_COMPONENT_DETAILS" in ms.pv_list.keys())
+        self.assertTrue("TEST_CONFIG1:" + GET_CONFIG_PV in ms.pv_list.keys())
+        self.assertTrue("TEST_CONFIG2:" + GET_CONFIG_PV in ms.pv_list.keys())
+        self.assertFalse("TEST_CONFIG1:" + GET_SUBCONFIG_PV in ms.pv_list.keys())
+        self.assertFalse("TEST_CONFIG2:" + GET_SUBCONFIG_PV in ms.pv_list.keys())
 
     def test_initialisation_with_subconfigs_in_directory_pv(self):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
@@ -101,16 +105,16 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
 
         self.assertEqual(len(ms.pv_list), 2)
-        self.assertTrue("TEST_SUBCONFIG1:GET_COMPONENT_DETAILS" in ms.pv_list.keys())
-        self.assertTrue("TEST_SUBCONFIG2:GET_COMPONENT_DETAILS" in ms.pv_list.keys())
-        self.assertFalse("TEST_SUBCONFIG1:GET_CONFIG_DETAILS" in ms.pv_list.keys())
-        self.assertFalse("TEST_SUBCONFIG2:GET_CONFIG_DETAILS" in ms.pv_list.keys())
+        self.assertTrue("TEST_SUBCONFIG1:" + GET_SUBCONFIG_PV in ms.pv_list.keys())
+        self.assertTrue("TEST_SUBCONFIG2:" + GET_SUBCONFIG_PV in ms.pv_list.keys())
+        self.assertFalse("TEST_SUBCONFIG1:" + GET_CONFIG_PV in ms.pv_list.keys())
+        self.assertFalse("TEST_SUBCONFIG2:" + GET_CONFIG_PV in ms.pv_list.keys())
 
     def test_initialisation_pv_config_data(self):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         ms = MockCAServer()
         ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
-        data = ms.pv_list.get("TEST_CONFIG1:GET_CONFIG_DETAILS")
+        data = ms.pv_list.get("TEST_CONFIG1:" + GET_CONFIG_PV)
         data = json.loads(dehex_and_decompress(data))
 
         self.assertTrue("name" in data)
@@ -121,7 +125,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
         ms = MockCAServer()
         ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
-        data = ms.pv_list.get("TEST_SUBCONFIG1:GET_COMPONENT_DETAILS")
+        data = ms.pv_list.get("TEST_SUBCONFIG1:" + GET_SUBCONFIG_PV)
         data = json.loads(dehex_and_decompress(data))
 
         self._test_is_configuration_json(data, "TEST_SUBCONFIG1")
@@ -260,9 +264,198 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(confs[0]["pv"], expected_pv_name)
         self.assertEqual(confs[0]["name"], config_name)
 
-        self.assertTrue(expected_pv_name + ":GET_CONFIG_DETAILS" in ms.pv_list.keys())
-        self.assertFalse(config_name + ":GET_CONFIG_DETAILS" in ms.pv_list.keys())
-        data = ms.pv_list.get(expected_pv_name + ":GET_CONFIG_DETAILS")
+        self.assertTrue(expected_pv_name + ":" + GET_CONFIG_PV in ms.pv_list.keys())
+        self.assertFalse(config_name + ":" + GET_CONFIG_PV in ms.pv_list.keys())
+        data = ms.pv_list.get(expected_pv_name + ":" + GET_CONFIG_PV)
         data = json.loads(dehex_and_decompress(data))
 
         self._test_is_configuration_json(data, config_name)
+
+    def test_delete_configs_empty(self):
+        create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
+        ms = MockCAServer()
+        ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
+        active = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+                                            test_mode=True)
+        active.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
+
+        ic.delete_configs(json.dumps([]), active)
+
+        config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+        self.assertEqual(len(config_names), 2)
+        self.assertTrue("TEST_CONFIG1" in config_names)
+        self.assertTrue("TEST_CONFIG2" in config_names)
+        self.assertEqual(len(ms.pv_list), 2)
+
+    def test_delete_subconfigs_empty(self):
+        create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
+        ms = MockCAServer()
+        ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
+        active = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+                                            test_mode=True)
+        active.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
+
+        ic.delete_configs(json.dumps([]), active, True)
+
+        config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+        self.assertEqual(len(config_names), 2)
+        self.assertTrue("TEST_SUBCONFIG1" in config_names)
+        self.assertTrue("TEST_SUBCONFIG2" in config_names)
+        self.assertEqual(len(ms.pv_list), 2)
+
+    def test_delete_active_config(self):
+        create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
+        ms = MockCAServer()
+        ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
+        active = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+                                            test_mode=True)
+        active.save_config(json.dumps("TEST_ACTIVE"))
+
+        self._test_none_deleted(ic, ms)
+        self.assertRaises(Exception, ic.delete_configs, (json.dumps(["TEST_ACTIVE"]), active))
+        self._test_none_deleted(ic, ms)
+        self.assertRaises(Exception, ic.delete_configs, (json.dumps(["TEST_ACTIVE", "TEST_CONFIG1"]), active))
+        self._test_none_deleted(ic, ms)
+        self.assertRaises(Exception, ic.delete_configs, (json.dumps(["TEST_CONFIG1", "TEST_ACTIVE"]), active))
+        self._test_none_deleted(ic, ms)
+
+    def test_delete_active_subconfig(self):
+        create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2", "TEST_SUBCONFIG3"])
+        ms = MockCAServer()
+        ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
+        active = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+                                            test_mode=True)
+        active.add_subconfigs(json.dumps(["TEST_SUBCONFIG1"]))
+        active.save_config(json.dumps("TEST_ACTIVE"))
+
+        self._test_none_deleted(ic, ms, True)
+        self.assertRaises(Exception, ic.delete_configs, (json.dumps(["TEST_SUBCONFIG1"]), active, True))
+        self._test_none_deleted(ic, ms, True)
+        self.assertRaises(Exception, ic.delete_configs, (json.dumps(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"]), active, True))
+        self._test_none_deleted(ic, ms, True)
+        self.assertRaises(Exception, ic.delete_configs, (json.dumps(["TEST_CONFIG2", "TEST_SUBCONFIG1"]), active, True))
+        self._test_none_deleted(ic, ms, True)
+
+    def _test_none_deleted(self, ic, ms, is_subconfig=False):
+        if is_subconfig:
+            config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+            self.assertEqual(len(config_names), 3)
+            self.assertTrue("TEST_SUBCONFIG1" in config_names)
+            self.assertTrue("TEST_SUBCONFIG2" in config_names)
+            self.assertTrue("TEST_SUBCONFIG3" in config_names)
+            self.assertEqual(len(ms.pv_list), 3)
+        else:
+            config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+            self.assertEqual(len(config_names), 3)
+            self.assertTrue("TEST_CONFIG2" in config_names)
+            self.assertTrue("TEST_CONFIG1" in config_names)
+            self.assertTrue("TEST_ACTIVE" in config_names)
+            self.assertEqual(len(ms.pv_list), 3)
+
+    def test_delete_one_config(self):
+        create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
+        ms = MockCAServer()
+        ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
+        active = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+                                            test_mode=True)
+        active.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
+
+        ic.delete_configs(json.dumps(["TEST_CONFIG1"]), active)
+
+        config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+        self.assertEqual(len(config_names), 1)
+        self.assertTrue("TEST_CONFIG2" in config_names)
+        self.assertFalse("TEST_CONFIG1" in config_names)
+        self.assertEqual(len(ms.pv_list), 1)
+
+    def test_delete_one_subconfig(self):
+        create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
+        ms = MockCAServer()
+        ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
+        active = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+                                            test_mode=True)
+        active.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
+
+        ic.delete_configs(json.dumps(["TEST_SUBCONFIG1"]), active, True)
+
+        config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+        self.assertEqual(len(config_names), 1)
+        self.assertTrue("TEST_SUBCONFIG2" in config_names)
+        self.assertFalse("TEST_SUBCONFIG1" in config_names)
+        self.assertEqual(len(ms.pv_list), 1)
+
+    def test_delete_many_configs(self):
+        create_configs(["TEST_CONFIG1", "TEST_CONFIG2", "TEST_CONFIG3"])
+        ms = MockCAServer()
+        ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
+        active = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+                                            test_mode=True)
+        active.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
+
+        config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+        self.assertEqual(len(config_names), 3)
+        self.assertTrue("TEST_CONFIG1" in config_names)
+        self.assertTrue("TEST_CONFIG2" in config_names)
+        self.assertTrue("TEST_CONFIG3" in config_names)
+
+        ic.delete_configs(json.dumps(["TEST_CONFIG1", "TEST_CONFIG3"]), active)
+
+        config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+        self.assertEqual(len(config_names), 1)
+        self.assertTrue("TEST_CONFIG2" in config_names)
+        self.assertFalse("TEST_CONFIG1" in config_names)
+        self.assertFalse("TEST_CONFIG3" in config_names)
+        self.assertEqual(len(ms.pv_list), 1)
+
+    def test_delete_many_subconfigs(self):
+        create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2", "TEST_SUBCONFIG3"])
+        ms = MockCAServer()
+        ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
+        active = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+                                            test_mode=True)
+        active.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
+
+        config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+        self.assertEqual(len(config_names), 3)
+        self.assertTrue("TEST_SUBCONFIG1" in config_names)
+        self.assertTrue("TEST_SUBCONFIG2" in config_names)
+        self.assertTrue("TEST_SUBCONFIG3" in config_names)
+
+        ic.delete_configs(json.dumps(["TEST_SUBCONFIG1", "TEST_SUBCONFIG3"]), active, True)
+
+        config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+        self.assertEqual(len(config_names), 1)
+        self.assertTrue("TEST_SUBCONFIG2" in config_names)
+        self.assertFalse("TEST_SUBCONFIG1" in config_names)
+        self.assertFalse("TEST_SUBCONFIG3" in config_names)
+        self.assertEqual(len(ms.pv_list), 1)
+
+    def test_delete_config_affects_filesystem(self):
+        create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
+        ms = MockCAServer()
+        ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
+        active = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+                                            test_mode=True)
+        active.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
+
+        self.assertEqual(len(os.listdir(TEST_DIRECTORY + CONFIG_DIRECTORY)), 2)
+        ic.delete_configs(json.dumps(["TEST_CONFIG1"]), active)
+
+        configs = os.listdir(TEST_DIRECTORY + CONFIG_DIRECTORY)
+        self.assertEqual(len(configs), 1)
+        self.assertTrue("TEST_CONFIG2" in configs)
+
+    def test_delete_subconfig_affects_filesystem(self):
+        create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
+        ms = MockCAServer()
+        ic = InactiveConfigListManager(TEST_DIRECTORY, ms, test_mode=True)
+        active = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+                                            test_mode=True)
+        active.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
+
+        self.assertEqual(len(os.listdir(TEST_DIRECTORY + COMPONENT_DIRECTORY)), 2)
+        ic.delete_configs(json.dumps(["TEST_SUBCONFIG1"]), active, True)
+
+        configs = os.listdir(TEST_DIRECTORY + COMPONENT_DIRECTORY)
+        self.assertEqual(len(configs), 1)
+        self.assertTrue("TEST_SUBCONFIG2" in configs)

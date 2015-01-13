@@ -70,6 +70,9 @@ class CAServer(SimpleServer):
         else:
             self.registerPV(name, data)
 
+    def deletePV(self, name):
+        if name in self._pvs:
+            del self._pvs[name]
 
 if __name__ == '__main__':
     # Here for testing
