@@ -134,6 +134,20 @@ class ConfigurationFileManager(object):
             vc.commit(commit_message)
 
     @staticmethod
+    def delete_configs_from_version_control(root_path, config_names, commit_message="Deleted configs"):
+        ''' Takes a list of configs, removes them from version control and commits '''
+        try:
+            vc = ConfigVersionControl(root_path)
+        except NotUnderVersionControl as err:
+            print_and_log(err, "INFO")
+        except Exception as err:
+            print_and_log("Error in applying version control: " + str(err), "ERROR")
+        else:
+            for config in config_names:
+                vc.remove(root_path + '/' + config)
+            vc.commit(commit_message)
+
+    @staticmethod
     def subconfig_exists(root_path, name):
         print root_path
         if not os.path.isdir(root_path + '/' + name):

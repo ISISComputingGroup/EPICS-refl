@@ -154,12 +154,14 @@ class InactiveConfigListManager(object):
     def update_version_control_pre_delete(self, folder, files):
         if not self._test_mode:
             ConfigurationFileManager.add_configs_to_version_control(folder, files,
-                                    "Updating version control prior to deleting: " + str(files))
+                                    "Updating version control prior to deleting: " + str(list(files)))
 
     def update_version_control_post_delete(self, folder, files):
         if not self._test_mode:
-            ConfigurationFileManager.add_configs_to_version_control(folder, [],
-                                    "Deleted: " + str(files))
+            ConfigurationFileManager.delete_configs_from_version_control(folder, files,
+                                    "Deleted: " + str(list(files)))
+        else:
+            ConfigurationFileManager.delete_configs(folder, files)
 
     def delete_configs(self, json_configs, active_config, are_subconfigs=False):
         ''' Takes a json list of configs and removes them from the file system and any relevant pvs.
@@ -177,8 +179,7 @@ class InactiveConfigListManager(object):
             for config in delete_list:
                 del self._config_metas[config]
                 self._ca_server.deletePV(config + GET_CONFIG_PV)
-            ConfigurationFileManager.delete_configs(self._conf_path, delete_list)
-            self.update_version_control_post_delete(self._comp_path, delete_list)
+            self.update_version_control_post_delete(self._conf_path, delete_list)
         else:
             delete_list.difference_update(active_config.get_conf_subconfigs())
             if len(delete_list) < original_len:
@@ -190,6 +191,5 @@ class InactiveConfigListManager(object):
             for comp in delete_list:
                 del self._subconfig_metas[comp]
                 self._ca_server.deletePV(comp + GET_SUBCONFIG_PV)
-            ConfigurationFileManager.delete_configs(self._comp_path, delete_list)
             self.update_version_control_post_delete(self._comp_path, delete_list)
             #TODO: what shall we do with configurations that need these comps?
