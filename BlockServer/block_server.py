@@ -449,6 +449,7 @@ class BlockServer(Driver):
             try:
                 data = dehex_and_decompress(value).strip('"')
                 self._inactive_configs.delete_configs(data, self._active_configserver)
+                self.update_config_monitors()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -457,6 +458,7 @@ class BlockServer(Driver):
             try:
                 data = dehex_and_decompress(value).strip('"')
                 self._inactive_configs.delete_configs(data, self._active_configserver, True)
+                self.update_comp_monitor()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))

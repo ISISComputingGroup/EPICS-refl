@@ -230,11 +230,6 @@ class ActiveConfigServerManager(ConfigServerManager):
                 if self.get_ioc_state(ioc.name) == "SHUTDOWN":
                     self._start_ioc(ioc.name)
 
-    def remove_subconfigs(self, rawjson):
-        data = json.loads(rawjson)
-        for name in data:
-            self._config_holder.remove_subconfig(name)
-
     def set_last_config(self, config):
         last = os.path.abspath(self._last_config_file)
         with open(last, 'w') as f:

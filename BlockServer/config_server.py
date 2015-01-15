@@ -26,6 +26,17 @@ class ConfigServerManager(object):
         config = self._config_holder.get_config_name()
         return json.dumps(config).encode('ascii', 'replace')
 
+    def add_subconfigs(self, rawjson):
+        data = json.loads(rawjson)
+        for name in data:
+            comp = self._config_holder.load_config(name, True)
+            self._config_holder.add_subconfig(name, comp)
+
+    def remove_subconfigs(self, rawjson):
+        data = json.loads(rawjson)
+        for name in data:
+            self._config_holder.remove_subconfig(name)
+
     def save_config(self, rawjson=None):
         name = self._get_current_or_json_name(rawjson)
         self._save_config(name)
