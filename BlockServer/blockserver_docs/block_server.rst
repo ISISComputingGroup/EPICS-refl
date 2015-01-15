@@ -157,12 +157,12 @@ Read Commands
 		  "description": "A test configuration"
          }'
 
-**BLOCKSERVER:*config_name*:GET_CONFIG_DETAILS**
+**BLOCKSERVER:*config_pv*:GET_CONFIG_DETAILS**
 
 ::
 
-	Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:*config_name*:GET_CONFIG_DETAILS
-	Returns a compressed and hexed JSON dictionary describing the configuration named *config_name*.
+	Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:*config_pv*:GET_CONFIG_DETAILS
+	Returns a compressed and hexed JSON dictionary describing the configuration with the pv *config_pv*. (To find config pvs use the CONFIGS command)
 	Example JSON (dehexed and decompressed):
         '{"iocs":
                  [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
@@ -183,13 +183,13 @@ Read Commands
 		  "description": "A test configuration"
          }'	
 		 
-**BLOCKSERVER:*component_name*:GET_COMPONENT_DETAILS**
+**BLOCKSERVER:*component_pv*:GET_COMPONENT_DETAILS**
 
 ::
 
-	Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:*config_name*:GET_COMPONENT_DETAILS
-	Returns a compressed and hexed JSON dictionary describing the component named *component_name*.
-	Example JSON (dehexed and decompressed):
+	Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:*component_pv*:GET_COMPONENT_DETAILS
+	Returns a compressed and hexed JSON dictionary describing the component with the pv *component_pv*. (To find component pvs use the COMPS command)
+ 	Example JSON (dehexed and decompressed):
         '{"iocs":
                  [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
                   {"simlevel": "devsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
@@ -199,6 +199,7 @@ Read Commands
                     {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
                     {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true}
                    ],
+          "components": [],
           "groups":
                    [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
@@ -207,6 +208,19 @@ Read Commands
 		  "description": "A test component"
          }'	
 		 
+**BLOCKSERVER:BLANK_CONFIG**
+
+::
+
+	Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:BLANK_CONFIG
+	Returns a compressed and hexed JSON dictionary describing a blank configuration.
+        '{"iocs": [],
+          "blocks": [],
+          "components": [],
+          "groups": [],
+          "name": "",
+		  "description": ""
+         }'		
 		 
 --------------
 Write Commands
@@ -496,6 +510,7 @@ Write Commands
 				   [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
 					{"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
 					{"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
+          "components": [],
 		  "name": "TESTCOMP1",
 		  "description": "A test component"
 		 }'		 
@@ -519,3 +534,5 @@ Write Commands
     If this is done in error the component can be recovered from version control. For removing one component only, create a list of one item.
 
     Returns "OK" or an error message (compressed and hexed JSON).
+	
+

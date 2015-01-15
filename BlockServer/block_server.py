@@ -164,6 +164,10 @@ PVDB = {
         'type': 'char',
         'count': 64000,
     },
+    'BLANK_CONFIG': {
+        'type': 'char',
+        'count': 64000,
+    },
 }
 
 
@@ -242,6 +246,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(self._active_configserver.get_config_details())
             elif reason == "SERVER_STATUS":
                 value = compress_and_hex(self.get_server_status())
+            elif reason == "BLANK_CONFIG":
+                value = compress_and_hex(self.get_blank_config())
             else:
                 value = self.getParam(reason)
         except Exception as err:
@@ -617,6 +623,10 @@ class BlockServer(Driver):
         d = dict()
         d['status'] = self._status
         return json.dumps(d).encode('ascii', 'replace')
+
+    def get_blank_config(self):
+        temp_config = ConfigServerManager(CONFIG_DIR, MACROS)
+        return temp_config.get_config_details()
 
     def _check_config_inactive(self, inactive_name, is_subconfig=False):
         if not is_subconfig:
