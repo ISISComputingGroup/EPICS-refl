@@ -9,6 +9,7 @@ import re
 
 GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
 GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
+DEPENDENCIES_PV = ":DEPENDENCIES"
 
 class InactiveConfigListManager(object):
     """ Class to handle data on all available configurations and manage their associated PVs"""
@@ -78,13 +79,14 @@ class InactiveConfigListManager(object):
         config_list = self._get_config_names()
         subconfig_list = self._get_subconfig_names()
 
-        for config_name in config_list:
-            config = self._load_config(config_name)
-            self.update_a_config_in_list(config)
-
+        # Must load components first for them all to be known in dependencies
         for comp_name in subconfig_list:
             config = self._load_config(comp_name, True)
             self.update_a_config_in_list(config, True)
+
+        for config_name in config_list:
+            config = self._load_config(config_name)
+            self.update_a_config_in_list(config)
 
         # Add files to version control
         if not self._test_mode:
@@ -99,6 +101,14 @@ class InactiveConfigListManager(object):
         config.load_config(json.dumps(name), is_subconfig)
         return config
 
+    def _update_subconfig_dependencies_pv(self, name):
+        # Updates PV with list of configs that depend on a subconfig
+        configs = []
+        if name in self._comp_dependecncies.keys():
+            configs = self._comp_dependecncies[name]
+        self._ca_server.updatePV(self._subconfig_metas[name].pv + DEPENDENCIES_PV,
+                                 compress_and_hex(json.dumps(configs)))
+
     def _update_config_pv(self, name, data):
         # Updates pvs with new data
         self._ca_server.updatePV(self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(data))
@@ -109,7 +119,7 @@ class InactiveConfigListManager(object):
 
     def update_a_config_in_list(self, config, is_subconfig=False):
         ''' Takes a ConfigServerManager object and updates the list of meta data and the individual PVs '''
-        name = config.get_config_name()
+        name = config.get_config_name().lower()
 
         #get pv name (create if doesn't exist)
         pv_name = self._get_pv_name(name, is_subconfig)
@@ -122,7 +132,12 @@ class InactiveConfigListManager(object):
         if is_subconfig:
             self._subconfig_metas[name] = meta
             self._update_subconfig_pv(name, config.get_config_details())
+            self._update_subconfig_dependencies_pv(name)
         else:
+            if name in self._config_metas.keys():
+                #config already exists
+                self._remove_config_from_dependencies(name)
+
             self._config_metas[name] = meta
             self._update_config_pv(name, config.get_config_details())
 
@@ -130,9 +145,10 @@ class InactiveConfigListManager(object):
             comps = config.get_conf_subconfigs()
             for comp in comps:
                 if comp in self._comp_dependecncies:
-                    self._comp_dependecncies[comp].append(config)
+                    self._comp_dependecncies[comp].append(name)
                 else:
-                    self._comp_dependecncies[comp] = [config]
+                    self._comp_dependecncies[comp] = [name]
+                self._update_subconfig_dependencies_pv(comp)
 
     def _update_whole_config_list(self, is_subconfig=False):
         # This method is only required as there is no filewatcher
@@ -145,6 +161,13 @@ class InactiveConfigListManager(object):
             for subconfig_name in name_list:
                 self.update_a_config_in_list(self._load_config(subconfig_name, True), True)
 
+
+    def _remove_config_from_dependencies(self, config):
+        # Remove old config from dependencies list
+        for comp, confs in self._comp_dependecncies.iteritems():
+            if config in confs:
+                self._comp_dependecncies[comp].remove(config)
+                self._update_subconfig_dependencies_pv(comp)
 
     def _get_pv_name(self, config_name, is_subconfig=False):
         ''' Returns the name of the pv corresponding to config_name, this name is generated if not already created '''
@@ -175,8 +198,9 @@ class InactiveConfigListManager(object):
     def delete_configs(self, json_configs, active_config, are_subconfigs=False):
         ''' Takes a json list of configs and removes them from the file system and any relevant pvs.
            The method also requires the active config object to check against '''
-        delete_list = set(json.loads(json_configs))
+        delete_list = json.loads(json_configs)
         print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
+        delete_list = set([x.lower() for x in delete_list])
         if not are_subconfigs:
             if active_config.get_config_name() in delete_list:
                 raise Exception("Cannot delete currently active configuration")
@@ -184,8 +208,9 @@ class InactiveConfigListManager(object):
             if not delete_list.issubset(self._config_metas.keys()):
                 raise Exception("Delete list contains unknown configurations")
             for config in delete_list:
+                self._ca_server.deletePV(self._config_metas[config].pv + GET_CONFIG_PV)
                 del self._config_metas[config]
-                self._ca_server.deletePV(config + GET_CONFIG_PV)
+                self._remove_config_from_dependencies(config)
             self.update_version_control_post_delete(self._conf_path, delete_list)
         else:
             #only allow comps to be deleted if they appear in no configs
@@ -196,6 +221,7 @@ class InactiveConfigListManager(object):
             if not delete_list.issubset(self._subconfig_metas.keys()):
                 raise Exception("Delete list contains unknown components")
             for comp in delete_list:
+                self._ca_server.deletePV(self._subconfig_metas[comp].pv + GET_SUBCONFIG_PV)
+                self._ca_server.deletePV(self._subconfig_metas[comp].pv + DEPENDENCIES_PV)
                 del self._subconfig_metas[comp]
-                self._ca_server.deletePV(comp + GET_SUBCONFIG_PV)
             self.update_version_control_post_delete(self._comp_path, delete_list)

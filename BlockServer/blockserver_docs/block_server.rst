@@ -221,6 +221,13 @@ Read Commands
           "name": "",
 		  "description": ""
          }'		
+
+**BLOCKSERVER:*component_pv*:DEPENDENCIES**
+
+::
+
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:*component_pv*:DEPENDENCIES
+    Returns a list of the configurations that contain the component specified in *component_pv*, formatted as compressed then hexed JSON (CHAR waveform)
 		 
 --------------
 Write Commands
