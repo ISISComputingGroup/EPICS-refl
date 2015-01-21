@@ -11,11 +11,7 @@ from BlockServer.config.configuration import Configuration, MetaData
 
 from config_version_control import ConfigVersionControl, NotUnderVersionControl
 
-FILENAME_BLOCKS = "blocks.xml"
-FILENAME_GROUPS = "groups.xml"
-FILENAME_IOCS = "iocs.xml"
-FILENAME_SUBCONFIGS = "components.xml"
-FILENAME_META = "meta.xml"
+from constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_SUBCONFIGS, FILENAME_META
 
 class ConfigurationFileManager(object):
     """Saves and loads configuration data from file"""

@@ -562,37 +562,37 @@ class BlockServer(Driver):
         self._active_configserver.autosave_config()
 
     def update_blocks_monitors(self):
-        # Blocks
-        self.setParam("BLOCKNAMES", compress_and_hex(self._active_configserver.get_blocknames_json()))
-        # Groups
-        # Update the PV, so that groupings are updated for any CA monitors
-        self.setParam("GROUPS", compress_and_hex(self._active_configserver.get_groupings_json()))
-        # Update them
         with self.monitor_lock:
+            # Blocks
+            self.setParam("BLOCKNAMES", compress_and_hex(self._active_configserver.get_blocknames_json()))
+            # Groups
+            # Update the PV, so that groupings are updated for any CA monitors
+            self.setParam("GROUPS", compress_and_hex(self._active_configserver.get_groupings_json()))
+            # Update them
             self.updatePVs()
 
     def update_config_monitors(self):
-        # set the config name
-        self.setParam("CONFIG", compress_and_hex(self._active_configserver.get_config_name_json()))
-        # set the available configs
-        self.setParam("CONFIGS", compress_and_hex(self._inactive_configs.get_configs_json()))
-        # Update them
         with self.monitor_lock:
+            # set the config name
+            self.setParam("CONFIG", compress_and_hex(self._active_configserver.get_config_name_json()))
+            # set the available configs
+            self.setParam("CONFIGS", compress_and_hex(self._inactive_configs.get_configs_json()))
+            # Update them
             self.updatePVs()
 
     def update_comp_monitor(self):
-        self.setParam("COMPS", compress_and_hex(self._inactive_configs.get_subconfigs_json()))
-        # Update them
         with self.monitor_lock:
+            self.setParam("COMPS", compress_and_hex(self._inactive_configs.get_subconfigs_json()))
+            # Update them
             self.updatePVs()
 
     def update_ioc_monitors(self):
         while True:
             if self._active_configserver is not None:
-                self.setParam("CONFIG_IOCS", compress_and_hex(self._active_configserver.get_config_iocs_json()))
-                self.setParam("SERVER_STATUS", compress_and_hex(self.get_server_status()))
-                # Update them
                 with self.monitor_lock:
+                    self.setParam("CONFIG_IOCS", compress_and_hex(self._active_configserver.get_config_iocs_json()))
+                    self.setParam("SERVER_STATUS", compress_and_hex(self.get_server_status()))
+                    # Update them
                     self.updatePVs()
             sleep(2)
 
@@ -601,8 +601,8 @@ class BlockServer(Driver):
         self.updatePVs()
 
     def update_get_details_monitors(self):
-        self.setParam("GET_CURR_CONFIG_DETAILS", compress_and_hex(self._active_configserver.get_config_details()))
         with self.monitor_lock:
+            self.setParam("GET_CURR_CONFIG_DETAILS", compress_and_hex(self._active_configserver.get_config_details()))
             self.updatePVs()
 
     def consume_write_queue(self):
@@ -634,7 +634,7 @@ class BlockServer(Driver):
                 raise ValueError("Cannot change config, use SET_CURR_CONFIG_DETAILS to change the active config")
         else:
             pass
-            #TODO: check not a component of active
+            #TODO: check not a component of active, don't know what do to for this case?
 
 
 if __name__ == '__main__':
