@@ -64,7 +64,7 @@ IOCS_XML = u"""
             <pv name="TESTIOC1PV" value="1"/>
         </pvs>
         <pvsets>
-            <pvset enabled="True" name="TESTIOC1PVSET"/>
+            <pvset enabled="true" name="TESTIOC1PVSET"/>
         </pvsets>
     </ioc>
     <ioc autostart="true" name="TESTIOC2" restart="false" simlevel="devsim">
@@ -75,7 +75,7 @@ IOCS_XML = u"""
             <pv name="TESTIOC2PV" value="2"/>
         </pvs>
         <pvsets>
-            <pvset enabled="True" name="TESTIOC2PVSET"/>
+            <pvset enabled="true" name="TESTIOC2PVSET"/>
         </pvsets>
     </ioc>
 </iocs>"""

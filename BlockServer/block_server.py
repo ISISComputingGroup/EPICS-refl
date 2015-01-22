@@ -16,7 +16,8 @@ from config_server import ConfigServerManager
 from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log
 from macros import MACROS, BLOCKSERVER_PREFIX
-from all_configs_list import InactiveConfigListManager
+from all_configs_list import ConfigListManager
+from config.file_watcher_manager import ConfigFileWatcherManager
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
@@ -180,13 +181,14 @@ class BlockServer(Driver):
 
         # Import data about all configs
         try:
-            self._inactive_configs = InactiveConfigListManager(CONFIG_DIR, ca_server)
+            self._config_list = ConfigListManager(CONFIG_DIR, ca_server)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "ERROR")
 
         # Threading stuff
         self.monitor_lock = RLock()
         self.write_lock = RLock()
+        self.config_list_lock = RLock()
         self.write_queue = list()
 
         # Start a background thread for keeping track of running IOCs
@@ -198,6 +200,9 @@ class BlockServer(Driver):
         write_thread = Thread(target=self.consume_write_queue, args=())
         write_thread.daemon = True  # Daemonise thread
         write_thread.start()
+
+        # Start file watcher
+        ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR)
 
         with self.write_lock:
             self.write_queue.append((self.initialise_configserver, (), "INITIALISING"))
@@ -233,11 +238,11 @@ class BlockServer(Driver):
             elif reason == 'CONFIG_IOCS':
                 value = compress_and_hex(self._active_configserver.get_config_iocs_json())
             elif reason == 'CONFIGS':
-                value = compress_and_hex(self._inactive_configs.get_configs_json())
+                value = compress_and_hex(self._config_list.get_configs_json())
             elif reason == 'CONFIG_COMPS':
                 value = compress_and_hex(self._active_configserver.get_conf_subconfigs_json())
             elif reason == 'COMPS':
-                value = compress_and_hex(self._inactive_configs.get_subconfigs_json())
+                value = compress_and_hex(self._config_list.get_subconfigs_json())
             elif reason == 'GET_RC_OUT':
                 value = compress_and_hex(self._active_configserver.get_out_of_range_pvs())
             elif reason == 'GET_RC_PARS':
@@ -288,7 +293,7 @@ class BlockServer(Driver):
         elif reason == 'ADD_COMPS':
             try:
                 data = dehex_and_decompress(value)
-                self.add_subconfigs(data)
+                self.add_active_subconfigs(data)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -296,7 +301,7 @@ class BlockServer(Driver):
         elif reason == 'REMOVE_COMPS':
             try:
                 data = dehex_and_decompress(value)
-                self.remove_subconfigs(data)
+                self.remove_active_subconfigs(data)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -454,7 +459,7 @@ class BlockServer(Driver):
         elif reason == 'DELETE_CONFIGS':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._inactive_configs.delete_configs(data, self._active_configserver)
+                self._config_list.delete_configs(data, self._active_configserver)
                 self.update_config_monitors()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -463,7 +468,7 @@ class BlockServer(Driver):
         elif reason == 'DELETE_COMPONENTS':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._inactive_configs.delete_configs(data, self._active_configserver, True)
+                self._config_list.delete_configs(data, self._active_configserver, True)
                 self.update_comp_monitor()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -513,13 +518,13 @@ class BlockServer(Driver):
         except Exception as err:
             print_and_log(str(err), "ERROR")
 
-    def add_subconfigs(self, config):
+    def add_active_subconfigs(self, config):
         # When adding a subconfig the IOCs in it are started
         self._active_configserver.add_subconfigs(config)
         # We need to refresh the gateway
         self._initialise_config(False, True)
 
-    def remove_subconfigs(self, config):
+    def remove_active_subconfigs(self, config):
         # When removing a subconfig we need to refresh the gateway
         self._active_configserver.remove_subconfigs(config)
         self._initialise_config(False, True)
@@ -531,7 +536,7 @@ class BlockServer(Driver):
         self._check_config_inactive(config_name)
         print_and_log("Saving configuration: %s" % config_name)
         inactive.save_config()
-        self._inactive_configs.update_a_config_in_list(inactive)
+        self._config_list.update_a_config_in_list(inactive)
         self.update_config_monitors()
 
     def save_inactive_subconfig(self, json_data):
@@ -541,21 +546,21 @@ class BlockServer(Driver):
         self._check_config_inactive(config_name, True)
         print_and_log("Saving sub-configuration: %s" % config_name)
         inactive.save_as_subconfig()
-        self._inactive_configs.update_a_config_in_list(inactive, True)
+        self._config_list.update_a_config_in_list(inactive, True)
         self.update_comp_monitor()
 
     def save_active_config(self, json_name):
         name = json.loads(json_name)
         print_and_log("Saving active configuration as: %s" % name)
         self._active_configserver.save_config(json_name)
-        self._inactive_configs.update_a_config_in_list(self._active_configserver)
+        self._config_list.update_a_config_in_list(self._active_configserver)
         self.update_config_monitors()
 
     def save_active_as_subconfig(self, json_name):
         name = json.loads(json_name)
         print_and_log("Trying to save active configuration as sub-configuration: %s" % name)
         self._active_configserver.save_as_subconfig(json_name)
-        self._inactive_configs.update_a_config_in_list(self._active_configserver)
+        self._config_list.update_a_config_in_list(self._active_configserver, True)
         self.update_comp_monitor()
 
     def autosave_active_config(self):
@@ -576,13 +581,13 @@ class BlockServer(Driver):
             # set the config name
             self.setParam("CONFIG", compress_and_hex(self._active_configserver.get_config_name_json()))
             # set the available configs
-            self.setParam("CONFIGS", compress_and_hex(self._inactive_configs.get_configs_json()))
+            self.setParam("CONFIGS", compress_and_hex(self._config_list.get_configs_json()))
             # Update them
             self.updatePVs()
 
     def update_comp_monitor(self):
         with self.monitor_lock:
-            self.setParam("COMPS", compress_and_hex(self._inactive_configs.get_subconfigs_json()))
+            self.setParam("COMPS", compress_and_hex(self._config_list.get_subconfigs_json()))
             # Update them
             self.updatePVs()
 
@@ -597,8 +602,9 @@ class BlockServer(Driver):
             sleep(2)
 
     def update_config_iocs_monitors(self):
-        self.setParam("CONFIG_IOCS", compress_and_hex(self._active_configserver.get_config_iocs_json()))
-        self.updatePVs()
+        with self.monitor_lock:
+            self.setParam("CONFIG_IOCS", compress_and_hex(self._active_configserver.get_config_iocs_json()))
+            self.updatePVs()
 
     def update_get_details_monitors(self):
         with self.monitor_lock:
@@ -641,6 +647,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-cd', '--config_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration (default=current directory)')
+    parser.add_argument('-sd', '--schema_dir', nargs=1, type=str, default=['.'],
+                        help='The directory from which to load the configuration schema (default=current directory)')
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration options(default=current directory)')
     parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=['%MYPVPREFIX%CS:GATEWAY:BLOCKSERVER:'],
@@ -674,6 +682,9 @@ if __name__ == '__main__':
     if not os.path.isdir(os.path.abspath(CONFIG_DIR)):
         # Create it then
         os.makedirs(os.path.abspath(CONFIG_DIR))
+
+    SCHEMA_DIR = os.path.abspath(args.schema_dir[0])
+    print_and_log("SCHEMA DIRECTORY = %s" % SCHEMA_DIR)
 
     ARCHIVE_UPLOADER = args.archive_uploader[0].replace('%EPICS_KIT_ROOT%', MACROS["$(EPICS_KIT_ROOT)"])
     print_and_log("ARCHIVE UPLOADER = %s" % ARCHIVE_UPLOADER)

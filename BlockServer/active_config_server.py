@@ -26,6 +26,7 @@ class ActiveConfigServerManager(ConfigServerManager):
                                              self._macros["$(ICPCONFIGROOT)"] + RUNCONTROL_SETTINGS)
 
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
+        self._test_mode = test_mode
 
         if not test_mode:
             # Start runcontrol IOC
@@ -38,7 +39,7 @@ class ActiveConfigServerManager(ConfigServerManager):
             self._runcontrol.wait_for_ioc_start()
             print_and_log("Runcontrol IOC (re)started")
 
-        if test_mode:
+        if self._test_mode:
             self._set_testing_mode()
 
     def _set_testing_mode(self):
@@ -244,7 +245,8 @@ class ActiveConfigServerManager(ConfigServerManager):
         if last_config.replace(COMPONENT_DIRECTORY, "").replace(CONFIG_DIRECTORY, "").strip() == "":
             print_and_log("No last configuration defined")
             return None
-        print_and_log("Trying to load last_configuration %s" % last_config)
+        if not self._test_mode:
+            print_and_log("Trying to load last_configuration %s" % last_config)
         if last_config.startswith(COMPONENT_DIRECTORY):
             self._load_config(last_config.replace(COMPONENT_DIRECTORY, ""), True)
         else:

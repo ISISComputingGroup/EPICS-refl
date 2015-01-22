@@ -11,7 +11,7 @@ GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
 GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
 DEPENDENCIES_PV = ":DEPENDENCIES"
 
-class InactiveConfigListManager(object):
+class ConfigListManager(object):
     """ Class to handle data on all available configurations and manage their associated PVs"""
     def __init__(self, config_folder, server, test_mode=False):
         self._config_metas = dict()
@@ -198,8 +198,10 @@ class InactiveConfigListManager(object):
     def delete_configs(self, json_configs, active_config, are_subconfigs=False):
         ''' Takes a json list of configs and removes them from the file system and any relevant pvs.
            The method also requires the active config object to check against '''
+        #TODO: clean this up!
         delete_list = json.loads(json_configs)
-        print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
+        if not self._test_mode:
+            print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
         delete_list = set([x.lower() for x in delete_list])
         if not are_subconfigs:
             if active_config.get_config_name() in delete_list:
