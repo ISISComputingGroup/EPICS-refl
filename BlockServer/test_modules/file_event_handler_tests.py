@@ -19,6 +19,7 @@ MACROS = {
     "$(ICPCONFIGROOT)": os.environ['ICPCONFIGROOT']
 }
 
+
 class TestFileEventHandler(unittest.TestCase):
 
     def setUp(self):

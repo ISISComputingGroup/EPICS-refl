@@ -30,7 +30,7 @@ class Configuration(object):
             pv = pv.replace(self.macros[PVPREFIX_MACRO], "")
         self.blocks[name.lower()] = Block(name, pv, local, **kwargs)
 
-        if not group is None:
+        if group is not None:
             # If group does not exists then add it
             if not group.lower() in self.groups.keys():
                 self.groups[group.lower()] = Group(group)
@@ -48,7 +48,7 @@ class Configuration(object):
             if blk.name in g.blocks:
                 g.blocks.remove(blk.name)
 
-        #Then remove from blocks
+        # Then remove from blocks
         del self.blocks[name.lower()]
 
     def edit_block(self, name, pv=None, local=None, new_name=None, **kwargs):
@@ -60,24 +60,24 @@ class Configuration(object):
         blk = self.blocks[name.lower()]
 
         if pv is None:
-            #Leave it as it was
+            # Leave it as it was
             pv = blk.pv
 
         if local is None:
-            #Leave it as it was
+            # Leave it as it was
             local = blk.local
 
         if not "visible" in kwargs:
-            #Leave it as it was
+            # Leave it as it was
             kwargs["visible"] = blk.visible
 
         # Simplest solution is to delete the block and re-add it
         if new_name is not None and new_name.strip() != '' and new_name != name:
-            #Does the new name exist
+            # Does the new name exist
             if new_name.lower() in self.blocks.keys():
                 raise Exception("Failed to rename block as the new name already exists")
             self.remove_block(name)
-            #Replace with new name in any groups
+            # Replace with new name in any groups
             for n, g in self.groups.iteritems():
                 for i in range(len(g.blocks)):
                     if g.blocks[i] == name:
@@ -89,7 +89,7 @@ class Configuration(object):
         self.add_block(name, pv, None, local, **kwargs)
 
     def add_ioc(self, name, subconfig=None, autostart=None, restart=None, macros=None, pvs=None, pvsets=None, simlevel=None):
-        #Only add it if it has not been added before
+        # Only add it if it has not been added before
         if not name.upper() in self.iocs.keys():
             self.iocs[name.upper()] = IOC(name, autostart, restart, subconfig, macros, pvs, pvsets, simlevel)
 
@@ -99,7 +99,7 @@ class Configuration(object):
 
     def update_runcontrol_settings_for_saving(self, rc_data):
         #TODO:
-        #Only do it for blocks that are not in a sub-config
+        # Only do it for blocks that are not in a sub-config
         for bn, blk in self.blocks.iteritems():
             if blk.subconfig is None and blk.save_rc_settings:
                 if blk.name in rc_data.keys():

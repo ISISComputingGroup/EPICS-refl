@@ -288,7 +288,7 @@ class ConfigHolder(object):
             if "iocs" in details:
                 # List of dicts
                 for ioc in details["iocs"]:
-                    # TODO: this is a horrible result of the wierd JSON format that the GUI wants, change?
+                    # TODO: this is a horrible result of the weird JSON format that the GUI wants, change?
                     macros = self._to_dict(ioc.get('macros'))
                     pvs = self._to_dict(ioc.get('pvs'))
                     pvsets = self._to_dict(ioc.get('pvsets'))
@@ -331,21 +331,6 @@ class ConfigHolder(object):
         for item in json_list:
             out[item.pop("name")] = item
         return out
-
-    def dump_status(self):
-        data = "Config name: %s" % self.get_config_name()
-        data += "\nBLOCKS:\n"
-        for name, blk in self._config.blocks.iteritems():
-            data += "\t" + str(blk) + "\n"
-
-        data += "\nGROUPS:\n"
-        for name, grp in self._config.groups.iteritems():
-            data += "\t" + str(grp) + "\n"
-
-        data += "\nIOCS:\n"
-        for name, ioc in self._config.iocs.iteritems():
-            data += "\t" + str(ioc) + "\n"
-        return data
 
     def set_config(self, config, is_subconfig=False):
         self.clear_config()

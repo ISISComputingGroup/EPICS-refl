@@ -11,6 +11,7 @@ GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
 GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
 DEPENDENCIES_PV = ":DEPENDENCIES"
 
+
 class ConfigListManager(object):
     """ Class to handle data on all available configurations and manage their associated PVs"""
     def __init__(self, config_folder, server, test_mode=False):
@@ -118,30 +119,30 @@ class ConfigListManager(object):
         self._ca_server.updatePV(self._subconfig_metas[name].pv + GET_SUBCONFIG_PV, compress_and_hex(data))
 
     def update_a_config_in_list(self, config, is_subconfig=False):
-        ''' Takes a ConfigServerManager object and updates the list of meta data and the individual PVs '''
+        """Takes a ConfigServerManager object and updates the list of meta data and the individual PVs"""
         name = config.get_config_name().lower()
 
-        #get pv name (create if doesn't exist)
+        # Get pv name (create if doesn't exist)
         pv_name = self._get_pv_name(name, is_subconfig)
 
-        #get meta data from config
+        # Get meta data from config
         meta = config.get_config_meta()
         meta.pv = pv_name
 
-        #add metas and update pvs appropriately
+        # Add metas and update pvs appropriately
         if is_subconfig:
             self._subconfig_metas[name] = meta
             self._update_subconfig_pv(name, config.get_config_details())
             self._update_subconfig_dependencies_pv(name)
         else:
             if name in self._config_metas.keys():
-                #config already exists
+                # Config already exists
                 self._remove_config_from_dependencies(name)
 
             self._config_metas[name] = meta
             self._update_config_pv(name, config.get_config_details())
 
-            #update component dependencies
+            # Update component dependencies
             comps = config.get_conf_subconfigs()
             for comp in comps:
                 if comp in self._comp_dependecncies:
@@ -161,7 +162,6 @@ class ConfigListManager(object):
             for subconfig_name in name_list:
                 self.update_a_config_in_list(self._load_config(subconfig_name, True), True)
 
-
     def _remove_config_from_dependencies(self, config):
         # Remove old config from dependencies list
         for comp, confs in self._comp_dependecncies.iteritems():
@@ -170,7 +170,7 @@ class ConfigListManager(object):
                 self._update_subconfig_dependencies_pv(comp)
 
     def _get_pv_name(self, config_name, is_subconfig=False):
-        ''' Returns the name of the pv corresponding to config_name, this name is generated if not already created '''
+        """Returns the name of the pv corresponding to config_name, this name is generated if not already created"""
         if not is_subconfig:
             if config_name in self._config_metas:
                 pv_name = self._config_metas[config_name].pv
@@ -191,14 +191,14 @@ class ConfigListManager(object):
     def update_version_control_post_delete(self, folder, files):
         if not self._test_mode:
             ConfigurationFileManager.delete_configs_from_version_control(folder, files,
-                                    "Deleted: " + ', '.join(list(files)))
+                                                                         "Deleted: " + ', '.join(list(files)))
         else:
             ConfigurationFileManager.delete_configs(folder, files)
 
     def delete_configs(self, json_configs, active_config, are_subconfigs=False):
-        ''' Takes a json list of configs and removes them from the file system and any relevant pvs.
-           The method also requires the active config object to check against '''
-        #TODO: clean this up!
+        """Takes a json list of configs and removes them from the file system and any relevant pvs.
+           The method also requires the active config object to check against"""
+        # TODO: clean this up!
         delete_list = json.loads(json_configs)
         if not self._test_mode:
             print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
@@ -215,7 +215,7 @@ class ConfigListManager(object):
                 self._remove_config_from_dependencies(config)
             self.update_version_control_post_delete(self._conf_path, delete_list)
         else:
-            #only allow comps to be deleted if they appear in no configs
+            # Only allow comps to be deleted if they appear in no configs
             for comp in delete_list:
                 if self._comp_dependecncies.get(comp):
                     raise Exception(comp + " is in use in: " + ', '.join(self._comp_dependecncies[comp]))

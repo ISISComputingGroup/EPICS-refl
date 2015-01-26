@@ -272,13 +272,6 @@ class TestConfigServerSequence(unittest.TestCase):
         data = [{"name": "TESTBLOCK1", 'group': "GROUP1", 'local': False, 'visible': False}]
         self.assertRaises(Exception, cs.add_blocks_json, data)
 
-    def test_dump_status(self):
-        cs = self.configserver
-        try:
-            cs.dump_status()
-        except Exception:
-            self.fail("test_dump_status raised Exception unexpectedly!")
-
     def test_autosave_config(self):
         cs = self.configserver
         try:

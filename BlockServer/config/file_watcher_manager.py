@@ -3,6 +3,7 @@ from file_event_handler import ConfigFileEventHandler
 from threading import RLock
 from constants import CONFIG_DIRECTORY, COMPONENT_DIRECTORY
 
+
 class ConfigFileWatcherManager(object):
     def __init__(self, root_path, schema_folder, test_mode=False):
 

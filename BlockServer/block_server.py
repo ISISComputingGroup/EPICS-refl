@@ -121,10 +121,6 @@ PVDB = {
         'type': 'char',
         'count': 16000,
     },
-    'DUMP_STATUS': {
-        'type': 'char',
-        'count': 100,
-    },
     'GET_RC_OUT': {
         'type': 'char',
         'count': 16000,
@@ -209,8 +205,8 @@ class BlockServer(Driver):
 
     def initialise_configserver(self):
         # This is in a seperate method so it can be sent to the thread queue
-        self._active_configserver = ActiveConfigServerManager(CONFIG_DIR, MACROS,
-                                                 ARCHIVE_UPLOADER, ARCHIVE_SETTINGS, BLOCK_PREFIX)
+        self._active_configserver = ActiveConfigServerManager(CONFIG_DIR, MACROS, ARCHIVE_UPLOADER, ARCHIVE_SETTINGS,
+                                                              BLOCK_PREFIX)
         try:
             if self._gateway.exists():
                 print_and_log("Found gateway")
@@ -409,13 +405,6 @@ class BlockServer(Driver):
                 self.autosave_active_config()
                 self.update_config_iocs_monitors()
                 # Should we stop the IOC?
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'DUMP_STATUS':
-            try:
-                self._active_configserver.dump_status()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -640,7 +629,7 @@ class BlockServer(Driver):
                 raise ValueError("Cannot change config, use SET_CURR_CONFIG_DETAILS to change the active config")
         else:
             pass
-            #TODO: check not a component of active, don't know what do to for this case?
+            # TODO: check not a component of active, don't know what do to for this case?
 
 
 if __name__ == '__main__':
