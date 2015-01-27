@@ -1,3 +1,6 @@
+from all_configs_list import ConfigListManager
+from server_common.mocks.mock_ca_server import MockCAServer
+from mocks.mock_block_server import MockBlockServer
 from config_server import ConfigServerManager
 from config.file_event_handler import ConfigFileEventHandler, NotConfigFileException
 from threading import RLock
@@ -24,13 +27,15 @@ class TestFileEventHandler(unittest.TestCase):
 
     def setUp(self):
         os.makedirs(CONFIG_DIR)
-        self.eh = ConfigFileEventHandler(TEST_DIRECTORY, SCHEMA_DIR, RLock(), False, test_mode=True)
+        self.config_list = ConfigListManager(MockBlockServer, TEST_DIRECTORY, MockCAServer(), True)
+        self.eh = ConfigFileEventHandler(TEST_DIRECTORY, SCHEMA_DIR, RLock(), self.config_list, False, test_mode=True)
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + '\\'):
             shutil.rmtree(os.path.abspath(TEST_DIRECTORY + '\\'))
 
     def test_schema_valid_xml(self):
+        # Can't do as have no meta schema
         configserver = ConfigServerManager(TEST_DIRECTORY, MACROS, test_mode=True)
         configserver.save_config(json.dumps("TEST_CONFIG"))
 
@@ -53,15 +58,20 @@ class TestFileEventHandler(unittest.TestCase):
 
     def test_get_config_name_valid_structure(self):
         config_folder = 'TEST_CONFIG'
-        name = self.eh._get_config_name(CONFIG_DIR + '\\' + config_folder + '\\TEST_FILE.xml')
+
+        print "Path is: " + CONFIG_DIR + config_folder + '\\TEST_FILE.xml'
+
+        name = self.eh._get_config_name(CONFIG_DIR + config_folder + '\\TEST_FILE.xml')
+
+        print "Config name is: " + str(name)
 
         self.assertEqual(name, config_folder)
 
     def test_get_config_name_valid_nested_structure(self):
         config_folder = 'TEST_CONFIG'
-        name = self.eh._get_config_name(CONFIG_DIR + '\\' + config_folder + '\\ANOTHER_FOLDER\\TEST_FILE.xml')
+        name = self.eh._get_config_name(CONFIG_DIR + config_folder + '\\ANOTHER_FOLDER\\TEST_FILE.xml')
 
         self.assertEqual(name, config_folder)
 
     def test_get_config_name_invalid_structure(self):
-        self.assertRaises(NotConfigFileException, self.eh._get_config_name, CONFIG_DIR + '\\TEST_FILE.xml')
+        self.assertRaises(NotConfigFileException, self.eh._get_config_name, CONFIG_DIR + 'TEST_FILE.xml')

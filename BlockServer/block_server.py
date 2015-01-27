@@ -165,6 +165,12 @@ PVDB = {
         'type': 'char',
         'count': 64000,
     },
+    'CURR_CONFIG_CHANGED': {
+        'type': 'int'
+    },
+    'ACK_CURR_CHANGED': {
+        'type': 'int'
+    }
 }
 
 
@@ -177,14 +183,13 @@ class BlockServer(Driver):
 
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(CONFIG_DIR, ca_server)
+            self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "ERROR")
 
         # Threading stuff
         self.monitor_lock = RLock()
         self.write_lock = RLock()
-        self.config_list_lock = RLock()
         self.write_queue = list()
 
         # Start a background thread for keeping track of running IOCs
@@ -198,7 +203,7 @@ class BlockServer(Driver):
         write_thread.start()
 
         # Start file watcher
-        ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR)
+        self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list)
 
         with self.write_lock:
             self.write_queue.append((self.initialise_configserver, (), "INITIALISING"))
@@ -249,6 +254,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(self.get_server_status())
             elif reason == "BLANK_CONFIG":
                 value = compress_and_hex(self.get_blank_config())
+            elif reason == "CURR_CONFIG_CHANGED":
+                value = self._config_list.get_active_changed()
             else:
                 value = self.getParam(reason)
         except Exception as err:
@@ -439,7 +446,7 @@ class BlockServer(Driver):
         elif reason == 'SAVE_NEW_COMPONENT':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self.save_inactive_subconfig(data)
+                self.save_inactive_config(data, True)
                 self.update_comp_monitor()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -448,7 +455,7 @@ class BlockServer(Driver):
         elif reason == 'DELETE_CONFIGS':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._config_list.delete_configs(data, self._active_configserver)
+                self._config_list.delete_configs(data)
                 self.update_config_monitors()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -457,8 +464,15 @@ class BlockServer(Driver):
         elif reason == 'DELETE_COMPONENTS':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._config_list.delete_configs(data, self._active_configserver, True)
+                self._config_list.delete_configs(data, True)
                 self.update_comp_monitor()
+                value = compress_and_hex(json.dumps("OK"))
+            except Exception as err:
+                value = compress_and_hex(json.dumps("Error: " + str(err)))
+                print_and_log(str(err), "ERROR")
+        elif reason == 'ACK_CURR_CHANGED':
+            try:
+                self._config_list.set_active_changed(False)
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -490,6 +504,7 @@ class BlockServer(Driver):
         self.update_blocks_monitors()
         self.update_config_monitors()
         self.update_config_iocs_monitors()
+        #self.update_get_details_monitors()
         self._active_configserver.update_archiver()
 
     def load_config(self, value, is_subconfig=False):
@@ -518,39 +533,48 @@ class BlockServer(Driver):
         self._active_configserver.remove_subconfigs(config)
         self._initialise_config(False, True)
 
-    def save_inactive_config(self, json_data):
+    def save_inactive_config(self, json_data, as_subconfig=False):
         inactive = ConfigServerManager(CONFIG_DIR, MACROS)
         inactive.set_config_details(json_data)
         config_name = inactive.get_config_name()
-        self._check_config_inactive(config_name)
-        print_and_log("Saving configuration: %s" % config_name)
-        inactive.save_config()
-        self._config_list.update_a_config_in_list(inactive)
-        self.update_config_monitors()
+        self._check_config_inactive(config_name, as_subconfig)
+        self._filewatcher.pause()
+        try:
+            if not as_subconfig:
+                print_and_log("Saving configuration: %s" % config_name)
+                inactive.save_config()
+                self._config_list.update_a_config_in_list(inactive)
+                self.update_config_monitors()
+            else:
+                print_and_log("Saving sub-configuration: %s" % config_name)
+                inactive.save_as_subconfig()
+                self._config_list.update_a_config_in_list(inactive, True)
+                self.update_comp_monitor()
+        finally:
+            self._filewatcher.resume()
 
-    def save_inactive_subconfig(self, json_data):
-        inactive = ConfigServerManager(CONFIG_DIR, MACROS)
-        inactive.set_config_details(json_data)
-        config_name = inactive.get_config_name()
-        self._check_config_inactive(config_name, True)
-        print_and_log("Saving sub-configuration: %s" % config_name)
-        inactive.save_as_subconfig()
-        self._config_list.update_a_config_in_list(inactive, True)
-        self.update_comp_monitor()
 
     def save_active_config(self, json_name):
-        name = json.loads(json_name)
-        print_and_log("Saving active configuration as: %s" % name)
-        self._active_configserver.save_config(json_name)
-        self._config_list.update_a_config_in_list(self._active_configserver)
-        self.update_config_monitors()
+        self._filewatcher.pause()
+        try:
+            name = json.loads(json_name)
+            print_and_log("Saving active configuration as: %s" % name)
+            self._active_configserver.save_config(json_name)
+            self._config_list.update_a_config_in_list(self._active_configserver)
+            self.update_config_monitors()
+        finally:
+            self._filewatcher.resume()
 
     def save_active_as_subconfig(self, json_name):
-        name = json.loads(json_name)
-        print_and_log("Trying to save active configuration as sub-configuration: %s" % name)
-        self._active_configserver.save_as_subconfig(json_name)
-        self._config_list.update_a_config_in_list(self._active_configserver, True)
-        self.update_comp_monitor()
+        self._filewatcher.pause()
+        try:
+            name = json.loads(json_name)
+            print_and_log("Trying to save active configuration as sub-configuration: %s" % name)
+            self._active_configserver.save_as_subconfig(json_name)
+            self._config_list.update_a_config_in_list(self._active_configserver, True)
+            self.update_comp_monitor()
+        finally:
+            self._filewatcher.resume()
 
     def autosave_active_config(self):
         self._active_configserver.autosave_config()
@@ -580,6 +604,11 @@ class BlockServer(Driver):
             # Update them
             self.updatePVs()
 
+    def update_changed_monitor(self):
+        with self.monitor_lock:
+            self.setParam("CURR_CONFIG_CHANGED", self._config_list.get_active_changed())
+            self.updatePVs()
+
     def update_ioc_monitors(self):
         while True:
             if self._active_configserver is not None:
@@ -596,6 +625,8 @@ class BlockServer(Driver):
             self.updatePVs()
 
     def update_get_details_monitors(self):
+        self._config_list.active_config_name = self._active_configserver.get_config_name()
+        self._config_list.active_components = self._active_configserver.get_conf_subconfigs()
         with self.monitor_lock:
             self.setParam("GET_CURR_CONFIG_DETAILS", compress_and_hex(self._active_configserver.get_config_details()))
             self.updatePVs()

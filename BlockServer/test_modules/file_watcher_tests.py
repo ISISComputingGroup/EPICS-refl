@@ -1,9 +1,12 @@
 from config.file_watcher_manager import ConfigFileWatcherManager
+from server_common.mocks.mock_ca_server import MockCAServer
 import config.constants as const
 import unittest
 import os
 import shutil
 import time
+from mocks.mock_block_server import MockBlockServer
+from all_configs_list import ConfigListManager
 
 TEST_DIRECTORY = os.path.abspath(".\\test_configs")
 SCHEMA_DIR = os.path.abspath("..\\..\\..\\schema\\configurations")
@@ -17,11 +20,12 @@ class TestFileWatcherManager(unittest.TestCase):
     def setUp(self):
         os.makedirs(CONFIG_DIR)
         os.makedirs(COMPONENT_DIR)
-        self.fw = ConfigFileWatcherManager(TEST_DIRECTORY, SCHEMA_DIR, True)
+        self.ms = MockCAServer()
+        config_list = ConfigListManager(MockBlockServer, TEST_DIRECTORY, self.ms, True)
+        self.fw = ConfigFileWatcherManager(TEST_DIRECTORY, SCHEMA_DIR, config_list, True)
 
     def tearDown(self):
         self.fw.pause()
-        self.fw.pause(True)
         if os.path.isdir(TEST_DIRECTORY + '\\'):
             shutil.rmtree(os.path.abspath(TEST_DIRECTORY + '\\'))
 

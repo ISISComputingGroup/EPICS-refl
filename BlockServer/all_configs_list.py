@@ -6,6 +6,7 @@ from server_common.utilities import print_and_log, compress_and_hex
 import os
 import json
 import re
+from threading import RLock
 
 GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
 GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
@@ -14,18 +15,35 @@ DEPENDENCIES_PV = ":DEPENDENCIES"
 
 class ConfigListManager(object):
     """ Class to handle data on all available configurations and manage their associated PVs"""
-    def __init__(self, config_folder, server, test_mode=False):
+    def __init__(self, block_server, config_folder, server, test_mode=False):
         self._config_metas = dict()
         self._subconfig_metas = dict()
         self._comp_dependecncies = dict()
         self._ca_server = server
         self._config_folder = config_folder
         self._test_mode = test_mode
+        self._block_server = block_server
+        self.active_config_name = ""
+        self.active_components = []
+        self._active_changed = False
+        self.lock = RLock()
 
         self._conf_path = os.path.abspath(config_folder + CONFIG_DIRECTORY)
         self._comp_path = os.path.abspath(config_folder + COMPONENT_DIRECTORY)
 
         self._import_configs()
+
+    def get_active_changed(self):
+        with self.lock:
+            if self._active_changed:
+                return 1
+            else:
+                return 0
+
+    def set_active_changed(self, value):
+        with self.lock:
+            self._active_changed = value
+            self._block_server.update_changed_monitor()
 
     def _get_config_names(self):
         return self._get_file_list(os.path.abspath(self._conf_path))
@@ -41,17 +59,15 @@ class ConfigListManager(object):
 
     def get_configs_json(self):
         configs_string = list()
-        self._update_whole_config_list()
         for config in self._config_metas.values():
             configs_string.append(config.to_dict())
         return json.dumps(configs_string).encode('ascii', 'replace')
 
     def get_subconfigs_json(self):
-        configs_string = list()
-        self._update_whole_config_list(True)
-        for config in self._subconfig_metas.values():
-            configs_string.append(config.to_dict())
-        return json.dumps(configs_string).encode('ascii', 'replace')
+        subconfigs_string = list()
+        for subconfig in self._subconfig_metas.values():
+            subconfigs_string.append(subconfig.to_dict())
+        return json.dumps(subconfigs_string).encode('ascii', 'replace')
 
     def _create_pv_name(self, config_name, is_subconfig=False):
         pv_text = config_name.upper().replace(" ", "_")
@@ -118,6 +134,24 @@ class ConfigListManager(object):
         # Updates pvs with new data
         self._ca_server.updatePV(self._subconfig_metas[name].pv + GET_SUBCONFIG_PV, compress_and_hex(data))
 
+    def update_a_config_in_list_filewatcher(self, config, is_subconfig=False):
+        with self.lock:
+            # Update dynamic PVs
+            self.update_a_config_in_list(config, is_subconfig)
+
+            # Update static PVs (some of these aren't completely necessary)
+            if is_subconfig:
+                self._block_server.update_comp_monitor()
+                if config.get_config_name().lower() in [x.lower() for x in self.active_components]:
+                    print_and_log("File Watcher: Active component edited in filesystem, reload to receive changes",
+                                  "INFO")
+                    self.set_active_changed(True)
+            else:
+                self._block_server.update_config_monitors()
+                if config.get_config_name().lower() == self.active_config_name.lower():
+                    print_and_log("File Watcher: Active config edited in filesystem, reload to receive changes", "INFO")
+                    self.set_active_changed(True)
+
     def update_a_config_in_list(self, config, is_subconfig=False):
         """Takes a ConfigServerManager object and updates the list of meta data and the individual PVs"""
         name = config.get_config_name().lower()
@@ -151,17 +185,6 @@ class ConfigListManager(object):
                     self._comp_dependecncies[comp] = [name]
                 self._update_subconfig_dependencies_pv(comp)
 
-    def _update_whole_config_list(self, is_subconfig=False):
-        # This method is only required as there is no filewatcher
-        if not is_subconfig:
-            name_list = self._get_config_names()
-            for config_name in name_list:
-                self.update_a_config_in_list(self._load_config(config_name))
-        else:
-            name_list = self._get_subconfig_names()
-            for subconfig_name in name_list:
-                self.update_a_config_in_list(self._load_config(subconfig_name, True), True)
-
     def _remove_config_from_dependencies(self, config):
         # Remove old config from dependencies list
         for comp, confs in self._comp_dependecncies.iteritems():
@@ -184,9 +207,10 @@ class ConfigListManager(object):
         return pv_name
 
     def update_version_control_pre_delete(self, folder, files):
+        # Not needed after filewatcher does version control
         if not self._test_mode:
             ConfigurationFileManager.add_configs_to_version_control(folder, files,
-                                    "Updating version control prior to deleting: " + ', '.join(list(files)))
+                                                "Updating version control prior to deleting: " + ', '.join(list(files)))
 
     def update_version_control_post_delete(self, folder, files):
         if not self._test_mode:
@@ -195,16 +219,16 @@ class ConfigListManager(object):
         else:
             ConfigurationFileManager.delete_configs(folder, files)
 
-    def delete_configs(self, json_configs, active_config, are_subconfigs=False):
-        """Takes a json list of configs and removes them from the file system and any relevant pvs.
-           The method also requires the active config object to check against"""
+    def delete_configs(self, json_configs, are_subconfigs=False):
+        """ Takes a json list of configs and removes them from the file system and any relevant pvs."""
+           
         # TODO: clean this up!
         delete_list = json.loads(json_configs)
         if not self._test_mode:
             print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
         delete_list = set([x.lower() for x in delete_list])
         if not are_subconfigs:
-            if active_config.get_config_name() in delete_list:
+            if self.active_config_name.lower() in delete_list:
                 raise Exception("Cannot delete currently active configuration")
             self.update_version_control_pre_delete(self._conf_path, delete_list)
             if not delete_list.issubset(self._config_metas.keys()):
