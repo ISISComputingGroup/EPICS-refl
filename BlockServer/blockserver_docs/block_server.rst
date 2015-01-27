@@ -38,7 +38,7 @@ Pattern matching is used so that patterns like BLOCKNAME:SP and BLOCKNAME:SP:RBV
 
 The BlockServer is also responsible for configuring the blocks archiver to log the current blocks.
 
-Configurations are saved in a directory with the configuration's name. The directory contains separate XML files for the blocks, groups and IOCs that make up the configuration.
+Configurations are saved in a directory with the configuration's name. The directory contains separate XML files for the blocks, groups, components, IOCs and meta-data that make up the configuration.
 
 The BlockServer also provides a mechanism for starting and stopping IOCs and retrieving the interesting PVs for the currently running IOCs. The BlockServer can start and stop IOCs that are running inside `ProcServ <http://sourceforge.net/projects/procserv/>`_ as ProcServ provides PVs to enable this. The PVs for the currently running IOCs are read directly from a database.
 
@@ -228,6 +228,13 @@ Read Commands
 
     Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:*component_pv*:DEPENDENCIES
     Returns a list of the configurations that contain the component specified in *component_pv*, formatted as compressed then hexed JSON (CHAR waveform)
+		 
+**BLOCKSERVER:CURR_CONFIG_CHANGED**
+
+::
+
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:CURR_CONFIG_CHANGED
+    Returns 1 when the active configuration has been modified on the filesystem. Returns 0 otherwise.
 		 
 --------------
 Write Commands
@@ -431,16 +438,6 @@ Write Commands
     Returns "OK" or an error message (compressed and hexed JSON).
 
 
-**BLOCKSERVER:DUMP_STATUS**
-
-::
-
-    Command: caput %MYPVPREFIX%CS:BLOCKSERVER:DUMP_STATUS dump
-    Send any non-null data to dump the current settings and configuration details to a text file in the configurations folder.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
-
-
 **BLOCKSERVER:SET_CURR_CONFIG_DETAILS**
 
 ::
@@ -542,4 +539,12 @@ Write Commands
 
     Returns "OK" or an error message (compressed and hexed JSON).
 	
+**BLOCKSERVER:ACK_CURR_CHANGED**
 
+::
+
+    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:ACK_CUR_CHANGED
+	Resets the CURR_CONFIG_CHANGED PV to a 0.
+
+    Returns "OK" or an error message (compressed and hexed JSON).
+	
