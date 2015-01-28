@@ -46,10 +46,3 @@ class ConfigFileWatcherManager(object):
         # Update version control
 
         # Update PVs
-
-    # Used for testing
-    def config_fired(self):
-        return self._config_event_handler.get_event_fired()
-
-    def subconfig_fired(self):
-        return self._component_event_handler.get_event_fired()
