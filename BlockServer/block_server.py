@@ -455,7 +455,7 @@ class BlockServer(Driver):
         elif reason == 'DELETE_CONFIGS':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._config_list.delete_configs(data)
+                self._config_list.delete_configs_json(data)
                 self.update_config_monitors()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -464,7 +464,7 @@ class BlockServer(Driver):
         elif reason == 'DELETE_COMPONENTS':
             try:
                 data = dehex_and_decompress(value).strip('"')
-                self._config_list.delete_configs(data, True)
+                self._config_list.delete_configs_json(data, True)
                 self.update_comp_monitor()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
@@ -627,6 +627,7 @@ class BlockServer(Driver):
     def update_get_details_monitors(self):
         self._config_list.active_config_name = self._active_configserver.get_config_name()
         self._config_list.active_components = self._active_configserver.get_conf_subconfigs()
+        self._config_list.set_active_changed(False)
         with self.monitor_lock:
             self.setParam("GET_CURR_CONFIG_DETAILS", compress_and_hex(self._active_configserver.get_config_details()))
             self.updatePVs()

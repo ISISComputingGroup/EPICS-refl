@@ -33,12 +33,7 @@ class TestFileEventHandler(unittest.TestCase):
 
     def test_get_config_name_valid_structure(self):
         config_folder = 'TEST_CONFIG'
-
-        print "Path is: " + CONFIG_DIR + config_folder + '\\TEST_FILE.xml'
-
         name = self.eh._get_config_name(CONFIG_DIR + config_folder + '\\TEST_FILE.xml')
-
-        print "Config name is: " + str(name)
 
         self.assertEqual(name, config_folder)
 
@@ -49,4 +44,4 @@ class TestFileEventHandler(unittest.TestCase):
         self.assertEqual(name, config_folder)
 
     def test_get_config_name_invalid_structure(self):
-        self.assertRaises(NotConfigFileException, self.eh._get_config_name, CONFIG_DIR + 'TEST_FILE.xml')
+        self.assertTrue(self.eh._check_file_at_root(CONFIG_DIR + 'TEST_FILE.xml'))

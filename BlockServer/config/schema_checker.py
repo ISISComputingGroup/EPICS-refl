@@ -36,17 +36,17 @@ class ConfigurationSchemaChecker(object):
         for root, dirs, files in os.walk(root_path + CONFIG_DIRECTORY):
             for f in files:
                 full_path = os.path.join(root, f)
-                valid &= ConfigurationSchemaChecker.check_config_file_correct(schema_folder, full_path)
+                valid &= ConfigurationSchemaChecker.check_matches_schema(schema_folder, full_path)
 
         for root, dirs, files in os.walk(root_path + COMPONENT_DIRECTORY):
             for f in files:
                 full_path = os.path.join(root, f)
-                valid &= ConfigurationSchemaChecker.check_config_file_correct(schema_folder, full_path, True)
+                valid &= ConfigurationSchemaChecker.check_matches_schema(schema_folder, full_path, True)
 
         return valid
 
     @staticmethod
-    def check_config_file_correct(schema_folder, config_xml_path, is_subconfig=False):
+    def check_matches_schema(schema_folder, config_xml_path, is_subconfig=False):
         folder, file_name = string.rsplit(config_xml_path, '\\', 1)
         if file_name in SCHEMA_FOR:
             schema_name = string.split(file_name, '.')[0] + '.xsd'

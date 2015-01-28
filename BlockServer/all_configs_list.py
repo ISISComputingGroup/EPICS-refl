@@ -206,12 +206,6 @@ class ConfigListManager(object):
                 pv_name = self._create_pv_name(config_name, True)
         return pv_name
 
-    def update_version_control_pre_delete(self, folder, files):
-        # Not needed after filewatcher does version control
-        if not self._test_mode:
-            ConfigurationFileManager.add_configs_to_version_control(folder, files,
-                                                "Updating version control prior to deleting: " + ', '.join(list(files)))
-
     def update_version_control_post_delete(self, folder, files):
         if not self._test_mode:
             ConfigurationFileManager.delete_configs_from_version_control(folder, files,
@@ -219,35 +213,44 @@ class ConfigListManager(object):
         else:
             ConfigurationFileManager.delete_configs(folder, files)
 
-    def delete_configs(self, json_configs, are_subconfigs=False):
-        """ Takes a json list of configs and removes them from the file system and any relevant pvs."""
-           
-        # TODO: clean this up!
+    def delete_configs_json(self, json_configs, are_subconfigs=False):
         delete_list = json.loads(json_configs)
-        if not self._test_mode:
-            print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
-        delete_list = set([x.lower() for x in delete_list])
-        if not are_subconfigs:
-            if self.active_config_name.lower() in delete_list:
-                raise Exception("Cannot delete currently active configuration")
-            self.update_version_control_pre_delete(self._conf_path, delete_list)
-            if not delete_list.issubset(self._config_metas.keys()):
-                raise Exception("Delete list contains unknown configurations")
-            for config in delete_list:
-                self._ca_server.deletePV(self._config_metas[config].pv + GET_CONFIG_PV)
-                del self._config_metas[config]
-                self._remove_config_from_dependencies(config)
-            self.update_version_control_post_delete(self._conf_path, delete_list)
-        else:
-            # Only allow comps to be deleted if they appear in no configs
-            for comp in delete_list:
-                if self._comp_dependecncies.get(comp):
-                    raise Exception(comp + " is in use in: " + ', '.join(self._comp_dependecncies[comp]))
-            self.update_version_control_pre_delete(self._comp_path, delete_list)
-            if not delete_list.issubset(self._subconfig_metas.keys()):
-                raise Exception("Delete list contains unknown components")
-            for comp in delete_list:
-                self._ca_server.deletePV(self._subconfig_metas[comp].pv + GET_SUBCONFIG_PV)
-                self._ca_server.deletePV(self._subconfig_metas[comp].pv + DEPENDENCIES_PV)
-                del self._subconfig_metas[comp]
-            self.update_version_control_post_delete(self._comp_path, delete_list)
+        self.delete_configs(delete_list, are_subconfigs)
+
+    def delete_configs(self, delete_list, are_subconfigs=False):
+        """ Takes a json list of configs and removes them from the file system and any relevant pvs."""
+        with self.lock:
+            # TODO: clean this up?
+            if not self._test_mode:
+                print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
+            delete_list = set([x.lower() for x in delete_list])
+            if not are_subconfigs:
+                if self.active_config_name.lower() in delete_list:
+                    raise Exception("Cannot delete currently active configuration")
+                if not delete_list.issubset(self._config_metas.keys()):
+                    raise Exception("Delete list contains unknown configurations")
+                for config in delete_list:
+                    self._ca_server.deletePV(self._config_metas[config].pv + GET_CONFIG_PV)
+                    del self._config_metas[config]
+                    self._remove_config_from_dependencies(config)
+                self.update_version_control_post_delete(self._conf_path, delete_list)
+            else:
+                # Only allow comps to be deleted if they appear in no configs
+                for comp in delete_list:
+                    if self._comp_dependecncies.get(comp):
+                        raise Exception(comp + " is in use in: " + ', '.join(self._comp_dependecncies[comp]))
+                if not delete_list.issubset(self._subconfig_metas.keys()):
+                    raise Exception("Delete list contains unknown components")
+                for comp in delete_list:
+                    self._ca_server.deletePV(self._subconfig_metas[comp].pv + GET_SUBCONFIG_PV)
+                    self._ca_server.deletePV(self._subconfig_metas[comp].pv + DEPENDENCIES_PV)
+                    del self._subconfig_metas[comp]
+                self.update_version_control_post_delete(self._comp_path, delete_list)
+
+    def get_dependencies(self, comp_name):
+        with self.lock:
+            dependencies = self._comp_dependecncies.get(comp_name)
+            if dependencies is None:
+                return []
+            else:
+                return dependencies

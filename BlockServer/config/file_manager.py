@@ -13,6 +13,7 @@ from config_version_control import ConfigVersionControl, NotUnderVersionControl
 
 from constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_SUBCONFIGS, FILENAME_META
 
+
 class ConfigurationFileManager(object):
     """Saves and loads configuration data from file"""
     @staticmethod
@@ -116,36 +117,50 @@ class ConfigurationFileManager(object):
             ConfigurationFileManager.add_configs_to_version_control(root_path, [config_name], config_name + " modified")
 
     @staticmethod
-    def add_configs_to_version_control(root_path, config_names, commit_message):
-        ''' Takes a list of configs, adds them to version control and commits '''
+    def start_version_control(root_path):
+        vc = None
         try:
             vc = ConfigVersionControl(root_path)
         except NotUnderVersionControl as err:
             print_and_log(err, "INFO")
         except Exception as err:
             print_and_log("Error in applying version control: " + str(err), "ERROR")
-        else:
+
+        return vc
+
+    @staticmethod
+    def add_configs_to_version_control(root_path, config_names, commit_message):
+        """Takes a list of configs, adds them to version control and commits """
+        vc = ConfigurationFileManager.start_version_control(root_path)
+        if vc is not None:
             for config in config_names:
                 vc.add(root_path + '/' + config)
             vc.commit(commit_message)
 
     @staticmethod
     def delete_configs_from_version_control(root_path, config_names, commit_message="Deleted configs"):
-        ''' Takes a list of configs, removes them from version control and commits '''
-        try:
-            vc = ConfigVersionControl(root_path)
-        except NotUnderVersionControl as err:
-            print_and_log(err, "INFO")
-        except Exception as err:
-            print_and_log("Error in applying version control: " + str(err), "ERROR")
-        else:
+        """Takes a list of configs, removes them from version control and commits """
+        vc = ConfigurationFileManager.start_version_control(root_path)
+        if vc is not None:
             for config in config_names:
                 vc.remove(root_path + '/' + config)
             vc.commit(commit_message)
 
     @staticmethod
+    def recover_from_version_control(root_path):
+        vc = ConfigurationFileManager.start_version_control(root_path)
+        if vc is not None:
+            vc.update()
+
+    @staticmethod
+    def delete_file_from_version_control(root_path, file_path, commit_message="Deleted files"):
+        vc = ConfigurationFileManager.start_version_control(root_path)
+        if vc is not None:
+            vc.remove(file_path)
+            vc.commit(commit_message)
+
+    @staticmethod
     def subconfig_exists(root_path, name):
-        print root_path
         if not os.path.isdir(root_path + '/' + name):
             raise Exception("Subconfig does not exist")
 
