@@ -25,13 +25,12 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             self._watching_path = self._root_path + CONFIG_DIRECTORY
 
     def on_any_event(self, event):
-        # TODO: separate into different event methods
         if not event.is_directory:
             if type(event) is not FileDeletedEvent:
                 try:
                     if type(event) is FileMovedEvent:
                         modified_path = event.dest_path
-                        self._config_list.delete_configs(self._get_config_name(event.dest_path))
+                        self._config_list.delete_configs([self._get_config_name(event.src_path)], self._is_subconfig)
                     else:
                         modified_path = event.src_path
                     conf = self._check_config_valid(modified_path)
@@ -54,6 +53,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
     def on_deleted(self, event):
         try:
             # Recover deleted file from vc so it can be deleted properly
+            # TODO: Ignore the new files in modified
             ConfigurationFileManager.recover_from_version_control(self._root_path)
         except Exception as err:
             print_and_log("File Watcher: " + str(err), "ERROR")
