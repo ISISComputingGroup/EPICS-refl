@@ -4,7 +4,7 @@ from config.file_manager import ConfigurationFileManager
 from config.configuration import Configuration
 from collections import OrderedDict
 from config.constants import GRP_NONE
-from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY
+from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
 from config.containers import Group
 from macros import PVPREFIX_MACRO
 
@@ -156,13 +156,17 @@ class ConfigHolder(object):
     def set_config_name(self, name):
         self._config.set_name(name)
 
-    def get_ioc_names(self):
+    def get_ioc_names(self, includebase=False):
         iocs = self._config.iocs.keys()
         for cn, cv in self._components.iteritems():
-            iocs.extend(cv.iocs)
+            if includebase:
+                iocs.extend(cv.iocs)
+            elif cn.lower() != DEFAULT_COMPONENT.lower():
+                iocs.extend(cv.iocs)
         return iocs
 
     def get_ioc_details(self):
+        # TODO: make sure iocs are from default are returned
         iocs = copy.deepcopy(self._config.iocs)
         for cn, cv in self._components.iteritems():
             for n, v in cv.iocs.iteritems():
@@ -170,8 +174,14 @@ class ConfigHolder(object):
                     iocs[n] = v
         return iocs
 
-    def get_component_names(self):
-        return self._components.keys()
+    def get_component_names(self, includebase=False):
+        l = list()
+        for cn in self._components.keys():
+            if includebase:
+                l.append(cn)
+            elif cn.lower() != DEFAULT_COMPONENT.lower():
+                l.append(cn)
+        return l
 
     def add_block(self, blockargs, subconfig=None):
         if subconfig is None:
@@ -338,9 +348,13 @@ class ConfigHolder(object):
         self._is_subconfig = is_subconfig
         self._components = OrderedDict()
         if not is_subconfig:
+            # TODO: LOAD default/BASE component/subconfig HERE
             for n, v in config.subconfigs.iteritems():
                 comp = self.load_config(n, True)
                 self.add_subconfig(n, comp)
+            # add default subconfig to list of subconfigs
+            basecomp = self.load_config(DEFAULT_COMPONENT, True)
+            self.add_subconfig(DEFAULT_COMPONENT, basecomp)
 
     def _set_component_names(self, comp, name):
             # Set the subconfig for blocks, groups and IOCs
@@ -368,6 +382,7 @@ class ConfigHolder(object):
             self._filemanager.save_config(self._config, self._component_path, name, self._test_mode)
         else:
             self.set_config_name(name)
+            # TODO: CHECK WHAT COMPONENTS self._config contains and remove _base if it is in there
             self._filemanager.save_config(self._config, self._config_path, name, self._test_mode)
 
     def update_runcontrol_settings_for_saving(self, rc_data):

@@ -2,10 +2,13 @@ import unittest
 import os
 import shutil
 import json
+from config.constants import DEFAULT_COMPONENT
 from active_config_server import ActiveConfigServerManager
 
 from mocks.mock_configuration import MockConfiguration
 
+CONFIG_PATH = "./test_configs/"
+BASE_PATH = "./example_base/"
 
 MACROS = {
     "$(MYPVPREFIX)": "",
@@ -43,8 +46,15 @@ def create_grouping(groups):
 #   Configuration, which is done in Configuration's own suite of tests.
 class TestConfigServerSequence(unittest.TestCase):
     def setUp(self):
+        # Create components folder and copying DEFAULT_COMPONENT files into it
+        path = os.path.abspath(CONFIG_PATH)
+        os.mkdir(path)
+        component_path = path + "/components/"
+        os.mkdir(component_path)
+        shutil.copytree(BASE_PATH, component_path + "/" + DEFAULT_COMPONENT)
+
         # Create in test mode
-        self.configserver = ActiveConfigServerManager("./test_configs/", MACROS, None, "archive.xml", "BLOCK_PREFIX:",
+        self.configserver = ActiveConfigServerManager(CONFIG_PATH, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
                                                 test_mode=True)
 
     def tearDown(self):

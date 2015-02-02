@@ -1,4 +1,4 @@
-from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY
+from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
 from config.file_manager import ConfigurationFileManager
 from macros import MACROS
 from config_server import ConfigServerManager
@@ -49,7 +49,12 @@ class ConfigListManager(object):
         return self._get_file_list(os.path.abspath(self._conf_path))
 
     def _get_subconfig_names(self):
-        return self._get_file_list(os.path.abspath(self._comp_path))
+        sub_conf_list = self._get_file_list(os.path.abspath(self._comp_path))
+        l = list()
+        for cn in sub_conf_list:
+            if cn.lower() != DEFAULT_COMPONENT.lower():
+                l.append(cn)
+        return l
 
     def _get_file_list(self, path):
         files = []
@@ -65,8 +70,9 @@ class ConfigListManager(object):
 
     def get_subconfigs_json(self):
         subconfigs_string = list()
-        for subconfig in self._subconfig_metas.values():
-            subconfigs_string.append(subconfig.to_dict())
+        for cn, cv in self._subconfig_metas.iteritems():
+            if cn.lower() != DEFAULT_COMPONENT.lower():
+                subconfigs_string.append(cv.to_dict())
         return json.dumps(subconfigs_string).encode('ascii', 'replace')
 
     def _create_pv_name(self, config_name, is_subconfig=False):
@@ -153,7 +159,7 @@ class ConfigListManager(object):
                     self.set_active_changed(True)
 
     def update_a_config_in_list(self, config, is_subconfig=False):
-        """Takes a ConfigServerManager object and updates the list of meta data and the individual PVs"""
+        """ Takes a ConfigServerManager object and updates the list of meta data and the individual PVs """
         name = config.get_config_name().lower()
 
         # Get pv name (create if doesn't exist)

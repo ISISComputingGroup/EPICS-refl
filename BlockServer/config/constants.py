@@ -49,6 +49,10 @@ COMPONENT_DIRECTORY = "/components/"
 RUNCONTROL_SETTINGS = "/rc_settings.cmd"
 RUNCONTROL_IOC = "RUNCTRL_01"
 
+# Name of default component/subconfiguration that is loaded with every configuration.
+# Contains essential IOCs (and blocks/groups?) e.g. DAE, INSTETC
+DEFAULT_COMPONENT = "_base"
+
 FILENAME_BLOCKS = "blocks.xml"
 FILENAME_GROUPS = "groups.xml"
 FILENAME_IOCS = "iocs.xml"

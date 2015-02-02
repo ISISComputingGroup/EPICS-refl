@@ -3,10 +3,11 @@ import os
 import shutil
 from config_server import ConfigHolder
 from config.configuration import Configuration
+from config.constants import DEFAULT_COMPONENT
 from macros import MACROS
 
-
 CONFIG_PATH = "./test_configs/"
+BASE_PATH = "./example_base/"
 
 
 def create_dummy_config():
@@ -30,8 +31,16 @@ def create_dummy_subconfig():
 
 
 class TestConfigHolderSequence(unittest.TestCase):
+    def setUp(self):
+        # Create components folder and copying DEFAULT_COMPONENT files into it
+        path = os.path.abspath(CONFIG_PATH)
+        os.mkdir(path)
+        component_path = path + "/components/"
+        os.mkdir(component_path)
+        shutil.copytree(BASE_PATH, component_path + "/" + DEFAULT_COMPONENT)
+
     def tearDown(self):
-        #Delete any configs created as part of the test
+        # Delete any configs created as part of the test
         path = os.path.abspath(CONFIG_PATH)
         if os.path.isdir(path):
             shutil.rmtree(path)
@@ -693,5 +702,24 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(details['groups']), 0)
         self.assertEqual(details['description'], "")
         self.assertEqual(details['name'], "EMPTYCONFIG")
+
+    def test_default_component_is_loaded(self):
+        # Arrange
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch.save_config("TESTCONFIG")
+        ch.clear_config()
+
+        # Act
+        conf = ch.load_config("TESTCONFIG")
+        ch.set_config(conf, False)
+
+        # Assert
+        ioc_count = len(ch.get_ioc_names())
+        ioc_count_with_default = len(ch.get_ioc_names(True))
+        self.assertTrue(ioc_count_with_default > ioc_count)
+
+        comp_count = len(ch.get_component_names())
+        comp_count_with_default = len(ch.get_component_names(True))
+        self.assertTrue(comp_count_with_default > comp_count)
 
 

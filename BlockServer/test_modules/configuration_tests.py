@@ -13,7 +13,7 @@ MACROS = {
     "$(MYPVPREFIX)": os.environ[PVPREFIX],
 }
 
-#Args are : name, pv, group, local and visible
+# Args are : name, pv, group, local and visible
 NEW_BLOCK_ARGS = {'name': "TESTBLOCK1", 'pv': "PV1", 'group': "GROUP1", 'local': True, 'visible': True}
 NEW_BLOCK_ARGS_2 = {'name': "TESTBLOCK2", 'pv': "PV2", 'group': "GROUP2", 'local': True, 'visible': True}
 
