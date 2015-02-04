@@ -558,7 +558,7 @@ pick up on it and the following will happen:
 
 * If the file is not defined by a schema it is considered unrelated to configurations and so an INFO message is logged about the file being modified and no further action is taken.
 
-* If the modified file is part of a configuration the file watcher will first check that all required xml files are present, then check the modification against the schema and then 
+* If the modified file is part of a configuration the file watcher will first check that all required xml files are present, check the modification against the schema and then 
 attempt to load the configuration into a dummy holder. If any of these actions fail an error will be logged to the client. Otherwise the relevant PVs will be updated with the new
 information.
 
@@ -569,13 +569,15 @@ In the case of files being deleted the following will happen:
 
 * If the file is considered unrelated to configurations it will be deleted as normal, including being deleted in version control.
 
+* If only part of a configuration is deleted an error will be logged and the file will be restored from version control.
+
 * If a whole component folder is deleted and it is relied upon by other configurations an error is logged and the component is recovered from version control.
+
+* If the default component is deleted an error is logged and it is restored from version control.
 
 * If the active configuration is deleted an error is logged and it is restored from version control.
 
 * If a whole configuration folder is deleted (or a component that is not relied upon) the relevant PVs will be updated and the configuration (or component) will be deleted from version
 control.
 
-* If part of a configuration is deleted an error will be logged and the file will be restored from version control.
-
-Any log messages written by the file watcher will begin "File Watcher: ". 
+Any log messages written by the file watcher will come from FILEWTCHR

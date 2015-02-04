@@ -252,7 +252,8 @@ class ConfigHolder(object):
     def _comps_to_list(self):
         comps = list()
         for cn, cv in self._components.iteritems():
-            comps.append({'name': cv.get_name()})
+            if cn.lower() != DEFAULT_COMPONENT.lower():
+                comps.append({'name': cv.get_name()})
         return comps
 
     def _blocks_to_list(self, expand_macro=False):
@@ -298,7 +299,6 @@ class ConfigHolder(object):
             if "iocs" in details:
                 # List of dicts
                 for ioc in details["iocs"]:
-                    # TODO: this is a horrible result of the weird JSON format that the GUI wants, change?
                     macros = self._to_dict(ioc.get('macros'))
                     pvs = self._to_dict(ioc.get('pvs'))
                     pvsets = self._to_dict(ioc.get('pvsets'))
@@ -378,6 +378,8 @@ class ConfigHolder(object):
 
     def save_config(self, name):
         if self._is_subconfig:
+            if name.lower() == DEFAULT_COMPONENT.lower():
+                raise Exception("Cannot save over default component")
             self.set_config_name(name)
             self._filemanager.save_config(self._config, self._component_path, name, self._test_mode)
         else:

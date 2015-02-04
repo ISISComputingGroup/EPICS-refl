@@ -44,11 +44,11 @@ class ConfigFileEventHandler(FileSystemEventHandler):
                                                                                 [conf.get_config_name()],
                                                                                 "Files modified by hand")
                 except NotConfigFileException as err:
-                    print_and_log("File Watcher: " + str(err), "INFO")
+                    print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
                 except ConfigurationIncompleteException as err:
-                    print_and_log("File Watcher: " + str(err), "INFO")
+                    print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
                 except Exception as err:
-                    print_and_log("File Watcher: " + str(err), "ERROR")
+                    print_and_log("File Watcher: " + str(err), "ERROR", "FILEWTCHR")
 
     def on_deleted(self, event):
         try:
@@ -56,7 +56,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             # TODO: Ignore the new files in modified
             ConfigurationFileManager.recover_from_version_control(self._root_path)
         except Exception as err:
-            print_and_log("File Watcher: " + str(err), "ERROR")
+            print_and_log("File Watcher: " + str(err), "ERROR", "FILEWTCHR")
 
         try:
             if self._check_file_at_root(event.src_path):
@@ -69,13 +69,14 @@ class ConfigFileEventHandler(FileSystemEventHandler):
                 # Check if we're deleting a file required for a config
                 self._check_config_valid(event.src_path)
 
-                print_and_log("File Watcher: File part of config (%s), restored from version control" % event.src_path)
+                print_and_log("File Watcher: File part of config (%s), restored from version control" % event.src_path,
+                              src="FILEWTCHR")
 
         except NotConfigFileException:
             ConfigurationFileManager.delete_file_from_version_control(self._watching_path, event.src_path,
                                                                       "Deleted by hand")
         except Exception as err:
-            print_and_log("File Watcher: " + str(err))
+            print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
 
     def _check_config_valid(self, path):
         if self._check_file_at_root(path):
@@ -89,7 +90,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         try:
             ic._load_config(self._get_config_name(path), self._is_subconfig)
         except Exception as err:
-            print_and_log("File Watcher, loading config: " + str(err), "ERROR")
+            print_and_log("File Watcher, loading config: " + str(err), "ERROR", "FILEWTCHR")
 
         return ic
 

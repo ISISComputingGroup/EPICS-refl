@@ -13,6 +13,14 @@ GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
 DEPENDENCIES_PV = ":DEPENDENCIES"
 
 
+class InvalidDeleteException (Exception):
+    def __init__(self, value):
+        self._value = value
+
+    def __str__(self):
+        return self._value
+
+
 class ConfigListManager(object):
     """ Class to handle data on all available configurations and manage their associated PVs"""
     def __init__(self, block_server, config_folder, server, test_mode=False):
@@ -149,13 +157,14 @@ class ConfigListManager(object):
             if is_subconfig:
                 self._block_server.update_comp_monitor()
                 if config.get_config_name().lower() in [x.lower() for x in self.active_components]:
-                    print_and_log("File Watcher: Active component edited in filesystem, reload to receive changes",
-                                  "INFO")
+                    print_and_log("Active component edited in filesystem, reload to receive changes",
+                                  src="FILEWTCHR")
                     self.set_active_changed(True)
             else:
                 self._block_server.update_config_monitors()
                 if config.get_config_name().lower() == self.active_config_name.lower():
-                    print_and_log("File Watcher: Active config edited in filesystem, reload to receive changes", "INFO")
+                    print_and_log("Active config edited in filesystem, reload to receive changes",
+                                  src="FILEWTCHR")
                     self.set_active_changed(True)
 
     def update_a_config_in_list(self, config, is_subconfig=False):
@@ -232,21 +241,23 @@ class ConfigListManager(object):
             delete_list = set([x.lower() for x in delete_list])
             if not are_subconfigs:
                 if self.active_config_name.lower() in delete_list:
-                    raise Exception("Cannot delete currently active configuration")
+                    raise InvalidDeleteException("Cannot delete currently active configuration")
                 if not delete_list.issubset(self._config_metas.keys()):
-                    raise Exception("Delete list contains unknown configurations")
+                    raise InvalidDeleteException("Delete list contains unknown configurations")
                 for config in delete_list:
                     self._ca_server.deletePV(self._config_metas[config].pv + GET_CONFIG_PV)
                     del self._config_metas[config]
                     self._remove_config_from_dependencies(config)
                 self.update_version_control_post_delete(self._conf_path, delete_list)
             else:
+                if DEFAULT_COMPONENT.lower() in delete_list:
+                    raise InvalidDeleteException("Cannot delete default component")
                 # Only allow comps to be deleted if they appear in no configs
                 for comp in delete_list:
                     if self._comp_dependecncies.get(comp):
-                        raise Exception(comp + " is in use in: " + ', '.join(self._comp_dependecncies[comp]))
+                        raise InvalidDeleteException(comp + " is in use in: " + ', '.join(self._comp_dependecncies[comp]))
                 if not delete_list.issubset(self._subconfig_metas.keys()):
-                    raise Exception("Delete list contains unknown components")
+                    raise InvalidDeleteException("Delete list contains unknown components")
                 for comp in delete_list:
                     self._ca_server.deletePV(self._subconfig_metas[comp].pv + GET_SUBCONFIG_PV)
                     self._ca_server.deletePV(self._subconfig_metas[comp].pv + DEPENDENCIES_PV)

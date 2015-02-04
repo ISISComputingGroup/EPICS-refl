@@ -1,4 +1,4 @@
-from all_configs_list import ConfigListManager
+from all_configs_list import ConfigListManager, InvalidDeleteException
 from active_config_server import ActiveConfigServerManager
 from server_common.mocks.mock_ca_server import MockCAServer
 from mocks.mock_block_server import MockBlockServer
@@ -332,11 +332,11 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.active_config_name = "TEST_ACTIVE"
 
         self._test_none_deleted(ic, ms)
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_ACTIVE"])))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, (json.dumps(["TEST_ACTIVE"])))
         self._test_none_deleted(ic, ms)
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_ACTIVE", "TEST_CONFIG1"])))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, (json.dumps(["TEST_ACTIVE", "TEST_CONFIG1"])))
         self._test_none_deleted(ic, ms)
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_CONFIG1", "TEST_ACTIVE"])))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, (json.dumps(["TEST_CONFIG1", "TEST_ACTIVE"])))
         self._test_none_deleted(ic, ms)
 
     def test_delete_active_subconfig(self):
@@ -351,11 +351,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.update_a_config_in_list(active)
 
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_SUBCONFIG1"]), True))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, json.dumps(["TEST_SUBCONFIG1"]), True)
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"]), True))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json,
+                          json.dumps(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"]), True)
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_CONFIG2", "TEST_SUBCONFIG1"]), True))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json,
+                          json.dumps(["TEST_CONFIG2", "TEST_SUBCONFIG1"]), True)
         self._test_none_deleted(ic, ms, True)
 
     def test_delete_used_subconfig(self):
@@ -372,11 +374,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.active_config_name = "TEST_ACTIVE"
 
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_SUBCONFIG1"]), True))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, json.dumps(["TEST_SUBCONFIG1"]), True)
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"]), True))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json,
+                          json.dumps(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"]), True)
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_CONFIG2", "TEST_SUBCONFIG1"]), True))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json,
+                          json.dumps(["TEST_CONFIG2", "TEST_SUBCONFIG1"]), True)
         self._test_none_deleted(ic, ms, True)
 
     def _test_none_deleted(self, ic, ms, is_subconfig=False):
@@ -496,7 +500,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_CONFIG1"])))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, (json.dumps(["TEST_CONFIG1"])))
 
         config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
         self.assertEqual(len(config_names), 0)
@@ -507,7 +511,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        self.assertRaises(Exception, ic.delete_configs_json, (json.dumps(["TEST_SUBCONFIG1"]), True))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, json.dumps(["TEST_SUBCONFIG1"]), True)
 
         config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
         self.assertEqual(len(config_names), 0)
@@ -616,6 +620,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(confs), 0)
         self.assertFalse("TEST_INACTIVE".lower() in confs)
 
+    def test_cannot_delete_default(self):
+        create_subconfigs(["TEST_SUBCONFIG1"])
+        ms = self.ms
+        ic = self._create_ic()
+
+        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, json.dumps([DEFAULT_COMPONENT]), True)
+
     def test_update_inactive_config_from_filewatcher(self):
         ic = self._create_ic()
         inactive = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
@@ -675,3 +686,12 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(self.bs.get_confs()), 0)
         self.assertTrue("TEST_ACTIVE_COMP" in [x['name'] for x in self.bs.get_comps()])
         self.assertEqual(self.bs.get_changed(), 1)
+
+    def test_default_filtered(self):
+        ic = self._create_ic()
+        ms = self.ms
+
+        comps = json.loads(ic.get_subconfigs_json())
+        self.assertTrue(DEFAULT_COMPONENT not in comps)
+
+        self.assertEqual(len(ms.pv_list.keys()), 0)

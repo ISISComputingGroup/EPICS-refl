@@ -722,4 +722,11 @@ class TestConfigHolderSequence(unittest.TestCase):
         comp_count_with_default = len(ch.get_component_names(True))
         self.assertTrue(comp_count_with_default > comp_count)
 
+    def test_cannot_modify_default(self):
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch.set_as_subconfig(True)
 
+        try:
+            ch.save_config(DEFAULT_COMPONENT)
+        except Exception as err:
+            self.assertEqual(err.message, "Cannot save over default component")
