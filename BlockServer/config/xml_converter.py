@@ -164,7 +164,7 @@ class ConfigurationXmlConverter(object):
         for b in blks:
             n = b.find("./" + TAG_NAME)
             read = b.find("./" + TAG_READ_PV)
-            if n is not None and n.text != "" and read is not None:
+            if n is not None and n.text != "" and read is not None and read.text is not None:
                 name = ConfigurationXmlConverter._replace_macros(n.text)
 
                 #Blocks automatically get assigned to the NONE group

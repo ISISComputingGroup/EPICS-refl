@@ -350,8 +350,9 @@ class ConfigHolder(object):
         if not is_subconfig:
             # TODO: LOAD default/BASE component/subconfig HERE
             for n, v in config.subconfigs.iteritems():
-                comp = self.load_config(n, True)
-                self.add_subconfig(n, comp)
+                if n.lower() != DEFAULT_COMPONENT.lower():
+                    comp = self.load_config(n, True)
+                    self.add_subconfig(n, comp)
             # add default subconfig to list of subconfigs
             basecomp = self.load_config(DEFAULT_COMPONENT, True)
             self.add_subconfig(DEFAULT_COMPONENT, basecomp)
