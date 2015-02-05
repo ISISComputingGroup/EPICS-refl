@@ -548,9 +548,9 @@ Write Commands
 
     Returns "OK" or an error message (compressed and hexed JSON).
 
---------------
+----------------
 The File Watcher
---------------
+----------------
 
 The BlockServer also contains a file watcher to aid in the modification of configurations by hand. Although this modification will not happen often it is important that it is 
 handled properly so that necessary changes are made in the client. When any modifications are made to files within the configuration or component directories the file watcher will
