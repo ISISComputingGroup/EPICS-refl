@@ -429,8 +429,7 @@ class BlockServer(Driver):
                 data = dehex_and_decompress(value).strip('"')
                 self._active_configserver.set_config_details(data)
                 self.save_active_config(self._active_configserver.get_config_name_json())
-                self.update_blocks_monitors()
-                self.update_get_details_monitors()
+                self._initialise_config()
                 value = compress_and_hex(json.dumps("OK"))
             except Exception as err:
                 value = compress_and_hex(json.dumps("Error: " + str(err)))
@@ -501,10 +500,12 @@ class BlockServer(Driver):
         # Set up the gateway
         if init_gateway:
             self._gateway.set_new_aliases(self._active_configserver.get_blocks())
+        self._config_list.active_config_name = self._active_configserver.get_config_name()
+        self._config_list.active_components = self._active_configserver.get_conf_subconfigs()
         self.update_blocks_monitors()
         self.update_config_monitors()
         self.update_config_iocs_monitors()
-        #self.update_get_details_monitors()
+        self.update_get_details_monitors()
         self._active_configserver.update_archiver()
 
     def load_config(self, value, is_subconfig=False):
@@ -518,7 +519,6 @@ class BlockServer(Driver):
                 self._active_configserver.load_config(config)
             # If we get this far then assume the config is okay
             self._initialise_config()
-            self.update_get_details_monitors()
         except Exception as err:
             print_and_log(str(err), "ERROR")
 
@@ -552,7 +552,6 @@ class BlockServer(Driver):
                 self.update_comp_monitor()
         finally:
             self._filewatcher.resume()
-
 
     def save_active_config(self, json_name):
         self._filewatcher.pause()
@@ -625,8 +624,6 @@ class BlockServer(Driver):
             self.updatePVs()
 
     def update_get_details_monitors(self):
-        self._config_list.active_config_name = self._active_configserver.get_config_name()
-        self._config_list.active_components = self._active_configserver.get_conf_subconfigs()
         self._config_list.set_active_changed(False)
         with self.monitor_lock:
             self.setParam("GET_CURR_CONFIG_DETAILS", compress_and_hex(self._active_configserver.get_config_details()))
