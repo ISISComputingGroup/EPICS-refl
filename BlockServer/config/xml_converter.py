@@ -1,3 +1,4 @@
+from xml.etree import ElementTree
 from xml.dom import minidom
 from server_common.utilities import *
 
@@ -268,7 +269,8 @@ class ConfigurationXmlConverter(object):
                     #Get any pvsets
                     pvsets_xml = i.findall("./" + TAG_PVSETS + "/" + TAG_PVSET)
                     for ps in pvsets_xml:
-                        iocs[n.upper()].pvsets[ps.attrib[TAG_NAME]] = {TAG_ENABLED: parse_boolean(str(ps.attrib[TAG_ENABLED]))}
+                        iocs[n.upper()].pvsets[ps.attrib[TAG_NAME]] = \
+                            {TAG_ENABLED: parse_boolean(str(ps.attrib[TAG_ENABLED]))}
                 except Exception as err:
                     raise Exception ("Tag not found in ioc.xml (" + str(err) + ")")
 
