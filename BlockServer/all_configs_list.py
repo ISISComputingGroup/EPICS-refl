@@ -12,7 +12,7 @@ from threading import RLock
 GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
 GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
 DEPENDENCIES_PV = ":DEPENDENCIES"
-
+CONFIG_CHANGED_PV = ":CURR_CONFIG_CHANGED"
 
 class InvalidDeleteException (Exception):
     def __init__(self, value):
@@ -31,7 +31,7 @@ class ConfigListManager(object):
         self._ca_server = server
         self._config_folder = config_folder
         self._test_mode = test_mode
-        self._block_server = block_server
+        self._block_server = block_server  # Referencing a higher level object == bad
         self.active_config_name = ""
         self.active_components = []
         self._active_changed = False
@@ -42,6 +42,9 @@ class ConfigListManager(object):
 
         self._import_configs(schema_folder)
 
+        # Create the changed PV
+        self.set_active_changed(False)
+
     def get_active_changed(self):
         with self.lock:
             if self._active_changed:
@@ -50,9 +53,8 @@ class ConfigListManager(object):
                 return 0
 
     def set_active_changed(self, value):
-        with self.lock:
-            self._active_changed = value
-            self._block_server.update_changed_monitor()
+        self._active_changed = value
+        self._ca_server.updatePV(CONFIG_CHANGED_PV, self.get_active_changed())
 
     def _get_config_names(self):
         return self._get_file_list(os.path.abspath(self._conf_path))

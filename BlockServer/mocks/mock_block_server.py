@@ -4,7 +4,6 @@ class MockBlockServer(object):
     def __init__(self):
         self._comps = "[]"
         self._confs = "[]"
-        self._changed = 0
 
     def set_config_list(self, cl):
         self._config_list = cl
@@ -20,9 +19,3 @@ class MockBlockServer(object):
 
     def update_comp_monitor(self):
         self._comps = self._config_list.get_subconfigs_json()
-
-    def get_changed(self):
-        return self._changed
-
-    def update_changed_monitor(self):
-        self._changed = self._config_list.get_active_changed()

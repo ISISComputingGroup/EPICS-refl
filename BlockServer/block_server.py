@@ -254,8 +254,6 @@ class BlockServer(Driver):
                 value = compress_and_hex(self.get_server_status())
             elif reason == "BLANK_CONFIG":
                 value = compress_and_hex(self.get_blank_config())
-            elif reason == "CURR_CONFIG_CHANGED":
-                value = self._config_list.get_active_changed()
             else:
                 value = self.getParam(reason)
         except Exception as err:
@@ -601,11 +599,6 @@ class BlockServer(Driver):
         with self.monitor_lock:
             self.setParam("COMPS", compress_and_hex(self._config_list.get_subconfigs_json()))
             # Update them
-            self.updatePVs()
-
-    def update_changed_monitor(self):
-        with self.monitor_lock:
-            self.setParam("CURR_CONFIG_CHANGED", self._config_list.get_active_changed())
             self.updatePVs()
 
     def update_ioc_monitors(self):
