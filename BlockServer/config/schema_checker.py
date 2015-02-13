@@ -50,15 +50,20 @@ class ConfigurationSchemaChecker(object):
         folder, file_name = string.rsplit(config_xml_path, '\\', 1)
         if file_name in SCHEMA_FOR:
             schema_name = string.split(file_name, '.')[0] + '.xsd'
-            ConfigurationSchemaChecker._check_against_schema(config_xml_path, schema_folder, schema_name)
+            try:
+                ConfigurationSchemaChecker._check_against_schema(config_xml_path, schema_folder, schema_name)
+            except etree.XMLSyntaxError as err:
+                raise ConfigurationInvalidUnderSchema(str(err.filename) + " in " + config_xml_path +
+                                                      " incorrectly formatted: " + str(err.message))
         else:
             if file_name != "":
-                raise NotConfigFileException("File not known config xml (%s)" % file_name)
+                raise NotConfigFileException("File in " + config_xml_path + " not known config xml (%s)" % file_name)
 
         missing_files = set(SCHEMA_FOR).difference(set(os.listdir(folder)))
         if len(missing_files) != 0:
             if not (is_subconfig and missing_files == [FILENAME_SUBCONFIGS]):
-                raise ConfigurationIncompleteException("Files missing (%s)" % ','.join(list(missing_files)))
+                raise ConfigurationIncompleteException("Files missing in " + config_xml_path +
+                                                       " (%s)" % ','.join(list(missing_files)))
 
         return True
 
@@ -81,7 +86,4 @@ class ConfigurationSchemaChecker(object):
         with open(xml_file, 'r') as f:
             xml = f.read()
 
-        try:
-            etree.fromstring(xml, xmlparser)
-        except etree.XMLSyntaxError as err:
-            raise ConfigurationInvalidUnderSchema(str(err.filename) + " incorrectly formatted: " + str(err.message))
+        etree.fromstring(xml, xmlparser)
