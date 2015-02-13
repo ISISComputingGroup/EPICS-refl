@@ -59,8 +59,8 @@ def print_and_log(message, severity="INFO", src="BLOCKSVR"):
 
 def value_list_to_xml(list, grp, group_tag, item_tag):
     # Helper function to convert a list of values to XML
+    xml_list = ElementTree.SubElement(grp, group_tag)
     if len(list) > 0:
-        xml_list = ElementTree.SubElement(grp, group_tag)
         for n, c in list.iteritems():
             xml_item = ElementTree.SubElement(xml_list, item_tag)
             xml_item.set("name", n)

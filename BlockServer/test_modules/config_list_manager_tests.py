@@ -92,7 +92,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         ic = self._create_ic()
         confs = json.loads(ic.get_configs_json())
-        print "Confs are: " + str(confs)
         self.assertEqual(len(confs), 2)
         self.assertTrue("TEST_CONFIG1" in [c["name"] for c in confs])
         self.assertTrue("TEST_CONFIG2" in [c["name"] for c in confs])

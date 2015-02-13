@@ -53,8 +53,7 @@ class ConfigurationSchemaChecker(object):
             try:
                 ConfigurationSchemaChecker._check_against_schema(config_xml_path, schema_folder, schema_name)
             except etree.XMLSyntaxError as err:
-                raise ConfigurationInvalidUnderSchema(str(err.filename) + " in " + config_xml_path +
-                                                      " incorrectly formatted: " + str(err.message))
+                raise ConfigurationInvalidUnderSchema(config_xml_path + " incorrectly formatted: " + str(err.message))
         else:
             if file_name != "":
                 raise NotConfigFileException("File in " + config_xml_path + " not known config xml (%s)" % file_name)
