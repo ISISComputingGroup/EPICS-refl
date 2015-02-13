@@ -139,8 +139,8 @@ Read Commands
     Returns a compressed and hexed JSON dictionary describing the current configuration or component.
     Example JSON (dehexed and decompressed):
         '{"iocs":
-                 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
-                  {"simlevel": "devsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
+                 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
+                  {"simlevel": "devsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
                  ],
           "blocks":
                    [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
@@ -165,8 +165,8 @@ Read Commands
 	Returns a compressed and hexed JSON dictionary describing the configuration with the pv *config_pv*. (To find config pvs use the CONFIGS command)
 	Example JSON (dehexed and decompressed):
         '{"iocs":
-                 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
-                  {"simlevel": "devsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
+                 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
+                  {"simlevel": "devsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
                  ],
           "blocks":
                    [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
@@ -191,8 +191,8 @@ Read Commands
 	Returns a compressed and hexed JSON dictionary describing the component with the pv *component_pv*. (To find component pvs use the COMPS command)
  	Example JSON (dehexed and decompressed):
         '{"iocs":
-                 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
-                  {"simlevel": "devsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
+                 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
+                  {"simlevel": "devsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
                  ],
           "blocks":
                    [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
@@ -446,8 +446,8 @@ Write Commands
     Sets the current configuration to the setting specified and saves to file. Requires compressed and hexed JSON dictionary.
     Example JSON (dehexed and decompressed):
         '{"iocs":
-                 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
-                  {"simlevel": "recsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
+                 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
+                  {"simlevel": "recsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
                  ],
           "blocks":
                    [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
@@ -474,8 +474,8 @@ Write Commands
 	
 	Example JSON (dehexed and decompressed):
 		'{"iocs":
-				 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
-				  {"simlevel": "recsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
+				 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
+				  {"simlevel": "recsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
 				 ],
 		  "blocks":
 				   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
@@ -502,8 +502,8 @@ Write Commands
 	
 	Example JSON (dehexed and decompressed):
 		'{"iocs":
-				 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
-				  {"simlevel": "recsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "value": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
+				 [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
+				  {"simlevel": "recsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
 				 ],
 		  "blocks":
 				   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
@@ -548,9 +548,9 @@ Write Commands
 
     Returns "OK" or an error message (compressed and hexed JSON).
 
-----------------
+--------------
 The File Watcher
-----------------
+--------------
 
 The BlockServer also contains a file watcher to aid in the modification of configurations by hand. Although this modification will not happen often it is important that it is 
 handled properly so that necessary changes are made in the client. When any modifications are made to files within the configuration or component directories the file watcher will
@@ -580,4 +580,4 @@ In the case of files being deleted the following will happen:
 * If a whole configuration folder is deleted (or a component that is not relied upon) the relevant PVs will be updated and the configuration (or component) will be deleted from version
 control.
 
-Any log messages written by the file watcher will come from FILEWTCHR
+Any log messages written by the file watcher will come from FILEWTCHR.

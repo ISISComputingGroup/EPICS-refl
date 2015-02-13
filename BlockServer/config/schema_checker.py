@@ -52,7 +52,8 @@ class ConfigurationSchemaChecker(object):
             schema_name = string.split(file_name, '.')[0] + '.xsd'
             ConfigurationSchemaChecker._check_against_schema(config_xml_path, schema_folder, schema_name)
         else:
-            raise NotConfigFileException("File not known config xml (%s)" % file_name)
+            if file_name != "":
+                raise NotConfigFileException("File not known config xml (%s)" % file_name)
 
         missing_files = set(SCHEMA_FOR).difference(set(os.listdir(folder)))
         if len(missing_files) != 0:

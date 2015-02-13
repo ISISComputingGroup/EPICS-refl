@@ -3,6 +3,7 @@ from config.file_manager import ConfigurationFileManager
 from macros import MACROS
 from config_server import ConfigServerManager
 from server_common.utilities import print_and_log, compress_and_hex
+from config.schema_checker import ConfigurationSchemaChecker
 import os
 import json
 import re
@@ -23,7 +24,7 @@ class InvalidDeleteException (Exception):
 
 class ConfigListManager(object):
     """ Class to handle data on all available configurations and manage their associated PVs"""
-    def __init__(self, block_server, config_folder, server, test_mode=False):
+    def __init__(self, block_server, config_folder, server, schema_folder, test_mode=False):
         self._config_metas = dict()
         self._subconfig_metas = dict()
         self._comp_dependecncies = dict()
@@ -39,7 +40,7 @@ class ConfigListManager(object):
         self._conf_path = os.path.abspath(config_folder + CONFIG_DIRECTORY)
         self._comp_path = os.path.abspath(config_folder + COMPONENT_DIRECTORY)
 
-        self._import_configs()
+        self._import_configs(schema_folder)
 
     def get_active_changed(self):
         with self.lock:
@@ -105,17 +106,27 @@ class ConfigListManager(object):
 
         return pv
 
-    def _import_configs(self):
+    def _import_configs(self, schema_folder):
         # Create the pvs and get meta data
         config_list = self._get_config_names()
         subconfig_list = self._get_subconfig_names()
 
         # Must load components first for them all to be known in dependencies
         for comp_name in subconfig_list:
+            try:
+                ConfigurationSchemaChecker.check_matches_schema(schema_folder, self._comp_path + '\\' + comp_name + '\\'
+                                                                , True)
+            except Exception as err:
+                print_and_log(str(err), "INFO")
             config = self._load_config(comp_name, True)
             self.update_a_config_in_list(config, True)
 
         for config_name in config_list:
+            try:
+                ConfigurationSchemaChecker.check_matches_schema(schema_folder, self._conf_path + '\\' + config_name
+                                                                + '\\')
+            except Exception as err:
+                print_and_log(str(err), "INFO")
             config = self._load_config(config_name)
             self.update_a_config_in_list(config)
 

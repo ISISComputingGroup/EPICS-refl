@@ -6,32 +6,9 @@ from config.containers import Group, Block, IOC
 from config.json_converter import ConfigurationJsonConverter
 from config.constants import GRP_NONE
 
-
 GROUPS_JSON = \
     '[{"name":"TESTGROUP1","blocks":["TESTBLOCK1","TESTBLOCK2"]},' \
     '{"name":"TESTGROUP2","blocks":["TESTBLOCK3","TESTBLOCK4"]}]'
-
-
-def make_groups():
-    groups = OrderedDict()
-    block_num = 1
-    for i in range(1, 3):
-        name = "TESTGROUP" + str(i)
-        groups[name.lower()] = Group(name)
-        groups[name.lower()].blocks = ["TESTBLOCK" + str(block_num), "TESTBLOCK" + str(block_num+1)]
-        block_num += 2
-    groups[GRP_NONE.lower()] = Group(GRP_NONE)
-    return groups
-
-
-def make_blocks():
-    blocks = OrderedDict()
-    for i in range(1, 5):
-        num = str(i)
-        new_block_args = ["TESTBLOCK"+num, "TESTPV"+num, True, i % 2 != 0]
-        key = new_block_args[0].lower()
-        blocks[key] = Block(*new_block_args)
-    return blocks
 
 
 class TestConfigurationJsonConverterSequence(unittest.TestCase):

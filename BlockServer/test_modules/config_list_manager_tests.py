@@ -18,6 +18,7 @@ MACROS = {
 
 CONFIG_PATH = "./test_configs/"
 BASE_PATH = "./example_base/"
+SCHEMA_PATH = "./../../../schema"
 
 GET_CONFIG_PV = "GET_CONFIG_DETAILS"
 GET_SUBCONFIG_PV = "GET_COMPONENT_DETAILS"
@@ -76,7 +77,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.bs = MockBlockServer()
 
     def _create_ic(self):
-        return ConfigListManager(self.bs, CONFIG_PATH, self.ms, test_mode=True)
+        return ConfigListManager(self.bs, CONFIG_PATH, self.ms, SCHEMA_PATH, test_mode=True)
 
     def tearDown(self):
         # Delete any configs created as part of the test
