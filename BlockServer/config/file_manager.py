@@ -6,12 +6,12 @@ from server_common.utilities import parse_xml_removing_namespace, print_and_log
 from BlockServer.config.containers import Group
 from xml_converter import ConfigurationXmlConverter
 
-from BlockServer.config.constants import GRP_NONE, AUTOSAVE_NAME
 from BlockServer.config.configuration import Configuration, MetaData
 
 from config_version_control import ConfigVersionControl, NotUnderVersionControl
 
 from constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_SUBCONFIGS, FILENAME_META
+from constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
 
 
 class ConfigurationFileManager(object):
@@ -170,3 +170,8 @@ class ConfigurationFileManager(object):
             path = root_path + '/' + config
             if os.path.isdir(path):
                 shutil.rmtree(path)
+
+    @staticmethod
+    def copy_default(dest_path):
+        shutil.copytree(os.path.abspath(os.environ["MYDIRBLOCK"] + EXAMPLE_DEFAULT),
+                        dest_path + "//" + DEFAULT_COMPONENT)

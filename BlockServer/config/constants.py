@@ -52,6 +52,7 @@ RUNCONTROL_IOC = "RUNCTRL_01"
 # Name of default component/subconfiguration that is loaded with every configuration.
 # Contains essential IOCs (and blocks/groups?) e.g. DAE, INSTETC
 DEFAULT_COMPONENT = "_base"
+EXAMPLE_DEFAULT = "/BlockServer/example_base/"  # Relative to MYDIRBLOCK
 
 FILENAME_BLOCKS = "blocks.xml"
 FILENAME_GROUPS = "groups.xml"

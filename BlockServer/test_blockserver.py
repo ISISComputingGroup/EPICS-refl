@@ -1,6 +1,8 @@
 # Add root path for access to server_commons
 import os
 import sys
+# Set MYDIRBLOCK so that example_base can be found
+os.environ["MYDIRBLOCK"] = ".."
 sys.path.insert(0, os.path.abspath(".."))
 # Standard imports
 import unittest

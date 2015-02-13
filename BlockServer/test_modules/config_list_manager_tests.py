@@ -17,7 +17,6 @@ MACROS = {
 }
 
 CONFIG_PATH = "./test_configs/"
-BASE_PATH = "./example_base/"
 SCHEMA_PATH = "./../../../schema"
 
 GET_CONFIG_PV = "GET_CONFIG_DETAILS"
@@ -70,10 +69,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def setUp(self):
         # Create components folder and copying DEFAULT_COMPONENT files into it
         path = os.path.abspath(CONFIG_PATH)
-        os.mkdir(path)
-        component_path = path + "/components/"
-        os.mkdir(component_path)
-        shutil.copytree(BASE_PATH, component_path + "/" + DEFAULT_COMPONENT)
         self.ms = MockCAServer()
         self.bs = MockBlockServer()
 
@@ -88,26 +83,27 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_initialisation_with_no_configs_in_directory(self):
         ic = self._create_ic()
-        confs = ic._get_config_names()
+        confs = json.loads(ic.get_configs_json())
         self.assertEqual(len(confs), 0)
-        subconfs = ic._get_subconfig_names()
+        subconfs = json.loads(ic.get_subconfigs_json())
         self.assertEqual(len(subconfs), 0)
 
     def test_initialisation_with_configs_in_directory(self):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         ic = self._create_ic()
-        confs = ic._get_config_names()
+        confs = json.loads(ic.get_configs_json())
+        print "Confs are: " + str(confs)
         self.assertEqual(len(confs), 2)
-        self.assertTrue("TEST_CONFIG1" in confs)
-        self.assertTrue("TEST_CONFIG2" in confs)
+        self.assertTrue("TEST_CONFIG1" in [c["name"] for c in confs])
+        self.assertTrue("TEST_CONFIG2" in [c["name"] for c in confs])
 
     def test_initialisation_with_subconfigs_in_directory(self):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
         ic = self._create_ic()
-        confs = ic._get_subconfig_names()
+        confs = json.loads(ic.get_subconfigs_json())
         self.assertEqual(len(confs), 2)
-        self.assertTrue("TEST_SUBCONFIG1" in confs)
-        self.assertTrue("TEST_SUBCONFIG2" in confs)
+        self.assertTrue("TEST_SUBCONFIG1" in [c["name"] for c in confs])
+        self.assertTrue("TEST_SUBCONFIG2" in [c["name"] for c in confs])
 
     def test_initialisation_with_configs_in_directory_pv(self):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
@@ -672,7 +668,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(self.bs.get_confs()), 1)
         self.assertTrue("TEST_ACTIVE" in [x['name'] for x in self.bs.get_confs()])
         self.assertEqual(ic.get_active_changed(), 1)
-        print "PV List:" + str(self.ms.pv_list)
         self.assertEqual(self.ms.pv_list[CONFIG_CHANGED_PV], 1)
 
     def test_update_active_subconfig_from_filewatcher(self):

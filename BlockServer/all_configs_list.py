@@ -63,8 +63,7 @@ class ConfigListManager(object):
         sub_conf_list = self._get_file_list(os.path.abspath(self._comp_path))
         l = list()
         for cn in sub_conf_list:
-            if cn.lower() != DEFAULT_COMPONENT.lower():
-                l.append(cn)
+            l.append(cn)
         return l
 
     def _get_file_list(self, path):
@@ -122,6 +121,10 @@ class ConfigListManager(object):
                 print_and_log(str(err), "INFO")
             config = self._load_config(comp_name, True)
             self.update_a_config_in_list(config, True)
+
+        # Create default if it does not exist
+        if DEFAULT_COMPONENT.lower() not in subconfig_list:
+            ConfigurationFileManager.copy_default(self._comp_path)
 
         for config_name in config_list:
             try:
@@ -193,9 +196,10 @@ class ConfigListManager(object):
 
         # Add metas and update pvs appropriately
         if is_subconfig:
-            self._subconfig_metas[name] = meta
-            self._update_subconfig_pv(name, config.get_config_details())
-            self._update_subconfig_dependencies_pv(name)
+            if name is not DEFAULT_COMPONENT.lower():
+                self._subconfig_metas[name] = meta
+                self._update_subconfig_pv(name, config.get_config_details())
+                self._update_subconfig_dependencies_pv(name)
         else:
             if name in self._config_metas.keys():
                 # Config already exists
