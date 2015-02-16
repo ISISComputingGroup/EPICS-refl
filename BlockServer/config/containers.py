@@ -108,6 +108,7 @@ class MetaData(object):
         self.name = config_name
         self.pv = pv_name
         self.description = description
+        self.history = []
 
     def to_dict(self):
-        return {'name': self.name, 'pv': self.pv, 'description': self.description}
+        return {'name': self.name, 'pv': self.pv, 'description': self.description, 'history': self.history}

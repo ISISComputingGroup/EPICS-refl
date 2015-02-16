@@ -183,10 +183,11 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         confs = json.loads(ic.get_subconfigs_json())
         for conf in confs:
-            self.assertEqual(len(conf), 3)
+            self.assertEqual(len(conf), 4)
             self.assertTrue("name" in conf)
             self.assertTrue("pv" in conf)
             self.assertTrue("description" in conf)
+            self.assertTrue("history" in conf)
         self.assertTrue("TEST_SUBCONFIG1" in [conf.get('name') for conf in confs])
         self.assertTrue("TEST_SUBCONFIG2" in [conf.get('name') for conf in confs])
 

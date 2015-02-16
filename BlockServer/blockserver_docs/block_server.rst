@@ -154,7 +154,8 @@ Read Commands
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
           "name": "TESTCONFIG1",
-		  "description": "A test configuration"
+		  "description": "A test configuration",
+		  "history": ["2015-02-16"]
          }'
 
 **BLOCKSERVER:*config_pv*:GET_CONFIG_DETAILS**
@@ -180,7 +181,8 @@ Read Commands
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
           "name": "TESTCONFIG1",
-		  "description": "A test configuration"
+		  "description": "A test configuration",
+		  "history": ["2015-02-16"]
          }'	
 		 
 **BLOCKSERVER:*component_pv*:GET_COMPONENT_DETAILS**
@@ -205,7 +207,8 @@ Read Commands
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
           "name": "TESTCOMP1",
-		  "description": "A test component"
+		  "description": "A test component",
+		  "history": ["2015-02-16"]
          }'	
 		 
 **BLOCKSERVER:BLANK_CONFIG**
@@ -461,7 +464,8 @@ Write Commands
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
           "name": "TESTCONFIG1",
-		  "description": "A test configuration"
+		  "description": "A test configuration",
+		  "history": ["2015-02-16"]
          }'
 
 **BLOCKSERVER:SAVE_NEW_CONFIG**
@@ -489,7 +493,8 @@ Write Commands
 					{"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
 					{"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
 		  "name": "TESTCONFIG1",
-		  "description": "A test configuration"
+		  "description": "A test configuration",
+		  "history": ["2015-02-16"]
 		 }'
 
 **BLOCKSERVER:SAVE_NEW_COMPONENT**
@@ -516,7 +521,8 @@ Write Commands
 					{"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
           "components": [],
 		  "name": "TESTCOMP1",
-		  "description": "A test component"
+		  "description": "A test component",
+		  "history": ["2015-02-16"]
 		 }'		 
 		 
 **BLOCKSERVER:DELETE_CONFIGS**
@@ -548,6 +554,16 @@ Write Commands
 
     Returns "OK" or an error message (compressed and hexed JSON).
 
+--------------
+Notes on configuration history
+--------------
+
+Part of the meta data for each configuration is a history field. This is a list of the dates the configuration has been modified in YYYY-MM-DD format. The first item in the list
+will be the creation date and the last item will be the date the configuration was last modified.
+
+The list is updated automatically by the Blockserver so does not need to be added to by the client. However, when the client saves a new configuration (such as in a Save As...)
+it must ensure that the history field is an empty list.
+	
 --------------
 The File Watcher
 --------------

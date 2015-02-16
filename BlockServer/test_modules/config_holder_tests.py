@@ -1,6 +1,7 @@
 import unittest
 import os
 import shutil
+import datetime
 from config_server import ConfigHolder
 from config.configuration import Configuration
 from config.constants import DEFAULT_COMPONENT
@@ -730,3 +731,39 @@ class TestConfigHolderSequence(unittest.TestCase):
             ch.save_config(DEFAULT_COMPONENT)
         except Exception as err:
             self.assertEqual(err.message, "Cannot save over default component")
+
+    def test_history_saves_correctly_config(self):
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch.clear_config()
+
+        self.assertEqual(ch.get_config_meta().history, [])
+
+        ch.save_config("TEST_CONFIG")
+
+        self.assertEqual(len(ch.get_config_meta().history), 1)
+        self.assertEqual(ch.get_config_meta().history, [datetime.date.today().isoformat()])
+
+    def test_history_saves_correctly_component(self):
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch.clear_config()
+
+        self.assertEqual(ch.get_config_meta().history, [])
+
+        ch.set_as_subconfig(True)
+        ch.save_config("TEST_CONFIG")
+
+        self.assertEqual(len(ch.get_config_meta().history), 1)
+        self.assertEqual(ch.get_config_meta().history, [datetime.date.today().isoformat()])
+
+    def test_history_multiple_saves(self):
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch.clear_config()
+
+        self.assertEqual(ch.get_config_meta().history, [])
+
+        ch.save_config("TEST_CONFIG")
+        ch.save_config("TEST_CONFIG")
+
+        self.assertEqual(len(ch.get_config_meta().history), 2)
+        today = datetime.date.today().isoformat()
+        self.assertEqual(ch.get_config_meta().history, [today, today])

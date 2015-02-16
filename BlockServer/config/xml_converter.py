@@ -80,6 +80,11 @@ class ConfigurationXmlConverter(object):
         desc_xml = ElementTree.SubElement(root, TAG_DESC)
         desc_xml.text = data.description
 
+        edits_xml = ElementTree.SubElement(root, TAG_EDITS)
+        for e in data.history:
+            edit = ElementTree.SubElement(edits_xml, TAG_EDIT)
+            edit.text = e
+
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
     @staticmethod
@@ -272,7 +277,7 @@ class ConfigurationXmlConverter(object):
                         iocs[n.upper()].pvsets[ps.attrib[TAG_NAME]] = \
                             {TAG_ENABLED: parse_boolean(str(ps.attrib[TAG_ENABLED]))}
                 except Exception as err:
-                    raise Exception ("Tag not found in ioc.xml (" + str(err) + ")")
+                    raise Exception("Tag not found in ioc.xml (" + str(err) + ")")
 
     @staticmethod
     def subconfigs_from_xml(root_xml, subconfigs):
@@ -289,6 +294,9 @@ class ConfigurationXmlConverter(object):
         description = root_xml.find("./" + TAG_DESC)
         if description is not None:
             data.description = description.text if description.text is not None else ""
+
+        edits = root_xml.findall("./" + TAG_EDITS + "/" + TAG_EDIT)
+        data.history = [e.text for e in edits]
 
     @staticmethod
     def _replace_macros(name):

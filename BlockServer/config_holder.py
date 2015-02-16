@@ -1,5 +1,6 @@
 import os
 import copy
+import datetime
 from config.file_manager import ConfigurationFileManager
 from config.configuration import Configuration
 from collections import OrderedDict
@@ -244,6 +245,7 @@ class ConfigHolder(object):
             config['components'] = self._comps_to_list()
             config['name'] = self._config.get_name()
             config['description'] = self._config.meta.description
+            config['history'] = self._config.meta.history
         else:
             # TODO: This!
             pass
@@ -325,6 +327,8 @@ class ConfigHolder(object):
                 self.set_config_name(details["name"])
             if "description" in details:
                 self._config.meta.description = details["description"]
+            if "history" in details:
+                self._config.meta.history = details["history"]
             if "components" in details:
                 # List of dicts
                 for args in details["components"]:
@@ -378,6 +382,7 @@ class ConfigHolder(object):
             return self._filemanager.load_config(path, name, self._macros)
 
     def save_config(self, name):
+        self._update_history()
         if self._is_subconfig:
             if name.lower() == DEFAULT_COMPONENT.lower():
                 raise Exception("Cannot save over default component")
@@ -404,3 +409,9 @@ class ConfigHolder(object):
 
     def set_testing_mode(self, mode):
         self._test_mode = mode
+
+    def _update_history(self):
+        # Add save to config history
+        print "History updated"
+        date = datetime.date.today().isoformat()
+        self._config.meta.history.append(date)

@@ -41,7 +41,8 @@ TEST_JSON = """{"iocs":
                     {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
           "name": "TESTCONFIG1",
-		  "description": "A test configuration"
+		  "description": "A test configuration",
+		  "history": ["2015-02-16"]
          }"""
 
 
