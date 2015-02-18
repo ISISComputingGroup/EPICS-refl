@@ -6,6 +6,7 @@ class MockProcServWrapper(object):
         self.ps_status["simple1"] = "SHUTDOWN"
         self.ps_status["simple2"] = "SHUTDOWN"
         self.ps_status["testioc"] = "SHUTDOWN"
+        self.ps_status["stopdioc"] = "SHUTDOWN"
 
     @staticmethod
     def generate_prefix(prefix, ioc):

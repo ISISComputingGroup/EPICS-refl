@@ -41,6 +41,14 @@ PVDB = {
         'type': 'char',
         'count': 64000,
     },
+    'PVS:ACTIVE:HIGH': {
+        'type': 'char',
+        'count': 64000,
+    },
+    'PVS:ACTIVE:MEDIUM': {
+        'type': 'char',
+        'count': 64000,
+    },
     'SAMPLE_PARS': {
         'type': 'char',
         'count': 10000,
@@ -88,6 +96,10 @@ class DatabaseServer(Driver):
             value = self.encode4return(self._get_interesting_pvs("HIGH"))
         elif reason == 'PVS:INTEREST:MEDIUM':
             value = self.encode4return(self._get_interesting_pvs("MEDIUM"))
+        elif reason == 'PVS:ACTIVE:HIGH':
+            value = self.encode4return(self._get_active_pvs("HIGH"))
+        elif reason == 'PVS:ACTIVE:MEDIUM':
+            value = self.encode4return(self._get_active_pvs("MEDIUM"))
         elif reason == 'SAMPLE_PARS':
             value = self.encode4return(self.get_sample_par_names())
         elif reason == 'BEAMLINE_PARS':
@@ -128,9 +140,23 @@ class DatabaseServer(Driver):
                 iocs[iocname].update(options[iocname])
         return iocs
 
+    def _get_active_iocs(self):
+        self._db.get_iocs()
+        iocs = self._db.get_active_iocs()
+        return iocs
+
     def _get_interesting_pvs(self, level, ioc=None):
         if self._db is not None:
             return self._db.get_interesting_pvs(level, ioc)
+        else:
+            return list()
+
+    def _get_active_pvs(self, level, ioc=None):
+        if self._db is not None:
+            if ioc is not None:
+                return self._db.get_interesting_pvs(level, ioc)
+            else:
+                return self._db.get_active_pvs()
         else:
             return list()
 

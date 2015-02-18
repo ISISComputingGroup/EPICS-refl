@@ -44,7 +44,7 @@ def generate_fake_db(iocdb):
     #Populate the tables for testing
     sql = []
     count = 0
-    for iocname in ['SIMPLE1', "SIMPLE2", "TESTIOC"]:
+    for iocname in ['SIMPLE1', "SIMPLE2", "TESTIOC", "STOPDIOC"]:
         # Populate iocs
         sql.append("""INSERT INTO `%s`.`iocs` (`iocname`, `dir`, `consoleport`, `logport`, `exe`, `cmd`) VALUES ('%s','%s','%s','%s','%s','%s')""" % (iocdb,iocname, 'fake_dir', count, count, 'fake_exe', 'fake_cmd'))
         # Populate iocsrt
@@ -61,6 +61,8 @@ def generate_fake_db(iocdb):
         pvnames = ["%s:START" % iocname, "%s:STOP" % iocname, "%s:RESTART" % iocname, "%s:STATUS" % iocname]
         for pv in pvnames:
             sql.append("""INSERT INTO `%s`.`pvs` (`pvname`, `record_type`, `record_desc`, `iocname`) VALUES ('%s','%s','%s','%s')""" % (iocdb, pv, 'ai', 'Fake procserv pv for testing', iocname))
+    # Alter STOPDIOC to be inactive to test PVS:ACTIVE type tests
+    sql.append("""UPDATE %s.iocrt SET running=0 WHERE iocname='STOPDIOC'""" % iocdb)
     # Add sample and beamline parameters
     sql.append("""INSERT INTO `%s`.`iocs` (`iocname`, `dir`, `consoleport`, `logport`, `exe`, `cmd`) VALUES ('%s','%s','%s','%s','%s','%s')""" % (iocdb,'INSTETC', 'fake_dir', count, count, 'fake_exe', 'fake_cmd'))
     pvnames = list(SAMPLE_PVS)
@@ -129,6 +131,12 @@ class TestMySQLWrapperSequence(unittest.TestCase):
         pvs = self.wrapper.get_interesting_pvs("MEDIUM")
         for pv in pvs:
             self.assertTrue(pv[0] in MEDIUM_PV_NAMES)
+
+    def test_get_active_pvs_high(self):
+        # Get all Active PVs
+        pvs = self.wrapper.get_active_pvs()
+        for pv in pvs:
+            self.assertTrue("STOPDIOC" not in pv[0])
 
     def test_get_beamline_pars(self):
         pars = self.wrapper.get_beamline_pars()
