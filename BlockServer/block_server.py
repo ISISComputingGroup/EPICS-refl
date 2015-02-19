@@ -265,217 +265,88 @@ class BlockServer(Driver):
         # This is called by CA
         # All write commands are queued as CA is single-threaded
         status = True
-        if reason == 'ADD_BLOCKS':
-            try:
-                data = dehex_and_decompress(value)
+        try:
+            data = dehex_and_decompress(value).strip('"')
+            if reason == 'ADD_BLOCKS':
                 self._active_configserver.add_blocks_json(data)
                 self.update_blocks_monitors()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'REMOVE_BLOCKS':
-            try:
-                self._active_configserver.remove_blocks(dehex_and_decompress(value))
+            elif reason == 'REMOVE_BLOCKS':
+                self._active_configserver.remove_blocks(data)
                 self.update_blocks_monitors()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'EDIT_BLOCKS':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'EDIT_BLOCKS':
                 self._active_configserver.edit_blocks_json(data)
                 self.update_blocks_monitors()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'ADD_COMPS':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'ADD_COMPS':
                 self.add_active_subconfigs(data)
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'REMOVE_COMPS':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'REMOVE_COMPS':
                 self.remove_active_subconfigs(data)
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'LOAD_CONFIG':
-            try:
+            elif reason == 'LOAD_CONFIG':
                 with self.write_lock:
-                    self.write_queue.append((self.load_config, (value,), "LOADING_CONFIG"))
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'SAVE_CONFIG':
-            try:
-                data = dehex_and_decompress(value)
+                    self.write_queue.append((self.load_config, (data,), "LOADING_CONFIG"))
+            elif reason == 'SAVE_CONFIG':
                 self.save_active_config(data)
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'LOAD_COMP':
-            try:
+            elif reason == 'LOAD_COMP':
                 with self.write_lock:
-                    self.write_queue.append((self.load_config, (value, True), "LOADING_COMP"))
+                    self.write_queue.append((self.load_config, (data, True), "LOADING_COMP"))
                 self.update_blocks_monitors()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'SAVE_COMP':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'SAVE_COMP':
                 self.save_active_as_subconfig(data)
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex("Error: " + str(err))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'CLEAR_CONFIG':
-            try:
+            elif reason == 'CLEAR_CONFIG':
                 self._active_configserver.clear_config()
                 self._initialise_config()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'ACTION_CHANGES':
-            try:
+            elif reason == 'ACTION_CHANGES':
                 self.autosave_active_config()
                 self._gateway.set_new_aliases(self._active_configserver.get_blocks())
                 self._active_configserver.update_archiver()
                 self._active_configserver.create_runcontrol_pvs()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'SET_GROUPS':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'SET_GROUPS':
                 self._active_configserver.set_groupings_json(data)
                 self.update_blocks_monitors()
                 self.autosave_active_config()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'START_IOCS':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'START_IOCS':
                 self._active_configserver.start_iocs(data)
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'STOP_IOCS':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'STOP_IOCS':
                 self._active_configserver.stop_iocs(data)
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'RESTART_IOCS':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'RESTART_IOCS':
                 self._active_configserver.restart_iocs(data)
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'ADD_IOCS':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'ADD_IOCS':
                 self._active_configserver.add_iocs(data)
                 self.autosave_active_config()
                 self.update_config_iocs_monitors()
                 # Should we start the IOC?
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'REMOVE_IOCS':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'REMOVE_IOCS':
                 self._active_configserver.remove_iocs(data)
                 self.autosave_active_config()
                 self.update_config_iocs_monitors()
                 # Should we stop the IOC?
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'SET_RC_PARS':
-            try:
-                data = dehex_and_decompress(value)
+            elif reason == 'SET_RC_PARS':
                 self._active_configserver.set_runcontrol_settings_json(data)
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'SET_CURR_CONFIG_DETAILS':
-            try:
-                data = dehex_and_decompress(value).strip('"')
+            elif reason == 'SET_CURR_CONFIG_DETAILS':
                 self._active_configserver.set_config_details(data)
                 self.save_active_config(self._active_configserver.get_config_name_json())
                 self._initialise_config()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'SAVE_NEW_CONFIG':
-            try:
-                data = dehex_and_decompress(value).strip('"')
+            elif reason == 'SAVE_NEW_CONFIG':
                 self.save_inactive_config(data)
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'SAVE_NEW_COMPONENT':
-            try:
-                data = dehex_and_decompress(value).strip('"')
+            elif reason == 'SAVE_NEW_COMPONENT':
                 self.save_inactive_config(data, True)
                 self.update_comp_monitor()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'DELETE_CONFIGS':
-            try:
-                data = dehex_and_decompress(value).strip('"')
+            elif reason == 'DELETE_CONFIGS':
                 self._config_list.delete_configs_json(data)
                 self.update_config_monitors()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'DELETE_COMPONENTS':
-            try:
-                data = dehex_and_decompress(value).strip('"')
+            elif reason == 'DELETE_COMPONENTS':
                 self._config_list.delete_configs_json(data, True)
                 self.update_comp_monitor()
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
-        elif reason == 'ACK_CURR_CHANGED':
-            try:
+            elif reason == 'ACK_CURR_CHANGED':
                 self._config_list.set_active_changed(False)
-                value = compress_and_hex(json.dumps("OK"))
-            except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
+            else:
+                status = False
+        except Exception as err:
+            value = compress_and_hex(json.dumps("Error: " + str(err)))
+            print_and_log(str(err), "ERROR")
         else:
-            status = False
+            if status:
+                value = compress_and_hex(json.dumps("OK"))
+
         # store the values
         if status:
             self.setParam(reason, value)
