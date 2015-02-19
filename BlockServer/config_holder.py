@@ -327,8 +327,9 @@ class ConfigHolder(object):
                 self.set_config_name(details["name"])
             if "description" in details:
                 self._config.meta.description = details["description"]
-            if "history" in details:
-                self._config.meta.history = details["history"]
+            # blockserver ignores history returned by clients:
+            # if "history" in details:
+            #     self._config.meta.history = details["history"]
             if "components" in details:
                 # List of dicts
                 for args in details["components"]:
