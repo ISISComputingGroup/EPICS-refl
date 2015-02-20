@@ -183,7 +183,7 @@ class TestConfigServerSequence(unittest.TestCase):
         self.assertEquals(len(blocks), 0)
         iocs = json.loads(cs.get_config_iocs_json())
         self.assertEqual(len(iocs), 0)
-        cs.load_config(json.dumps("TEST_CONFIG"))
+        cs.load_config("TEST_CONFIG")
         blocks = json.loads(cs.get_blocknames_json())
         self.assertEquals(len(blocks), 4)
         self.assertTrue('TESTBLOCK1' in blocks)
@@ -196,7 +196,7 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_load_notexistant_config(self):
         cs = self.configserver
-        self.assertRaises(Exception, lambda _: cs.load_config(json.dumps("DOES_NOT_EXIST")))
+        self.assertRaises(Exception, lambda _: cs.load_config("DOES_NOT_EXIST"))
 
     def test_get_block_prefix(self):
         cs = self.configserver
@@ -317,7 +317,7 @@ class TestConfigServerSequence(unittest.TestCase):
         self.assertEqual(len(blocks), 0)
         iocs = json.loads(cs.get_config_iocs_json())
         self.assertEqual(len(iocs), 0)
-        cs.load_config(json.dumps("TEST_SUBCONFIG"), True)
+        cs.load_config("TEST_SUBCONFIG", True)
         blocks = json.loads(cs.get_blocknames_json())
         self.assertEqual(len(blocks), 4)
         self.assertTrue('TESTBLOCK1' in blocks)
@@ -525,7 +525,7 @@ class TestConfigServerSequence(unittest.TestCase):
         cs.create_runcontrol_pvs()
         cs.create_runcontrol_pvs()
         cs.save_config(json.dumps("TESTCONFIG1"))
-        cs.load_config(json.dumps("TESTCONFIG1"))
+        cs.load_config("TESTCONFIG1")
         ans = json.loads(cs.get_runcontrol_settings_json())
         self.assertEqual(ans["TESTBLOCK1"]["HIGH"], 5)
         self.assertEqual(ans["TESTBLOCK1"]["LOW"], -5)

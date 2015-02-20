@@ -377,9 +377,8 @@ class BlockServer(Driver):
         self.update_get_details_monitors()
         self._active_configserver.update_archiver()
 
-    def load_config(self, value, is_subconfig=False):
+    def load_config(self, config, is_subconfig=False):
         try:
-            config = dehex_and_decompress(value)
             if is_subconfig:
                 print_and_log("Loading sub-configuration: %s" % config)
                 self._active_configserver.load_config(config, True)

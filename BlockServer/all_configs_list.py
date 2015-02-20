@@ -145,7 +145,7 @@ class ConfigListManager(object):
 
     def _load_config(self, name, is_subconfig=False):
         config = ConfigServerManager(self._config_folder, MACROS)
-        config.load_config(json.dumps(name), is_subconfig)
+        config.load_config(name, is_subconfig)
         return config
 
     def _update_subconfig_dependencies_pv(self, name):

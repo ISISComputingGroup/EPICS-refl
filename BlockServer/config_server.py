@@ -50,9 +50,7 @@ class ConfigServerManager(object):
         self._config_holder.save_config(name)
 
     def load_config(self, name, is_subconfig=False):
-        # The config name comes as JSON
-        conf = json.loads(name)
-        self._load_config(conf, is_subconfig)
+        self._load_config(name, is_subconfig)
 
     def _load_config(self, name, is_subconfig=False):
         config = self._config_holder.load_config(name, is_subconfig, False)

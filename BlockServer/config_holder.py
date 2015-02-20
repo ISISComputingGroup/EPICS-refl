@@ -413,6 +413,5 @@ class ConfigHolder(object):
 
     def _update_history(self):
         # Add save to config history
-        print "History updated"
         date = datetime.date.today().isoformat()
         self._config.meta.history.append(date)
