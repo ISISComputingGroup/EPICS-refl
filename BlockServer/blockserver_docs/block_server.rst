@@ -575,11 +575,11 @@ pick up on it and the following will happen:
 * If the file is not defined by a schema it is considered unrelated to configurations and so an INFO message is logged about the file being modified and no further action is taken.
 
 * If the modified file is part of a configuration the file watcher will first check that all required xml files are present, check the modification against the schema and then 
-attempt to load the configuration into a dummy holder. If any of these actions fail an error will be logged to the client. Otherwise the relevant PVs will be updated with the new
-information.
+  attempt to load the configuration into a dummy holder. If any of these actions fail an error will be logged to the client. Otherwise the relevant PVs will be updated with the new
+  information.
 
 * If the modified file is part of the active configuration, including within a component used by the configuration, and it passes the above tests the CURR_CONFIG_CHANGED PV is set 
-to 1. The GET_CURR_CONFIG_DETAILS PV is not updated with the new information and the client is therefore expected to reload the configuration for changes to take effect.
+  to 1. The GET_CURR_CONFIG_DETAILS PV is not updated with the new information and the client is therefore expected to reload the configuration for changes to take effect.
 
 In the case of files being deleted the following will happen:
 
@@ -594,6 +594,6 @@ In the case of files being deleted the following will happen:
 * If the active configuration is deleted an error is logged and it is restored from version control.
 
 * If a whole configuration folder is deleted (or a component that is not relied upon) the relevant PVs will be updated and the configuration (or component) will be deleted from version
-control.
+  control.
 
 Any log messages written by the file watcher will come from FILEWTCHR.
