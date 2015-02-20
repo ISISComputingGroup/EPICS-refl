@@ -323,7 +323,6 @@ class BlockServer(Driver):
                 self._active_configserver.set_runcontrol_settings_json(data)
             elif reason == 'SET_CURR_CONFIG_DETAILS':
                 self._active_configserver.set_config_details(data)
-                self.save_active_config(self._active_configserver.get_config_name_json())
                 self._initialise_config()
             elif reason == 'SAVE_NEW_CONFIG':
                 self.save_inactive_config(data)

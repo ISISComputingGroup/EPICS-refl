@@ -446,7 +446,7 @@ Write Commands
 ::
 
     Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:SET_CURR_CONFIG_DETAILS abcdefabdcdefabcdef1234567890
-    Sets the current configuration to the setting specified and saves to file. Requires compressed and hexed JSON dictionary.
+    Sets the current configuration to the setting specified. Requires compressed and hexed JSON dictionary.
     Example JSON (dehexed and decompressed):
         '{"iocs":
                  [{"simlevel": "None", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE1", "subconfig": null},
