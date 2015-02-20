@@ -55,7 +55,7 @@ class TestConfigServerSequence(unittest.TestCase):
 
         # Create in test mode
         self.configserver = ActiveConfigServerManager(CONFIG_PATH, MACROS, None, "archive.xml", "BLOCK_PREFIX:",
-                                                test_mode=True)
+                                                      test_mode=True)
 
     def tearDown(self):
         # Delete any configs created as part of the test
@@ -590,7 +590,7 @@ class TestConfigServerSequence(unittest.TestCase):
         cs = self.configserver
         data = {"iocs":
                 [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": {}, "pvs": {}, "pvsets": {}, "subconfig": None},
-                    {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": {}, "pvs": {}, "pvsets": {}, "subconfig": None}],
+                 {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": {}, "pvs": {}, "pvsets": {}, "subconfig": None}],
                 "blocks":
                     [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "subconfig": None, "visible": True},
                      {"name": "TESTBLOCK2", "local": True, "pv": "PV2", "subconfig": None, "visible": True},

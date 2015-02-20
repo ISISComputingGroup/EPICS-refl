@@ -26,7 +26,7 @@ class TestSubconfigurationSequence(unittest.TestCase):
         self.file_manager = MockConfigurationFileManager()
         self.xml_converter = ConfigurationXmlConverter()
         self.json_converter = ConfigurationJsonConverter()
-        #Create a configuration
+        # Create a configuration
         self.config = Configuration(MACROS)
         self.config.name = "CONFIG"
         self.config.add_block("CONFIG_BLK1", "PVCB1", "CONFGRP1")
@@ -41,7 +41,7 @@ class TestSubconfigurationSequence(unittest.TestCase):
         sub = SubConfiguration(MACROS)
         sub.name = "TESTSUB"
 
-        #Add it
+        # Add it
         self.config.merge_subconfig_in(sub)
 
         self.assertTrue("TESTSUB".lower() in self.config.subconfigs)
@@ -53,13 +53,13 @@ class TestSubconfigurationSequence(unittest.TestCase):
         sub.name = "TESTSUB"
         sub.add_block("SUB1", "PVS1", GRP_NONE)
 
-        #Add it
+        # Add it
         self.config.merge_subconfig_in(sub)
 
-        #Check block is added
+        # Check block is added
         self.assertEqual(len(self.config.blocks), conf_blks_no + 1)
         self.assertTrue("sub1" in self.config.blocks)
-        #Check block in none group
+        # Check block in none group
         self.assertTrue("SUB1" in self.config.groups[GRP_NONE.lower()].blocks)
 
     def test_merge_subconfig_in_with_block_in_existing_group(self):
@@ -69,10 +69,10 @@ class TestSubconfigurationSequence(unittest.TestCase):
         sub.name = "TESTSUB"
         sub.add_block("SUB1", "PVS1", "CONFGRP1")
 
-        #Add it
+        # Add it
         self.config.merge_subconfig_in(sub)
 
-        #Check block is added
+        # Check block is added
         self.assertEqual(len(self.config.blocks), conf_blks_no + 1)
         self.assertTrue("sub1" in self.config.blocks)
         #Check block in group and is the last entry
@@ -86,13 +86,13 @@ class TestSubconfigurationSequence(unittest.TestCase):
         sub.name = "TESTSUB"
         sub.add_block("SUB1", "PVS1", "NEWGRP1")
 
-        #Add it
+        # Add it
         self.config.merge_subconfig_in(sub)
 
-        #Check block is added
+        # Check block is added
         self.assertEqual(len(self.config.blocks), conf_blks_no + 1)
         self.assertTrue("sub1" in self.config.blocks)
-        #Check block in group
+        # Check block in group
         self.assertTrue("SUB1" in self.config.groups["NEWGRP1".lower()].blocks)
 
     def test_merge_subconfig_in_with_duplicate_block_name_is_ignored(self):
@@ -100,13 +100,13 @@ class TestSubconfigurationSequence(unittest.TestCase):
 
         sub = SubConfiguration(MACROS)
         sub.name = "TESTSUB"
-        #Duplicate block name
+        # Duplicate block name
         sub.add_block("CONFIG_BLK1", "PVS1", GRP_NONE)
 
-        #Add it
+        # Add it
         self.config.merge_subconfig_in(sub)
 
-        #Check block is not added
+        # Check block is not added
         self.assertEqual(len(self.config.blocks), conf_blks_no)
         self.assertTrue(self.config.blocks['config_blk1'].pv == "PVCB1")
 
@@ -126,11 +126,11 @@ class TestSubconfigurationSequence(unittest.TestCase):
         sub2.add_block("SUB2_2", "PVS1", "NEWGRP1")
         sub2.add_block("SUB2_3", "PVS1", "CONFGRP1")
 
-        #Add them
+        # Add them
         self.config.merge_subconfig_in(sub1)
         self.config.merge_subconfig_in(sub2)
 
-        #Check blocks added
+        # Check blocks added
         self.assertEqual(len(self.config.blocks), conf_blks_no + 6)
         self.assertTrue("SUB1_1".lower() in self.config.blocks.keys())
         self.assertTrue("SUB1_2".lower() in self.config.blocks.keys())
@@ -138,7 +138,7 @@ class TestSubconfigurationSequence(unittest.TestCase):
         self.assertTrue("SUB2_1".lower() in self.config.blocks.keys())
         self.assertTrue("SUB2_2".lower() in self.config.blocks.keys())
         self.assertTrue("SUB2_3".lower() in self.config.blocks.keys())
-        #Check groups
+        # Check groups
         self.assertTrue("SUB1_1" in self.config.groups[GRP_NONE.lower()].blocks)
         self.assertTrue("SUB2_1" in self.config.groups[GRP_NONE.lower()].blocks)
         self.assertTrue("SUB1_2" in self.config.groups["NEWGRP1".lower()].blocks)
@@ -162,11 +162,11 @@ class TestSubconfigurationSequence(unittest.TestCase):
         sub2.add_block("SUB2_2", "PVS1", "NEWGRP1")
         sub2.add_block("SUB_DUP", "PVS2", "CONFGRP1")   # This blocks should be ignored
 
-        #Add them
+        # Add them
         self.config.merge_subconfig_in(sub1)
         self.config.merge_subconfig_in(sub2)
 
-        self.assertEqual(len(self.config.groups["CONFGRP1".lower()].blocks),confgrp1_len + 1)
+        self.assertEqual(len(self.config.groups["CONFGRP1".lower()].blocks), confgrp1_len + 1)
         self.assertTrue(self.config.blocks['SUB_DUP'.lower()].pv == "PVS1")
 
     # def test_merge_subconfig_in_and_get_groups_xml(self):

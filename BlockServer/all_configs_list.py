@@ -14,8 +14,10 @@ GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
 DEPENDENCIES_PV = ":DEPENDENCIES"
 CONFIG_CHANGED_PV = ":CURR_CONFIG_CHANGED"
 
-class InvalidDeleteException (Exception):
+
+class InvalidDeleteException(Exception):
     def __init__(self, value):
+        super(InvalidDeleteException, self).__init__()
         self._value = value
 
     def __str__(self):

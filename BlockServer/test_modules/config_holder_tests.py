@@ -219,7 +219,6 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch.add_subconfig("TESTSUBCONFIG", Configuration(MACROS))
 
         blk = {"name": "TESTBLOCK1", "pv": "PV1", "local": True, "group": "GROUP1"}
-        #blk = Block("TESTBLOCK1", "PV1", True, subconfig="TESTSUBCONFIG")
         ch.add_block(blk, "TESTSUBCONFIG")
 
         blk_details = ch.get_block_details()
@@ -266,7 +265,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(blk_details["TESTBLOCK1".lower()].local, False)
 
     def test_edit_block_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH,  MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
 
         ch.add_subconfig("TESTSUBCONFIG", Configuration(MACROS))
 
@@ -424,7 +423,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch.save_config("TESTSUBCONFIG")
         ch.clear_config()
 
-        #Create and save a config that uses the subconfig
+        # Create and save a config that uses the subconfig
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
         comp = ch.load_config("TESTSUBCONFIG", True)
         ch.add_subconfig("TESTSUBCONFIG", comp)
@@ -477,7 +476,7 @@ class TestConfigHolderSequence(unittest.TestCase):
     def test_redefine_groups_from_list_simple_move(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
 
-        #Move TESTBLOCK2 and TESTBLOCK4 into group 1
+        # Move TESTBLOCK2 and TESTBLOCK4 into group 1
         redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK4"]},
                  {"name": "group2", "blocks": ["TESTBLOCK3"]}]
         ch.set_group_details(redef)
@@ -494,7 +493,7 @@ class TestConfigHolderSequence(unittest.TestCase):
     def test_redefine_groups_from_list_leave_group_empty(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
 
-        #Move TESTBLOCK2, TESTBLOCK3 and TESTBLOCK4 into group 1
+        # Move TESTBLOCK2, TESTBLOCK3 and TESTBLOCK4 into group 1
         redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK3", "TESTBLOCK4"]},
                  {"name": "group2", "blocks": []}]
         ch.set_group_details(redef)
@@ -514,7 +513,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
 
-        #Move SUBBLOCK1 and SUBBLOCK2 into group 1
+        # Move SUBBLOCK1 and SUBBLOCK2 into group 1
         redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK3", "TESTBLOCK4", "SUBBLOCK1",
                                                "SUBBLOCK2"]},
                  {"name": "group2", "blocks": []},
@@ -534,15 +533,17 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_set_config_details(self):
         # Need subconfig
-        ch = ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
         ch.set_as_subconfig(True)
         ch.save_config("TESTSUBCONFIG")
 
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
 
         new_details = {"iocs":
-                           [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": [], "pvs": [], "pvsets": [], "subconfig": None},
-                            {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": [], "pvs": [], "pvsets": [], "subconfig": None}],
+                           [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": [], "pvs": [],
+                             "pvsets": [], "subconfig": None},
+                            {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": [], "pvs": [],
+                             "pvsets": [], "subconfig": None}],
                        "blocks":
                            [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "subconfig": None,
                              "visible": True},
@@ -557,7 +558,7 @@ class TestConfigHolderSequence(unittest.TestCase):
                             {"blocks": ["TESTBLOCK3"], "name": "NONE", "subconfig": None}],
                        "name": "TESTCONFIG",
                        "description": "Test Description"
-        }
+                       }
         ch.set_config_details_from_json(new_details)
         details = ch.get_config_details()
         iocs = [x['name'] for x in details['iocs']]
@@ -586,8 +587,10 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
 
         new_details = {"iocs":
-                           [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": [], "pvs": [], "pvsets": [], "subconfig": None},
-                            {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": [], "pvs": [], "pvsets": [], "subconfig": None}],
+                           [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": [], "pvs": [],
+                             "pvsets": [], "subconfig": None},
+                            {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": [], "pvs": [],
+                             "pvsets": [], "subconfig": None}],
                        "blocks":
                            [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "subconfig": None,
                              "visible": True},
@@ -621,8 +624,10 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
 
         new_details = {"iocs":
-                           [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": {}, "pvs": {}, "pvsets": {}, "subconfig": None},
-                            {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": {}, "pvs": {}, "pvsets": {}, "subconfig": None}],
+                           [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": {}, "pvs": {},
+                             "pvsets": {}, "subconfig": None},
+                            {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": {}, "pvs": {},
+                             "pvsets": {}, "subconfig": None}],
                        "blocks":
                            [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "subconfig": None,
                              "visible": True},
@@ -651,7 +656,8 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
         new_details = {"iocs":
                            [{"name": "TESTSIMPLE1", "autostart": True, "restart": True,
-                                "macros": [{"name": "TESTMACRO1", "value" : "TEST"}, {"name": "TESTMACRO2", "value" : 123}],
+                                "macros": [{"name": "TESTMACRO1", "value" : "TEST"}, {"name": "TESTMACRO2",
+                                                                                      "value" : 123}],
                                 "pvs": [{"name": "TESTPV1", "value" : 123}],
                                 "pvsets": [{"name": "TESTPVSET1", "enabled" : True}],
                                 "subconfig": None},

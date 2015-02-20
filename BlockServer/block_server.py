@@ -177,7 +177,7 @@ PVDB = {
 class BlockServer(Driver):
     def __init__(self, ca_server):
         super(BlockServer, self).__init__()
-        self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX,  PVLIST_FILE)
+        self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE)
         self._active_configserver = None
         self._status = "INITIALISING"
 
@@ -257,8 +257,8 @@ class BlockServer(Driver):
             else:
                 value = self.getParam(reason)
         except Exception as err:
-                value = compress_and_hex(json.dumps("Error: " + str(err)))
-                print_and_log(str(err), "ERROR")
+            value = compress_and_hex(json.dumps("Error: " + str(err)))
+            print_and_log(str(err), "ERROR")
         return value
 
     def write(self, reason, value):
@@ -539,10 +539,10 @@ if __name__ == '__main__':
     parser.add_argument('-pv', '--pvlist_name', nargs=1, type=str, default=['gwblock.pvlist'],
                         help='The filename for the pvlist file used by the blocks gateway (default=gwblock.pvlist)')
     parser.add_argument('-au', '--archive_uploader', nargs=1,
-                        default=["%EPICS_KIT_ROOT%\\CSS\ArchiveEngine\\set_block_config.bat"],
+                        default=["%EPICS_KIT_ROOT%\\CSS\\ArchiveEngine\\set_block_config.bat"],
                         help='The batch file used to upload settings to the PV Archiver')
     parser.add_argument('-as', '--archive_settings', nargs=1,
-                        default=["%EPICS_KIT_ROOT%\\CSS\ArchiveEngine\\block_config.xml"],
+                        default=["%EPICS_KIT_ROOT%\\CSS\\ArchiveEngine\\block_config.xml"],
                         help='The XML file containing the new PV Archiver log settings')
 
     args = parser.parse_args()

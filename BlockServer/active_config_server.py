@@ -253,12 +253,6 @@ class ActiveConfigServerManager(ConfigServerManager):
             self._load_config(last_config.replace(CONFIG_DIRECTORY, ""), False)
         return last_config
 
-    def dump_status(self):
-        data = self._config_holder.dump_status()
-        f = open(self._config_folder + '/blockserver_status.txt', 'w')
-        f.write(data)
-        f.close()
-
     def create_runcontrol_pvs(self):
         self._runcontrol.update_runcontrol_blocks(self._config_holder.get_block_details())
         self._procserve_wrapper.restart_ioc(self._macros["$(MYPVPREFIX)"], RUNCONTROL_IOC)

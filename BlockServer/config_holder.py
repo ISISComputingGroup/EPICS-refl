@@ -363,13 +363,13 @@ class ConfigHolder(object):
             self.add_subconfig(DEFAULT_COMPONENT, basecomp)
 
     def _set_component_names(self, comp, name):
-            # Set the subconfig for blocks, groups and IOCs
-            for n, v in comp.blocks.iteritems():
-                v.subconfig = name
-            for n, v in comp.groups.iteritems():
-                v.subconfig = name
-            for n, v in comp.iocs.iteritems():
-                v.subconfig = name
+        # Set the subconfig for blocks, groups and IOCs
+        for n, v in comp.blocks.iteritems():
+            v.subconfig = name
+        for n, v in comp.groups.iteritems():
+            v.subconfig = name
+        for n, v in comp.iocs.iteritems():
+            v.subconfig = name
 
     def load_config(self, name, is_subconfig=False, set_subconfig_names=True):
         if is_subconfig:
