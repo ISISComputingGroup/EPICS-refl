@@ -225,15 +225,6 @@ class ConfigHolder(object):
             else:
                 raise Exception("No component called %s" % subconfig)
 
-    def remove_ioc(self, name, subconfig=None):
-        if subconfig is None:
-            self._config.remove_ioc(name)
-        else:
-            if subconfig.lower() in self._components:
-                self._components[subconfig.lower()].remove_ioc(name)
-            else:
-                raise Exception("No component called %s" % subconfig)
-
     def get_config_details(self, include_subs=False):
         config = dict()
         if not include_subs:

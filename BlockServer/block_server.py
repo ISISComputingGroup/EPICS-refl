@@ -314,11 +314,6 @@ class BlockServer(Driver):
                 self.autosave_active_config()
                 self.update_config_iocs_monitors()
                 # Should we start the IOC?
-            elif reason == 'REMOVE_IOCS':
-                self._active_configserver.remove_iocs(data)
-                self.autosave_active_config()
-                self.update_config_iocs_monitors()
-                # Should we stop the IOC?
             elif reason == 'SET_RC_PARS':
                 self._active_configserver.set_runcontrol_settings_json(data)
             elif reason == 'SET_CURR_CONFIG_DETAILS':

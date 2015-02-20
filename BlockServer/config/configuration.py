@@ -93,10 +93,6 @@ class Configuration(object):
         if not name.upper() in self.iocs.keys():
             self.iocs[name.upper()] = IOC(name, autostart, restart, subconfig, macros, pvs, pvsets, simlevel)
 
-    def remove_ioc(self, name):
-        if name.upper() in self.iocs:
-            del self.iocs[name.upper()]
-
     def update_runcontrol_settings_for_saving(self, rc_data):
         #TODO:
         # Only do it for blocks that are not in a sub-config

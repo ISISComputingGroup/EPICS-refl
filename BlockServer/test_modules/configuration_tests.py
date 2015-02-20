@@ -190,27 +190,6 @@ class TestConfigurationSequence(unittest.TestCase):
         except:
             self.fail("Adding the same ioc twice raised Exception unexpectedly!")
 
-    def test_removing_ioc_removes_it_from_ioc_list(self):
-        # arrange
-        cf = self.config
-        ioc_name = "TESTIOC"
-        # act
-        cf.add_ioc(ioc_name)
-        cf.remove_ioc(ioc_name)
-        iocs = cf.iocs
-        # assert
-        self.assertEqual(len(iocs), 0)
-
-    def test_removing_non_existant_ioc_does_not_raise_exception(self):
-        # arrange
-        cf = self.config
-        ioc_name = "TESTIOC"
-        # assert
-        try:
-            cf.remove_ioc(ioc_name)
-        except:
-            self.fail("Removing non-existant IOC raised Exception unexpectedly!")
-
     def test_get_blocks_names_returns_empty_list_when_no_blocks(self):
         # arrange
         cf = self.config

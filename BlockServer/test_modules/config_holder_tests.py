@@ -301,25 +301,6 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(ioc_details), 1)
         self.assertTrue("TESTIOC1" in ioc_details)
 
-    def test_remove_ioc(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-
-        ch.add_ioc("TESTIOC1")
-        ch.remove_ioc("TESTIOC1")
-
-        ioc_details = ch.get_ioc_names()
-        self.assertEqual(len(ioc_details), 0)
-
-    def test_remove_ioc_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
-        ch.remove_ioc("SUBSIMPLE1", "TESTSUBCONFIG")
-
-        ioc_details = ch.get_ioc_names()
-        self.assertEqual(len(ioc_details), 0)
-
     def test_get_config_details_empty(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
         details = ch.get_config_details()

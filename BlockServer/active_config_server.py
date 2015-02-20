@@ -99,11 +99,6 @@ class ActiveConfigServerManager(ConfigServerManager):
         else:
             raise Exception("Could not start IOC %s as it does not exist" % iocname)
 
-    def remove_iocs(self, rawjson):
-        data = json.loads(rawjson)
-        for ioc in data:
-            self._remove_ioc(ioc)
-
     def _remove_ioc(self, iocname):
         self._config_holder.remove_ioc(iocname)
 

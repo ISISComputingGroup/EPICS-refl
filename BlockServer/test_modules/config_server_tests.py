@@ -144,20 +144,6 @@ class TestConfigServerSequence(unittest.TestCase):
         cs.restart_iocs(json.dumps(["SIMPLE1"]))
         self.assertTrue(cs.get_ioc_state("SIMPLE1") == "RUNNING")
 
-    def test_remove_ioc(self):
-        cs = self.configserver
-        iocs = json.loads(cs.get_config_iocs_json())
-        self.assertEqual(len(iocs), 0)
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
-        iocs = json.loads(cs.get_config_iocs_json())
-        self.assertTrue("SIMPLE1" in iocs)
-        self.assertTrue("SIMPLE2" in iocs)
-        cs.remove_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
-        iocs = json.loads(cs.get_config_iocs_json())
-        self.assertEqual(len(iocs), 0)
-        self.assertTrue(not "SIMPLE1" in iocs)
-        self.assertTrue(not "SIMPLE2" in iocs)
-
     def test_save_config(self):
         cs = self.configserver
         cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
