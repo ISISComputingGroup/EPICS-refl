@@ -18,6 +18,7 @@ from server_common.utilities import compress_and_hex, dehex_and_decompress, prin
 from macros import MACROS, BLOCKSERVER_PREFIX
 from all_configs_list import ConfigListManager
 from config.file_watcher_manager import ConfigFileWatcherManager
+from BlockServer.core.synoptic_manager import SynopticManager
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
@@ -186,6 +187,13 @@ class BlockServer(Driver):
             self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "ERROR")
+
+        # Import all the synoptic data and create PVs
+        try:
+            syn = SynopticManager(CONFIG_DIR, ca_server)
+            syn.create_pvs()
+        except Exception as err:
+            print_and_log("Error creating synoptic PVs: %s" % str(err), "ERROR")
 
         # Threading stuff
         self.monitor_lock = RLock()

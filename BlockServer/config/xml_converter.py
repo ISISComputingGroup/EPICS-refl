@@ -18,6 +18,7 @@ COMPONENT_SCHEMA = "components/1.0"
 TAG_META = "meta"
 TAG_DESC = "description"
 
+
 class ConfigurationXmlConverter(object):
     """Converts configuration data to and from XML"""
 
