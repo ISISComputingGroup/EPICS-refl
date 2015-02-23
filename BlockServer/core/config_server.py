@@ -1,5 +1,6 @@
-from config_holder import ConfigHolder
 import json
+
+from BlockServer.core.config_holder import ConfigHolder
 
 
 class ConfigServerManager(object):

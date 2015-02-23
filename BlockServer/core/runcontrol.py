@@ -1,5 +1,5 @@
 from server_common.channel_access import caget, caput
-from config.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
+from BlockServer.config.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
 from time import sleep
 from server_common.utilities import print_and_log
 

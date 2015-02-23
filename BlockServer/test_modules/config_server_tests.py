@@ -2,10 +2,10 @@ import unittest
 import os
 import shutil
 import json
-from config.constants import DEFAULT_COMPONENT
-from active_config_server import ActiveConfigServerManager
+from BlockServer.config.constants import DEFAULT_COMPONENT
+from BlockServer.core.active_config_server import ActiveConfigServerManager
 
-from mocks.mock_configuration import MockConfiguration
+from BlockServer.mocks.mock_configuration import MockConfiguration
 
 CONFIG_PATH = "./test_configs/"
 BASE_PATH = "./example_base/"
@@ -46,7 +46,7 @@ def create_grouping(groups):
 #   Configuration, which is done in Configuration's own suite of tests.
 class TestConfigServerSequence(unittest.TestCase):
     def setUp(self):
-        # Create components folder and copying DEFAULT_COMPONENT files into it
+        # Create components folder and copying DEFAULT_COMPONENT fileIO into it
         path = os.path.abspath(CONFIG_PATH)
         os.mkdir(path)
         component_path = path + "/components/"
@@ -460,7 +460,7 @@ class TestConfigServerSequence(unittest.TestCase):
         data = [{'name': "TESTBLOCK2", 'pv': "PV1", 'runcontrol': True, 'lowlimit': 10, 'highlimit': 15}]
         cs.add_blocks_json(json.dumps(data))
         cs.create_runcontrol_pvs()
-        #Values are 0 by default, so they should be out of range
+        # Values are 0 by default, so they should be out of range
         ans = json.loads(cs.get_out_of_range_pvs())
         self.assertTrue(len(ans) == 2)
         self.assertTrue("TESTBLOCK1" in ans)

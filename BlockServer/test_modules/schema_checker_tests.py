@@ -3,10 +3,11 @@ import os
 import json
 import shutil
 
-from config.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema, NotConfigFileException
-from active_config_server import ActiveConfigServerManager
-from config.constants import SCHEMA_FOR, FILENAME_IOCS, CONFIG_DIRECTORY, COMPONENT_DIRECTORY
-from macros import MACROS
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema, NotConfigFileException
+from BlockServer.core.active_config_server import ActiveConfigServerManager
+from BlockServer.config.constants import SCHEMA_FOR, FILENAME_IOCS, CONFIG_DIRECTORY, COMPONENT_DIRECTORY
+from BlockServer.core.macros import MACROS
+
 
 TEST_DIRECTORY = os.path.abspath(".\\test_configs")
 CONFIG_DIR = TEST_DIRECTORY + CONFIG_DIRECTORY

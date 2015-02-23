@@ -1,13 +1,15 @@
-from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
-from config.file_manager import ConfigurationFileManager
-from macros import MACROS
-from config_server import ConfigServerManager
-from server_common.utilities import print_and_log, compress_and_hex
-from config.schema_checker import ConfigurationSchemaChecker
 import os
 import json
 import re
 from threading import RLock
+
+from BlockServer.config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+from BlockServer.fileIO.file_manager import ConfigurationFileManager
+from BlockServer.core.macros import MACROS
+from BlockServer.core.config_server import ConfigServerManager
+from server_common.utilities import print_and_log, compress_and_hex
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
+
 
 GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
 GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
@@ -137,7 +139,7 @@ class ConfigListManager(object):
             config = self._load_config(config_name)
             self.update_a_config_in_list(config)
 
-        # Add files to version control
+        # Add fileIO to version control
         if not self._test_mode:
             ConfigurationFileManager.add_configs_to_version_control(
                 self._conf_path, config_list, "Blockserver started: all configs updated")

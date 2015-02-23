@@ -1,4 +1,4 @@
-from BlockServer.macros import PVPREFIX_MACRO
+from BlockServer.core.macros import PVPREFIX_MACRO
 
 
 class Block(object):

@@ -2,10 +2,12 @@ import unittest
 import os
 import shutil
 import datetime
-from config_server import ConfigHolder
-from config.configuration import Configuration
-from config.constants import DEFAULT_COMPONENT
-from macros import MACROS
+
+from BlockServer.core.config_server import ConfigHolder
+from BlockServer.config.configuration import Configuration
+from BlockServer.config.constants import DEFAULT_COMPONENT
+from BlockServer.core.macros import MACROS
+
 
 CONFIG_PATH = "./test_configs/"
 BASE_PATH = "./example_base/"
@@ -33,7 +35,7 @@ def create_dummy_subconfig():
 
 class TestConfigHolderSequence(unittest.TestCase):
     def setUp(self):
-        # Create components folder and copying DEFAULT_COMPONENT files into it
+        # Create components folder and copying DEFAULT_COMPONENT fileIO into it
         path = os.path.abspath(CONFIG_PATH)
         os.mkdir(path)
         component_path = path + "/components/"

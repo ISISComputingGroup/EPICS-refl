@@ -1,12 +1,13 @@
-from all_configs_list import ConfigListManager
-from server_common.mocks.mock_ca_server import MockCAServer
-from mocks.mock_block_server import MockBlockServer
-from config.file_event_handler import ConfigFileEventHandler, NotConfigFileException
 from threading import RLock
-import config.constants as const
 import unittest
 import os
 import shutil
+
+from BlockServer.core.all_configs_list import ConfigListManager
+from server_common.mocks.mock_ca_server import MockCAServer
+from BlockServer.mocks.mock_block_server import MockBlockServer
+from BlockServer.fileIO.file_event_handler import ConfigFileEventHandler
+import BlockServer.config.constants as const
 
 
 TEST_DIRECTORY = os.path.abspath(".\\test_configs")

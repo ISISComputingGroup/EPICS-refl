@@ -1,13 +1,14 @@
 import os
 import copy
 import datetime
-from config.file_manager import ConfigurationFileManager
-from config.configuration import Configuration
 from collections import OrderedDict
-from config.constants import GRP_NONE
-from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
-from config.containers import Group
-from macros import PVPREFIX_MACRO
+
+from BlockServer.fileIO.file_manager import ConfigurationFileManager
+from BlockServer.config.configuration import Configuration
+from BlockServer.config.constants import GRP_NONE
+from BlockServer.config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+from BlockServer.config.containers import Group
+from BlockServer.core.macros import PVPREFIX_MACRO
 
 
 class ConfigHolder(object):

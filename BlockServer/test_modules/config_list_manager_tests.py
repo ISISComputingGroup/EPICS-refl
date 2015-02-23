@@ -1,14 +1,16 @@
-from all_configs_list import ConfigListManager, InvalidDeleteException
-from active_config_server import ActiveConfigServerManager
-from server_common.mocks.mock_ca_server import MockCAServer
-from mocks.mock_block_server import MockBlockServer
-from server_common.utilities import dehex_and_decompress
 import unittest
 import json
 import os
 import shutil
-from config_server import ConfigServerManager
-from config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+
+from BlockServer.core.all_configs_list import ConfigListManager, InvalidDeleteException
+from BlockServer.core.active_config_server import ActiveConfigServerManager
+from server_common.mocks.mock_ca_server import MockCAServer
+from BlockServer.mocks.mock_block_server import MockBlockServer
+from server_common.utilities import dehex_and_decompress
+from BlockServer.core.config_server import ConfigServerManager
+from BlockServer.config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+
 
 MACROS = {
     "$(MYPVPREFIX)": "",
@@ -67,7 +69,7 @@ def create_subconfigs(names):
 class TestInactiveConfigsSequence(unittest.TestCase):
 
     def setUp(self):
-        # Create components folder and copying DEFAULT_COMPONENT files into it
+        # Create components folder and copying DEFAULT_COMPONENT fileIO into it
         path = os.path.abspath(CONFIG_PATH)
         self.ms = MockCAServer()
         self.bs = MockBlockServer()

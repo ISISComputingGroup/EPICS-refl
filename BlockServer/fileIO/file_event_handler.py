@@ -1,13 +1,15 @@
-from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
-from config_server import ConfigServerManager
-from constants import *
-from macros import MACROS
-from server_common.utilities import print_and_log
 import string
 import os
+
+from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
+
+from BlockServer.core.config_server import ConfigServerManager
+from BlockServer.config.constants import *
+from BlockServer.core.macros import MACROS
+from server_common.utilities import print_and_log
 from schema_checker import ConfigurationSchemaChecker
 from schema_checker import ConfigurationIncompleteException, NotConfigFileException
-from config.file_manager import ConfigurationFileManager
+from BlockServer.fileIO.file_manager import ConfigurationFileManager
 
 
 class ConfigFileEventHandler(FileSystemEventHandler):
@@ -53,7 +55,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
     def on_deleted(self, event):
         try:
             # Recover deleted file from vc so it can be deleted properly
-            # TODO: Ignore the new files in modified
+            # TODO: Ignore the new fileIO in modified
             ConfigurationFileManager.recover_from_version_control(self._root_path)
         except Exception as err:
             print_and_log("File Watcher: " + str(err), "ERROR", "FILEWTCHR")

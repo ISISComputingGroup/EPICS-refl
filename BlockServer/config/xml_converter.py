@@ -1,10 +1,10 @@
-from xml.etree import ElementTree
 from xml.dom import minidom
-from server_common.utilities import *
 
+from server_common.utilities import *
 from containers import Group, Block, IOC
 from constants import *
-from BlockServer.macros import PVPREFIX_MACRO
+from BlockServer.core.macros import PVPREFIX_MACRO
+
 
 KEY_NONE = GRP_NONE.lower()
 TAG_ENABLED = 'enabled'

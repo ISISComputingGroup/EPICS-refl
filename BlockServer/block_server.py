@@ -10,15 +10,16 @@ import argparse
 import json
 from threading import Thread, RLock
 from time import sleep
-from gateway import Gateway
-from active_config_server import ActiveConfigServerManager
-from config_server import ConfigServerManager
+from BlockServer.epics.gateway import Gateway
+from BlockServer.core.active_config_server import ActiveConfigServerManager
+from BlockServer.core.config_server import ConfigServerManager
 from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log
-from macros import MACROS, BLOCKSERVER_PREFIX
-from all_configs_list import ConfigListManager
-from config.file_watcher_manager import ConfigFileWatcherManager
+from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX
+from BlockServer.core.all_configs_list import ConfigListManager
+from BlockServer.fileIO.file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
+from BlockServer.config.constants import SYNOPTIC_DIRECTORY
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
@@ -190,7 +191,7 @@ class BlockServer(Driver):
 
         # Import all the synoptic data and create PVs
         try:
-            syn = SynopticManager(CONFIG_DIR, ca_server)
+            syn = SynopticManager(CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server)
             syn.create_pvs()
         except Exception as err:
             print_and_log("Error creating synoptic PVs: %s" % str(err), "ERROR")

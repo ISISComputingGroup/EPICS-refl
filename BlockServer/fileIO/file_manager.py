@@ -4,14 +4,14 @@ from collections import OrderedDict
 from server_common.utilities import parse_xml_removing_namespace, print_and_log
 
 from BlockServer.config.containers import Group
-from xml_converter import ConfigurationXmlConverter
+from BlockServer.config.xml_converter import ConfigurationXmlConverter
 
 from BlockServer.config.configuration import Configuration, MetaData
 
 from config_version_control import ConfigVersionControl, NotUnderVersionControl
 
-from constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_SUBCONFIGS, FILENAME_META
-from constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
+from BlockServer.config.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_SUBCONFIGS, FILENAME_META
+from BlockServer.config.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
 
 
 class ConfigurationFileManager(object):
@@ -153,7 +153,7 @@ class ConfigurationFileManager(object):
             vc.update()
 
     @staticmethod
-    def delete_file_from_version_control(root_path, file_path, commit_message="Deleted files"):
+    def delete_file_from_version_control(root_path, file_path, commit_message="Deleted fileIO"):
         vc = ConfigurationFileManager.start_version_control(root_path)
         if vc is not None:
             vc.remove(file_path)

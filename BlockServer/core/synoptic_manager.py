@@ -1,5 +1,4 @@
 import os
-from BlockServer.config.constants import SYNOPTIC_DIRECTORY
 from server_common.utilities import print_and_log, compress_and_hex
 
 SYNOPTIC_GET_PV = ":GET_SYNOPTIC"
@@ -8,8 +7,8 @@ SYNOPTIC_SET_PV = ":SET_SYNOPTIC"
 
 class SynopticManager(object):
     """Class for managing the PVs associated with synoptics"""
-    def __init__(self, config_folder, cas):
-        self.directory = os.path.abspath(config_folder + SYNOPTIC_DIRECTORY)
+    def __init__(self, synoptic_folder, cas):
+        self.directory = os.path.abspath(synoptic_folder)
         self.cas = cas
 
     def create_pvs(self):

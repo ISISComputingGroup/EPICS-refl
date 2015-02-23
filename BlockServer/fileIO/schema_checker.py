@@ -1,7 +1,7 @@
 import os
 import string
 from lxml import etree
-from constants import SCHEMA_FOR, COMPONENT_DIRECTORY, CONFIG_DIRECTORY, FILENAME_SUBCONFIGS
+from BlockServer.config.constants import SCHEMA_FOR, COMPONENT_DIRECTORY, CONFIG_DIRECTORY, FILENAME_SUBCONFIGS
 
 
 class NotConfigFileException(Exception):

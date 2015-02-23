@@ -1,15 +1,16 @@
 import os
 import json
-from archiver_manager import ArchiverManager
-from config.constants import AUTOSAVE_NAME, IOCS_NOT_TO_STOP, RUNCONTROL_IOC, RUNCONTROL_SETTINGS, CONFIG_DIRECTORY, \
+
+from BlockServer.epics.archiver_manager import ArchiverManager
+from BlockServer.config.constants import AUTOSAVE_NAME, IOCS_NOT_TO_STOP, RUNCONTROL_IOC, RUNCONTROL_SETTINGS, CONFIG_DIRECTORY, \
     COMPONENT_DIRECTORY
-from procserv_utils import ProcServWrapper
-from runcontrol import RunControlManager
+from BlockServer.epics.procserv_utils import ProcServWrapper
+from BlockServer.core.runcontrol import RunControlManager
 from server_common.utilities import print_and_log
-from config.json_converter import ConfigurationJsonConverter
-from database_server_client import DatabaseServerClient
-from macros import BLOCKSERVER_PREFIX
-from config_server import ConfigServerManager
+from BlockServer.config.json_converter import ConfigurationJsonConverter
+from BlockServer.core.database_server_client import DatabaseServerClient
+from BlockServer.core.macros import BLOCKSERVER_PREFIX
+from BlockServer.core.config_server import ConfigServerManager
 
 
 class ActiveConfigServerManager(ConfigServerManager):
@@ -44,9 +45,9 @@ class ActiveConfigServerManager(ConfigServerManager):
 
     def _set_testing_mode(self):
         self._archive_manager.set_testing_mode(True)
-        from mocks.mock_procserv_utils import MockProcServWrapper
+        from BlockServer.mocks.mock_procserv_utils import MockProcServWrapper
         self._procserve_wrapper = MockProcServWrapper()
-        from mocks.mock_runcontrol import MockRunControlManager
+        from BlockServer.mocks.mock_runcontrol import MockRunControlManager
         self._runcontrol = MockRunControlManager()
 
     def add_blocks_json(self, rawjson):

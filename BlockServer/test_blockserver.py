@@ -18,6 +18,7 @@ from test_modules.config_holder_tests import TestConfigHolderSequence
 from test_modules.config_list_manager_tests import TestInactiveConfigsSequence
 from test_modules.file_event_handler_tests import TestFileEventHandler
 from test_modules.schema_checker_tests import TestSchemaChecker
+from test_modules.synoptic_manager_tests import TestSynopticManagerSequence
 
 DEFAULT_DIRECTORY = '..\\..\\..\\test-reports'
 
@@ -39,6 +40,7 @@ if __name__ == '__main__':
     inactive_config_suite = unittest.TestLoader().loadTestsFromTestCase(TestInactiveConfigsSequence)
     file_watcher_event_suite = unittest.TestLoader().loadTestsFromTestCase(TestFileEventHandler)
     schema_checker_event_suite = unittest.TestLoader().loadTestsFromTestCase(TestSchemaChecker)
+    synoptic_manager_suite = unittest.TestLoader().loadTestsFromTestCase(TestSynopticManagerSequence)
 
     print "\n\n------ BEGINNING BLOCKSERVER UNIT TESTS ------"
 
@@ -51,5 +53,6 @@ if __name__ == '__main__':
     xmlrunner.XMLTestRunner(output=xml_dir).run(inactive_config_suite)
     xmlrunner.XMLTestRunner(output=xml_dir).run(file_watcher_event_suite)
     xmlrunner.XMLTestRunner(output=xml_dir).run(schema_checker_event_suite)
+    xmlrunner.XMLTestRunner(output=xml_dir).run(synoptic_manager_suite)
 
     print "------ BLOCKSERVER UNIT TESTS COMPLETE ------\n\n"
