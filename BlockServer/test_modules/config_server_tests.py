@@ -2,10 +2,10 @@ import unittest
 import os
 import shutil
 import json
-from BlockServer.config.constants import DEFAULT_COMPONENT
+
+from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.active_config_server import ActiveConfigServerManager
 
-from BlockServer.mocks.mock_configuration import MockConfiguration
 
 CONFIG_PATH = "./test_configs/"
 BASE_PATH = "./example_base/"

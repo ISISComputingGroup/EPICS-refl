@@ -9,7 +9,7 @@ from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from server_common.utilities import dehex_and_decompress
 from BlockServer.core.config_server import ConfigServerManager
-from BlockServer.config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
 
 
 MACROS = {

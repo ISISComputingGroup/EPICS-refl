@@ -1,17 +1,14 @@
 import os
 import shutil
 from collections import OrderedDict
-from server_common.utilities import parse_xml_removing_namespace, print_and_log
 
+from server_common.utilities import parse_xml_removing_namespace, print_and_log
 from BlockServer.config.containers import Group
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
-
 from BlockServer.config.configuration import Configuration, MetaData
-
 from config_version_control import ConfigVersionControl, NotUnderVersionControl
-
-from BlockServer.config.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_SUBCONFIGS, FILENAME_META
-from BlockServer.config.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
+from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_SUBCONFIGS, FILENAME_META
+from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
 
 
 class ConfigurationFileManager(object):

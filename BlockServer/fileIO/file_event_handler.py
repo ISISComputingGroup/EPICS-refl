@@ -4,7 +4,7 @@ import os
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
 from BlockServer.core.config_server import ConfigServerManager
-from BlockServer.config.constants import *
+from BlockServer.core.constants import *
 from BlockServer.core.macros import MACROS
 from server_common.utilities import print_and_log
 from schema_checker import ConfigurationSchemaChecker

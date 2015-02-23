@@ -1,8 +1,9 @@
 from xml.dom import minidom
 
 from server_common.utilities import *
+
 from containers import Group, Block, IOC
-from constants import *
+from BlockServer.core.constants import *
 from BlockServer.core.macros import PVPREFIX_MACRO
 
 

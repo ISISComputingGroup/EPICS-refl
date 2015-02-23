@@ -5,7 +5,7 @@ import shutil
 
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema, NotConfigFileException
 from BlockServer.core.active_config_server import ActiveConfigServerManager
-from BlockServer.config.constants import SCHEMA_FOR, FILENAME_IOCS, CONFIG_DIRECTORY, COMPONENT_DIRECTORY
+from BlockServer.core.constants import SCHEMA_FOR, FILENAME_IOCS, CONFIG_DIRECTORY, COMPONENT_DIRECTORY
 from BlockServer.core.macros import MACROS
 
 

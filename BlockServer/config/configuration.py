@@ -2,7 +2,7 @@
 from collections import OrderedDict
 
 from BlockServer.config.containers import Group, Block, IOC, MetaData
-from BlockServer.config.constants import GRP_NONE
+from BlockServer.core.constants import GRP_NONE
 from BlockServer.core.macros import PVPREFIX_MACRO
 
 

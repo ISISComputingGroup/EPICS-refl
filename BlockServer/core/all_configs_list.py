@@ -3,7 +3,7 @@ import json
 import re
 from threading import RLock
 
-from BlockServer.config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.core.macros import MACROS
 from BlockServer.core.config_server import ConfigServerManager

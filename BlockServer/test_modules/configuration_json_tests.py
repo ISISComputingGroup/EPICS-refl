@@ -2,9 +2,9 @@ import unittest
 import json
 from collections import OrderedDict
 
-from config.containers import Group, Block, IOC
-from config.json_converter import ConfigurationJsonConverter
-from config.constants import GRP_NONE
+from BlockServer.config.containers import Group, Block, IOC
+from BlockServer.config.json_converter import ConfigurationJsonConverter
+from BlockServer.core.constants import GRP_NONE
 
 GROUPS_JSON = \
     '[{"name":"TESTGROUP1","blocks":["TESTBLOCK1","TESTBLOCK2"]},' \

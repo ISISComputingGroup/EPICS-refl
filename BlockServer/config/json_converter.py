@@ -1,6 +1,7 @@
 import json
 from collections import OrderedDict
-from constants import GRP_NONE
+
+from BlockServer.core.constants import GRP_NONE
 
 
 class ConfigurationJsonConverter(object):

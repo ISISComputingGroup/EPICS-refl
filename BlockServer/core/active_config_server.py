@@ -2,7 +2,7 @@ import os
 import json
 
 from BlockServer.epics.archiver_manager import ArchiverManager
-from BlockServer.config.constants import AUTOSAVE_NAME, IOCS_NOT_TO_STOP, RUNCONTROL_IOC, RUNCONTROL_SETTINGS, CONFIG_DIRECTORY, \
+from BlockServer.core.constants import AUTOSAVE_NAME, IOCS_NOT_TO_STOP, RUNCONTROL_IOC, RUNCONTROL_SETTINGS, CONFIG_DIRECTORY, \
     COMPONENT_DIRECTORY
 from BlockServer.epics.procserv_utils import ProcServWrapper
 from BlockServer.core.runcontrol import RunControlManager

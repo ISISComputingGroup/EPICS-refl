@@ -5,7 +5,7 @@ import datetime
 
 from BlockServer.core.config_server import ConfigHolder
 from BlockServer.config.configuration import Configuration
-from BlockServer.config.constants import DEFAULT_COMPONENT
+from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.macros import MACROS
 
 

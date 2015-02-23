@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
-from config.constants import GRP_NONE
-from config.xml_converter import ConfigurationXmlConverter
+from BlockServer.core.constants import GRP_NONE
+from BlockServer.config.xml_converter import ConfigurationXmlConverter
 
 
 class MockConfiguration(object):

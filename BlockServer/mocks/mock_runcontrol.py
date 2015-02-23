@@ -1,4 +1,4 @@
-from config.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
+from BlockServer.core.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
 
 
 class MockBlock(object):
@@ -40,7 +40,7 @@ class MockRunControlManager(object):
             return []
 
     def get_runcontrol_settings(self, blocks):
-        #blocks object is ignored for testing
+        # Blocks object is ignored for testing
         settings = dict()
         for bn, blk in self.mock_blocks.iteritems():
             low = self.mock_blocks[bn].lowlimit
@@ -62,7 +62,7 @@ class MockRunControlManager(object):
                 self.set_runcontrol_settings(settings)
 
     def set_runcontrol_settings(self, data):
-        #Data should be a dictionary of dictionaries
+        # Data should be a dictionary of dictionaries
         for bn, settings in data.iteritems():
             if settings is not None and bn in self.mock_blocks.keys():
                 self.mock_blocks[bn].enable = settings["ENABLE"]

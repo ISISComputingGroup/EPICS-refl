@@ -5,8 +5,8 @@ from collections import OrderedDict
 
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.config.configuration import Configuration
-from BlockServer.config.constants import GRP_NONE
-from BlockServer.config.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+from BlockServer.core.constants import GRP_NONE
+from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
 from BlockServer.config.containers import Group
 from BlockServer.core.macros import PVPREFIX_MACRO
 

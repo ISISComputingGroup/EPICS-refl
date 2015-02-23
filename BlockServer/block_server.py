@@ -19,7 +19,7 @@ from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX
 from BlockServer.core.all_configs_list import ConfigListManager
 from BlockServer.fileIO.file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
-from BlockServer.config.constants import SYNOPTIC_DIRECTORY
+from BlockServer.core.constants import SYNOPTIC_DIRECTORY
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
