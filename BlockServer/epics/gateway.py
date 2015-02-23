@@ -3,6 +3,8 @@ from server_common.utilities import print_and_log
 
 
 class Gateway(object):
+    """A class for interacting with the EPICS gateway that creates the aliases used for implementing blocks"""
+
     def __init__(self, prefix, block_prefix, pvlist_file):
         self._prefix = prefix
         self._block_prefix = block_prefix

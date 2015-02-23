@@ -9,6 +9,8 @@ from server_common.utilities import print_and_log
 
 
 class ArchiverManager(object):
+    """This class is responsible for updating the EPICS Archiver that is responsible for logging the blocks"""
+
     def __init__(self, uploader_path, settings_path, test_mode=False):
         self._uploader_path = uploader_path
         self._settings_path = settings_path
