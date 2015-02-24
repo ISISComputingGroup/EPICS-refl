@@ -238,6 +238,27 @@ Read Commands
 
     Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:CURR_CONFIG_CHANGED
     Returns 1 when the active configuration has been modified on the filesystem. Returns 0 otherwise.
+
+**BLOCKSERVER:SYNOPTICS:NAMES**
+
+::
+
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:NAMES
+    Returns a list of the available synoptics formatted as compressed then hexed JSON (CHAR waveform)
+
+**BLOCKSERVER:SYNOPTICS:*synoptic_name*:GET**
+
+::
+
+    Command: caget -S BLOCKSERVER:SYNOPTICS:*synoptic_name*:GET
+    Returns a compressed and hexed string containing the XML for the specified synoptic (CHAR waveform)
+
+**BLOCKSERVER:SYNOPTICS:GET_CURRENT**
+
+::
+
+    Command: caget -S BLOCKSERVER:SYNOPTICS:GET_CURRENT
+    Returns a compressed and hexed string containing the XML for the current synoptic (CHAR waveform)
 		 
 --------------
 Write Commands

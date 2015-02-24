@@ -77,7 +77,7 @@ class CAServer(SimpleServer):
 if __name__ == '__main__':
     # Here for testing
     prefix = 'MTEST:'
-    pvdb = { 'STATIC' : {} }
+    pvdb = { 'STATIC': {} }
 
     server = CAServer(prefix)
     server.createPV(prefix, pvdb)

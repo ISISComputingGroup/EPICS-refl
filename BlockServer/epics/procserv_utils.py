@@ -4,7 +4,7 @@ from server_common.utilities import print_and_log
 
 class ProcServWrapper(object):
     """A wrapper for accessing some of the functionality of ProcServ"""
-    
+
     def __init__(self):
         pass
 

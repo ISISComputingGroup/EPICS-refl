@@ -172,7 +172,15 @@ PVDB = {
     },
     'ACK_CURR_CHANGED': {
         'type': 'int'
-    }
+    },
+    'SYNOPTICS:NAMES': {
+        'type': 'char',
+        'count': 16000,
+    },
+    'SYNOPTICS:GET_CURRENT': {
+        'type': 'char',
+        'count': 16000,
+    },
 }
 
 
@@ -191,8 +199,8 @@ class BlockServer(Driver):
 
         # Import all the synoptic data and create PVs
         try:
-            syn = SynopticManager(CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server)
-            syn.create_pvs()
+            self._syn = SynopticManager(CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server)
+            self._syn.create_pvs()
         except Exception as err:
             print_and_log("Error creating synoptic PVs: %s" % str(err), "ERROR")
 
@@ -218,7 +226,7 @@ class BlockServer(Driver):
             self.write_queue.append((self.initialise_configserver, (), "INITIALISING"))
 
     def initialise_configserver(self):
-        # This is in a seperate method so it can be sent to the thread queue
+        # This is in a separate method so it can be sent to the thread queue
         self._active_configserver = ActiveConfigServerManager(CONFIG_DIR, MACROS, ARCHIVE_UPLOADER, ARCHIVE_SETTINGS,
                                                               BLOCK_PREFIX)
         try:
@@ -263,6 +271,10 @@ class BlockServer(Driver):
                 value = compress_and_hex(self.get_server_status())
             elif reason == "BLANK_CONFIG":
                 value = compress_and_hex(self.get_blank_config())
+            elif reason == "SYNOPTICS:NAMES":
+                value = compress_and_hex(json.dumps(self._syn.get_synoptic_filenames()))
+            elif reason == "SYNOPTICS:GET_CURRENT":
+                value = compress_and_hex(self._syn.get_current_synoptic_xml())
             else:
                 value = self.getParam(reason)
         except Exception as err:
