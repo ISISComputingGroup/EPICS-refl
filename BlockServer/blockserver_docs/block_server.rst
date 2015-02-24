@@ -64,6 +64,7 @@ Read Commands
 
 
 **BLOCKSERVER:GROUPS**
+Note: This PV is currently used by the web dashboard
 
 ::
 
@@ -250,14 +251,14 @@ Read Commands
 
 ::
 
-    Command: caget -S BLOCKSERVER:SYNOPTICS:*synoptic_name*:GET
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:*synoptic_name*:GET
     Returns a compressed and hexed string containing the XML for the specified synoptic (CHAR waveform)
 
 **BLOCKSERVER:SYNOPTICS:GET_CURRENT**
 
 ::
 
-    Command: caget -S BLOCKSERVER:SYNOPTICS:GET_CURRENT
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:GET_CURRENT
     Returns a compressed and hexed string containing the XML for the current synoptic (CHAR waveform)
 		 
 --------------
