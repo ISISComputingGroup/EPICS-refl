@@ -238,7 +238,7 @@ Note: This PV is currently used by the web dashboard
 ::
 
     Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:CURR_CONFIG_CHANGED
-    Returns 1 when the active configuration has been modified on the filesystem. Returns 0 otherwise.
+    Returns 1 when the active configuration has been modified on the filesystem. Returns 0 otherwise. 
 
 **BLOCKSERVER:SYNOPTICS:NAMES**
 
