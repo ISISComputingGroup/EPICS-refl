@@ -61,15 +61,6 @@ class ActiveConfigServerManager(ConfigServerManager):
         output = ConfigurationJsonConverter.groups_to_json(self._config_holder.get_group_details())
         return output.encode('ascii', 'replace')
 
-    def set_groupings_json(self, data):
-        grps = ConfigurationJsonConverter.groups_from_json(data)
-        self._config_holder.set_group_details(grps)
-
-    def add_iocs(self, rawjson):
-        data = json.loads(rawjson)
-        for ioc in data:
-            self._add_ioc(ioc)
-
     def _add_ioc(self, iocname, start=False):
         if self._procserve_wrapper.ioc_exists(self._macros["$(MYPVPREFIX)"], iocname):
             self._config_holder.add_ioc(iocname)
@@ -99,9 +90,6 @@ class ActiveConfigServerManager(ConfigServerManager):
     def save_as_subconfig(self, json_name):
         ConfigServerManager.save_as_subconfig(self, json_name)
         self.set_last_config(COMPONENT_DIRECTORY + json.loads(json_name))
-
-    def autosave_config(self):
-        self._save_config(AUTOSAVE_NAME)
 
     def _load_config(self, name, is_subconfig=False):
         if is_subconfig:

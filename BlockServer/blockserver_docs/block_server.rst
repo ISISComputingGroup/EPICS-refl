@@ -76,13 +76,6 @@ Note: This PV is currently used by the web dashboard
           {"blocks": [], "name": "NONE", "subconfig": null}
          ]'
 
-**BLOCKSERVER:CONFIG**
-
-::
-
-    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:CONFIG
-    Returns the name of the current configuration as compressed then hexed JSON (CHAR waveform)
-
 **BLOCKSERVER:CONFIGS**
 
 ::
@@ -319,31 +312,6 @@ Write Commands
 
     Returns "OK" or an error message (compressed and hexed JSON).
 
-**BLOCKSERVER:ACTION_CHANGES**
-
-::
-
-    Command: caput %MYPVPREFIX%CS:BLOCKSERVER:ACTION_CHANGES action
-    Send any non-null value to restart the block gateway and blocks archiver with the current blocks configuration
-
-    Returns "OK" or an error message (compressed and hexed JSON).
-
-**BLOCKSERVER:SET_GROUPS**
-
-::
-
-    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:SET_GROUPS abcdefabdcdefabcdef1234567890
-    Overwrites the current group settings. Requires compressed and hexed JSON list of dictionaires.
-    Example JSON (dehexed and decompressed):
-        '[{"name": "Group1", "blocks": ["BLOCK1", "BLOCK2"]},
-          {"name": "Group2", "blocks": ["BLOCK3", "BLOCK4"]},
-          {"name": "Group3", "blocks": []},
-         ]'
-
-    Groups that have been emptied must still be sent to the BlockServer and blocks not specified will be put in the NONE group.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
-
 **BLOCKSERVER:START_IOCS**
 
 ::
@@ -368,24 +336,6 @@ Write Commands
 
     Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:RESTART_IOCS abcdefabdcdefabcdef1234567890
     Restarts the specified IOC or IOCs. Requires compressed and hexed JSON list of IOCS.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
-
-**BLOCKSERVER:ADD_IOCS**
-
-::
-
-    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:ADD_IOC abcdefabdcdefabcdef1234567890
-    Add the specified IOC or IOCs to the current configuration. Requires compressed and hexed JSON list of IOCs to add.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
-
-**BLOCKSERVER:REMOVE_IOCS**
-
-::
-
-    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:REMOVE_IOC abcdefabdcdefabcdef1234567890
-    Removes the specified IOC or IOCs from the current configuration. Requires compressed and hexed JSON list of IOCs to remove.
 
     Returns "OK" or an error message (compressed and hexed JSON).
 

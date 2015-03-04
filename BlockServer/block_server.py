@@ -67,18 +67,6 @@ PVDB = {
         'type': 'char',
         'count': 100,
     },
-    'CONFIG': {
-        'type': 'char',
-        'count': 1000,
-    },
-    'ACTION_CHANGES': {
-        'type': 'char',
-        'count': 100,
-    },
-    'SET_GROUPS': {
-        'type': 'char',
-        'count': 16000,
-    },
     'START_IOCS': {
         'type': 'char',
         'count': 16000,
@@ -88,14 +76,6 @@ PVDB = {
         'count': 1000,
     },
     'RESTART_IOCS': {
-        'type': 'char',
-        'count': 1000,
-    },
-    'ADD_IOCS': {
-        'type': 'char',
-        'count': 1000,
-    },
-    'REMOVE_IOCS': {
         'type': 'char',
         'count': 1000,
     },
@@ -231,8 +211,6 @@ class BlockServer(Driver):
                 value = compress_and_hex(self._active_configserver.get_blocknames_json())
             elif reason == 'GROUPS':
                 value = compress_and_hex(self._active_configserver.get_groupings_json())
-            elif reason == 'CONFIG':
-                value = compress_and_hex(self._active_configserver.get_config_name_json())
             elif reason == 'CONFIGS':
                 value = compress_and_hex(self._config_list.get_configs_json())
             elif reason == 'COMPS':
@@ -282,26 +260,12 @@ class BlockServer(Driver):
             elif reason == 'CLEAR_CONFIG':
                 self._active_configserver.clear_config()
                 self._initialise_config()
-            elif reason == 'ACTION_CHANGES':
-                self.autosave_active_config()
-                self._gateway.set_new_aliases(self._active_configserver.get_blocks())
-                self._active_configserver.update_archiver()
-                self._active_configserver.create_runcontrol_pvs()
-            elif reason == 'SET_GROUPS':
-                self._active_configserver.set_groupings_json(data)
-                self.update_blocks_monitors()
-                self.autosave_active_config()
             elif reason == 'START_IOCS':
                 self._active_configserver.start_iocs(data)
             elif reason == 'STOP_IOCS':
                 self._active_configserver.stop_iocs(data)
             elif reason == 'RESTART_IOCS':
                 self._active_configserver.restart_iocs(data)
-            elif reason == 'ADD_IOCS':
-                self._active_configserver.add_iocs(data)
-                self.autosave_active_config()
-                self.update_config_iocs_monitors()
-                # Should we start the IOC?
             elif reason == 'SET_RC_PARS':
                 self._active_configserver.set_runcontrol_settings_json(data)
             elif reason == 'SET_CURR_CONFIG_DETAILS':
@@ -358,6 +322,7 @@ class BlockServer(Driver):
         self.update_config_iocs_monitors()
         self.update_get_details_monitors()
         self._active_configserver.update_archiver()
+        # TODO: self._active_configserver.create_runcontrol_pvs()
 
     def load_config(self, config, is_subconfig=False):
         try:
@@ -425,9 +390,6 @@ class BlockServer(Driver):
         finally:
             self._filewatcher.resume()
 
-    def autosave_active_config(self):
-        self._active_configserver.autosave_config()
-
     def update_blocks_monitors(self):
         with self.monitor_lock:
             # Blocks
@@ -441,7 +403,7 @@ class BlockServer(Driver):
     def update_config_monitors(self):
         with self.monitor_lock:
             # set the config name
-            self.setParam("CONFIG", compress_and_hex(self._active_configserver.get_config_name_json()))
+            #self.setParam("CONFIG", compress_and_hex(self._active_configserver.get_config_name_json()))
             # set the available configs
             self.setParam("CONFIGS", compress_and_hex(self._config_list.get_configs_json()))
             # Update them

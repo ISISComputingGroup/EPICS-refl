@@ -93,7 +93,8 @@ class TestConfigServerSequence(unittest.TestCase):
         cs = self.configserver
         iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         iocs = cs._config_holder.get_ioc_names()
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
@@ -102,11 +103,12 @@ class TestConfigServerSequence(unittest.TestCase):
         cs = self.configserver
         iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
-        self.assertRaises(Exception, cs.add_iocs, json.dumps(["RERE"]))
+        self.assertRaises(Exception, cs._add_ioc, "RERE")
 
     def test_start_config_iocs(self):
         cs = self.configserver
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         self.assertEqual(cs.get_ioc_state("SIMPLE1"), "SHUTDOWN")
         self.assertEqual(cs.get_ioc_state("SIMPLE2"), "SHUTDOWN")
         cs._start_config_iocs()
@@ -115,7 +117,8 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_stop_config_iocs(self):
         cs = self.configserver
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         self.assertEqual(cs.get_ioc_state("SIMPLE1"), "SHUTDOWN")
         self.assertEqual(cs.get_ioc_state("SIMPLE2"), "SHUTDOWN")
         cs._start_config_iocs()
@@ -137,7 +140,8 @@ class TestConfigServerSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         try:
             cs.save_config(json.dumps("TEST_CONFIG"))
         except Exception:
@@ -149,7 +153,8 @@ class TestConfigServerSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         cs.save_config(json.dumps("TEST_CONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
@@ -177,10 +182,10 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_get_config_name(self):
         cs = self.configserver
-        name = json.loads(cs.get_config_name_json())
+        name = cs.get_config_name()
         self.assertTrue(name == "")
         cs.save_config(json.dumps("TESTCONFIG1"))
-        name = json.loads(cs.get_config_name_json())
+        name = cs.get_config_name()
         self.assertTrue(name == "TESTCONFIG1")
 
     def test_get_blocks(self):
@@ -189,13 +194,6 @@ class TestConfigServerSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         self.assertTrue("TESTBLOCK1".lower() in cs.get_blocks().keys())
         self.assertTrue("TESTBLOCK2".lower() in cs.get_blocks().keys())
-
-    def test_autosave_config(self):
-        cs = self.configserver
-        try:
-            cs.autosave_config()
-        except Exception:
-            self.fail("test_autosave_config raised Exception unexpectedly!")
 
     def test_save_as_subconfig(self):
         cs = self.configserver
@@ -218,7 +216,8 @@ class TestConfigServerSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         cs.save_as_subconfig(json.dumps("TEST_SUBCONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
@@ -242,7 +241,8 @@ class TestConfigServerSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         cs.save_as_subconfig(json.dumps("TEST_SUBCONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
@@ -268,7 +268,8 @@ class TestConfigServerSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         cs.save_as_subconfig(json.dumps("TEST_SUBCONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
@@ -299,7 +300,8 @@ class TestConfigServerSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         cs.save_config(json.dumps("TEST_CONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
@@ -325,7 +327,8 @@ class TestConfigServerSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         cs.save_as_subconfig(json.dumps("TEST_SUBCONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
@@ -449,7 +452,8 @@ class TestConfigServerSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
+        cs._add_ioc("SIMPLE1")
+        cs._add_ioc("SIMPLE2")
         cs.add_subconfigs(json.dumps(["TEST_SUBCONFIG"]))
         cs.save_config(json.dumps("TEST_CONFIG"))
 

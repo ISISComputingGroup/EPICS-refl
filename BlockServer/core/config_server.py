@@ -23,10 +23,6 @@ class ConfigServerManager(object):
     def get_config_name(self):
         return self._config_holder.get_config_name()
 
-    def get_config_name_json(self):
-        config = self._config_holder.get_config_name()
-        return json.dumps(config).encode('ascii', 'replace')
-
     def add_subconfigs(self, rawjson):
         data = json.loads(rawjson)
         for name in data:
