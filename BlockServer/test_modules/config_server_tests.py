@@ -17,10 +17,15 @@ MACROS = {
 }
 
 
+# Helper methods
 def quick_block_to_json(name, pv, group, local=True):
-    data = [{'name': name, 'pv': pv, 'group': group, 'local': local}]
-    return json.dumps(data)
-    
+    data = {'name': name, 'pv': pv, 'group': group, 'local': local}
+    return data
+
+
+def add_block(cs, data):
+    cs._config_holder.add_block(data)
+
 
 def get_groups_and_blocks(jsondata):
     groups = json.loads(jsondata)
@@ -64,24 +69,6 @@ class TestConfigServerSequence(unittest.TestCase):
         if os.path.isdir(path):
             shutil.rmtree(path)
 
-    def test_remove_blocks_multiple(self):
-        # arrange
-        cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-
-        # act
-        blocks = ["TESTBLOCK1", "TESTBLOCK2"]
-        cs.remove_blocks(json.dumps(blocks))
-
-        # assert
-        blocks = json.loads(cs.get_blocknames_json())
-        self.assertEquals(len(blocks), 2)
-        self.assertTrue("TESTBLOCK3" in blocks)
-        self.assertTrue("TESTBLOCK4" in blocks)
-
     def test_getting_blocks_json_with_no_blocks_returns_empty_list(self):
         # arrange
         cs = self.configserver
@@ -92,10 +79,10 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_clear_config(self):
         cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         blocks = json.loads(cs.get_blocknames_json())
         self.assertEquals(len(blocks), 4)
         cs.clear_config()
@@ -104,16 +91,16 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_add_ioc(self):
         cs = self.configserver
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
         cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
 
     def test_add_ioc_non_existant(self):
         cs = self.configserver
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
         self.assertRaises(Exception, cs.add_iocs, json.dumps(["RERE"]))
 
@@ -146,10 +133,10 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_save_config(self):
         cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
         try:
             cs.save_config(json.dumps("TEST_CONFIG"))
@@ -158,16 +145,16 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_load_config(self):
         cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
         cs.save_config(json.dumps("TEST_CONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
         self.assertEquals(len(blocks), 0)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
         cs.load_config("TEST_CONFIG")
         blocks = json.loads(cs.get_blocknames_json())
@@ -176,7 +163,7 @@ class TestConfigServerSequence(unittest.TestCase):
         self.assertTrue('TESTBLOCK2' in blocks)
         self.assertTrue('TESTBLOCK3' in blocks)
         self.assertTrue('TESTBLOCK4' in blocks)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
 
@@ -198,75 +185,10 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_get_blocks(self):
         cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         self.assertTrue("TESTBLOCK1".lower() in cs.get_blocks().keys())
         self.assertTrue("TESTBLOCK2".lower() in cs.get_blocks().keys())
-
-    def test_edit_blocks_json(self):
-        cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        # Edit
-        edit_data = [{'name': "TESTBLOCK1", 'pv': "PV3", 'new_name': "TESTBLOCK3"}]
-        cs.edit_blocks_json(json.dumps(edit_data))
-
-        self.assertEqual(cs.get_blocks()["TESTBLOCK3".lower()].pv, "PV3")
-
-    def test_edit_blocks_json_no_data_raises(self):
-        cs = self.configserver
-        self.assertRaises(Exception, cs.edit_blocks_json, None)
-
-    def test_edit_blocks_json_missing_args_raises(self):
-        cs = self.configserver
-        # No name
-        data = [{'pv': "PV1", 'group': "GROUP1", 'local': False, 'visible': False}]
-        self.assertRaises(Exception, cs.edit_blocks_json, data)
-
-    def test_edit_blocks_json_multiple(self):
-        cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        # Edit
-        edit_data = [{'name': "TESTBLOCK1", 'pv': "PV3"},
-                     {'name': "TESTBLOCK2", 'pv': "PV4"}]
-        cs.edit_blocks_json(json.dumps(edit_data))
-
-        self.assertEqual(cs.get_blocks()["TESTBLOCK1".lower()].pv, "PV3")
-        self.assertEqual(cs.get_blocks()["TESTBLOCK2".lower()].pv, "PV4")
-
-    def test_add_block_json(self):
-        cs = self.configserver
-        data = [{"name": "TESTBLOCK1", 'pv': "PV1", 'group': "GROUP1", 'local': False, 'visible': False}]
-        cs.add_blocks_json(json.dumps(data))
-
-        self.assertTrue("TESTBLOCK1".lower() in cs.get_blocks().keys())
-        self.assertEqual(cs.get_blocks()["TESTBLOCK1".lower()].pv, "PV1")
-        self.assertEqual(cs.get_blocks()["TESTBLOCK1".lower()].local, False)
-        self.assertEqual(cs.get_blocks()["TESTBLOCK1".lower()].visible, False)
-
-    def test_add_block_json_multiple(self):
-        cs = self.configserver
-        data = [{"name": "TESTBLOCK1", 'pv': "PV1", 'group': "GROUP1", 'local': False, 'visible': False},
-                {"name": "TESTBLOCK2", 'pv': "PV2", 'group': "GROUP2", 'local': False, 'visible': False}]
-        cs.add_blocks_json(json.dumps(data))
-
-        self.assertTrue("TESTBLOCK1".lower() in cs.get_blocks().keys())
-        self.assertTrue("TESTBLOCK2".lower() in cs.get_blocks().keys())
-        self.assertEqual(len(cs.get_blocks()), 2)
-
-    def test_add_block_json_no_data_raises(self):
-        cs = self.configserver
-        self.assertRaises(Exception, cs.add_blocks_json, None)
-
-    def test_add_block_json_missing_args_raises(self):
-        cs = self.configserver
-        # No name
-        data = [{'pv': "PV1", 'group': "GROUP1", 'local': False, 'visible': False}]
-        self.assertRaises(Exception, cs.add_blocks_json, data)
-        # No read pv
-        data = [{"name": "TESTBLOCK1", 'group': "GROUP1", 'local': False, 'visible': False}]
-        self.assertRaises(Exception, cs.add_blocks_json, data)
 
     def test_autosave_config(self):
         cs = self.configserver
@@ -292,16 +214,16 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_load_subconfig(self):
         cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
         cs.save_as_subconfig(json.dumps("TEST_SUBCONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
         self.assertEqual(len(blocks), 0)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
         cs.load_config("TEST_SUBCONFIG", True)
         blocks = json.loads(cs.get_blocknames_json())
@@ -310,22 +232,22 @@ class TestConfigServerSequence(unittest.TestCase):
         self.assertTrue('TESTBLOCK2' in blocks)
         self.assertTrue('TESTBLOCK3' in blocks)
         self.assertTrue('TESTBLOCK4' in blocks)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
 
     def test_add_subconfig(self):
         cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
         cs.save_as_subconfig(json.dumps("TEST_SUBCONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
         self.assertEqual(len(blocks), 0)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
         cs.add_subconfigs(json.dumps(["TEST_SUBCONFIG"]))
         grps = get_groups_and_blocks(cs.get_groupings_json())
@@ -336,22 +258,22 @@ class TestConfigServerSequence(unittest.TestCase):
         self.assertTrue('TESTBLOCK2' in blocks)
         self.assertTrue('TESTBLOCK3' in blocks)
         self.assertTrue('TESTBLOCK4' in blocks)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
 
     def test_remove_subconfig(self):
         cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
         cs.save_as_subconfig(json.dumps("TEST_SUBCONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
         self.assertEqual(len(blocks), 0)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
         cs.add_subconfigs(json.dumps(["TEST_SUBCONFIG"]))
         grps = get_groups_and_blocks(cs.get_groupings_json())
@@ -362,27 +284,27 @@ class TestConfigServerSequence(unittest.TestCase):
         self.assertTrue('TESTBLOCK2' in blocks)
         self.assertTrue('TESTBLOCK3' in blocks)
         self.assertTrue('TESTBLOCK4' in blocks)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
         cs.remove_subconfigs(json.dumps(["TEST_SUBCONFIG"]))
         blocks = json.loads(cs.get_blocknames_json())
         self.assertEqual(len(blocks), 0)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
 
     def test_load_last_config(self):
         cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
         cs.save_config(json.dumps("TEST_CONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
         self.assertEqual(len(blocks), 0)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
         cs.load_last_config()
         grps = get_groups_and_blocks(cs.get_groupings_json())
@@ -393,22 +315,22 @@ class TestConfigServerSequence(unittest.TestCase):
         self.assertTrue('TESTBLOCK2' in blocks)
         self.assertTrue('TESTBLOCK3' in blocks)
         self.assertTrue('TESTBLOCK4' in blocks)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
 
     def test_load_last_config_subconfig(self):
         cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
         cs.save_as_subconfig(json.dumps("TEST_SUBCONFIG"))
         cs.clear_config()
         blocks = json.loads(cs.get_blocknames_json())
         self.assertEqual(len(blocks), 0)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertEqual(len(iocs), 0)
         cs.load_last_config()
         grps = get_groups_and_blocks(cs.get_groupings_json())
@@ -419,7 +341,7 @@ class TestConfigServerSequence(unittest.TestCase):
         self.assertTrue('TESTBLOCK2' in blocks)
         self.assertTrue('TESTBLOCK3' in blocks)
         self.assertTrue('TESTBLOCK4' in blocks)
-        iocs = json.loads(cs.get_config_iocs_json())
+        iocs = cs._config_holder.get_ioc_names()
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
 
@@ -431,10 +353,10 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_get_runcontrol_settings_blocks(self):
         cs = self.configserver
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         cs.create_runcontrol_pvs()
         ans = json.loads(cs.get_runcontrol_settings_json())
         self.assertTrue(len(ans) == 4)
@@ -444,8 +366,8 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_get_runcontrol_settings_blocks_limits(self):
         cs = self.configserver
-        data = [{'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}]
-        cs.add_blocks_json(json.dumps(data))
+        data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
+        add_block(cs, data)
         cs.create_runcontrol_pvs()
         ans = json.loads(cs.get_runcontrol_settings_json())
         self.assertTrue(len(ans) == 1)
@@ -455,10 +377,10 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_get_out_of_range_pvs_multiple(self):
         cs = self.configserver
-        data = [{'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': 5, 'highlimit': 10}]
-        cs.add_blocks_json(json.dumps(data))
-        data = [{'name': "TESTBLOCK2", 'pv': "PV1", 'runcontrol': True, 'lowlimit': 10, 'highlimit': 15}]
-        cs.add_blocks_json(json.dumps(data))
+        data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': 5, 'highlimit': 10}
+        add_block(cs, data)
+        data = {'name': "TESTBLOCK2", 'pv': "PV1", 'runcontrol': True, 'lowlimit': 10, 'highlimit': 15}
+        add_block(cs, data)
         cs.create_runcontrol_pvs()
         # Values are 0 by default, so they should be out of range
         ans = json.loads(cs.get_out_of_range_pvs())
@@ -468,10 +390,10 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_get_out_of_range_pvs_single(self):
         cs = self.configserver
-        data = [{'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': 5, 'highlimit': 10}]
-        cs.add_blocks_json(json.dumps(data))
-        data = [{'name': "TESTBLOCK2", 'pv': "PV1", 'runcontrol': False, 'lowlimit': 10, 'highlimit': 15}]
-        cs.add_blocks_json(json.dumps(data))
+        data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': 5, 'highlimit': 10}
+        add_block(cs, data)
+        data = {'name': "TESTBLOCK2", 'pv': "PV1", 'runcontrol': False, 'lowlimit': 10, 'highlimit': 15}
+        add_block(cs, data)
         cs.create_runcontrol_pvs()
         # Values are 0 by default, so they should be out of range if enabled
         ans = json.loads(cs.get_out_of_range_pvs())
@@ -480,18 +402,18 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_get_out_of_range_pvs_none(self):
         cs = self.configserver
-        data = [{'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': False, 'lowlimit': 5, 'highlimit': 10}]
-        cs.add_blocks_json(json.dumps(data))
-        data = [{'name': "TESTBLOCK2", 'pv': "PV1", 'runcontrol': False, 'lowlimit': 10, 'highlimit': 15}]
-        cs.add_blocks_json(json.dumps(data))
+        data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': False, 'lowlimit': 5, 'highlimit': 10}
+        add_block(cs, data)
+        data = {'name': "TESTBLOCK2", 'pv': "PV1", 'runcontrol': False, 'lowlimit': 10, 'highlimit': 15}
+        add_block(cs, data)
         cs.create_runcontrol_pvs()
         ans = json.loads(cs.get_out_of_range_pvs())
         self.assertTrue(len(ans) == 0)
 
     def test_set_runcontrol_settings(self):
         cs = self.configserver
-        data = [{'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}]
-        cs.add_blocks_json(json.dumps(data))
+        data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
+        add_block(cs, data)
         cs.create_runcontrol_pvs()
         ans = json.loads(cs.get_runcontrol_settings_json())
         ans["TESTBLOCK1"]["LOW"] = 0
@@ -505,9 +427,9 @@ class TestConfigServerSequence(unittest.TestCase):
 
     def test_save_config_and_load_config_restore_runcontrol(self):
         cs = self.configserver
-        data = [{'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5,
-                'save_rc': True}]
-        cs.add_blocks_json(json.dumps(data))
+        data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5,
+                'save_rc': True}
+        add_block(cs, data)
         cs.create_runcontrol_pvs()
         cs.create_runcontrol_pvs()
         cs.save_config(json.dumps("TESTCONFIG1"))
@@ -517,34 +439,16 @@ class TestConfigServerSequence(unittest.TestCase):
         self.assertEqual(ans["TESTBLOCK1"]["LOW"], -5)
         self.assertTrue(ans["TESTBLOCK1"]["ENABLE"])
 
-    def test_edit_blocks_json_runcontrol_settings(self):
-        cs = self.configserver
-        data = [{'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}]
-        cs.add_blocks_json(json.dumps(data))
-        cs.create_runcontrol_pvs()
-        ans = json.loads(cs.get_runcontrol_settings_json())
-        self.assertTrue(ans["TESTBLOCK1"]["HIGH"] == 5)
-        self.assertTrue(ans["TESTBLOCK1"]["LOW"] == -5)
-        self.assertTrue(ans["TESTBLOCK1"]["ENABLE"])
-        newdata = [{'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': False, 'lowlimit': 0, 'highlimit': 10}]
-        cs.edit_blocks_json(json.dumps(newdata))
-        cs.set_runcontrol_settings_json(json.dumps(ans))
-        cs.create_runcontrol_pvs()
-        ans = json.loads(cs.get_runcontrol_settings_json())
-        self.assertEqual(ans["TESTBLOCK1"]["HIGH"], 10)
-        self.assertEqual(ans["TESTBLOCK1"]["LOW"], 0)
-        self.assertTrue(not ans["TESTBLOCK1"]["ENABLE"])
-
     def test_get_config_details_for_current_config(self):
         cs = self.configserver
         # Create an empty subconfig
         cs.save_as_subconfig(json.dumps("TEST_SUBCONFIG"))
         cs.clear_config()
 
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        cs.add_blocks_json(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         cs.add_iocs(json.dumps(["SIMPLE1", "SIMPLE2"]))
         cs.add_subconfigs(json.dumps(["TEST_SUBCONFIG"]))
         cs.save_config(json.dumps("TEST_CONFIG"))

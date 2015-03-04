@@ -35,18 +35,6 @@ PVDB = {
         'type': 'char',
         'count': 16000,
     },
-    'ADD_BLOCKS': {
-        'type': 'char',
-        'count': 16000,
-    },
-    'REMOVE_BLOCKS': {
-        'type': 'char',
-        'count': 16000,
-    },
-    'EDIT_BLOCKS': {
-        'type': 'char',
-        'count': 16000,
-    },
     'ADD_COMPS': {
         'type': 'char',
         'count': 1000,
@@ -110,14 +98,6 @@ PVDB = {
     'REMOVE_IOCS': {
         'type': 'char',
         'count': 1000,
-    },
-    'CONFIG_IOCS': {
-        'type': 'char',
-        'count': 16000,
-    },
-    'CONFIG_COMPS': {
-        'type': 'char',
-        'count': 16000,
     },
     'CONFIGS': {
         'type': 'char',
@@ -253,12 +233,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(self._active_configserver.get_groupings_json())
             elif reason == 'CONFIG':
                 value = compress_and_hex(self._active_configserver.get_config_name_json())
-            elif reason == 'CONFIG_IOCS':
-                value = compress_and_hex(self._active_configserver.get_config_iocs_json())
             elif reason == 'CONFIGS':
                 value = compress_and_hex(self._config_list.get_configs_json())
-            elif reason == 'CONFIG_COMPS':
-                value = compress_and_hex(self._active_configserver.get_conf_subconfigs_json())
             elif reason == 'COMPS':
                 value = compress_and_hex(self._config_list.get_subconfigs_json())
             elif reason == 'GET_RC_OUT':
@@ -288,16 +264,7 @@ class BlockServer(Driver):
         status = True
         try:
             data = dehex_and_decompress(value).strip('"')
-            if reason == 'ADD_BLOCKS':
-                self._active_configserver.add_blocks_json(data)
-                self.update_blocks_monitors()
-            elif reason == 'REMOVE_BLOCKS':
-                self._active_configserver.remove_blocks(data)
-                self.update_blocks_monitors()
-            elif reason == 'EDIT_BLOCKS':
-                self._active_configserver.edit_blocks_json(data)
-                self.update_blocks_monitors()
-            elif reason == 'ADD_COMPS':
+            if reason == 'ADD_COMPS':
                 self.add_active_subconfigs(data)
             elif reason == 'REMOVE_COMPS':
                 self.remove_active_subconfigs(data)
@@ -490,7 +457,7 @@ class BlockServer(Driver):
         while True:
             if self._active_configserver is not None:
                 with self.monitor_lock:
-                    self.setParam("CONFIG_IOCS", compress_and_hex(self._active_configserver.get_config_iocs_json()))
+                    #self.setParam("CONFIG_IOCS", compress_and_hex(self._active_configserver.get_config_iocs_json()))
                     self.setParam("SERVER_STATUS", compress_and_hex(self.get_server_status()))
                     # Update them
                     self.updatePVs()
@@ -498,7 +465,7 @@ class BlockServer(Driver):
 
     def update_config_iocs_monitors(self):
         with self.monitor_lock:
-            self.setParam("CONFIG_IOCS", compress_and_hex(self._active_configserver.get_config_iocs_json()))
+            #self.setParam("CONFIG_IOCS", compress_and_hex(self._active_configserver.get_config_iocs_json()))
             self.updatePVs()
 
     def update_get_details_monitors(self):

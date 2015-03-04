@@ -50,27 +50,8 @@ class ActiveConfigServerManager(ConfigServerManager):
         from BlockServer.mocks.mock_runcontrol import MockRunControlManager
         self._runcontrol = MockRunControlManager()
 
-    def add_blocks_json(self, rawjson):
-        if rawjson is None:
-            raise Exception("Failed to add block as no parameters were supplied")
-        data = json.loads(rawjson)
-        for blk in data:
-            self._config_holder.add_block(blk)
-
-    def remove_blocks(self, rawjson):
-        data = json.loads(rawjson)
-        for blk in data:
-            self._config_holder.remove_block(blk)
-        self.create_runcontrol_pvs()
-
     def get_blocks(self):
         return self._config_holder.get_block_details()
-
-    def edit_blocks_json(self, rawjson):
-        data = json.loads(rawjson)
-        for blk in data:
-            self._config_holder.edit_block(blk)
-        self.create_runcontrol_pvs()
 
     def get_blocknames_json(self):
         block_names = json.dumps(self._config_holder.get_blocknames())
@@ -83,9 +64,6 @@ class ActiveConfigServerManager(ConfigServerManager):
     def set_groupings_json(self, data):
         grps = ConfigurationJsonConverter.groups_from_json(data)
         self._config_holder.set_group_details(grps)
-
-    def get_config_iocs_json(self):
-        return json.dumps(self._config_holder.get_ioc_names()).encode('ascii', 'replace')
 
     def add_iocs(self, rawjson):
         data = json.loads(rawjson)

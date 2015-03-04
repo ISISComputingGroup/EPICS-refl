@@ -83,13 +83,6 @@ Note: This PV is currently used by the web dashboard
     Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:CONFIG
     Returns the name of the current configuration as compressed then hexed JSON (CHAR waveform)
 
-**BLOCKSERVER:CONFIG_IOCS**
-
-::
-
-    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:CONFIG_IOCS
-    Returns a list of IOCs in the current configuration as compressed then hexed JSON (CHAR waveform)
-
 **BLOCKSERVER:CONFIGS**
 
 ::
@@ -110,13 +103,6 @@ Note: This PV is currently used by the web dashboard
 		'[{"name": "Test Subconfig", "description": "A test component", "pv": "TEST_SUBCONFIG"}
 		  {"name": "Another Subconfig", "description": "To test again", "pv": "ANOTHER_SUBCONFIG"}
 		  {"name": "TeSt SuBCoNfIg", "description": "This component has the same name", "pv": "TEST_SUBCONFIG1"}]'
-
-**BLOCKSERVER:CONFIG_COMPS**
-
-::
-
-    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:CONFIG_COMPS
-    Returns a list of the components in the current configuration as compressed then hexed JSON (CHAR waveform)
 
 **BLOCKSERVER:GET_RC_OUT**
 
@@ -267,50 +253,6 @@ Write Commands
 | NOTE: unless specified otherwise all of these command return OK if they succeed, otherwise they return an error message.
 | NOTE: some of these commands take a few seconds to process, so if done using caput it might be necessary to increase the timeout.
 |
-
-**BLOCKSERVER:ADD_BLOCKS**
-
-::
-
-    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:ADD_BLOCKS abcdefabdcdefabcdef1234567890
-    Creates a new block or blocks on the BlockServer. Requires compressed and hexed JSON list of dictionaries with the following parameters:
-        name - the current name of the block
-        read_pv - the PV pointed at
-        group - the group to which the block belongs (for no group use NONE) [optional - default is NONE]
-        local - whether the read_pv is local (True or False) [optional - default is True]
-        visible - whether the block is visible (True or False) [optional - default is True]
-
-    Setting LOC means that the PV is saved without the resolved %MYPVPREFIX% which means the configuration could be moved on to another instrument without modification.
-    For adding one block only, create a list of one item.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
-
-**BLOCKSERVER:EDIT_BLOCKS**
-
-::
-
-    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:EDIT_BLOCKS abcdefabdcdefabcdef1234567890
-    Edits an existing block or blocks on the BlockServer. Requires a compressed and hexed JSON list of dictionaries with the following parameters:
-        name - the current name of the block
-        read_pv - the PV pointed at [optional]
-        group - the group to which the block belongs (for no group use NONE) [optional]
-        local - whether the read_pv is local (True or False) [optional]
-        visible - whether the block is visible (True or False) [optional]
-        new_name - the new name for the block if it is being renamed [optional]
-
-    For editing one block only, create a list of one item.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
-
-**BLOCKSERVER:REMOVE_BLOCKS**
-
-::
-
-    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:REMOVE_BLOCKS abcdefabdcdefabcdef1234567890
-    Removes the a block or blocks from the BlockServer. Requires a compressed and hexed JSON list of block names to remove.
-    For removing one block only, create a list of one item.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
 
 **BLOCKSERVER:ADD_COMPS**
 
