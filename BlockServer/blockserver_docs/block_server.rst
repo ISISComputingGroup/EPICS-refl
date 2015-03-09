@@ -443,9 +443,9 @@ Note: Used by the client(s) for "save" and "save as" for the current active conf
 
     Returns "OK" or an error message (compressed and hexed JSON).
 
---------------
+-------------------------------
 Notes on configuration history
---------------
+-------------------------------
 
 Part of the meta data for each configuration is a history field. This is a list of the dates the configuration has been modified in YYYY-MM-DD format. The first item in the list
 will be the creation date and the last item will be the date the configuration was last modified.
@@ -453,9 +453,9 @@ will be the creation date and the last item will be the date the configuration w
 The list is updated automatically by the Blockserver so does not need to be added to by the client. However, when the client saves a new configuration (such as in a Save As...)
 it must ensure that the history field is an empty list.
 	
---------------
+-----------------
 The File Watcher
---------------
+-----------------
 
 The BlockServer also contains a file watcher to aid in the modification of configurations by hand. Although this modification will not happen often it is important that it is 
 handled properly so that necessary changes are made in the client. When any modifications are made to files within the configuration or component directories the file watcher will

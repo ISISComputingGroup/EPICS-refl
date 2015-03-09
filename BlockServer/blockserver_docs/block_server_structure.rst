@@ -5,9 +5,9 @@ The BlockServer Program Structure
 This document is intended to outline the internal structure of the BlockServer for reference by future developers. Please be
 aware that the BlockServer is a work in progress and as such this document is liable to change.
 
---------
+----------
 Overview
---------
+----------
 
 The BlockServer's main responsibility is to look after configurations and their associated files. It can be used to read/write
 to both the active configuration on the instrument and other potential configurations in the filesystem. It also contains a
@@ -18,9 +18,9 @@ significant parts:
    :width: 100%
    :align: center
 
---------------
+----------------
 Channel Access
---------------
+----------------
 
 The BlockServer uses the pcaspy Python module to implement channel access. There are two main means of implementing PVs in the
 BlockServer, static PVs and dynamic PVs:
@@ -44,9 +44,9 @@ BlockServer, static PVs and dynamic PVs:
    
 A simple example of both the static and dynamic PVs is located in inst_server\\BlockServer\\blockserver_docs\\resources\\pcaspy_example.
 
----------------------
+-----------------------
 Configuration Servers
----------------------
+-----------------------
 
 There are two Configuration Server Manager classes. The ActiveConfigHolder class holds the currently configuration and deals with the
 JSON communication between the BlockServer PVs and what modifications to make for the configuration. It also controls the running of 
@@ -58,9 +58,9 @@ get_config_details() and set_config_details(). A reduced description of the clas
    :width: 100%
    :align: center
 	
---------------
+----------------
 Configurations
---------------
+----------------
 
 The ConfigHolder class does most of the implementation for the specifics of editing a configuration making sure that all parts of the 
 configuration follow the correct rules. It holds a Configuration object which does very little other than contain all the relevant 
@@ -74,9 +74,9 @@ the xml used for saving and loading.
    :width: 100%
    :align: center
 	
-----------------
+------------------
 Inactive Configs
-----------------
+------------------
 
 The ConfigListManager class is responsible for the details of all of the configurations, both the active one and the inactive ones, 
 on the file system. When the BlockServer is first started this class will search through the configurations folder and do the following
@@ -100,9 +100,9 @@ control.
    :width: 100%
    :align: center
 	
-------------
+--------------
 File Watcher
-------------
+--------------
 
 The BlockServer also contains a File Watcher to ensure that any by-hand modifications made to configurations are done correctly and are
 passed on to the client. On startup the BlockServer will create a ConfigFileWatcherManager object, which is passed an instance of the
