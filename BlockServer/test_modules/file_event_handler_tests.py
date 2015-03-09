@@ -3,7 +3,7 @@ import unittest
 import os
 import shutil
 
-from BlockServer.core.all_configs_list import ConfigListManager
+from BlockServer.core.config_list_manager import ConfigListManager
 from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.fileIO.file_event_handler import ConfigFileEventHandler

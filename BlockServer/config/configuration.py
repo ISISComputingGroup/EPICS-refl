@@ -36,58 +36,6 @@ class Configuration(object):
                 self.groups[group.lower()] = Group(group)
             self.groups[group.lower()].blocks.append(name)
 
-    def remove_block(self, name):
-        """Remove a block from the configuration"""
-        # Does the block exist
-        if name.lower() not in self.blocks.keys():
-            raise Exception("Failed to remove block as it does not exist")
-
-        # Remove from group first
-        blk = self.blocks[name.lower()]
-        for n, g in self.groups.iteritems():
-            if blk.name in g.blocks:
-                g.blocks.remove(blk.name)
-
-        # Then remove from blocks
-        del self.blocks[name.lower()]
-
-    def edit_block(self, name, pv=None, local=None, new_name=None, **kwargs):
-        """Edit an existing block"""
-        # Does the block exist
-        if name.lower() not in self.blocks.keys():
-            raise Exception("Failed to edit block as it does not exist")
-
-        blk = self.blocks[name.lower()]
-
-        if pv is None:
-            # Leave it as it was
-            pv = blk.pv
-
-        if local is None:
-            # Leave it as it was
-            local = blk.local
-
-        if not "visible" in kwargs:
-            # Leave it as it was
-            kwargs["visible"] = blk.visible
-
-        # Simplest solution is to delete the block and re-add it
-        if new_name is not None and new_name.strip() != '' and new_name != name:
-            # Does the new name exist
-            if new_name.lower() in self.blocks.keys():
-                raise Exception("Failed to rename block as the new name already exists")
-            self.remove_block(name)
-            # Replace with new name in any groups
-            for n, g in self.groups.iteritems():
-                for i in range(len(g.blocks)):
-                    if g.blocks[i] == name:
-                        g.blocks[i] = new_name
-            name = new_name
-        else:
-            self.remove_block(name)
-        # Send None for group name as we don't handle group changes here
-        self.add_block(name, pv, None, local, **kwargs)
-
     def add_ioc(self, name, subconfig=None, autostart=None, restart=None, macros=None, pvs=None, pvsets=None, simlevel=None):
         # Only add it if it has not been added before
         if not name.upper() in self.iocs.keys():

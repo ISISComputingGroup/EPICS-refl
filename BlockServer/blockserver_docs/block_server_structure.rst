@@ -22,7 +22,7 @@ significant parts:
 Channel Access
 --------------
 
-The BlockServer uses the pcaspy python module to implement channel access. There are two main means of implementing PVs in the
+The BlockServer uses the pcaspy Python module to implement channel access. There are two main means of implementing PVs in the
 BlockServer, static PVs and dynamic PVs:
 
 * Static PVs are created in a dictionary at startup and are intercepted by subclassing the Driver class and implementing the read()
@@ -48,10 +48,10 @@ A simple example of both the static and dynamic PVs is located in inst_server\\B
 Configuration Servers
 ---------------------
 
-There are two Configuration Server Manager classes. The ActiveConfigServer class holds the currently configuration and deals with the
+There are two Configuration Server Manager classes. The ActiveConfigHolder class holds the currently configuration and deals with the
 JSON communication between the BlockServer PVs and what modifications to make for the configuration. It also controls the running of 
-the IOCs. This class is a subclass of ConfigServerManager which is used to hold inactive configs and get/set basic details about them as
-well as save/load them to disk. Most, if not all, of the individual get/set methods in the ActiveConfigServer are being replaced by catch-all
+the IOCs. This class is a subclass of ConfigHolder which is used to hold the basic details about the configurations as
+well as save/load them to disk. Most, if not all, of the individual get/set methods in the ConfigHolder are being replaced by catch-all
 get_config_details() and set_config_details(). A reduced description of the classes is given below:
 
 .. figure:: img/config_servers_uml.png
@@ -84,7 +84,7 @@ for each config:
 
 1. Check folders hold the expected files
 2. Check the xml files against the schema (using the static ConfigurationSchemaChecker class)
-3. Load the files into a dummy ConfigServerManager
+3. Load the files into a dummy InactiveConfigHolder
 4. Create a PV name based on the configuration name but ensuring only valid chars
 5. Create a PV for the configuration that gives all data on it
 6. For each component the configurations that contain it are noted in a dictionary
@@ -112,7 +112,7 @@ another for the components.
 When a file is modified the Event Handlers will:
 
 1. Check files against the schema
-2. Load the files into a dummy ConfigServerManager
+2. Load the files into a dummy InactiveConfigHolder
 3. Update the PVs in the ConfigListManager (using a lock as the handler is on a different thread). The ConfigListManager must then pass
    this up to the BlockServer object to modify the CONFIGS/COMPS PVs.
 4. Update version control with the modifications

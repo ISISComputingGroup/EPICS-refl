@@ -4,7 +4,7 @@ import json
 import shutil
 
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema, NotConfigFileException
-from BlockServer.core.active_config_server import ActiveConfigServerManager
+from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.constants import SCHEMA_FOR, FILENAME_IOCS, CONFIG_DIRECTORY, COMPONENT_DIRECTORY
 from BlockServer.core.macros import MACROS
 
@@ -14,37 +14,37 @@ CONFIG_DIR = TEST_DIRECTORY + CONFIG_DIRECTORY
 SUBCONFIG_DIR = TEST_DIRECTORY + COMPONENT_DIRECTORY
 SCHEMA_DIR = os.path.abspath("..\\..\\..\\schema\\configurations")
 
-TEST_JSON = """{"iocs":
-                 [{"simlevel": "devsim", "autostart": true, "restart": false,
+TEST_CONFIG = {"iocs":
+                 [{"simlevel": "devsim", "autostart": True, "restart": False,
                  "macros": [{"name": "COMPORT", "value": "COM[0-9]+"}],
                  "pvsets": [{"name": "SET", "enabled": "true"}],
                  "pvs": [{"name": "NDWXXX:xxxx:SIMPLE:VALUE1", "value": "100"}],
-                 "name": "SIMPLE1", "subconfig": null},
+                 "name": "SIMPLE1", "subconfig": None},
 
-                  {"simlevel": "recsim", "autostart": false, "restart": true,
+                  {"simlevel": "recsim", "autostart": False, "restart": True,
                   "macros": [],
                   "pvsets": [],
                   "pvs": [],
-                  "name": "SIMPLE2", "subconfig": null}
+                  "name": "SIMPLE2", "subconfig": None}
                  ],
           "blocks":
-                   [{"name": "testblock1", "local": true,
-                   "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-                    {"name": "testblock2", "local": true,
-                    "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-                    {"name": "testblock3", "local": true,
-                    "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true}
+                   [{"name": "testblock1", "local": True,
+                   "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": None, "visible": True},
+                    {"name": "testblock2", "local": True,
+                    "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": None, "visible": True},
+                    {"name": "testblock3", "local": True,
+                    "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": None, "visible": True}
                    ],
           "components":
                        [{"name": "TEST_SUB"}],
           "groups":
-                   [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
-                    {"blocks": ["testblock2"], "name": "Group2", "subconfig": null},
-                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": null}],
+                   [{"blocks": ["testblock1"], "name": "Group1", "subconfig": None},
+                    {"blocks": ["testblock2"], "name": "Group2", "subconfig": None},
+                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": None}],
           "name": "TESTCONFIG1",
 		  "description": "A test configuration",
 		  "history": ["2015-02-16"]
-         }"""
+         }
 
 
 def strip_out_whitespace(string):
@@ -54,24 +54,23 @@ def strip_out_whitespace(string):
 class TestSchemaChecker(unittest.TestCase):
     def setUp(self):
         os.makedirs(CONFIG_DIR)
-        self.cs = ActiveConfigServerManager(TEST_DIRECTORY, MACROS, None, "archive.xml", "BLOCK_PREFIX:", test_mode=True)
+        self.cs = ActiveConfigHolder(TEST_DIRECTORY, MACROS, None, "archive.xml", test_mode=True)
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + '\\'):
             shutil.rmtree(os.path.abspath(TEST_DIRECTORY + '\\'))
 
     def test_schema_valid_xml_empty_config(self):
-        self.cs.save_config(json.dumps("TEST_CONFIG"))
+        self.cs.save_active("TEST_CONFIG")
 
         for xml in SCHEMA_FOR:
             self.assertTrue(ConfigurationSchemaChecker.check_matches_schema(SCHEMA_DIR,
                                                                           CONFIG_DIR + '\\TEST_CONFIG\\' + xml))
 
     def test_schema_valid_xml_full_config(self):
-        test_json = strip_out_whitespace(TEST_JSON)
-        self.cs.save_as_subconfig(json.dumps("TEST_SUB"))
-        self.cs.set_config_details(test_json)
-        self.cs.save_config(json.dumps("TEST_CONFIG"))
+        self.cs.save_active("TEST_SUB", as_comp=True)
+        self.cs.set_config_details(TEST_CONFIG)
+        self.cs.save_active("TEST_CONFIG")
 
         for xml in SCHEMA_FOR:
             self.assertTrue(ConfigurationSchemaChecker.check_matches_schema(SCHEMA_DIR,
@@ -95,8 +94,8 @@ class TestSchemaChecker(unittest.TestCase):
                           new_file)
 
     def test_schema_whole_directory_valid(self):
-        self.cs.save_config(json.dumps("TEST_CONFIG"))
-        self.cs.save_as_subconfig(json.dumps("TEST_SUBCONFIG"))
+        self.cs.save_active("TEST_CONFIG")
+        self.cs.save_active("TEST_SUBCONFIG", as_comp=True)
 
         self.assertTrue(ConfigurationSchemaChecker.check_all_config_files_correct(SCHEMA_DIR, TEST_DIRECTORY))
 

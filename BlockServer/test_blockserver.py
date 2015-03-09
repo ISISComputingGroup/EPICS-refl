@@ -9,7 +9,7 @@ import unittest
 import xmlrunner
 import argparse
 
-from test_modules.config_server_tests import TestConfigServerSequence
+from test_modules.active_config_holder_tests import TestActiveConfigHolderSequence
 from test_modules.configuration_tests import TestConfigurationSequence
 from test_modules.configuration_xml_tests import TestConfigurationXmlConverterSequence
 from test_modules.configuration_json_tests import TestConfigurationJsonConverterSequence
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     configuration_suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigurationSequence)
     config_xml_suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigurationXmlConverterSequence)
     config_json_suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigurationJsonConverterSequence)
-    config_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigServerSequence)
+    config_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestActiveConfigHolderSequence)
     container_suite = unittest.TestLoader().loadTestsFromTestCase(TestContainersSequence)
     config_holder_suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigHolderSequence)
     inactive_config_suite = unittest.TestLoader().loadTestsFromTestCase(TestInactiveConfigsSequence)

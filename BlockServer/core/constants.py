@@ -30,9 +30,6 @@ TAG_RUNCONTROL_ENABLED = 'rc_enabled'
 TAG_RUNCONTROL_LOW = 'rc_lowlimit'
 TAG_RUNCONTROL_HIGH = 'rc_highlimit'
 
-AUTOSAVE_NAME = 'autosave'
-
-
 TAG_AUTOSTART = 'autostart'
 TAG_RESTART = 'restart'
 TAG_SIMLEVEL = 'simlevel'

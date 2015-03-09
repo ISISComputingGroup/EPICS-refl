@@ -3,7 +3,7 @@ import os
 import shutil
 import datetime
 
-from BlockServer.core.config_server import ConfigHolder
+from BlockServer.core.inactive_config_holder import ConfigHolder
 from BlockServer.config.configuration import Configuration
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.macros import MACROS
@@ -12,6 +12,10 @@ from BlockServer.core.macros import MACROS
 CONFIG_PATH = "./test_configs/"
 BASE_PATH = "./example_base/"
 
+# Helper functions
+def add_block(ch, name, pv, group, local=True):
+    data = {'name': name, 'pv': pv, 'group': group, 'local': local}
+    ch.add_block(data)
 
 def create_dummy_config():
     config = Configuration(MACROS)
@@ -52,6 +56,14 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
 
         self.assertEqual(ch.get_config_name(), "DUMMY")
+
+    def test_getting_blocks_json_with_no_blocks_returns_empty_list(self):
+        # arrange
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=None)
+        # act
+        blocks = ch.get_blocknames()
+        # assert
+        self.assertEqual(len(blocks), 0)
 
     def test_dummy_config_blocks(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
@@ -230,64 +242,10 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(blk_details["TESTBLOCK1".lower()].local, True)
         self.assertEqual(blk_details["TESTBLOCK1".lower()].subconfig, "TESTSUBCONFIG")
 
-    def test_remove_block(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-
-        blk = {"name": "TESTBLOCK1", "pv": "PV1", "local": True, "group": "NONE"}
-        ch.add_block(blk)
-        ch.remove_block("TESTBLOCK1")
-
-        blk_details = ch.get_block_details()
-        self.assertEqual(len(blk_details), 0)
-
-    def test_remove_block_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
-        ch.remove_block("SUBBLOCK1", "TESTSUBCONFIG")
-
-        blk_details = ch.get_block_details()
-        self.assertEqual(len(blk_details), 1)
-        self.assertFalse("SUBBLOCK1".lower() in blk_details)
-
-    def test_edit_block(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-
-        blk = {"name": "TESTBLOCK1", "pv": "PV1", "local": True, "group": "NONE"}
-        ch.add_block(blk)
-
-        editblk = {"name": "TESTBLOCK1", "pv": "PV2", "local": False}
-        ch.edit_block(editblk)
-
-        blk_details = ch.get_block_details()
-        self.assertEqual(len(blk_details), 1)
-        self.assertTrue("TESTBLOCK1".lower() in blk_details)
-        self.assertEqual(blk_details["TESTBLOCK1".lower()].pv, "PV2")
-        self.assertEqual(blk_details["TESTBLOCK1".lower()].local, False)
-
-    def test_edit_block_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-
-        ch.add_subconfig("TESTSUBCONFIG", Configuration(MACROS))
-
-        blk = {"name": "TESTBLOCK1", "pv": "PV1", "local": True, "group": "GROUP1"}
-        ch.add_block(blk, "TESTSUBCONFIG")
-
-        editblk = {"name": "TESTBLOCK1", "pv": "PV2", "local": False}
-        ch.edit_block(editblk, "TESTSUBCONFIG")
-
-        blk_details = ch.get_block_details()
-        self.assertEqual(len(blk_details), 1)
-        self.assertTrue("TESTBLOCK1".lower() in blk_details)
-        self.assertEqual(blk_details["TESTBLOCK1".lower()].pv, "PV2")
-        self.assertEqual(blk_details["TESTBLOCK1".lower()].local, False)
-        self.assertEqual(blk_details["TESTBLOCK1".lower()].subconfig, "TESTSUBCONFIG")
-
     def test_add_ioc(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
 
-        ch.add_ioc("TESTIOC1")
+        ch._add_ioc("TESTIOC1")
 
         ioc_details = ch.get_ioc_names()
         self.assertEqual(len(ioc_details), 1)
@@ -297,7 +255,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
 
         ch.add_subconfig("TESTSUBCONFIG", Configuration(MACROS))
-        ch.add_ioc("TESTIOC1", "TESTSUBCONFIG")
+        ch._add_ioc("TESTIOC1", "TESTSUBCONFIG")
 
         ioc_details = ch.get_ioc_names()
         self.assertEqual(len(ioc_details), 1)
@@ -356,10 +314,10 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_empty_config_save_and_load(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-        ch.save_config("TESTCONFIG")
+        ch.save_configuration("TESTCONFIG", False)
         ch.clear_config()
 
-        conf = ch.load_config("TESTCONFIG")
+        conf = ch.load_configuration("TESTCONFIG")
         ch.set_config(conf, False)
 
         self.assertEqual(ch.get_config_name(), "TESTCONFIG")
@@ -371,11 +329,10 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_empty_subconfig_save_and_load(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-        ch.set_as_subconfig(True)
-        ch.save_config("TESTSUBCONFIG")
+        ch.save_configuration("TESTSUBCONFIG", True)
         ch.clear_config()
 
-        conf = ch.load_config("TESTSUBCONFIG", True)
+        conf = ch.load_configuration("TESTSUBCONFIG", True)
         ch.set_config(conf, True)
 
         self.assertEqual(ch.get_config_name(), "TESTSUBCONFIG")
@@ -387,10 +344,10 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_dummy_config_save_and_load(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
-        ch.save_config("TESTCONFIG")
+        ch.save_configuration("TESTCONFIG", False)
         ch.clear_config()
 
-        conf = ch.load_config("TESTCONFIG")
+        conf = ch.load_configuration("TESTCONFIG")
         ch.set_config(conf, False)
 
         self.assertEqual(ch.get_config_name(), "TESTCONFIG")
@@ -399,20 +356,19 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(ch.get_ioc_names()), 2)
         self.assertEqual(len(ch.get_component_names()), 0)
 
-    def test_set_config(self):
+    def test_save_comp_add_to_config(self):
         # Create and save a subconfig
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_subconfig())
-        ch.set_as_subconfig(True)
-        ch.save_config("TESTSUBCONFIG")
+        ch.save_configuration("TESTSUBCONFIG", True)
         ch.clear_config()
 
         # Create and save a config that uses the subconfig
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
-        comp = ch.load_config("TESTSUBCONFIG", True)
+        comp = ch.load_configuration("TESTSUBCONFIG", True)
         ch.add_subconfig("TESTSUBCONFIG", comp)
-        ch.save_config("TESTCONFIG")
+        ch.save_configuration("TESTCONFIG", False)
         ch.clear_config()
-        conf = ch.load_config("TESTCONFIG", False)
+        conf = ch.load_configuration("TESTCONFIG", False)
         ch.set_config(conf)
 
         self.assertEqual(len(ch.get_component_names()), 1)
@@ -462,7 +418,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         # Move TESTBLOCK2 and TESTBLOCK4 into group 1
         redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK4"]},
                  {"name": "group2", "blocks": ["TESTBLOCK3"]}]
-        ch.set_group_details(redef)
+        ch._set_group_details(redef)
 
         grps = ch.get_group_details()
         self.assertEqual(len(grps), 3)
@@ -479,7 +435,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         # Move TESTBLOCK2, TESTBLOCK3 and TESTBLOCK4 into group 1
         redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK3", "TESTBLOCK4"]},
                  {"name": "group2", "blocks": []}]
-        ch.set_group_details(redef)
+        ch._set_group_details(redef)
 
         grps = ch.get_group_details()
         self.assertEqual(len(grps), 2)  # The group1 and none
@@ -501,7 +457,7 @@ class TestConfigHolderSequence(unittest.TestCase):
                                                "SUBBLOCK2"]},
                  {"name": "group2", "blocks": []},
                  {"name": "subgroup", "blocks": []}]
-        ch.set_group_details(redef)
+        ch._set_group_details(redef)
 
         grps = ch.get_group_details()
         self.assertEqual(len(grps), 2)  # group1 and none
@@ -517,8 +473,7 @@ class TestConfigHolderSequence(unittest.TestCase):
     def test_set_config_details(self):
         # Need subconfig
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-        ch.set_as_subconfig(True)
-        ch.save_config("TESTSUBCONFIG")
+        ch.save_configuration("TESTSUBCONFIG", True)
 
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
 
@@ -542,7 +497,7 @@ class TestConfigHolderSequence(unittest.TestCase):
                        "name": "TESTCONFIG",
                        "description": "Test Description"
                        }
-        ch.set_config_details_from_json(new_details)
+        ch.set_config_details(new_details)
         details = ch.get_config_details()
         iocs = [x['name'] for x in details['iocs']]
         self.assertEqual(len(iocs), 2)
@@ -588,7 +543,7 @@ class TestConfigHolderSequence(unittest.TestCase):
                             {"blocks": ["TESTBLOCK3"], "name": "NONE", "subconfig": None}],
                        "name": "TESTCONFIG"
         }
-        ch.set_config_details_from_json(new_details)
+        ch.set_config_details(new_details)
 
         # Check via get_config_details
         details = ch.get_config_details()
@@ -625,7 +580,7 @@ class TestConfigHolderSequence(unittest.TestCase):
                             {"blocks": ["TESTBLOCK3"], "name": "NONE", "subconfig": None}],
                        "name": "TESTCONFIG"
         }
-        ch.set_config_details_from_json(new_details)
+        ch.set_config_details(new_details)
 
         # Check via get_config_details
         details = ch.get_config_details()
@@ -663,7 +618,7 @@ class TestConfigHolderSequence(unittest.TestCase):
                             {"blocks": ["TESTBLOCK3"], "name": "NONE", "subconfig": None}],
                        "name": "TESTCONFIG"
         }
-        ch.set_config_details_from_json(new_details)
+        ch.set_config_details(new_details)
 
         # Check via get_config_details
         details = ch.get_config_details()
@@ -682,7 +637,7 @@ class TestConfigHolderSequence(unittest.TestCase):
                        "name": "EMPTYCONFIG",
                        "description": ""
         }
-        ch.set_config_details_from_json(new_details)
+        ch.set_config_details(new_details)
 
         # Check via get_config_details
         details = ch.get_config_details()
@@ -696,11 +651,11 @@ class TestConfigHolderSequence(unittest.TestCase):
     def test_default_component_is_loaded(self):
         # Arrange
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-        ch.save_config("TESTCONFIG")
+        ch.save_configuration("TESTCONFIG", False)
         ch.clear_config()
 
         # Act
-        conf = ch.load_config("TESTCONFIG")
+        conf = ch.load_configuration("TESTCONFIG")
         ch.set_config(conf, False)
 
         # Assert
@@ -714,10 +669,9 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_cannot_modify_default(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-        ch.set_as_subconfig(True)
 
         try:
-            ch.save_config(DEFAULT_COMPONENT)
+            ch.save_configuration(DEFAULT_COMPONENT, True)
         except Exception as err:
             self.assertEqual(err.message, "Cannot save over default component")
 
@@ -727,7 +681,7 @@ class TestConfigHolderSequence(unittest.TestCase):
 
         self.assertEqual(ch.get_config_meta().history, [])
 
-        ch.save_config("TEST_CONFIG")
+        ch.save_configuration("TEST_CONFIG", False)
 
         self.assertEqual(len(ch.get_config_meta().history), 1)
         self.assertEqual(ch.get_config_meta().history, [datetime.date.today().isoformat()])
@@ -738,8 +692,7 @@ class TestConfigHolderSequence(unittest.TestCase):
 
         self.assertEqual(ch.get_config_meta().history, [])
 
-        ch.set_as_subconfig(True)
-        ch.save_config("TEST_CONFIG")
+        ch.save_configuration("TEST_CONFIG", True)
 
         self.assertEqual(len(ch.get_config_meta().history), 1)
         self.assertEqual(ch.get_config_meta().history, [datetime.date.today().isoformat()])
@@ -750,9 +703,21 @@ class TestConfigHolderSequence(unittest.TestCase):
 
         self.assertEqual(ch.get_config_meta().history, [])
 
-        ch.save_config("TEST_CONFIG")
-        ch.save_config("TEST_CONFIG")
+        ch.save_configuration("TEST_CONFIG", False)
+        ch.save_configuration("TEST_CONFIG", False)
 
         self.assertEqual(len(ch.get_config_meta().history), 2)
         today = datetime.date.today().isoformat()
         self.assertEqual(ch.get_config_meta().history, [today, today])
+
+    def test_clear_config(self):
+        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=None)
+        add_block(ch, "TESTBLOCK1", "PV1", "GROUP1", True)
+        add_block(ch, "TESTBLOCK2", "PV2", "GROUP2", True)
+        add_block(ch, "TESTBLOCK3", "PV3", "GROUP2", True)
+        add_block(ch, "TESTBLOCK4", "PV4", "NONE", True)
+        blocks = ch.get_blocknames()
+        self.assertEquals(len(blocks), 4)
+        ch.clear_config()
+        blocks = ch.get_blocknames()
+        self.assertEquals(len(blocks), 0)

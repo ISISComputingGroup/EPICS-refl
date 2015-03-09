@@ -28,34 +28,34 @@ class ConfigurationFileManager(object):
         subconfigs = OrderedDict()
         iocs = OrderedDict()
 
-        #Make sure NONE group exists
+        # Make sure NONE group exists
         groups[GRP_NONE.lower()] = Group(GRP_NONE)
 
-        #Open the block file first
+        # Open the block file first
         blocks_path = path + "/" + FILENAME_BLOCKS
         if os.path.isfile(blocks_path):
             root = parse_xml_removing_namespace(blocks_path)
             ConfigurationXmlConverter.blocks_from_xml(root, blocks, groups)
 
-        #Import the groups
+        # Import the groups
         groups_path = path + "/" + FILENAME_GROUPS
         if os.path.isfile(groups_path):
             root = parse_xml_removing_namespace(groups_path)
             ConfigurationXmlConverter.groups_from_xml(root, groups, blocks)
 
-        #Import the IOCs
+        # Import the IOCs
         iocs_path = path + "/" + FILENAME_IOCS
         if os.path.isfile(iocs_path):
             root = parse_xml_removing_namespace(iocs_path)
             ConfigurationXmlConverter.ioc_from_xml(root, iocs)
 
-        #Import the subconfigs
+        # Import the subconfigs
         subconfig_path = path + "/" + FILENAME_SUBCONFIGS
         if os.path.isfile(subconfig_path):
             root = parse_xml_removing_namespace(subconfig_path)
             ConfigurationXmlConverter.subconfigs_from_xml(root, subconfigs)
 
-        #Import the metadata
+        # Import the metadata
         meta = MetaData(config_name)
         meta_path = path + '/' + FILENAME_META
         if os.path.isfile(meta_path):
@@ -70,14 +70,13 @@ class ConfigurationFileManager(object):
         configuration.meta = meta
         return configuration
 
-
     @staticmethod
     def save_config(configuration, root_path, config_name, test_mode=False):
         """Saves the current configuration with the specified name"""
         config_folder = os.path.abspath(root_path) + "\\" + config_name
         path = os.path.abspath(config_folder)
         if not os.path.isdir(path):
-            #create the directory
+            # Create the directory
             os.makedirs(path)
 
         blocks_xml = ConfigurationXmlConverter.blocks_to_xml(configuration.blocks, configuration.macros)
@@ -87,26 +86,26 @@ class ConfigurationFileManager(object):
         try:
             subconfigs_xml = ConfigurationXmlConverter.subconfigs_to_xml(configuration.subconfigs)
         except:
-            #Is a subconfig, so no subconfigs
+            # Is a subconfig, so no subconfigs
             subconfigs_xml = ConfigurationXmlConverter.subconfigs_to_xml(dict())
 
-        #Save blocks
+        # Save blocks
         with open(path + '/' + FILENAME_BLOCKS, 'w') as f:
             f.write(blocks_xml)
 
-        #Save groups
+        # Save groups
         with open(path + '/' + FILENAME_GROUPS, 'w') as f:
             f.write(groups_xml)
 
-        #Save IOCs
+        # Save IOCs
         with open(path + '/' + FILENAME_IOCS, 'w') as f:
             f.write(iocs_xml)
 
-        #Save subconfigs
+        # Save subconfigs
         with open(path + '/' + FILENAME_SUBCONFIGS, 'w') as f:
             f.write(subconfigs_xml)
 
-        #Save meta
+        # Save meta
         with open(path + '/' + FILENAME_META, 'w') as f:
             f.write(meta_xml)
 

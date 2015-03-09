@@ -3,13 +3,14 @@ import json
 import os
 import shutil
 
-from BlockServer.core.all_configs_list import ConfigListManager, InvalidDeleteException
-from BlockServer.core.active_config_server import ActiveConfigServerManager
+from BlockServer.core.config_list_manager import ConfigListManager, InvalidDeleteException
+from BlockServer.core.active_config_holder import ActiveConfigHolder
 from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from server_common.utilities import dehex_and_decompress
-from BlockServer.core.config_server import ConfigServerManager
+from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+from BlockServer.config.configuration import Configuration
 
 
 MACROS = {
@@ -26,43 +27,39 @@ GET_SUBCONFIG_PV = "GET_COMPONENT_DETAILS"
 DEPENDENCIES_PV = "DEPENDENCIES"
 CONFIG_CHANGED_PV = ":CURR_CONFIG_CHANGED"
 
-VALID_CONFIG_JSON = u"""{
+VALID_CONFIG = {
         "iocs": [{
             "simlevel": "None",
-            "autostart": true,
-            "restart": false,
+            "autostart": True,
+            "restart": False,
             "pvsets": [{"name": "SET", "value": "true"}],
             "pvs": [{"name": "A_PV", "value": "TEST"}],
             "macros": [{"name": "A_MACRO", "value": "TEST"}],
             "name": "AN_IOC",
-            "subconfig": null}],
+            "subconfig": None}],
         "blocks": [{
             "name": "TEST_BLOCK",
-            "local": true,
+            "local": True,
             "pv": "NDWXXX:xxxx:TESTPV",
-            "subconfig": null,
-            "visible": true}],
+            "subconfig": None,
+            "visible": True}],
         "components": [],
         "groups": [{
-            "blocks": ["TEST_BLOCK"], "name": "TEST_GROUP", "subconfig": null}],
+            "blocks": ["TEST_BLOCK"], "name": "TEST_GROUP", "subconfig": None}],
         "name": "TEST_CONFIG",
-        "description": "A Test Configuration"}"""
-
-
-def strip_out_whitespace(string):
-    return string.strip().replace("    ", "").replace("\t", "").replace("\n", "")
+        "description": "A Test Configuration"}
 
 
 def create_configs(names):
-        configserver = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
+        configserver = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
         for name in names:
-            configserver.save_config(json.dumps(name))
+            configserver.save_inactive(name)
 
 
 def create_subconfigs(names):
-        configserver = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
+        configserver = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
         for name in names:
-            configserver.save_as_subconfig(json.dumps(name))
+            configserver.save_inactive(name, True)
         return configserver
 
 
@@ -152,8 +149,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_config_from_object(self):
         ics = self._create_ic()
-        ic = ConfigServerManager(CONFIG_PATH, MACROS)
-        ic.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
+        ic = InactiveConfigHolder(CONFIG_PATH, MACROS)
+        ic.set_config_details(VALID_CONFIG)
         ics.update_a_config_in_list(ic)
 
         confs = json.loads(ics.get_configs_json())
@@ -167,8 +164,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_subconfig_from_object(self):
         ics = self._create_ic()
-        ic = ConfigServerManager(CONFIG_PATH, MACROS)
-        ic.set_config_details(strip_out_whitespace(VALID_CONFIG_JSON))
+        ic = InactiveConfigHolder(CONFIG_PATH, MACROS)
+        ic.set_config_details(VALID_CONFIG)
         ics.update_a_config_in_list(ic, True)
 
         confs = json.loads(ics.get_subconfigs_json())
@@ -326,8 +323,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         ms = self.ms
         ic = self._create_ic()
-        active = ActiveConfigServerManager(CONFIG_PATH, MACROS, None, "archive.xml", "BLOCK_PREFIX:", test_mode=True)
-        active.save_config(json.dumps("TEST_ACTIVE"))
+        active = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", test_mode=True)
+        active.save_active("TEST_ACTIVE")
         ic.update_a_config_in_list(active)
         ic.active_config_name = "TEST_ACTIVE"
 
@@ -343,9 +340,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2", "TEST_SUBCONFIG3"])
         ms = self.ms
         ic = self._create_ic()
-        active = ActiveConfigServerManager(CONFIG_PATH, MACROS, None, "archive.xml", "BLOCK_PREFIX:", test_mode=True)
-        active.add_subconfigs(json.dumps(["TEST_SUBCONFIG1"]))
-        active.save_config(json.dumps("TEST_ACTIVE"))
+        active = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", test_mode=True)
+        active.add_subconfig("TEST_SUBCONFIG1", Configuration(MACROS))
+        active.save_active("TEST_ACTIVE")
         ic.active_config_name = "TEST_ACTIVE"
 
         ic.update_a_config_in_list(active)
@@ -365,9 +362,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ms = self.ms
         ic = self._create_ic()
 
-        inactive = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
-        inactive.add_subconfigs(json.dumps(["TEST_SUBCONFIG1"]))
-        inactive.save_config(json.dumps("TEST_INACTIVE"))
+        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
+        inactive.add_subconfig("TEST_SUBCONFIG1", Configuration(MACROS))
+        inactive.save_inactive("TEST_INACTIVE")
 
         ic.update_a_config_in_list(sub1, True)
         ic.update_a_config_in_list(inactive)
@@ -523,14 +520,14 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        inactive = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
+        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
 
-        inactive.add_subconfigs(json.dumps(["TEST_SUBCONFIG1"]))
-        inactive.save_config(json.dumps("TEST_INACTIVE"))
+        inactive.add_subconfig("TEST_SUBCONFIG1", Configuration(MACROS))
+        inactive.save_inactive("TEST_INACTIVE")
         ic.update_a_config_in_list(inactive)
 
-        inactive.remove_subconfigs(json.dumps(["TEST_SUBCONFIG1"]))
-        inactive.save_config(json.dumps("TEST_INACTIVE"))
+        inactive.remove_subconfig("TEST_SUBCONFIG1")
+        inactive.save_inactive("TEST_INACTIVE")
         ic.update_a_config_in_list(inactive)
 
         ic.delete_configs_json(json.dumps(["TEST_SUBCONFIG1"]), True)
@@ -563,10 +560,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_subconfigs(["TEST_SUBCONFIG1"])
         ms = self.ms
         ic = self._create_ic()
-        inactive = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
+        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
 
-        inactive.add_subconfigs(json.dumps(["TEST_SUBCONFIG1"]))
-        inactive.save_config(json.dumps("TEST_INACTIVE"))
+        inactive.add_subconfig("TEST_SUBCONFIG1", Configuration(MACROS))
+        inactive.save_inactive("TEST_INACTIVE")
         ic.update_a_config_in_list(inactive)
 
         self.assertEqual(len(ms.pv_list), 4)
@@ -581,14 +578,14 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_subconfigs(["TEST_SUBCONFIG1"])
         ms = self.ms
         ic = self._create_ic()
-        inactive = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
+        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
 
-        inactive.add_subconfigs(json.dumps(["TEST_SUBCONFIG1"]))
-        inactive.save_config(json.dumps("TEST_INACTIVE"))
+        inactive.add_subconfig("TEST_SUBCONFIG1", Configuration(MACROS))
+        inactive.save_inactive("TEST_INACTIVE", False)
         ic.update_a_config_in_list(inactive)
 
-        inactive.remove_subconfigs(json.dumps(["TEST_SUBCONFIG1"]))
-        inactive.save_config(json.dumps("TEST_INACTIVE"))
+        inactive.remove_subconfig("TEST_SUBCONFIG1")
+        inactive.save_inactive("TEST_INACTIVE", False)
         ic.update_a_config_in_list(inactive)
 
         self.assertEqual(len(ms.pv_list), 4)
@@ -603,11 +600,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_subconfigs(["TEST_SUBCONFIG1"])
         ms = self.ms
         ic = self._create_ic()
-        inactive = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
+        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
         ic.active_config_name = "TEST_ACTIVE"
-
-        inactive.add_subconfigs(json.dumps(["TEST_SUBCONFIG1"]))
-        inactive.save_config(json.dumps("TEST_INACTIVE"))
+        inactive.add_subconfig("TEST_SUBCONFIG1", Configuration(MACROS))
+        inactive.save_inactive("TEST_INACTIVE", False)
         ic.update_a_config_in_list(inactive)
 
         ic.delete_configs_json(json.dumps(["TEST_INACTIVE"]))
@@ -629,10 +625,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_inactive_config_from_filewatcher(self):
         ic = self._create_ic()
-        inactive = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
+        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
         self.bs.set_config_list(ic)
 
-        inactive.save_config(json.dumps("TEST_INACTIVE"))
+        inactive.save_inactive("TEST_INACTIVE")
         ic.update_a_config_in_list_filewatcher(inactive)
 
         self.assertEqual(len(self.bs.get_comps()), 0)
@@ -643,10 +639,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_inactive_config_from_filewatcher(self):
         ic = self._create_ic()
-        inactive = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
+        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
         self.bs.set_config_list(ic)
 
-        inactive.save_as_subconfig(json.dumps("TEST_INACTIVE_COMP"))
+        inactive.save_inactive("TEST_INACTIVE_COMP", True)
         ic.update_a_config_in_list_filewatcher(inactive, True)
 
         self.assertEqual(len(self.bs.get_comps()), 1)
@@ -657,13 +653,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_active_config_from_filewatcher(self):
         ic = self._create_ic()
-        active = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
+        active = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
         active_config_name = "TEST_ACTIVE"
 
         self.bs.set_config_list(ic)
         ic.active_config_name = active_config_name
 
-        active.save_config(json.dumps(active_config_name))
+        active.save_inactive(active_config_name)
         ic.update_a_config_in_list_filewatcher(active)
 
         self.assertEqual(len(self.bs.get_comps()), 0)
@@ -674,7 +670,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_active_subconfig_from_filewatcher(self):
         ic = self._create_ic()
-        active = ConfigServerManager(CONFIG_PATH, MACROS, test_mode=True)
+        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, test_mode=True)
         active_config_name = "TEST_ACTIVE"
         active_config_comp = "TEST_ACTIVE_COMP"
 
@@ -682,8 +678,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.active_config_name = active_config_name
         ic.active_components = [active_config_comp]
 
-        active.save_as_subconfig(json.dumps(active_config_comp))
-        ic.update_a_config_in_list_filewatcher(active, True)
+        inactive.save_inactive(active_config_comp, True)
+        ic.update_a_config_in_list_filewatcher(inactive, True)
 
         self.assertEqual(len(self.bs.get_comps()), 1)
         self.assertEqual(len(self.bs.get_confs()), 0)

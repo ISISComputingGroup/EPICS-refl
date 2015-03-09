@@ -6,7 +6,7 @@ from threading import RLock
 from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.core.macros import MACROS
-from BlockServer.core.config_server import ConfigServerManager
+from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 
@@ -148,8 +148,8 @@ class ConfigListManager(object):
                 self._comp_path, subconfig_list, "Blockserver started: all subconfigs updated")
 
     def _load_config(self, name, is_subconfig=False):
-        config = ConfigServerManager(self._config_folder, MACROS)
-        config.load_config(name, is_subconfig)
+        config = InactiveConfigHolder(self._config_folder, MACROS)
+        config.load_inactive(name, is_subconfig)
         return config
 
     def _update_subconfig_dependencies_pv(self, name):
@@ -162,11 +162,11 @@ class ConfigListManager(object):
 
     def _update_config_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(data))
+        self._ca_server.updatePV(self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(json.dumps(data)))
 
     def _update_subconfig_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(self._subconfig_metas[name].pv + GET_SUBCONFIG_PV, compress_and_hex(data))
+        self._ca_server.updatePV(self._subconfig_metas[name].pv + GET_SUBCONFIG_PV, compress_and_hex(json.dumps(data)))
 
     def update_a_config_in_list_filewatcher(self, config, is_subconfig=False):
         with self.lock:
@@ -213,7 +213,7 @@ class ConfigListManager(object):
             self._update_config_pv(name, config.get_config_details())
 
             # Update component dependencies
-            comps = config.get_conf_subconfigs()
+            comps = config.get_component_names()
             for comp in comps:
                 if comp in self._comp_dependecncies:
                     self._comp_dependecncies[comp].append(name)

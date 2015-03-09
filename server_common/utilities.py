@@ -2,6 +2,7 @@ import zlib
 import datetime
 import socket
 import re
+import json
 from xml.etree import ElementTree
 
 IOCLOG_HOST = "127.0.0.1"
@@ -15,6 +16,10 @@ def compress_and_hex(value):
 
 def dehex_and_decompress(value):
     return zlib.decompress(value.decode("hex"))
+
+
+def convert_to_json(value):
+    return json.dumps(value).encode('ascii', 'replace')
 
 
 def parse_boolean(string):

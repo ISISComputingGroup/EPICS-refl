@@ -3,7 +3,7 @@ import os
 
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
-from BlockServer.core.config_server import ConfigServerManager
+from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import *
 from BlockServer.core.macros import MACROS
 from server_common.utilities import print_and_log
@@ -88,7 +88,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             ConfigurationSchemaChecker.check_matches_schema(self._schema_folder, path, self._is_subconfig)
 
         # Check can load into config
-        ic = ConfigServerManager(self._root_path, MACROS)
+        ic = InactiveConfigHolder(self._root_path, MACROS)
         try:
             ic._load_config(self._get_config_name(path), self._is_subconfig)
         except Exception as err:

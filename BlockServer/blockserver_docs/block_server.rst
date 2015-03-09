@@ -55,13 +55,12 @@ Read Commands
 -------------
 
 **BLOCKSERVER:BLOCKNAMES**
+Note: this used by genie_python for checking block names used in CSETs etc. are valid
 
 ::
 
     Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:BLOCKNAMES
     Returns the block names as compressed and hexed JSON list(CHAR waveform)
-    Note: this used by genie_python for checking block names used in CSETs etc. are valid
-
 
 **BLOCKSERVER:GROUPS**
 Note: This PV is currently used by the web dashboard
@@ -243,27 +242,9 @@ Note: This PV is currently used by the web dashboard
 --------------
 Write Commands
 --------------
-| NOTE: unless specified otherwise all of these command return OK if they succeed, otherwise they return an error message.
-| NOTE: some of these commands take a few seconds to process, so if done using caput it might be necessary to increase the timeout.
+| NOTE: Unless specified otherwise all of these command return OK if they succeed, otherwise they return an error message.
+| NOTE: Some of these commands take a few seconds to process, so if done using caput it might be necessary to increase the timeout.
 |
-
-**BLOCKSERVER:ADD_COMPS**
-
-::
-
-    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:ADD_COMPS abcdefabdcdefabcdef1234567890
-    Add the specified component(s) to the current configuration. Requires a compressed and hexed JSON list of components to add.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
-
-**BLOCKSERVER:REMOVE_COMPS**
-
-::
-
-    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:REMOVE_COMPS abcdefabdcdefabcdef1234567890
-    Removes the specified component(s) from the current configuration. Requires a compressed and hexed JSON list of components to remove.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
 
 **BLOCKSERVER:LOAD_COMP**
 
@@ -271,16 +252,6 @@ Write Commands
 
     Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:LOAD_COMP abcdefabdcdefabcdef1234567890
     Loads the specified component as if it was a standard configuration. Requires a compressed and hexed JSON string.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
-
-**BLOCKSERVER:SAVE_COMP**
-
-::
-
-    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:SAVE_COMP abcdefabdcdefabcdef1234567890
-    Tries to save the specified configuration as a component. Requires a compressed and hexed JSON string.
-    It will return an error if the configuration cannot be saved as a component (a compressed and hexed JSON string)
 
     Returns "OK" or an error message (compressed and hexed JSON).
 
@@ -294,11 +265,13 @@ Write Commands
     Returns "OK" or an error message (compressed and hexed JSON).
 
 **BLOCKSERVER:SAVE_CONFIG**
+Note: Used by the client(s) for "save" and "save as" for the current active configuration
 
 ::
 
     Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:SAVE_CONFIG abcdefabdcdefabcdef1234567890
-    Saves the current configuration with the specified name. Requires a compressed and hexed JSON string.
+    Saves the current active configuration under the specified name. Requires a compressed and hexed JSON string.
+    The active configuration's name will be changed to the new name.
 
     Returns "OK" or an error message (compressed and hexed JSON).
     
@@ -387,7 +360,8 @@ Write Commands
 ::
 
 	Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:SAVE_NEW_CONFIG abcdefabdcdefabcdef1234567890
-	Saves a configuration to xml files without effecting the current configuration. This will give an error if trying to save over current configuration but will allow overwrites of other saved configurations.
+	Saves a configuration to XML without affecting the current active configuration.
+	This will give an error if trying to overwrite the current active configuration but will allow overwriting of other saved configurations.
 	Requires compressed and hexed JSON dictionary.
 	
 	Example JSON (dehexed and decompressed):
@@ -416,7 +390,8 @@ Write Commands
 ::
 
 	Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:SAVE_NEW_COMPONENT abcdefabdcdefabcdef1234567890
-	Saves a component to xml files without effecting the current configuration. This will give an error if trying to save over components of the current configuration but will allow overwrites of other saved configurations.
+	Saves a component to XML without affecting the current configuration.
+	This will give an error if trying to overwrite components of the current active configuration.
 	Requires compressed and hexed JSON dictionary.
 	
 	Example JSON (dehexed and decompressed):

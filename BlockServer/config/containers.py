@@ -54,8 +54,8 @@ class Group(object):
 
 class IOC(object):
     """Represents an IOC"""
-    #TODO: Get methods are messy?
-    #TODO: _ under private variables
+    # TODO: Get methods are messy?
+    # TODO: _ under private variables
     def __init__(self, name, autostart=True, restart=True, subconfig=None, macros=None, pvs=None, pvsets=None, simlevel=None):
         self.name = name
 
