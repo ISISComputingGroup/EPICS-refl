@@ -54,12 +54,6 @@ copy = TEST_CONFIG
 copy["components"] = [{"name": "INACTIVECOMP"}] 
 set_curr_config_details("TEST_CONFIG", copy)
 
-# Remove a comp from the current config
-print "Removing a comp from the current config"
-copy = TEST_CONFIG
-copy["components"] = [] 
-set_curr_config_details("TEST_CONFIG", copy)
-
 # Start an IOC
 print "Starting SIMPLE IOC"
 start_ioc("SIMPLE")
@@ -78,6 +72,22 @@ sleep(3)
 # Restart an IOC
 print "Restarting SIMPLE IOC"
 restart_ioc("SIMPLE")
+sleep(3)
+
+# Add a block
+print "Adding a block"
+copy = TEST_CONFIG
+copy["blocks"] = [{"name": "TESTBLOCK1", "local": True, "pv": "SIMPLE:VALUE1", "subconfig": None, "visible": True}] 
+set_curr_config_details("TEST_CONFIG", copy)
+
+# Get RC parameters
+print "Getting run-control parameters"
+get_runcontrol_pars()
+sleep(3)
+
+# Set RC out
+print "Getting list of out-of-range blocks"
+get_runcontrol_out()
 sleep(3)
 
 # Get available configs

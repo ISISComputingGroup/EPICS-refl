@@ -219,3 +219,17 @@ def set_curr_config_details(name, data):
     ans = put_and_decode_ans(pv, json.dumps(data))
     print ans
     return ans
+    
+
+def get_runcontrol_out():
+    pv = BLOCKSERVER_PREFIX + "GET_RC_OUT"
+    ans = get_and_decode(pv)
+    print ans
+    return ans
+
+    
+def get_runcontrol_pars():
+    pv = BLOCKSERVER_PREFIX + "GET_RC_PARS"
+    ans = get_and_decode(pv)
+    print ans
+    return ans
