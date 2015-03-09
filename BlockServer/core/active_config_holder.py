@@ -8,7 +8,7 @@ from BlockServer.epics.procserv_utils import ProcServWrapper
 from BlockServer.core.runcontrol import RunControlManager
 from server_common.utilities import print_and_log
 from BlockServer.core.database_server_client import DatabaseServerClient
-from BlockServer.core.macros import BLOCKSERVER_PREFIX, BLOCK_PREFIX
+from BlockServer.core.macros import BLOCKSERVER_PREFIX, BLOCK_PREFIX, MACROS
 from BlockServer.core.config_holder import ConfigHolder
 
 
@@ -135,7 +135,7 @@ class ActiveConfigHolder(ConfigHolder):
                 print_and_log("Could not stop IOC %s: %s" % (n, str(err)))
 
     def update_archiver(self):
-        self._archive_manager.update_archiver(BLOCK_PREFIX, super(ActiveConfigHolder, self).get_blocknames())
+        self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX, super(ActiveConfigHolder, self).get_blocknames())
 
     def _get_iocs(self, include_running=False):
         # Get IOCs from DatabaseServer
