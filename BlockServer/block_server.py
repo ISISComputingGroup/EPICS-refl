@@ -270,7 +270,7 @@ class BlockServer(Driver):
                 self.update_comp_monitor()
             elif reason == 'ACK_CURR_CHANGED':
                 self._config_list.set_active_changed(False)
-            elif reason == "SYNOPTICS:SET_CURRENT":
+            elif reason == "SYNOPTICS:SET_CURRENT_DETAILS":
                 self._syn.set_current_synoptic_xml(data)
             else:
                 status = False
