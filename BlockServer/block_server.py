@@ -307,7 +307,7 @@ class BlockServer(Driver):
         self.update_config_monitors()
         self.update_get_details_monitors()
         self._active_configserver.update_archiver()
-        # TODO: self._active_configserver.create_runcontrol_pvs()
+        self._active_configserver.create_runcontrol_pvs()
 
     def load_config(self, config, is_subconfig=False):
         try:
