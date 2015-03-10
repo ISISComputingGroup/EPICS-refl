@@ -119,7 +119,7 @@ class ConfigListManager(object):
         # Must load components first for them all to be known in dependencies
         for comp_name in subconfig_list:
             try:
-                ConfigurationSchemaChecker.check_matches_schema(schema_folder, self._comp_path + '\\' + comp_name + '\\'
+                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, self._comp_path + '\\' + comp_name + '\\'
                                                                 , True)
             except Exception as err:
                 print_and_log(str(err), "INFO")
@@ -132,7 +132,7 @@ class ConfigListManager(object):
 
         for config_name in config_list:
             try:
-                ConfigurationSchemaChecker.check_matches_schema(schema_folder, self._conf_path + '\\' + config_name
+                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, self._conf_path + '\\' + config_name
                                                                 + '\\')
             except Exception as err:
                 print_and_log(str(err), "INFO")

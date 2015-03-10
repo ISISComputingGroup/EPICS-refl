@@ -5,6 +5,7 @@ from lxml import etree
 
 from BlockServer.core.constants import SCHEMA_FOR, COMPONENT_DIRECTORY, CONFIG_DIRECTORY, FILENAME_SUBCONFIGS
 
+SYNOPTIC_SCHEMA = "synoptic.xsd"
 
 class NotConfigFileException(Exception):
     def __init__(self, value):
@@ -38,22 +39,22 @@ class ConfigurationSchemaChecker(object):
         for root, dirs, files in os.walk(root_path + CONFIG_DIRECTORY):
             for f in files:
                 full_path = os.path.join(root, f)
-                valid &= ConfigurationSchemaChecker.check_matches_schema(schema_folder, full_path)
+                valid &= ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, full_path)
 
         for root, dirs, files in os.walk(root_path + COMPONENT_DIRECTORY):
             for f in files:
                 full_path = os.path.join(root, f)
-                valid &= ConfigurationSchemaChecker.check_matches_schema(schema_folder, full_path, True)
+                valid &= ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, full_path, True)
 
         return valid
 
     @staticmethod
-    def check_matches_schema(schema_folder, config_xml_path, is_subconfig=False):
+    def check_config_file_matches_schema(schema_folder, config_xml_path, is_subconfig=False):
         folder, file_name = string.rsplit(config_xml_path, '\\', 1)
         if file_name in SCHEMA_FOR:
             schema_name = string.split(file_name, '.')[0] + '.xsd'
             try:
-                ConfigurationSchemaChecker._check_against_schema(config_xml_path, schema_folder, schema_name)
+                ConfigurationSchemaChecker._check_file_against_schema(config_xml_path, schema_folder, schema_name)
             except etree.XMLSyntaxError as err:
                 raise ConfigurationInvalidUnderSchema(config_xml_path + " incorrectly formatted: " + str(err.message))
         else:
@@ -69,10 +70,32 @@ class ConfigurationSchemaChecker(object):
         return True
 
     @staticmethod
-    def _check_against_schema(xml_file, schema_folder, schema_file):
-        """ This method takes an xml file and checks it against a given schema.
+    def check_synoptic_matches_schema(schema_folder, synoptic_xml_data):
+        """ This method takes xml data and checks it against a given schema.
         A ConfigurationInvalidUnderSchema error is raised if the file is incorrect """
 
+        xmlparser = ConfigurationSchemaChecker._import_schema(schema_folder, SYNOPTIC_SCHEMA)
+
+        try:
+            etree.fromstring(synoptic_xml_data, xmlparser)
+        except etree.XMLSyntaxError as err:
+            raise ConfigurationInvalidUnderSchema("Synoptic incorrectly formatted: " + str(err.message))
+
+    @staticmethod
+    def _check_file_against_schema(xml_file, schema_folder, schema_file):
+        """ This method takes an xml file and checks it against a given schema.
+        A etree.XMLSyntaxError error is raised if the file is incorrect """
+
+        xmlparser = ConfigurationSchemaChecker._import_schema(schema_folder, schema_file)
+
+        # Import the xml file
+        with open(xml_file, 'r') as f:
+            xml = f.read()
+
+        etree.fromstring(xml, xmlparser)
+
+    @staticmethod
+    def _import_schema(schema_folder, schema_file):
         # Import the schema file (must move to path for includes)
         cur = os.getcwd()
         os.chdir(schema_folder)
@@ -83,8 +106,4 @@ class ConfigurationSchemaChecker(object):
         xmlparser = etree.XMLParser(schema=schema)
         os.chdir(cur)
 
-        # Import the xml file
-        with open(xml_file, 'r') as f:
-            xml = f.read()
-
-        etree.fromstring(xml, xmlparser)
+        return xmlparser

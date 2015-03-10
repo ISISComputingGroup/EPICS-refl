@@ -148,7 +148,7 @@ class BlockServer(Driver):
 
         # Import all the synoptic data and create PVs
         try:
-            self._syn = SynopticManager(CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server)
+            self._syn = SynopticManager(CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR)
             self._syn.create_pvs()
         except Exception as err:
             print_and_log("Error creating synoptic PVs: %s" % str(err), "ERROR")

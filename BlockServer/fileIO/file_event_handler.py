@@ -85,7 +85,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             raise NotConfigFileException("File in root directory")
 
         with self._schema_lock:
-            ConfigurationSchemaChecker.check_matches_schema(self._schema_folder, path, self._is_subconfig)
+            ConfigurationSchemaChecker.check_config_file_matches_schema(self._schema_folder, path, self._is_subconfig)
 
         # Check can load into config
         ic = InactiveConfigHolder(self._root_path, MACROS)

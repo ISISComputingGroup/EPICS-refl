@@ -14,6 +14,7 @@ EXAMPLE_SYNOPTIC = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                       <name>%s</name>
                       </instrument>"""
 
+SCHEMA_PATH = "./../../../schema/configurations"
 
 class TestSynopticManagerSequence(unittest.TestCase):
     def setUp(self):
@@ -34,7 +35,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_get_synoptic_filenames_from_nonexistant_directory_returns_empty_list(self):
         # Arrange
-        sm = SynopticManager("K:\\I_DONT_EXIST\\", MockCAServer())
+        sm = SynopticManager("K:\\I_DONT_EXIST\\", MockCAServer(), SCHEMA_PATH)
 
         # Act
         s = sm.get_synoptic_filenames()
@@ -44,7 +45,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_get_synoptic_filenames_from_directory_returns_names(self):
         # Arrange
-        sm = SynopticManager(TEST_DIR, MockCAServer())
+        sm = SynopticManager(TEST_DIR, MockCAServer(), SCHEMA_PATH)
 
         # Act
         s = sm.get_synoptic_filenames()
@@ -57,7 +58,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_create_pvs_is_okay(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas)
+        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH)
 
         # Act
         sm.create_pvs()
@@ -69,7 +70,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_get_current_synoptic_xml_returns_something(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas)
+        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH)
 
         # Act
         xml = sm.get_current_synoptic_xml()
@@ -82,7 +83,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         f1 = open(TEST_DIR + "\\synoptic0.xml", "a")
         f1.close()
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas)
+        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH)
 
         # Act
         sm.set_current_synoptic_xml(EXAMPLE_SYNOPTIC)
