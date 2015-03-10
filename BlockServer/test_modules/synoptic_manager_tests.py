@@ -77,3 +77,17 @@ class TestSynopticManagerSequence(unittest.TestCase):
         # Assert
         self.assertTrue(len(xml) > 0)
 
+    def test_set_current_synoptic_xml_sets_something(self):
+        # Arrange
+        f1 = open(TEST_DIR + "\\synoptic0.xml", "a")
+        f1.close()
+        cas = MockCAServer()
+        sm = SynopticManager(TEST_DIR, cas)
+
+        # Act
+        sm.set_current_synoptic_xml(EXAMPLE_SYNOPTIC)
+
+        # Assert
+        xml = sm.get_current_synoptic_xml()
+        self.assertTrue(len(xml) > 0)
+

@@ -45,3 +45,13 @@ class SynopticManager(object):
             # No synoptic
             return ""
 
+    def set_current_synoptic_xml(self, xml_data):
+        """Sets the XML for the current synoptic"""
+        # TODO: for now we just modify the first synoptic in the directory but in the future we will need to modify the
+        # current synoptic
+        f = self.get_synoptic_filenames()
+        if len(f) > 0:
+            # Load the data
+            with open(os.path.join(self.directory, f[0]), 'w') as synfile:
+                synfile.write(xml_data)
+
