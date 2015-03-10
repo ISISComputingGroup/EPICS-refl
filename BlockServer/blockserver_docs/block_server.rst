@@ -443,6 +443,15 @@ Note: Used by the client(s) for "save" and "save as" for the current active conf
 
     Returns "OK" or an error message (compressed and hexed JSON).
 
+**BLOCKSERVER:SYNOPTICS:SET_CURRENT**
+
+::
+
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:SET_CURRENT abcdefabdcdefabcdef1234567890
+    Saves over the current synoptic with supplied compressed and hexed xml data.
+	
+    Returns "OK" or an error message (compressed and hexed JSON).
+	
 -------------------------------
 Notes on configuration history
 -------------------------------
