@@ -34,18 +34,22 @@ PVDB = {
         'count': 16000,
     },
     'PVS:INTEREST:HIGH': {
+        # Handled by the monitor thread
         'type': 'char',
         'count': 64000,
     },
     'PVS:INTEREST:MEDIUM': {
+        # Handled by the monitor thread
         'type': 'char',
         'count': 64000,
     },
     'PVS:ACTIVE:HIGH': {
+        # Handled by the monitor thread
         'type': 'char',
         'count': 64000,
     },
     'PVS:ACTIVE:MEDIUM': {
+        # Handled by the monitor thread
         'type': 'char',
         'count': 64000,
     },
@@ -92,15 +96,7 @@ class DatabaseServer(Driver):
 
     def read(self, reason):
         # This is called by CA
-        if reason == 'PVS:INTEREST:HIGH':
-            value = self.encode4return(self._get_interesting_pvs("HIGH"))
-        elif reason == 'PVS:INTEREST:MEDIUM':
-            value = self.encode4return(self._get_interesting_pvs("MEDIUM"))
-        elif reason == 'PVS:ACTIVE:HIGH':
-            value = self.encode4return(self._get_active_pvs("HIGH"))
-        elif reason == 'PVS:ACTIVE:MEDIUM':
-            value = self.encode4return(self._get_active_pvs("MEDIUM"))
-        elif reason == 'SAMPLE_PARS':
+        if reason == 'SAMPLE_PARS':
             value = self.encode4return(self.get_sample_par_names())
         elif reason == 'BEAMLINE_PARS':
             value = self.encode4return(self.get_beamline_par_names())
@@ -123,6 +119,10 @@ class DatabaseServer(Driver):
             if self._db is not None:
                 self._db.update_iocs_status()
                 self.setParam("IOCS", self.encode4return(self._get_iocs_info()))
+                self.setParam("PVS:ACTIVE:HIGH", self.encode4return(self._get_active_pvs("HIGH")))
+                self.setParam("PVS:ACTIVE:MEDIUM", self.encode4return(self._get_active_pvs("MEDIUM")))
+                self.setParam("PVS:INTEREST:HIGH", self.encode4return(self._get_interesting_pvs("HIGH")))
+                self.setParam("PVS:INTEREST:MEDIUM", self.encode4return(self._get_interesting_pvs("MEDIUM")))
                 self._update_individual_interesting_pvs()
                 # Update them
                 with self.monitor_lock:
@@ -140,23 +140,15 @@ class DatabaseServer(Driver):
                 iocs[iocname].update(options[iocname])
         return iocs
 
-    def _get_active_iocs(self):
-        self._db.get_iocs()
-        iocs = self._db.get_active_iocs()
-        return iocs
-
     def _get_interesting_pvs(self, level, ioc=None):
         if self._db is not None:
             return self._db.get_interesting_pvs(level, ioc)
         else:
             return list()
 
-    def _get_active_pvs(self, level, ioc=None):
+    def _get_active_pvs(self, level):
         if self._db is not None:
-            if ioc is not None:
-                return self._db.get_interesting_pvs(level, ioc)
-            else:
-                return self._db.get_active_pvs()
+            return self._db.get_active_pvs(level)
         else:
             return list()
 

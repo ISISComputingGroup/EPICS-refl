@@ -160,18 +160,23 @@ class MySQLWrapper(object):
                 conn.close()
         return values
 
-    def get_active_pvs(self):
+    def get_active_pvs(self, level=""):
         conn = None
         values = []
         sqlquery = "SELECT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname FROM pvinfo"
         sqlquery += " INNER JOIN pvs ON pvs.pvname = pvinfo.pvname"
-        #Ensure that only active IOCs are considered
+        # Ensure that only active IOCs are considered
         where_ioc = " AND pvs.iocname in (SELECT iocname FROM iocrt WHERE running=1)"
 
         try:
             conn, c = self.__open_connection()
-            # Try to get everything that has an interest level!
-            sqlquery += " WHERE (infoname='INTEREST'  {0})".format(where_ioc)
+            if level.lower().startswith('h'):
+                sqlquery += " WHERE (infoname='INTEREST' AND value LIKE 'H%' {0})".format(where_ioc)
+            elif level.lower().startswith('m'):
+                sqlquery += " WHERE (infoname='INTEREST' AND value LIKE 'M%' {0})".format(where_ioc)
+            else:
+                # Try to get everything that has an interest level!
+                sqlquery += " WHERE (infoname='INTEREST'  {0})".format(where_ioc)
             c.execute(sqlquery)
             # Get as a plain list of lists
             values = [list(element) for element in c.fetchall()]
