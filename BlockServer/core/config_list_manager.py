@@ -76,18 +76,18 @@ class ConfigListManager(object):
             files = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
         return files
 
-    def get_configs_json(self):
+    def get_configs(self):
         configs_string = list()
         for config in self._config_metas.values():
             configs_string.append(config.to_dict())
-        return json.dumps(configs_string).encode('ascii', 'replace')
+        return configs_string
 
-    def get_subconfigs_json(self):
+    def get_subconfigs(self):
         subconfigs_string = list()
         for cn, cv in self._subconfig_metas.iteritems():
             if cn.lower() != DEFAULT_COMPONENT.lower():
                 subconfigs_string.append(cv.to_dict())
-        return json.dumps(subconfigs_string).encode('ascii', 'replace')
+        return subconfigs_string
 
     def _create_pv_name(self, config_name, is_subconfig=False):
         pv_text = config_name.upper().replace(" ", "_")
@@ -249,12 +249,8 @@ class ConfigListManager(object):
         else:
             ConfigurationFileManager.delete_configs(folder, files)
 
-    def delete_configs_json(self, json_configs, are_subconfigs=False):
-        delete_list = json.loads(json_configs)
-        self.delete_configs(delete_list, are_subconfigs)
-
     def delete_configs(self, delete_list, are_subconfigs=False):
-        """ Takes a json list of configs and removes them from the file system and any relevant pvs."""
+        """ Takes a list of configs and removes them from the file system and any relevant PVs."""
         with self.lock:
             # TODO: clean this up?
             if not self._test_mode:

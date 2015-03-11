@@ -7,14 +7,13 @@ sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 # Standard imports
 from pcaspy import Driver
 import argparse
-import json
 from threading import Thread, RLock
 from time import sleep
 from BlockServer.epics.gateway import Gateway
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.channel_access_server import CAServer
-from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, convert_to_json
+from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, convert_to_json, convert_from_json
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.file_watcher_manager import ConfigFileWatcherManager
@@ -196,15 +195,15 @@ class BlockServer(Driver):
         # This is called by CA
         try:
             if reason == 'BLOCKNAMES':
-                bn = json.dumps(self._active_configserver.get_blocknames())
+                bn = convert_to_json(self._active_configserver.get_blocknames())
                 value = compress_and_hex(bn)
             elif reason == 'GROUPS':
                 grps = ConfigurationJsonConverter.groups_to_json(self._active_configserver.get_group_details())
                 value = compress_and_hex(grps)
             elif reason == 'CONFIGS':
-                value = compress_and_hex(self._config_list.get_configs_json())
+                value = compress_and_hex(convert_to_json(self._config_list.get_configs()))
             elif reason == 'COMPS':
-                value = compress_and_hex(self._config_list.get_subconfigs_json())
+                value = compress_and_hex(convert_to_json(self._config_list.get_subconfigs()))
             elif reason == 'GET_RC_OUT':
                 js = convert_to_json(self._active_configserver.get_out_of_range_pvs())
                 value = compress_and_hex(js)
@@ -212,7 +211,7 @@ class BlockServer(Driver):
                 pars = convert_to_json(self._active_configserver.get_runcontrol_settings())
                 value = compress_and_hex(pars)
             elif reason == "GET_CURR_CONFIG_DETAILS":
-                value = compress_and_hex(json.dumps(self._active_configserver.get_config_details()))
+                value = compress_and_hex(convert_to_json(self._active_configserver.get_config_details()))
             elif reason == "SERVER_STATUS":
                 value = compress_and_hex(self.get_server_status())
             elif reason == "BLANK_CONFIG":
@@ -248,25 +247,25 @@ class BlockServer(Driver):
                 self._active_configserver.clear_config()
                 self._initialise_config()
             elif reason == 'START_IOCS':
-                self._active_configserver.start_iocs(json.loads(data))
+                self._active_configserver.start_iocs(convert_from_json(data))
             elif reason == 'STOP_IOCS':
-                self._active_configserver.stop_iocs(json.loads(data))
+                self._active_configserver.stop_iocs(convert_from_json(data))
             elif reason == 'RESTART_IOCS':
-                self._active_configserver.restart_iocs(json.loads(data))
+                self._active_configserver.restart_iocs(convert_from_json(data))
             elif reason == 'SET_RC_PARS':
-                self._active_configserver.set_runcontrol_settings(json.loads(data))
+                self._active_configserver.set_runcontrol_settings(convert_from_json(data))
             elif reason == 'SET_CURR_CONFIG_DETAILS':
-                self._active_configserver.set_config_details(json.loads(data))
+                self._active_configserver.set_config_details(convert_from_json(data))
                 self._initialise_config()
             elif reason == 'SAVE_NEW_CONFIG':
                 self.save_inactive_config(data)
             elif reason == 'SAVE_NEW_COMPONENT':
                 self.save_inactive_config(data, True)
             elif reason == 'DELETE_CONFIGS':
-                self._config_list.delete_configs_json(data)
+                self._config_list.delete_configs(convert_from_json(data))
                 self.update_config_monitors()
             elif reason == 'DELETE_COMPONENTS':
-                self._config_list.delete_configs_json(data, True)
+                self._config_list.delete_configs(convert_from_json(data), True)
                 self.update_comp_monitor()
             elif reason == 'ACK_CURR_CHANGED':
                 self._config_list.set_active_changed(False)
@@ -326,7 +325,7 @@ class BlockServer(Driver):
 
     def save_inactive_config(self, json_data, as_subconfig=False):
         inactive = InactiveConfigHolder(CONFIG_DIR, MACROS)
-        inactive.set_config_details(json.loads(json_data))
+        inactive.set_config_details(convert_from_json(json_data))
         config_name = inactive.get_config_name()
         self._check_config_inactive(config_name, as_subconfig)
         self._filewatcher.pause()
@@ -369,13 +368,13 @@ class BlockServer(Driver):
     def update_config_monitors(self):
         with self.monitor_lock:
             # set the available configs
-            self.setParam("CONFIGS", compress_and_hex(self._config_list.get_configs_json()))
+            self.setParam("CONFIGS", compress_and_hex(convert_to_json(self._config_list.get_configs())))
             # Update them
             self.updatePVs()
 
     def update_comp_monitor(self):
         with self.monitor_lock:
-            self.setParam("COMPS", compress_and_hex(self._config_list.get_subconfigs_json()))
+            self.setParam("COMPS", compress_and_hex(convert_to_json(self._config_list.get_subconfigs())))
             # Update them
             self.updatePVs()
 

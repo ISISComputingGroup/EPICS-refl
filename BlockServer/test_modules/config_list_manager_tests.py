@@ -82,15 +82,15 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_initialisation_with_no_configs_in_directory(self):
         ic = self._create_ic()
-        confs = json.loads(ic.get_configs_json())
+        confs = ic.get_configs()
         self.assertEqual(len(confs), 0)
-        subconfs = json.loads(ic.get_subconfigs_json())
+        subconfs = ic.get_subconfigs()
         self.assertEqual(len(subconfs), 0)
 
     def test_initialisation_with_configs_in_directory(self):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         ic = self._create_ic()
-        confs = json.loads(ic.get_configs_json())
+        confs = ic.get_configs()
         self.assertEqual(len(confs), 2)
         self.assertTrue("TEST_CONFIG1" in [c["name"] for c in confs])
         self.assertTrue("TEST_CONFIG2" in [c["name"] for c in confs])
@@ -98,7 +98,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_initialisation_with_subconfigs_in_directory(self):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
         ic = self._create_ic()
-        confs = json.loads(ic.get_subconfigs_json())
+        confs = ic.get_subconfigs()
         self.assertEqual(len(confs), 2)
         self.assertTrue("TEST_SUBCONFIG1" in [c["name"] for c in confs])
         self.assertTrue("TEST_SUBCONFIG2" in [c["name"] for c in confs])
@@ -153,13 +153,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.set_config_details(VALID_CONFIG)
         ics.update_a_config_in_list(ic)
 
-        confs = json.loads(ics.get_configs_json())
+        confs = ics.get_configs()
         self.assertEqual(len(confs), 1)
         self.assertTrue("TEST_CONFIG" in [conf.get('name') for conf in confs])
         self.assertTrue("TEST_CONFIG" in [conf.get('pv') for conf in confs])
         self.assertTrue("A Test Configuration" in [conf.get('description') for conf in confs])
 
-        subconfs = json.loads(ics.get_subconfigs_json())
+        subconfs = ics.get_subconfigs()
         self.assertEqual(len(subconfs), 0)
 
     def test_update_subconfig_from_object(self):
@@ -168,19 +168,19 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.set_config_details(VALID_CONFIG)
         ics.update_a_config_in_list(ic, True)
 
-        confs = json.loads(ics.get_subconfigs_json())
+        confs = ics.get_subconfigs()
         self.assertEqual(len(confs), 1)
         self.assertTrue("TEST_CONFIG" in [conf.get('name') for conf in confs])
         self.assertTrue("TEST_CONFIG" in [conf.get('pv') for conf in confs])
         self.assertTrue("A Test Configuration" in [conf.get('description') for conf in confs])
 
-        subconfs = json.loads(ics.get_configs_json())
+        subconfs = ics.get_configs()
         self.assertEqual(len(subconfs), 0)
 
     def test_subconfigs_json(self):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"])
         ic = self._create_ic()
-        confs = json.loads(ic.get_subconfigs_json())
+        confs = ic.get_subconfigs()
         for conf in confs:
             self.assertEqual(len(conf), 4)
             self.assertTrue("name" in conf)
@@ -213,7 +213,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_config_pv_of_repeated_name(self):
         create_configs(["TEST CONFIG", "TEST_CONFIG", "TEST_CO!NFIG", "TEST_CONFIG1"])
         ic = self._create_ic()
-        confs = json.loads(ic.get_configs_json())
+        confs = ic.get_configs()
 
         self.assertEqual(len(confs), 4)
 
@@ -229,7 +229,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_subconfig_pv_of_repeated_name(self):
         create_subconfigs(["TEST SUBCONFIG", "TEST_SUBCONFIG", "TEST_SUBCO!NFIG", "TEST_SUBCONFIG1"])
         ic = self._create_ic()
-        confs = json.loads(ic.get_subconfigs_json())
+        confs = ic.get_subconfigs()
 
         self.assertEqual(len(confs), 4)
 
@@ -247,13 +247,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_subconfigs(["TEST CONFIG AND SUBCONFIG", "TEST_CONFIG_AND_SUBCONFIG"])
         ic = self._create_ic()
 
-        confs = json.loads(ic.get_configs_json())
+        confs = ic.get_configs()
         self.assertEqual(len(confs), 2)
 
         self.assertTrue("TEST_CONFIG_AND_SUBCONFIG" in [m["pv"] for m in confs])
         self.assertTrue("TEST_CONFIG_AND_SUBCONFIG0" in [m["pv"] for m in confs])
 
-        subconfs = json.loads(ic.get_subconfigs_json())
+        subconfs = ic.get_subconfigs()
         self.assertEqual(len(subconfs), 2)
 
         self.assertTrue("TEST_CONFIG_AND_SUBCONFIG" in [m["pv"] for m in subconfs])
@@ -272,7 +272,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ms = self.ms
         create_configs([config_name])
         ic = self._create_ic()
-        confs = json.loads(ic.get_configs_json())
+        confs = ic.get_configs()
 
         self.assertEqual(len(confs), 1)
 
@@ -292,9 +292,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
 
         ic.active_config_name = "TEST_ACTIVE"
-        ic.delete_configs_json(json.dumps([]))
+        ic.delete_configs([])
 
-        config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+        config_names = [c["name"] for c in ic.get_configs()]
         self.assertEqual(len(config_names), 2)
         self.assertTrue("TEST_CONFIG1" in config_names)
         self.assertTrue("TEST_CONFIG2" in config_names)
@@ -306,9 +306,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
 
         ic.active_config_name = "TEST_ACTIVE"
-        ic.delete_configs_json(json.dumps([]), True)
+        ic.delete_configs([], True)
 
-        config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+        config_names = [c["name"] for c in ic.get_subconfigs()]
         self.assertEqual(len(config_names), 2)
         self.assertTrue("TEST_SUBCONFIG1" in config_names)
         self.assertTrue("TEST_SUBCONFIG2" in config_names)
@@ -329,11 +329,11 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.active_config_name = "TEST_ACTIVE"
 
         self._test_none_deleted(ic, ms)
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, (json.dumps(["TEST_ACTIVE"])))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs, ["TEST_ACTIVE"])
         self._test_none_deleted(ic, ms)
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, (json.dumps(["TEST_ACTIVE", "TEST_CONFIG1"])))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs, ["TEST_ACTIVE", "TEST_CONFIG1"])
         self._test_none_deleted(ic, ms)
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, (json.dumps(["TEST_CONFIG1", "TEST_ACTIVE"])))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs, ["TEST_CONFIG1", "TEST_ACTIVE"])
         self._test_none_deleted(ic, ms)
 
     def test_delete_active_subconfig(self):
@@ -348,13 +348,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.update_a_config_in_list(active)
 
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, json.dumps(["TEST_SUBCONFIG1"]), True)
+        self.assertRaises(InvalidDeleteException, ic.delete_configs, ["TEST_SUBCONFIG1"], True)
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json,
-                          json.dumps(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"]), True)
+        self.assertRaises(InvalidDeleteException, ic.delete_configs,
+                          ["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"], True)
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json,
-                          json.dumps(["TEST_CONFIG2", "TEST_SUBCONFIG1"]), True)
+        self.assertRaises(InvalidDeleteException, ic.delete_configs,
+                          ["TEST_CONFIG2", "TEST_SUBCONFIG1"], True)
         self._test_none_deleted(ic, ms, True)
 
     def test_delete_used_subconfig(self):
@@ -371,24 +371,24 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.active_config_name = "TEST_ACTIVE"
 
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, json.dumps(["TEST_SUBCONFIG1"]), True)
+        self.assertRaises(InvalidDeleteException, ic.delete_configs, ["TEST_SUBCONFIG1"], True)
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json,
-                          json.dumps(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"]), True)
+        self.assertRaises(InvalidDeleteException, ic.delete_configs,
+                          ["TEST_SUBCONFIG1", "TEST_SUBCONFIG2"], True)
         self._test_none_deleted(ic, ms, True)
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json,
-                          json.dumps(["TEST_CONFIG2", "TEST_SUBCONFIG1"]), True)
+        self.assertRaises(InvalidDeleteException, ic.delete_configs,
+                          ["TEST_CONFIG2", "TEST_SUBCONFIG1"], True)
         self._test_none_deleted(ic, ms, True)
 
     def _test_none_deleted(self, ic, ms, is_subconfig=False):
         if is_subconfig:
-            config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+            config_names = [c["name"] for c in ic.get_subconfigs()]
             self.assertEqual(len(config_names), 3)
             self.assertTrue("TEST_SUBCONFIG1" in config_names)
             self.assertTrue("TEST_SUBCONFIG2" in config_names)
             self.assertTrue("TEST_SUBCONFIG3" in config_names)
         else:
-            config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+            config_names = [c["name"] for c in ic.get_configs()]
             self.assertEqual(len(config_names), 3)
             self.assertTrue("TEST_CONFIG2" in config_names)
             self.assertTrue("TEST_CONFIG1" in config_names)
@@ -399,10 +399,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ms = self.ms
         ic = self._create_ic()
 
-        ic.delete_configs_json(json.dumps(["TEST_CONFIG1"]))
+        ic.delete_configs(["TEST_CONFIG1"])
         ic.active_config_name = "TEST_ACTIVE"
 
-        config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+        config_names = [c["name"] for c in ic.get_configs()]
         self.assertEqual(len(config_names), 1)
         self.assertTrue("TEST_CONFIG2" in config_names)
         self.assertFalse("TEST_CONFIG1" in config_names)
@@ -413,10 +413,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ms = self.ms
         ic = self._create_ic()
 
-        ic.delete_configs_json(json.dumps(["TEST_SUBCONFIG1"]), True)
+        ic.delete_configs(["TEST_SUBCONFIG1"], True)
         ic.active_config_name = "TEST_ACTIVE"
 
-        config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+        config_names = [c["name"] for c in ic.get_subconfigs()]
         self.assertEqual(len(config_names), 1)
         self.assertTrue("TEST_SUBCONFIG2" in config_names)
         self.assertFalse("TEST_SUBCONFIG1" in config_names)
@@ -430,15 +430,15 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+        config_names = [c["name"] for c in ic.get_configs()]
         self.assertEqual(len(config_names), 3)
         self.assertTrue("TEST_CONFIG1" in config_names)
         self.assertTrue("TEST_CONFIG2" in config_names)
         self.assertTrue("TEST_CONFIG3" in config_names)
 
-        ic.delete_configs_json(json.dumps(["TEST_CONFIG1", "TEST_CONFIG3"]))
+        ic.delete_configs(["TEST_CONFIG1", "TEST_CONFIG3"])
 
-        config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+        config_names = [c["name"] for c in ic.get_configs()]
         self.assertEqual(len(config_names), 1)
         self.assertTrue("TEST_CONFIG2" in config_names)
         self.assertFalse("TEST_CONFIG1" in config_names)
@@ -451,15 +451,15 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+        config_names = [c["name"] for c in ic.get_subconfigs()]
         self.assertEqual(len(config_names), 3)
         self.assertTrue("TEST_SUBCONFIG1" in config_names)
         self.assertTrue("TEST_SUBCONFIG2" in config_names)
         self.assertTrue("TEST_SUBCONFIG3" in config_names)
 
-        ic.delete_configs_json(json.dumps(["TEST_SUBCONFIG1", "TEST_SUBCONFIG3"]),  True)
+        ic.delete_configs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG3"],  True)
 
-        config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+        config_names = [c["name"] for c in ic.get_subconfigs()]
         self.assertEqual(len(config_names), 1)
         self.assertTrue("TEST_SUBCONFIG2" in config_names)
         self.assertFalse("TEST_SUBCONFIG1" in config_names)
@@ -474,7 +474,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.active_config_name = "TEST_ACTIVE"
 
         self.assertEqual(len(os.listdir(CONFIG_PATH + CONFIG_DIRECTORY)), 2)
-        ic.delete_configs_json(json.dumps(["TEST_CONFIG1"]))
+        ic.delete_configs(["TEST_CONFIG1"])
 
         configs = os.listdir(CONFIG_PATH + CONFIG_DIRECTORY)
         self.assertEqual(len(configs), 1)
@@ -486,7 +486,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.active_config_name = "TEST_ACTIVE"
 
         self.assertEqual(len(os.listdir(CONFIG_PATH + COMPONENT_DIRECTORY)), 3)
-        ic.delete_configs_json(json.dumps(["TEST_SUBCONFIG1"]), True)
+        ic.delete_configs(["TEST_SUBCONFIG1"], True)
 
         configs = os.listdir(CONFIG_PATH + COMPONENT_DIRECTORY)
         self.assertEqual(len(configs), 2)
@@ -497,9 +497,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, (json.dumps(["TEST_CONFIG1"])))
+        self.assertRaises(InvalidDeleteException, ic.delete_configs, ["TEST_CONFIG1"])
 
-        config_names = [c["name"] for c in json.loads(ic.get_configs_json())]
+        config_names = [c["name"] for c in ic.get_configs()]
         self.assertEqual(len(config_names), 0)
         self.assertEqual(len(ms.pv_list), 1)
 
@@ -508,9 +508,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, json.dumps(["TEST_SUBCONFIG1"]), True)
+        self.assertRaises(InvalidDeleteException, ic.delete_configs, ["TEST_SUBCONFIG1"], True)
 
-        config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+        config_names = [c["name"] for c in ic.get_subconfigs()]
         self.assertEqual(len(config_names), 0)
         self.assertEqual(len(ms.pv_list), 1)
 
@@ -530,8 +530,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         inactive.save_inactive("TEST_INACTIVE")
         ic.update_a_config_in_list(inactive)
 
-        ic.delete_configs_json(json.dumps(["TEST_SUBCONFIG1"]), True)
-        config_names = [c["name"] for c in json.loads(ic.get_subconfigs_json())]
+        ic.delete_configs(["TEST_SUBCONFIG1"], True)
+        config_names = [c["name"] for c in ic.get_subconfigs()]
         self.assertEqual(len(config_names), 2)
         self.assertTrue("TEST_SUBCONFIG2" in config_names)
         self.assertTrue("TEST_SUBCONFIG3" in config_names)
@@ -606,7 +606,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         inactive.save_inactive("TEST_INACTIVE", False)
         ic.update_a_config_in_list(inactive)
 
-        ic.delete_configs_json(json.dumps(["TEST_INACTIVE"]))
+        ic.delete_configs(["TEST_INACTIVE"])
 
         self.assertEqual(len(ms.pv_list), 3)
         self.assertTrue("TEST_SUBCONFIG1:" + GET_SUBCONFIG_PV in ms.pv_list.keys())
@@ -621,7 +621,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ms = self.ms
         ic = self._create_ic()
 
-        self.assertRaises(InvalidDeleteException, ic.delete_configs_json, json.dumps([DEFAULT_COMPONENT]), True)
+        self.assertRaises(InvalidDeleteException, ic.delete_configs, [DEFAULT_COMPONENT], True)
 
     def test_update_inactive_config_from_filewatcher(self):
         ic = self._create_ic()
@@ -691,7 +691,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ms = self.ms
 
-        comps = json.loads(ic.get_subconfigs_json())
+        comps = ic.get_subconfigs()
         self.assertTrue(DEFAULT_COMPONENT not in comps)
 
         self.assertEqual(len(ms.pv_list.keys()), 1)
