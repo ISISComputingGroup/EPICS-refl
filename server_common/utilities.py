@@ -22,6 +22,10 @@ def convert_to_json(value):
     return json.dumps(value).encode('ascii', 'replace')
 
 
+def convert_from_json(value):
+    return json.loads(value)
+
+
 def parse_boolean(string):
     if string.lower() == "true":
         return True

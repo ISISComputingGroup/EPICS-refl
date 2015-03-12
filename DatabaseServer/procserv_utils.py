@@ -28,9 +28,10 @@ class ProcServWrapper(object):
 
     def get_ioc_status(self, prefix, ioc):
         """Gets the status of the specified IOC"""
-        ans = caget(self.generate_prefix(prefix, ioc) + ":STATUS", as_string=True)
+        pv = self.generate_prefix(prefix, ioc) + ":STATUS"
+        ans = caget(pv, as_string=True)
         if ans is None:
-            raise Exception("Could not find IOC (%s)" % self.generate_prefix(prefix, ioc))
+            raise Exception("Could not find IOC (%s)" % pv)
         return ans.upper()
 
     def ioc_exists(self, prefix, ioc):
