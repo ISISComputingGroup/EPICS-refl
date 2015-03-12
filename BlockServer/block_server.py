@@ -192,7 +192,16 @@ class BlockServer(Driver):
         self.update_config_monitors()
 
     def read(self, reason):
-        # This is called by CA
+        """A method called by SimpleServer when a PV is read from the BlockServer over Channel Access.
+
+        Args:
+            reason (str): The PV that is being requested (without the PV prefix)
+
+        Returns:
+            str: A compressed and hexed JSON formatted string that gives the desired information based on reason. If an
+                Exception is thrown in the reading of the information this is returned in compressed and hexed JSON.
+        """
+
         try:
             if reason == 'BLOCKNAMES':
                 bn = convert_to_json(self._active_configserver.get_blocknames())
@@ -229,8 +238,18 @@ class BlockServer(Driver):
         return value
 
     def write(self, reason, value):
-        # This is called by CA
-        # All write commands are queued as CA is single-threaded
+        """A method called by SimpleServer when a PV is written to the BlockServer over Channel Access. The write
+            commands are queued as Channel Access is single-threaded.
+
+        Args:
+            reason (str): The PV that is being requested (without the PV prefix)
+            value (str): The data being written to the 'reason' PV
+
+        Returns:
+            str: "OK" in compressed and hexed JSON if function succeeds. Otherwise returns the Exception in compressed
+                and hexed JSON.
+        """
+
         status = True
         try:
             data = dehex_and_decompress(value).strip('"')
