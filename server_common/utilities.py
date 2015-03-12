@@ -36,6 +36,9 @@ def parse_boolean(string):
 
 
 def write_to_ioc_log(message, severity="INFO", src="BLOCKSVR"):
+    if severity not in ['INFO','MINOR','MAJOR','FATAL'] :
+        print "write_to_ioc_log: invalid severity ", severity
+        return
     msg_time = datetime.datetime.utcnow()
     msg_time_str = msg_time.isoformat()
     if msg_time.utcoffset() is None:
@@ -59,11 +62,6 @@ def write_to_ioc_log(message, severity="INFO", src="BLOCKSVR"):
     finally:
         if sock is not None:
             sock.close()
-
-
-def print_and_log(message, severity="INFO", src="BLOCKSVR"):
-    print "%s: %s" % (severity, message)
-    write_to_ioc_log(message, severity, src)
 
 
 def value_list_to_xml(list, grp, group_tag, item_tag):
@@ -95,6 +93,10 @@ def print_and_log(message, severity="INFO", src="BLOCKSVR"):
     print "%s: %s" % (severity, message)
     write_to_ioc_log(message, severity, src)
 
-
-
+def print_and_log(message, severity="INFO", src="BLOCKSVR"):
+    print "%s: %s" % (severity, message)
+    # Catch use of ERROR keyword and map to valid EPICS code of MAJOR
+    if (severity == "ERROR") :
+        severity = "MAJOR"
+    write_to_ioc_log(message, severity, src)
 
