@@ -39,7 +39,7 @@ class SqliteWrapper(object):
             c.execute(sqlquery)
             iocs = dict((element[0], dict()) for element in c.fetchall())
         except Exception as err:
-            print_and_log("could not get IOCS from database: %s" % err, "ERROR", "DBSVR")
+            print_and_log("could not get IOCS from database: %s" % err, "MAJOR", "DBSVR")
             iocs = dict()
         finally:
             if conn is not None:
@@ -68,7 +68,7 @@ class SqliteWrapper(object):
             # Get as a plain list
             values = [element[0] for element in c.fetchall()]
         except Exception as err:
-            print_and_log("could not get sample parameters from database: %s" % err, "ERROR", "DBSVR")
+            print_and_log("could not get sample parameters from database: %s" % err, "MAJOR", "DBSVR")
         finally:
             if conn is not None:
                 conn.close()
@@ -87,7 +87,7 @@ class SqliteWrapper(object):
             # Get as a plain list
             values = [element[0] for element in c.fetchall()]
         except Exception as err:
-            print_and_log("could not get beamline parameters from database: %s" % err, "ERROR", "DBSVR")
+            print_and_log("could not get beamline parameters from database: %s" % err, "MAJOR", "DBSVR")
         finally:
             if conn is not None:
                 conn.close()
@@ -120,9 +120,9 @@ class SqliteWrapper(object):
                                 conn.commit()
                     except Exception as err:
                         # Fail but continue - probably couldn't find procserv for the ioc
-                        print_and_log("issue with updating IOC status: %s" % err, "ERROR", "DBSVR")
+                        print_and_log("issue with updating IOC status: %s" % err, "MAJOR", "DBSVR")
             except Exception as err:
-                print_and_log("issue with updating IOC statuses: %s" % err, "ERROR", "DBSVR")
+                print_and_log("issue with updating IOC statuses: %s" % err, "MAJOR", "DBSVR")
             finally:
                 if conn is not None:
                     conn.close()
@@ -151,7 +151,7 @@ class SqliteWrapper(object):
             # Get as a plain list of lists
             values = [list(element) for element in c.fetchall()]
         except Exception as err:
-            print_and_log("issue with getting interesting PVs: %s" % err, "ERROR", "DBSVR")
+            print_and_log("issue with getting interesting PVs: %s" % err, "MAJOR", "DBSVR")
         finally:
             if conn is not None:
                 conn.close()

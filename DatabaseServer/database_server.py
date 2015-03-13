@@ -85,7 +85,7 @@ class DatabaseServer(Driver):
             print_and_log("Connected to database", "INFO", "DBSVR")
         except Exception as err:
             self._db = None
-            print_and_log("Problem initialising DB connection: %s" % err, "ERROR", "DBSVR")
+            print_and_log("Problem initialising DB connection: %s" % err, "MAJOR", "DBSVR")
 
         if self._db is not None and not test_mode:
             # Start a background thread for keeping track of running IOCs

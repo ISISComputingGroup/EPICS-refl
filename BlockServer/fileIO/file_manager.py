@@ -120,7 +120,7 @@ class ConfigurationFileManager(object):
         except NotUnderVersionControl as err:
             print_and_log(err, "INFO")
         except Exception as err:
-            print_and_log("Error in applying version control: " + str(err), "ERROR")
+            print_and_log("Error in applying version control: " + str(err), "MAJOR")
 
         return vc
 

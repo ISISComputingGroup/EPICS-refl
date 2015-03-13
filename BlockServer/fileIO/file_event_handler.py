@@ -50,7 +50,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
                 except ConfigurationIncompleteException as err:
                     print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
                 except Exception as err:
-                    print_and_log("File Watcher: " + str(err), "ERROR", "FILEWTCHR")
+                    print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
     def on_deleted(self, event):
         try:
@@ -58,7 +58,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             # TODO: Ignore the new fileIO in modified
             ConfigurationFileManager.recover_from_version_control(self._root_path)
         except Exception as err:
-            print_and_log("File Watcher: " + str(err), "ERROR", "FILEWTCHR")
+            print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
         try:
             if self._check_file_at_root(event.src_path):
@@ -92,7 +92,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         try:
             ic._load_config(self._get_config_name(path), self._is_subconfig)
         except Exception as err:
-            print_and_log("File Watcher, loading config: " + str(err), "ERROR", "FILEWTCHR")
+            print_and_log("File Watcher, loading config: " + str(err), "MAJOR", "FILEWTCHR")
 
         return ic
 

@@ -142,7 +142,7 @@ class ActiveConfigHolder(ConfigHolder):
         try:
             return self._db_client.get_iocs()
         except Exception as err:
-            print_and_log("Could not retrieve IOC list: %s" % str(err), "ERROR")
+            print_and_log("Could not retrieve IOC list: %s" % str(err), "MAJOR")
             return []
 
     def set_last_config(self, config):

@@ -93,10 +93,8 @@ def print_and_log(message, severity="INFO", src="BLOCKSVR"):
     print "%s: %s" % (severity, message)
     write_to_ioc_log(message, severity, src)
 
+
 def print_and_log(message, severity="INFO", src="BLOCKSVR"):
     print "%s: %s" % (severity, message)
-    # Catch use of ERROR keyword and map to valid EPICS code of MAJOR
-    if (severity == "ERROR") :
-        severity = "MAJOR"
     write_to_ioc_log(message, severity, src)
 

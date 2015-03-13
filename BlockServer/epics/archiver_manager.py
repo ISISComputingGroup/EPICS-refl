@@ -31,7 +31,7 @@ class ArchiverManager(object):
                 time.sleep(1)
                 self._restart_archiver()
         except Exception as err:
-            print_and_log("Could not update archiver: %s" % str(err), "ERROR")
+            print_and_log("Could not update archiver: %s" % str(err), "MAJOR")
 
     def _restart_archiver(self):
         if self._test_mode:

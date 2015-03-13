@@ -143,14 +143,14 @@ class BlockServer(Driver):
         try:
             self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR)
         except Exception as err:
-            print_and_log("Error creating inactive config list: " + str(err), "ERROR")
+            print_and_log("Error creating inactive config list: " + str(err), "MAJORR")
 
         # Import all the synoptic data and create PVs
         try:
             self._syn = SynopticManager(CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR)
             self._syn.create_pvs()
         except Exception as err:
-            print_and_log("Error creating synoptic PVs: %s" % str(err), "ERROR")
+            print_and_log("Error creating synoptic PVs: %s" % str(err), "MAJOR")
 
         # Threading stuff
         self.monitor_lock = RLock()
@@ -184,7 +184,7 @@ class BlockServer(Driver):
                 print_and_log("Could not connect to gateway - is it running?")
                 self.load_last_config()
         except Exception as err:
-            print_and_log("Could not load last configuration. Message was: %s" % err, "ERROR")
+            print_and_log("Could not load last configuration. Message was: %s" % err, "MAJOR")
             self._active_configserver.clear_config()
 
         # Update monitors to current values
@@ -234,7 +234,7 @@ class BlockServer(Driver):
                 value = self.getParam(reason)
         except Exception as err:
             value = compress_and_hex(convert_to_json("Error: " + str(err)))
-            print_and_log(str(err), "ERROR")
+            print_and_log(str(err), "MAJOR")
         return value
 
     def write(self, reason, value):
@@ -294,7 +294,7 @@ class BlockServer(Driver):
                 status = False
         except Exception as err:
             value = compress_and_hex(convert_to_json("Error: " + str(err)))
-            print_and_log(str(err), "ERROR")
+            print_and_log(str(err), "MAJOR")
         else:
             if status:
                 value = compress_and_hex(convert_to_json("OK"))
@@ -340,7 +340,7 @@ class BlockServer(Driver):
             # If we get this far then assume the config is okay
             self._initialise_config()
         except Exception as err:
-            print_and_log(str(err), "ERROR")
+            print_and_log(str(err), "MAJOR")
 
     def save_inactive_config(self, json_data, as_subconfig=False):
         inactive = InactiveConfigHolder(CONFIG_DIR, MACROS)
