@@ -26,94 +26,117 @@ PVDB = {
     'BLOCKNAMES': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'BLOCK_DETAILS': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'GROUPS': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'COMPS': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'LOAD_CONFIG': {
         'type': 'char',
         'count': 1000,
+        'value': [0],
     },
     'SAVE_CONFIG': {
         'type': 'char',
         'count': 1000,
+        'value': [0],
     },
     'LOAD_COMP': {
         'type': 'char',
         'count': 1000,
+        'value': [0],
     },
     'CLEAR_CONFIG': {
         'type': 'char',
         'count': 100,
+        'value': [0],
     },
     'START_IOCS': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'STOP_IOCS': {
         'type': 'char',
         'count': 1000,
+        'value': [0],
     },
     'RESTART_IOCS': {
         'type': 'char',
         'count': 1000,
+        'value': [0],
     },
     'CONFIGS': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'GET_RC_OUT': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'GET_RC_PARS': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'SET_RC_PARS': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'GET_CURR_CONFIG_DETAILS': {
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'SET_CURR_CONFIG_DETAILS': {
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'SAVE_NEW_CONFIG': {
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'SAVE_NEW_COMPONENT': {
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'SERVER_STATUS': {
         'type': 'char',
         'count': 1000,
+        'value': [0],
     },
     'DELETE_CONFIGS': {
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'DELETE_COMPONENTS': {
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'BLANK_CONFIG': {
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'CURR_CONFIG_CHANGED': {
         'type': 'int'
@@ -124,10 +147,12 @@ PVDB = {
     'SYNOPTICS:NAMES': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'SYNOPTICS:GET_CURRENT': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
 }
 

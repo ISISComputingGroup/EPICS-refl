@@ -32,38 +32,46 @@ PVDB = {
         # Handled by the monitor thread
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
     'PVS:INTEREST:HIGH': {
         # Handled by the monitor thread
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'PVS:INTEREST:MEDIUM': {
         # Handled by the monitor thread
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'PVS:ACTIVE:HIGH': {
         # Handled by the monitor thread
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'PVS:ACTIVE:MEDIUM': {
         # Handled by the monitor thread
         'type': 'char',
         'count': 64000,
+        'value': [0],
     },
     'SAMPLE_PARS': {
         'type': 'char',
         'count': 10000,
+        'value': [0],
     },
     'BEAMLINE_PARS': {
         'type': 'char',
         'count': 10000,
+        'value': [0],
     },
     'IOCS_NOT_TO_STOP': {
         'type': 'char',
         'count': 16000,
+        'value': [0],
     },
 }
 
