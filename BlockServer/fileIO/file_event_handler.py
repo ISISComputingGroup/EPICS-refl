@@ -88,9 +88,8 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             ConfigurationSchemaChecker.check_config_file_matches_schema(self._schema_folder, path, self._is_subconfig)
 
         # Check can load into config
-        ic = InactiveConfigHolder(self._root_path, MACROS)
         try:
-            ic._load_config(self._get_config_name(path), self._is_subconfig)
+            ic = self._config_list.load_config(self._get_config_name(path), self._is_subconfig)
         except Exception as err:
             print_and_log("File Watcher, loading config: " + str(err), "MAJOR", "FILEWTCHR")
 

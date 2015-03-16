@@ -123,7 +123,7 @@ class ConfigListManager(object):
                                                                 , True)
             except Exception as err:
                 print_and_log(str(err), "INFO")
-            config = self._load_config(comp_name, True)
+            config = self.load_config(comp_name, True)
             self.update_a_config_in_list(config, True)
 
         # Create default if it does not exist
@@ -136,7 +136,7 @@ class ConfigListManager(object):
                                                                 + '\\')
             except Exception as err:
                 print_and_log(str(err), "INFO")
-            config = self._load_config(config_name)
+            config = self.load_config(config_name)
             self.update_a_config_in_list(config)
 
         # Add fileIO to version control
@@ -147,7 +147,7 @@ class ConfigListManager(object):
             ConfigurationFileManager.add_configs_to_version_control(
                 self._comp_path, subconfig_list, "Blockserver started: all subconfigs updated")
 
-    def _load_config(self, name, is_subconfig=False):
+    def load_config(self, name, is_subconfig=False):
         config = InactiveConfigHolder(self._config_folder, MACROS)
         config.load_inactive(name, is_subconfig)
         return config
