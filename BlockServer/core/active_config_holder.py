@@ -32,7 +32,7 @@ class ActiveConfigHolder(ConfigHolder):
             try:
                 self._procserve_wrapper.start_ioc(self._macros["$(MYPVPREFIX)"], RUNCONTROL_IOC)
             except Exception as err:
-                print_and_log("Problem with starting the run-control IOC: %s" % err)
+                print_and_log("Problem with starting the run-control IOC: %s" % str(err), "MAJOR")
             # Need to wait for RUNCONTROL_IOC to (re)start
             print_and_log("Waiting for runcontrol IOC to (re)start")
             self._runcontrol.wait_for_ioc_start()
@@ -95,7 +95,7 @@ class ActiveConfigHolder(ConfigHolder):
                     if ioc.autostart:
                         self._start_ioc(n)
             except Exception as err:
-                print_and_log("Could not (re)start IOC %s: %s" % (n, str(err)))
+                print_and_log("Could not (re)start IOC %s: %s" % (n, str(err)), "MAJOR")
 
     def restart_iocs(self, data):
         for ioc in data:
@@ -132,7 +132,7 @@ class ActiveConfigHolder(ConfigHolder):
                 if running == "RUNNING":
                     self._stop_ioc(n)
             except Exception as err:
-                print_and_log("Could not stop IOC %s: %s" % (n, str(err)))
+                print_and_log("Could not stop IOC %s: %s" % (n, str(err)), "MAJOR")
 
     def update_archiver(self):
         self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX, super(ActiveConfigHolder, self).get_blocknames())
