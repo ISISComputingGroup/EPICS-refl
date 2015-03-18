@@ -65,8 +65,8 @@ class Configuration(object):
         Args:
             name (string) : The name of the IOC to add
             subconfig (string) : The component that the IOC belongs to [optional]
-            autorestart (bool) : Should the IOC auto-restart [optional]
-            restart (bool) :
+            autostart (bool) : Should the IOC automatically start [optional]
+            restart (bool) : Should the IOC automatically restart [optional]
             macros (dict) : The macro sets relating to the IOC [optional]
             pvs () :
             pvsets () : Any PV values that should be set at start up [optional]
