@@ -154,6 +154,11 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
+    'SYNOPTICS:SET_CURRENT_DETAILS': {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
+    },
 }
 
 
