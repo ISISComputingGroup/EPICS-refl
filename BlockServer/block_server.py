@@ -320,6 +320,7 @@ class BlockServer(Driver):
                 self._config_list.set_active_changed(False)
             elif reason == "SYNOPTICS:SET_CURRENT_DETAILS":
                 self._syn.set_current_synoptic_xml(data)
+                self.update_synoptic_monitor()
             else:
                 status = False
         except Exception as err:
@@ -473,6 +474,12 @@ class BlockServer(Driver):
         else:
             pass
             # TODO: check not a component of active, don't know what do to for this case?
+
+    def update_synoptic_monitor(self):
+        with self.monitor_lock:
+            synoptic = self._syn.get_current_synoptic_xml()
+            self.setParam("SYNOPTICS:GET_CURRENT", compress_and_hex(synoptic))
+
 
 
 if __name__ == '__main__':
