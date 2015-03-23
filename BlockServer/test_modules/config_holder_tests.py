@@ -227,21 +227,6 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(blk_details["TESTBLOCK1".lower()].pv, "PV1")
         self.assertEqual(blk_details["TESTBLOCK1".lower()].local, True)
 
-    def test_add_block_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
-
-        ch.add_subconfig("TESTSUBCONFIG", Configuration(MACROS))
-
-        blk = {"name": "TESTBLOCK1", "pv": "PV1", "local": True, "group": "GROUP1"}
-        ch.add_block(blk, "TESTSUBCONFIG")
-
-        blk_details = ch.get_block_details()
-        self.assertEqual(len(blk_details), 1)
-        self.assertTrue("TESTBLOCK1".lower() in blk_details)
-        self.assertEqual(blk_details["TESTBLOCK1".lower()].pv, "PV1")
-        self.assertEqual(blk_details["TESTBLOCK1".lower()].local, True)
-        self.assertEqual(blk_details["TESTBLOCK1".lower()].subconfig, "TESTSUBCONFIG")
-
     def test_add_ioc(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
 

@@ -2,9 +2,34 @@ from BlockServer.core.macros import PVPREFIX_MACRO
 
 
 class Block(object):
-    """Contains all the information about a block"""
+    """ Contains all the information about a block.
+
+        Attributes:
+            name (string) : The block name
+            pv (string) : The PV pointed at
+            local (bool) : Whether the PV is local to the instrument
+            visible (bool) : Whether the block should be shown
+            subconfig (string) : The component the block belongs to
+            save_rc (bool) : Whether to save the run-control settings
+            runcontrol (bool) : Whether run-control is enabled
+            lowlimt (float) : The low limit for run-control
+            highlimit (float) : The high limit for run-control
+    """
     def __init__(self, name, pv, local=True, visible=True, subconfig=None, save_rc=False,
                  runcontrol=False, lowlimit=None, highlimit=None):
+        """ Constructor.
+
+        Args:
+            name (string) : The block name
+            pv (string) : The PV pointed at
+            local (bool) : Whether the PV is local to the instrument
+            visible (bool) : Whether the block should be shown
+            subconfig (string) : The component the block belongs to
+            save_rc (bool) : Whether to save the run-control settings
+            runcontrol (bool) : Whether run-control is enabled
+            lowlimt (float) : The low limit for run-control
+            highlimit (float) : The high limit for run-control
+        """
         self.name = name
         self.pv = pv
         self.local = local
@@ -23,6 +48,11 @@ class Block(object):
         return pv_name
 
     def set_visibility(self, visible):
+        """ Toggle the visibility of the block.
+
+        Args:
+            visible (bool) : Whether the block is visible or not
+        """
         self.visible = visible
 
     def __str__(self):
@@ -33,13 +63,30 @@ class Block(object):
         return data
 
     def to_dict(self):
+        """ Puts the block's details into a dictionary.
+
+        Returns:
+            (dict) : The block's details
+        """
         return {"name": self.name, "pv": self._get_pv(), "local": self.local,
                 "visible": self.visible, "subconfig": self.subconfig}
 
 
 class Group(object):
-    """Represents a group"""
+    """ Represents a group.
+
+        Attributes:
+            name (string) : The name of the group
+            blocks (dict) : The blocks that are in the group
+            subconfig (string) : The component the group belongs to
+    """
     def __init__(self, name, subconfig=None):
+        """ Constructor.
+
+        Args:
+            name (string) : The name for the group
+            subconfig (string) : The component to which the group belongs
+        """
         self.name = name
         self.blocks = []
         self.subconfig = subconfig
@@ -49,21 +96,47 @@ class Group(object):
         return data
 
     def to_dict(self):
+        """ Puts the group's details into a dictionary.
+
+        Returns:
+            (dict) : The group's details
+        """
         return {'name': self.name, 'blocks': self.blocks, "subconfig": self.subconfig}
 
 
 class IOC(object):
-    """Represents an IOC"""
-    # TODO: Get methods are messy?
-    # TODO: _ under private variables
-    def __init__(self, name, autostart=True, restart=True, subconfig=None, macros=None, pvs=None, pvsets=None, simlevel=None):
-        self.name = name
+    """ Represents an IOC.
 
+    Attributes:
+        name (string) : The name of the IOC
+        autostart (bool) : Whether the IOC should automatically start
+        restart (bool) : Whether the IOC should automatically restart
+        subconfig (string) : The component the IOC belongs to
+        macros (dict) : The IOC's macros
+        pvs (dict) : The IOC's PVs
+        pvsets (dict) : The IOC's PV sets
+        simlevel (string) : The level of simulation
+    """
+    def __init__(self, name, autostart=True, restart=True, subconfig=None, macros=None, pvs=None, pvsets=None,
+                 simlevel=None):
+        """ Constructor.
+
+        Args:
+            name (string) : The name of the IOC
+            autostart (bool) : Whether the IOC should automatically start
+            restart (bool) : Whether the IOC should automatically restart
+            subconfig (string) : The component the IOC belongs to
+            macros (dict) : The IOC's macros
+            pvs (dict) : The IOC's PVs
+            pvsets (dict) : The IOC's PV sets
+            simlevel (string) : The level of simulation
+        """
+        self.name = name
         self.autostart = autostart
         self.restart = restart
         self.subconfig = subconfig
 
-        if simlevel == None:
+        if simlevel is None:
             self.simlevel = "None"
         else:
             self.simlevel = simlevel
@@ -83,8 +156,17 @@ class IOC(object):
         else:
             self.pvsets = pvsets
 
-    def dict_to_list(self, in_dict):
-        #convert into format for better GUI parsing (I know it's messy but it's what the GUI wants)
+    def _dict_to_list(self, in_dict):
+        """ Converts into a format better for the GUI to parse, namely a list.
+
+        It's messy but it's what the GUI wants.
+
+        Args:
+            in_dict (dict) : The dictionary to be converted
+
+        Returns:
+            (list) : The newly created list
+        """
         out_list = []
         for k, v in in_dict.iteritems():
             v['name'] = k
@@ -96,19 +178,43 @@ class IOC(object):
         return data
 
     def to_dict(self):
+        """ Puts the IOC's details into a dictionary.
+
+        Returns:
+            (dict) : The IOC's details
+        """
         return {'name': self.name, 'autostart': self.autostart, 'restart': self.restart,
-                'simlevel': self.simlevel, 'pvs': self.dict_to_list(self.pvs),
-                'pvsets': self.dict_to_list(self.pvsets), 'macros': self.dict_to_list(self.macros),
+                'simlevel': self.simlevel, 'pvs': self._dict_to_list(self.pvs),
+                'pvsets': self._dict_to_list(self.pvsets), 'macros': self._dict_to_list(self.macros),
                 'subconfig': self.subconfig}
 
-class MetaData(object):
-    """Represents the metadata from a config"""
 
+class MetaData(object):
+    """Represents the metadata from a configuration/component.
+
+    Attributes:
+        name (string) : The name of the configuration
+        pv (string) : The PV for the configuration
+        description (string) : The description
+        history (list) : The save history of the configuration
+    """
     def __init__(self, config_name, pv_name="", description=""):
+        """ Constructor.
+
+        Args:
+            config_name (string) : The name of the configuration
+            pv (string) : The PV for the configuration
+            description (string) : The description
+        """
         self.name = config_name
         self.pv = pv_name
         self.description = description
         self.history = []
 
     def to_dict(self):
+        """ Puts the metadata into a dictionary.
+
+        Returns:
+            (dict) : The metadata
+        """
         return {'name': self.name, 'pv': self.pv, 'description': self.description, 'history': self.history}

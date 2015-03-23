@@ -1,3 +1,4 @@
+""" Contains the code for the ConfigHolder class"""
 import os
 import copy
 import datetime
@@ -12,8 +13,21 @@ from BlockServer.core.macros import PVPREFIX_MACRO
 
 
 class ConfigHolder(object):
+    """ The ConfigHolder class.
+
+    Holds a configuration which can then be manpulated via this class.
+    """
     def __init__(self, config_folder, macros, is_subconfig=False, file_manager=ConfigurationFileManager(),
                  test_config=None):
+        """ Constructor.
+
+        Args:
+            config_folder (string) : The folder where configurations and components are saved
+            macros (dict) : The dictionary containing the macros
+            is_subconfig (bool) : Defines whether the configuration held is a component or not
+            file_manager (ConfigurationFileManager) : The object used to save the configuration
+            test_config (Configuration) : A dummy configuration used for the unit tests
+        """
         if test_config is None:
             self._config = Configuration(macros)
             self._test_mode = False
@@ -39,11 +53,19 @@ class ConfigHolder(object):
             os.makedirs(self._component_path)
 
     def clear_config(self):
+        """ Clears the configuration.
+        """
         self._config = Configuration(self._macros)
         self._components = OrderedDict()
         self._is_subconfig = False
 
     def add_subconfig(self, name, component):
+        """ Add a component to the configuration.
+
+        Args:
+            name (string) : The name of the component being added
+            component (Component) : The component object to be added
+        """
         # Add it to the holder
         if self._is_subconfig:
             raise Exception("Can not add a component to a component")
@@ -54,10 +76,16 @@ class ConfigHolder(object):
             self._components[name.lower()] = component
             self._config.subconfigs[name.lower()] = None  # Does not need to actual hold anything
         else:
-            raise Exception("Requested component is already part of the current configuration: " + str(name))
+            raise Exception("Requested component is already part of the configuration: " + str(name))
 
-    # This is not needed as part of the BlockServer as such, but it helps with unit testing
     def remove_subconfig(self, name):
+        """ Removes a component from the configuration.
+
+        This is not needed as part of the BlockServer as such, but it helps with unit testing.
+
+        Args:
+            name (string) : The name of the component to remove
+        """
         # Remove it from the holder
         if self._is_subconfig:
             raise Exception("Can not remove a component from a component")
@@ -65,7 +93,11 @@ class ConfigHolder(object):
         del self._config.subconfigs[name.lower()]
 
     def get_blocknames(self):
-        # Get all the blocknames including those in the components
+        """ Get all the blocknames including those in the components.
+
+        Returns:
+            list : The names of all the blocks
+        """
         names = list()
         for bn, bv in self._config.blocks.iteritems():
             names.append(bv.name)
@@ -77,6 +109,11 @@ class ConfigHolder(object):
         return names
 
     def get_block_details(self):
+        """ Get the configuration details for all the blocks including any in components.
+
+        Returns:
+            dict : A dictionary of block objects
+        """
         blks = copy.deepcopy(self._config.blocks)
         for cn, cv in self._components.iteritems():
             for bn, bv in cv.blocks.iteritems():
@@ -85,6 +122,11 @@ class ConfigHolder(object):
         return blks
 
     def get_group_details(self):
+        """ Get the groups details for all the groups including any in components.
+
+        Returns:
+            dict : A dictionary of group objects
+        """
         blocks = self.get_blocknames()
         used_blocks = list()
         groups = copy.deepcopy(self._config.groups)
@@ -142,21 +184,39 @@ class ConfigHolder(object):
         self._config.groups[GRP_NONE.lower()].blocks = homeless_blocks
 
     def get_config_name(self):
+        """ Get the name of the configuration.
+
+        Returns:
+            string : The name
+        """
         return self._config.get_name()
 
     def _set_config_name(self, name):
         self._config.set_name(name)
 
-    def get_ioc_names(self, includebase=False):
+    def get_ioc_names(self, include_base=False):
+        """ Get the names of the IOCs in the configuration and any components.
+
+        Args:
+            include_base (bool) : Whether to include the IOCs in base [optional]
+
+        Returns:
+            list : The names of the IOCs
+        """
         iocs = self._config.iocs.keys()
         for cn, cv in self._components.iteritems():
-            if includebase:
+            if include_base:
                 iocs.extend(cv.iocs)
             elif cn.lower() != DEFAULT_COMPONENT.lower():
                 iocs.extend(cv.iocs)
         return iocs
 
     def get_ioc_details(self):
+        """ Get the details of the IOCs in the configuration and any components.
+
+        Returns:
+            dict : A copy of all the IOC details
+        """
         # TODO: make sure iocs are from default are returned
         iocs = copy.deepcopy(self._config.iocs)
         for cn, cv in self._components.iteritems():
@@ -165,24 +225,30 @@ class ConfigHolder(object):
                     iocs[n] = v
         return iocs
 
-    def get_component_names(self, includebase=False):
+    def get_component_names(self, include_base=False):
+        """ Get the names of the components in the configuration.
+
+        Args:
+            include_base (bool) : Whether to include the base in the list of names [optional]
+
+        Returns:
+            list : A list of components in the configuration
+        """
         l = list()
         for cn in self._components.keys():
-            if includebase:
+            if include_base:
                 l.append(cn)
             elif cn.lower() != DEFAULT_COMPONENT.lower():
                 l.append(cn)
         return l
 
-    def add_block(self, blockargs, subconfig=None):
-        if subconfig is None:
-            self._config.add_block(**blockargs)
-        else:
-            if subconfig.lower() in self._components:
-                blockargs['subconfig'] = subconfig
-                self._components[subconfig.lower()].add_block(**blockargs)
-            else:
-                raise Exception("No component called %s" % subconfig)
+    def add_block(self, blockargs):
+        """ Add a block to the configuration.
+
+        Args:
+            blockargs (dict) : A dictionary of settings for the new block
+        """
+        self._config.add_block(**blockargs)
 
     def _add_ioc(self, name, subconfig=None, autostart=True, restart=True, macros=None, pvs=None, pvsets=None,
                 simlevel=None):
@@ -197,6 +263,11 @@ class ConfigHolder(object):
                 raise Exception("No component called %s" % subconfig)
 
     def get_config_details(self):
+        """ Get the details of the configuration.
+
+        Returns:
+            dict : A dictionary containing all the details of the configuration
+        """
         config = dict()
 
         # Blocks, groups and IOC include the subconfig ones
@@ -254,6 +325,11 @@ class ConfigHolder(object):
         return ioc_list
 
     def set_config_details(self, details):
+        """ Set the details of the configuration from a dictionary.
+
+        Args:
+            details (dict) : A dictionary containing the new configuration settings
+        """
         self._cache_config()
 
         try:
@@ -269,7 +345,7 @@ class ConfigHolder(object):
                         raise Exception('Cannot override iocs from components')
 
                     self._add_ioc(ioc['name'], autostart=ioc.get('autostart'), restart=ioc.get('restart'),
-                                 macros=macros, pvs=pvs, pvsets=pvsets, simlevel=ioc.get('simlevel'))
+                                  macros=macros, pvs=pvs, pvsets=pvsets, simlevel=ioc.get('simlevel'))
 
             if "blocks" in details:
                 # List of dicts
@@ -307,12 +383,18 @@ class ConfigHolder(object):
             out[item.pop("name")] = item
         return out
 
-    def set_config(self, config, is_subconfig=False):
+    def set_config(self, config, is_component=False):
+        """ Replace the existing configuration with the supplied configuration.
+
+        Args:
+            config (Configuration) : A configuration
+            is_component (bool) : Whether it is a component [optional]
+        """
         self.clear_config()
         self._config = config
-        self._is_subconfig = is_subconfig
+        self._is_subconfig = is_component
         self._components = OrderedDict()
-        if not is_subconfig:
+        if not is_component:
             for n, v in config.subconfigs.iteritems():
                 if n.lower() != DEFAULT_COMPONENT.lower():
                     comp = self.load_configuration(n, True)
@@ -330,20 +412,33 @@ class ConfigHolder(object):
         for n, v in comp.iocs.iteritems():
             v.subconfig = name
 
-    def load_configuration(self, name, is_subconfig=False, set_subconfig_names=True):
-        if is_subconfig:
+    def load_configuration(self, name, is_component=False, set_component_names=True):
+        """ Load a configuration.
+
+        Args:
+            name (string) : The name of the configuration to load
+            is_component (bool) : Whether it is a component [optional]
+            set_component_names (bool) : Whether to set the component names [optional]
+        """
+        if is_component:
             path = self._component_path
             comp = self._filemanager.load_config(path, name, self._macros)
-            if set_subconfig_names:
+            if set_component_names:
                 self._set_component_names(comp, name)
             return comp
         else:
             path = self._config_path
             return self._filemanager.load_config(path, name, self._macros)
 
-    def save_configuration(self, name, as_comp):
-        if self._is_subconfig != as_comp:
-            self._set_as_subconfig(as_comp)
+    def save_configuration(self, name, as_component):
+        """ Save the configuration.
+
+        Args:
+            name (string) : The name to save the configuration under
+            as_component (bool) : Whether to save as a component
+        """
+        if self._is_subconfig != as_component:
+            self._set_as_subconfig(as_component)
         # TODO: HAS NAME CHANGED?
         self._update_history()
         if self._is_subconfig:
@@ -366,6 +461,11 @@ class ConfigHolder(object):
             self._is_subconfig = False
 
     def update_runcontrol_settings_for_saving(self, rc_data):
+        """ Updates the run-control settings stored in the configuration so they can be saved.
+
+        Args:
+            rc_data (dict) : The current run-control settings
+        """
         self._config.update_runcontrol_settings_for_saving(rc_data)
 
     def _cache_config(self):
@@ -377,9 +477,19 @@ class ConfigHolder(object):
         self._components = copy.deepcopy(self._cached_components)
 
     def get_config_meta(self):
+        """ Fetch the configuration's metadata.
+
+        Returns:
+            MetaData : The metadata for the configuration
+        """
         return self._config.meta
 
     def set_testing_mode(self, mode):
+        """ Set or unset testing mode for ConfigHolder.
+
+        Args:
+            mode (bool) : Whether to set or unset test mode
+        """
         self._test_mode = mode
 
     def _update_history(self):
