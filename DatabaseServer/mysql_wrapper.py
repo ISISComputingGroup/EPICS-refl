@@ -64,7 +64,7 @@ class MySQLWrapper(object):
                         )
             c.execute(sqlquery)
             # Get as a plain list
-            values = [element[0] for element in c.fetchall()]
+            values = [str(element[0]) for element in c.fetchall()]
         except Exception as err:
             print_and_log("could not get sample parameters from database: %s" % err, "MAJOR", "DBSVR")
         finally:
@@ -83,7 +83,7 @@ class MySQLWrapper(object):
                         )
             c.execute(sqlquery)
             # Get as a plain list
-            values = [element[0] for element in c.fetchall()]
+            values = [str(element[0]) for element in c.fetchall()]
         except Exception as err:
             print_and_log("could not get beamline parameters from database: %s" % err, "MAJOR", "DBSVR")
         finally:
