@@ -4,6 +4,7 @@ import sys
 # Set MYDIRBLOCK so that example_base can be found
 os.environ["MYDIRBLOCK"] = ".."
 sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("..\\..\\ConfigVersionControl"))
 # Standard imports
 import unittest
 import xmlrunner

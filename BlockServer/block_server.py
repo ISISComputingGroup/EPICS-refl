@@ -1,7 +1,8 @@
-# Add root path for access to server_commons
+# Add root path for access to server_commons and path for version control module
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
+sys.path.insert(0, os.path.abspath(os.environ["MYDIRVC"]))
 
 
 # Standard imports
@@ -172,6 +173,9 @@ class BlockServer(Driver):
         # Import data about all configs
         try:
             self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR)
+
+            # Start file watcher
+            self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "MAJORR")
 
@@ -196,9 +200,6 @@ class BlockServer(Driver):
         write_thread = Thread(target=self.consume_write_queue, args=())
         write_thread.daemon = True  # Daemonise thread
         write_thread.start()
-
-        # Start file watcher
-        self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list)
 
         with self.write_lock:
             self.write_queue.append((self.initialise_configserver, (), "INITIALISING"))

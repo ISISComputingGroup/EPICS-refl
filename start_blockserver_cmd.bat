@@ -17,4 +17,6 @@ if exist "%ICPSETTINGSDIR%/gwblock.pvlist" (
     set GWBLOCK_PVLIST=%MYDIRGATE%\gwblock_dummy.pvlist
 ) 
 
+set MYDIRVC=%MYDIRBLOCK%..\ConfigVersionControl
+
 %PYTHONW% %MYDIRBLOCK%BlockServer\block_server.py -od %MYDIRBLOCK%..\..\iocstartup -sd %MYDIRBLOCK%..\..\schema\configurations -cd %ICPCONFIGROOT% -pv %GWBLOCK_PVLIST%
