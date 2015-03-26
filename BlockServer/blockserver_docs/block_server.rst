@@ -11,8 +11,6 @@ The BlockServer is **responsible** for:
 It can also be used to:
 
 * Start and stop IOCs via ProcServ
-* Retrieve the names of all the "interesting" PVs for the currently running IOCs
-* Retrieve the names of the sample and beamline parameter PVs.
 
 ------------
 What it does
@@ -41,8 +39,6 @@ The BlockServer is also responsible for configuring the blocks archiver to log t
 Configurations are saved in a directory with the configuration's name. The directory contains separate XML files for the blocks, groups, components, IOCs and meta-data that make up the configuration.
 
 The BlockServer also provides a mechanism for starting and stopping IOCs and retrieving the interesting PVs for the currently running IOCs. The BlockServer can start and stop IOCs that are running inside `ProcServ <http://sourceforge.net/projects/procserv/>`_ as ProcServ provides PVs to enable this. The PVs for the currently running IOCs are read directly from a database.
-
-The names of the beamline and sample parameter PVs can be fetched via the BlockServer. This data is read from a database.
 
 NOTE: As the BlockServer often needs to send a lot of data via channel access (as a CHAR waveform), it it necessary in some cases to compress the data before sending using zlib. The compressed data is then converted to hex to avoid any null characters been sent across channel access.
 

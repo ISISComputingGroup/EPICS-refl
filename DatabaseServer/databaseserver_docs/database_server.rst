@@ -12,6 +12,8 @@ The DatabaseServer serves the following information from the instrument database
 
 It is also updates the database if the run status of an IOC changes.
 
+The names of the beamline and sample parameter PVs are read from a database.
+
 -----------------------
 Channel Access Commands
 -----------------------
