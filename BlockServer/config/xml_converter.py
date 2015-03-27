@@ -21,16 +21,27 @@ TAG_DESC = "description"
 
 
 class ConfigurationXmlConverter(object):
-    """Converts configuration data to and from XML"""
+    """Converts configuration data to and from XML.
+
+    Consists of static methods only.
+    """
 
     @staticmethod
     def blocks_to_xml(blocks, macros):
-        """Generates an XML representation for a supplied dictionary of blocks"""
+        """ Generates an XML representation for a supplied dictionary of blocks.
+
+        Args:
+            blocks (OrderedDict) : The blocks in a configuration or component
+            macros (dict) : The macros for the BlockServer
+
+        Returns:
+            (string) : The XML representation of the blocks in a configuration
+        """
         root = ElementTree.Element(TAG_BLOCKS)
         root.attrib["xmlns"] = SCHEMA_PATH + BLOCK_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, block in blocks.iteritems():
-            #Don't save if in subconfig
+            # Don't save if in subconfig
             if block.subconfig is None:
                 ConfigurationXmlConverter._block_to_xml(root, block, macros)
 
@@ -38,45 +49,74 @@ class ConfigurationXmlConverter(object):
 
     @staticmethod
     def groups_to_xml(groups, include_none=False):
-        """Generates an XML representation for a supplied dictionary of groups"""
+        """ Generates an XML representation for a supplied dictionary of groups.
+
+        Args:
+            groups (OrderedDict) : The groups in a configuration or component
+            include_none (bool) : Whether to include the NONE group
+
+        Returns:
+            (string) : The XML representation of the groups in a configuration
+        """
         root = ElementTree.Element(TAG_GROUPS)
         root.attrib["xmlns"] = SCHEMA_PATH + GROUP_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, group in groups.iteritems():
-            #Don't generate xml if in NONE or if it is empty
+            # Don't generate xml if in NONE or if it is empty
             if name != KEY_NONE and group.blocks is not None and len(group.blocks) > 0:
                 ConfigurationXmlConverter._group_to_xml(root, group)
 
-        #If we are adding the None group it should go at the end
+        # If we are adding the None group it should go at the end
         if include_none and KEY_NONE in groups.keys():
             ConfigurationXmlConverter._group_to_xml(root, groups[KEY_NONE])
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
     @staticmethod
     def iocs_to_xml(iocs):
-        """Generates an XML representation for a supplied list of iocs"""
+        """ Generates an XML representation for a supplied list of iocs.
+
+        Args:
+            iocs (OrderedDict) : The IOCs in a configuration or component
+
+        Returns:
+            (string) : The XML representation of the IOCs in a configuration
+        """
         root = ElementTree.Element(TAG_IOCS)
         root.attrib["xmlns"] = SCHEMA_PATH + IOC_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name in iocs.keys():
-            #Don't save if in subconfig
+            # Don't save if in subconfig
             if iocs[name].subconfig is None:
                 ConfigurationXmlConverter._ioc_to_xml(root, iocs[name])
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
     @staticmethod
-    def subconfigs_to_xml(subconfigs):
-        """Generates an XML representation for a supplied list of subconfigs"""
+    def subconfigs_to_xml(comps):
+        """ Generates an XML representation for a supplied dictionary of components.
+
+        Args:
+            comps (OrderedDict) : The components in the configuration
+
+        Returns:
+            (string) : The XML representation of the components in a configuration
+        """
         root = ElementTree.Element(TAG_SUBCONFIGS)
         root.attrib["xmlns"] = SCHEMA_PATH + COMPONENT_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
-        for name, sub in subconfigs.iteritems():
+        for name, sub in comps.iteritems():
             ConfigurationXmlConverter._subconfig_to_xml(root, name)
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
     @staticmethod
     def meta_to_xml(data):
-        """Generates an XML representation of the meta data for each config"""
+        """ Generates an XML representation of the meta data for each configuration.
+
+        Args:
+            data (MetaData) : The metadata to convert to XML
+
+        Returns:
+            (string) : The XML representation of the metadata in a configuration
+        """
         root = ElementTree.Element(TAG_META)
 
         desc_xml = ElementTree.SubElement(root, TAG_DESC)
@@ -114,7 +154,7 @@ class ConfigurationXmlConverter(object):
         visible_xml = ElementTree.SubElement(block_xml, TAG_VISIBLE)
         visible_xml.text = str(visible)
 
-        #Runcontrol
+        # Runcontrol
         if block.save_rc_settings:
             runcontrol = ElementTree.SubElement(block_xml, TAG_RUNCONTROL)
             runcontrol.text = str(block.save_rc_settings)
@@ -149,13 +189,13 @@ class ConfigurationXmlConverter(object):
 
         grp.set(TAG_SIMLEVEL, str(ioc.simlevel))
 
-        #Add any macros
+        # Add any macros
         value_list_to_xml(ioc.macros, grp, TAG_MACROS, TAG_MACRO)
 
-        #Add any pvs
+        # Add any pvs
         value_list_to_xml(ioc.pvs, grp, TAG_PVS, TAG_PV)
 
-        #Add any pvsets
+        # Add any pvsets
         value_list_to_xml(ioc.pvsets, grp, TAG_PVSETS, TAG_PVSET)
 
     @staticmethod
@@ -166,7 +206,14 @@ class ConfigurationXmlConverter(object):
 
     @staticmethod
     def blocks_from_xml(root_xml, blocks, groups):
-        """Populates the supplied dictionary of groups based on an XML tree"""
+        """ Populates the supplied dictionary of blocks and groups based on an XML tree.
+
+        Args:
+            root_xml (ElementTree.Element) : The XML tree object
+            blocks (OrderedDict) : The blocks dictionary to populate
+            groups (OrderedDict) : The groups dictionary to populate with the blocks
+
+        """
         # Get the blocks
         blks = root_xml.findall("./" + TAG_BLOCK)
         for b in blks:
@@ -175,21 +222,21 @@ class ConfigurationXmlConverter(object):
             if n is not None and n.text != "" and read is not None and read.text is not None:
                 name = ConfigurationXmlConverter._replace_macros(n.text)
 
-                #Blocks automatically get assigned to the NONE group
+                # Blocks automatically get assigned to the NONE group
                 blocks[name.lower()] = Block(name, ConfigurationXmlConverter._replace_macros(read.text))
                 groups[KEY_NONE].blocks.append(name)
 
-                #Check to see if not local
+                # Check to see if not local
                 loc = b.find("./" + TAG_LOCAL)
                 if not (loc is None) and loc.text == "False":
                     blocks[name.lower()].local = False
 
-                #Check for visibility
+                # Check for visibility
                 vis = b.find("./" + TAG_VISIBLE)
                 if not (vis is None) and vis.text == "False":
                     blocks[name.lower()].visible = False
 
-                #Runcontrol
+                # Runcontrol
                 save_rc = b.find("./" + TAG_RUNCONTROL)
                 if not (save_rc is None):
                     if save_rc.text == "True":
@@ -212,34 +259,46 @@ class ConfigurationXmlConverter(object):
 
     @staticmethod
     def groups_from_xml_string(xml, groups, blocks):
-        """Populates the supplied dictionary of blocks based on an XML string"""
+        """ Populates the supplied dictionary of groups and blocks based on an XML string.
+
+        Args:
+            xml (string) : The XML
+            groups (OrderedDict) : The groups dictionary to populate with the blocks
+            blocks (OrderedDict) : The blocks dictionary to populate
+        """
         root_xml = ElementTree.fromstring(xml)
         ConfigurationXmlConverter.groups_from_xml(root_xml, groups, blocks)
 
     @staticmethod
     def groups_from_xml(root_xml, groups, blocks):
-        """Populates the supplied dictionary of blocks based on an XML tree"""
-        #Get the groups
+        """ Populates the supplied dictionary of groups and assign blocks based on an XML tree
+
+        Args:
+            root_xml (ElementTree.Element) : The XML tree object
+            blocks (OrderedDict) : The blocks dictionary
+            groups (OrderedDict) : The groups dictionary to populate
+        """
+        # Get the groups
         grps = root_xml.findall("./" + TAG_GROUP)
         for g in grps:
             gname = g.attrib[TAG_NAME]
             gname_low = gname.lower()
 
-            #Add the group to the dict unless it already exists (i.e. the group is defined twice)
-            if not gname_low in groups.keys():
+            # Add the group to the dict unless it already exists (i.e. the group is defined twice)
+            if gname_low not in groups.keys():
                 groups[gname_low] = Group(gname)
             blks = g.findall("./" + TAG_BLOCK)
 
             for b in blks:
                 name = b.attrib[TAG_NAME]
 
-                #Check block is not already in the group. Unlikely, but may be a config was edited by hand...
-                if not name in groups[gname_low].blocks:
+                # Check block is not already in the group. Unlikely, but may be a config was edited by hand...
+                if name not in groups[gname_low].blocks:
                     groups[gname_low].blocks.append(name)
                 if name.lower() in blocks.keys():
                     blocks[name.lower()].group = gname
 
-                #Remove the block from the NONE group
+                # Remove the block from the NONE group
                 if KEY_NONE in groups:
                     if name in groups[KEY_NONE].blocks:
                         groups[KEY_NONE].blocks.remove(name)
@@ -247,7 +306,12 @@ class ConfigurationXmlConverter(object):
 
     @staticmethod
     def ioc_from_xml(root_xml, iocs):
-        """Populates the supplied list of iocs based on an XML tree"""
+        """ Populates the supplied dictionary of IOCs based on an XML tree.
+
+        Args:
+            root_xml (ElementTree.Element) : The XML tree object
+            iocs (OrderedDict) : The IOCs dictionary
+        """
         iocs_xml = root_xml.findall("./" + TAG_IOC)
         for i in iocs_xml:
             n = i.attrib[TAG_NAME]
@@ -265,15 +329,15 @@ class ConfigurationXmlConverter(object):
                         iocs[n.upper()].simlevel = level
 
                 try:
-                    #Get any macros
+                    # Get any macros
                     macros_xml = i.findall("./" + TAG_MACROS + "/" + TAG_MACRO)
                     for m in macros_xml:
                         iocs[n.upper()].macros[m.attrib[TAG_NAME]] = {TAG_VALUE: str(m.attrib[TAG_VALUE])}
-                    #Get any pvs
+                    # Get any pvs
                     pvs_xml = i.findall("./" + TAG_PVS + "/" + TAG_PV)
                     for p in pvs_xml:
                         iocs[n.upper()].pvs[p.attrib[TAG_NAME]] = {TAG_VALUE: str(p.attrib[TAG_VALUE])}
-                    #Get any pvsets
+                    # Get any pvsets
                     pvsets_xml = i.findall("./" + TAG_PVSETS + "/" + TAG_PVSET)
                     for ps in pvsets_xml:
                         iocs[n.upper()].pvsets[ps.attrib[TAG_NAME]] = \
@@ -283,7 +347,12 @@ class ConfigurationXmlConverter(object):
 
     @staticmethod
     def subconfigs_from_xml(root_xml, subconfigs):
-        """Populates the supplied list of iocs based on an XML tree"""
+        """Populates the supplied dictionary of components based on an XML tree.
+
+        Args:
+            root_xml (ElementTree.Element) : The XML tree object
+            subconfigs (OrderedDict) : The components dictionary
+        """
         subconfigs_xml = root_xml.findall("./" + TAG_SUBCONFIG)
         for i in subconfigs_xml:
             n = i.attrib[TAG_NAME]
@@ -292,7 +361,12 @@ class ConfigurationXmlConverter(object):
 
     @staticmethod
     def meta_from_xml(root_xml, data):
-        """Populates the supplied MetaData object based on an XML tree"""
+        """Populates the supplied MetaData object based on an XML tree.
+
+        Args:
+            root_xml (ElementTree.Element) : The XML tree object
+            data (MetaData) : The metadata object
+        """
         description = root_xml.find("./" + TAG_DESC)
         if description is not None:
             data.description = description.text if description.text is not None else ""

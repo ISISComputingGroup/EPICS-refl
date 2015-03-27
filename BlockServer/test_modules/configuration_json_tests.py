@@ -19,27 +19,8 @@ class TestConfigurationJsonConverterSequence(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_json_to_groups_converts_correctly(self):
-        # arrange
-        jc = self.json_converter
-
-        # act
-        ans = jc.groups_from_json(GROUPS_JSON)
-
-        # assert
-        self.assertEqual(len(ans), 2)
-        names = [x['name'] for x in ans]
-        self.assertTrue("TESTGROUP1" in names)
-        self.assertTrue("TESTGROUP2" in names)
-        blocks1 = [x for g in ans for x in g['blocks'] if g['name'] == "TESTGROUP1"]
-        self.assertTrue("TESTBLOCK1" in blocks1)
-        self.assertTrue("TESTBLOCK2" in blocks1)
-        blocks2 = [x for g in ans for x in g['blocks'] if g['name'] == "TESTGROUP2"]
-        self.assertTrue("TESTBLOCK3" in blocks2)
-        self.assertTrue("TESTBLOCK4" in blocks2)
-
     def test_groups_to_json_converts_correctly(self):
-        # arrange
+        # Arrange
         jc = self.json_converter
         groups = OrderedDict()
         groups["TESTGROUP1".lower()] = Group("TESTGROUP1")
@@ -54,9 +35,9 @@ class TestConfigurationJsonConverterSequence(unittest.TestCase):
         # act
         groups_json = jc.groups_to_json(groups)
         returned = json.loads(groups_json)
-        #returned should be a list of dictionaries
+        # Returned should be a list of dictionaries
 
-        # assert
+        # Assert
         self.assertEqual(len(returned), 4)
         self.assertEqual(returned[0]['name'], "TESTGROUP1")
         self.assertEqual(returned[1]['name'], "TESTGROUP2")
@@ -75,56 +56,7 @@ class TestConfigurationJsonConverterSequence(unittest.TestCase):
         self.assertEqual(returned[2]["subconfig"], "TESTSUBCONFIG1")
         self.assertIsNone(returned[3]["subconfig"])
 
-    def test_config_to_json_converts_correctly(self):
-        # arrange
-        jc = self.json_converter
 
-        #Blocks
-        blocks = OrderedDict()
-        blocks["TESTGROUP1BLOCK1".lower()] = Block("TESTGROUP1BLOCK1", "PV1")
-        blocks["TESTGROUP1BLOCK2".lower()] = Block("TESTGROUP1BLOCK2", "PV2")
-        #Groups
-        groups = OrderedDict()
-        groups["TESTGROUP1".lower()] = Group("TESTGROUP1")
-        groups["TESTGROUP1".lower()].blocks = ["TESTGROUP1BLOCK1", "TESTGROUP1BLOCK2"]
-        groups[GRP_NONE.lower()] = Group(GRP_NONE)
-        #IOCs
-        iocs = OrderedDict()
-        iocs["SIMPLE1"] = IOC("SIMPLE1")
-        iocs["SIMPLE2"] = IOC("SIMPLE2")
-
-        # act
-        js = jc.config_to_json("", blocks, groups, iocs, None)
-        conf = json.loads(js)
-
-        # assert
-        self.assertEqual(len(conf['iocs']), 2)
-        iocs = [x['name'] for x in conf['iocs']]
-        self.assertTrue("SIMPLE1" in iocs)
-        self.assertTrue("SIMPLE2" in iocs)
-        self.assertEqual(len(conf['blocks']), 2)
-        blocks = [x for x in conf['blocks'].keys()]
-        self.assertTrue("TESTGROUP1BLOCK1" in blocks)
-        self.assertTrue("TESTGROUP1BLOCK2" in blocks)
-        self.assertEqual(len(conf['groups']), 2)
-        groups = [x['name'] for x in conf['groups']]
-        self.assertTrue("TESTGROUP1" in groups)
-        self.assertTrue(GRP_NONE in groups)
-        self.assertEqual(len(conf['components']), 0)
-
-    def test_config_to_json_empty_config_converts_correctly(self):
-        # arrange
-        jc = self.json_converter
-
-        # act
-        js = jc.config_to_json("", None, None, None, None)
-        conf = json.loads(js)
-
-        # assert
-        self.assertEqual(len(conf['iocs']), 0)
-        self.assertEqual(len(conf['blocks']), 0)
-        self.assertEqual(len(conf['groups']), 0)
-        self.assertEqual(len(conf['components']), 0)
 
 
 
