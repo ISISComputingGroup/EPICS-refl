@@ -10,13 +10,26 @@ RC_PV = "CS:IOC:RUNCTRL_01:DEVIOS:SysReset"
 
 
 class RunControlManager(object):
+    """A class for taking care of setting up run-control.
+    """
     def __init__(self, prefix, settings_dir):
+        """Constructor.
+
+        Args:
+            prefix (string) : The instrument prefix
+            settings_dir (string) : The location for the run-control settings file
+        """
         self._prefix = prefix
         self._settings_dir = settings_dir
         self._block_prefix = prefix + "CS:SB:"
         self._stored_settings = None
 
     def update_runcontrol_blocks(self, blocks):
+        """Update the run-control settings in the run-control IOC with the current blocks.
+
+        Args:
+            blocks (OrderedDict) : The blocks that are part of the current configuration
+        """
         f = None
         try:
             f = open(self._settings_dir, 'w')
@@ -32,6 +45,13 @@ class RunControlManager(object):
                 f.close()
 
     def get_out_of_range_pvs(self):
+        """Get a list of PVs that are currently out of range.
+
+        This may include PVs that are not blocks, but have had run-control settings applied directly
+
+        Returns:
+            (list) : A list of PVs that are out of range
+        """
         raw = caget(self._prefix + TAG_RC_OUT_LIST, True).strip()
         raw = raw.split(" ")
         if raw is not None and len(raw) > 0:
@@ -44,6 +64,11 @@ class RunControlManager(object):
             return []
 
     def get_runcontrol_settings(self, blocks):
+        """ Returns the current run-control settings
+
+        Returns:
+            (dict) : The current run-control settings
+        """
         settings = dict()
         for bn, blk in blocks.iteritems():
             low = caget(self._block_prefix + blk.name + TAG_RC_LOW)
@@ -56,18 +81,12 @@ class RunControlManager(object):
             settings[blk.name] = {"LOW": low, "HIGH": high, "ENABLE": enable}
         return settings
 
-    def archive_current_values(self, blocks):
-        # Go round the blocks and copy the settings as they currently stand
-        self._stored_settings = self.get_runcontrol_settings(blocks)
-
-    def restore_archived_settings(self, blocks):
-        if self._stored_settings is not None:
-            for n, val in self._stored_settings.iteritems():
-                # Only reapply settings for blocks that still exist
-                if n.lower() in blocks:
-                    self._set_rc_values(n, val)
-
     def restore_config_settings(self, blocks):
+        """Restore run-control settings based on what is stored in a configuration.
+
+        Args:
+            blocks (OrderedDict) : The blocks for the configuration
+        """
         for n, blk in blocks.iteritems():
             print blk
             if blk.save_rc_settings:
@@ -83,7 +102,11 @@ class RunControlManager(object):
                 self._set_rc_values(blk.name, settings)
 
     def set_runcontrol_settings(self, data):
-        # Data should be a dictionary of dictionaries
+        """ Replaces the runc-control settings with new values.
+
+        Args:
+            data (dict) : The new run-control settings to set (dictionary of dictionaries)
+        """
         for bn, settings in data.iteritems():
             if settings is not None:
                 self._set_rc_values(bn, settings)
@@ -97,6 +120,7 @@ class RunControlManager(object):
                     print_and_log("Problem with setting runcontrol for %s: %s" % (bn, err))
 
     def wait_for_ioc_start(self):
+        """Waits for the run-control IOC to start."""
         print_and_log("Waiting for runcontrol IOC to start")
         while True:
             sleep(2)

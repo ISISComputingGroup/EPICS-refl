@@ -13,9 +13,18 @@ from BlockServer.core.config_holder import ConfigHolder
 
 
 class ActiveConfigHolder(ConfigHolder):
-    """Class to serve up the active config"""
-
+    """Class to serve up the active configuration.
+    """
     def __init__(self, config_folder, macros, archive_uploader, archive_config, test_mode=False):
+        """ Constructor.
+
+        Args:
+            config_folder (string) : The location of the configurations folder
+            macros (dict) : The BlockServer macros
+            archive_uploader (string) : The location of the batch file for uploading the archiver settings
+            archive_config (string) : The location to save the archive configuration folder
+            test_mode (bool) : Whether to run in test mode
+        """
         super(ActiveConfigHolder, self).__init__(config_folder, macros)
         self._archive_manager = ArchiverManager(archive_uploader, archive_config)
         self._procserve_wrapper = ProcServWrapper()
@@ -50,6 +59,12 @@ class ActiveConfigHolder(ConfigHolder):
 
     # Could we override save_configuration?
     def save_active(self, name, as_comp=False):
+        """ Save the active configuration.
+
+        Args:
+            name (string) : The name to save the configuration under
+            as_comp (bool) : Whether to save as a component
+        """
         if as_comp:
             super(ActiveConfigHolder, self).save_configuration(name, as_comp)
             self.set_last_config(COMPONENT_DIRECTORY + name)
@@ -60,6 +75,12 @@ class ActiveConfigHolder(ConfigHolder):
 
     # Could we override load_configuration?
     def load_active(self, name, is_subconfig=False):
+        """ Load a configuration as the active configuration.
+
+        Args:
+            name (string) : The name of the configuration to load
+            is_subconfig (bool) : Whether to it is a component
+        """
         if is_subconfig:
             comp = super(ActiveConfigHolder, self).load_configuration(name, True)
             super(ActiveConfigHolder, self).set_config(comp, True)
@@ -72,9 +93,22 @@ class ActiveConfigHolder(ConfigHolder):
         self._runcontrol.restore_config_settings(super(ActiveConfigHolder, self).get_block_details())
 
     def get_ioc_state(self, ioc):
+        """ Get the state of an IOC.
+
+        Args:
+            ioc (string) : The IOC
+
+        Returns:
+            (string) : The status of the IOC
+        """
         return self._procserve_wrapper.get_ioc_status(self._macros["$(MYPVPREFIX)"], ioc)
 
     def start_iocs(self, data):
+        """ Start some IOCs.
+
+        Args:
+            data (list) : The IOCs to start
+        """
         for ioc in data:
             self._start_ioc(ioc)
 
@@ -98,6 +132,11 @@ class ActiveConfigHolder(ConfigHolder):
                 print_and_log("Could not (re)start IOC %s: %s" % (n, str(err)), "MAJOR")
 
     def restart_iocs(self, data):
+        """ Restart some IOCs.
+
+        Args:
+            data (list) : The IOCs to restart
+        """
         for ioc in data:
             self._restart_ioc(ioc)
 
@@ -105,6 +144,11 @@ class ActiveConfigHolder(ConfigHolder):
         self._procserve_wrapper.restart_ioc(self._macros["$(MYPVPREFIX)"], ioc)
 
     def stop_iocs(self, data):
+        """ Stop some IOCs.
+
+        Args:
+            data (list) : The IOCs to stop
+        """
         for ioc in data:
             # Check it is okay to stop it
             if ioc.startswith(IOCS_NOT_TO_STOP):
@@ -115,10 +159,14 @@ class ActiveConfigHolder(ConfigHolder):
         self._procserve_wrapper.stop_ioc(self._macros["$(MYPVPREFIX)"], ioc)
 
     def stop_config_iocs(self):
+        """ Stop the IOCs that are part of the configuration.
+        """
         iocs = super(ActiveConfigHolder, self).get_ioc_names()
         self._stop_iocs(iocs)
 
     def stop_iocs_and_start_config_iocs(self):
+        """ Stop all IOCs and start the IOCs that are part of the configuration.
+        """
         non_conf_iocs = [x for x in self._get_iocs() if x not in super(ActiveConfigHolder, self).get_ioc_names()]
         self._stop_iocs(non_conf_iocs)
         self._start_config_iocs()
@@ -135,6 +183,8 @@ class ActiveConfigHolder(ConfigHolder):
                 print_and_log("Could not stop IOC %s: %s" % (n, str(err)), "MAJOR")
 
     def update_archiver(self):
+        """ Update the archiver configuration.
+        """
         self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX, super(ActiveConfigHolder, self).get_blocknames())
 
     def _get_iocs(self, include_running=False):
@@ -146,11 +196,18 @@ class ActiveConfigHolder(ConfigHolder):
             return []
 
     def set_last_config(self, config):
+        """ Save the last configuration used to file.
+
+        Args:
+            config (string) : The name of the last configuration used
+        """
         last = os.path.abspath(self._last_config_file)
         with open(last, 'w') as f:
             f.write(config + "\n")
 
     def load_last_config(self):
+        """ Load the last used configuration.
+        """
         last = os.path.abspath(self._last_config_file)
         if not os.path.isfile(last):
             return None
@@ -168,16 +225,35 @@ class ActiveConfigHolder(ConfigHolder):
         return last_config
 
     def create_runcontrol_pvs(self):
+        """ Create the PVs for run-control.
+
+        Configures the run-control IOC to have PVs for the current configuration.
+        """
         self._runcontrol.update_runcontrol_blocks(super(ActiveConfigHolder, self).get_block_details())
         self._procserve_wrapper.restart_ioc(self._macros["$(MYPVPREFIX)"], RUNCONTROL_IOC)
         # Need to wait for RUNCONTROL_IOC to restart
         self._runcontrol.wait_for_ioc_start()
 
     def get_out_of_range_pvs(self):
+        """ Returns the PVs that are out of range.
+
+        Returns:
+            (list) : A list of PVs that are out of range
+        """
         return self._runcontrol.get_out_of_range_pvs()
 
     def get_runcontrol_settings(self):
+        """ Returns the current run-control settings
+
+        Returns:
+            (dict) : The current run-control settings
+        """
         return self._runcontrol.get_runcontrol_settings(super(ActiveConfigHolder, self).get_block_details())
 
     def set_runcontrol_settings(self, data):
+        """ Replaces the runc-control settings with new values.
+
+        Args:
+            data (dict) : The new run-control settings to set
+        """
         self._runcontrol.set_runcontrol_settings(data)
