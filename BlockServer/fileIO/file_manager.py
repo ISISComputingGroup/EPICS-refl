@@ -6,7 +6,8 @@ from server_common.utilities import parse_xml_removing_namespace, print_and_log
 from BlockServer.config.containers import Group
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.configuration import Configuration, MetaData
-from config_version_control import ConfigVersionControl, NotUnderVersionControl
+from config_version_control import ConfigVersionControl
+from vc_exceptions import NotUnderVersionControl
 from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_SUBCONFIGS, FILENAME_META
 from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
 

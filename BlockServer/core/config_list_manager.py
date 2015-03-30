@@ -119,12 +119,12 @@ class ConfigListManager(object):
         # Must load components first for them all to be known in dependencies
         for comp_name in subconfig_list:
             try:
-                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, self._comp_path + '\\' + comp_name + '\\'
-                                                                , True)
+                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, self._comp_path + '\\'
+                                                                            + comp_name + '\\', True)
+                config = self.load_config(comp_name, True)
+                self.update_a_config_in_list(config, True)
             except Exception as err:
-                print_and_log(str(err), "INFO")
-            config = self.load_config(comp_name, True)
-            self.update_a_config_in_list(config, True)
+                print_and_log("Error in loading subconfig: " + str(err), "MINOR")
 
         # Create default if it does not exist
         if DEFAULT_COMPONENT.lower() not in subconfig_list:
@@ -132,12 +132,12 @@ class ConfigListManager(object):
 
         for config_name in config_list:
             try:
-                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, self._conf_path + '\\' + config_name
-                                                                + '\\')
+                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, self._conf_path + '\\'
+                                                                            + config_name + '\\')
+                config = self.load_config(config_name)
+                self.update_a_config_in_list(config)
             except Exception as err:
-                print_and_log(str(err), "INFO")
-            config = self.load_config(config_name)
-            self.update_a_config_in_list(config)
+                print_and_log("Error in loading config: " + str(err), "MINOR")
 
         # Add fileIO to version control
         if not self._test_mode:
