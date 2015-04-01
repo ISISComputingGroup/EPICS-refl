@@ -32,6 +32,10 @@ class ConfigurationInvalidUnderSchema(Exception):
 
 
 class ConfigurationSchemaChecker(object):
+    """ The ConfigurationSchemaChecker class
+
+    Contains utilities to check configurations against xml schema.
+    """
     @staticmethod
     def check_all_config_files_correct(schema_folder, root_path):
         valid = True

@@ -13,6 +13,11 @@ from BlockServer.fileIO.file_manager import ConfigurationFileManager
 
 
 class ConfigFileEventHandler(FileSystemEventHandler):
+    """ The ConfigFileEventHandler class
+
+    Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and
+    creates/removes available configurations as necessary.
+    """
     def __init__(self, root_path, schema_folder, schema_lock, config_list_manager, is_subconfig=False, test_mode=False):
         self._schema_folder = schema_folder
         self._is_subconfig = is_subconfig
@@ -20,6 +25,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         self._root_path = root_path
         self._config_list = config_list_manager
         self._test_mode = test_mode
+        self.last_delete = ""
 
         if self._is_subconfig:
             self._watching_path = self._root_path + COMPONENT_DIRECTORY
@@ -35,16 +41,16 @@ class ConfigFileEventHandler(FileSystemEventHandler):
                         self._config_list.delete_configs([self._get_config_name(event.src_path)], self._is_subconfig)
                     else:
                         modified_path = event.src_path
+
                     conf = self._check_config_valid(modified_path)
 
                     # Update PVs
                     self._config_list.update_a_config_in_list_filewatcher(conf, self._is_subconfig)
 
-                    # Update version control (add where appropriate)
-                    if not self._test_mode:
-                        ConfigurationFileManager.add_configs_to_version_control(self._watching_path,
-                                                                                [conf.get_config_name()],
-                                                                                "Files modified by hand")
+                    # Inform user
+                    print_and_log("The configuration, %s, has been modified in the filesystem, ensure it is added to "
+                                  "version control" % conf.get_config_name(), "INFO", "FILEWTCHER")
+
                 except NotConfigFileException as err:
                     print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
                 except ConfigurationIncompleteException as err:
@@ -53,6 +59,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
                     print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
     def on_deleted(self, event):
+        # Recover and return error
         try:
             # Recover deleted file from vc so it can be deleted properly
             # TODO: Ignore the new fileIO in modified
@@ -60,25 +67,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         except Exception as err:
             print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
-        try:
-            if self._check_file_at_root(event.src_path):
-                if os.path.isdir(event.src_path):
-                    # Deleting a whole config
-                    self._config_list.delete_configs([self._get_config_name(event.src_path)], self._is_subconfig)
-                else:
-                    raise NotConfigFileException("")
-            else:
-                # Check if we're deleting a file required for a config
-                self._check_config_valid(event.src_path)
-
-                print_and_log("File Watcher: File part of config (%s), restored from version control" % event.src_path,
-                              src="FILEWTCHR")
-
-        except NotConfigFileException:
-            ConfigurationFileManager.delete_file_from_version_control(self._watching_path, event.src_path,
-                                                                      "Deleted by hand")
-        except Exception as err:
-            print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
+        print_and_log("File Watcher: Recovered %s, please delete via client" % event.src_path, "MAJOR", "FILEWTCHR")
 
     def _check_config_valid(self, path):
         if self._check_file_at_root(path):
@@ -91,7 +80,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         try:
             ic = self._config_list.load_config(self._get_config_name(path), self._is_subconfig)
         except Exception as err:
-            print_and_log("File Watcher, loading config: " + str(err), "MAJOR", "FILEWTCHR")
+            print_and_log("File Watcher, loading config: " + str(err), "INFO", "FILEWTCHR")
 
         return ic
 

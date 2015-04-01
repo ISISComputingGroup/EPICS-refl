@@ -312,8 +312,10 @@ class BlockServer(Driver):
             elif reason == 'SAVE_NEW_COMPONENT':
                 self.save_inactive_config(data, True)
             elif reason == 'DELETE_CONFIGS':
+                self._filewatcher.pause()
                 self._config_list.delete_configs(convert_from_json(data))
                 self.update_config_monitors()
+                self._filewatcher.resume()
             elif reason == 'DELETE_COMPONENTS':
                 self._config_list.delete_configs(convert_from_json(data), True)
                 self.update_comp_monitor()

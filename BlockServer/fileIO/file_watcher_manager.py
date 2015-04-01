@@ -7,6 +7,10 @@ from BlockServer.core.constants import CONFIG_DIRECTORY, COMPONENT_DIRECTORY
 
 
 class ConfigFileWatcherManager(object):
+    """ The ConfigFileWatcherManager class
+
+    Registers and communicates with the event handlers for configuration filewatchers.
+    """
     def __init__(self, root_path, schema_folder, config_list_manager, test_mode=False):
 
         schema_lock = RLock()

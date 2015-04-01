@@ -13,7 +13,10 @@ from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFA
 
 
 class ConfigurationFileManager(object):
-    """Saves and loads configuration data from file"""
+    """ The ConfigurationFileManager class
+
+    Contains utilities to save and load configurations and to communicate with the version control system.
+    """
     @staticmethod
     def load_config(root_path, config_name, macros):
         """Loads the configuration from the specified folder"""
@@ -131,7 +134,7 @@ class ConfigurationFileManager(object):
         vc = ConfigurationFileManager.start_version_control(root_path)
         if vc is not None:
             for config in config_names:
-                vc.add(root_path + '/' + config)
+                vc.add(root_path + '\\' + config)
             vc.commit(commit_message)
 
     @staticmethod
@@ -140,7 +143,7 @@ class ConfigurationFileManager(object):
         vc = ConfigurationFileManager.start_version_control(root_path)
         if vc is not None:
             for config in config_names:
-                vc.remove(root_path + '/' + config)
+                vc.remove(root_path + '\\' + config)
             vc.commit(commit_message)
 
     @staticmethod
@@ -158,13 +161,13 @@ class ConfigurationFileManager(object):
 
     @staticmethod
     def subconfig_exists(root_path, name):
-        if not os.path.isdir(root_path + '/' + name):
+        if not os.path.isdir(root_path + '\\' + name):
             raise Exception("Subconfig does not exist")
 
     @staticmethod
     def delete_configs(root_path, config_names):
         for config in config_names:
-            path = root_path + '/' + config
+            path = root_path + '\\' + config
             if os.path.isdir(path):
                 shutil.rmtree(path)
 

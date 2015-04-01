@@ -77,12 +77,22 @@ class ConfigListManager(object):
         return files
 
     def get_configs(self):
+        """Returns all of the valid configurations, made up of those found on startup and those subsequently created.
+
+        Returns:
+            list: A list of available configurations
+        """
         configs_string = list()
         for config in self._config_metas.values():
             configs_string.append(config.to_dict())
         return configs_string
 
     def get_subconfigs(self):
+        """Returns all of the valid components, made up of those found on startup and those subsequently created.
+
+        Returns:
+            list: A list of available components
+        """
         subconfigs_string = list()
         for cn, cv in self._subconfig_metas.iteritems():
             if cn.lower() != DEFAULT_COMPONENT.lower():
@@ -255,27 +265,27 @@ class ConfigListManager(object):
             # TODO: clean this up?
             if not self._test_mode:
                 print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
-            delete_list = set([x.lower() for x in delete_list])
+            lower_delete_list = set([x.lower() for x in delete_list])
             if not are_subconfigs:
-                if self.active_config_name.lower() in delete_list:
+                if self.active_config_name.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete currently active configuration")
-                if not delete_list.issubset(self._config_metas.keys()):
+                if not lower_delete_list.issubset(self._config_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown configurations")
-                for config in delete_list:
+                for config in lower_delete_list:
                     self._ca_server.deletePV(self._config_metas[config].pv + GET_CONFIG_PV)
                     del self._config_metas[config]
                     self._remove_config_from_dependencies(config)
-                self.update_version_control_post_delete(self._conf_path, delete_list)
+                self.update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
             else:
-                if DEFAULT_COMPONENT.lower() in delete_list:
+                if DEFAULT_COMPONENT.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete default component")
                 # Only allow comps to be deleted if they appear in no configs
-                for comp in delete_list:
+                for comp in lower_delete_list:
                     if self._comp_dependecncies.get(comp):
                         raise InvalidDeleteException(comp + " is in use in: " + ', '.join(self._comp_dependecncies[comp]))
-                if not delete_list.issubset(self._subconfig_metas.keys()):
+                if not lower_delete_list.issubset(self._subconfig_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown components")
-                for comp in delete_list:
+                for comp in lower_delete_list:
                     self._ca_server.deletePV(self._subconfig_metas[comp].pv + GET_SUBCONFIG_PV)
                     self._ca_server.deletePV(self._subconfig_metas[comp].pv + DEPENDENCIES_PV)
                     del self._subconfig_metas[comp]
