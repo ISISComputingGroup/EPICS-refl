@@ -9,22 +9,40 @@ from server_common.utilities import print_and_log
 
 
 class ArchiverManager(object):
-    """This class is responsible for updating the EPICS Archiver that is responsible for logging the blocks"""
+    """This class is responsible for updating the EPICS Archiver that is responsible for logging the blocks."""
 
     def __init__(self, uploader_path, settings_path, test_mode=False):
+        """Constructor.
+
+        Args:
+            uploader_path (string) : The filepath for the program that uploads the archiver settings
+            settings_path (string) : The filepath for the settings to be writen to
+            test_mode (bool) : Whether to run in test_mode
+        """
         self._uploader_path = uploader_path
         self._settings_path = settings_path
         self._test_mode = test_mode
 
     def set_testing_mode(self, test_mode):
+        """Set or unset test mode for the archiver.
+
+        Args:
+            test_mode (bool) : Whether to enable test_mode or not
+        """
         self._test_mode = test_mode
 
     def update_archiver(self, block_prefix, blocks):
+        """Update the archiver to log the blocks specified.
+
+        Args:
+            block_prefix (string) : The block prefix
+            blocks (list) : The name of the blocks to archive
+        """
         if self._test_mode:
             return
         try:
             if self._settings_path is not None:
-                self.generate_archive_config(block_prefix, blocks)
+                self._generate_archive_config(block_prefix, blocks)
             if self._uploader_path is not None:
                 self._upload_archive_config()
                 # Needs a second delay
@@ -42,7 +60,7 @@ class ArchiverManager(object):
         urllib2.install_opener(opener)
         urllib2.urlopen("http://localhost:4813/restart")
 
-    def generate_archive_config(self, block_prefix, blocks):
+    def _generate_archive_config(self, block_prefix, blocks):
         print_and_log("Generating archiver configuration file: %s" % self._settings_path)
         root = eTree.Element('engineconfig')
         group = eTree.SubElement(root, 'group')

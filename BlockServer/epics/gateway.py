@@ -6,11 +6,23 @@ class Gateway(object):
     """A class for interacting with the EPICS gateway that creates the aliases used for implementing blocks"""
 
     def __init__(self, prefix, block_prefix, pvlist_file):
+        """Constructor.
+
+        Args:
+            prefix (string) : The prefix for the gateway
+            block_prefix (string) : The block prefix
+            pvlist_file (string) : Where to write the gateway file
+        """
         self._prefix = prefix
         self._block_prefix = block_prefix
         self._pvlist_file = pvlist_file
 
     def exists(self):
+        """Checks the gateway exists by querying on of the PVs.
+
+        Returns:
+            (bool) : Whether the gateway is running and is accessible
+        """
         val = caget(self._prefix + "pvtotal")
         if val is None:
             return False
@@ -89,5 +101,10 @@ class Gateway(object):
                 return ['\(.*\)%s%s\(.*\)    ALIAS    %s\\2\n' % (self._block_prefix, blockname, pv)]
 
     def set_new_aliases(self, blocks):
+        """Creates the aliases for the blocks and restarts the gateway.
+
+        Args:
+            blocks (OrderedDict) : The blocks that belong to the configuration
+        """
         self._generate_alias_file(blocks)
         self._restart()

@@ -27,7 +27,7 @@ class InvalidDeleteException(Exception):
 
 
 class ConfigListManager(object):
-    """ Class to handle data on all available configurations and manage their associated PVs"""
+    """ Class to handle data on all available configurations and manage their associated PVs."""
     def __init__(self, block_server, config_folder, server, schema_folder, vc_manager, test_mode=False):
         self._config_metas = dict()
         self._subconfig_metas = dict()
@@ -39,7 +39,7 @@ class ConfigListManager(object):
         self.active_config_name = ""
         self.active_components = []
         self._active_changed = False
-        self.lock = RLock()
+        self._lock = RLock()
         self._vc = vc_manager
 
         self._conf_path = os.path.abspath(config_folder + CONFIG_DIRECTORY)
@@ -51,7 +51,7 @@ class ConfigListManager(object):
         self.set_active_changed(False)
 
     def get_active_changed(self):
-        with self.lock:
+        with self._lock:
             if self._active_changed:
                 return 1
             else:
@@ -177,7 +177,7 @@ class ConfigListManager(object):
         self._ca_server.updatePV(self._subconfig_metas[name].pv + GET_SUBCONFIG_PV, compress_and_hex(json.dumps(data)))
 
     def update_a_config_in_list_filewatcher(self, config, is_subconfig=False):
-        with self.lock:
+        with self._lock:
             # Update dynamic PVs
             self.update_a_config_in_list(config, is_subconfig)
 
@@ -260,7 +260,7 @@ class ConfigListManager(object):
 
     def delete_configs(self, delete_list, are_subconfigs=False):
         """ Takes a list of configs and removes them from the file system and any relevant PVs."""
-        with self.lock:
+        with self._lock:
             # TODO: clean this up?
             if not self._test_mode:
                 print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
@@ -291,7 +291,7 @@ class ConfigListManager(object):
                 self.update_version_control_post_delete(self._comp_path, delete_list)
 
     def get_dependencies(self, comp_name):
-        with self.lock:
+        with self._lock:
             dependencies = self._comp_dependecncies.get(comp_name)
             if dependencies is None:
                 return []
