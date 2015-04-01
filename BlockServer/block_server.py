@@ -167,7 +167,14 @@ PVDB = {
 
 
 class BlockServer(Driver):
+    """The class for handling all the static PV access and monitors etc.
+    """
     def __init__(self, ca_server):
+        """Constructor.
+
+        Args:
+            ca_server (CAServer) : The CA server used for generating PVs on the fly
+        """
         super(BlockServer, self).__init__()
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE)
         self._active_configserver = None
@@ -215,6 +222,8 @@ class BlockServer(Driver):
             self.write_queue.append((self.initialise_configserver, (), "INITIALISING"))
 
     def initialise_configserver(self):
+        """Initialises the ActiveConfigHolder.
+        """
         # This is in a separate method so it can be sent to the thread queue
         self._active_configserver = ActiveConfigHolder(CONFIG_DIR, MACROS, ARCHIVE_UPLOADER, ARCHIVE_SETTINGS, self._vc)
         try:
@@ -242,7 +251,6 @@ class BlockServer(Driver):
             str: A compressed and hexed JSON formatted string that gives the desired information based on reason. If an
                 Exception is thrown in the reading of the information this is returned in compressed and hexed JSON.
         """
-
         try:
             if reason == 'BLOCKNAMES':
                 bn = convert_to_json(self._active_configserver.get_blocknames())
@@ -290,7 +298,6 @@ class BlockServer(Driver):
             str: "OK" in compressed and hexed JSON if function succeeds. Otherwise returns the Exception in compressed
                 and hexed JSON.
         """
-
         status = True
         try:
             data = dehex_and_decompress(value).strip('"')
@@ -349,6 +356,10 @@ class BlockServer(Driver):
         return status
 
     def load_last_config(self):
+        """Loads the last configuration used.
+
+        The information is saved in a text file.
+        """
         last = self._active_configserver.load_last_config()
         if last is None:
             print_and_log("Could not retrieve last configuration - starting blank configuration")
@@ -374,6 +385,12 @@ class BlockServer(Driver):
         self._active_configserver.create_runcontrol_pvs()
 
     def load_config(self, config, is_subconfig=False):
+        """Load a configuration.
+
+        Args:
+            config (string) : The name of the configuration
+            is_subconfig (bool) : Whether it is a component or not
+        """
         try:
             if is_subconfig:
                 print_and_log("Loading sub-configuration: %s" % config)
@@ -387,6 +404,12 @@ class BlockServer(Driver):
             print_and_log(str(err), "MAJOR")
 
     def save_inactive_config(self, json_data, as_subconfig=False):
+        """Save an inactive configuration.
+
+        Args:
+            json_data (string) : The JSON data containing the configuration/component
+            as_subconfig (bool) : Whether it is a component or not
+        """
         inactive = InactiveConfigHolder(CONFIG_DIR, MACROS, self._vc)
         inactive.set_config_details(convert_from_json(json_data))
         config_name = inactive.get_config_name()
@@ -407,6 +430,11 @@ class BlockServer(Driver):
             self._filewatcher.resume()
 
     def save_active_config(self, name):
+        """Save the active configuration.
+
+        Args:
+            name (string) : The name to save it under
+        """
         self._filewatcher.pause()
         try:
             print_and_log("Saving active configuration as: %s" % name)
@@ -417,6 +445,8 @@ class BlockServer(Driver):
             self._filewatcher.resume()
 
     def update_blocks_monitors(self):
+        """Updates the monitors for the blocks and groups, so the clients can see any changes.
+        """
         with self.monitor_lock:
             # Blocks
             bn = convert_to_json(self._active_configserver.get_blocknames())
@@ -429,6 +459,8 @@ class BlockServer(Driver):
             self.updatePVs()
 
     def update_config_monitors(self):
+        """Updates the monitor for the configurations, so the clients can see any changes.
+        """
         with self.monitor_lock:
             # set the available configs
             self.setParam("CONFIGS", compress_and_hex(convert_to_json(self._config_list.get_configs())))
@@ -436,12 +468,17 @@ class BlockServer(Driver):
             self.updatePVs()
 
     def update_comp_monitor(self):
+        """Updates the monitor for the components, so the clients can see any changes.
+        """
         with self.monitor_lock:
             self.setParam("COMPS", compress_and_hex(convert_to_json(self._config_list.get_subconfigs())))
             # Update them
             self.updatePVs()
 
     def update_ioc_monitors(self):
+        """Updates the monitor for the server status, so the clients can see any changes.
+        """
+        # TODO: Rename this method!
         while True:
             if self._active_configserver is not None:
                 with self.monitor_lock:
@@ -451,17 +488,30 @@ class BlockServer(Driver):
             sleep(2)
 
     def update_get_details_monitors(self):
+        """Updates the monitor for the active configuration, so the clients can see any changes.
+        """
         self._config_list.set_active_changed(False)
         with self.monitor_lock:
             js = convert_to_json(self._active_configserver.get_config_details())
             self.setParam("GET_CURR_CONFIG_DETAILS", compress_and_hex(js))
             self.updatePVs()
 
+    def update_synoptic_monitor(self):
+        """Updates the monitor for the current synoptic, so the clients can see any changes.
+        """
+        with self.monitor_lock:
+            synoptic = self._syn.get_current_synoptic_xml()
+            self.setParam("SYNOPTICS:GET_CURRENT", compress_and_hex(synoptic))
+
     def consume_write_queue(self):
-        # Queue items are tuples with three values
-        # (the method to call, the argument(s) to send (tuple), the description of the state (string))
-        # For example:
-        # (self.load_config, ("configname",), "LOADING_CONFIG")
+        """Actions any requests on the write queue.
+
+        Queue items are tuples with three values:
+        the method to call; the argument(s) to send (tuple); and, the description of the state (string))
+
+        For example:
+            self.load_config, ("configname",), "LOADING_CONFIG")
+        """
         while True:
             while len(self.write_queue) > 0:
                 with self.write_lock:
@@ -472,11 +522,21 @@ class BlockServer(Driver):
             sleep(1)
 
     def get_server_status(self):
+        """Get the status of the BlockServer.
+
+        Returns:
+            (string) : A JSON representation of the status
+        """
         d = dict()
         d['status'] = self._status
         return convert_to_json(d)
 
     def get_blank_config(self):
+        """Get a blank configuration which can be used to create a new configuration from scratch.
+
+        Returns:
+            (dict) : A dictionary containing all the details of a blank configuration
+        """
         temp_config = InactiveConfigHolder(CONFIG_DIR, MACROS, self._vc)
         return temp_config.get_config_details()
 
@@ -487,12 +547,6 @@ class BlockServer(Driver):
         else:
             pass
             # TODO: check not a component of active, don't know what do to for this case?
-
-    def update_synoptic_monitor(self):
-        with self.monitor_lock:
-            synoptic = self._syn.get_current_synoptic_xml()
-            self.setParam("SYNOPTICS:GET_CURRENT", compress_and_hex(synoptic))
-
 
 
 if __name__ == '__main__':

@@ -7,12 +7,19 @@ from BlockServer.core.constants import CONFIG_DIRECTORY, COMPONENT_DIRECTORY
 
 
 class ConfigFileWatcherManager(object):
-    """ The ConfigFileWatcherManager class
+    """ The ConfigFileWatcherManager class.
 
     Registers and communicates with the event handlers for configuration filewatchers.
     """
     def __init__(self, root_path, schema_folder, config_list_manager, test_mode=False):
+        """Constructor.
 
+        Args:
+            root_path (string) : The root folder where configurations are stored
+            schema_folder (string) : The folder where the schemas are kept
+            config_list_manager (ConfigListManager) : The ConfigListManager
+            test_mode (bool) : Whether to start in test mode
+        """
         schema_lock = RLock()
         self._config_dir = root_path + CONFIG_DIRECTORY
         self._comp_dir = root_path + COMPONENT_DIRECTORY
@@ -39,12 +46,12 @@ class ConfigFileWatcherManager(object):
         self.has_subconfig_event = False
 
     def pause(self):
-        """ Stop the filewatcher, useful when known changes are being made through the rest of the BlockServer """
+        """Stop the filewatcher, useful when known changes are being made through the rest of the BlockServer."""
         self._component_observer.unschedule_all()
         self._config_observer.unschedule_all()
 
     def resume(self):
-        """ Restart the filewatcher after a pause """
+        """Restart the filewatcher after a pause."""
         # Start filewatcher threads
         self._config_observer.schedule(self._config_event_handler, self._config_dir, recursive=True)
         self._component_observer.schedule(self._component_event_handler, self._comp_dir, recursive=True)

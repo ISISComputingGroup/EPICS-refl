@@ -7,6 +7,7 @@ from BlockServer.core.constants import SCHEMA_FOR, COMPONENT_DIRECTORY, CONFIG_D
 
 SYNOPTIC_SCHEMA = "synoptic.xsd"
 
+
 class NotConfigFileException(Exception):
     def __init__(self, value):
         self.value = value
@@ -36,8 +37,15 @@ class ConfigurationSchemaChecker(object):
 
     Contains utilities to check configurations against xml schema.
     """
+
     @staticmethod
     def check_all_config_files_correct(schema_folder, root_path):
+        """Check all the configuration files are schematically correct.
+
+        Args:
+            schema_folder (string) : The location of the schema files
+            root_path (string) : The location of all the configuration
+        """
         valid = True
 
         for root, dirs, files in os.walk(root_path + CONFIG_DIRECTORY):
@@ -54,6 +62,13 @@ class ConfigurationSchemaChecker(object):
 
     @staticmethod
     def check_config_file_matches_schema(schema_folder, config_xml_path, is_subconfig=False):
+        """Check the configuration file is schematically correct.
+
+        Args:
+            schema_folder (string) : The location of the schema files
+            config_xml_path (string) : The location of the configuration
+            is_subconfig (bool) : Whether it is a component
+        """
         folder, file_name = string.rsplit(config_xml_path, '\\', 1)
         if file_name in SCHEMA_FOR:
             schema_name = string.split(file_name, '.')[0] + '.xsd'
@@ -76,8 +91,13 @@ class ConfigurationSchemaChecker(object):
     @staticmethod
     def check_synoptic_matches_schema(schema_folder, synoptic_xml_data):
         """ This method takes xml data and checks it against a given schema.
-        A ConfigurationInvalidUnderSchema error is raised if the file is incorrect """
 
+        A ConfigurationInvalidUnderSchema error is raised if the file is incorrect.
+
+        Args:
+            schema_folder (string) : The location of the schema files
+            synoptic_xml_data (string) : The XML for the synoptic
+        """
         xmlparser = ConfigurationSchemaChecker._import_schema(schema_folder, SYNOPTIC_SCHEMA)
 
         try:
@@ -88,8 +108,15 @@ class ConfigurationSchemaChecker(object):
     @staticmethod
     def _check_file_against_schema(xml_file, schema_folder, schema_file):
         """ This method takes an xml file and checks it against a given schema.
-        A etree.XMLSyntaxError error is raised if the file is incorrect """
 
+        Args:
+            xml_file (string) : The XML file to check
+            schema_folder (string) : The location of the schema files
+            schema_file (string) : The schema file to use
+
+        Raises:
+            (etree.XMLSyntaxError) : Raised if the file is incorrect
+        """
         xmlparser = ConfigurationSchemaChecker._import_schema(schema_folder, schema_file)
 
         # Import the xml file

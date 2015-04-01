@@ -13,13 +13,19 @@ from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFA
 
 
 class ConfigurationFileManager(object):
-    """ The ConfigurationFileManager class
+    """ The ConfigurationFileManager class.
 
     Contains utilities to save and load configurations and to communicate with the version control system.
     """
     @staticmethod
     def load_config(root_path, config_name, macros):
-        """Loads the configuration from the specified folder"""
+        """Loads the configuration from the specified folder.
+
+        Args:
+            root_path (string) : The root folder for all configurations
+            config_name (string) : The name of the configuration
+            macros (dict) : The BlockServer macros
+        """
         configuration = Configuration(macros)
         config_folder = os.path.abspath(root_path) + "\\" + config_name
         path = os.path.abspath(config_folder)
@@ -76,7 +82,13 @@ class ConfigurationFileManager(object):
 
     @staticmethod
     def save_config(configuration, root_path, config_name):
-        """Saves the current configuration with the specified name"""
+        """Saves the current configuration with the specified name.
+
+        Args:
+            configuration (Configuration) : The actual configuration to save
+            root_path (string) : The root folder where configuration are stored
+            config_name (string) : The configuration name to save under
+        """
         config_folder = os.path.abspath(root_path) + "\\" + config_name
         path = os.path.abspath(config_folder)
         if not os.path.isdir(path):
@@ -115,11 +127,25 @@ class ConfigurationFileManager(object):
 
     @staticmethod
     def subconfig_exists(root_path, name):
+        """Checks to see if a component exists.
+
+        root_path (string) : The root folder where components are stored
+        name (string) : The name of the components
+
+        Raises:
+            (Exception) : raises an Exception if the component does not exist
+        """
         if not os.path.isdir(root_path + '\\' + name):
             raise Exception("Subconfig does not exist")
 
     @staticmethod
     def delete_configs(root_path, config_names):
+        """Delete configurations.
+
+        Args:
+            root_path (string) : The root folder where configurations are stored
+            config_names (list) : The names of the configurations to delete
+        """
         for config in config_names:
             path = root_path + '\\' + config
             if os.path.isdir(path):
@@ -127,5 +153,10 @@ class ConfigurationFileManager(object):
 
     @staticmethod
     def copy_default(dest_path):
+        """Copies the default/base component in if it does exist.
+
+        Args:
+            dest_path (string) : The root folder where configurations are stored
+        """
         shutil.copytree(os.path.abspath(os.environ["MYDIRBLOCK"] + EXAMPLE_DEFAULT),
                         dest_path + "//" + DEFAULT_COMPONENT)
