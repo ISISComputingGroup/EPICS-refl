@@ -28,7 +28,7 @@ class InvalidDeleteException(Exception):
 
 class ConfigListManager(object):
     """ Class to handle data on all available configurations and manage their associated PVs"""
-    def __init__(self, block_server, config_folder, server, schema_folder, test_mode=False):
+    def __init__(self, block_server, config_folder, server, schema_folder, vc_manager, test_mode=False):
         self._config_metas = dict()
         self._subconfig_metas = dict()
         self._comp_dependecncies = dict()
@@ -40,6 +40,7 @@ class ConfigListManager(object):
         self.active_components = []
         self._active_changed = False
         self.lock = RLock()
+        self._vc = vc_manager
 
         self._conf_path = os.path.abspath(config_folder + CONFIG_DIRECTORY)
         self._comp_path = os.path.abspath(config_folder + COMPONENT_DIRECTORY)
@@ -129,10 +130,11 @@ class ConfigListManager(object):
         # Must load components first for them all to be known in dependencies
         for comp_name in subconfig_list:
             try:
-                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, self._comp_path + '\\'
-                                                                            + comp_name + '\\', True)
+                path = self._comp_path + '\\' + comp_name + '\\'
+                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path, True)
                 config = self.load_config(comp_name, True)
                 self.update_a_config_in_list(config, True)
+                self._vc.add(path)
             except Exception as err:
                 print_and_log("Error in loading subconfig: " + str(err), "MINOR")
 
@@ -142,23 +144,19 @@ class ConfigListManager(object):
 
         for config_name in config_list:
             try:
-                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, self._conf_path + '\\'
-                                                                            + config_name + '\\')
+                path = self._conf_path + '\\' + config_name + '\\'
+                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path)
                 config = self.load_config(config_name)
                 self.update_a_config_in_list(config)
+                self._vc.add(path)
             except Exception as err:
                 print_and_log("Error in loading config: " + str(err), "MINOR")
 
-        # Add fileIO to version control
-        if not self._test_mode:
-            ConfigurationFileManager.add_configs_to_version_control(
-                self._conf_path, config_list, "Blockserver started: all configs updated")
-
-            ConfigurationFileManager.add_configs_to_version_control(
-                self._comp_path, subconfig_list, "Blockserver started: all subconfigs updated")
+        # Add files to version control
+        self._vc.commit("Blockserver started, configs updated")
 
     def load_config(self, name, is_subconfig=False):
-        config = InactiveConfigHolder(self._config_folder, MACROS)
+        config = InactiveConfigHolder(self._config_folder, MACROS, self._vc)
         config.load_inactive(name, is_subconfig)
         return config
 
@@ -254,8 +252,9 @@ class ConfigListManager(object):
 
     def update_version_control_post_delete(self, folder, files):
         if not self._test_mode:
-            ConfigurationFileManager.delete_configs_from_version_control(folder, files,
-                                                                         "Deleted: " + ', '.join(list(files)))
+            for config in files:
+                self._vc.remove(os.path.join(folder, config))
+            self._vc.commit("Deleted %s" % ', '.join(list(files)))
         else:
             ConfigurationFileManager.delete_configs(folder, files)
 
@@ -298,3 +297,7 @@ class ConfigListManager(object):
                 return []
             else:
                 return dependencies
+
+    def recover_from_version_control(self):
+        """A method to revert the configurations directory back to the state held in version control."""
+        self._vc.update()

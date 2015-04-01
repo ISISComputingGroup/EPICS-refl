@@ -8,6 +8,7 @@ from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.fileIO.file_event_handler import ConfigFileEventHandler
 import BlockServer.core.constants as const
+from BlockServer.mocks.mock_version_control import MockVersionControl
 
 
 TEST_DIRECTORY = os.path.abspath(".\\test_configs")
@@ -25,7 +26,8 @@ class TestFileEventHandler(unittest.TestCase):
 
     def setUp(self):
         os.makedirs(CONFIG_DIR)
-        self.config_list = ConfigListManager(MockBlockServer, TEST_DIRECTORY, MockCAServer(), SCHEMA_DIR, test_mode=True)
+        self.config_list = ConfigListManager(MockBlockServer, TEST_DIRECTORY, MockCAServer(), SCHEMA_DIR,
+                                             MockVersionControl(), test_mode=True)
         self.eh = ConfigFileEventHandler(TEST_DIRECTORY, SCHEMA_DIR, RLock(), self.config_list, False, test_mode=True)
 
     def tearDown(self):

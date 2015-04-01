@@ -7,6 +7,7 @@ from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, Config
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.constants import SCHEMA_FOR, FILENAME_IOCS, CONFIG_DIRECTORY, COMPONENT_DIRECTORY
 from BlockServer.core.macros import MACROS
+from BlockServer.mocks.mock_version_control import MockVersionControl
 
 
 TEST_DIRECTORY = os.path.abspath(".\\test_configs")
@@ -54,7 +55,7 @@ def strip_out_whitespace(string):
 class TestSchemaChecker(unittest.TestCase):
     def setUp(self):
         os.makedirs(CONFIG_DIR)
-        self.cs = ActiveConfigHolder(TEST_DIRECTORY, MACROS, None, "archive.xml", test_mode=True)
+        self.cs = ActiveConfigHolder(TEST_DIRECTORY, MACROS, None, "archive.xml", MockVersionControl(), test_mode=True)
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + '\\'):

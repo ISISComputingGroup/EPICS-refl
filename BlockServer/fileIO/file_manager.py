@@ -75,7 +75,7 @@ class ConfigurationFileManager(object):
         return configuration
 
     @staticmethod
-    def save_config(configuration, root_path, config_name, test_mode=False):
+    def save_config(configuration, root_path, config_name):
         """Saves the current configuration with the specified name"""
         config_folder = os.path.abspath(root_path) + "\\" + config_name
         path = os.path.abspath(config_folder)
@@ -112,52 +112,6 @@ class ConfigurationFileManager(object):
         # Save meta
         with open(path + '/' + FILENAME_META, 'w') as f:
             f.write(meta_xml)
-
-        if not test_mode:
-            ConfigurationFileManager.add_configs_to_version_control(root_path, [config_name], config_name + " modified")
-
-    @staticmethod
-    def start_version_control(root_path):
-        vc = None
-        try:
-            vc = ConfigVersionControl(root_path)
-        except NotUnderVersionControl as err:
-            print_and_log(err, "INFO")
-        except Exception as err:
-            print_and_log("Error in applying version control: " + str(err), "MAJOR")
-
-        return vc
-
-    @staticmethod
-    def add_configs_to_version_control(root_path, config_names, commit_message):
-        """Takes a list of configs, adds them to version control and commits """
-        vc = ConfigurationFileManager.start_version_control(root_path)
-        if vc is not None:
-            for config in config_names:
-                vc.add(root_path + '\\' + config)
-            vc.commit(commit_message)
-
-    @staticmethod
-    def delete_configs_from_version_control(root_path, config_names, commit_message="Deleted configs"):
-        """Takes a list of configs, removes them from version control and commits """
-        vc = ConfigurationFileManager.start_version_control(root_path)
-        if vc is not None:
-            for config in config_names:
-                vc.remove(root_path + '\\' + config)
-            vc.commit(commit_message)
-
-    @staticmethod
-    def recover_from_version_control(root_path):
-        vc = ConfigurationFileManager.start_version_control(root_path)
-        if vc is not None:
-            vc.update()
-
-    @staticmethod
-    def delete_file_from_version_control(root_path, file_path, commit_message="Deleted fileIO"):
-        vc = ConfigurationFileManager.start_version_control(root_path)
-        if vc is not None:
-            vc.remove(file_path)
-            vc.commit(commit_message)
 
     @staticmethod
     def subconfig_exists(root_path, name):

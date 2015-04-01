@@ -62,8 +62,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         # Recover and return error
         try:
             # Recover deleted file from vc so it can be deleted properly
-            # TODO: Ignore the new fileIO in modified
-            ConfigurationFileManager.recover_from_version_control(self._root_path)
+            self._config_list.recover_from_version_control()
         except Exception as err:
             print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 

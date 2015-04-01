@@ -17,7 +17,7 @@ class ConfigHolder(object):
 
     Holds a configuration which can then be manpulated via this class.
     """
-    def __init__(self, config_folder, macros, is_subconfig=False, file_manager=ConfigurationFileManager(),
+    def __init__(self, config_folder, macros, vc_manager, is_subconfig=False, file_manager=ConfigurationFileManager(),
                  test_config=None):
         """ Constructor.
 
@@ -37,6 +37,7 @@ class ConfigHolder(object):
         self._components = OrderedDict()
         self._is_subconfig = is_subconfig
         self._macros = macros
+        self._vc = vc_manager
 
         self._config_path = os.path.abspath(config_folder + CONFIG_DIRECTORY)
         self._component_path = os.path.abspath(config_folder + COMPONENT_DIRECTORY)
@@ -445,11 +446,22 @@ class ConfigHolder(object):
             if name.lower() == DEFAULT_COMPONENT.lower():
                 raise Exception("Cannot save over default component")
             self._set_config_name(name)
-            self._filemanager.save_config(self._config, self._component_path, name, self._test_mode)
+            self._filemanager.save_config(self._config, self._component_path, name)
+            self._update_version_control(name)
         else:
             self._set_config_name(name)
             # TODO: CHECK WHAT COMPONENTS self._config contains and remove _base if it is in there
-            self._filemanager.save_config(self._config, self._config_path, name, self._test_mode)
+            self._filemanager.save_config(self._config, self._config_path, name)
+            self._update_version_control(name)
+
+    def _update_version_control(self, name):
+        if self._is_subconfig:
+            path = self._component_path
+        else:
+            path = self._config_path
+
+        self._vc.add(path + "\\" + name)
+        self._vc.commit("%s modified by client" % name)
 
     def _set_as_subconfig(self, value):
         if value is True:

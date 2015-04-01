@@ -6,6 +6,7 @@ import json
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.config.configuration import Configuration
+from BlockServer.mocks.mock_version_control import MockVersionControl
 
 
 CONFIG_PATH = "./test_configs/"
@@ -60,7 +61,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         shutil.copytree(BASE_PATH, component_path + "/" + DEFAULT_COMPONENT)
 
         # Create in test mode
-        self.activech = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", test_mode=True)
+        self.activech = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(),
+                                           test_mode=True)
 
     def tearDown(self):
         # Delete any configs created as part of the test

@@ -7,6 +7,7 @@ from BlockServer.core.inactive_config_holder import ConfigHolder
 from BlockServer.config.configuration import Configuration
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.macros import MACROS
+from BlockServer.mocks.mock_version_control import MockVersionControl
 
 
 CONFIG_PATH = "./test_configs/"
@@ -53,20 +54,20 @@ class TestConfigHolderSequence(unittest.TestCase):
             shutil.rmtree(path)
 
     def test_dummy_name(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         self.assertEqual(ch.get_config_name(), "DUMMY")
 
     def test_getting_blocks_json_with_no_blocks_returns_empty_list(self):
         # arrange
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=None)
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=None)
         # act
         blocks = ch.get_blocknames()
         # assert
         self.assertEqual(len(blocks), 0)
 
     def test_dummy_config_blocks(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         blks = ch.get_blocknames()
         self.assertEqual(len(blks), 4)
@@ -91,7 +92,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(blk_details["TESTBLOCK4".lower()].local, False)
 
     def test_dummy_config_blocks_add_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
@@ -110,7 +111,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(blk_details["TESTBLOCK1".lower()].local, True)
 
     def test_dummy_config_blocks_add_remove_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
@@ -123,7 +124,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertFalse("SUBBLOCK2" in blks)
 
     def test_dummy_config_groups(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         grp_details = ch.get_group_details()
         self.assertEqual(len(grp_details), 3)
@@ -136,7 +137,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTBLOCK4" in grp_details["NONE".lower()].blocks)
 
     def test_dummy_config_groups_add_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
@@ -148,7 +149,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("SUBBLOCK2" in grp_details["SUBGROUP".lower()].blocks)
 
     def test_dummy_config_groups_add_remove_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
@@ -160,7 +161,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertFalse("SUBBLOCK1" in grp_details["GROUP1".lower()].blocks)
 
     def test_dummy_config_iocs(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         ioc_names = ch.get_ioc_names()
         self.assertEqual(len(ioc_names), 2)
@@ -168,7 +169,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("SIMPLE2" in ioc_names)
 
     def test_dummy_config_iocs_add_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
@@ -178,7 +179,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("SUBSIMPLE1" in ioc_names)
 
     def test_dummy_config_iocs_add_remove_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
@@ -189,13 +190,13 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertFalse("SUBSIMPLE1" in ioc_names)
 
     def test_dummy_config_components(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         subs = ch.get_component_names()
         self.assertEqual(len(subs), 0)
 
     def test_dummy_config_components_add_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
@@ -205,7 +206,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTSUBCONFIG".lower() in subs)
 
     def test_dummy_config_components_add_remove_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
@@ -216,7 +217,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertFalse("TESTSUBCONFIG".lower() in subs)
 
     def test_add_block(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
 
         blk = {"name": "TESTBLOCK1", "pv": "PV1", "local": True, "group": "NONE"}
         ch.add_block(blk)
@@ -228,7 +229,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(blk_details["TESTBLOCK1".lower()].local, True)
 
     def test_add_ioc(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
 
         ch._add_ioc("TESTIOC1")
 
@@ -237,7 +238,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTIOC1" in ioc_details)
 
     def test_add_ioc_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
 
         ch.add_subconfig("TESTSUBCONFIG", Configuration(MACROS))
         ch._add_ioc("TESTIOC1", "TESTSUBCONFIG")
@@ -247,7 +248,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTIOC1" in ioc_details)
 
     def test_get_config_details_empty(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
         details = ch.get_config_details()
 
         self.assertEqual(len(details['blocks']), 0)
@@ -258,7 +259,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(details['description'], "")
 
     def test_get_config_details(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         details = ch.get_config_details()
 
         self.assertEqual(details["name"], "DUMMY")
@@ -279,7 +280,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(details['components']), 0)
 
     def test_get_config_details_add_subconfig(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
 
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
@@ -298,7 +299,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(details['components']), 1)
 
     def test_empty_config_save_and_load(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
         ch.save_configuration("TESTCONFIG", False)
         ch.clear_config()
 
@@ -313,7 +314,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(ch.get_component_names()), 0)
 
     def test_empty_subconfig_save_and_load(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
         ch.save_configuration("TESTSUBCONFIG", True)
         ch.clear_config()
 
@@ -328,7 +329,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(ch.get_component_names()), 0)
 
     def test_dummy_config_save_and_load(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         ch.save_configuration("TESTCONFIG", False)
         ch.clear_config()
 
@@ -343,12 +344,12 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_save_comp_add_to_config(self):
         # Create and save a subconfig
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_subconfig())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_subconfig())
         ch.save_configuration("TESTSUBCONFIG", True)
         ch.clear_config()
 
         # Create and save a config that uses the subconfig
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         comp = ch.load_configuration("TESTSUBCONFIG", True)
         ch.add_subconfig("TESTSUBCONFIG", comp)
         ch.save_configuration("TESTCONFIG", False)
@@ -359,12 +360,12 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(ch.get_component_names()), 1)
 
     def test_get_groups_list_from_empty_repo(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS)
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
         grps = ch.get_group_details()
         self.assertEqual(len(grps), 0)
 
     def test_add_config_and_get_groups_list(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         grps = ch.get_group_details()
         self.assertEqual(len(grps), 3)
@@ -376,7 +377,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTBLOCK4" in grps['none'].blocks)
 
     def test_add_subconfig_then_get_groups_list(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
 
@@ -387,7 +388,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("SUBBLOCK2" in grps['subgroup'].blocks)
 
     def test_add_subconfig_remove_subconfig_then_get_groups_list(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
         ch.remove_subconfig("TESTSUBCONFIG")
@@ -398,7 +399,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertFalse("SUBBLOCK1" in grps['group1'].blocks)
 
     def test_redefine_groups_from_list_simple_move(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         # Move TESTBLOCK2 and TESTBLOCK4 into group 1
         redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK4"]},
@@ -415,7 +416,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTBLOCK4" in grps['group1'].blocks)
 
     def test_redefine_groups_from_list_leave_group_empty(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         # Move TESTBLOCK2, TESTBLOCK3 and TESTBLOCK4 into group 1
         redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK3", "TESTBLOCK4"]},
@@ -433,7 +434,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(grps['none'].blocks), 0)
 
     def test_redefine_groups_from_list_subconfig_changes(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         sub = create_dummy_subconfig()
         ch.add_subconfig("TESTSUBCONFIG", sub)
 
@@ -457,10 +458,10 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_set_config_details(self):
         # Need subconfig
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
         ch.save_configuration("TESTSUBCONFIG", True)
 
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         new_details = {"iocs":
                            [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": [], "pvs": [],
@@ -507,7 +508,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(details['description'], "Test Description")
 
     def test_set_config_details_nonexistant_block_in_group_is_removed(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         new_details = {"iocs":
                            [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": [], "pvs": [],
@@ -544,7 +545,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertFalse("IDONTEXIST" in grp.blocks)
 
     def test_set_config_details_empty_group_is_removed(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         new_details = {"iocs":
                            [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": {}, "pvs": {},
@@ -576,7 +577,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(grps), 2)
 
     def test_set_config_details_ioc_lists_filled(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         new_details = {"iocs":
                            [{"name": "TESTSIMPLE1", "autostart": True, "restart": True,
                                 "macros": [{"name": "TESTMACRO1", "value" : "TEST"}, {"name": "TESTMACRO2",
@@ -614,7 +615,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTMACRO3" in macro_names)
 
     def test_set_config_details_empty_config(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         new_details = {"iocs": [],
                        "blocks": [],
                        "components": [],
@@ -635,7 +636,7 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_default_component_is_loaded(self):
         # Arrange
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
         ch.save_configuration("TESTCONFIG", False)
         ch.clear_config()
 
@@ -653,7 +654,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue(comp_count_with_default > comp_count)
 
     def test_cannot_modify_default(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=Configuration(MACROS))
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
 
         try:
             ch.save_configuration(DEFAULT_COMPONENT, True)
@@ -661,7 +662,7 @@ class TestConfigHolderSequence(unittest.TestCase):
             self.assertEqual(err.message, "Cannot save over default component")
 
     def test_history_saves_correctly_config(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         ch.clear_config()
 
         self.assertEqual(ch.get_config_meta().history, [])
@@ -672,7 +673,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(ch.get_config_meta().history, [datetime.date.today().isoformat()])
 
     def test_history_saves_correctly_component(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         ch.clear_config()
 
         self.assertEqual(ch.get_config_meta().history, [])
@@ -683,7 +684,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(ch.get_config_meta().history, [datetime.date.today().isoformat()])
 
     def test_history_multiple_saves(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=create_dummy_config())
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
         ch.clear_config()
 
         self.assertEqual(ch.get_config_meta().history, [])
@@ -696,7 +697,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(ch.get_config_meta().history, [today, today])
 
     def test_clear_config(self):
-        ch = ConfigHolder(CONFIG_PATH, MACROS, test_config=None)
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=None)
         add_block(ch, "TESTBLOCK1", "PV1", "GROUP1", True)
         add_block(ch, "TESTBLOCK2", "PV2", "GROUP2", True)
         add_block(ch, "TESTBLOCK3", "PV3", "GROUP2", True)

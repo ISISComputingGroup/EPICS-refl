@@ -15,7 +15,7 @@ from BlockServer.core.config_holder import ConfigHolder
 class ActiveConfigHolder(ConfigHolder):
     """Class to serve up the active configuration.
     """
-    def __init__(self, config_folder, macros, archive_uploader, archive_config, test_mode=False):
+    def __init__(self, config_folder, macros, archive_uploader, archive_config, vc_manager, test_mode=False):
         """ Constructor.
 
         Args:
@@ -25,7 +25,7 @@ class ActiveConfigHolder(ConfigHolder):
             archive_config (string) : The location to save the archive configuration folder
             test_mode (bool) : Whether to run in test mode
         """
-        super(ActiveConfigHolder, self).__init__(config_folder, macros)
+        super(ActiveConfigHolder, self).__init__(config_folder, macros, vc_manager)
         self._archive_manager = ArchiverManager(archive_uploader, archive_config)
         self._procserve_wrapper = ProcServWrapper()
         self._db = None

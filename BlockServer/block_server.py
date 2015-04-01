@@ -21,6 +21,9 @@ from BlockServer.fileIO.file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
 from BlockServer.core.constants import SYNOPTIC_DIRECTORY
 from BlockServer.config.json_converter import ConfigurationJsonConverter
+from config_version_control import ConfigVersionControl
+from vc_exceptions import NotUnderVersionControl
+from BlockServer.mocks.mock_version_control import MockVersionControl
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
@@ -170,14 +173,21 @@ class BlockServer(Driver):
         self._active_configserver = None
         self._status = "INITIALISING"
 
+        # Connect to version control
+        try:
+            self._vc = ConfigVersionControl(CONFIG_DIR)
+        except NotUnderVersionControl as err:
+            print_and_log("Warning: Configurations not under version control", "INFO")
+            self._vc = MockVersionControl()
+
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR)
+            self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR, self._vc)
 
             # Start file watcher
             self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list)
         except Exception as err:
-            print_and_log("Error creating inactive config list: " + str(err), "MAJORR")
+            print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
         # Import all the synoptic data and create PVs
         try:
@@ -206,7 +216,7 @@ class BlockServer(Driver):
 
     def initialise_configserver(self):
         # This is in a separate method so it can be sent to the thread queue
-        self._active_configserver = ActiveConfigHolder(CONFIG_DIR, MACROS, ARCHIVE_UPLOADER, ARCHIVE_SETTINGS)
+        self._active_configserver = ActiveConfigHolder(CONFIG_DIR, MACROS, ARCHIVE_UPLOADER, ARCHIVE_SETTINGS, self._vc)
         try:
             if self._gateway.exists():
                 print_and_log("Found gateway")
@@ -377,7 +387,7 @@ class BlockServer(Driver):
             print_and_log(str(err), "MAJOR")
 
     def save_inactive_config(self, json_data, as_subconfig=False):
-        inactive = InactiveConfigHolder(CONFIG_DIR, MACROS)
+        inactive = InactiveConfigHolder(CONFIG_DIR, MACROS, self._vc)
         inactive.set_config_details(convert_from_json(json_data))
         config_name = inactive.get_config_name()
         self._check_config_inactive(config_name, as_subconfig)
@@ -467,7 +477,7 @@ class BlockServer(Driver):
         return convert_to_json(d)
 
     def get_blank_config(self):
-        temp_config = InactiveConfigHolder(CONFIG_DIR, MACROS)
+        temp_config = InactiveConfigHolder(CONFIG_DIR, MACROS, self._vc)
         return temp_config.get_config_details()
 
     def _check_config_inactive(self, inactive_name, is_subconfig=False):

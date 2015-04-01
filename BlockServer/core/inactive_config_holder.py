@@ -6,8 +6,8 @@ from BlockServer.core.config_holder import ConfigHolder
 class InactiveConfigHolder(ConfigHolder):
     """ Class to hold a individual inactive configuration or component.
     """
-    def __init__(self, config_folder, macros, test_mode=False):
-        super(InactiveConfigHolder, self).__init__(config_folder, macros)
+    def __init__(self, config_folder, macros, vc_manager, test_mode=False):
+        super(InactiveConfigHolder, self).__init__(config_folder, macros, vc_manager)
 
         if test_mode:
             super(InactiveConfigHolder, self).set_testing_mode(True)
