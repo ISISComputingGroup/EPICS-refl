@@ -27,8 +27,23 @@ class InvalidDeleteException(Exception):
 
 
 class ConfigListManager(object):
-    """ Class to handle data on all available configurations and manage their associated PVs."""
+    """ Class to handle data on all available configurations and manage their associated PVs.
+
+    Attributes:
+        active_config_name (string) : The name of the active configuration
+        active_components (list) : The names of the components in the active configuration
+    """
     def __init__(self, block_server, config_folder, server, schema_folder, vc_manager, test_mode=False):
+        """Constructor.
+
+        Args:
+            block_server (BlockServer) : A reference to the BlockServer itself
+            config_folder (string) : The location of the configuration
+            server (CAServer) : A reference to the CaServer of the BlockServer
+            schema_folder (string) : The location of the schemas for validation
+            vc_manager (ConfigVersionControl) : The object for managing version control
+            test_mode (bool) : Whether to run in test mode or not
+        """
         self._config_metas = dict()
         self._subconfig_metas = dict()
         self._comp_dependecncies = dict()
@@ -51,6 +66,11 @@ class ConfigListManager(object):
         self.set_active_changed(False)
 
     def get_active_changed(self):
+        """Check to see if the active configuration has changed.
+
+        Returns:
+            (int) : 1 if it has changed otherwise 0
+        """
         with self._lock:
             if self._active_changed:
                 return 1
@@ -58,6 +78,11 @@ class ConfigListManager(object):
                 return 0
 
     def set_active_changed(self, value):
+        """Set the flag to indicate whether the active configuration has changed or not.
+
+        Args:
+            value (bool) : Whether the active configuration has changed or not
+        """
         self._active_changed = value
         self._ca_server.updatePV(CONFIG_CHANGED_PV, self.get_active_changed())
 
@@ -81,7 +106,7 @@ class ConfigListManager(object):
         """Returns all of the valid configurations, made up of those found on startup and those subsequently created.
 
         Returns:
-            list: A list of available configurations
+            (list) : A list of available configurations
         """
         configs_string = list()
         for config in self._config_metas.values():
@@ -92,7 +117,7 @@ class ConfigListManager(object):
         """Returns all of the valid components, made up of those found on startup and those subsequently created.
 
         Returns:
-            list: A list of available components
+            (list) : A list of available components
         """
         subconfigs_string = list()
         for cn, cv in self._subconfig_metas.iteritems():
@@ -156,6 +181,15 @@ class ConfigListManager(object):
         self._vc.commit("Blockserver started, configs updated")
 
     def load_config(self, name, is_subconfig=False):
+        """Loads an inactive configuration or component.
+
+        Args:
+            name (string) : The name of the configuration to load
+            is_subconfig (bool) : Whether it is a component or not
+
+        Returns:
+            (InactiveConfigHolder) : The holder for the requested configuration
+        """
         config = InactiveConfigHolder(self._config_folder, MACROS, self._vc)
         config.load_inactive(name, is_subconfig)
         return config
@@ -177,6 +211,12 @@ class ConfigListManager(object):
         self._ca_server.updatePV(self._subconfig_metas[name].pv + GET_SUBCONFIG_PV, compress_and_hex(json.dumps(data)))
 
     def update_a_config_in_list_filewatcher(self, config, is_subconfig=False):
+        """Updates the PVs associated with a configuration
+
+        Args:
+            config (ConfigHolder) : The configuration holder
+            is_subconfig (bool) : Whether it is a component or not
+        """
         with self._lock:
             # Update dynamic PVs
             self.update_a_config_in_list(config, is_subconfig)
@@ -196,7 +236,12 @@ class ConfigListManager(object):
                     self.set_active_changed(True)
 
     def update_a_config_in_list(self, config, is_subconfig=False):
-        """ Takes a ConfigServerManager object and updates the list of meta data and the individual PVs """
+        """Takes a ConfigServerManager object and updates the list of meta data and the individual PVs.
+
+        Args:
+            config (ConfigHolder) : The configuration holder
+            is_subconfig (bool) : Whether it is a component or not
+        """
         name = config.get_config_name().lower()
 
         # Get pv name (create if doesn't exist)
@@ -237,7 +282,7 @@ class ConfigListManager(object):
                 self._update_subconfig_dependencies_pv(comp)
 
     def _get_pv_name(self, config_name, is_subconfig=False):
-        """Returns the name of the pv corresponding to config_name, this name is generated if not already created"""
+        """Returns the name of the pv corresponding to config_name, this name is generated if not already created."""
         if not is_subconfig:
             if config_name in self._config_metas:
                 pv_name = self._config_metas[config_name].pv
@@ -250,7 +295,7 @@ class ConfigListManager(object):
                 pv_name = self._create_pv_name(config_name, True)
         return pv_name
 
-    def update_version_control_post_delete(self, folder, files):
+    def _update_version_control_post_delete(self, folder, files):
         if not self._test_mode:
             for config in files:
                 self._vc.remove(os.path.join(folder, config))
@@ -259,7 +304,12 @@ class ConfigListManager(object):
             ConfigurationFileManager.delete_configs(folder, files)
 
     def delete_configs(self, delete_list, are_subconfigs=False):
-        """ Takes a list of configs and removes them from the file system and any relevant PVs."""
+        """Takes a list of configurations and removes them from the file system and any relevant PVs.
+
+        Args:
+            delete_list (list) : The configurations/components to delete
+            are_subconfigs (bool) : Whether they are components or not
+        """
         with self._lock:
             # TODO: clean this up?
             if not self._test_mode:
@@ -274,7 +324,7 @@ class ConfigListManager(object):
                     self._ca_server.deletePV(self._config_metas[config].pv + GET_CONFIG_PV)
                     del self._config_metas[config]
                     self._remove_config_from_dependencies(config)
-                self.update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
+                self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
             else:
                 if DEFAULT_COMPONENT.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete default component")
@@ -288,9 +338,17 @@ class ConfigListManager(object):
                     self._ca_server.deletePV(self._subconfig_metas[comp].pv + GET_SUBCONFIG_PV)
                     self._ca_server.deletePV(self._subconfig_metas[comp].pv + DEPENDENCIES_PV)
                     del self._subconfig_metas[comp]
-                self.update_version_control_post_delete(self._comp_path, delete_list)
+                self._update_version_control_post_delete(self._comp_path, delete_list)
 
     def get_dependencies(self, comp_name):
+        """Get the names of any configurations that depend on this component.
+
+        Args:
+            comp_name (string) : The name of the component
+
+        Returns:
+            (list) : The configurations that depend on the component
+        """
         with self._lock:
             dependencies = self._comp_dependecncies.get(comp_name)
             if dependencies is None:
