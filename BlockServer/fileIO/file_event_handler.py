@@ -19,13 +19,22 @@ class ConfigFileEventHandler(FileSystemEventHandler):
     creates/removes available configurations as necessary.
     """
     def __init__(self, root_path, schema_folder, schema_lock, config_list_manager, is_subconfig=False, test_mode=False):
+        """Constructor.
+
+        Args:
+            root_path (string) : The location of the configurations and components
+            schema_folder (string) : The location of the schemas
+            config_list_manager (ConfigListManager) : The ConfigListManager
+            is_subconfig (bool) : Whether it is a component or not
+            test_mode (bool) : Whether to enable test_mode or not
+        """
         self._schema_folder = schema_folder
         self._is_subconfig = is_subconfig
         self._schema_lock = schema_lock
         self._root_path = root_path
         self._config_list = config_list_manager
         self._test_mode = test_mode
-        self.last_delete = ""
+        self._last_delete = ""
 
         if self._is_subconfig:
             self._watching_path = self._root_path + COMPONENT_DIRECTORY
@@ -33,6 +42,11 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             self._watching_path = self._root_path + CONFIG_DIRECTORY
 
     def on_any_event(self, event):
+        """Catch-all event handler.
+
+        Args:
+            event (FileSystemEvent) : The event object representing the file system event
+        """
         if not event.is_directory:
             if type(event) is not FileDeletedEvent:
                 try:
@@ -59,6 +73,11 @@ class ConfigFileEventHandler(FileSystemEventHandler):
                     print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
     def on_deleted(self, event):
+        """"Called when a file or directory is deleted.
+
+        Args:
+            event (DirDeletedEvent) : Event representing directory deletion.
+        """
         # Recover and return error
         try:
             # Recover deleted file from vc so it can be deleted properly
