@@ -20,6 +20,14 @@ TAG_PVSETS = 'pvsets'
 class OptionsLoader(object):
     @staticmethod
     def get_options(path):
+        """Loads the IOC options from file and converts them into IocOptions objects
+
+        Args:
+            path (str) : The path to the xml file to be loaded
+
+        Returns:
+            OrderedDict : A dict of IOCs and their associated options
+        """
         iocs = OrderedDict()
         if os.path.isfile(path):
             root = parse_xml_removing_namespace(path)

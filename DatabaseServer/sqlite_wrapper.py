@@ -5,6 +5,8 @@ from server_common.utilities import print_and_log
 
 
 class SqliteWrapper(object):
+    """A wrapper to connect to the IOC database via SQL lite. (Superseded by MySQL)"""
+
     def __init__(self, dbfile, procserver, prefix):
         self._dbfile = dbfile
         self._procserve = procserver

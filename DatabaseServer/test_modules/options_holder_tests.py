@@ -10,7 +10,7 @@ class TestOptionsHolderSequence(unittest.TestCase):
     def test_get_config_options(self):
         oh = OptionsHolder(OPTIONS_PATH, OptionsLoader())
 
-        options = oh.get_config_options_string()
+        options = oh.get_config_options()
 
         self.assertTrue(len(options) > 1, "No options found")
         for n, ioc in options.iteritems():

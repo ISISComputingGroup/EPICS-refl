@@ -77,7 +77,16 @@ PVDB = {
 
 
 class DatabaseServer(Driver):
+    """The class for handling all the static PV access and monitors etc.
+    """
     def __init__(self, ca_server, dbid, options_folder, test_mode=False):
+        """Constructor.
+
+        Args:
+            ca_server (CAServer) : The CA server used for generating PVs on the fly
+            dbid (str) : The id of the database that holds IOC information.
+            options_folder (str) : The location of the folder containing the config.xml file that holds IOC options
+        """
         if test_mode:
             ps = MockProcServWrapper()
         else:
@@ -103,7 +112,14 @@ class DatabaseServer(Driver):
             monitor_thread.start()
 
     def read(self, reason):
-        # This is called by CA
+        """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
+
+        Args:
+            reason (str): The PV that is being requested (without the PV prefix)
+
+        Returns:
+            str: A compressed and hexed JSON formatted string that gives the desired information based on reason.
+        """
         if reason == 'SAMPLE_PARS':
             value = self.encode4return(self.get_sample_par_names())
         elif reason == 'BEAMLINE_PARS':
@@ -115,7 +131,15 @@ class DatabaseServer(Driver):
         return value
 
     def write(self, reason, value):
-        # This is called by CA
+        """A method called by SimpleServer when a PV is written to the DatabaseServer over Channel Access.
+
+        Args:
+            reason (str): The PV that is being requested (without the PV prefix)
+            value (str): The data being written to the 'reason' PV
+
+        Returns:
+            bool: True
+        """
         status = True
         # store the values
         if status:
@@ -123,6 +147,8 @@ class DatabaseServer(Driver):
         return status
 
     def update_ioc_monitors(self):
+        """Updates all the PVs that hold information on the IOCS and their associated PVs
+        """
         while True:
             if self._db is not None:
                 self._db.update_iocs_status()
@@ -138,11 +164,19 @@ class DatabaseServer(Driver):
             sleep(1)
 
     def encode4return(self, data):
+        """Converts data to JSON, compresses it and converts it to hex.
+
+        Args:
+            data (str) : The data to encode
+
+        Returns:
+            str : The encoded data
+        """
         return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
 
     def _get_iocs_info(self):
         iocs = self._db.get_iocs()
-        options = self._options_holder.get_config_options_string()
+        options = self._options_holder.get_config_options()
         for iocname in iocs.keys():
             if iocname in options:
                 iocs[iocname].update(options[iocname])
@@ -167,12 +201,22 @@ class DatabaseServer(Driver):
                 self._ca_server.updatePV("INTERESTING_PVS:" + iocname + ":" + level, self.encode4return(pvs))
 
     def get_sample_par_names(self):
+        """Returns the sample parameters from the database, replacing the MYPVPREFIX macro
+
+        Returns:
+            list : A list of sample parameter names, an empty list if the database does not exist
+        """
         if self._db is not None:
             return [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in self._db.get_sample_pars()]
         else:
             return list()
 
     def get_beamline_par_names(self):
+        """Returns the beamline parameters from the database, replacing the MYPVPREFIX macro
+
+        Returns:
+            list : A list of beamline parameter names, an empty list if the database does not exist
+        """
         if self._db is not None:
             return [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in self._db.get_beamline_pars()]
         else:

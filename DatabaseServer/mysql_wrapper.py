@@ -4,7 +4,16 @@ from server_common.utilities import print_and_log
 
 
 class MySQLWrapper(object):
+    """A wrapper to connect to the IOC database via MySQL"""
+
     def __init__(self, dbid, procserver, prefix):
+        """Constructor
+
+        Args:
+            dbid (str) : The id of the database that holds IOC information
+            procserver (ProcServWrapper) : An instance of ProcServWrapper, used to start and stop IOCs
+            prefix (str) : The pv prefix of the instrument the server is being run on
+        """
         self._dbid = dbid
         self._procserve = procserver
         self._prefix = prefix
@@ -12,6 +21,8 @@ class MySQLWrapper(object):
         self._running_iocs_lock = RLock()
 
     def check_db_okay(self):
+        """Attempts to connect to the database and raises an error if not able
+        """
         conn, curs = self.__open_connection()
         if conn is not None:
             conn.close()
@@ -27,6 +38,11 @@ class MySQLWrapper(object):
         return conn, curs
 
     def get_iocs(self):
+        """Gets a list of all the IOCs in the database and whether or not they are running
+
+        Returns:
+            dict : IOCs and their running status
+        """
         conn = None
         try:
             conn, c = self.__open_connection()
@@ -51,9 +67,19 @@ class MySQLWrapper(object):
         return iocs
 
     def get_active_iocs(self):
+        """Gets a list of all the running IOCs
+
+        Returns:
+            list : The names of running IOCs
+        """
         return self._running_iocs
 
     def get_sample_pars(self):
+        """Gets the sample parameters from the IOC database
+
+        Returns:
+            list : A list of the names of PVs associated with sample parameters
+        """
         conn = None
         values = []
         try:
@@ -73,6 +99,11 @@ class MySQLWrapper(object):
         return values
 
     def get_beamline_pars(self):
+        """Gets the beamline parameters from the IOC database
+
+        Returns:
+            list : A list of the names of PVs associated with beamline parameters
+        """
         conn = None
         values = []
         try:
@@ -92,8 +123,11 @@ class MySQLWrapper(object):
         return values
 
     def update_iocs_status(self):
-        # Access the db to get a list of IOCs
-        # then check to see if they are currently running
+        """Accesses the db to get a list of IOCs and checks to see if they are currently running
+
+        Returns:
+            list : The names of running IOCs
+        """
         with self._running_iocs_lock:
             conn = None
             self._running_iocs = list()
@@ -127,6 +161,17 @@ class MySQLWrapper(object):
                 return self._running_iocs
 
     def get_interesting_pvs(self, level="", ioc=None):
+        """Queries the database for PVs based on their interest level and their IOC.
+
+        Args:
+            level (str, optional) : The interest level to search for, either High or Medium. Default to all interest
+                                    levels
+            ioc (str, optional) : The IOC to search. Default is all IOCs.
+
+        Returns:
+            list : A list of the PVs that match the search given by level and ioc
+
+        """
         conn = None
         values = []
         sqlquery = "SELECT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname FROM pvinfo"
@@ -161,6 +206,16 @@ class MySQLWrapper(object):
         return values
 
     def get_active_pvs(self, level=""):
+        """Queries the database for active PVs based on their interest level.
+
+        Args:
+            level (str, optional) : The interest level to search for, either High or Medium. Default to all interest
+                                    levels
+
+        Returns:
+            list : A list of the PVs in running IOCs that match the search given by level
+
+        """
         conn = None
         values = []
         sqlquery = "SELECT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname FROM pvinfo"
