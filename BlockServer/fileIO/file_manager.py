@@ -30,7 +30,7 @@ class ConfigurationFileManager(object):
         config_folder = os.path.abspath(root_path) + "\\" + config_name
         path = os.path.abspath(config_folder)
         if not os.path.isdir(path):
-            raise Exception("Configuration could not be found: " + config_name)
+            raise IOError("Configuration could not be found: " + config_name)
 
         # Create empty containers
         blocks = OrderedDict()

@@ -22,6 +22,8 @@ class InactiveConfigHolder(ConfigHolder):
         """
         if name is None:
             name = super(InactiveConfigHolder, self).get_config_name()
+        # See if comp or config already exists
+        # if it does then load it
         super(InactiveConfigHolder, self).save_configuration(name, as_comp)
 
     # Could we override load_configuration?

@@ -10,6 +10,7 @@ from pcaspy import Driver
 import argparse
 from threading import Thread, RLock
 from time import sleep
+import datetime
 from BlockServer.epics.gateway import Gateway
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
@@ -410,8 +411,17 @@ class BlockServer(Driver):
             json_data (string) : The JSON data containing the configuration/component
             as_subconfig (bool) : Whether it is a component or not
         """
+        new_details = convert_from_json(json_data)
         inactive = InactiveConfigHolder(CONFIG_DIR, MACROS, self._vc)
-        inactive.set_config_details(convert_from_json(json_data))
+
+        history = self._get_inactive_history(new_details["name"], as_subconfig)
+
+        inactive.set_config_details(new_details)
+
+        # Set updated history
+        history.append(self._get_timestamp())
+        inactive.set_history(history)
+
         config_name = inactive.get_config_name()
         self._check_config_inactive(config_name, as_subconfig)
         self._filewatcher.pause()
@@ -429,6 +439,21 @@ class BlockServer(Driver):
         finally:
             self._filewatcher.resume()
 
+    def _get_inactive_history(self, name, is_component=False):
+        # If it already exists load it
+        try:
+            inactive = InactiveConfigHolder(CONFIG_DIR, MACROS, self._vc)
+            inactive.load_inactive(name, is_component)
+            # Get previous history
+            history = inactive.get_history()
+        except IOError as err:
+            # Config doesn't exist therefore start new history
+            history = list()
+        return history
+
+    def _get_timestamp(self):
+        return datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
+
     def save_active_config(self, name):
         """Save the active configuration.
 
@@ -438,6 +463,18 @@ class BlockServer(Driver):
         self._filewatcher.pause()
         try:
             print_and_log("Saving active configuration as: %s" % name)
+            oldname = self._active_configserver.get_cached_name()
+            if oldname != "" and name != oldname:
+                # New name or overwriting another config (Save As)
+                history = self._get_inactive_history(name)
+            else:
+                # Saving current config (Save)
+                history = self._active_configserver.get_history()
+
+            # Set updated history
+            history.append(self._get_timestamp())
+            self._active_configserver.set_history(history)
+
             self._active_configserver.save_active(name)
             self._config_list.update_a_config_in_list(self._active_configserver)
             self.update_config_monitors()

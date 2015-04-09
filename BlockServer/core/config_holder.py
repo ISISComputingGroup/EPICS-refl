@@ -365,8 +365,8 @@ class ConfigHolder(object):
             if "description" in details:
                 self._config.meta.description = details["description"]
             # blockserver ignores history returned by clients:
-            # if "history" in details:
-            #     self._config.meta.history = details["history"]
+            if "history" in details:
+                self._config.meta.history = details["history"]
             if "components" in details:
                 # List of dicts
                 for args in details["components"]:
@@ -440,8 +440,7 @@ class ConfigHolder(object):
         """
         if self._is_subconfig != as_component:
             self._set_as_subconfig(as_component)
-        # TODO: HAS NAME CHANGED?
-        self._update_history()
+
         if self._is_subconfig:
             if name.lower() == DEFAULT_COMPONENT.lower():
                 raise Exception("Cannot save over default component")
@@ -504,7 +503,26 @@ class ConfigHolder(object):
         """
         self._test_mode = mode
 
-    def _update_history(self):
-        # Add save to config history
-        date = datetime.date.today().isoformat()
-        self._config.meta.history.append(date)
+    def get_cached_name(self):
+        """ Get the previous name which may be the same as the current.
+
+        Returns:
+            (string) : The previous name
+        """
+        return self._cached_config.get_name()
+
+    def set_history(self, history):
+        """ Set history for configuration.
+
+        Args:
+            history (list) : The new history
+        """
+        self._config.meta.history = history
+
+    def get_history(self):
+        """ Get the history for configuration.
+
+        Returns:
+            (list) : The history
+        """
+        return self._config.meta.history
