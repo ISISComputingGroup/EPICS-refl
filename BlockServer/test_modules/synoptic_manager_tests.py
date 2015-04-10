@@ -73,22 +73,45 @@ class TestSynopticManagerSequence(unittest.TestCase):
         sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH)
 
         # Act
-        xml = sm.get_current_synoptic_xml()
+        xml = sm.get_default_synoptic_xml()
 
         # Assert
         self.assertTrue(len(xml) > 0)
 
     def test_set_current_synoptic_xml_sets_something(self):
         # Arrange
-        f1 = open(TEST_DIR + "\\synoptic0.xml", "a")
-        f1.close()
         cas = MockCAServer()
         sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH)
 
         # Act
-        sm.set_current_synoptic_xml(EXAMPLE_SYNOPTIC)
+        sm.set_synoptic_xml(EXAMPLE_SYNOPTIC % "synoptic0")
 
         # Assert
-        xml = sm.get_current_synoptic_xml()
+        xml = sm.get_default_synoptic_xml()
         self.assertTrue(len(xml) > 0)
 
+    def test_set_current_synoptic_xml_saves_under_name(self):
+        # Arrange
+        cas = MockCAServer()
+        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH)
+        SYN_NAME = "new_synoptic"
+
+        # Act
+        sm.set_synoptic_xml(EXAMPLE_SYNOPTIC % SYN_NAME)
+
+        # Assert
+        synoptics = sm.get_synoptic_filenames()
+        self.assertTrue(SYN_NAME in [f[0:-4] for f in synoptics])
+
+    def test_set_current_synoptic_xml_creates_pv(self):
+        # Arrange
+        cas = MockCAServer()
+        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH)
+        SYN_NAME = "new_synoptic"
+
+        # Act
+        sm.set_synoptic_xml(EXAMPLE_SYNOPTIC % SYN_NAME)
+
+        # Assert
+        self.assertTrue(len(cas.pv_list) > 0)
+        self.assertTrue("%sNEW_SYNOPTIC%s" % (SYNOPTIC_PRE, SYNOPTIC_GET) in cas.pv_list.keys())

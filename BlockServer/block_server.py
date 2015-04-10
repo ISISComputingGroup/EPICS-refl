@@ -278,8 +278,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(js)
             elif reason == "SYNOPTICS:NAMES":
                 value = compress_and_hex(convert_to_json(self._syn.get_synoptic_filenames()))
-            elif reason == "SYNOPTICS:GET_CURRENT":
-                value = compress_and_hex(self._syn.get_current_synoptic_xml())
+            elif reason == "SYNOPTICS:GET_DEFAULT":
+                value = compress_and_hex(self._syn.get_default_synoptic_xml())
             else:
                 value = self.getParam(reason)
         except Exception as err:
@@ -339,8 +339,8 @@ class BlockServer(Driver):
                 self.update_comp_monitor()
             elif reason == 'ACK_CURR_CHANGED':
                 self._config_list.set_active_changed(False)
-            elif reason == "SYNOPTICS:SET_CURRENT_DETAILS":
-                self._syn.set_current_synoptic_xml(data)
+            elif reason == "SYNOPTICS:SET_DETAILS":
+                self._syn.set_synoptic_xml(data)
                 self.update_synoptic_monitor()
             else:
                 status = False
@@ -537,7 +537,7 @@ class BlockServer(Driver):
         """Updates the monitor for the current synoptic, so the clients can see any changes.
         """
         with self.monitor_lock:
-            synoptic = self._syn.get_current_synoptic_xml()
+            synoptic = self._syn.get_default_synoptic_xml()
             self.setParam("SYNOPTICS:GET_CURRENT", compress_and_hex(synoptic))
 
     def consume_write_queue(self):

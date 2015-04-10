@@ -132,7 +132,7 @@ def value_list_to_xml(list, grp, group_tag, item_tag):
 
 
 def check_pv_name_valid(name):
-    """Checks that text conforms to the ISIS PV nameing standard
+    """Checks that text conforms to the ISIS PV naming standard
 
     Args:
         name (str): The text to be checked

@@ -1,6 +1,7 @@
 import os
-from server_common.utilities import print_and_log, compress_and_hex
+from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
+from lxml import etree
 
 SYNOPTIC_PRE = "SYNOPTICS:"
 SYNOPTIC_GET = ":GET"
@@ -31,8 +32,14 @@ class SynopticManager(object):
                 ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder, data)
             # Get the synoptic name
             name = f[0:-4].upper()
-            # Create the PV
-            self._cas.updatePV(SYNOPTIC_PRE + name + SYNOPTIC_GET, compress_and_hex(data))
+            self._create_pv(name, data)
+
+    def _create_pv(self, name, data):
+        if not check_pv_name_valid(name):
+            raise Exception("Synoptic name (%s) invalid" % name)
+
+        # Create the PV
+        self._cas.updatePV(SYNOPTIC_PRE + name + SYNOPTIC_GET, compress_and_hex(data))
 
     def get_synoptic_filenames(self):
         """Gets the names of the synoptic files in the synoptics directory.
@@ -45,14 +52,13 @@ class SynopticManager(object):
             return list()
         return [f for f in os.listdir(self._directory) if f.endswith(".xml")]
 
-    def get_current_synoptic_xml(self):
-        """Gets the XML for the current synoptic.
+    def get_default_synoptic_xml(self):
+        """Gets the XML for the default synoptic.
 
         Returns:
             (string) : The XML for the synoptic
         """
-        # TODO: for now we just return the first synoptic in the directory but in the future we will need to set the
-        # current synoptic
+        # TODO: Default is first synoptic for now
         f = self.get_synoptic_filenames()
         if len(f) > 0:
             # Load the data
@@ -63,24 +69,33 @@ class SynopticManager(object):
             # No synoptic
             return ""
 
-    def set_current_synoptic_xml(self, xml_data):
-        """Sets the XML for the current synoptic.
+    def _get_synoptic_name(self, xml_data):
+        name = None
+        root = etree.fromstring(xml_data)
+        for child in root:
+            if child.tag.split('}', 1)[1] == "name":
+                name = child.text
+        if name is None:
+            raise Exception("Synoptic contains no name tag")
+        return name
+
+    def set_synoptic_xml(self, xml_data):
+        """Saves the xml under the filename taken from the xml name tag.
 
         Args:
             xml_data (string) : The XML to be saved
         """
-        # TODO: for now we just modify the first synoptic in the directory but in the future we will need to modify the
-        # current synoptic
-
-        # Check against schema
         try:
+            # Check against schema
             ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder, xml_data)
+
+            name = self._get_synoptic_name(xml_data)
+
+            self._create_pv(name.upper(), xml_data)
         except Exception as err:
             print_and_log(err)
             raise
 
-        f = self.get_synoptic_filenames()
-        if len(f) > 0:
-            # Load the data
-            with open(os.path.join(self._directory, f[0]), 'w') as synfile:
-                synfile.write(xml_data)
+        # Save the data
+        with open(os.path.join(self._directory, name + ".xml"), 'w') as synfile:
+            synfile.write(xml_data)

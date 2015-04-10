@@ -228,11 +228,11 @@ Note: This PV is currently used by the web dashboard
     Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:*synoptic_name*:GET
     Returns a compressed and hexed string containing the XML for the specified synoptic (CHAR waveform)
 
-**BLOCKSERVER:SYNOPTICS:GET_CURRENT**
+**BLOCKSERVER:SYNOPTICS:GET_DEFAULT**
 
 ::
 
-    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:GET_CURRENT
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:GET_DEFAULT
     Returns a compressed and hexed string containing the XML for the current synoptic (CHAR waveform)
 		 
 --------------
@@ -439,24 +439,14 @@ Note: Used by the client(s) for "save" and "save as" for the current active conf
 
     Returns "OK" or an error message (compressed and hexed JSON).
 
-**BLOCKSERVER:SYNOPTICS:SET_CURRENT_DETAILS**
+**BLOCKSERVER:SYNOPTICS:SET_DETAILS**
 
 ::
 
-    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:SET_CURRENT_DETAILS abcdefabdcdefabcdef1234567890
-    Saves over the current synoptic with supplied compressed and hexed xml data.
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:SET_DETAILS abcdefabdcdefabcdef1234567890
+    Saves the synoptic with supplied compressed and hexed xml data, saving under the name specified in the xml.
 	
     Returns "OK" or an error message (compressed and hexed JSON).
-	
--------------------------------
-Notes on configuration history
--------------------------------
-
-Part of the meta data for each configuration is a history field. This is a list of the dates the configuration has been modified in YYYY-MM-DD format. The first item in the list
-will be the creation date and the last item will be the date the configuration was last modified.
-
-The list is updated automatically by the Blockserver so does not need to be added to by the client. However, when the client saves a new configuration (such as in a Save As...)
-it must ensure that the history field is an empty list.
 	
 -----------------
 The File Watcher
