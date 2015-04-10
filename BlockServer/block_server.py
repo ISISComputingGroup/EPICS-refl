@@ -154,12 +154,12 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
-    'SYNOPTICS:GET_CURRENT': {
+    'SYNOPTICS:GET_DEFAULT': {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    'SYNOPTICS:SET_CURRENT_DETAILS': {
+    'SYNOPTICS:SET_DETAILS': {
         'type': 'char',
         'count': 16000,
         'value': [0],
@@ -538,7 +538,7 @@ class BlockServer(Driver):
         """
         with self.monitor_lock:
             synoptic = self._syn.get_default_synoptic_xml()
-            self.setParam("SYNOPTICS:GET_CURRENT", compress_and_hex(synoptic))
+            self.setParam("SYNOPTICS:GET_DEFAULT", compress_and_hex(synoptic))
 
     def consume_write_queue(self):
         """Actions any requests on the write queue.
