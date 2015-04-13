@@ -246,10 +246,10 @@ class BlockServer(Driver):
         """A method called by SimpleServer when a PV is read from the BlockServer over Channel Access.
 
         Args:
-            reason (str): The PV that is being requested (without the PV prefix)
+            reason (string) : The PV that is being requested (without the PV prefix)
 
         Returns:
-            str: A compressed and hexed JSON formatted string that gives the desired information based on reason. If an
+            string : A compressed and hexed JSON formatted string that gives the desired information based on reason. If an
                 Exception is thrown in the reading of the information this is returned in compressed and hexed JSON.
         """
         try:
@@ -292,11 +292,11 @@ class BlockServer(Driver):
             commands are queued as Channel Access is single-threaded.
 
         Args:
-            reason (str): The PV that is being requested (without the PV prefix)
-            value (str): The data being written to the 'reason' PV
+            reason (string) : The PV that is being requested (without the PV prefix)
+            value (string) : The data being written to the 'reason' PV
 
         Returns:
-            str: "OK" in compressed and hexed JSON if function succeeds. Otherwise returns the Exception in compressed
+            string : "OK" in compressed and hexed JSON if function succeeds. Otherwise returns the Exception in compressed
                 and hexed JSON.
         """
         status = True
@@ -562,7 +562,7 @@ class BlockServer(Driver):
         """Get the status of the BlockServer.
 
         Returns:
-            (string) : A JSON representation of the status
+            string : A JSON representation of the status
         """
         d = dict()
         d['status'] = self._status
@@ -572,7 +572,7 @@ class BlockServer(Driver):
         """Get a blank configuration which can be used to create a new configuration from scratch.
 
         Returns:
-            (dict) : A dictionary containing all the details of a blank configuration
+            dict : A dictionary containing all the details of a blank configuration
         """
         temp_config = InactiveConfigHolder(CONFIG_DIR, MACROS, self._vc)
         return temp_config.get_config_details()

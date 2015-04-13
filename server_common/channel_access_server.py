@@ -9,7 +9,7 @@ class DynamicStringPV(cas.casPV):
         """Constructor
 
         Args:
-            data (str) : The initial data held in the PV
+            data (string) : The initial data held in the PV
         """
         super(DynamicStringPV, self).__init__()
         self.stored_value = cas.gdd()
@@ -101,8 +101,8 @@ class CAServer(SimpleServer):
         """Creates a PV in the dictionary of this server.
 
         Args:
-            name (str): The name of the PV to create (without the PV prefix)
-            data (str, optional): The initial data stored in the PV
+            name (string) : The name of the PV to create (without the PV prefix)
+            data (string, optional): The initial data stored in the PV
         """
         if name not in self._pvs:
             self._pvs[name] = DynamicStringPV(data)
@@ -111,8 +111,8 @@ class CAServer(SimpleServer):
         """Updates a PV in the dictionary of this server. The PV will be created if it does not exist.
 
         Args:
-            name (str): The name of the PV to update (without the PV prefix)
-            data (str): The data to store in the PV
+            name (string) : The name of the PV to update (without the PV prefix)
+            data (string) : The data to store in the PV
         """
         if name in self._pvs:
             self._pvs[name].updateValue(data)
@@ -123,7 +123,7 @@ class CAServer(SimpleServer):
         """Removes a PV from the dictionary of this server.
 
         Args:
-            name (str): The name of the PV to remove (without the PV prefix)
+            name (string) : The name of the PV to remove (without the PV prefix)
         """
         if name in self._pvs:
             del self._pvs[name]

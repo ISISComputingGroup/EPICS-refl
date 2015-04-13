@@ -99,7 +99,7 @@ class ActiveConfigHolder(ConfigHolder):
             ioc (string) : The IOC
 
         Returns:
-            (string) : The status of the IOC
+            string : The status of the IOC
         """
         return self._procserve_wrapper.get_ioc_status(self._macros["$(MYPVPREFIX)"], ioc)
 
@@ -238,7 +238,7 @@ class ActiveConfigHolder(ConfigHolder):
         """ Returns the PVs that are out of range.
 
         Returns:
-            (list) : A list of PVs that are out of range
+            list : A list of PVs that are out of range
         """
         return self._runcontrol.get_out_of_range_pvs()
 
@@ -246,7 +246,7 @@ class ActiveConfigHolder(ConfigHolder):
         """ Returns the current run-control settings
 
         Returns:
-            (dict) : The current run-control settings
+            dict : The current run-control settings
         """
         return self._runcontrol.get_runcontrol_settings(super(ActiveConfigHolder, self).get_block_details())
 

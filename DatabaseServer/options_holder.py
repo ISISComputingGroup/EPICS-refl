@@ -4,7 +4,7 @@ class OptionsHolder(object):
         """Constructor
 
         Args:
-            options_folder (str) : The path of the directory holding the config.xml file
+            options_folder (string) : The path of the directory holding the config.xml file
             options_loader (OptionsLoader) : An instance of OptionsLoader to load options from file
         """
         self._config_options = options_loader.get_options(options_folder + '/config.xml')

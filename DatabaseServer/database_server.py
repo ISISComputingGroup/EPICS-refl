@@ -84,8 +84,8 @@ class DatabaseServer(Driver):
 
         Args:
             ca_server (CAServer) : The CA server used for generating PVs on the fly
-            dbid (str) : The id of the database that holds IOC information.
-            options_folder (str) : The location of the folder containing the config.xml file that holds IOC options
+            dbid (string) : The id of the database that holds IOC information.
+            options_folder (string) : The location of the folder containing the config.xml file that holds IOC options
         """
         if test_mode:
             ps = MockProcServWrapper()
@@ -115,10 +115,10 @@ class DatabaseServer(Driver):
         """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
 
         Args:
-            reason (str): The PV that is being requested (without the PV prefix)
+            reason (string) : The PV that is being requested (without the PV prefix)
 
         Returns:
-            str: A compressed and hexed JSON formatted string that gives the desired information based on reason.
+            string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
         if reason == 'SAMPLE_PARS':
             value = self.encode4return(self.get_sample_par_names())
@@ -134,11 +134,11 @@ class DatabaseServer(Driver):
         """A method called by SimpleServer when a PV is written to the DatabaseServer over Channel Access.
 
         Args:
-            reason (str): The PV that is being requested (without the PV prefix)
-            value (str): The data being written to the 'reason' PV
+            reason (string) : The PV that is being requested (without the PV prefix)
+            value (string) : The data being written to the 'reason' PV
 
         Returns:
-            bool: True
+            bool : True
         """
         status = True
         # store the values
@@ -167,10 +167,10 @@ class DatabaseServer(Driver):
         """Converts data to JSON, compresses it and converts it to hex.
 
         Args:
-            data (str) : The data to encode
+            data (string) : The data to encode
 
         Returns:
-            str : The encoded data
+            string : The encoded data
         """
         return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
 

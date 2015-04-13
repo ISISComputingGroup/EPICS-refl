@@ -21,7 +21,7 @@ class Gateway(object):
         """Checks the gateway exists by querying on of the PVs.
 
         Returns:
-            (bool) : Whether the gateway is running and is accessible
+            bool : Whether the gateway is running and is accessible
         """
         val = caget(self._prefix + "pvtotal")
         if val is None:

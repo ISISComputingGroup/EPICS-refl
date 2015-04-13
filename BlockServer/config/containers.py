@@ -66,7 +66,7 @@ class Block(object):
         """ Puts the block's details into a dictionary.
 
         Returns:
-            (dict) : The block's details
+            dict : The block's details
         """
         return {"name": self.name, "pv": self._get_pv(), "local": self.local,
                 "visible": self.visible, "subconfig": self.subconfig}
@@ -99,7 +99,7 @@ class Group(object):
         """ Puts the group's details into a dictionary.
 
         Returns:
-            (dict) : The group's details
+            dict : The group's details
         """
         return {'name': self.name, 'blocks': self.blocks, "subconfig": self.subconfig}
 
@@ -165,7 +165,7 @@ class IOC(object):
             in_dict (dict) : The dictionary to be converted
 
         Returns:
-            (list) : The newly created list
+            list : The newly created list
         """
         out_list = []
         for k, v in in_dict.iteritems():
@@ -181,7 +181,7 @@ class IOC(object):
         """ Puts the IOC's details into a dictionary.
 
         Returns:
-            (dict) : The IOC's details
+            dict : The IOC's details
         """
         return {'name': self.name, 'autostart': self.autostart, 'restart': self.restart,
                 'simlevel': self.simlevel, 'pvs': self._dict_to_list(self.pvs),
@@ -215,6 +215,6 @@ class MetaData(object):
         """ Puts the metadata into a dictionary.
 
         Returns:
-            (dict) : The metadata
+            dict : The metadata
         """
         return {'name': self.name, 'pv': self.pv, 'description': self.description, 'history': self.history}

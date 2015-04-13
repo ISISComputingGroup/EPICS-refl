@@ -32,7 +32,7 @@ class ConfigurationJsonConverter(object):
             groups (OrderedDict) : The groups to convert to JSON
 
         Returns:
-            (string) : The groups as a JSON list
+            string : The groups as a JSON list
         """
         grps = ConfigurationJsonConverter._groups_to_list(groups)
         return json.dumps(grps)

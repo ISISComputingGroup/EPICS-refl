@@ -4,7 +4,7 @@ class IocOptions(object):
         """Constructor
 
         Args:
-            name (str) : The name of the IOC the options are associated with
+            name (string) : The name of the IOC the options are associated with
             macros (dict, optional) : A dict of the possible macros for the IOC, along with a list of associated
                                       parameters (description, pattern etc.)
             pvsets (dict, optional) : A dict of the possible pvsets for the IOC, along with a list of associated

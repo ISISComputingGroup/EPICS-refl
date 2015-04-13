@@ -39,8 +39,8 @@ class Configuration(object):
         Args:
             name (string) : The name for the new block
             pv (string) : The PV that is aliased
-            group (string) : The group that the block belongs to [optional]
-            local (bool) : Is the block local [optional]
+            group (string, optional) : The group that the block belongs to
+            local (bool, optional) : Is the block local
             kwargs (dict) : Keyword arguments for the other parameters
         """
         # Check block name is unique
@@ -64,13 +64,13 @@ class Configuration(object):
 
         Args:
             name (string) : The name of the IOC to add
-            subconfig (string) : The component that the IOC belongs to [optional]
-            autostart (bool) : Should the IOC automatically start [optional]
-            restart (bool) : Should the IOC automatically restart [optional]
-            macros (dict) : The macro sets relating to the IOC [optional]
-            pvs () :
-            pvsets () : Any PV values that should be set at start up [optional]
-            simlevel () : Sets the simulation level [optional]
+            subconfig (string, optional) : The component that the IOC belongs to
+            autostart (bool, optional) : Should the IOC automatically start
+            restart (bool, optional) : Should the IOC automatically restart
+            macros (dict, optional) : The macro sets relating to the IOC
+            pvs (, optional) :
+            pvsets (, optional) : Any PV values that should be set at start up
+            simlevel (, optional) : Sets the simulation level
 
         """
         # Only add it if it has not been added before

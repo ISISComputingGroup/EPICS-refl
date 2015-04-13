@@ -69,7 +69,7 @@ class ConfigListManager(object):
         """Check to see if the active configuration has changed.
 
         Returns:
-            (int) : 1 if it has changed otherwise 0
+            int : 1 if it has changed otherwise 0
         """
         with self._lock:
             if self._active_changed:
@@ -106,7 +106,7 @@ class ConfigListManager(object):
         """Returns all of the valid configurations, made up of those found on startup and those subsequently created.
 
         Returns:
-            (list) : A list of available configurations
+            list : A list of available configurations
         """
         configs_string = list()
         for config in self._config_metas.values():
@@ -117,7 +117,7 @@ class ConfigListManager(object):
         """Returns all of the valid components, made up of those found on startup and those subsequently created.
 
         Returns:
-            (list) : A list of available components
+            list : A list of available components
         """
         subconfigs_string = list()
         for cn, cv in self._subconfig_metas.iteritems():
@@ -188,7 +188,7 @@ class ConfigListManager(object):
             is_subconfig (bool) : Whether it is a component or not
 
         Returns:
-            (InactiveConfigHolder) : The holder for the requested configuration
+            InactiveConfigHolder : The holder for the requested configuration
         """
         config = InactiveConfigHolder(self._config_folder, MACROS, self._vc)
         config.load_inactive(name, is_subconfig)
@@ -347,7 +347,7 @@ class ConfigListManager(object):
             comp_name (string) : The name of the component
 
         Returns:
-            (list) : The configurations that depend on the component
+            list : The configurations that depend on the component
         """
         with self._lock:
             dependencies = self._comp_dependecncies.get(comp_name)

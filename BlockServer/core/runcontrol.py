@@ -50,7 +50,7 @@ class RunControlManager(object):
         This may include PVs that are not blocks, but have had run-control settings applied directly
 
         Returns:
-            (list) : A list of PVs that are out of range
+            list : A list of PVs that are out of range
         """
         raw = caget(self._prefix + TAG_RC_OUT_LIST, True).strip()
         raw = raw.split(" ")
@@ -67,7 +67,7 @@ class RunControlManager(object):
         """ Returns the current run-control settings
 
         Returns:
-            (dict) : The current run-control settings
+            dict : The current run-control settings
         """
         settings = dict()
         for bn, blk in blocks.iteritems():

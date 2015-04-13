@@ -35,7 +35,7 @@ class ConfigurationXmlConverter(object):
             macros (dict) : The macros for the BlockServer
 
         Returns:
-            (string) : The XML representation of the blocks in a configuration
+            string : The XML representation of the blocks in a configuration
         """
         root = ElementTree.Element(TAG_BLOCKS)
         root.attrib["xmlns"] = SCHEMA_PATH + BLOCK_SCHEMA
@@ -56,7 +56,7 @@ class ConfigurationXmlConverter(object):
             include_none (bool) : Whether to include the NONE group
 
         Returns:
-            (string) : The XML representation of the groups in a configuration
+            string : The XML representation of the groups in a configuration
         """
         root = ElementTree.Element(TAG_GROUPS)
         root.attrib["xmlns"] = SCHEMA_PATH + GROUP_SCHEMA
@@ -79,7 +79,7 @@ class ConfigurationXmlConverter(object):
             iocs (OrderedDict) : The IOCs in a configuration or component
 
         Returns:
-            (string) : The XML representation of the IOCs in a configuration
+            string : The XML representation of the IOCs in a configuration
         """
         root = ElementTree.Element(TAG_IOCS)
         root.attrib["xmlns"] = SCHEMA_PATH + IOC_SCHEMA
@@ -98,7 +98,7 @@ class ConfigurationXmlConverter(object):
             comps (OrderedDict) : The components in the configuration
 
         Returns:
-            (string) : The XML representation of the components in a configuration
+            string : The XML representation of the components in a configuration
         """
         root = ElementTree.Element(TAG_SUBCONFIGS)
         root.attrib["xmlns"] = SCHEMA_PATH + COMPONENT_SCHEMA
@@ -115,7 +115,7 @@ class ConfigurationXmlConverter(object):
             data (MetaData) : The metadata to convert to XML
 
         Returns:
-            (string) : The XML representation of the metadata in a configuration
+            string : The XML representation of the metadata in a configuration
         """
         root = ElementTree.Element(TAG_META)
 

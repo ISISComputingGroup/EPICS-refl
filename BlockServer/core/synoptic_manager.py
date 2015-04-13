@@ -45,7 +45,7 @@ class SynopticManager(object):
         """Gets the names of the synoptic files in the synoptics directory.
 
         Returns:
-            (list) : List of synoptics files on the server
+            list : List of synoptics files on the server
         """
         if not os.path.exists(self._directory):
             print_and_log("Synoptics directory does not exist")
@@ -56,7 +56,7 @@ class SynopticManager(object):
         """Gets the XML for the default synoptic.
 
         Returns:
-            (string) : The XML for the synoptic
+            string : The XML for the synoptic
         """
         # TODO: Default is first synoptic for now
         f = self.get_synoptic_filenames()

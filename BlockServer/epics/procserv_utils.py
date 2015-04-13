@@ -14,7 +14,7 @@ class ProcServWrapper(object):
             ioc (string) : The name of the IOC
 
         Returns:
-            (string) : The PV prefix
+            string : The PV prefix
         """
         return "%sCS:PS:%s" % (prefix, ioc)
 
@@ -68,7 +68,7 @@ class ProcServWrapper(object):
             ioc (string) : The name of the IOC
 
         Returns:
-            (bool) : Whether the IOC exists
+            bool : Whether the IOC exists
         """
         try:
             self.get_ioc_status(prefix, ioc)

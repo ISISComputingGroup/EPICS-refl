@@ -115,7 +115,7 @@ class ConfigurationSchemaChecker(object):
             schema_file (string) : The schema file to use
 
         Raises:
-            (etree.XMLSyntaxError) : Raised if the file is incorrect
+            etree.XMLSyntaxError : Raised if the file is incorrect
         """
         xmlparser = ConfigurationSchemaChecker._import_schema(schema_folder, schema_file)
 

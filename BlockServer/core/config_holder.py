@@ -199,7 +199,7 @@ class ConfigHolder(object):
         """ Get the names of the IOCs in the configuration and any components.
 
         Args:
-            include_base (bool) : Whether to include the IOCs in base [optional]
+            include_base (bool, optional) : Whether to include the IOCs in base
 
         Returns:
             list : The names of the IOCs
@@ -230,7 +230,7 @@ class ConfigHolder(object):
         """ Get the names of the components in the configuration.
 
         Args:
-            include_base (bool) : Whether to include the base in the list of names [optional]
+            include_base (bool, optional) : Whether to include the base in the list of names
 
         Returns:
             list : A list of components in the configuration
@@ -389,7 +389,7 @@ class ConfigHolder(object):
 
         Args:
             config (Configuration) : A configuration
-            is_component (bool) : Whether it is a component [optional]
+            is_component (bool, optional) : Whether it is a component
         """
         self.clear_config()
         self._config = config
@@ -418,8 +418,8 @@ class ConfigHolder(object):
 
         Args:
             name (string) : The name of the configuration to load
-            is_component (bool) : Whether it is a component [optional]
-            set_component_names (bool) : Whether to set the component names [optional]
+            is_component (bool, optional) : Whether it is a component
+            set_component_names (bool, optional) : Whether to set the component names
         """
         if is_component:
             path = self._component_path

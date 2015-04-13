@@ -13,9 +13,9 @@ def compress_and_hex(value):
     """Compresses the inputted string and encodes it as hex.
 
     Args:
-        value (str): The string to be compressed
+        value (string) : The string to be compressed
     Returns:
-        str: A compressed and hexed version of the inputted string
+        string : A compressed and hexed version of the inputted string
     """
     compr = zlib.compress(value)
     return compr.encode('hex')
@@ -25,10 +25,10 @@ def dehex_and_decompress(value):
     """Decompresses the inputted string, assuming it is in hex encoding.
 
     Args:
-        value (str): The string to be decompressed, encoded in hex
+        value (string) : The string to be decompressed, encoded in hex
 
     Returns:
-        str: A decompressed version of the inputted string
+        string : A decompressed version of the inputted string
     """
     return zlib.decompress(value.decode("hex"))
 
@@ -37,10 +37,10 @@ def convert_to_json(value):
     """Converts the inputted object to JSON format.
 
     Args:
-        value (obj): The object to be converted
+        value (obj) : The object to be converted
 
     Returns:
-        str: The JSON representation of the inputted object
+        string : The JSON representation of the inputted object
     """
     return json.dumps(value).encode('ascii', 'replace')
 
@@ -49,10 +49,10 @@ def convert_from_json(value):
     """Converts the inputted string into a JSON object.
 
     Args:
-        value (str): The JSON representation of an object
+        value (string) : The JSON representation of an object
 
     Returns:
-        obj: An object corresponding to the given string
+        obj : An object corresponding to the given string
     """
     return json.loads(value)
 
@@ -61,13 +61,13 @@ def parse_boolean(string):
     """Parses an xml true/false value to boolean
 
     Args:
-        string (str): String containing the xml representation of true/false
+        string (string) : String containing the xml representation of true/false
 
     Returns:
-        bool: A python boolean representation of the string
+        bool : A python boolean representation of the string
 
     Raises:
-        ValueError: If the supplied string is not "true" or "false"
+        ValueError : If the supplied string is not "true" or "false"
     """
     if string.lower() == "true":
         return True
@@ -81,9 +81,9 @@ def write_to_ioc_log(message, severity="INFO", src="BLOCKSVR"):
     """Writes a message to the IOC log. It is preferable to use print_and_log for easier debugging.
 
     Args:
-        severity (str, optional): Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
+        severity (string, optional) : Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
                                     Default severity is INFO
-        src (str, optional): Gives the source of the message. Default source is BLOCKSVR
+        src (string, optional) : Gives the source of the message. Default source is BLOCKSVR
     """
     if severity not in ['INFO','MINOR','MAJOR','FATAL'] :
         print "write_to_ioc_log: invalid severity ", severity
@@ -117,10 +117,10 @@ def value_list_to_xml(list, grp, group_tag, item_tag):
     """Converts a list of values to corresponding xml.
 
     Args:
-        list (list): The list of values given in the format of [name, {parameter : value, parameter : value}]
-        grp (ElementTree.SubElement): The SubElement object to append the list on to
-        group_tag (str): The tag that corresponds to the group for the items given in the list e.g. macros
-        item_tag (str): The tag that corresponds to each item in the list e.g. macro
+        list (list) : The list of values given in the format of [name, {parameter : value, parameter : value}]
+        grp (ElementTree.SubElement) : The SubElement object to append the list on to
+        group_tag (string) : The tag that corresponds to the group for the items given in the list e.g. macros
+        item_tag (string) : The tag that corresponds to each item in the list e.g. macro
     """
     xml_list = ElementTree.SubElement(grp, group_tag)
     if len(list) > 0:
@@ -135,10 +135,10 @@ def check_pv_name_valid(name):
     """Checks that text conforms to the ISIS PV naming standard
 
     Args:
-        name (str): The text to be checked
+        name (string) : The text to be checked
 
     Returns:
-        bool: True if text conforms to standard, False otherwise
+        bool : True if text conforms to standard, False otherwise
     """
     if re.match(r"[A-Za-z0-9_]*", name) is None:
         return False
@@ -149,7 +149,7 @@ def parse_xml_removing_namespace(file_path):
     """Creates an Element object from a given xml file, removing the namespace.
 
     Args:
-        file_path (str) : The location of the xml file
+        file_path (string) : The location of the xml file
 
     Returns:
         Element : A object holding all the xml information
@@ -165,9 +165,9 @@ def print_and_log(message, severity="INFO", src="BLOCKSVR"):
     """Prints the specified message to the console and writes it to the IOC log.
 
     Args:
-        severity (str, optional): Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
+        severity (string, optional) : Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
                                     Default severity is INFO.
-        src (str, optional): Gives the source of the message. Default source is BLOCKSVR.
+        src (string, optional) : Gives the source of the message. Default source is BLOCKSVR.
     """
     print "%s: %s" % (severity, message)
     write_to_ioc_log(message, severity, src)

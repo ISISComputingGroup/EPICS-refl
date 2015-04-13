@@ -18,7 +18,7 @@ class DatabaseServerClient(object):
         """ Get a list of IOCs from DatabaseServer.
 
         Returns:
-            (list) : A list of IOC names
+            list : A list of IOC names
         """
         rawjson = dehex_and_decompress(caget(self._blockserver_prefix + "IOCS"))
         return json.loads(rawjson).keys()
