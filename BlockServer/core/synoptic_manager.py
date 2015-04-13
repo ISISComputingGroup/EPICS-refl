@@ -27,11 +27,11 @@ class SynopticManager(object):
         """Create the PVs for all the synoptics found in the synoptics directory."""
         for f in self.get_synoptic_filenames():
             # Load the data, checking the schema
-            with open(os.path.join(self._directory, f), 'r') as synfile:
+            with open(os.path.join(self._directory, f + ".xml"), 'r') as synfile:
                 data = synfile.read()
                 ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder, data)
             # Get the synoptic name
-            name = f[0:-4].upper()
+            name = f.upper()
             self._create_pv(name, data)
 
     def _create_pv(self, name, data):
@@ -42,7 +42,7 @@ class SynopticManager(object):
         self._cas.updatePV(SYNOPTIC_PRE + name + SYNOPTIC_GET, compress_and_hex(data))
 
     def get_synoptic_filenames(self):
-        """Gets the names of the synoptic files in the synoptics directory.
+        """Gets the names of the synoptic files in the synoptics directory. Without the .xml extension.
 
         Returns:
             list : List of synoptics files on the server
@@ -50,7 +50,7 @@ class SynopticManager(object):
         if not os.path.exists(self._directory):
             print_and_log("Synoptics directory does not exist")
             return list()
-        return [f for f in os.listdir(self._directory) if f.endswith(".xml")]
+        return [f[0:-4] for f in os.listdir(self._directory) if f.endswith(".xml")]
 
     def get_default_synoptic_xml(self):
         """Gets the XML for the default synoptic.
@@ -62,14 +62,14 @@ class SynopticManager(object):
         f = self.get_synoptic_filenames()
         if len(f) > 0:
             # Load the data
-            with open(os.path.join(self._directory, f[0]), 'r') as synfile:
+            with open(os.path.join(self._directory, f[0] + ".xml"), 'r') as synfile:
                 data = synfile.read()
             return data
         else:
             # No synoptic
             return ""
 
-    def _get_synoptic_name(self, xml_data):
+    def _get_synoptic_name_from_xml(self, xml_data):
         name = None
         root = etree.fromstring(xml_data)
         for child in root:
@@ -89,7 +89,7 @@ class SynopticManager(object):
             # Check against schema
             ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder, xml_data)
 
-            name = self._get_synoptic_name(xml_data)
+            name = self._get_synoptic_name_from_xml(xml_data)
 
             self._create_pv(name.upper(), xml_data)
         except Exception as err:

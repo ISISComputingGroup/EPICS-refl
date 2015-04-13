@@ -52,8 +52,8 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
         # Assert
         self.assertTrue(len(s) > 0)
-        self.assertTrue("synoptic1.xml" in s)
-        self.assertTrue("synoptic2.xml" in s)
+        self.assertTrue("synoptic1" in s)
+        self.assertTrue("synoptic2" in s)
 
     def test_create_pvs_is_okay(self):
         # Arrange
@@ -101,7 +101,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
         # Assert
         synoptics = sm.get_synoptic_filenames()
-        self.assertTrue(SYN_NAME in [f[0:-4] for f in synoptics])
+        self.assertTrue(SYN_NAME in synoptics)
 
     def test_set_current_synoptic_xml_creates_pv(self):
         # Arrange
