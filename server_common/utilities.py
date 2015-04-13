@@ -145,6 +145,34 @@ def check_pv_name_valid(name):
     return True
 
 
+def create_pv_name(name, current_pvs, default_pv):
+    """Uses the given name as a basis for a valid PV.
+
+    Args:
+        name (string) : The basis for the PV
+        current_pvs (list) : List of already allocated pvs
+        default_pv (string) : Basis for the PV if name is unreasonable
+
+    Returns:
+        string : A valid PV
+    """
+    pv_text = name.upper().replace(" ", "_")
+    pv_text = re.sub(r'\W', '', pv_text)
+    # Check some edge cases of unreasonable names
+    if re.search(r"[^0-9_]", pv_text) is None or pv_text == '':
+        pv_text = default_pv
+
+    # Make sure PVs are unique
+    i = 0
+    pv = pv_text
+
+    while pv in current_pvs:
+        pv = pv_text + str(i)
+        i += 1
+
+    return pv
+
+
 def parse_xml_removing_namespace(file_path):
     """Creates an Element object from a given xml file, removing the namespace.
 

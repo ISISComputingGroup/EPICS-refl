@@ -7,7 +7,7 @@ from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DE
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.core.macros import MACROS
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
-from server_common.utilities import print_and_log, compress_and_hex
+from server_common.utilities import print_and_log, compress_and_hex, create_pv_name
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 
 
@@ -124,28 +124,6 @@ class ConfigListManager(object):
             if cn.lower() != DEFAULT_COMPONENT.lower():
                 subconfigs_string.append(cv.to_dict())
         return subconfigs_string
-
-    def _create_pv_name(self, config_name, is_subconfig=False):
-        pv_text = config_name.upper().replace(" ", "_")
-        pv_text = re.sub(r'\W', '', pv_text)
-        # Check some edge cases of unreasonable names
-        if re.search(r"[^0-9_]", pv_text) is None or pv_text == '':
-            pv_text = "CONFIG"
-
-        # Make sure PVs are unique
-        i = 0
-        pv = pv_text
-
-        if is_subconfig:
-            curr_pvs = [meta.pv for meta in self._subconfig_metas.values()]
-        else:
-            curr_pvs = [meta.pv for meta in self._config_metas.values()]
-
-        while pv in curr_pvs:
-            pv = pv_text + str(i)
-            i += 1
-
-        return pv
 
     def _import_configs(self, schema_folder):
         # Create the pvs and get meta data
@@ -287,12 +265,14 @@ class ConfigListManager(object):
             if config_name in self._config_metas:
                 pv_name = self._config_metas[config_name].pv
             else:
-                pv_name = self._create_pv_name(config_name, False)
+                curr_pvs = [meta.pv for meta in self._config_metas.values()]
+                pv_name = create_pv_name(config_name, curr_pvs, "CONFIG")
         else:
             if config_name in self._subconfig_metas:
                 pv_name = self._subconfig_metas[config_name].pv
             else:
-                pv_name = self._create_pv_name(config_name, True)
+                curr_pvs = [meta.pv for meta in self._subconfig_metas.values()]
+                pv_name = create_pv_name(config_name, curr_pvs, "COMPONENT")
         return pv_name
 
     def _update_version_control_post_delete(self, folder, files):

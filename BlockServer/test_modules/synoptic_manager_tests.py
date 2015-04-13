@@ -38,7 +38,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         sm = SynopticManager("K:\\I_DONT_EXIST\\", MockCAServer(), SCHEMA_PATH)
 
         # Act
-        s = sm.get_synoptic_filenames()
+        s = sm._get_synoptic_filenames()
 
         # Assert
         self.assertEqual(len(s), 0)
@@ -48,7 +48,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         sm = SynopticManager(TEST_DIR, MockCAServer(), SCHEMA_PATH)
 
         # Act
-        s = sm.get_synoptic_filenames()
+        s = sm._get_synoptic_filenames()
 
         # Assert
         self.assertTrue(len(s) > 0)
@@ -100,7 +100,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         sm.set_synoptic_xml(EXAMPLE_SYNOPTIC % SYN_NAME)
 
         # Assert
-        synoptics = sm.get_synoptic_filenames()
+        synoptics = sm._get_synoptic_filenames()
         self.assertTrue(SYN_NAME in synoptics)
 
     def test_set_current_synoptic_xml_creates_pv(self):

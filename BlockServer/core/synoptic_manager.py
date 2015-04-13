@@ -1,5 +1,5 @@
 import os
-from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid
+from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from lxml import etree
 
@@ -21,27 +21,37 @@ class SynopticManager(object):
         self._directory = os.path.abspath(synoptic_folder)
         self._schema_folder = schema_folder
         self._cas = cas
-        self._current = None
+        self._synoptic_pvs = dict()
 
     def create_pvs(self):
         """Create the PVs for all the synoptics found in the synoptics directory."""
-        for f in self.get_synoptic_filenames():
+        for f in self._get_synoptic_filenames():
             # Load the data, checking the schema
             with open(os.path.join(self._directory, f + ".xml"), 'r') as synfile:
                 data = synfile.read()
                 ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder, data)
             # Get the synoptic name
-            name = f.upper()
-            self._create_pv(name, data)
+            self._create_pv(f, data)
 
     def _create_pv(self, name, data):
-        if not check_pv_name_valid(name):
-            raise Exception("Synoptic name (%s) invalid" % name)
+        pv = create_pv_name(name, self._synoptic_pvs.values(), "SYNOPTIC")
+        self._synoptic_pvs[name] = pv
 
         # Create the PV
-        self._cas.updatePV(SYNOPTIC_PRE + name + SYNOPTIC_GET, compress_and_hex(data))
+        self._cas.updatePV(SYNOPTIC_PRE + pv + SYNOPTIC_GET, compress_and_hex(data))
 
-    def get_synoptic_filenames(self):
+    def get_synoptic_list(self):
+        """Gets the names and associated pvs of the synoptic files in the synoptics directory.
+
+        Returns:
+            list : List of synoptics files on the server, along with their associated pvs
+        """
+        syn_list = list()
+        for k, v in self._synoptic_pvs.iteritems():
+            syn_list.append({"name": k, "pv": v})
+        return syn_list
+
+    def _get_synoptic_filenames(self):
         """Gets the names of the synoptic files in the synoptics directory. Without the .xml extension.
 
         Returns:
@@ -59,7 +69,7 @@ class SynopticManager(object):
             string : The XML for the synoptic
         """
         # TODO: Default is first synoptic for now
-        f = self.get_synoptic_filenames()
+        f = self._get_synoptic_filenames()
         if len(f) > 0:
             # Load the data
             with open(os.path.join(self._directory, f[0] + ".xml"), 'r') as synfile:

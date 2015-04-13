@@ -277,7 +277,7 @@ class BlockServer(Driver):
                 js = convert_to_json(self.get_blank_config())
                 value = compress_and_hex(js)
             elif reason == "SYNOPTICS:NAMES":
-                value = compress_and_hex(convert_to_json(self._syn.get_synoptic_filenames()))
+                value = compress_and_hex(convert_to_json(self._syn.get_synoptic_list()))
             elif reason == "SYNOPTICS:GET_DEFAULT":
                 value = compress_and_hex(self._syn.get_default_synoptic_xml())
             else:
