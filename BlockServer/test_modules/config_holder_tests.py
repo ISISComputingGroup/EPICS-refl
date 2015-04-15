@@ -582,8 +582,8 @@ class TestConfigHolderSequence(unittest.TestCase):
                            [{"name": "TESTSIMPLE1", "autostart": True, "restart": True,
                                 "macros": [{"name": "TESTMACRO1", "value" : "TEST"}, {"name": "TESTMACRO2",
                                                                                       "value" : 123}],
-                                "pvs": [{"name": "TESTPV1", "value" : 123}],
-                                "pvsets": [{"name": "TESTPVSET1", "enabled" : True}],
+                                "pvs": [{"name": "TESTPV1", "value": 123}],
+                                "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
                                 "subconfig": None},
                             {"name": "TESTSIMPLE2", "autostart": True, "restart": True,
                                 "macros": [{"name": "TESTMACRO3", "value" : "TEST2"}],
@@ -672,3 +672,4 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch.clear_config()
         blocks = ch.get_blocknames()
         self.assertEquals(len(blocks), 0)
+

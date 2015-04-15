@@ -1,4 +1,5 @@
 from BlockServer.core.macros import PVPREFIX_MACRO
+import copy
 
 
 class Block(object):
@@ -169,8 +170,10 @@ class IOC(object):
         """
         out_list = []
         for k, v in in_dict.iteritems():
-            v['name'] = k
-            out_list.append(v)
+            # Take a copy as we do not want to modify the original
+            c = copy.deepcopy(v)
+            c['name'] = k
+            out_list.append(c)
         return out_list
 
     def __str__(self):

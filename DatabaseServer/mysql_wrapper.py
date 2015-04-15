@@ -209,7 +209,7 @@ class MySQLWrapper(object):
         """Queries the database for active PVs based on their interest level.
 
         Args:
-            level (str, optional) : The interest level to search for, either High or Medium. Default to all interest
+            level (string, optional) : The interest level to search for, either High or Medium. Default to all interest
                                     levels
 
         Returns:

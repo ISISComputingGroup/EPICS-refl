@@ -18,7 +18,8 @@ class ProcServWrapper(object):
         """
         return "%sCS:PS:%s" % (prefix, ioc)
 
-    def start_ioc(self, prefix, ioc):
+    @staticmethod
+    def start_ioc(prefix, ioc):
         """Starts the specified IOC.
 
         Args:
@@ -26,7 +27,7 @@ class ProcServWrapper(object):
             ioc (string) : The name of the IOC
         """
         print_and_log("Starting IOC %s" % ioc)
-        caput(self.generate_prefix(prefix, ioc) + ":START", 1)
+        caput(ProcServWrapper.generate_prefix(prefix, ioc) + ":START", 1)
 
     def stop_ioc(self, prefix, ioc):
         """Stops the specified IOC.
@@ -59,19 +60,3 @@ class ProcServWrapper(object):
         if ans is None:
             raise Exception("Could not find IOC (%s)" % self.generate_prefix(prefix, ioc))
         return ans.upper()
-
-    def ioc_exists(self, prefix, ioc):
-        """Checks an IOC exists.
-
-        Args:
-            prefix (string) : The prefix for the instrument
-            ioc (string) : The name of the IOC
-
-        Returns:
-            bool : Whether the IOC exists
-        """
-        try:
-            self.get_ioc_status(prefix, ioc)
-            return True
-        except:
-            return False

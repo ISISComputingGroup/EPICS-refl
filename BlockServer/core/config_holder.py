@@ -372,16 +372,16 @@ class ConfigHolder(object):
                 for args in details["components"]:
                     comp = self.load_configuration(args['name'], True)
                     self.add_subconfig(args['name'], comp)
-        except:
+        except Exception as err:
             self._retrieve_cache()
-            raise
+            raise err
 
     def _to_dict(self, data_list):
         if data_list is None:
             return None
         out = dict()
         for item in data_list:
-            out[item.pop("name")] = item
+            out[item["name"]] = item
         return out
 
     def set_config(self, config, is_component=False):
@@ -507,7 +507,7 @@ class ConfigHolder(object):
         """ Get the previous name which may be the same as the current.
 
         Returns:
-            (string) : The previous name
+            string : The previous name
         """
         return self._cached_config.get_name()
 
@@ -523,6 +523,6 @@ class ConfigHolder(object):
         """ Get the history for configuration.
 
         Returns:
-            (list) : The history
+            list : The history
         """
         return self._config.meta.history

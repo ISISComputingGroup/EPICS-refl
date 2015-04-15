@@ -25,6 +25,9 @@ from BlockServer.config.json_converter import ConfigurationJsonConverter
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
 from BlockServer.mocks.mock_version_control import MockVersionControl
+from BlockServer.core.ioc_control import IocControl
+from BlockServer.core.database_server_client import DatabaseServerClient
+
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
@@ -180,6 +183,8 @@ class BlockServer(Driver):
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE)
         self._active_configserver = None
         self._status = "INITIALISING"
+        self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
+        self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
 
         # Connect to version control
         try:
@@ -226,7 +231,8 @@ class BlockServer(Driver):
         """Initialises the ActiveConfigHolder.
         """
         # This is in a separate method so it can be sent to the thread queue
-        self._active_configserver = ActiveConfigHolder(CONFIG_DIR, MACROS, ARCHIVE_UPLOADER, ARCHIVE_SETTINGS, self._vc)
+        self._active_configserver = ActiveConfigHolder(CONFIG_DIR, MACROS, ARCHIVE_UPLOADER, ARCHIVE_SETTINGS, self._vc,
+                                                       self._ioc_control, self._ioc_control)
         try:
             if self._gateway.exists():
                 print_and_log("Found gateway")
@@ -315,11 +321,11 @@ class BlockServer(Driver):
                 self._active_configserver.clear_config()
                 self._initialise_config()
             elif reason == 'START_IOCS':
-                self._active_configserver.start_iocs(convert_from_json(data))
+                self._ioc_control.start_iocs(convert_from_json(data))
             elif reason == 'STOP_IOCS':
-                self._active_configserver.stop_iocs(convert_from_json(data))
+                self._ioc_control.stop_iocs(convert_from_json(data))
             elif reason == 'RESTART_IOCS':
-                self._active_configserver.restart_iocs(convert_from_json(data))
+                self._ioc_control.restart_iocs(convert_from_json(data))
             elif reason == 'SET_RC_PARS':
                 self._active_configserver.set_runcontrol_settings(convert_from_json(data))
             elif reason == 'SET_CURR_CONFIG_DETAILS':
@@ -369,11 +375,13 @@ class BlockServer(Driver):
             print_and_log("Loaded last configuration: %s" % last)
         self._initialise_config()
 
-    def _initialise_config(self, restart_iocs=True, init_gateway=True):
+    def _initialise_config(self, init_gateway=True):
         # First stop all IOCS, then start the ones for the config
         # TODO: Should we stop all configs?
-        if restart_iocs:
-            self._active_configserver.stop_iocs_and_start_config_iocs()
+        iocs_to_start, iocs_to_restart = self._active_configserver.iocs_changed()
+
+        if len(iocs_to_start) > 0 or len(iocs_to_restart) > 0:
+            self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
         # Set up the gateway
         if init_gateway:
             self._gateway.set_new_aliases(self._active_configserver.get_block_details())
@@ -384,6 +392,35 @@ class BlockServer(Driver):
         self.update_get_details_monitors()
         self._active_configserver.update_archiver()
         self._active_configserver.create_runcontrol_pvs()
+
+    def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
+        """ Stop all IOCs and start the IOCs that are part of the configuration."""
+        non_conf_iocs = [x for x in self._get_iocs() if x not in self._active_configserver.get_ioc_names()]
+        self._ioc_control.stop_iocs(non_conf_iocs)
+        self._start_config_iocs()
+
+    def _start_config_iocs(self):
+        # Start the IOCs, if they are available and if they are flagged for autostart
+        for n, ioc in self._active_configserver.get_ioc_details().iteritems():
+            try:
+                # Throws if IOC does not exist
+                # If it is already running restart it, otherwise start it
+                running = self._ioc_control.get_ioc_status(n)
+                if running == "RUNNING" and ioc.restart:
+                    self._ioc_control.restart_ioc(n)
+                else:
+                    if ioc.autostart:
+                        self._ioc_control.start_ioc(n)
+            except Exception as err:
+                print_and_log("Could not (re)start IOC %s: %s" % (n, str(err)), "MAJOR")
+
+    def _get_iocs(self, include_running=False):
+        # Get IOCs from DatabaseServer
+        try:
+            return self._db_client.get_iocs()
+        except Exception as err:
+            print_and_log("Could not retrieve IOC list: %s" % str(err), "MAJOR")
+            return []
 
     def load_config(self, config, is_subconfig=False):
         """Load a configuration.

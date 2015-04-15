@@ -2,12 +2,10 @@ import os
 import json
 
 from BlockServer.epics.archiver_manager import ArchiverManager
-from BlockServer.core.constants import IOCS_NOT_TO_STOP, RUNCONTROL_IOC, RUNCONTROL_SETTINGS, CONFIG_DIRECTORY, \
+from BlockServer.core.constants import RUNCONTROL_IOC, RUNCONTROL_SETTINGS, CONFIG_DIRECTORY, \
     COMPONENT_DIRECTORY
-from BlockServer.epics.procserv_utils import ProcServWrapper
 from BlockServer.core.runcontrol import RunControlManager
 from server_common.utilities import print_and_log
-from BlockServer.core.database_server_client import DatabaseServerClient
 from BlockServer.core.macros import BLOCKSERVER_PREFIX, BLOCK_PREFIX, MACROS
 from BlockServer.core.config_holder import ConfigHolder
 
@@ -15,7 +13,7 @@ from BlockServer.core.config_holder import ConfigHolder
 class ActiveConfigHolder(ConfigHolder):
     """Class to serve up the active configuration.
     """
-    def __init__(self, config_folder, macros, archive_uploader, archive_config, vc_manager, test_mode=False):
+    def __init__(self, config_folder, macros, archive_uploader, archive_config, vc_manager, ioc_control, test_mode=False):
         """ Constructor.
 
         Args:
@@ -27,19 +25,17 @@ class ActiveConfigHolder(ConfigHolder):
         """
         super(ActiveConfigHolder, self).__init__(config_folder, macros, vc_manager)
         self._archive_manager = ArchiverManager(archive_uploader, archive_config)
-        self._procserve_wrapper = ProcServWrapper()
+        self._ioc_control = ioc_control
         self._db = None
         self._last_config_file = os.path.abspath(config_folder + "/last_config.txt")
         self._runcontrol = RunControlManager(self._macros["$(MYPVPREFIX)"],
                                              self._macros["$(ICPCONFIGROOT)"] + RUNCONTROL_SETTINGS)
-
-        self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self._test_mode = test_mode
 
         if not test_mode:
             # Start runcontrol IOC
             try:
-                self._procserve_wrapper.start_ioc(self._macros["$(MYPVPREFIX)"], RUNCONTROL_IOC)
+                self._ioc_control.start_ioc(RUNCONTROL_IOC)
             except Exception as err:
                 print_and_log("Problem with starting the run-control IOC: %s" % str(err), "MAJOR")
             # Need to wait for RUNCONTROL_IOC to (re)start
@@ -52,8 +48,6 @@ class ActiveConfigHolder(ConfigHolder):
 
     def _set_testing_mode(self):
         self._archive_manager.set_testing_mode(True)
-        from BlockServer.mocks.mock_procserv_utils import MockProcServWrapper
-        self._procserve_wrapper = MockProcServWrapper()
         from BlockServer.mocks.mock_runcontrol import MockRunControlManager
         self._runcontrol = MockRunControlManager()
 
@@ -92,108 +86,10 @@ class ActiveConfigHolder(ConfigHolder):
         self.create_runcontrol_pvs()
         self._runcontrol.restore_config_settings(super(ActiveConfigHolder, self).get_block_details())
 
-    def get_ioc_state(self, ioc):
-        """ Get the state of an IOC.
-
-        Args:
-            ioc (string) : The IOC
-
-        Returns:
-            string : The status of the IOC
-        """
-        return self._procserve_wrapper.get_ioc_status(self._macros["$(MYPVPREFIX)"], ioc)
-
-    def start_iocs(self, data):
-        """ Start some IOCs.
-
-        Args:
-            data (list) : The IOCs to start
-        """
-        for ioc in data:
-            self._start_ioc(ioc)
-
-    def _start_ioc(self, ioc):
-        self._procserve_wrapper.start_ioc(self._macros["$(MYPVPREFIX)"], ioc)
-
-    def _start_config_iocs(self):
-        # Start the IOCs, if they are available and if they are flagged for autostart
-        for n, ioc in super(ActiveConfigHolder, self).get_ioc_details().iteritems():
-            try:
-                # Throws if IOC does not exist
-                # If it is already running restart it, otherwise start it
-                running = self.get_ioc_state(n)
-                if running == "RUNNING":
-                    if ioc.restart:
-                        self._restart_ioc(n)
-                else:
-                    if ioc.autostart:
-                        self._start_ioc(n)
-            except Exception as err:
-                print_and_log("Could not (re)start IOC %s: %s" % (n, str(err)), "MAJOR")
-
-    def restart_iocs(self, data):
-        """ Restart some IOCs.
-
-        Args:
-            data (list) : The IOCs to restart
-        """
-        for ioc in data:
-            self._restart_ioc(ioc)
-
-    def _restart_ioc(self, ioc):
-        self._procserve_wrapper.restart_ioc(self._macros["$(MYPVPREFIX)"], ioc)
-
-    def stop_iocs(self, data):
-        """ Stop some IOCs.
-
-        Args:
-            data (list) : The IOCs to stop
-        """
-        for ioc in data:
-            # Check it is okay to stop it
-            if ioc.startswith(IOCS_NOT_TO_STOP):
-                continue
-            self._stop_ioc(ioc)
-
-    def _stop_ioc(self, ioc):
-        self._procserve_wrapper.stop_ioc(self._macros["$(MYPVPREFIX)"], ioc)
-
-    def stop_config_iocs(self):
-        """ Stop the IOCs that are part of the configuration.
-        """
-        iocs = super(ActiveConfigHolder, self).get_ioc_names()
-        self._stop_iocs(iocs)
-
-    def stop_iocs_and_start_config_iocs(self):
-        """ Stop all IOCs and start the IOCs that are part of the configuration.
-        """
-        non_conf_iocs = [x for x in self._get_iocs() if x not in super(ActiveConfigHolder, self).get_ioc_names()]
-        self._stop_iocs(non_conf_iocs)
-        self._start_config_iocs()
-
-    def _stop_iocs(self, iocs):
-        iocs_to_stop = [x for x in iocs if not x.startswith(IOCS_NOT_TO_STOP)]
-        for n in iocs_to_stop:
-            try:
-                # Throws if IOC does not exist
-                running = self.get_ioc_state(n)
-                if running == "RUNNING":
-                    self._stop_ioc(n)
-            except Exception as err:
-                print_and_log("Could not stop IOC %s: %s" % (n, str(err)), "MAJOR")
-
     def update_archiver(self):
         """ Update the archiver configuration.
         """
         self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX, super(ActiveConfigHolder, self).get_blocknames())
-
-    def _get_iocs(self, include_running=False):
-        # Get IOCs from DatabaseServer
-        try:
-            return self._db_client.get_iocs()
-        except Exception as err:
-            print_and_log("Could not retrieve IOC list: %s" % str(err), "MAJOR")
-            return []
 
     def set_last_config(self, config):
         """ Save the last configuration used to file.
@@ -230,7 +126,7 @@ class ActiveConfigHolder(ConfigHolder):
         Configures the run-control IOC to have PVs for the current configuration.
         """
         self._runcontrol.update_runcontrol_blocks(super(ActiveConfigHolder, self).get_block_details())
-        self._procserve_wrapper.restart_ioc(self._macros["$(MYPVPREFIX)"], RUNCONTROL_IOC)
+        self._ioc_control.restart_ioc(RUNCONTROL_IOC)
         # Need to wait for RUNCONTROL_IOC to restart
         self._runcontrol.wait_for_ioc_start()
 
@@ -257,3 +153,40 @@ class ActiveConfigHolder(ConfigHolder):
             data (dict) : The new run-control settings to set
         """
         self._runcontrol.set_runcontrol_settings(data)
+
+    def iocs_changed(self):
+        """Checks to see if the IOCs have changed on saving."
+
+        It checks for: IOCs added; IOCs removed; and, macros, pvs or pvsets changed.
+
+        Returns:
+            list, list : IOCs to start and IOCs to restart
+        """
+        iocs_to_start = list()
+        iocs_to_restart = list()
+
+        # Check to see if any macros, pvs, pvsets have changed
+        for n in self._config.iocs.keys():
+            if n not in self._cached_config.iocs.keys():
+                # If not in previously then add it to start
+                iocs_to_start.append(n)
+                continue
+            # Macros
+            old_macros = self._cached_config.iocs[n].macros
+            new_macros = self._config.iocs[n].macros
+            if cmp(old_macros, new_macros) != 0:
+                if n not in iocs_to_restart:
+                    iocs_to_restart.append(n)
+            # PVs
+            old_pvs = self._cached_config.iocs[n].pvs
+            new_pvs = self._config.iocs[n].pvs
+            if cmp(old_pvs, new_pvs) != 0:
+                if n not in iocs_to_restart:
+                    iocs_to_restart.append(n)
+            # Pvsets
+            old_pvsets = self._cached_config.iocs[n].pvsets
+            new_pvsets = self._config.iocs[n].pvsets
+            if cmp(old_pvsets, new_pvsets) != 0:
+                if n not in iocs_to_restart:
+                    iocs_to_restart.append(n)
+        return iocs_to_start, iocs_to_restart

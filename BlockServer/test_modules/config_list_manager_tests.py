@@ -12,6 +12,7 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
 from BlockServer.config.configuration import Configuration
 from BlockServer.mocks.mock_version_control import MockVersionControl
+from BlockServer.mocks.mock_ioc_control import MockIocControl
 
 
 MACROS = {
@@ -324,7 +325,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         ms = self.ms
         ic = self._create_ic()
-        active = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), test_mode=True)
+        active = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
+                                    test_mode=True)
         active.save_active("TEST_ACTIVE")
         ic.update_a_config_in_list(active)
         ic.active_config_name = "TEST_ACTIVE"
@@ -341,7 +343,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_subconfigs(["TEST_SUBCONFIG1", "TEST_SUBCONFIG2", "TEST_SUBCONFIG3"])
         ms = self.ms
         ic = self._create_ic()
-        active = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), test_mode=True)
+        active = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
+                                    test_mode=True)
         active.add_subconfig("TEST_SUBCONFIG1", Configuration(MACROS))
         active.save_active("TEST_ACTIVE")
         ic.active_config_name = "TEST_ACTIVE"
