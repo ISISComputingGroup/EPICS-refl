@@ -1,15 +1,11 @@
 import string
-import os
 
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
-from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import *
-from BlockServer.core.macros import MACROS
 from server_common.utilities import print_and_log
 from schema_checker import ConfigurationSchemaChecker
 from schema_checker import ConfigurationIncompleteException, NotConfigFileException
-from BlockServer.fileIO.file_manager import ConfigurationFileManager
 
 
 class ConfigFileEventHandler(FileSystemEventHandler):
@@ -34,7 +30,6 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         self._root_path = root_path
         self._config_list = config_list_manager
         self._test_mode = test_mode
-        self._last_delete = ""
 
         if self._is_subconfig:
             self._watching_path = self._root_path + COMPONENT_DIRECTORY

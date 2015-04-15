@@ -204,8 +204,7 @@ class BlockServer(Driver):
 
         # Import all the synoptic data and create PVs
         try:
-            self._syn = SynopticManager(CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR)
-            self._syn.create_pvs()
+            self._syn = SynopticManager(CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR, self._vc)
         except Exception as err:
             print_and_log("Error creating synoptic PVs: %s" % str(err), "MAJOR")
 
@@ -346,7 +345,10 @@ class BlockServer(Driver):
             elif reason == 'ACK_CURR_CHANGED':
                 self._config_list.set_active_changed(False)
             elif reason == "SYNOPTICS:SET_DETAILS":
-                self._syn.set_synoptic_xml(data)
+                self._syn.save_synoptic_xml(data)
+                self.update_synoptic_monitor()
+            elif reason == "SYNOPTICS:DELETE":
+                self._syn.delete_synoptics(convert_from_json(data))
                 self.update_synoptic_monitor()
             else:
                 status = False
@@ -576,6 +578,9 @@ class BlockServer(Driver):
         with self.monitor_lock:
             synoptic = self._syn.get_default_synoptic_xml()
             self.setParam("SYNOPTICS:GET_DEFAULT", compress_and_hex(synoptic))
+            names = convert_to_json(self._syn.get_synoptic_list())
+            self.setParam("SYNOPTICS:NAMES", compress_and_hex(names))
+
 
     def consume_write_queue(self):
         """Actions any requests on the write queue.

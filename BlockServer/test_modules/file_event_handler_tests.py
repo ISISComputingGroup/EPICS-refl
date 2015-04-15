@@ -6,7 +6,7 @@ import shutil
 from BlockServer.core.config_list_manager import ConfigListManager
 from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.mocks.mock_block_server import MockBlockServer
-from BlockServer.fileIO.file_event_handler import ConfigFileEventHandler
+from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
 import BlockServer.core.constants as const
 from BlockServer.mocks.mock_version_control import MockVersionControl
 

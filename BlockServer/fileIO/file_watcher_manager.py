@@ -2,7 +2,7 @@ from threading import RLock
 
 from watchdog.observers import Observer
 
-from file_event_handler import ConfigFileEventHandler
+from config_file_event_handler import ConfigFileEventHandler
 from BlockServer.core.constants import CONFIG_DIRECTORY, COMPONENT_DIRECTORY
 
 

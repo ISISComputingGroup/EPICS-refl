@@ -139,19 +139,6 @@ class ConfigurationFileManager(object):
             raise Exception("Subconfig does not exist")
 
     @staticmethod
-    def delete_configs(root_path, config_names):
-        """Delete configurations.
-
-        Args:
-            root_path (string) : The root folder where configurations are stored
-            config_names (list) : The names of the configurations to delete
-        """
-        for config in config_names:
-            path = root_path + '\\' + config
-            if os.path.isdir(path):
-                shutil.rmtree(path)
-
-    @staticmethod
     def copy_default(dest_path):
         """Copies the default/base component in if it does exist.
 

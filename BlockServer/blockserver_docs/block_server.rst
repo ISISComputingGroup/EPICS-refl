@@ -443,8 +443,18 @@ Note: Used by the client(s) for "save" and "save as" for the current active conf
 
 ::
 
-    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:SET_DETAILS abcdefabdcdefabcdef1234567890
+    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:SET_DETAILS abcdefabdcdefabcdef1234567890
     Saves the synoptic with supplied compressed and hexed xml data, saving under the name specified in the xml.
+	
+    Returns "OK" or an error message (compressed and hexed JSON).
+	
+**BLOCKSERVER:SYNOPTICS:DELETE**
+
+::
+
+    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:SYNOPTICS:DELETE abcdefabdcdefabcdef1234567890
+	Removes a synoptic from the BlockServer and filesystem. Requires a compressed and hexed JSON list of synoptics names to remove.
+    If this is done in error the synoptic can be recovered from version control. For removing one synoptic only, create a list of one item.
 	
     Returns "OK" or an error message (compressed and hexed JSON).
 	

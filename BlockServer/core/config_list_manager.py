@@ -276,12 +276,9 @@ class ConfigListManager(object):
         return pv_name
 
     def _update_version_control_post_delete(self, folder, files):
-        if not self._test_mode:
-            for config in files:
-                self._vc.remove(os.path.join(folder, config))
-            self._vc.commit("Deleted %s" % ', '.join(list(files)))
-        else:
-            ConfigurationFileManager.delete_configs(folder, files)
+        for config in files:
+            self._vc.remove(os.path.join(folder, config))
+        self._vc.commit("Deleted %s" % ', '.join(list(files)))
 
     def delete_configs(self, delete_list, are_subconfigs=False):
         """Takes a list of configurations and removes them from the file system and any relevant PVs.
