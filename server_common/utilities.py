@@ -128,7 +128,7 @@ def value_list_to_xml(list, grp, group_tag, item_tag):
             xml_item = ElementTree.SubElement(xml_list, item_tag)
             xml_item.set("name", n)
             for cn, cv in c.iteritems():
-                xml_item.set(str(cn), str(cv).lower())
+                xml_item.set(str(cn), str(cv))
 
 
 def check_pv_name_valid(name):
