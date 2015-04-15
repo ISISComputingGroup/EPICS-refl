@@ -34,6 +34,7 @@ class Gateway(object):
         try:
             # Have to wait on put as the gateway does not like callbacks
             caput(self._prefix + "newAsFlag", 1, True)
+            print_and_log("Gateway restarted")
         except Exception as err:
             print_and_log("Problem with restarting the gateway %s" % err)
 
