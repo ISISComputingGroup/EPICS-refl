@@ -167,6 +167,11 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
+    'SYNOPTICS:DELETE': {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
+    },
 }
 
 
