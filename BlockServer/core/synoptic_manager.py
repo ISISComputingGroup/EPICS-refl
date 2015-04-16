@@ -108,8 +108,6 @@ class SynopticManager(object):
 
             self._create_pv(name, xml_data)
 
-            self._vc.add(self._schema_folder + "\\" + name)
-            self._vc.commit("%s modified by client" % name)
         except Exception as err:
             print_and_log(err)
             raise
@@ -117,6 +115,12 @@ class SynopticManager(object):
         # Save the data
         with open(os.path.join(self._directory, name + ".xml"), 'w') as synfile:
             synfile.write(xml_data)
+
+        # Add to version control
+        self._vc.add(self._directory + "\\" + name + ".xml")
+        self._vc.commit("%s modified by client" % name)
+
+        print_and_log("Synoptic saved: " + name)
 
     def delete_synoptics(self, delete_list):
         """Takes a list of synoptics and removes them from the file system and any relevant PVs.
