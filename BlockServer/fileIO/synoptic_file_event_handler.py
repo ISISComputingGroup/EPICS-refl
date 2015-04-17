@@ -45,7 +45,7 @@ class SynopticFileEventHandler(FileSystemEventHandler):
                     name = self._get_synoptic_name(event.src_path)
                     if type(event) is FileMovedEvent:
                         modified_path = event.dest_path
-                        self._synoptic_list.delete_synopticss([name])
+                        self._synoptic_list.delete_synoptics([name])
                     else:
                         modified_path = event.src_path
 
