@@ -201,17 +201,17 @@ class BlockServer(Driver):
         # Import data about all configs
         try:
             self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR, self._vc)
-
-            # Start file watcher
-            self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
         # Import all the synoptic data and create PVs
         try:
-            self._syn = SynopticManager(CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR, self._vc)
+            self._syn = SynopticManager(self, CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR, self._vc)
         except Exception as err:
             print_and_log("Error creating synoptic PVs: %s" % str(err), "MAJOR")
+
+        # Start file watcher
+        self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list, self._syn)
 
         # Threading stuff
         self.monitor_lock = RLock()
@@ -345,16 +345,20 @@ class BlockServer(Driver):
                 self.update_config_monitors()
                 self._filewatcher.resume()
             elif reason == 'DELETE_COMPONENTS':
+                self._filewatcher.pause()
                 self._config_list.delete_configs(convert_from_json(data), True)
                 self.update_comp_monitor()
+                self._filewatcher.resume()
             elif reason == 'ACK_CURR_CHANGED':
                 self._config_list.set_active_changed(False)
             elif reason == "SYNOPTICS:SET_DETAILS":
                 self._syn.save_synoptic_xml(data)
                 self.update_synoptic_monitor()
             elif reason == "SYNOPTICS:DELETE":
+                self._filewatcher.pause()
                 self._syn.delete_synoptics(convert_from_json(data))
                 self.update_synoptic_monitor()
+                self._filewatcher.resume()
             else:
                 status = False
         except Exception as err:

@@ -19,3 +19,6 @@ class MockBlockServer(object):
 
     def update_comp_monitor(self):
         self._comps = self._config_list.get_subconfigs()
+
+    def update_synoptic_monitor(self):
+        pass

@@ -7,6 +7,7 @@ from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.core.constants import SYNOPTIC_DIRECTORY
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.mocks.mock_version_control import MockVersionControl
+from BlockServer.mocks.mock_block_server import MockBlockServer
 
 TEST_DIR = os.path.abspath(".\\" + SYNOPTIC_DIRECTORY)
 
@@ -34,19 +35,9 @@ class TestSynopticManagerSequence(unittest.TestCase):
         # Delete test directory
         shutil.rmtree(TEST_DIR)
 
-    def test_get_synoptic_filenames_from_nonexistant_directory_returns_empty_list(self):
-        # Arrange
-        sm = SynopticManager("K:\\I_DONT_EXIST\\", MockCAServer(), SCHEMA_PATH, MockVersionControl())
-
-        # Act
-        s = sm.get_synoptic_list()
-
-        # Assert
-        self.assertEqual(len(s), 0)
-
     def test_get_synoptic_filenames_from_directory_returns_names(self):
         # Arrange
-        sm = SynopticManager(TEST_DIR, MockCAServer(), SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, MockCAServer(), SCHEMA_PATH, MockVersionControl())
 
         # Act
         s = sm.get_synoptic_list()
@@ -60,10 +51,10 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_create_pvs_is_okay(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
 
         # Act
-        sm.create_pvs()
+        sm._load_initial()
 
         # Assert
         self.assertTrue(len(cas.pv_list) > 0)
@@ -72,7 +63,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_get_current_synoptic_xml_returns_something(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
 
         # Act
         xml = sm.get_default_synoptic_xml()
@@ -83,7 +74,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_set_current_synoptic_xml_sets_something(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
 
         # Act
         sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % "synoptic0")
@@ -95,7 +86,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_set_current_synoptic_xml_saves_under_name(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
         SYN_NAME = "new_synoptic"
 
         # Act
@@ -108,7 +99,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_set_current_synoptic_xml_creates_pv(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
         SYN_NAME = "new_synoptic"
 
         # Act
@@ -121,7 +112,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_delete_synoptics_empty(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
 
         # Act
         sm.delete_synoptics([])
@@ -136,7 +127,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_delete_one_config(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
 
         # Act
         sm.delete_synoptics(["synoptic1"])
@@ -151,7 +142,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_delete_many_configs(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
 
         # Act
         sm.delete_synoptics(["synoptic1", "synoptic2"])
@@ -166,7 +157,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_delete_config_affects_filesystem(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
 
         # Act
         sm.delete_synoptics(["synoptic1"])
@@ -179,7 +170,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
     def test_cant_delete_non_existant_synoptic(self):
         # Arrange
         cas = MockCAServer()
-        sm = SynopticManager(TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
+        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
 
         # Act
         self.assertRaises(InvalidDeleteException, sm.delete_synoptics, ["invalid"])

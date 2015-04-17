@@ -12,7 +12,7 @@ SYNOPTIC_SET = ":SET"
 
 class SynopticManager(object):
     """Class for managing the PVs associated with synoptics"""
-    def __init__(self, synoptic_folder, cas, schema_folder, vc_manager):
+    def __init__(self, block_server, synoptic_folder, cas, schema_folder, vc_manager):
         """Constructor.
 
         Args:
@@ -21,14 +21,18 @@ class SynopticManager(object):
             schema_folder (string) : The filepath for the synoptic schema
             vc_manager (ConfigVersionControl) : The manager to allow version control modifications
         """
+        if not os.path.exists(synoptic_folder):
+            os.mkdir(synoptic_folder)
         self._directory = os.path.abspath(synoptic_folder)
         self._schema_folder = schema_folder
         self._cas = cas
         self._synoptic_pvs = dict()
         self._vc = vc_manager
-        self.create_pvs()
+        self._bs = block_server
 
-    def create_pvs(self):
+        self._load_initial()
+
+    def _load_initial(self):
         """Create the PVs for all the synoptics found in the synoptics directory."""
         for f in self._get_synoptic_filenames():
             # Load the data, checking the schema
@@ -38,7 +42,17 @@ class SynopticManager(object):
             # Get the synoptic name
             self._create_pv(f, data)
 
+            self._add_to_version_control(f)
+
+        self._vc.commit("Blockserver started, synoptics updated")
+
     def _create_pv(self, name, data):
+        """Creates a single PV based on a name and data. Adds this PV to the dictionary returned on get_synoptic_list
+
+        Args:
+            name (string) : Name of the synoptic (PV is derived from this)
+            data (string) : Starting data in pv
+        """
         pv = create_pv_name(name, self._synoptic_pvs.values(), "SYNOPTIC")
         self._synoptic_pvs[name] = pv
 
@@ -116,11 +130,15 @@ class SynopticManager(object):
         with open(os.path.join(self._directory, name + ".xml"), 'w') as synfile:
             synfile.write(xml_data)
 
-        # Add to version control
-        self._vc.add(self._directory + "\\" + name + ".xml")
-        self._vc.commit("%s modified by client" % name)
+        self._add_to_version_control(name, "%s modified by client" % name)
 
         print_and_log("Synoptic saved: " + name)
+
+    def _add_to_version_control(self, synoptic_name, commit_message=None):
+        # Add to version control
+        self._vc.add(self._directory + "\\" + synoptic_name + ".xml")
+        if commit_message is not None:
+            self._vc.commit(commit_message)
 
     def delete_synoptics(self, delete_list):
         """Takes a list of synoptics and removes them from the file system and any relevant PVs.
@@ -141,3 +159,25 @@ class SynopticManager(object):
         for synoptic in files:
             self._vc.remove(os.path.join(self._directory, synoptic + ".xml"))
         self._vc.commit("Deleted %s" % ', '.join(list(files)))
+
+    def recover_from_version_control(self):
+        """A method to revert the configurations directory back to the state held in version control."""
+        self._vc.update()
+
+    def update_from_filewatcher(self, name, xml_data):
+        """Updates the synoptic list when modifications are made via the filesystem.
+
+        Args:
+            name (string) :  The name of the synoptic
+            xml_data (string) : The xml data to update the PV with
+
+        """
+        self._add_to_version_control(name, "%s modified on filesystem" % name)
+
+        names = self._synoptic_pvs.keys()
+        if name in names:
+            self._cas.updatePV(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(xml_data))
+        else:
+            self._create_pv(name, xml_data)
+
+        self._bs.update_synoptic_monitor()
