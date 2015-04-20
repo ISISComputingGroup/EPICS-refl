@@ -311,6 +311,7 @@ class BlockServer(Driver):
         """
         status = True
         try:
+            self._filewatcher.pause()
             data = dehex_and_decompress(value).strip('"')
             if reason == 'LOAD_CONFIG':
                 with self.write_lock:
@@ -340,25 +341,19 @@ class BlockServer(Driver):
             elif reason == 'SAVE_NEW_COMPONENT':
                 self.save_inactive_config(data, True)
             elif reason == 'DELETE_CONFIGS':
-                self._filewatcher.pause()
                 self._config_list.delete_configs(convert_from_json(data))
                 self.update_config_monitors()
-                self._filewatcher.resume()
             elif reason == 'DELETE_COMPONENTS':
-                self._filewatcher.pause()
                 self._config_list.delete_configs(convert_from_json(data), True)
                 self.update_comp_monitor()
-                self._filewatcher.resume()
             elif reason == 'ACK_CURR_CHANGED':
                 self._config_list.set_active_changed(False)
             elif reason == "SYNOPTICS:SET_DETAILS":
                 self._syn.save_synoptic_xml(data)
                 self.update_synoptic_monitor()
             elif reason == "SYNOPTICS:DELETE":
-                self._filewatcher.pause()
                 self._syn.delete_synoptics(convert_from_json(data))
                 self.update_synoptic_monitor()
-                self._filewatcher.resume()
             else:
                 status = False
         except Exception as err:
@@ -367,6 +362,8 @@ class BlockServer(Driver):
         else:
             if status:
                 value = compress_and_hex(convert_to_json("OK"))
+        finally:
+            self._filewatcher.resume()
 
         # store the values
         if status:

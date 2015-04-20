@@ -2,7 +2,7 @@ import os
 from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.config_list_manager import InvalidDeleteException
-from BlockServer.fileIO.file_manager import ConfigurationFileManager
+from xml.dom import minidom
 from lxml import etree
 
 SYNOPTIC_PRE = "SYNOPTICS:"
@@ -128,7 +128,8 @@ class SynopticManager(object):
 
         # Save the data
         with open(os.path.join(self._directory, name + ".xml"), 'w') as synfile:
-            synfile.write(xml_data)
+            pretty_xml = minidom.parseString(xml_data).toprettyxml()
+            synfile.write(pretty_xml)
 
         self._add_to_version_control(name, "%s modified by client" % name)
 
