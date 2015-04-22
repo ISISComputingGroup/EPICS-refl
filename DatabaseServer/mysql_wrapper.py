@@ -184,9 +184,9 @@ class MySQLWrapper(object):
         try:
             conn, c = self.__open_connection()
             if level.lower().startswith('h'):
-                sqlquery += " WHERE (infoname='INTEREST' AND value LIKE 'H%' {0})".format(where_ioc)
+                sqlquery += " WHERE (infoname='INTEREST' AND value='HIGH' {0})".format(where_ioc)
             elif level.lower().startswith('m'):
-                sqlquery += " WHERE (infoname='INTEREST' AND value LIKE 'M%' {0})".format(where_ioc)
+                sqlquery += " WHERE (infoname='INTEREST' AND value='MEDIUM' {0})".format(where_ioc)
             else:
                 # Try to get everything that has an interest level!
                 sqlquery += " WHERE (infoname='INTEREST'  {0})".format(where_ioc)
@@ -226,9 +226,9 @@ class MySQLWrapper(object):
         try:
             conn, c = self.__open_connection()
             if level.lower().startswith('h'):
-                sqlquery += " WHERE (infoname='INTEREST' AND value LIKE 'H%' {0})".format(where_ioc)
+                sqlquery += " WHERE (infoname='INTEREST' AND value='HIGH' {0})".format(where_ioc)
             elif level.lower().startswith('m'):
-                sqlquery += " WHERE (infoname='INTEREST' AND value LIKE 'M%' {0})".format(where_ioc)
+                sqlquery += " WHERE (infoname='INTEREST' AND value='MEDIUM' {0})".format(where_ioc)
             else:
                 # Try to get everything that has an interest level!
                 sqlquery += " WHERE (infoname='INTEREST'  {0})".format(where_ioc)
