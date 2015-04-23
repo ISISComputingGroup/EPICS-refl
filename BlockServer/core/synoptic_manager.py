@@ -36,23 +36,23 @@ class SynopticManager(object):
         """Create the PVs for all the synoptics found in the synoptics directory."""
         for f in self._get_synoptic_filenames():
             # Load the data, checking the schema
-            with open(os.path.join(self._directory, f + ".xml"), 'r') as synfile:
+            with open(os.path.join(self._directory, f), 'r') as synfile:
                 data = synfile.read()
                 ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder, data)
             # Get the synoptic name
-            self._create_pv(f, data)
+            self._create_pv(data)
 
-            self._add_to_version_control(f)
+            self._add_to_version_control(f[0:-4])
 
         self._vc.commit("Blockserver started, synoptics updated")
 
-    def _create_pv(self, name, data):
+    def _create_pv(self, data):
         """Creates a single PV based on a name and data. Adds this PV to the dictionary returned on get_synoptic_list
 
         Args:
-            name (string) : Name of the synoptic (PV is derived from this)
-            data (string) : Starting data in pv
+            data (string) : Starting data for the pv, the pv name is derived from the name tag of this
         """
+        name = self._get_synoptic_name_from_xml(data)
         pv = create_pv_name(name, self._synoptic_pvs.values(), "SYNOPTIC")
         self._synoptic_pvs[name] = pv
 
@@ -79,7 +79,7 @@ class SynopticManager(object):
         if not os.path.exists(self._directory):
             print_and_log("Synoptics directory does not exist")
             return list()
-        return [f[0:-4] for f in os.listdir(self._directory) if f.endswith(".xml")]
+        return [f for f in os.listdir(self._directory) if f.endswith(".xml")]
 
     def get_default_synoptic_xml(self):
         """Gets the XML for the default synoptic.
@@ -91,7 +91,7 @@ class SynopticManager(object):
         f = self._get_synoptic_filenames()
         if len(f) > 0:
             # Load the data
-            with open(os.path.join(self._directory, f[0] + ".xml"), 'r') as synfile:
+            with open(os.path.join(self._directory, f[0]), 'r') as synfile:
                 data = synfile.read()
             return data
         else:
@@ -120,7 +120,7 @@ class SynopticManager(object):
 
             name = self._get_synoptic_name_from_xml(xml_data)
 
-            self._create_pv(name, xml_data)
+            self._create_pv(xml_data)
 
         except Exception as err:
             print_and_log(err)
@@ -179,6 +179,6 @@ class SynopticManager(object):
         if name in names:
             self._cas.updatePV(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(xml_data))
         else:
-            self._create_pv(name, xml_data)
+            self._create_pv(xml_data)
 
         self._bs.update_synoptic_monitor()

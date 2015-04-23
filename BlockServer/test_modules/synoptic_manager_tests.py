@@ -94,7 +94,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
         # Assert
         synoptics = sm._get_synoptic_filenames()
-        self.assertTrue(SYN_NAME in synoptics)
+        self.assertTrue(SYN_NAME + ".xml" in synoptics)
 
     def test_set_current_synoptic_xml_creates_pv(self):
         # Arrange
