@@ -209,7 +209,7 @@ class MySQLWrapper(object):
         """Queries the database for active PVs.
 
         Returns:
-            list : A list of the PVs in running IOCs that match the search given by level
+            list : A list of the PVs in running IOCs
 
         """
         conn = None
@@ -221,13 +221,7 @@ class MySQLWrapper(object):
 
         try:
             conn, c = self.__open_connection()
-            if level.lower().startswith('h'):
-                sqlquery += " WHERE (infoname='INTEREST' AND value='HIGH' {0})".format(where_ioc)
-            elif level.lower().startswith('m'):
-                sqlquery += " WHERE (infoname='INTEREST' AND value='MEDIUM' {0})".format(where_ioc)
-            else:
-                # Try to get everything that has an interest level!
-                sqlquery += " WHERE (infoname='INTEREST'  {0})".format(where_ioc)            c.execute(sqlquery)
+            c.execute(sqlquery)
             # Get as a plain list of lists
             values = [list(element) for element in c.fetchall()]
             # Convert any bytearrays
