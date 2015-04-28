@@ -217,7 +217,7 @@ class MySQLWrapper(object):
         sqlquery = "SELECT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname FROM pvinfo"
         sqlquery += " INNER JOIN pvs ON pvs.pvname = pvinfo.pvname"
         # Ensure that only active IOCs are considered
-        sqlquery += " WHERE pvs.iocname in (SELECT iocname FROM iocrt WHERE running=1) AND (infoname='INTEREST'  {0})"
+        sqlquery += " WHERE (pvs.iocname in (SELECT iocname FROM iocrt WHERE running=1) AND infoname='INTEREST')"
 
         try:
             conn, c = self.__open_connection()
