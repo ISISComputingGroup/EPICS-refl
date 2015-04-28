@@ -205,12 +205,8 @@ class MySQLWrapper(object):
                 conn.close()
         return values
 
-    def get_active_pvs(self, level=""):
-        """Queries the database for active PVs based on their interest level.
-
-        Args:
-            level (string, optional) : The interest level to search for, either High or Medium. Default to all interest
-                                    levels
+    def get_active_pvs(self):
+        """Queries the database for active PVs.
 
         Returns:
             list : A list of the PVs in running IOCs that match the search given by level
@@ -221,7 +217,7 @@ class MySQLWrapper(object):
         sqlquery = "SELECT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname FROM pvinfo"
         sqlquery += " INNER JOIN pvs ON pvs.pvname = pvinfo.pvname"
         # Ensure that only active IOCs are considered
-        where_ioc = " AND pvs.iocname in (SELECT iocname FROM iocrt WHERE running=1)"
+        sqlquery += " WHERE pvs.iocname in (SELECT iocname FROM iocrt WHERE running=1) AND (infoname='INTEREST'  {0})"
 
         try:
             conn, c = self.__open_connection()
@@ -231,8 +227,7 @@ class MySQLWrapper(object):
                 sqlquery += " WHERE (infoname='INTEREST' AND value='MEDIUM' {0})".format(where_ioc)
             else:
                 # Try to get everything that has an interest level!
-                sqlquery += " WHERE (infoname='INTEREST'  {0})".format(where_ioc)
-            c.execute(sqlquery)
+                sqlquery += " WHERE (infoname='INTEREST'  {0})".format(where_ioc)            c.execute(sqlquery)
             # Get as a plain list of lists
             values = [list(element) for element in c.fetchall()]
             # Convert any bytearrays

@@ -109,11 +109,11 @@ Read Commands
             ["IN:DEMO:SIMPLE:VALUE2", "ai", "Another description", "SIMPLE"]
          ]'
 
-**BLOCKSERVER:PVS:ACTIVE:HIGH**
+**BLOCKSERVER:PVS:ACTIVE**
 
 ::
 
-    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:PVS:ACTIVE:HIGH
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:PVS:ACTIVE
     Gets the details for PVs in running IOCs with an interest level of "HIGH".
     Returns a compressed and hexed JSON list of interesting PVs.
     Example JSON (dehexed and decompressed):
@@ -122,13 +122,13 @@ Read Commands
             ["IN:DEMO:SIMPLE:VALUE2", "ai", "Another description", "SIMPLE"]
          ]'
 
-**BLOCKSERVER:PVS:ACTIVE:MEDIUM**
+**BLOCKSERVER:PVS:ALL**
 
 ::
 
-    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:PVS:ACTIVE:MEDIUM
-    Gets the details for PVs in running IOCs with an interest level of "MEDIUM".
-    Returns a compressed and hexed JSON list of interesting PVs.
+    Command: caget -S %MYPVPREFIX%CS:BLOCKSERVER:PVS:ALL
+    Gets the details for all with an interest level.
+    Returns a compressed and hexed JSON list of PVs.
     Example JSON (dehexed and decompressed):
         '[
             ["IN:DEMO:SIMPLE:VALUE1", "ai", "A description", "SIMPLE"],

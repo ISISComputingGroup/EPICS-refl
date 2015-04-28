@@ -46,13 +46,13 @@ PVDB = {
         'count': 64000,
         'value': [0],
     },
-    'PVS:ACTIVE:HIGH': {
+    'PVS:ACTIVE': {
         # Handled by the monitor thread
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    'PVS:ACTIVE:MEDIUM': {
+    'PVS:ALL': {
         # Handled by the monitor thread
         'type': 'char',
         'count': 64000,
@@ -153,8 +153,8 @@ class DatabaseServer(Driver):
             if self._db is not None:
                 self._db.update_iocs_status()
                 self.setParam("IOCS", self.encode4return(self._get_iocs_info()))
-                self.setParam("PVS:ACTIVE:HIGH", self.encode4return(self._get_active_pvs("HIGH")))
-                self.setParam("PVS:ACTIVE:MEDIUM", self.encode4return(self._get_active_pvs("MEDIUM")))
+                self.setParam("PVS:ALL", self.encode4return(self._get_interesting_pvs("")))
+                self.setParam("PVS:ACTIVE", self.encode4return(self._get_active_pvs()))
                 self.setParam("PVS:INTEREST:HIGH", self.encode4return(self._get_interesting_pvs("HIGH")))
                 self.setParam("PVS:INTEREST:MEDIUM", self.encode4return(self._get_interesting_pvs("MEDIUM")))
                 self._update_individual_interesting_pvs()
@@ -188,9 +188,9 @@ class DatabaseServer(Driver):
         else:
             return list()
 
-    def _get_active_pvs(self, level):
+    def _get_active_pvs(self):
         if self._db is not None:
-            return self._db.get_active_pvs(level)
+            return self._db.get_active_pvs()
         else:
             return list()
 
