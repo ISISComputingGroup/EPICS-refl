@@ -188,8 +188,8 @@ class MySQLWrapper(object):
             elif level.lower().startswith('m'):
                 sqlquery += " WHERE (infoname='INTEREST' AND value='MEDIUM' {0})".format(where_ioc)
             else:
-                # Try to get everything that has an interest level!
-                sqlquery += " WHERE (infoname='INTEREST'  {0})".format(where_ioc)
+                # Try to get all pvs!
+                pass
             c.execute(sqlquery)
             # Get as a plain list of lists
             values = [list(element) for element in c.fetchall()]
