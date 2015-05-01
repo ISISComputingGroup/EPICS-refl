@@ -53,11 +53,12 @@ class SynopticManager(object):
             data (string) : Starting data for the pv, the pv name is derived from the name tag of this
         """
         name = self._get_synoptic_name_from_xml(data)
-        pv = create_pv_name(name, self._synoptic_pvs.values(), "SYNOPTIC")
-        self._synoptic_pvs[name] = pv
+        if name not in self._synoptic_pvs:
+            pv = create_pv_name(name, self._synoptic_pvs.values(), "SYNOPTIC")
+            self._synoptic_pvs[name] = pv
 
         # Create the PV
-        self._cas.updatePV(SYNOPTIC_PRE + pv + SYNOPTIC_GET, compress_and_hex(data))
+        self._cas.updatePV(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(data))
 
     def get_synoptic_list(self):
         """Gets the names and associated pvs of the synoptic files in the synoptics directory.
@@ -118,13 +119,14 @@ class SynopticManager(object):
             # Check against schema
             ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder, xml_data)
 
-            name = self._get_synoptic_name_from_xml(xml_data)
-
+            # Update PVs
             self._create_pv(xml_data)
 
         except Exception as err:
             print_and_log(err)
             raise
+
+        name = self._get_synoptic_name_from_xml(xml_data)
 
         # Save the data
         with open(os.path.join(self._directory, name + ".xml"), 'w') as synfile:
@@ -132,6 +134,8 @@ class SynopticManager(object):
             synfile.write(pretty_xml)
 
         self._add_to_version_control(name, "%s modified by client" % name)
+
+        self._bs.update_synoptic_monitor()
 
         print_and_log("Synoptic saved: " + name)
 
