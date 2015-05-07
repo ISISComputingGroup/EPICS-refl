@@ -8,9 +8,10 @@ sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 from pcaspy import Driver
 from time import sleep
 import argparse
-from server_common.utilities import compress_and_hex, print_and_log
+from server_common.utilities import compress_and_hex, print_and_log, convert_to_json, dehex_and_decompress
 from server_common.channel_access_server import CAServer
 from mysql_wrapper import MySQLWrapper as dbWrap
+from exp_data import ExpData
 import json
 from threading import Thread, RLock
 from procserv_utils import ProcServWrapper
@@ -104,6 +105,15 @@ class DatabaseServer(Driver):
             self._db = None
             print_and_log("Problem initialising DB connection: %s" % err, "MAJOR", "DBSVR")
 
+        # Initialise experimental database connection
+        try:
+            self._ed = ExpData(MACROS["$(MYPVPREFIX)"])
+            self._ed.check_db_okay()
+            print_and_log("Connected to experimental details database", "INFO", "DBSVR")
+        except Exception as err:
+            self._db = None
+            print_and_log("problem connecting to experimental details database: %s" % err, "MAJOR", "DBSVR")
+
         if self._db is not None and not test_mode:
             # Start a background thread for keeping track of running IOCs
             self.monitor_lock = RLock()
@@ -141,6 +151,15 @@ class DatabaseServer(Driver):
             bool : True
         """
         status = True
+        try:
+            if reason == 'ED:RBNUMBER:SP':
+                #print_and_log("Updating to use experiment ID: " + value, "INFO", "DBSVR")
+                self._ed.updateExperimentID(value)
+            elif reason == 'ED:USERNAME:SP':
+                self._ed.updateUsername(dehex_and_decompress(value))
+        except Exception as err:
+            value = compress_and_hex(convert_to_json("Error: " + str(err)))
+            print_and_log(str(err), "MAJOR")
         # store the values
         if status:
             self.setParam(reason, value)
@@ -247,6 +266,7 @@ if __name__ == '__main__':
 
     SERVER = CAServer(BLOCKSERVER_PREFIX)
     SERVER.createPV(BLOCKSERVER_PREFIX, PVDB)
+    SERVER.createPV(MACROS["$(MYPVPREFIX)"], ExpData.EDPV)
     DRIVER = DatabaseServer(SERVER, IOCDB, OPTIONS_DIR)
 
     # Process CA transactions
