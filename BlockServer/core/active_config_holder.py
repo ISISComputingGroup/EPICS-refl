@@ -160,7 +160,7 @@ class ActiveConfigHolder(ConfigHolder):
         It checks for: IOCs added; IOCs removed; and, macros, pvs or pvsets changed.
 
         Returns:
-            list, list : IOCs to start and IOCs to restart
+            set, set : IOCs to start and IOCs to restart
         """
         iocs_to_start = list()
         iocs_to_restart = list()
@@ -189,4 +189,11 @@ class ActiveConfigHolder(ConfigHolder):
             if cmp(old_pvsets, new_pvsets) != 0:
                 if n not in iocs_to_restart:
                     iocs_to_restart.append(n)
-        return iocs_to_start, iocs_to_restart
+
+        # Look for any new components
+        for cn, cv in self._components.iteritems():
+            if cn not in self._cached_components:
+                for n in cv.iocs.keys():
+                    iocs_to_start.append(n)
+
+        return set(iocs_to_start), set(iocs_to_restart)
