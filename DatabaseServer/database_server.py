@@ -111,8 +111,8 @@ class DatabaseServer(Driver):
             self._ed.check_db_okay()
             print_and_log("Connected to experimental details database", "INFO", "DBSVR")
         except Exception as err:
-            self._db = None
-            print_and_log("problem connecting to experimental details database: %s" % err, "MAJOR", "DBSVR")
+            self._ed = None
+            print_and_log("Problem connecting to experimental details database: %s" % err, "MAJOR", "DBSVR")
 
         if self._db is not None and not test_mode:
             # Start a background thread for keeping track of running IOCs
