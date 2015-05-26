@@ -30,8 +30,8 @@ if __name__ == '__main__':
     database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
-#    xmlrunner.XMLTestRunner(output=xml_dir).run(sqlite_suite)
-#    xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite)
-#    xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite)
-#    xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite)
+    xmlrunner.XMLTestRunner(output=xml_dir).run(sqlite_suite)
+    xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite)
+    xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite)
+    xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite)
     print "------ UNIT TESTS COMPLETE ------\n\n"
