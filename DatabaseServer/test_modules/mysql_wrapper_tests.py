@@ -1,6 +1,6 @@
 import unittest
 import mysql.connector
-from mysql_wrapper import MySQLWrapper as dbwrap
+from ioc_data import IOCData
 from mocks.mock_procserv_utils import MockProcServWrapper
 
 TEST_DB = 'test_iocdb'
@@ -83,7 +83,7 @@ generate_fake_db(TEST_DB)
 class TestMySQLWrapperSequence(unittest.TestCase):
     def setUp(self):
         self.prefix = ""
-        self.wrapper = dbwrap(TEST_DB, MockProcServWrapper(), self.prefix)
+        self.wrapper = IOCData(TEST_DB, MockProcServWrapper(), self.prefix)
 
     def test_get_iocs(self):
         iocs = self.wrapper.get_iocs()
@@ -99,7 +99,7 @@ class TestMySQLWrapperSequence(unittest.TestCase):
         ps = MockProcServWrapper()
         ps.start_ioc(self.prefix, "SIMPLE1")
         ps.start_ioc(self.prefix, "SIMPLE2")
-        self.wrapper = dbwrap(TEST_DB, ps, self.prefix)
+        self.wrapper = IOCData(TEST_DB, ps, self.prefix)
 
         running = self.wrapper.update_iocs_status()
         self.assertEqual(len(running), 2)
@@ -111,7 +111,7 @@ class TestMySQLWrapperSequence(unittest.TestCase):
             self.fail("check_db_okay throw an exception")
 
     def test_check_db_okay_fails(self):
-        self.wrapper = dbwrap("not_a_db", MockProcServWrapper(), self.prefix)
+        self.wrapper = IOCData("not_a_db", MockProcServWrapper(), self.prefix)
         self.assertRaises(Exception, self.wrapper.check_db_okay)
 
     def test_get_interesting_pvs_all(self):

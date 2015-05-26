@@ -10,7 +10,7 @@ from time import sleep
 import argparse
 from server_common.utilities import compress_and_hex, print_and_log, convert_to_json, dehex_and_decompress
 from server_common.channel_access_server import CAServer
-from mysql_wrapper import MySQLWrapper as dbWrap
+from ioc_data import IOCData
 from exp_data import ExpData
 import json
 from threading import Thread, RLock
@@ -98,7 +98,7 @@ class DatabaseServer(Driver):
 
         # Initialise database connection
         try:
-            self._db = dbWrap(dbid, ps, MACROS["$(MYPVPREFIX)"])
+            self._db = IOCData(dbid, ps, MACROS["$(MYPVPREFIX)"])
             self._db.check_db_okay()
             print_and_log("Connected to database", "INFO", "DBSVR")
         except Exception as err:

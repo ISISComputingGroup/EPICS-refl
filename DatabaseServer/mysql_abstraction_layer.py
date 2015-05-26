@@ -54,13 +54,22 @@ class SQLAbstraction(object):
         try:
             conn, c = self.__open_connection()
             c.execute(query)
-            values = [list(element) for element in c.fetchall()]
-            if len(values) == 0:
-                raise Exception("No values found")
-            else:
-                return values
+            values = c.fetchall()
+            return values
         except Exception as err:
             raise Exception("error executing query: %s" % err)
+        finally:
+            if conn is not None:
+                conn.close()
+
+    def commit(self, query):
+        conn = None
+        try:
+            conn, c = self.__open_connection()
+            c.execute(query)
+            conn.commit()
+        except Exception as err:
+            raise Exception("Error updating database: %s" % err)
         finally:
             if conn is not None:
                 conn.close()

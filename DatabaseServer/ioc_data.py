@@ -1,9 +1,10 @@
 import mysql.connector
 from threading import RLock
 from server_common.utilities import print_and_log
+from mysql_abstraction_layer import SQLAbstraction
 
 
-class MySQLWrapper(object):
+class IOCData(object):
     """A wrapper to connect to the IOC database via MySQL"""
 
     def __init__(self, dbid, procserver, prefix):
@@ -14,7 +15,10 @@ class MySQLWrapper(object):
             procserver (ProcServWrapper) : An instance of ProcServWrapper, used to start and stop IOCs
             prefix (string) : The pv prefix of the instrument the server is being run on
         """
-        self._dbid = dbid
+
+        # Set up the database connection
+        self._db = SQLAbstraction(dbid, dbid, "$" + dbid)
+
         self._procserve = procserver
         self._prefix = prefix
         self._running_iocs = list()
@@ -23,19 +27,7 @@ class MySQLWrapper(object):
     def check_db_okay(self):
         """Attempts to connect to the database and raises an error if not able
         """
-        conn, curs = self.__open_connection()
-        if conn is not None:
-            conn.close()
-
-    def __open_connection(self):
-        conn = mysql.connector.connect(user="iocdb", password="$iocdb", host="127.0.0.1", database=self._dbid)
-        curs = conn.cursor()
-        # Check db exists
-        curs.execute("SHOW TABLES")
-        if len(curs.fetchall()) == 0:
-            # Database does not exist - probably means no IOCs have been run (i.e. it is a fresh install)
-            raise Exception("PVs database does not exist")
-        return conn, curs
+        self._db.check_db_okay()
 
     def get_iocs(self):
         """Gets a list of all the IOCs in the database and whether or not they are running
@@ -43,18 +35,12 @@ class MySQLWrapper(object):
         Returns:
             dict : IOCs and their running status
         """
-        conn = None
         try:
-            conn, c = self.__open_connection()
             sqlquery = "SELECT iocname FROM iocs"
-            c.execute(sqlquery)
-            iocs = dict((element[0], dict()) for element in c.fetchall())
+            iocs = dict((element[0], dict()) for element in self._db.execute_query(sqlquery))
         except Exception as err:
             print_and_log("could not get IOCS from database: %s" % err, "MAJOR", "DBSVR")
             iocs = dict()
-        finally:
-            if conn is not None:
-                conn.close()
         for ioc in iocs.keys():
             ioc = ioc.encode('ascii', 'replace')
             with self._running_iocs_lock:
@@ -80,22 +66,16 @@ class MySQLWrapper(object):
         Returns:
             list : A list of the names of PVs associated with sample parameters
         """
-        conn = None
         values = []
         try:
-            conn, c = self.__open_connection()
             sqlquery = ("SELECT pvname FROM pvs"
                         " WHERE (pvname LIKE '%PARS:SAMPLE:%' AND pvname NOT LIKE '%:SEND'"
                         " AND pvname NOT LIKE '%:SP' AND pvname NOT LIKE '%:TYPE')"
                         )
-            c.execute(sqlquery)
             # Get as a plain list
-            values = [str(element[0]) for element in c.fetchall()]
+            values = [str(element[0]) for element in self._db.execute_query(sqlquery)]
         except Exception as err:
             print_and_log("could not get sample parameters from database: %s" % err, "MAJOR", "DBSVR")
-        finally:
-            if conn is not None:
-                conn.close()
         return values
 
     def get_beamline_pars(self):
@@ -104,22 +84,16 @@ class MySQLWrapper(object):
         Returns:
             list : A list of the names of PVs associated with beamline parameters
         """
-        conn = None
         values = []
         try:
-            conn, c = self.__open_connection()
             sqlquery = ("SELECT pvname FROM pvs"
                         " WHERE (pvname LIKE '%PARS:BL:%' AND pvname NOT LIKE '%:SEND'"
                         " AND pvname NOT LIKE '%:SP' AND pvname NOT LIKE '%:TYPE')"
                         )
-            c.execute(sqlquery)
             # Get as a plain list
-            values = [str(element[0]) for element in c.fetchall()]
+            values = [str(element[0]) for element in self._db.execute_query(sqlquery)]
         except Exception as err:
             print_and_log("could not get beamline parameters from database: %s" % err, "MAJOR", "DBSVR")
-        finally:
-            if conn is not None:
-                conn.close()
         return values
 
     def update_iocs_status(self):
@@ -129,14 +103,11 @@ class MySQLWrapper(object):
             list : The names of running IOCs
         """
         with self._running_iocs_lock:
-            conn = None
             self._running_iocs = list()
             try:
-                conn, c = self.__open_connection()
                 # Get all the iocnames and whether they are running, but ignore IOCs associated with PSCTRL
                 sqlquery = "SELECT iocname, running FROM iocrt WHERE (iocname NOT LIKE 'PSCTRL_%')"
-                c.execute(sqlquery)
-                rows = c.fetchall()
+                rows = self._db.execute_query(sqlquery)
                 for row in rows:
                     # Check to see if running using CA and procserv
                     try:
@@ -144,21 +115,17 @@ class MySQLWrapper(object):
                             self._running_iocs.append(row[0])
                             if row[1] == 0:
                                 # This should only get called if the IOC failed to tell the DB it started
-                                c.execute("UPDATE iocrt SET running=1 WHERE iocname='%s'" % row[0])
-                                conn.commit()
+                                self._db.commit("UPDATE iocrt SET running=1 WHERE iocname='%s'" % row[0])
                         else:
                             if row[1] == 1:
-                                c.execute("UPDATE iocrt SET running=0 WHERE iocname='%s'" % row[0])
-                                conn.commit()
+                                self._db.commit("UPDATE iocrt SET running=0 WHERE iocname='%s'" % row[0])
                     except Exception as err:
                         # Fail but continue - probably couldn't find procserv for the ioc
                         print_and_log("issue with updating IOC status: %s" % err, "MAJOR", "DBSVR")
             except Exception as err:
                 print_and_log("issue with updating IOC statuses: %s" % err, "MAJOR", "DBSVR")
-            finally:
-                if conn is not None:
-                    conn.close()
-                return self._running_iocs
+
+            return self._running_iocs
 
     def get_interesting_pvs(self, level="", ioc=None):
         """Queries the database for PVs based on their interest level and their IOC.
@@ -172,7 +139,6 @@ class MySQLWrapper(object):
             list : A list of the PVs that match the search given by level and ioc
 
         """
-        conn = None
         values = []
         sqlquery = "SELECT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname FROM pvinfo"
         sqlquery += " INNER JOIN pvs ON pvs.pvname = pvinfo.pvname"
@@ -182,7 +148,6 @@ class MySQLWrapper(object):
             where_ioc = "AND iocname='%s'" % ioc
 
         try:
-            conn, c = self.__open_connection()
             if level.lower().startswith('h'):
                 sqlquery += " WHERE (infoname='INTEREST' AND value='HIGH' {0})".format(where_ioc)
             elif level.lower().startswith('m'):
@@ -190,9 +155,9 @@ class MySQLWrapper(object):
             else:
                 # Try to get all pvs!
                 pass
-            c.execute(sqlquery)
+
             # Get as a plain list of lists
-            values = [list(element) for element in c.fetchall()]
+            values = [list(element) for element in self._db.execute_query(sqlquery)]
             # Convert any bytearrays
             for i, pv in enumerate(values):
                 for j, element in enumerate(pv):
@@ -200,9 +165,6 @@ class MySQLWrapper(object):
                         values[i][j] = element.decode("utf-8")
         except Exception as err:
             print_and_log("issue with getting interesting PVs: %s" % err, "MAJOR", "DBSVR")
-        finally:
-            if conn is not None:
-                conn.close()
         return values
 
     def get_active_pvs(self):
@@ -212,7 +174,6 @@ class MySQLWrapper(object):
             list : A list of the PVs in running IOCs
 
         """
-        conn = None
         values = []
         sqlquery = "SELECT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname FROM pvinfo"
         sqlquery += " INNER JOIN pvs ON pvs.pvname = pvinfo.pvname"
@@ -220,10 +181,8 @@ class MySQLWrapper(object):
         sqlquery += " WHERE (pvs.iocname in (SELECT iocname FROM iocrt WHERE running=1) AND infoname='INTEREST')"
 
         try:
-            conn, c = self.__open_connection()
-            c.execute(sqlquery)
             # Get as a plain list of lists
-            values = [list(element) for element in c.fetchall()]
+            values = [list(element) for element in self._db.execute_query(sqlquery)]
             # Convert any bytearrays
             for i, pv in enumerate(values):
                 for j, element in enumerate(pv):
@@ -231,7 +190,5 @@ class MySQLWrapper(object):
                         values[i][j] = element.decode("utf-8")
         except Exception as err:
             print_and_log("issue with getting active PVs: %s" % err, "MAJOR", "DBSVR")
-        finally:
-            if conn is not None:
-                conn.close()
+
         return values

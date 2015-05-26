@@ -1,4 +1,4 @@
-import mysql_abstraction_layer as sql_abstraction
+from mysql_abstraction_layer import SQLAbstraction
 from server_common.channel_access import caput
 from server_common.utilities import compress_and_hex
 import json
@@ -40,7 +40,7 @@ class ExpData(object):
             prefix (string) : The pv prefix of the instrument the server is being run on
         """
         # Set up the database connection
-        self._db = sql_abstraction.SQLAbstraction('exp_data', "exp_data", "$exp_data", "127.0.0.1")
+        self._db = SQLAbstraction('exp_data', "exp_data", "$exp_data")
 
         # Build the PV names to be used
         self._simrbpv = prefix + "ED:SIM:RBNUMBER"
@@ -74,7 +74,7 @@ class ExpData(object):
             sqlquery += " AND user.userID = experimentteams.userID"
             sqlquery += " AND experimentteams.experimentID = %s" % experimentID
             sqlquery += " ORDER BY role.priority"
-            team = self._db.execute_query(sqlquery)
+            team = [list(element) for element in self._db.execute_query(sqlquery)]
             if len(team) == 0:
                 raise Exception("unable to find team details for experiment ID %s" % experimentID)
             else:
