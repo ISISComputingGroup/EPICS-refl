@@ -9,7 +9,7 @@ EDDB = 'exp_data'
 
 class user(object):
     """A user class to allow for easier conversions from database to json"""
-    def __init__(self, name = "UNKNOWN", institute = "UNKNOWN", role = "UNKNOWN"):
+    def __init__(self, name="UNKNOWN", institute="UNKNOWN", role="UNKNOWN"):
         self.name = name
         self.institute = institute
         self.role = role
@@ -40,7 +40,7 @@ class ExpData(object):
             prefix (string) : The pv prefix of the instrument the server is being run on
         """
         # Set up the database connection
-        self._db = sql_abstraction.SQLAbstraction('exp_data',"exp_data","$exp_data","127.0.0.1")
+        self._db = sql_abstraction.SQLAbstraction('exp_data', "exp_data", "$exp_data", "127.0.0.1")
 
         # Build the PV names to be used
         self._simrbpv = prefix + "ED:SIM:RBNUMBER"
@@ -57,7 +57,6 @@ class ExpData(object):
 
     # def __open_connection(self):
     #     return self._db.__open_connection()
-
 
     def _get_team(self, experimentID):
         """Gets the team members
@@ -106,8 +105,8 @@ class ExpData(object):
 
         """
         # Update the RB Number for lookup - SIM for testing, DAE for production
-        caput(self._simrbpv,experimentID)
-        caput(self._daerbpv,experimentID)
+        caput(self._simrbpv, experimentID)
+        caput(self._daerbpv, experimentID)
         # Get the user information from the database and update the associated PVs
         names = []
         surnames = []
@@ -127,15 +126,15 @@ class ExpData(object):
                     if not role == "Contact":
                         surnames.append(surname)
                     orgs.append(org)
-                    name = user(fullname,org,role.lower())
+                    name = user(fullname, org, role.lower())
                     names.append(name.__dict__)
             orgs = list(set(orgs))
-            caput(self._simnames,self.encode4return(names))
-            caput(self._surnamepv,self.encode4return(surnames))
-            caput(self._orgspv,self.encode4return(orgs))
+            caput(self._simnames, self.encode4return(names))
+            caput(self._surnamepv, self.encode4return(surnames))
+            caput(self._orgspv, self.encode4return(orgs))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
-            caput(self._daenamespv,",".join(surnames))
+            caput(self._daenamespv, ",".join(surnames))
 
     def updateUsername(self, users):
         """Updates the associated PVs when the User Names are altered
@@ -159,7 +158,7 @@ class ExpData(object):
             for ndx, member in enumerate(users):
                 users[ndx] = "{" + member + "}"
 
-            # Lopp through the list of strings to generate the lists/similar for conversion to JSON
+            # Loop through the list of strings to generate the lists/similar for conversion to JSON
             for teammember in users:
                 member = json.loads(teammember)
                 fullname = str(member['name'])
@@ -172,12 +171,12 @@ class ExpData(object):
                 if not role == "Contact":
                     surnames.append(surname)
                 orgs.append(org)
-                name = user(fullname,org,role.lower())
+                name = user(fullname, org, role.lower())
                 names.append(name.__dict__)
             orgs = list(set(orgs))
-            caput(self._simnames,self.encode4return(names))
-            caput(self._surnamepv,self.encode4return(surnames))
-            caput(self._orgspv,self.encode4return(orgs))
+            caput(self._simnames, self.encode4return(names))
+            caput(self._surnamepv, self.encode4return(surnames))
+            caput(self._orgspv, self.encode4return(orgs))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
-            caput(self._daenamespv,",".join(surnames))
+            caput(self._daenamespv, ",".join(surnames))

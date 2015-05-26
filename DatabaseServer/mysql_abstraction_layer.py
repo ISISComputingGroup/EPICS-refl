@@ -1,9 +1,10 @@
 import mysql.connector
 
+
 class SQLAbstraction(object):
     """A wrapper to connect to MySQL databases"""
 
-    def __init__(self, dbid, user, password, host = "127.0.0.1"):
+    def __init__(self, dbid, user, password, host="127.0.0.1"):
         """Constructor
 
         Args:
@@ -51,15 +52,15 @@ class SQLAbstraction(object):
         """
         conn = None
         try:
-             conn, c = self.__open_connection()
-             c.execute(query)
-             values = [list(element) for element in c.fetchall()]
-             if len(values) == 0:
-                 raise Exception("No values found")
-             else:
-                 return values
+            conn, c = self.__open_connection()
+            c.execute(query)
+            values = [list(element) for element in c.fetchall()]
+            if len(values) == 0:
+                raise Exception("No values found")
+            else:
+                return values
         except Exception as err:
-             raise Exception("error executing query: %s" % err)
+            raise Exception("error executing query: %s" % err)
         finally:
-             if conn is not None:
-                 conn.close()
+            if conn is not None:
+                conn.close()
