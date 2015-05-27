@@ -257,6 +257,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(details['components']), 0)
         self.assertEqual(details['name'], "")
         self.assertEqual(details['description'], "")
+        self.assertEqual(details['synoptic'], "")
 
     def test_get_config_details(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
@@ -481,7 +482,8 @@ class TestConfigHolderSequence(unittest.TestCase):
                             {"blocks": ["TESTBLOCK2"], "name": "Group2", "subconfig": None},
                             {"blocks": ["TESTBLOCK3"], "name": "NONE", "subconfig": None}],
                        "name": "TESTCONFIG",
-                       "description": "Test Description"
+                       "description": "Test Description",
+                       "synoptic": "TEST_SYNOPTIC"
                        }
         ch.set_config_details(new_details)
         details = ch.get_config_details()
@@ -506,6 +508,7 @@ class TestConfigHolderSequence(unittest.TestCase):
 
         self.assertEqual(details['name'], "TESTCONFIG")
         self.assertEqual(details['description'], "Test Description")
+        self.assertEqual(details['synoptic'], "TEST_SYNOPTIC")
 
     def test_set_config_details_nonexistant_block_in_group_is_removed(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
@@ -621,7 +624,8 @@ class TestConfigHolderSequence(unittest.TestCase):
                        "components": [],
                        "groups": [],
                        "name": "EMPTYCONFIG",
-                       "description": ""
+                       "description": "",
+                       "synoptic": ""
         }
         ch.set_config_details(new_details)
 
@@ -632,6 +636,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(details['components']), 0)
         self.assertEqual(len(details['groups']), 0)
         self.assertEqual(details['description'], "")
+        self.assertEqual(details['synoptic'], "")
         self.assertEqual(details['name'], "EMPTYCONFIG")
 
     def test_default_component_is_loaded(self):

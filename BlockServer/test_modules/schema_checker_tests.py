@@ -45,6 +45,7 @@ TEST_CONFIG = {"iocs":
                     {"blocks": ["testblock3"], "name": "NONE", "subconfig": None}],
           "name": "TESTCONFIG1",
 		  "description": "A test configuration",
+          "synoptic": "TEST_SYNOPTIC",
 		  "history": ["2015-02-16"]
          }
 

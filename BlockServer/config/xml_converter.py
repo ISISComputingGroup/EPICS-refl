@@ -18,6 +18,7 @@ COMPONENT_SCHEMA = "components/1.0"
 
 TAG_META = "meta"
 TAG_DESC = "description"
+TAG_SYNOPTIC = "synoptic"
 
 
 class ConfigurationXmlConverter(object):
@@ -121,6 +122,9 @@ class ConfigurationXmlConverter(object):
 
         desc_xml = ElementTree.SubElement(root, TAG_DESC)
         desc_xml.text = data.description
+
+        syn_xml = ElementTree.SubElement(root, TAG_SYNOPTIC)
+        syn_xml.text = data.synoptic
 
         edits_xml = ElementTree.SubElement(root, TAG_EDITS)
         for e in data.history:
@@ -370,6 +374,10 @@ class ConfigurationXmlConverter(object):
         description = root_xml.find("./" + TAG_DESC)
         if description is not None:
             data.description = description.text if description.text is not None else ""
+
+        synoptic = root_xml.find("./" + TAG_SYNOPTIC)
+        if synoptic is not None:
+            data.synoptic = synoptic.text if synoptic.text is not None else ""
 
         edits = root_xml.findall("./" + TAG_EDITS + "/" + TAG_EDIT)
         data.history = [e.text for e in edits]

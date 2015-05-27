@@ -83,6 +83,7 @@ IOCS_XML = u"""
 META_XML = u"""<?xml version="1.0" ?>
 <meta>
 <description>A test description</description>
+<synoptic>TEST_SYNOPTIC</synoptic>
 <edits>
 <edit>1992-02-07</edit>
 </edits>
@@ -163,7 +164,7 @@ def make_iocs():
     return iocs
 
 def make_meta():
-    meta = MetaData('Test', description='A test description')
+    meta = MetaData('Test', description='A test description', synoptic="TEST_SYNOPTIC")
     meta.history = ["1992-02-07"]
     return meta
 

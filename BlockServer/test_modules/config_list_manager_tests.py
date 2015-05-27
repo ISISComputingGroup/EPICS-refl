@@ -49,7 +49,8 @@ VALID_CONFIG = {
         "groups": [{
             "blocks": ["TEST_BLOCK"], "name": "TEST_GROUP", "subconfig": None}],
         "name": "TEST_CONFIG",
-        "description": "A Test Configuration"}
+        "description": "A Test Configuration",
+        "synoptic": "TEST_SYNOPTIC"}
 
 
 def create_configs(names):
@@ -160,6 +161,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_CONFIG" in [conf.get('name') for conf in confs])
         self.assertTrue("TEST_CONFIG" in [conf.get('pv') for conf in confs])
         self.assertTrue("A Test Configuration" in [conf.get('description') for conf in confs])
+        self.assertTrue("TEST_SYNOPTIC" in [conf.get('synoptic') for conf in confs])
 
         subconfs = ics.get_subconfigs()
         self.assertEqual(len(subconfs), 0)
@@ -175,6 +177,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_CONFIG" in [conf.get('name') for conf in confs])
         self.assertTrue("TEST_CONFIG" in [conf.get('pv') for conf in confs])
         self.assertTrue("A Test Configuration" in [conf.get('description') for conf in confs])
+        self.assertTrue("TEST_SYNOPTIC" in [conf.get('synoptic') for conf in confs])
 
         subconfs = ics.get_configs()
         self.assertEqual(len(subconfs), 0)
@@ -184,10 +187,11 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         confs = ic.get_subconfigs()
         for conf in confs:
-            self.assertEqual(len(conf), 4)
+            self.assertEqual(len(conf), 5)
             self.assertTrue("name" in conf)
             self.assertTrue("pv" in conf)
             self.assertTrue("description" in conf)
+            self.assertTrue("synoptic" in conf)
             self.assertTrue("history" in conf)
         self.assertTrue("TEST_SUBCONFIG1" in [conf.get('name') for conf in confs])
         self.assertTrue("TEST_SUBCONFIG2" in [conf.get('name') for conf in confs])
@@ -268,6 +272,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("blocks" in data)
         self.assertTrue("groups" in data)
         self.assertTrue("description" in data)
+        self.assertTrue("synoptic" in data)
         self.assertFalse("pv" in data)
 
     def _test_pv_changed_but_not_name(self, config_name, expected_pv_name):

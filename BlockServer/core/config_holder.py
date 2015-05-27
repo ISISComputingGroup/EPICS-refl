@@ -279,6 +279,7 @@ class ConfigHolder(object):
         config['components'] = self._comps_to_list()
         config['name'] = self._config.get_name()
         config['description'] = self._config.meta.description
+        config['synoptic'] = self._config.meta.synoptic
         config['history'] = self._config.meta.history
 
         return config
@@ -364,6 +365,8 @@ class ConfigHolder(object):
                 self._set_config_name(details["name"])
             if "description" in details:
                 self._config.meta.description = details["description"]
+            if "synoptic" in details:
+                self._config.meta.synoptic = details["synoptic"]
             # blockserver ignores history returned by clients:
             if "history" in details:
                 self._config.meta.history = details["history"]
