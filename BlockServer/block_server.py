@@ -251,7 +251,7 @@ class BlockServer(Driver):
         """
         # This is in a separate method so it can be sent to the thread queue
         self._active_configserver = ActiveConfigHolder(CONFIG_DIR, MACROS, ARCHIVE_UPLOADER, ARCHIVE_SETTINGS, self._vc,
-                                                       self._ioc_control, self._ioc_control)
+                                                       self._ioc_control)
         try:
             if self._gateway.exists():
                 print_and_log("Found gateway")

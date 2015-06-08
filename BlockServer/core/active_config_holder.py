@@ -47,9 +47,10 @@ class ActiveConfigHolder(ConfigHolder):
             self._set_testing_mode()
 
     def _set_testing_mode(self):
-        self._archive_manager.set_testing_mode(True)
         from BlockServer.mocks.mock_runcontrol import MockRunControlManager
         self._runcontrol = MockRunControlManager()
+        from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
+        self._archive_manager = ArchiverManager(None, None, MockArchiverWrapper())
 
     # Could we override save_configuration?
     def save_active(self, name, as_comp=False):
