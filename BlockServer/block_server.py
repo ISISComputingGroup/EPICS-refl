@@ -172,12 +172,26 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
+
+    'BUMPSTRIP_AVAILABLE': {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
+    },
+
+    'BUMPSTRIP_AVAILABLE:SP': {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
+    },
+
 }
 
 
 class BlockServer(Driver):
     """The class for handling all the static PV access and monitors etc.
     """
+
     def __init__(self, ca_server):
         """Constructor.
 
@@ -190,6 +204,7 @@ class BlockServer(Driver):
         self._status = "INITIALISING"
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
+        self.bumpstrip = "No"
 
         # Connect to version control
         try:
@@ -290,6 +305,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(convert_to_json(self._syn.get_synoptic_list()))
             elif reason == "SYNOPTICS:GET_DEFAULT":
                 value = compress_and_hex(self._syn.get_default_synoptic_xml())
+            elif reason == "BUMPSTRIP_AVAILABLE":
+                value = compress_and_hex(self.bumpstrip)
             else:
                 value = self.getParam(reason)
         except Exception as err:
@@ -354,6 +371,11 @@ class BlockServer(Driver):
             elif reason == "SYNOPTICS:DELETE":
                 self._syn.delete_synoptics(convert_from_json(data))
                 self.update_synoptic_monitor()
+            elif reason == "BUMPSTRIP_AVAILABLE:SP":
+                self.bumpstrip = data
+                self.update_bumpstripAvailability()
+
+
             else:
                 status = False
         except Exception as err:
@@ -587,6 +609,14 @@ class BlockServer(Driver):
             names = convert_to_json(self._syn.get_synoptic_list())
             self.setParam("SYNOPTICS:NAMES", compress_and_hex(names))
 
+    def update_bumpstripAvailability(self):
+            """Updates the monitor for the configurations, so the clients can see any changes.
+            """
+            with self.monitor_lock:
+                # set the available configs
+                self.setParam("BUMPSTRIP_AVAILABLE", compress_and_hex(self.bumpstrip))
+                # Update them
+                self.updatePVs()
 
     def consume_write_queue(self):
         """Actions any requests on the write queue.
