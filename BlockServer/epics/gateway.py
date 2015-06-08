@@ -1,3 +1,4 @@
+import time
 from server_common.channel_access import caget, caput
 from server_common.utilities import print_and_log
 
@@ -32,8 +33,9 @@ class Gateway(object):
     def _restart(self):
         print_and_log("Restarting gateway")
         try:
-            # Have to wait on put as the gateway does not like callbacks
-            caput(self._prefix + "newAsFlag", 1, True)
+            # Have to wait after put as the gateway does not do completion callbacks (it is not an IOC)
+            caput(self._prefix + "newAsFlag", 1, False)
+            time.sleep(1)
             print_and_log("Gateway restarted")
         except Exception as err:
             print_and_log("Problem with restarting the gateway %s" % err)
