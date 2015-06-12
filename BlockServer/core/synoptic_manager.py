@@ -54,6 +54,10 @@ class SynopticManager(object):
         """
         name = self._get_synoptic_name_from_xml(data)
         if name not in self._synoptic_pvs:
+            # Extra check, if a non-case sensitive match exits remove it
+            for key in self._synoptic_pvs.keys():
+                if name.lower() == key.lower():
+                    self._synoptic_pvs.pop(key)
             pv = create_pv_name(name, self._synoptic_pvs.values(), "SYNOPTIC")
             self._synoptic_pvs[name] = pv
 
@@ -128,8 +132,14 @@ class SynopticManager(object):
 
         name = self._get_synoptic_name_from_xml(xml_data)
 
+        save_path = os.path.join(self._directory, name + ".xml")
+
+        # If save file already exists remove first to avoid case issues
+        if os.path.exists(save_path):
+            os.remove(save_path)
+
         # Save the data
-        with open(os.path.join(self._directory, name + ".xml"), 'w') as synfile:
+        with open(save_path, 'w') as synfile:
             pretty_xml = minidom.parseString(xml_data).toprettyxml()
             synfile.write(pretty_xml)
 
