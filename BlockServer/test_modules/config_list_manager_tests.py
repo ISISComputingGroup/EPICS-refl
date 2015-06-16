@@ -196,74 +196,26 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_SUBCONFIG1" in [conf.get('name') for conf in confs])
         self.assertTrue("TEST_SUBCONFIG2" in [conf.get('name') for conf in confs])
 
-    def test_pv_of_name_with_special_chars(self):
-        CONFIG_NAME = "T#E'S@T_C[O]N{F}I^G$1"
-        self._test_pv_changed_but_not_name(CONFIG_NAME, "TEST_CONFIG1")
-
     def test_pv_of_lower_case_name(self):
         CONFIG_NAME = "test_CONfig1"
         self._test_pv_changed_but_not_name(CONFIG_NAME, "TEST_CONFIG1")
 
-    def test_pv_of_name_with_spaces(self):
-        CONFIG_NAME = "TEST CONFIG1"
-        self._test_pv_changed_but_not_name(CONFIG_NAME, "TEST_CONFIG1")
-
-    def test_pv_of_name_with_no_alphanumeric_chars(self):
-        CONFIG_NAME = "#'@&[]{}^$"
-        self._test_pv_changed_but_not_name(CONFIG_NAME, "CONFIG")
-
-    def test_pv_of_name_with_no_alpha_chars(self):
-        CONFIG_NAME = "1 2_3 4"
-        self._test_pv_changed_but_not_name(CONFIG_NAME, "CONFIG")
-
-    def test_config_pv_of_repeated_name(self):
-        create_configs(["TEST CONFIG", "TEST_CONFIG", "TEST_CO!NFIG", "TEST_CONFIG1"])
-        ic = self._create_ic()
-        confs = ic.get_configs()
-
-        self.assertEqual(len(confs), 4)
-
-        # Test PVs are unique
-        pvs = [m["pv"] for m in confs]
-        self.assertEqual(len(pvs), len(set(pvs)))
-
-        self.assertTrue("TEST_CONFIG" in pvs)
-        self.assertTrue("TEST_CONFIG0" in pvs)
-        self.assertTrue("TEST_CONFIG1" in pvs)
-        self.assertTrue("TEST_CONFIG10" in pvs)
-
-    def test_subconfig_pv_of_repeated_name(self):
-        create_subconfigs(["TEST SUBCONFIG", "TEST_SUBCONFIG", "TEST_SUBCO!NFIG", "TEST_SUBCONFIG1"])
-        ic = self._create_ic()
-        confs = ic.get_subconfigs()
-
-        self.assertEqual(len(confs), 4)
-
-        # Test PVs are unique
-        pvs = [m["pv"] for m in confs]
-        self.assertEqual(len(pvs), len(set(pvs)))
-
-        self.assertTrue("TEST_SUBCONFIG" in pvs)
-        self.assertTrue("TEST_SUBCONFIG0" in pvs)
-        self.assertTrue("TEST_SUBCONFIG1" in pvs)
-        self.assertTrue("TEST_SUBCONFIG10" in pvs)
-
     def test_config_and_subconfig_allowed_same_pv(self):
-        create_configs(["TEST CONFIG AND SUBCONFIG", "TEST_CONFIG_AND_SUBCONFIG"])
-        create_subconfigs(["TEST CONFIG AND SUBCONFIG", "TEST_CONFIG_AND_SUBCONFIG"])
+        create_configs(["TEST_CONFIG_AND_SUBCONFIG1", "TEST_CONFIG_AND_SUBCONFIG2"])
+        create_subconfigs(["TEST_CONFIG_AND_SUBCONFIG1", "TEST_CONFIG_AND_SUBCONFIG2"])
         ic = self._create_ic()
 
         confs = ic.get_configs()
         self.assertEqual(len(confs), 2)
 
-        self.assertTrue("TEST_CONFIG_AND_SUBCONFIG" in [m["pv"] for m in confs])
-        self.assertTrue("TEST_CONFIG_AND_SUBCONFIG0" in [m["pv"] for m in confs])
+        self.assertTrue("TEST_CONFIG_AND_SUBCONFIG1" in [m["pv"] for m in confs])
+        self.assertTrue("TEST_CONFIG_AND_SUBCONFIG2" in [m["pv"] for m in confs])
 
         subconfs = ic.get_subconfigs()
         self.assertEqual(len(subconfs), 2)
 
-        self.assertTrue("TEST_CONFIG_AND_SUBCONFIG" in [m["pv"] for m in subconfs])
-        self.assertTrue("TEST_CONFIG_AND_SUBCONFIG0" in [m["pv"] for m in subconfs])
+        self.assertTrue("TEST_CONFIG_AND_SUBCONFIG1" in [m["pv"] for m in subconfs])
+        self.assertTrue("TEST_CONFIG_AND_SUBCONFIG2" in [m["pv"] for m in subconfs])
 
     def _test_is_configuration_json(self, data, name):
         self.assertTrue("name" in data)

@@ -678,3 +678,17 @@ class TestConfigHolderSequence(unittest.TestCase):
         blocks = ch.get_blocknames()
         self.assertEquals(len(blocks), 0)
 
+    def test_cannot_save_with_blank_name(self):
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
+        self.assertRaises(Exception, ch.save_configuration, "", False)
+
+    def test_cannot_save_with_none_name(self):
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
+        self.assertRaises(Exception, ch.save_configuration, None, False)
+
+    def test_cannot_save_with_invalid_name(self):
+        ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=Configuration(MACROS))
+        self.assertRaises(Exception, ch.save_configuration, "This is invalid", False)
+        self.assertRaises(Exception, ch.save_configuration, "This_is_invalid!", False)
+
+

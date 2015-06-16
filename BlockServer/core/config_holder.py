@@ -3,6 +3,7 @@ import os
 import copy
 import datetime
 from collections import OrderedDict
+import re
 
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.config.configuration import Configuration
@@ -441,12 +442,11 @@ class ConfigHolder(object):
             name (string) : The name to save the configuration under
             as_component (bool) : Whether to save as a component
         """
+        self._check_name(name, as_component)
         if self._is_subconfig != as_component:
             self._set_as_subconfig(as_component)
 
         if self._is_subconfig:
-            if name.lower() == DEFAULT_COMPONENT.lower():
-                raise Exception("Cannot save over default component")
             self._set_config_name(name)
             self._filemanager.save_config(self._config, self._component_path, name)
             self._update_version_control(name)
@@ -455,6 +455,18 @@ class ConfigHolder(object):
             # TODO: CHECK WHAT COMPONENTS self._config contains and remove _base if it is in there
             self._filemanager.save_config(self._config, self._config_path, name)
             self._update_version_control(name)
+
+    def _check_name(self, name, is_comp = False):
+        # Not empty
+        if name is None or name.strip() == "":
+            raise Exception("Configuration name cannot be blank")
+        #
+        if is_comp and name.lower() == DEFAULT_COMPONENT.lower():
+            raise Exception("Cannot save over default component")
+        # Valid chars
+        m = re.match("^[a-zA-Z][a-zA-Z0-9_]*$", name)
+        if m is None:
+            raise Exception("Configuration name contains invalid characters")
 
     def _update_version_control(self, name):
         if self._is_subconfig:
