@@ -13,7 +13,7 @@ MACROS = {"$(MYPVPREFIX)": os.environ[PVPREFIX]}
 
 BLOCKS_XML = u"""
 <?xml version="1.0" ?>
-<blocks xmlns="http://epics.isis.rl.ac.uk/schema/blocks/1.0" xmlns:xi="http://www.w3.org/2001/XInclude">
+<blocks xmlns="http://epics.isis.rl.ac.uk/schema/blocks/1.0" xmlns:blk="http://epics.isis.rl.ac.uk/schema/blocks/1.0" xmlns:xi="http://www.w3.org/2001/XInclude">
     <block>
         <name>TESTBLOCK1</name>
         <read_pv>TESTPV1</read_pv>
@@ -42,7 +42,7 @@ BLOCKS_XML = u"""
 
 GROUPS_XML = u"""
 <?xml version="1.0" ?>
-<groups xmlns="http://epics.isis.rl.ac.uk/schema/groups/1.0" xmlns:xi="http://www.w3.org/2001/XInclude">
+<groups xmlns="http://epics.isis.rl.ac.uk/schema/groups/1.0" xmlns:grp="http://epics.isis.rl.ac.uk/schema/groups/1.0" xmlns:xi="http://www.w3.org/2001/XInclude">
     <group name="TESTGROUP1">
         <block name="TESTBLOCK1"/>
         <block name="TESTBLOCK2"/>
@@ -55,7 +55,7 @@ GROUPS_XML = u"""
 
 IOCS_XML = u"""
 <?xml version="1.0" ?>
-<iocs xmlns="http://epics.isis.rl.ac.uk/schema/iocs/1.0" xmlns:xi="http://www.w3.org/2001/XInclude">
+<iocs xmlns="http://epics.isis.rl.ac.uk/schema/iocs/1.0" xmlns:ioc="http://epics.isis.rl.ac.uk/schema/iocs/1.0" xmlns:xi="http://www.w3.org/2001/XInclude">
     <ioc autostart="true" name="TESTIOC1" restart="false" simlevel="recsim">
         <macros>
             <macro name="TESTIOC1MACRO" value="1"/>

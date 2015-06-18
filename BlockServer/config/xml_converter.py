@@ -40,6 +40,7 @@ class ConfigurationXmlConverter(object):
         """
         root = ElementTree.Element(TAG_BLOCKS)
         root.attrib["xmlns"] = SCHEMA_PATH + BLOCK_SCHEMA
+        root.attrib["xmlns:blk"] = SCHEMA_PATH + BLOCK_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, block in blocks.iteritems():
             # Don't save if in subconfig
@@ -61,6 +62,7 @@ class ConfigurationXmlConverter(object):
         """
         root = ElementTree.Element(TAG_GROUPS)
         root.attrib["xmlns"] = SCHEMA_PATH + GROUP_SCHEMA
+        root.attrib["xmlns:grp"] = SCHEMA_PATH + GROUP_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, group in groups.iteritems():
             # Don't generate xml if in NONE or if it is empty
@@ -84,6 +86,7 @@ class ConfigurationXmlConverter(object):
         """
         root = ElementTree.Element(TAG_IOCS)
         root.attrib["xmlns"] = SCHEMA_PATH + IOC_SCHEMA
+        root.attrib["xmlns:ioc"] = SCHEMA_PATH + IOC_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name in iocs.keys():
             # Don't save if in subconfig
@@ -103,6 +106,7 @@ class ConfigurationXmlConverter(object):
         """
         root = ElementTree.Element(TAG_SUBCONFIGS)
         root.attrib["xmlns"] = SCHEMA_PATH + COMPONENT_SCHEMA
+        root.attrib["xmlns:comp"] = SCHEMA_PATH + COMPONENT_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, sub in comps.iteritems():
             ConfigurationXmlConverter._subconfig_to_xml(root, name)
