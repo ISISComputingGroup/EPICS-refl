@@ -82,6 +82,27 @@ class ExpData(object):
         except Exception as err:
             raise Exception("issue getting experimental team: %s" % err)
 
+    def _check_experiment_exists(self, experimentID):
+        """ Gets the experiment
+
+        Args:
+            experimentID (string) : the id of the experiment to load related data from
+
+        Returns:
+            exists (boolean): TRUE if the experiment exists, FALSE otherwise
+        """
+        try:
+            sqlquery = "SELECT experiment.experimentID"
+            sqlquery += " FROM experiment "
+            sqlquery += " WHERE experiment.experimentID = \"%s\"" % experimentID
+            id = self._db.execute_query(sqlquery)
+            if len(id) >= 1:
+                return True
+            else:
+                return False
+        except Exception as err:
+            raise Exception("error finding the experiment: %s" % err)
+
     def encode4return(self, data):
         """Converts data to JSON, compresses it and converts it to hex.
 
@@ -107,6 +128,16 @@ class ExpData(object):
         # Update the RB Number for lookup - SIM for testing, DAE for production
         caput(self._simrbpv, experimentID)
         caput(self._daerbpv, experimentID)
+        # Check for the experiment ID
+        idExists = self._check_experiment_exists(experimentID)
+        if idExists == False:
+            names = []
+            surnames = []
+            orgs = []
+            caput(self._simnames, self.encode4return(names))
+            caput(self._surnamepv, self.encode4return(surnames))
+            caput(self._orgspv, self.encode4return(orgs))
+            raise Exception("error finding the experiment: %s" % experimentID)
         # Get the user information from the database and update the associated PVs
         names = []
         surnames = []
@@ -153,10 +184,13 @@ class ExpData(object):
             # Format the string into a list of JSON strings for decoding/encoding
             users = users[1:-1]
             users = users.split("},{")
-            users[0] = users[0][1:]
-            users[-1] = users[1][:len(users[1])]
-            for ndx, member in enumerate(users):
-                users[ndx] = "{" + member + "}"
+            if len(users) > 1:
+                # Strip the {} from the beginning and the end to allow for easier editing of the teammembers
+                users[0] = users[0][1:]
+                users[-1] = users[-1][:len(users[-1])-1]
+                # Add a {} to EACH teammember
+                for ndx, member in enumerate(users):
+                    users[ndx] = "{" + member + "}"
 
             # Loop through the list of strings to generate the lists/similar for conversion to JSON
             for teammember in users:
