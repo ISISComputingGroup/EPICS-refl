@@ -140,7 +140,7 @@ class IOCData(object):
 
         """
         values = []
-        sqlquery = "SELECT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname FROM pvinfo"
+        sqlquery = "SELECT DISTINCT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname FROM pvinfo"
         sqlquery += " INNER JOIN pvs ON pvs.pvname = pvinfo.pvname"
         where_ioc = ''
 
