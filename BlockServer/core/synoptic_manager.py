@@ -8,6 +8,7 @@ from lxml import etree
 SYNOPTIC_PRE = "SYNOPTICS:"
 SYNOPTIC_GET = ":GET"
 SYNOPTIC_SET = ":SET"
+SYNOPTIC_SCHEMA = "synoptic.xsd"
 
 
 class SynopticManager(object):
@@ -36,13 +37,17 @@ class SynopticManager(object):
         """Create the PVs for all the synoptics found in the synoptics directory."""
         for f in self._get_synoptic_filenames():
             # Load the data, checking the schema
-            with open(os.path.join(self._directory, f), 'r') as synfile:
-                data = synfile.read()
-                ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder, data)
-            # Get the synoptic name
-            self._create_pv(data)
+            try:
+                with open(os.path.join(self._directory, f), 'r') as synfile:
+                    data = synfile.read()
+                    ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder + "\\" + SYNOPTIC_SCHEMA,
+                                                                             data)
+                # Get the synoptic name
+                self._create_pv(data)
 
-            self._add_to_version_control(f[0:-4])
+                self._add_to_version_control(f[0:-4])
+            except Exception as err:
+                print_and_log("Error creating synoptic PV: %s" % str(err), "MAJOR")
 
         self._vc.commit("Blockserver started, synoptics updated")
 
@@ -121,8 +126,8 @@ class SynopticManager(object):
         """
         try:
             # Check against schema
-            ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder, xml_data)
-
+            ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder + "\\" + SYNOPTIC_SCHEMA,
+                                                                     xml_data)
             # Update PVs
             self._create_pv(xml_data)
 
@@ -196,3 +201,14 @@ class SynopticManager(object):
             self._create_pv(xml_data)
 
         self._bs.update_synoptic_monitor()
+
+    def get_synoptic_schema(self):
+        """Gets the XSD data for the synoptic.
+
+        Returns:
+            string : The XML for the synoptic schema
+        """
+        schema = ""
+        with open(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA ), 'r') as schemafile:
+            schema = schemafile.read()
+        return schema

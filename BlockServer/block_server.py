@@ -172,7 +172,11 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
-
+    'SYNOPTICS:SCHEMA': {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
+    },
     'BUMPSTRIP_AVAILABLE': {
         'type': 'char',
         'count': 16000,
@@ -220,10 +224,7 @@ class BlockServer(Driver):
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
         # Import all the synoptic data and create PVs
-        try:
-            self._syn = SynopticManager(self, CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR, self._vc)
-        except Exception as err:
-            print_and_log("Error creating synoptic PVs: %s" % str(err), "MAJOR")
+        self._syn = SynopticManager(self, CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR, self._vc)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list, self._syn)
@@ -305,6 +306,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(convert_to_json(self._syn.get_synoptic_list()))
             elif reason == "SYNOPTICS:GET_DEFAULT":
                 value = compress_and_hex(self._syn.get_default_synoptic_xml())
+            elif reason == "SYNOPTICS:SCHEMA":
+                value = compress_and_hex(self._syn.get_synoptic_schema())
             elif reason == "BUMPSTRIP_AVAILABLE":
                 value = compress_and_hex(self.bumpstrip)
             else:

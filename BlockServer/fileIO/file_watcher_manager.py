@@ -2,8 +2,8 @@ from threading import RLock
 
 from watchdog.observers import Observer
 
-from config_file_event_handler import ConfigFileEventHandler
-from synoptic_file_event_handler import SynopticFileEventHandler
+from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
+from BlockServer.fileIO.synoptic_file_event_handler import SynopticFileEventHandler
 from BlockServer.core.constants import CONFIG_DIRECTORY, COMPONENT_DIRECTORY, SYNOPTIC_DIRECTORY
 
 

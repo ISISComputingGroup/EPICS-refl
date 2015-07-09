@@ -7,9 +7,10 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import *
 from BlockServer.core.macros import MACROS
 from server_common.utilities import print_and_log
-from schema_checker import ConfigurationSchemaChecker
-from schema_checker import ConfigurationIncompleteException, NotConfigFileException
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
+from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
+from BlockServer.core.synoptic_manager import SYNOPTIC_SCHEMA
 
 
 class SynopticFileEventHandler(FileSystemEventHandler):
@@ -23,11 +24,11 @@ class SynopticFileEventHandler(FileSystemEventHandler):
 
         Args:
             root_path (string) : The location of the configurations and components
-            schema_folder (string) : The location of the schemas
+            schema_folder (string) : The location of the schema
             synoptic_list_manager (SynopticListManager) : The SynopticListManager
             test_mode (bool) : Whether to enable test_mode or not
         """
-        self._schema_folder = schema_folder
+        self._schema_filepath = schema_folder + "\\" + SYNOPTIC_SCHEMA
         self._schema_lock = schema_lock
         self._root_path = root_path
         self._synoptic_list = synoptic_list_manager
@@ -89,7 +90,7 @@ class SynopticFileEventHandler(FileSystemEventHandler):
             xml_data = synfile.read()
 
         with self._schema_lock:
-            ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder, xml_data)
+            ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_filepath, xml_data)
 
         return xml_data
 

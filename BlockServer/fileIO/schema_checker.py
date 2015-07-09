@@ -5,8 +5,6 @@ from lxml import etree
 
 from BlockServer.core.constants import SCHEMA_FOR, COMPONENT_DIRECTORY, CONFIG_DIRECTORY, FILENAME_SUBCONFIGS
 
-SYNOPTIC_SCHEMA = "synoptic.xsd"
-
 
 class NotConfigFileException(Exception):
     def __init__(self, value):
@@ -89,16 +87,17 @@ class ConfigurationSchemaChecker(object):
         return True
 
     @staticmethod
-    def check_synoptic_matches_schema(schema_folder, synoptic_xml_data):
+    def check_synoptic_matches_schema(schema_filepath, synoptic_xml_data):
         """ This method takes xml data and checks it against a given schema.
 
         A ConfigurationInvalidUnderSchema error is raised if the file is incorrect.
 
         Args:
-            schema_folder (string) : The location of the schema files
+            schema_filepath (string) : The location of the schema file
             synoptic_xml_data (string) : The XML for the synoptic
         """
-        xmlparser = ConfigurationSchemaChecker._import_schema(schema_folder, SYNOPTIC_SCHEMA)
+        folder, file_name = string.rsplit(schema_filepath, '\\', 1)
+        xmlparser = ConfigurationSchemaChecker._import_schema(folder, file_name)
 
         try:
             etree.fromstring(synoptic_xml_data, xmlparser)
