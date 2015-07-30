@@ -377,8 +377,6 @@ class BlockServer(Driver):
             elif reason == "BUMPSTRIP_AVAILABLE:SP":
                 self.bumpstrip = data
                 self.update_bumpstripAvailability()
-
-
             else:
                 status = False
         except Exception as err:
@@ -412,6 +410,11 @@ class BlockServer(Driver):
         # First stop all IOCS, then start the ones for the config
         # TODO: Should we stop all configs?
         iocs_to_start, iocs_to_restart = self._active_configserver.iocs_changed()
+
+        # If the config has a default synoptic then set the PV to that
+        synoptic = self._active_configserver.get_config_meta().synoptic
+        self._syn.set_default_synoptic(synoptic)
+        self.update_synoptic_monitor()
 
         if len(iocs_to_start) > 0 or len(iocs_to_restart) > 0:
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)

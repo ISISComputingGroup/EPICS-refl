@@ -30,6 +30,7 @@ class SynopticManager(object):
         self._synoptic_pvs = dict()
         self._vc = vc_manager
         self._bs = block_server
+        self._default_syn_xml = ""
 
         self._load_initial()
 
@@ -91,22 +92,30 @@ class SynopticManager(object):
             return list()
         return [f for f in os.listdir(self._directory) if f.endswith(".xml")]
 
+    def set_default_synoptic(self, name):
+        """Sets the default synoptic.
+
+        Args:
+            name (string) : the name of the synoptic to load
+        """
+        fullname = name + ".xml"
+        f = self._get_synoptic_filenames()
+        if fullname in f:
+            # Load the data
+            with open(os.path.join(self._directory, fullname), 'r') as synfile:
+                data = synfile.read()
+            self._default_syn_xml = data
+        else:
+            # No synoptic
+            self._default_syn_xml = ""
+
     def get_default_synoptic_xml(self):
         """Gets the XML for the default synoptic.
 
         Returns:
             string : The XML for the synoptic
         """
-        # TODO: Default is first synoptic for now
-        f = self._get_synoptic_filenames()
-        if len(f) > 0:
-            # Load the data
-            with open(os.path.join(self._directory, f[0]), 'r') as synfile:
-                data = synfile.read()
-            return data
-        else:
-            # No synoptic
-            return ""
+        return self._default_syn_xml
 
     def _get_synoptic_name_from_xml(self, xml_data):
         name = None

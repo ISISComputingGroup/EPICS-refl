@@ -18,6 +18,7 @@ EXAMPLE_SYNOPTIC = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 SCHEMA_PATH = "./../../../schema/configurations"
 
+
 class TestSynopticManagerSequence(unittest.TestCase):
     def setUp(self):
         # Make directory and fill with fake synoptics
@@ -35,7 +36,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         # Delete test directory
         shutil.rmtree(TEST_DIR)
 
-    def test_get_synoptic_filenames_from_directory_returns_names(self):
+    def test_get_synoptic_filenames_from_directory_returns_names_alphabetically(self):
         # Arrange
         sm = SynopticManager(MockBlockServer(), TEST_DIR, MockCAServer(), SCHEMA_PATH, MockVersionControl())
 
@@ -45,8 +46,8 @@ class TestSynopticManagerSequence(unittest.TestCase):
         # Assert
         self.assertTrue(len(s) > 0)
         s = [x['name'] for x in s]
-        self.assertTrue("synoptic1" in s)
-        self.assertTrue("synoptic2" in s)
+        self.assertTrue(s[0], "synoptic1")
+        self.assertTrue(s[0], "synoptic2")
 
     def test_create_pvs_is_okay(self):
         # Arrange
@@ -60,7 +61,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.assertTrue(len(cas.pv_list) > 0)
         self.assertTrue("%sSYNOPTIC1%s" % (SYNOPTIC_PRE, SYNOPTIC_GET) in cas.pv_list.keys())
 
-    def test_get_current_synoptic_xml_returns_something(self):
+    def test_get_default_synoptic_xml_returns_nothing(self):
         # Arrange
         cas = MockCAServer()
         sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
@@ -69,19 +70,23 @@ class TestSynopticManagerSequence(unittest.TestCase):
         xml = sm.get_default_synoptic_xml()
 
         # Assert
-        self.assertTrue(len(xml) > 0)
+        self.assertEqual(xml, "")
 
-    def test_set_current_synoptic_xml_sets_something(self):
+    def test_set_default_synoptic_xml_sets_something(self):
         # Arrange
         cas = MockCAServer()
         sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
 
         # Act
         sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % "synoptic0")
+        sm.set_default_synoptic("synoptic0")
 
         # Assert
         xml = sm.get_default_synoptic_xml()
+
         self.assertTrue(len(xml) > 0)
+        # Check the correct name appears in the xml
+        self.assertTrue("synoptic0" in xml)
 
     def test_set_current_synoptic_xml_saves_under_name(self):
         # Arrange
