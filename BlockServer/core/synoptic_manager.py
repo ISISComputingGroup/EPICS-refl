@@ -73,12 +73,12 @@ class SynopticManager(object):
         """Gets the names and associated pvs of the synoptic files in the synoptics directory.
 
         Returns:
-            list : List of synoptics files on the server, along with their associated pvs
+            list : Alphabetical list of synoptics files on the server, along with their associated pvs
         """
         syn_list = list()
         for k, v in self._synoptic_pvs.iteritems():
             syn_list.append({"name": k, "pv": v})
-        return syn_list
+        return sorted(syn_list, key=lambda x: x['name'].lower())
 
     def _get_synoptic_filenames(self):
         """Gets the names of the synoptic files in the synoptics directory. Without the .xml extension.
