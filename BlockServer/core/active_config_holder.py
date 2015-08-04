@@ -127,7 +127,7 @@ class ActiveConfigHolder(ConfigHolder):
         Configures the run-control IOC to have PVs for the current configuration.
         """
         self._runcontrol.update_runcontrol_blocks(super(ActiveConfigHolder, self).get_block_details())
-        self._ioc_control.restart_ioc(RUNCONTROL_IOC)
+        self._ioc_control.restart_ioc(RUNCONTROL_IOC, force=True)
         # Need to wait for RUNCONTROL_IOC to restart
         self._runcontrol.wait_for_ioc_start()
 
