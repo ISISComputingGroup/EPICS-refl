@@ -30,15 +30,16 @@ class Gateway(object):
         else:
             return True
 
-    def _restart(self):
-        print_and_log("Restarting gateway")
+    def _reload(self):
+        print_and_log("Reloading gateway")
         try:
             # Have to wait after put as the gateway does not do completion callbacks (it is not an IOC)
             caput(self._prefix + "newAsFlag", 1, False)
-            time.sleep(1)
-            print_and_log("Gateway restarted")
+            while(caget(self._prefix + "newAsFlag") == 1) :
+                time.sleep(1)
+            print_and_log("Gateway reloaded")
         except Exception as err:
-            print_and_log("Problem with restarting the gateway %s" % err)
+            print_and_log("Problem with reloading the gateway %s" % err)
 
     def _generate_alias_file(self, blocks=None):
         # Generate blocks.pvlist for gateway
@@ -110,4 +111,4 @@ class Gateway(object):
             blocks (OrderedDict) : The blocks that belong to the configuration
         """
         self._generate_alias_file(blocks)
-        self._restart()
+        self._reload()
