@@ -12,7 +12,7 @@ class MockIocControl(object):
     def start_ioc(self, ioc):
         self._proc.start_ioc(self._prefix, ioc)
 
-    def restart_ioc(self, ioc):
+    def restart_ioc(self, ioc, force):
         self._proc.restart_ioc(self._prefix, ioc)
 
     def stop_ioc(self, ioc):
