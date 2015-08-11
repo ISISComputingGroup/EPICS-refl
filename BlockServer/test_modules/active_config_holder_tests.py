@@ -8,6 +8,9 @@ from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.config.configuration import Configuration
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
+from BlockServer.mocks.mock_runcontrol import MockRunControlManager
+from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
+from BlockServer.epics.archiver_manager import ArchiverManager
 
 
 CONFIG_PATH = "./test_configs/"
@@ -16,7 +19,8 @@ BASE_PATH = "./example_base/"
 MACROS = {
     "$(MYPVPREFIX)": "",
     "$(EPICS_KIT_ROOT)": os.environ['EPICS_KIT_ROOT'],
-    "$(ICPCONFIGROOT)": os.environ['ICPCONFIGROOT']
+    "$(ICPCONFIGROOT)": os.environ['ICPCONFIGROOT'],
+    "$(ICPVARDIR)": os.environ['ICPVARDIR']
 }
 
 
@@ -62,8 +66,9 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         shutil.copytree(BASE_PATH, component_path + "/" + DEFAULT_COMPONENT)
 
         # Create in test mode
-        self.activech = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(),
-                                           MockIocControl(""), test_mode=True)
+        self.mock_archive = ArchiverManager(None, None, MockArchiverWrapper())
+        self.activech = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(),
+                                           MockIocControl(""), MockRunControlManager())
 
     def tearDown(self):
         # Delete any configs created as part of the test
@@ -121,7 +126,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_load_notexistant_config(self):
         cs = self.activech
-        self.assertRaises(Exception, lambda _: cs.load_active("DOES_NOT_EXIST"))
+        self.assertRaises(IOError, lambda: cs.load_active("DOES_NOT_EXIST"))
 
     def test_save_as_subconfig(self):
         cs = self.activech
@@ -138,7 +143,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         except Exception:
             self.fail("test_save_config_for_subconfig raised Exception unexpectedly!")
 
-    def test_load_subconfig(self):
+    def test_load_subconfig_fails(self):
         cs = self.activech
         add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
@@ -148,20 +153,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         cs._add_ioc("SIMPLE2")
         cs.save_active("TEST_SUBCONFIG", as_comp=True)
         cs.clear_config()
-        blocks = cs.get_blocknames()
-        self.assertEqual(len(blocks), 0)
-        iocs = cs.get_ioc_names()
-        self.assertEqual(len(iocs), 0)
-        cs.load_active("TEST_SUBCONFIG", True)
-        blocks = cs.get_blocknames()
-        self.assertEqual(len(blocks), 4)
-        self.assertTrue('TESTBLOCK1' in blocks)
-        self.assertTrue('TESTBLOCK2' in blocks)
-        self.assertTrue('TESTBLOCK3' in blocks)
-        self.assertTrue('TESTBLOCK4' in blocks)
-        iocs = cs.get_ioc_names()
-        self.assertTrue("SIMPLE1" in iocs)
-        self.assertTrue("SIMPLE2" in iocs)
+        self.assertRaises(IOError, lambda: cs.load_active("TEST_SUBCONFIG"))
 
     def test_load_last_config(self):
         cs = self.activech
@@ -190,36 +182,9 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
 
-    def test_load_last_config_subconfig(self):
-        cs = self.activech
-        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs._add_ioc("SIMPLE1")
-        cs._add_ioc("SIMPLE2")
-        cs.save_active("TEST_SUBCONFIG", as_comp=True)
-        cs.clear_config()
-        blocks = cs.get_blocknames()
-        self.assertEqual(len(blocks), 0)
-        iocs = cs.get_ioc_names()
-        self.assertEqual(len(iocs), 0)
-        cs.load_last_config()
-        grps = cs.get_group_details()
-        self.assertTrue(len(grps) == 3)
-        blocks = cs.get_blocknames()
-        self.assertEqual(len(blocks), 4)
-        self.assertTrue('TESTBLOCK1' in blocks)
-        self.assertTrue('TESTBLOCK2' in blocks)
-        self.assertTrue('TESTBLOCK3' in blocks)
-        self.assertTrue('TESTBLOCK4' in blocks)
-        iocs = cs.get_ioc_names()
-        self.assertTrue("SIMPLE1" in iocs)
-        self.assertTrue("SIMPLE2" in iocs)
-
     def test_get_runcontrol_settings_empty(self):
         cs = self.activech
-        cs.create_runcontrol_pvs()
+        cs.create_runcontrol_pvs(False)
         ans = cs.get_runcontrol_settings()
         self.assertTrue(len(ans) == 0)
 
@@ -229,7 +194,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
         add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs.create_runcontrol_pvs()
+        cs.create_runcontrol_pvs(False)
         ans = cs.get_runcontrol_settings()
         self.assertTrue(len(ans) == 4)
         self.assertTrue(ans["TESTBLOCK1"]["HIGH"] is None)
@@ -240,7 +205,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         cs = self.activech
         data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
         add_block(cs, data)
-        cs.create_runcontrol_pvs()
+        cs.create_runcontrol_pvs(False)
         ans = cs.get_runcontrol_settings()
         self.assertTrue(len(ans) == 1)
         self.assertTrue(ans["TESTBLOCK1"]["HIGH"] == 5)
@@ -253,7 +218,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         add_block(cs, data)
         data = {'name': "TESTBLOCK2", 'pv': "PV1", 'runcontrol': True, 'lowlimit': 10, 'highlimit': 15}
         add_block(cs, data)
-        cs.create_runcontrol_pvs()
+        cs.create_runcontrol_pvs(False)
         # Values are 0 by default, so they should be out of range
         ans = cs.get_out_of_range_pvs()
         self.assertEqual(len(ans), 2)
@@ -266,7 +231,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         add_block(cs, data)
         data = {'name': "TESTBLOCK2", 'pv': "PV1", 'runcontrol': False, 'lowlimit': 10, 'highlimit': 15}
         add_block(cs, data)
-        cs.create_runcontrol_pvs()
+        cs.create_runcontrol_pvs(False)
         # Values are 0 by default, so they should be out of range if enabled
         ans = cs.get_out_of_range_pvs()
         self.assertEqual(len(ans), 1)
@@ -278,7 +243,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         add_block(cs, data)
         data = {'name': "TESTBLOCK2", 'pv': "PV1", 'runcontrol': False, 'lowlimit': 10, 'highlimit': 15}
         add_block(cs, data)
-        cs.create_runcontrol_pvs()
+        cs.create_runcontrol_pvs(False)
         ans = cs.get_out_of_range_pvs()
         self.assertEqual(len(ans), 0)
 
@@ -286,7 +251,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         cs = self.activech
         data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
         add_block(cs, data)
-        cs.create_runcontrol_pvs()
+        cs.create_runcontrol_pvs(False)
         ans = cs.get_runcontrol_settings()
         ans["TESTBLOCK1"]["LOW"] = 0
         ans["TESTBLOCK1"]["HIGH"] = 10
@@ -302,8 +267,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5,
                 'save_rc': True}
         add_block(cs, data)
-        cs.create_runcontrol_pvs()
-        cs.create_runcontrol_pvs()
+        cs.create_runcontrol_pvs(False)
+        cs.create_runcontrol_pvs(False)
         cs.save_active("TESTCONFIG1")
         cs.load_active("TESTCONFIG1")
         ans = cs.get_runcontrol_settings()
@@ -313,8 +278,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_no_changes(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         ch.set_config_details(details)
         # Assert
@@ -324,8 +289,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_ioc_added(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         # Act
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
@@ -341,8 +306,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_ioc_removed(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -360,8 +325,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_macro_added(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -383,8 +348,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_macro_removed(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
@@ -406,8 +371,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_macro_changed(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
@@ -429,8 +394,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_macro_not_changed(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
@@ -452,8 +417,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvs_added(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -475,8 +440,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvs_removed(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -498,8 +463,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvs_changed(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -521,8 +486,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvsets_added(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -544,8 +509,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvsets_removed(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -567,8 +532,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvsets_changed(self):
         # Arrange
-        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, None, "archive.xml", MockVersionControl(), MockIocControl(""),
-                                test_mode=True)
+        ch = ActiveConfigHolder(CONFIG_PATH, MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""),
+                                MockRunControlManager())
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],

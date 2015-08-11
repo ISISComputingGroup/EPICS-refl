@@ -6,11 +6,8 @@ from BlockServer.core.config_holder import ConfigHolder
 class InactiveConfigHolder(ConfigHolder):
     """ Class to hold a individual inactive configuration or component.
     """
-    def __init__(self, config_folder, macros, vc_manager, test_mode=False):
+    def __init__(self, config_folder, macros, vc_manager):
         super(InactiveConfigHolder, self).__init__(config_folder, macros, vc_manager)
-
-        if test_mode:
-            super(InactiveConfigHolder, self).set_testing_mode(True)
 
     # Could we override save_configuration?
     def save_inactive(self, name=None, as_comp=False):

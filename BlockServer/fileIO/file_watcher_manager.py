@@ -12,14 +12,13 @@ class ConfigFileWatcherManager(object):
 
     Registers and communicates with the event handlers for configuration and synoptic filewatchers.
     """
-    def __init__(self, root_path, schema_folder, config_list_manager, synoptic_list_manager, test_mode=False):
+    def __init__(self, root_path, schema_folder, config_list_manager, synoptic_list_manager):
         """Constructor.
 
         Args:
             root_path (string) : The root folder where configurations are stored
             schema_folder (string) : The folder where the schemas are kept
             config_list_manager (ConfigListManager) : The ConfigListManager
-            test_mode (bool) : Whether to start in test mode
         """
         schema_lock = RLock()
         self._config_dir = root_path + CONFIG_DIRECTORY
@@ -29,19 +28,19 @@ class ConfigFileWatcherManager(object):
 
         # Create config watcher
         self._config_event_handler = ConfigFileEventHandler(root_path, schema_folder, schema_lock,
-                                                            config_list_manager, test_mode=test_mode)
+                                                            config_list_manager)
 
         self._config_observer = self._create_observer(self._config_event_handler, self._config_dir)
 
         # Create component watcher
         self._component_event_handler = ConfigFileEventHandler(root_path, schema_folder, schema_lock,
-                                                               config_list_manager, True, test_mode)
+                                                               config_list_manager, True)
 
         self._component_observer = self._create_observer(self._component_event_handler, self._comp_dir)
 
         # Create synoptic watcher
         self._synoptic_event_handler = SynopticFileEventHandler(root_path, schema_folder, schema_lock,
-                                                                synoptic_list_manager, test_mode)
+                                                                synoptic_list_manager)
 
         self._syn_observer = self._create_observer(self._synoptic_event_handler, self._syn_dir)
 

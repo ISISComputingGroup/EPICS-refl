@@ -31,10 +31,8 @@ class ConfigHolder(object):
         """
         if test_config is None:
             self._config = Configuration(macros)
-            self._test_mode = False
         else:
             self._config = test_config
-            self._test_mode = True
         self._components = OrderedDict()
         self._is_subconfig = is_subconfig
         self._macros = macros
@@ -509,14 +507,6 @@ class ConfigHolder(object):
             MetaData : The metadata for the configuration
         """
         return self._config.meta
-
-    def set_testing_mode(self, mode):
-        """ Set or unset testing mode for ConfigHolder.
-
-        Args:
-            mode (bool) : Whether to set or unset test mode
-        """
-        self._test_mode = mode
 
     def get_cached_name(self):
         """ Get the previous name which may be the same as the current.

@@ -14,7 +14,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and
     creates/removes available configurations as necessary.
     """
-    def __init__(self, root_path, schema_folder, schema_lock, config_list_manager, is_subconfig=False, test_mode=False):
+    def __init__(self, root_path, schema_folder, schema_lock, config_list_manager, is_subconfig=False):
         """Constructor.
 
         Args:
@@ -22,14 +22,12 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             schema_folder (string) : The location of the schemas
             config_list_manager (ConfigListManager) : The ConfigListManager
             is_subconfig (bool) : Whether it is a component or not
-            test_mode (bool) : Whether to enable test_mode or not
         """
         self._schema_folder = schema_folder
         self._is_subconfig = is_subconfig
         self._schema_lock = schema_lock
         self._root_path = root_path
         self._config_list = config_list_manager
-        self._test_mode = test_mode
 
         if self._is_subconfig:
             self._watching_path = self._root_path + COMPONENT_DIRECTORY

@@ -27,8 +27,8 @@ class TestFileEventHandler(unittest.TestCase):
     def setUp(self):
         os.makedirs(CONFIG_DIR)
         self.config_list = ConfigListManager(MockBlockServer, TEST_DIRECTORY, MockCAServer(), SCHEMA_DIR,
-                                             MockVersionControl(), test_mode=True)
-        self.eh = ConfigFileEventHandler(TEST_DIRECTORY, SCHEMA_DIR, RLock(), self.config_list, False, test_mode=True)
+                                             MockVersionControl())
+        self.eh = ConfigFileEventHandler(TEST_DIRECTORY, SCHEMA_DIR, RLock(), self.config_list, False)
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + '\\'):

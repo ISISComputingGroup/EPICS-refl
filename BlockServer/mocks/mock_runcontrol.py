@@ -39,7 +39,7 @@ class MockRunControlManager(object):
         else:
             return []
 
-    def get_runcontrol_settings(self, blocks):
+    def get_current_settings(self, blocks):
         # Blocks object is ignored for testing
         settings = dict()
         for bn, blk in self.mock_blocks.iteritems():
@@ -73,4 +73,10 @@ class MockRunControlManager(object):
         pass
 
     def wait_for_ioc_start(self):
+        pass
+
+    def start_ioc(self):
+        pass
+
+    def restart_ioc(self, clear_autosave):
         pass

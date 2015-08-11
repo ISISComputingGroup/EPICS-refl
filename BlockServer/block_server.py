@@ -27,6 +27,8 @@ from vc_exceptions import NotUnderVersionControl
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.ioc_control import IocControl
 from BlockServer.core.database_server_client import DatabaseServerClient
+from BlockServer.core.runcontrol import RunControlManager
+from BlockServer.epics.archiver_manager import ArchiverManager
 
 
 # For documentation on these commands see the accompanying block_server.rst file
@@ -251,8 +253,11 @@ class BlockServer(Driver):
         """Initialises the ActiveConfigHolder.
         """
         # This is in a separate method so it can be sent to the thread queue
-        self._active_configserver = ActiveConfigHolder(CONFIG_DIR, MACROS, ARCHIVE_UPLOADER, ARCHIVE_SETTINGS, self._vc,
-                                                       self._ioc_control)
+        arch = ArchiverManager(ARCHIVE_UPLOADER, ARCHIVE_SETTINGS)
+        rcm = RunControlManager(MACROS["$(MYPVPREFIX)"], MACROS["$(ICPCONFIGROOT)"], MACROS["$(ICPVARDIR)"],
+                                self._ioc_control)
+        self._active_configserver = ActiveConfigHolder(CONFIG_DIR, MACROS, arch, self._vc, self._ioc_control, rcm)
+
         try:
             if self._gateway.exists():
                 print_and_log("Found gateway")
@@ -406,7 +411,14 @@ class BlockServer(Driver):
             print_and_log("Loaded last configuration: %s" % last)
         self._initialise_config()
 
-    def _initialise_config(self, init_gateway=True):
+    def _initialise_config(self, init_gateway=True, clear_runcontrol=False):
+        """Responsible for initialising the configuration.
+        Sets all the monitors, initialises the gateway, sets up run-control etc.
+
+        Args:
+            init_gateway (bool, optional) : whether to initialise the gateway
+            clear_runcontrol (bool, optional) : whether to delete the autosave settings for run-control
+        """
         # First stop all IOCS, then start the ones for the config
         # TODO: Should we stop all configs?
         iocs_to_start, iocs_to_restart = self._active_configserver.iocs_changed()
@@ -427,8 +439,7 @@ class BlockServer(Driver):
         self.update_config_monitors()
         self.update_get_details_monitors()
         self._active_configserver.update_archiver()
-        # Commented out next line as RunControl PVs are created elsewhere
-        # self._active_configserver.create_runcontrol_pvs()
+        self._active_configserver.create_runcontrol_pvs(clear_runcontrol)
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
@@ -474,7 +485,7 @@ class BlockServer(Driver):
                 print_and_log("Loading configuration: %s" % config)
                 self._active_configserver.load_active(config)
             # If we get this far then assume the config is okay
-            self._initialise_config()
+            self._initialise_config(clear_runcontrol=True)
         except Exception as err:
             print_and_log(str(err), "MAJOR")
 
@@ -510,6 +521,7 @@ class BlockServer(Driver):
                 inactive.save_inactive(as_comp=True)
                 self._config_list.update_a_config_in_list(inactive, True)
                 self.update_comp_monitor()
+            print_and_log("Saved")
         finally:
             self._filewatcher.resume()
 

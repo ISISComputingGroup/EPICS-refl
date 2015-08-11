@@ -9,7 +9,9 @@ from BlockServer.core.constants import SCHEMA_FOR, FILENAME_IOCS, CONFIG_DIRECTO
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
-
+from BlockServer.mocks.mock_runcontrol import MockRunControlManager
+from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
+from BlockServer.epics.archiver_manager import ArchiverManager
 
 TEST_DIRECTORY = os.path.abspath(".\\test_configs")
 CONFIG_DIR = TEST_DIRECTORY + CONFIG_DIRECTORY
@@ -57,8 +59,8 @@ def strip_out_whitespace(string):
 class TestSchemaChecker(unittest.TestCase):
     def setUp(self):
         os.makedirs(CONFIG_DIR)
-        self.cs = ActiveConfigHolder(TEST_DIRECTORY, MACROS, None, "archive.xml", MockVersionControl(),
-                                     MockIocControl(""), test_mode=True)
+        self.cs = ActiveConfigHolder(TEST_DIRECTORY, MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
+                                     MockVersionControl(), MockIocControl(""), MockRunControlManager())
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + '\\'):

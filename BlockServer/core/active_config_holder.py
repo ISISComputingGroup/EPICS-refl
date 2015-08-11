@@ -1,10 +1,7 @@
 import os
 import json
 
-from BlockServer.epics.archiver_manager import ArchiverManager
-from BlockServer.core.constants import RUNCONTROL_IOC, RUNCONTROL_SETTINGS, CONFIG_DIRECTORY, \
-    COMPONENT_DIRECTORY
-from BlockServer.core.runcontrol import RunControlManager
+from BlockServer.core.constants import CONFIG_DIRECTORY, COMPONENT_DIRECTORY
 from server_common.utilities import print_and_log
 from BlockServer.core.macros import BLOCKSERVER_PREFIX, BLOCK_PREFIX, MACROS
 from BlockServer.core.config_holder import ConfigHolder
@@ -13,46 +10,30 @@ from BlockServer.core.config_holder import ConfigHolder
 class ActiveConfigHolder(ConfigHolder):
     """Class to serve up the active configuration.
     """
-    def __init__(self, config_folder, macros, archive_uploader, archive_config, vc_manager, ioc_control, test_mode=False):
+    def __init__(self, config_folder, macros, archive_manager, vc_manager, ioc_control, run_control):
         """ Constructor.
 
         Args:
             config_folder (string) : The location of the configurations folder
             macros (dict) : The BlockServer macros
-            archive_uploader (string) : The location of the batch file for uploading the archiver settings
-            archive_config (string) : The location to save the archive configuration folder
-            test_mode (bool) : Whether to run in test mode
+            archive_manager (ArchiveManager) : Responsible for updating the archiver
+            vc_manager (ConfigVersionControl) : Manages version control
+            ioc_control (IocControl) : Manages stopping and starting IOCs
+            run_control (RunControlManager) : Manages run-control
         """
         super(ActiveConfigHolder, self).__init__(config_folder, macros, vc_manager)
-        self._archive_manager = ArchiverManager(archive_uploader, archive_config)
+        self._archive_manager = archive_manager
         self._ioc_control = ioc_control
         self._db = None
         self._last_config_file = os.path.abspath(config_folder + "/last_config.txt")
-        self._runcontrol = RunControlManager(self._macros["$(MYPVPREFIX)"],
-                                             self._macros["$(ICPCONFIGROOT)"] + RUNCONTROL_SETTINGS)
-        self._test_mode = test_mode
 
-        if not test_mode:
-            # Start runcontrol IOC
-            try:
-                self._ioc_control.start_ioc(RUNCONTROL_IOC)
-            except Exception as err:
-                print_and_log("Problem with starting the run-control IOC: %s" % str(err), "MAJOR")
-            # Need to wait for RUNCONTROL_IOC to (re)start
-            print_and_log("Waiting for runcontrol IOC to (re)start")
-            self._runcontrol.wait_for_ioc_start()
-            print_and_log("Runcontrol IOC (re)started")
+        self._runcontrol = run_control
+        # Start runcontrol IOC
+        self._runcontrol.start_ioc()
+        # Need to wait for RUNCONTROL_IOC to start
+        self._runcontrol.wait_for_ioc_start()
+        print_and_log("Runcontrol IOC started")
 
-        if self._test_mode:
-            self._set_testing_mode()
-
-    def _set_testing_mode(self):
-        from BlockServer.mocks.mock_runcontrol import MockRunControlManager
-        self._runcontrol = MockRunControlManager()
-        from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
-        self._archive_manager = ArchiverManager(None, None, MockArchiverWrapper())
-
-    # Could we override save_configuration?
     def save_active(self, name, as_comp=False):
         """ Save the active configuration.
 
@@ -61,36 +42,27 @@ class ActiveConfigHolder(ConfigHolder):
             as_comp (bool) : Whether to save as a component
         """
         if as_comp:
-            super(ActiveConfigHolder, self).save_configuration(name, as_comp)
-            self.set_last_config(COMPONENT_DIRECTORY + name)
+            super(ActiveConfigHolder, self).save_configuration(name, True)
         else:
-            super(ActiveConfigHolder, self).update_runcontrol_settings_for_saving(self.get_runcontrol_settings())
-            super(ActiveConfigHolder, self).save_configuration(name, as_comp)
+            super(ActiveConfigHolder, self).save_configuration(name, False)
             self.set_last_config(CONFIG_DIRECTORY + name)
 
-    # Could we override load_configuration?
-    def load_active(self, name, is_subconfig=False):
+    def load_active(self, name):
         """ Load a configuration as the active configuration.
+        Cannot load a component as the active configuration.
 
         Args:
             name (string) : The name of the configuration to load
-            is_subconfig (bool) : Whether to it is a component
         """
-        if is_subconfig:
-            comp = super(ActiveConfigHolder, self).load_configuration(name, True)
-            super(ActiveConfigHolder, self).set_config(comp, True)
-            self.set_last_config(COMPONENT_DIRECTORY + name)
-        else:
-            conf = super(ActiveConfigHolder, self).load_configuration(name, False)
-            super(ActiveConfigHolder, self).set_config(conf, False)
-            self.set_last_config(CONFIG_DIRECTORY + name)
-        self.create_runcontrol_pvs()
-        self._runcontrol.restore_config_settings(super(ActiveConfigHolder, self).get_block_details())
+        conf = super(ActiveConfigHolder, self).load_configuration(name, False)
+        super(ActiveConfigHolder, self).set_config(conf, False)
+        self.set_last_config(CONFIG_DIRECTORY + name)
 
     def update_archiver(self):
         """ Update the archiver configuration.
         """
-        self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX, super(ActiveConfigHolder, self).get_blocknames())
+        self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX,
+                                              super(ActiveConfigHolder, self).get_blocknames())
 
     def set_last_config(self, config):
         """ Save the last configuration used to file.
@@ -104,30 +76,32 @@ class ActiveConfigHolder(ConfigHolder):
 
     def load_last_config(self):
         """ Load the last used configuration.
+
+        Note: should not be a component.
         """
         last = os.path.abspath(self._last_config_file)
         if not os.path.isfile(last):
             return None
         with open(last, 'r') as f:
             last_config = f.readline().strip()
-        if last_config.replace(COMPONENT_DIRECTORY, "").replace(CONFIG_DIRECTORY, "").strip() == "":
+        # If it somehow is a component raise an error
+        if last_config.startswith(COMPONENT_DIRECTORY):
+            print_and_log("Could not load last configuration as it was a component")
+            return None
+        if last_config.replace(CONFIG_DIRECTORY, "").strip() == "":
             print_and_log("No last configuration defined")
             return None
-        if not self._test_mode:
-            print_and_log("Trying to load last_configuration %s" % last_config)
-        if last_config.startswith(COMPONENT_DIRECTORY):
-            self.load_active(last_config.replace(COMPONENT_DIRECTORY, ""), True)
-        else:
-            self.load_active(last_config.replace(CONFIG_DIRECTORY, ""), False)
+        print_and_log("Trying to load last_configuration %s" % last_config)
+        self.load_active(last_config.replace(CONFIG_DIRECTORY, ""))
         return last_config
 
-    def create_runcontrol_pvs(self):
+    def create_runcontrol_pvs(self, clear_autosave):
         """ Create the PVs for run-control.
 
         Configures the run-control IOC to have PVs for the current configuration.
         """
         self._runcontrol.update_runcontrol_blocks(super(ActiveConfigHolder, self).get_block_details())
-        self._ioc_control.restart_ioc(RUNCONTROL_IOC, force=True)
+        self._runcontrol.restart_ioc(clear_autosave)
         # Need to wait for RUNCONTROL_IOC to restart
         self._runcontrol.wait_for_ioc_start()
 
@@ -145,7 +119,7 @@ class ActiveConfigHolder(ConfigHolder):
         Returns:
             dict : The current run-control settings
         """
-        return self._runcontrol.get_runcontrol_settings(super(ActiveConfigHolder, self).get_block_details())
+        return self._runcontrol.get_current_settings(super(ActiveConfigHolder, self).get_block_details())
 
     def set_runcontrol_settings(self, data):
         """ Replaces the runc-control settings with new values.

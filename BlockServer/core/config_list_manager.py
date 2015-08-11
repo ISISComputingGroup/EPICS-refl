@@ -33,7 +33,7 @@ class ConfigListManager(object):
         active_config_name (string) : The name of the active configuration
         active_components (list) : The names of the components in the active configuration
     """
-    def __init__(self, block_server, config_folder, server, schema_folder, vc_manager, test_mode=False):
+    def __init__(self, block_server, config_folder, server, schema_folder, vc_manager):
         """Constructor.
 
         Args:
@@ -42,14 +42,12 @@ class ConfigListManager(object):
             server (CAServer) : A reference to the CaServer of the BlockServer
             schema_folder (string) : The location of the schemas for validation
             vc_manager (ConfigVersionControl) : The object for managing version control
-            test_mode (bool) : Whether to run in test mode or not
         """
         self._config_metas = dict()
         self._subconfig_metas = dict()
         self._comp_dependecncies = dict()
         self._ca_server = server
         self._config_folder = config_folder
-        self._test_mode = test_mode
         self._block_server = block_server  # Referencing a higher level object == bad
         self.active_config_name = ""
         self.active_components = []
@@ -289,8 +287,7 @@ class ConfigListManager(object):
         """
         with self._lock:
             # TODO: clean this up?
-            if not self._test_mode:
-                print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
+            print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
             lower_delete_list = set([x.lower() for x in delete_list])
             if not are_subconfigs:
                 if self.active_config_name.lower() in lower_delete_list:

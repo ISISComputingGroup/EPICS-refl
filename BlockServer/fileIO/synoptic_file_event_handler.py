@@ -19,20 +19,18 @@ class SynopticFileEventHandler(FileSystemEventHandler):
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and
     creates/removes available synoptics as necessary.
     """
-    def __init__(self, root_path, schema_folder, schema_lock, synoptic_list_manager, test_mode=False):
+    def __init__(self, root_path, schema_folder, schema_lock, synoptic_list_manager):
         """Constructor.
 
         Args:
             root_path (string) : The location of the configurations and components
             schema_folder (string) : The location of the schema
             synoptic_list_manager (SynopticListManager) : The SynopticListManager
-            test_mode (bool) : Whether to enable test_mode or not
         """
         self._schema_filepath = schema_folder + "\\" + SYNOPTIC_SCHEMA
         self._schema_lock = schema_lock
         self._root_path = root_path
         self._synoptic_list = synoptic_list_manager
-        self._test_mode = test_mode
 
     def on_any_event(self, event):
         """Catch-all event handler.
