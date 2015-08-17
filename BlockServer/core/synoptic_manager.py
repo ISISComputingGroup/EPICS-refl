@@ -231,4 +231,5 @@ class SynopticManager(object):
         Returns:
             string : The XML for the blank synoptic
         """
-        return '<?xml version="1.0" ?><instrument xmlns="http://www.isis.stfc.ac.uk//instrument"><name>-- NONE --</name><components/></instrument>'
+        return """<?xml version="1.0" ?><instrument xmlns="http://www.isis.stfc.ac.uk//instrument">
+               <name>-- NONE --</name><components/></instrument>"""
