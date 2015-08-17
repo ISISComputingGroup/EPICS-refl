@@ -79,7 +79,10 @@ class SynopticManager(object):
         syn_list = list()
         for k, v in self._synoptic_pvs.iteritems():
             syn_list.append({"name": k, "pv": v})
-        return sorted(syn_list, key=lambda x: x['name'].lower())
+        ans = sorted(syn_list, key=lambda x: x['name'].lower())
+        # Insert the "blank" synoptic
+        ans.insert(0, {"pv": "__BLANK__", "name": "-- NONE --"})
+        return ans
 
     def _get_synoptic_filenames(self):
         """Gets the names of the synoptic files in the synoptics directory. Without the .xml extension.
@@ -221,3 +224,11 @@ class SynopticManager(object):
         with open(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA ), 'r') as schemafile:
             schema = schemafile.read()
         return schema
+
+    def get_blank_synoptic(self):
+        """Gets a blank synoptic.
+
+        Returns:
+            string : The XML for the blank synoptic
+        """
+        return '<?xml version="1.0" ?><instrument xmlns="http://www.isis.stfc.ac.uk//instrument"><name>-- NONE --</name><components/></instrument>'

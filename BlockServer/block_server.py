@@ -164,6 +164,11 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
+    'SYNOPTICS:__BLANK__:GET': {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
+    },
     'SYNOPTICS:SET_DETAILS': {
         'type': 'char',
         'count': 16000,
@@ -311,6 +316,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(convert_to_json(self._syn.get_synoptic_list()))
             elif reason == "SYNOPTICS:GET_DEFAULT":
                 value = compress_and_hex(self._syn.get_default_synoptic_xml())
+            elif reason == "SYNOPTICS:__BLANK__:GET":
+                value = compress_and_hex(self._syn.get_blank_synoptic())
             elif reason == "SYNOPTICS:SCHEMA":
                 value = compress_and_hex(self._syn.get_synoptic_schema())
             elif reason == "BUMPSTRIP_AVAILABLE":
