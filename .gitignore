@@ -9,3 +9,4 @@ envPaths
 cdCommands
 dllPath.bat
 runIoc.bat
+*.py[oc]
