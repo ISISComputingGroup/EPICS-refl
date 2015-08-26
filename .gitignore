@@ -10,3 +10,4 @@ cdCommands
 dllPath.bat
 runIoc.bat
 *.py[oc]
+*.sq3
