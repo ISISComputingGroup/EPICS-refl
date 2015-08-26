@@ -10,7 +10,7 @@ set EPICS_CAS_BEACON_ADDR_LIST=127.255.255.255
 
 set PYTHONUNBUFFERED=TRUE
 
-set MYDIRGATE=%MYDIRBLOCK%..\..\..\gateway\master
+set MYDIRGATE=%MYDIRBLOCK%..\..\..\gateway
 if exist "%ICPSETTINGSDIR%/gwblock.pvlist" (
     set GWBLOCK_PVLIST=%ICPSETTINGSDIR%/gwblock.pvlist
 ) else (
