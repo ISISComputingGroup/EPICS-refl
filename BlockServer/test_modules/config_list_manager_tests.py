@@ -25,7 +25,7 @@ MACROS = {
 }
 
 CONFIG_PATH = "./test_configs/"
-SCHEMA_PATH = "./../../../schema"
+SCHEMA_PATH = "./../../../../schema"
 
 GET_CONFIG_PV = "GET_CONFIG_DETAILS"
 GET_SUBCONFIG_PV = "GET_COMPONENT_DETAILS"

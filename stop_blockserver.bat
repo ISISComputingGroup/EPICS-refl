@@ -9,7 +9,7 @@ if "%CSPID%" == "" (
     @echo blockserver procServ is not running
 ) else (
     @echo Killing blockserver procServ PID %CSPID%
-    %MYDIR%..\..\tools\cygwin_bin\cygwin_kill.exe %CSPID%
+    %ICPTOOLS%\cygwin_bin\cygwin_kill.exe %CSPID%
     del c:\windows\temp\EPICS_BLOCKSVR.pid
 )
 

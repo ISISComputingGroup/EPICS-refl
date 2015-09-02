@@ -16,7 +16,7 @@ from BlockServer.epics.archiver_manager import ArchiverManager
 TEST_DIRECTORY = os.path.abspath(".\\test_configs")
 CONFIG_DIR = TEST_DIRECTORY + CONFIG_DIRECTORY
 SUBCONFIG_DIR = TEST_DIRECTORY + COMPONENT_DIRECTORY
-SCHEMA_DIR = os.path.abspath("..\\..\\..\\schema\\configurations")
+SCHEMA_DIR = os.path.abspath("..\\..\\..\\..\\schema\\configurations")
 
 TEST_CONFIG = {"iocs":
                  [{"simlevel": "devsim", "autostart": True, "restart": False,

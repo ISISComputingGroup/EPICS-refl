@@ -13,7 +13,7 @@ from BlockServer.mocks.mock_version_control import MockVersionControl
 
 TEST_DIRECTORY = os.path.abspath(".\\test_configs")
 CONFIG_DIR = TEST_DIRECTORY + const.CONFIG_DIRECTORY
-SCHEMA_DIR = os.path.abspath("..\\..\\..\\schema\\configurations")
+SCHEMA_DIR = os.path.abspath("..\\..\\..\\..\\schema\\configurations")
 
 MACROS = {
     "$(MYPVPREFIX)": "",

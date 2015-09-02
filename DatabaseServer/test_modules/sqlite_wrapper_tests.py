@@ -12,7 +12,7 @@ SAMPLE_PVS = ["PARS:SAMPLE:AOI", "PARS:SAMPLE:GEOMETRY", "PARS:SAMPLE:WIDTH"]
 
 def generate_fake_db(iocdb):
     import sys
-    sys.path.append("../../../")
+    sys.path.append("../../../../")
     from build_ioc_startups import create_iocs_database
     # Create database with empty table
     create_iocs_database(iocdb)

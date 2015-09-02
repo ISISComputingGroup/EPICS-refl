@@ -4,7 +4,7 @@ import sys
 # Set MYDIRBLOCK so that example_base can be found
 os.environ["MYDIRBLOCK"] = ".."
 sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath("..\\..\\ConfigVersionControl"))
+sys.path.insert(0, os.path.abspath("..\\..\\..\\ConfigVersionControl\\master"))
 # Standard imports
 import unittest
 import xmlrunner
@@ -22,7 +22,7 @@ from BlockServer.test_modules.schema_checker_tests import TestSchemaChecker
 from BlockServer.test_modules.synoptic_manager_tests import TestSynopticManagerSequence
 from BlockServer.test_modules.ioc_control_tests import TestIocControlSequence
 
-DEFAULT_DIRECTORY = '..\\..\\..\\test-reports'
+DEFAULT_DIRECTORY = '..\\..\\..\\..\\test-reports'
 
 if __name__ == '__main__':
     # get output directory from command line arguments
