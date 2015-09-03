@@ -16,7 +16,7 @@ EXAMPLE_SYNOPTIC = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                       <name>%s</name>
                       </instrument>"""
 
-SCHEMA_PATH = "./../../../schema/configurations"
+SCHEMA_PATH = "./../../../../schema/configurations"
 
 
 class TestSynopticManagerSequence(unittest.TestCase):
