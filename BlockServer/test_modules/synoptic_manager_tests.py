@@ -16,7 +16,7 @@ EXAMPLE_SYNOPTIC = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                       <name>%s</name>
                       </instrument>"""
 
-SCHEMA_PATH = "./../../../../schema/configurations"
+SCHEMA_PATH = "./../../../schema/configurations"
 
 
 class TestSynopticManagerSequence(unittest.TestCase):
@@ -32,16 +32,18 @@ class TestSynopticManagerSequence(unittest.TestCase):
         f2.write(EXAMPLE_SYNOPTIC % "synoptic2")
         f2.close()
 
+        self.cas = MockCAServer()
+        self.sm = SynopticManager(MockBlockServer(), TEST_DIR, self.cas, SCHEMA_PATH, MockVersionControl())
+        self.initial_len = len([c["name"] for c in self.sm.get_synoptic_list()])
+
     def tearDown(self):
         # Delete test directory
         shutil.rmtree(TEST_DIR)
 
     def test_get_synoptic_filenames_from_directory_returns_names_alphabetically(self):
         # Arrange
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, MockCAServer(), SCHEMA_PATH, MockVersionControl())
-
         # Act
-        s = sm.get_synoptic_list()
+        s = self.sm.get_synoptic_list()
 
         # Assert
         self.assertTrue(len(s) > 0)
@@ -51,38 +53,29 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_create_pvs_is_okay(self):
         # Arrange
-        cas = MockCAServer()
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
-
         # Act
-        sm._load_initial()
+        self.sm._load_initial()
 
         # Assert
-        self.assertTrue(len(cas.pv_list) > 0)
-        self.assertTrue("%sSYNOPTIC1%s" % (SYNOPTIC_PRE, SYNOPTIC_GET) in cas.pv_list.keys())
+        self.assertTrue(len(self.cas.pv_list) > 0)
+        self.assertTrue("%sSYNOPTIC1%s" % (SYNOPTIC_PRE, SYNOPTIC_GET) in self.cas.pv_list.keys())
 
     def test_get_default_synoptic_xml_returns_nothing(self):
         # Arrange
-        cas = MockCAServer()
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
-
         # Act
-        xml = sm.get_default_synoptic_xml()
+        xml = self.sm.get_default_synoptic_xml()
 
         # Assert
         self.assertEqual(xml, "")
 
     def test_set_default_synoptic_xml_sets_something(self):
         # Arrange
-        cas = MockCAServer()
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
-
         # Act
-        sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % "synoptic0")
-        sm.set_default_synoptic("synoptic0")
+        self.sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % "synoptic0")
+        self.sm.set_default_synoptic("synoptic0")
 
         # Assert
-        xml = sm.get_default_synoptic_xml()
+        xml = self.sm.get_default_synoptic_xml()
 
         self.assertTrue(len(xml) > 0)
         # Check the correct name appears in the xml
@@ -90,97 +83,78 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_set_current_synoptic_xml_saves_under_name(self):
         # Arrange
-        cas = MockCAServer()
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
-        SYN_NAME = "new_synoptic"
+        syn_name = "new_synoptic"
 
         # Act
-        sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % SYN_NAME)
+        self.sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % syn_name)
 
         # Assert
-        synoptics = sm._get_synoptic_filenames()
-        self.assertTrue(SYN_NAME + ".xml" in synoptics)
+        synoptics = self.sm._get_synoptic_filenames()
+        self.assertTrue(syn_name + ".xml" in synoptics)
 
     def test_set_current_synoptic_xml_creates_pv(self):
         # Arrange
-        cas = MockCAServer()
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
-        SYN_NAME = "new_synoptic"
+        syn_name = "new_synoptic"
 
         # Act
-        sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % SYN_NAME)
+        self.sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % syn_name)
 
         # Assert
-        self.assertTrue(len(cas.pv_list) > 0)
-        self.assertTrue("%sNEW_SYNOPTIC%s" % (SYNOPTIC_PRE, SYNOPTIC_GET) in cas.pv_list.keys())
+        self.assertTrue(len(self.cas.pv_list) > 0)
+        self.assertTrue("%sNEW_SYNOPTIC%s" % (SYNOPTIC_PRE, SYNOPTIC_GET) in self.cas.pv_list.keys())
 
     def test_delete_synoptics_empty(self):
         # Arrange
-        cas = MockCAServer()
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
-
         # Act
-        sm.delete_synoptics([])
+        self.sm.delete_synoptics([])
 
         # Assert
-        synoptic_names = [c["name"] for c in sm.get_synoptic_list()]
-        self.assertEqual(len(synoptic_names), 2)
+        synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
+        self.assertEqual(len(synoptic_names), self.initial_len)
         self.assertTrue("synoptic1" in synoptic_names)
         self.assertTrue("synoptic2" in synoptic_names)
-        self.assertEqual(len(cas.pv_list), 2)
+        self.assertEqual(len(self.cas.pv_list), 2)
 
     def test_delete_one_config(self):
         # Arrange
-        cas = MockCAServer()
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
-
         # Act
-        sm.delete_synoptics(["synoptic1"])
+        self.sm.delete_synoptics(["synoptic1"])
 
         # Assert
-        synoptic_names = [c["name"] for c in sm.get_synoptic_list()]
-        self.assertEqual(len(synoptic_names), 1)
+        synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
+        self.assertEqual(len(synoptic_names), self.initial_len - 1)
         self.assertFalse("synoptic1" in synoptic_names)
         self.assertTrue("synoptic2" in synoptic_names)
-        self.assertEqual(len(cas.pv_list), 1)
+        self.assertEqual(len(self.cas.pv_list), 1)
 
     def test_delete_many_configs(self):
         # Arrange
-        cas = MockCAServer()
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
-
         # Act
-        sm.delete_synoptics(["synoptic1", "synoptic2"])
+        self.sm.delete_synoptics(["synoptic1", "synoptic2"])
 
         # Assert
-        synoptic_names = [c["name"] for c in sm.get_synoptic_list()]
-        self.assertEqual(len(synoptic_names), 0)
+        synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
+        self.assertEqual(len(synoptic_names), self.initial_len - 2)
         self.assertFalse("synoptic1" in synoptic_names)
         self.assertFalse("synoptic2" in synoptic_names)
-        self.assertEqual(len(cas.pv_list), 0)
+        self.assertEqual(len(self.cas.pv_list), 0)
 
     def test_delete_config_affects_filesystem(self):
         # Arrange
-        cas = MockCAServer()
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
-
         # Act
-        sm.delete_synoptics(["synoptic1"])
+        self.sm.delete_synoptics(["synoptic1"])
 
         # Assert
         synoptics = os.listdir(TEST_DIR)
         self.assertEqual(len(synoptics), 1)
         self.assertTrue("synoptic2.xml" in synoptics)
 
-    def test_cant_delete_non_existant_synoptic(self):
+    def test_cannot_delete_non_existant_synoptic(self):
         # Arrange
-        cas = MockCAServer()
-        sm = SynopticManager(MockBlockServer(), TEST_DIR, cas, SCHEMA_PATH, MockVersionControl())
-
         # Act
-        self.assertRaises(InvalidDeleteException, sm.delete_synoptics, ["invalid"])
+        self.assertRaises(InvalidDeleteException, self.sm.delete_synoptics, ["invalid"])
 
         # Assert
-        synoptic_names = [c["name"] for c in sm.get_synoptic_list()]
-        self.assertEqual(len(synoptic_names), 2)
-        self.assertEqual(len(cas.pv_list), 2)
+        synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
+        self.assertEqual(len(synoptic_names), self.initial_len)
+        self.assertEqual(len(self.cas.pv_list), 2)
