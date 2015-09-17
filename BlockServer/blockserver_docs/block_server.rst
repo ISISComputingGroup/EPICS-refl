@@ -242,15 +242,6 @@ Write Commands
 | NOTE: Some of these commands take a few seconds to process, so if done using caput it might be necessary to increase the timeout.
 |
 
-**BLOCKSERVER:LOAD_COMP**
-
-::
-
-    Command: caput -S %MYPVPREFIX%CS:BLOCKSERVER:LOAD_COMP abcdefabdcdefabcdef1234567890
-    Loads the specified component as if it was a standard configuration. Requires a compressed and hexed JSON string.
-
-    Returns "OK" or an error message (compressed and hexed JSON).
-
 **BLOCKSERVER:LOAD_CONFIG**
 
 ::
