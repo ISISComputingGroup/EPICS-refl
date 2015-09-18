@@ -63,11 +63,6 @@ PVDB = {
         'count': 1000,
         'value': [0],
     },
-    'LOAD_COMP': {
-        'type': 'char',
-        'count': 1000,
-        'value': [0],
-    },
     'CLEAR_CONFIG': {
         'type': 'char',
         'count': 100,
@@ -195,7 +190,6 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
-
 }
 
 
@@ -212,7 +206,6 @@ class BlockServer(Driver):
         super(BlockServer, self).__init__()
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])
         self._active_configserver = None
-        self._status = "INITIALISING"
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
@@ -240,11 +233,6 @@ class BlockServer(Driver):
         self.monitor_lock = RLock()
         self.write_lock = RLock()
         self.write_queue = list()
-
-        # Start a background thread for keeping track of running IOCs
-        monitor_thread = Thread(target=self.update_ioc_monitors, args=())
-        monitor_thread.daemon = True  # Daemonise thread
-        monitor_thread.start()
 
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
@@ -285,8 +273,8 @@ class BlockServer(Driver):
             reason (string) : The PV that is being requested (without the PV prefix)
 
         Returns:
-            string : A compressed and hexed JSON formatted string that gives the desired information based on reason. If an
-                Exception is thrown in the reading of the information this is returned in compressed and hexed JSON.
+            string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
+            If an Exception is thrown in the reading of the information this is returned in compressed and hexed JSON.
         """
         try:
             if reason == 'BLOCKNAMES':
@@ -307,8 +295,6 @@ class BlockServer(Driver):
                 value = compress_and_hex(pars)
             elif reason == "GET_CURR_CONFIG_DETAILS":
                 value = compress_and_hex(convert_to_json(self._active_configserver.get_config_details()))
-            elif reason == "SERVER_STATUS":
-                value = compress_and_hex(self.get_server_status())
             elif reason == "BLANK_CONFIG":
                 js = convert_to_json(self.get_blank_config())
                 value = compress_and_hex(js)
@@ -338,8 +324,8 @@ class BlockServer(Driver):
             value (string) : The data being written to the 'reason' PV
 
         Returns:
-            string : "OK" in compressed and hexed JSON if function succeeds. Otherwise returns the Exception in compressed
-                and hexed JSON.
+            string : "OK" in compressed and hexed JSON if function succeeds. Otherwise returns the Exception in
+            compressed and hexed JSON.
         """
         status = True
         try:
@@ -349,11 +335,8 @@ class BlockServer(Driver):
                 with self.write_lock:
                     self.write_queue.append((self.load_config, (data,), "LOADING_CONFIG"))
             elif reason == 'SAVE_CONFIG':
-                self.save_active_config(data)
-            elif reason == 'LOAD_COMP':
                 with self.write_lock:
-                    self.write_queue.append((self.load_config, (data, True), "LOADING_COMP"))
-                self.update_blocks_monitors()
+                    self.write_queue.append((self.save_active_config, (data,), "SAVING_CONFIG"))
             elif reason == 'CLEAR_CONFIG':
                 self._active_configserver.clear_config()
                 self._initialise_config()
@@ -366,8 +349,8 @@ class BlockServer(Driver):
             elif reason == 'SET_RC_PARS':
                 self._active_configserver.set_runcontrol_settings(convert_from_json(data))
             elif reason == 'SET_CURR_CONFIG_DETAILS':
-                self._active_configserver.set_config_details(convert_from_json(data))
-                self._initialise_config()
+                with self.write_lock:
+                    self.write_queue.append((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
             elif reason == 'SAVE_NEW_CONFIG':
                 self.save_inactive_config(data)
             elif reason == 'SAVE_NEW_COMPONENT':
@@ -388,7 +371,7 @@ class BlockServer(Driver):
                 self.update_synoptic_monitor()
             elif reason == "BUMPSTRIP_AVAILABLE:SP":
                 self.bumpstrip = data
-                self.update_bumpstripAvailability()
+                self.update_bumpstrip_availability()
             else:
                 status = False
         except Exception as err:
@@ -416,6 +399,15 @@ class BlockServer(Driver):
             self._active_configserver.clear_config()
         else:
             print_and_log("Loaded last configuration: %s" % last)
+        self._initialise_config()
+
+    def _set_curr_config(self, details):
+        """Sets the current configuration details to that defined in the XML, then initialises it.
+
+        Args:
+            details (string) : the configuration XML
+        """
+        self._active_configserver.set_config_details(details)
         self._initialise_config()
 
     def _initialise_config(self, init_gateway=True, clear_runcontrol=False):
@@ -605,17 +597,15 @@ class BlockServer(Driver):
             # Update them
             self.updatePVs()
 
-    def update_ioc_monitors(self):
+    def update_server_status(self, status=""):
         """Updates the monitor for the server status, so the clients can see any changes.
         """
-        # TODO: Rename this method!
-        while True:
-            if self._active_configserver is not None:
-                with self.monitor_lock:
-                    self.setParam("SERVER_STATUS", compress_and_hex(self.get_server_status()))
-                    # Update them
-                    self.updatePVs()
-            sleep(2)
+        if self._active_configserver is not None:
+            d = dict()
+            d['status'] = status
+            with self.monitor_lock:
+                self.setParam("SERVER_STATUS", compress_and_hex(convert_to_json(d)))
+                self.updatePVs()
 
     def update_get_details_monitors(self):
         """Updates the monitor for the active configuration, so the clients can see any changes.
@@ -635,7 +625,7 @@ class BlockServer(Driver):
             names = convert_to_json(self._syn.get_synoptic_list())
             self.setParam("SYNOPTICS:NAMES", compress_and_hex(names))
 
-    def update_bumpstripAvailability(self):
+    def update_bumpstrip_availability(self):
             """Updates the monitor for the configurations, so the clients can see any changes.
             """
             with self.monitor_lock:
@@ -657,20 +647,13 @@ class BlockServer(Driver):
             while len(self.write_queue) > 0:
                 with self.write_lock:
                     cmd, arg, state = self.write_queue.pop(0)
-                    self._status = state
-                    cmd(*arg)
-                    self._status = ""
+                    self.update_server_status(state)
+                    if arg is not None:
+                        cmd(*arg)
+                    else:
+                        cmd()
+                    self.update_server_status("")
             sleep(1)
-
-    def get_server_status(self):
-        """Get the status of the BlockServer.
-
-        Returns:
-            string : A JSON representation of the status
-        """
-        d = dict()
-        d['status'] = self._status
-        return convert_to_json(d)
 
     def get_blank_config(self):
         """Get a blank configuration which can be used to create a new configuration from scratch.
