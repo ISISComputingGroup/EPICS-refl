@@ -175,8 +175,10 @@ class ConfigListManager(object):
         configs = []
         if name in self._comp_dependecncies.keys():
             configs = self._comp_dependecncies[name]
-        self._ca_server.updatePV(self._subconfig_metas[name].pv + DEPENDENCIES_PV,
-                                 compress_and_hex(json.dumps(configs)))
+        if name in self._subconfig_metas.keys():
+            # Check just in case sub-config failed to load
+            self._ca_server.updatePV(self._subconfig_metas[name].pv + DEPENDENCIES_PV,
+                                     compress_and_hex(json.dumps(configs)))
 
     def _update_config_pv(self, name, data):
         # Updates pvs with new data
