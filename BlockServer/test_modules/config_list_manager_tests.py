@@ -13,7 +13,7 @@ from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DE
 from BlockServer.config.configuration import Configuration
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
-from BlockServer.mocks.mock_runcontrol import MockRunControlManager
+from BlockServer.mocks.mock_runcontrol_manager import MockRunControlManager
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 
