@@ -82,7 +82,7 @@ class ExpData(object):
         except Exception as err:
             raise Exception("issue getting experimental team: %s" % err)
 
-    def _check_experiment_exists(self, experimentID):
+    def _experiment_exists(self, experimentID):
         """ Gets the experiment
 
         Args:
@@ -114,6 +114,12 @@ class ExpData(object):
         """
         return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
 
+    def _get_surname_from_fullname(selfself, fullname):
+        try:
+            return fullname.split(" ")[-1]
+        except:
+            return fullname
+
     def updateExperimentID(self, experimentID):
         """Updates the associated PVs when an experiment ID is set
 
@@ -128,20 +134,19 @@ class ExpData(object):
         # Update the RB Number for lookup - SIM for testing, DAE for production
         caput(self._simrbpv, experimentID)
         caput(self._daerbpv, experimentID)
+
         # Check for the experiment ID
-        idExists = self._check_experiment_exists(experimentID)
-        if idExists == False:
-            names = []
-            surnames = []
-            orgs = []
+        names = []
+        surnames = []
+        orgs = []
+
+        if not self._experiment_exists(experimentID):
             caput(self._simnames, self.encode4return(names))
             caput(self._surnamepv, self.encode4return(surnames))
             caput(self._orgspv, self.encode4return(orgs))
             raise Exception("error finding the experiment: %s" % experimentID)
+
         # Get the user information from the database and update the associated PVs
-        names = []
-        surnames = []
-        orgs = []
         if self._db is not None:
             teammembers = self._get_team(experimentID)
             if teammembers is not None:
@@ -150,12 +155,8 @@ class ExpData(object):
                     fullname = str(member[0])
                     org = str(member[1])
                     role = str(member[2])
-                    try:
-                        surname = fullname.split(" ")[2]
-                    except:
-                        surname = fullname
                     if not role == "Contact":
-                        surnames.append(surname)
+                        surnames.append(self._get_surname_from_fullname(fullname))
                     orgs.append(org)
                     name = user(fullname, org, role.lower())
                     names.append(name.__dict__)
@@ -198,12 +199,8 @@ class ExpData(object):
                 fullname = str(member['name'])
                 org = str(member['institute'])
                 role = str(member['role'])
-                try:
-                    surname = fullname.split(" ")[2]
-                except:
-                    surname = fullname
                 if not role == "Contact":
-                    surnames.append(surname)
+                    surnames.append(self._get_surname_from_fullname(fullname))
                 orgs.append(org)
                 name = user(fullname, org, role.lower())
                 names.append(name.__dict__)
