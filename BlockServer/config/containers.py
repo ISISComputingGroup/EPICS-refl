@@ -16,7 +16,7 @@ class Block(object):
             lowlimt (float) : The low limit for run-control
             highlimit (float) : The high limit for run-control
     """
-    def __init__(self, name, pv, local=True, visible=True, subconfig=None, save_rc=False,
+    def __init__(self, name, pv, local=True, visible=True, subconfig=None, save_rc=True,
                  runcontrol=False, lowlimit=None, highlimit=None):
         """ Constructor.
 
@@ -70,7 +70,8 @@ class Block(object):
             dict : The block's details
         """
         return {"name": self.name, "pv": self._get_pv(), "local": self.local,
-                "visible": self.visible, "subconfig": self.subconfig}
+                "visible": self.visible, "subconfig": self.subconfig, "runcontrol": self.rc_enabled,
+                "lowlimit": self.rc_lowlimit, "highlimit": self.rc_highlimit }
 
 
 class Group(object):
