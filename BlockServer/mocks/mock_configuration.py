@@ -17,9 +17,10 @@ class MockConfiguration(object):
         self.block_names = []
         self.blocks = OrderedDict()
 
-    def add_block(self, name, read_pv, group=GRP_NONE, local=True, visible=True):
+    def add_block(self, name, read_pv, group=GRP_NONE, local=True, visible=True,
+                  log_periodic=False, log_rate=5, log_deadband=0):
         self.add_block_called = True
-        self.add_block_parameters = [name, read_pv, group, local, visible]
+        self.add_block_parameters = [name, read_pv, group, local, visible, log_periodic, log_rate, log_deadband]
 
     def remove_block(self, name):
         self.remove_block_called = True

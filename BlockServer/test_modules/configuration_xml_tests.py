@@ -19,24 +19,36 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV1</read_pv>
         <local>True</local>
         <visible>True</visible>
+        <log_periodic>False</log_periodic>
+        <log_rate>5</log_rate>
+        <log_deadband>0</log_deadband>
     </block>
     <block>
         <name>TESTBLOCK2</name>
         <read_pv>TESTPV2</read_pv>
         <local>True</local>
         <visible>True</visible>
+        <log_periodic>False</log_periodic>
+        <log_rate>5</log_rate>
+        <log_deadband>0</log_deadband>
     </block>
     <block>
         <name>TESTBLOCK3</name>
         <read_pv>TESTPV3</read_pv>
         <local>True</local>
         <visible>True</visible>
+        <log_periodic>False</log_periodic>
+        <log_rate>5</log_rate>
+        <log_deadband>0</log_deadband>
     </block>
     <block>
         <name>TESTBLOCK4</name>
         <read_pv>TESTPV4</read_pv>
         <local>True</local>
         <visible>True</visible>
+        <log_periodic>False</log_periodic>
+        <log_rate>5</log_rate>
+        <log_deadband>0</log_deadband>
     </block>
 </blocks>"""
 
@@ -244,6 +256,9 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
             self.assertEqual(value.name, expected.name)
             self.assertEqual(value.pv, expected.pv)
             self.assertEqual(value.local, expected.local)
+            self.assertEqual(value.log_periodic, expected.log_periodic)
+            self.assertEqual(value.log_rate, expected.log_rate)
+            self.assertEqual(value.log_deadband, expected.log_deadband)
 
     def test_xml_string_to_groups_converts_correctly(self):
         # arrange

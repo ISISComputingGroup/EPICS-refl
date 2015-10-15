@@ -175,6 +175,16 @@ class ConfigurationXmlConverter(object):
                 high = ElementTree.SubElement(block_xml, TAG_RUNCONTROL_HIGH)
                 high.text = str(block.rc_highlimit)
 
+        #Logging
+        log_periodic = ElementTree.SubElement(block_xml, TAG_LOG_PERIODIC)
+        log_periodic.text = str(block.log_periodic)
+
+        log_rate = ElementTree.SubElement(block_xml, TAG_LOG_RATE)
+        log_rate.text = str(block.log_rate)
+
+        log_deadband = ElementTree.SubElement(block_xml, TAG_LOG_DEADBAND)
+        log_deadband.text = str(block.log_deadband)
+
     @staticmethod
     def _group_to_xml(root_xml, group):
         """Generates the XML for a group"""
@@ -264,6 +274,19 @@ class ConfigurationXmlConverter(object):
                     rc_high = b.find("./" + TAG_RUNCONTROL_HIGH)
                     if rc_high is not None:
                         blocks[name.lower()].rc_highlimit = float(rc_high.text)
+
+                # Logging
+                log_periodic = b.find("./" + TAG_LOG_PERIODIC)
+                if not (log_periodic is None):
+                    blocks[name.lower()].log_periodic = (log_periodic.text == "True")
+
+                log_rate = b.find("./" + TAG_LOG_RATE)
+                if not (log_rate is None):
+                    blocks[name.lower()].log_rate = float(log_rate.text)
+
+                log_deadband = b.find("./" + TAG_LOG_DEADBAND)
+                if not (log_deadband is None):
+                    blocks[name.lower()].log_deadband = float(log_deadband.text)
 
     @staticmethod
     def groups_from_xml_string(xml, groups, blocks):

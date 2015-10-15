@@ -62,7 +62,7 @@ class ActiveConfigHolder(ConfigHolder):
         """ Update the archiver configuration.
         """
         self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX,
-                                              super(ActiveConfigHolder, self).get_blocknames())
+                                              super(ActiveConfigHolder, self).get_block_details().values())
 
     def set_last_config(self, config):
         """ Save the last configuration used to file.
