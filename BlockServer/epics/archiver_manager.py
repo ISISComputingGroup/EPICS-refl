@@ -73,6 +73,6 @@ class ArchiverManager(object):
             period.text = str(datetime.timedelta(seconds=block.log_rate))
             eTree.SubElement(channel, 'scan')
         else:
-            period.text = str(datetime.timedelta(seconds=5))
+            period.text = str(datetime.timedelta(seconds=1))
             monitor = eTree.SubElement(channel, 'monitor')
             monitor.text = str(block.log_deadband)
