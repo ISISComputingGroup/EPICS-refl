@@ -19,6 +19,8 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV1</read_pv>
         <local>True</local>
         <visible>True</visible>
+        <rc_save>True</rc_save>
+        <rc_enabled>False</rc_enabled>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -28,6 +30,8 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV2</read_pv>
         <local>True</local>
         <visible>True</visible>
+        <rc_save>True</rc_save>
+        <rc_enabled>False</rc_enabled>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -37,6 +41,8 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV3</read_pv>
         <local>True</local>
         <visible>True</visible>
+        <rc_save>True</rc_save>
+        <rc_enabled>False</rc_enabled>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -46,6 +52,8 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV4</read_pv>
         <local>True</local>
         <visible>True</visible>
+        <rc_save>True</rc_save>
+        <rc_enabled>False</rc_enabled>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -198,6 +206,7 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
         blocks_xml = strip_out_whitespace(blocks_xml)
 
         #assert
+        self.maxDiff = None
         self.assertEqual(blocks_xml, BLOCKS_XML)
 
     def test_groups_to_xml_converts_correctly(self):

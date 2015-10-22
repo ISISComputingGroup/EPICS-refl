@@ -21,7 +21,7 @@ class Block(object):
             arch_rate (float) : Time between archive samples (in seconds)
             arch_deadband (float) : Deadband for the block to be archived
     """
-    def __init__(self, name, pv, local=True, visible=True, subconfig=None, save_rc=False,
+    def __init__(self, name, pv, local=True, visible=True, subconfig=None, save_rc=True,
                  runcontrol=False, lowlimit=None, highlimit=None, log_periodic=False, log_rate=5, log_deadband=0):
         """ Constructor.
 
@@ -83,6 +83,8 @@ class Block(object):
             dict : The block's details
         """
         return {"name": self.name, "pv": self._get_pv(), "local": self.local,
+                "visible": self.visible, "subconfig": self.subconfig, "runcontrol": self.rc_enabled,
+                "lowlimit": self.rc_lowlimit, "highlimit": self.rc_highlimit,
                 "visible": self.visible, "subconfig": self.subconfig,
                 "log_periodic": self.log_periodic, "log_rate": self.log_rate, "log_deadband": self.log_deadband}
 
