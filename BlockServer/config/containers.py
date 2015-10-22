@@ -85,7 +85,6 @@ class Block(object):
         return {"name": self.name, "pv": self._get_pv(), "local": self.local,
                 "visible": self.visible, "subconfig": self.subconfig, "runcontrol": self.rc_enabled,
                 "lowlimit": self.rc_lowlimit, "highlimit": self.rc_highlimit,
-                "visible": self.visible, "subconfig": self.subconfig,
                 "log_periodic": self.log_periodic, "log_rate": self.log_rate, "log_deadband": self.log_deadband}
 
 
