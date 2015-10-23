@@ -264,8 +264,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_save_config_and_load_config_restore_runcontrol(self):
         cs = self.activech
-        data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5,
-                'save_rc': True}
+        data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
         add_block(cs, data)
         cs.create_runcontrol_pvs(False)
         cs.create_runcontrol_pvs(False)

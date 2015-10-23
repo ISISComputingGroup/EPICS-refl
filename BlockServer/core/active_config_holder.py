@@ -104,6 +104,7 @@ class ActiveConfigHolder(ConfigHolder):
         self._runcontrol.restart_ioc(clear_autosave)
         # Need to wait for RUNCONTROL_IOC to restart
         self._runcontrol.wait_for_ioc_start()
+        self._runcontrol.restore_config_settings(super(ActiveConfigHolder, self).get_block_details())
 
     def get_out_of_range_pvs(self):
         """ Returns the PVs that are out of range.
