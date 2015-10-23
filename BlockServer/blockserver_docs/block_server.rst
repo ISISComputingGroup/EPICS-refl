@@ -118,9 +118,9 @@ Note: This PV is currently used by the web dashboard
                   {"simlevel": "devsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
                  ],
           "blocks":
-                   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-                    {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-                    {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true}
+                   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 10, "log_deadband": 0},
+                    {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 5, "log_deadband": 0},
+                    {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true, "log_periodic": false, "log_rate": 0, "log_deadband": 1.0}
                    ],
           "components":
                        [{"name": "sub1"}],
@@ -145,9 +145,9 @@ Note: This PV is currently used by the web dashboard
                   {"simlevel": "devsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
                  ],
           "blocks":
-                   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-                    {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-                    {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true}
+                   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 10, "log_deadband": 0},
+                    {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 5, "log_deadband": 0},
+                    {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true, "log_periodic": false, "log_rate": 0, "log_deadband": 1.0}
                    ],
           "components":
                        [{"name": "sub1"}],
@@ -172,9 +172,9 @@ Note: This PV is currently used by the web dashboard
                   {"simlevel": "devsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
                  ],
           "blocks":
-                   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-                    {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-                    {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true}
+                   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 10, "log_deadband": 0},
+                    {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 5, "log_deadband": 0},
+                    {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true, "log_periodic": false, "log_rate": 0, "log_deadband": 1.0}
                    ],
           "components": [],
           "groups":
@@ -327,9 +327,9 @@ Note: Used by the client(s) for "save" and "save as" for the current active conf
                   {"simlevel": "recsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
                  ],
           "blocks":
-                   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-                    {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-                    {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true}
+                   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 10, "log_deadband": 0},
+                    {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 5, "log_deadband": 0},
+                    {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true, "log_periodic": false, "log_rate": 0, "log_deadband": 1.0}
                    ],
           "components":
                        [{"name": "sub1"}],
@@ -357,9 +357,9 @@ Note: Used by the client(s) for "save" and "save as" for the current active conf
 				  {"simlevel": "recsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
 				 ],
 		  "blocks":
-				   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-					{"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-					{"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true}
+                   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 10, "log_deadband": 0},
+                    {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 5, "log_deadband": 0},
+                    {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true, "log_periodic": false, "log_rate": 0, "log_deadband": 1.0}
 				   ],
 		  "components":
 					   [{"name": "sub1"}],
@@ -387,9 +387,9 @@ Note: Used by the client(s) for "save" and "save as" for the current active conf
 				  {"simlevel": "recsim", "autostart": true, "restart": false, "pvsets": [{"name": "SET", "enabled": "true"}], "pvs": [], "macros": [], "name": "SIMPLE2", "subconfig": null}
 				 ],
 		  "blocks":
-				   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-					{"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true},
-					{"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true}
+                   [{"name": "testblock1", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 10, "log_deadband": 0},
+                    {"name": "testblock2", "local": true, "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": null, "visible": true, "log_periodic": true, "log_rate": 5, "log_deadband": 0},
+                    {"name": "testblock3", "local": true, "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": null, "visible": true, "log_periodic": false, "log_rate": 0, "log_deadband": 1.0}
 				   ],
 		  "groups":
 				   [{"blocks": ["testblock1"], "name": "Group1", "subconfig": null},
@@ -448,6 +448,16 @@ Note: Used by the client(s) for "save" and "save as" for the current active conf
     If this is done in error the synoptic can be recovered from version control. For removing one synoptic only, create a list of one item.
 	
     Returns "OK" or an error message (compressed and hexed JSON).
+	
+-----------------
+Archiver Settings
+-----------------
+
+Blocks can either be set to log periodically or log on change using the JSON "log_periodic" value.
+
+When log_periodic is true the block will be scanned at the rate given in "log_rate", if the value has changed it will be logged. The "log_deadband" is ignored.
+
+When log_periodic is false the block value will be archived whenever the block changes by the deadband given in "log_deadband". The "log_rate" is ignored.
 	
 -----------------
 The File Watcher

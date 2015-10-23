@@ -98,17 +98,16 @@ class RunControlManager(object):
             blocks (OrderedDict) : The blocks for the configuration
         """
         for n, blk in blocks.iteritems():
-            if blk.save_rc_settings:
-                settings = dict()
-                if blk.rc_enabled:
-                    settings["ENABLE"] = "YES"
-                else:
-                    settings["ENABLE"] = "NO"
-                if blk.rc_lowlimit is not None:
-                    settings["LOW"] = blk.rc_lowlimit
-                if blk.rc_highlimit is not None:
-                    settings["HIGH"] = blk.rc_highlimit
-                self._set_rc_values(blk.name, settings)
+            settings = dict()
+            if blk.rc_enabled:
+                settings["ENABLE"] = 1
+            else:
+                settings["ENABLE"] = 0
+            if blk.rc_lowlimit is not None:
+                settings["LOW"] = blk.rc_lowlimit
+            if blk.rc_highlimit is not None:
+                settings["HIGH"] = blk.rc_highlimit
+            self._set_rc_values(blk.name, settings)
 
     def set_runcontrol_settings(self, data):
         """ Replaces the run-control settings with new values.

@@ -51,15 +51,14 @@ class MockRunControlManager(object):
 
     def restore_config_settings(self, blocks):
         for n, blk in blocks.iteritems():
-            if blk.save_rc_settings:
-                settings = dict()
-                if blk.rc_enabled:
-                    settings["ENABLE"] = True
-                if blk.rc_lowlimit is not None:
-                    settings["LOW"] = blk.rc_lowlimit
-                if blk.rc_highlimit is not None:
-                    settings["LOW"] = blk.rc_highlimit
-                self.set_runcontrol_settings(settings)
+            settings = dict()
+            if blk.rc_enabled:
+                settings["ENABLE"] = True
+            if blk.rc_lowlimit is not None:
+                settings["LOW"] = blk.rc_lowlimit
+            if blk.rc_highlimit is not None:
+                settings["LOW"] = blk.rc_highlimit
+            self.set_runcontrol_settings(settings)
 
     def set_runcontrol_settings(self, data):
         # Data should be a dictionary of dictionaries

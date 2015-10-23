@@ -85,7 +85,7 @@ class Configuration(object):
         """
         # Only do it for blocks that are not in a sub-config
         for bn, blk in self.blocks.iteritems():
-            if blk.subconfig is None and blk.save_rc_settings:
+            if blk.subconfig is None:
                 if blk.name in rc_data.keys():
                     blk.rc_enabled = rc_data[blk.name]['ENABLE']
                     blk.rc_lowlimit = rc_data[blk.name]['LOW']

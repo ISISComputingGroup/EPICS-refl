@@ -29,7 +29,7 @@ class ArchiverManager(object):
 
         Args:
             block_prefix (string) : The block prefix
-            blocks (list) : The name of the blocks to archive
+            blocks (list) : The blocks to archive
         """
         try:
             if self._settings_path is not None:
@@ -48,10 +48,9 @@ class ArchiverManager(object):
         group = eTree.SubElement(root, 'group')
         name = eTree.SubElement(group, 'name')
         name.text = "BLOCKS"
-        for bname in blocks:
+        for block in blocks:
             # Append prefix for the archiver
-            blkname = block_prefix + bname
-            self._generate_archive_channel(group, blkname)
+            self._generate_archive_channel(group, block_prefix, block)
 
         with open(self._settings_path, 'w') as f:
             xml = minidom.parseString(eTree.tostring(root)).toprettyxml()
@@ -65,11 +64,17 @@ class ArchiverManager(object):
         else:
             print_and_log("Could not find specified archiver uploader batch file: %s" % self._uploader_path)
 
-    def _generate_archive_channel(self, group, pv, period_secs=5, monitor=True):
-        channel = eTree.SubElement(group, 'channel')
-        name = eTree.SubElement(channel, 'name')
-        name.text = pv
-        period = eTree.SubElement(channel, 'period')
-        period.text = str(datetime.timedelta(seconds=period_secs))
-        if monitor:
-            eTree.SubElement(channel, 'monitor')
+    def _generate_archive_channel(self, group, block_prefix, block):
+        # xml not produced for scans of 0 period
+        if not (block.log_periodic and block.log_rate == 0):
+            channel = eTree.SubElement(group, 'channel')
+            name = eTree.SubElement(channel, 'name')
+            name.text = block_prefix + block.name
+            period = eTree.SubElement(channel, 'period')
+            if block.log_periodic:
+                period.text = str(datetime.timedelta(seconds=block.log_rate))
+                eTree.SubElement(channel, 'scan')
+            else:
+                period.text = str(datetime.timedelta(seconds=1))
+                monitor = eTree.SubElement(channel, 'monitor')
+                monitor.text = str(block.log_deadband)

@@ -11,13 +11,17 @@ class Block(object):
             local (bool) : Whether the PV is local to the instrument
             visible (bool) : Whether the block should be shown
             subconfig (string) : The component the block belongs to
-            save_rc (bool) : Whether to save the run-control settings
+
             runcontrol (bool) : Whether run-control is enabled
             lowlimt (float) : The low limit for run-control
             highlimit (float) : The high limit for run-control
+
+            arch_periodic (bool) : Whether the block is sampled periodically in the archiver
+            arch_rate (float) : Time between archive samples (in seconds)
+            arch_deadband (float) : Deadband for the block to be archived
     """
-    def __init__(self, name, pv, local=True, visible=True, subconfig=None, save_rc=True,
-                 runcontrol=False, lowlimit=None, highlimit=None):
+    def __init__(self, name, pv, local=True, visible=True, subconfig=None, runcontrol=False, lowlimit=None,
+                 highlimit=None, log_periodic=False, log_rate=5, log_deadband=0):
         """ Constructor.
 
         Args:
@@ -26,20 +30,26 @@ class Block(object):
             local (bool) : Whether the PV is local to the instrument
             visible (bool) : Whether the block should be shown
             subconfig (string) : The component the block belongs to
-            save_rc (bool) : Whether to save the run-control settings
+
             runcontrol (bool) : Whether run-control is enabled
             lowlimt (float) : The low limit for run-control
             highlimit (float) : The high limit for run-control
+
+            arch_periodic (bool) : Whether the block is sampled periodically in the archiver
+            arch_rate (float) : Time between archive samples (in seconds)
+            arch_deadband (float) : Deadband for the block to be archived
         """
         self.name = name
         self.pv = pv
         self.local = local
         self.visible = visible
         self.subconfig = subconfig
-        self.save_rc_settings = save_rc
         self.rc_lowlimit = lowlimit
         self.rc_highlimit = highlimit
         self.rc_enabled = runcontrol
+        self.log_periodic = log_periodic
+        self.log_rate = log_rate
+        self.log_deadband = log_deadband
 
     def _get_pv(self):
         pv_name = self.pv
@@ -59,8 +69,8 @@ class Block(object):
     def __str__(self):
         data = "Name: %s, PV: %s, Local: %s, Visible: %s, Subconfig: %s" \
                % (self.name, self.pv, self.local, self.visible, self.subconfig)
-        data += ", SaveRC: %s, RCEnabled: %s, RCLow: %s, RCHigh: %s" \
-                % (self.save_rc_settings, self.rc_enabled, self.rc_lowlimit, self.rc_highlimit)
+        data += ", RCEnabled: %s, RCLow: %s, RCHigh: %s" \
+                % (self.rc_enabled, self.rc_lowlimit, self.rc_highlimit)
         return data
 
     def to_dict(self):
@@ -71,7 +81,8 @@ class Block(object):
         """
         return {"name": self.name, "pv": self._get_pv(), "local": self.local,
                 "visible": self.visible, "subconfig": self.subconfig, "runcontrol": self.rc_enabled,
-                "lowlimit": self.rc_lowlimit, "highlimit": self.rc_highlimit }
+                "lowlimit": self.rc_lowlimit, "highlimit": self.rc_highlimit,
+                "log_periodic": self.log_periodic, "log_rate": self.log_rate, "log_deadband": self.log_deadband}
 
 
 class Group(object):

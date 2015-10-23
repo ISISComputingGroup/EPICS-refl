@@ -163,17 +163,24 @@ class ConfigurationXmlConverter(object):
         visible_xml.text = str(visible)
 
         # Runcontrol
-        if block.save_rc_settings:
-            runcontrol = ElementTree.SubElement(block_xml, TAG_RUNCONTROL)
-            runcontrol.text = str(block.save_rc_settings)
-            enabled = ElementTree.SubElement(block_xml, TAG_RUNCONTROL_ENABLED)
-            enabled.text = str(block.rc_enabled)
-            if block.rc_lowlimit is not None:
-                low = ElementTree.SubElement(block_xml, TAG_RUNCONTROL_LOW)
-                low.text = str(block.rc_lowlimit)
-            if block.rc_highlimit is not None:
-                high = ElementTree.SubElement(block_xml, TAG_RUNCONTROL_HIGH)
-                high.text = str(block.rc_highlimit)
+        enabled = ElementTree.SubElement(block_xml, TAG_RUNCONTROL_ENABLED)
+        enabled.text = str(block.rc_enabled)
+        if block.rc_lowlimit is not None:
+            low = ElementTree.SubElement(block_xml, TAG_RUNCONTROL_LOW)
+            low.text = str(block.rc_lowlimit)
+        if block.rc_highlimit is not None:
+            high = ElementTree.SubElement(block_xml, TAG_RUNCONTROL_HIGH)
+            high.text = str(block.rc_highlimit)
+
+        #Logging
+        log_periodic = ElementTree.SubElement(block_xml, TAG_LOG_PERIODIC)
+        log_periodic.text = str(block.log_periodic)
+
+        log_rate = ElementTree.SubElement(block_xml, TAG_LOG_RATE)
+        log_rate.text = str(block.log_rate)
+
+        log_deadband = ElementTree.SubElement(block_xml, TAG_LOG_DEADBAND)
+        log_deadband.text = str(block.log_deadband)
 
     @staticmethod
     def _group_to_xml(root_xml, group):
@@ -245,25 +252,31 @@ class ConfigurationXmlConverter(object):
                     blocks[name.lower()].visible = False
 
                 # Runcontrol
-                save_rc = b.find("./" + TAG_RUNCONTROL)
-                if not (save_rc is None):
-                    if save_rc.text == "True":
-                        blocks[name.lower()].save_rc_settings = True
+                rc_enabled = b.find("./" + TAG_RUNCONTROL_ENABLED)
+                if rc_enabled is not None:
+                    if rc_enabled.text == "True":
+                        blocks[name.lower()].rc_enabled = True
                     else:
-                        blocks[name.lower()].save_rc_settings = False
-                if blocks[name.lower()].save_rc_settings:
-                    rc_enabled = b.find("./" + TAG_RUNCONTROL_ENABLED)
-                    if rc_enabled is not None:
-                        if rc_enabled.text == "True":
-                            blocks[name.lower()].rc_enabled = True
-                        else:
-                            blocks[name.lower()].rc_enabled = False
-                    rc_low = b.find("./" + TAG_RUNCONTROL_LOW)
-                    if rc_low is not None:
-                        blocks[name.lower()].rc_lowlimit = float(rc_low.text)
-                    rc_high = b.find("./" + TAG_RUNCONTROL_HIGH)
-                    if rc_high is not None:
-                        blocks[name.lower()].rc_highlimit = float(rc_high.text)
+                        blocks[name.lower()].rc_enabled = False
+                rc_low = b.find("./" + TAG_RUNCONTROL_LOW)
+                if rc_low is not None:
+                    blocks[name.lower()].rc_lowlimit = float(rc_low.text)
+                rc_high = b.find("./" + TAG_RUNCONTROL_HIGH)
+                if rc_high is not None:
+                    blocks[name.lower()].rc_highlimit = float(rc_high.text)
+
+                # Logging
+                log_periodic = b.find("./" + TAG_LOG_PERIODIC)
+                if not (log_periodic is None):
+                    blocks[name.lower()].log_periodic = (log_periodic.text == "True")
+
+                log_rate = b.find("./" + TAG_LOG_RATE)
+                if not (log_rate is None):
+                    blocks[name.lower()].log_rate = float(log_rate.text)
+
+                log_deadband = b.find("./" + TAG_LOG_DEADBAND)
+                if not (log_deadband is None):
+                    blocks[name.lower()].log_deadband = float(log_deadband.text)
 
     @staticmethod
     def groups_from_xml_string(xml, groups, blocks):
