@@ -100,9 +100,9 @@ class RunControlManager(object):
         for n, blk in blocks.iteritems():
             settings = dict()
             if blk.rc_enabled:
-                settings["ENABLE"] = 1
+                settings["ENABLE"] = True
             else:
-                settings["ENABLE"] = 0
+                settings["ENABLE"] = False
             if blk.rc_lowlimit is not None:
                 settings["LOW"] = blk.rc_lowlimit
             if blk.rc_highlimit is not None:
