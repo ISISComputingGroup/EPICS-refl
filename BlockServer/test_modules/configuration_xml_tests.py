@@ -20,8 +20,6 @@ BLOCKS_XML = u"""
         <local>True</local>
         <visible>True</visible>
         <rc_enabled>False</rc_enabled>
-        <rc_lowlimit>0.0</rc_lowlimit>
-        <rc_highlimit>0.0</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -32,8 +30,6 @@ BLOCKS_XML = u"""
         <local>True</local>
         <visible>True</visible>
         <rc_enabled>False</rc_enabled>
-        <rc_lowlimit>0.0</rc_lowlimit>
-        <rc_highlimit>0.0</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -44,8 +40,6 @@ BLOCKS_XML = u"""
         <local>True</local>
         <visible>True</visible>
         <rc_enabled>False</rc_enabled>
-        <rc_lowlimit>0.0</rc_lowlimit>
-        <rc_highlimit>0.0</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -56,8 +50,6 @@ BLOCKS_XML = u"""
         <local>True</local>
         <visible>True</visible>
         <rc_enabled>False</rc_enabled>
-        <rc_lowlimit>0.0</rc_lowlimit>
-        <rc_highlimit>0.0</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
