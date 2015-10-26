@@ -19,8 +19,9 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV1</read_pv>
         <local>True</local>
         <visible>True</visible>
-        <rc_save>True</rc_save>
         <rc_enabled>False</rc_enabled>
+        <rc_lowlimit>0.0</rc_lowlimit>
+        <rc_highlimit>0.0</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -30,8 +31,9 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV2</read_pv>
         <local>True</local>
         <visible>True</visible>
-        <rc_save>True</rc_save>
         <rc_enabled>False</rc_enabled>
+        <rc_lowlimit>0.0</rc_lowlimit>
+        <rc_highlimit>0.0</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -41,8 +43,9 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV3</read_pv>
         <local>True</local>
         <visible>True</visible>
-        <rc_save>True</rc_save>
         <rc_enabled>False</rc_enabled>
+        <rc_lowlimit>0.0</rc_lowlimit>
+        <rc_highlimit>0.0</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -52,8 +55,9 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV4</read_pv>
         <local>True</local>
         <visible>True</visible>
-        <rc_save>True</rc_save>
         <rc_enabled>False</rc_enabled>
+        <rc_lowlimit>0.0</rc_lowlimit>
+        <rc_highlimit>0.0</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
