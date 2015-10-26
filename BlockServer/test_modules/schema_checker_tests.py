@@ -38,6 +38,7 @@ TEST_CONFIG = {"iocs":
                     "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": None, "visible": True},
                     {"name": "testblock3", "local": True,
                     "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": None, "visible": True,
+                        "rc_enabled": False, "rc_lowlimit": 0, "rc_highlimit": 0,
                         "log_periodic": False, "log_rate": 5, "log_deadband": 0}
                    ],
           "components":
