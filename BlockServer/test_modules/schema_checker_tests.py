@@ -9,7 +9,7 @@ from BlockServer.core.constants import SCHEMA_FOR, FILENAME_IOCS, CONFIG_DIRECTO
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
-from BlockServer.mocks.mock_runcontrol import MockRunControlManager
+from BlockServer.mocks.mock_runcontrol_manager import MockRunControlManager
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 

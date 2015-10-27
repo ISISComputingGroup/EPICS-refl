@@ -10,7 +10,7 @@ from BlockServer.core.config_holder import ConfigHolder
 class ActiveConfigHolder(ConfigHolder):
     """Class to serve up the active configuration.
     """
-    def __init__(self, config_folder, macros, archive_manager, vc_manager, ioc_control, run_control):
+    def __init__(self, config_folder, macros, archive_manager, vc_manager, ioc_control, run_control=None):
         """ Constructor.
 
         Args:
@@ -26,8 +26,11 @@ class ActiveConfigHolder(ConfigHolder):
         self._ioc_control = ioc_control
         self._db = None
         self._last_config_file = os.path.abspath(config_folder + "/last_config.txt")
-
         self._runcontrol = run_control
+        if run_control is not None:
+            self._start_runcontrol()
+
+    def _start_runcontrol(self):
         # Start runcontrol IOC
         self._runcontrol.start_ioc()
         # Need to wait for RUNCONTROL_IOC to start
@@ -100,11 +103,12 @@ class ActiveConfigHolder(ConfigHolder):
 
         Configures the run-control IOC to have PVs for the current configuration.
         """
-        self._runcontrol.update_runcontrol_blocks(super(ActiveConfigHolder, self).get_block_details())
-        self._runcontrol.restart_ioc(clear_autosave)
-        # Need to wait for RUNCONTROL_IOC to restart
-        self._runcontrol.wait_for_ioc_start()
-        self._runcontrol.restore_config_settings(super(ActiveConfigHolder, self).get_block_details())
+        if self._runcontrol is not None:
+            self._runcontrol.update_runcontrol_blocks(super(ActiveConfigHolder, self).get_block_details())
+            self._runcontrol.restart_ioc(clear_autosave)
+            # Need to wait for RUNCONTROL_IOC to restart
+            self._runcontrol.wait_for_ioc_start()
+            self._runcontrol.restore_config_settings(super(ActiveConfigHolder, self).get_block_details())
 
     def get_out_of_range_pvs(self):
         """ Returns the PVs that are out of range.
@@ -112,7 +116,10 @@ class ActiveConfigHolder(ConfigHolder):
         Returns:
             list : A list of PVs that are out of range
         """
-        return self._runcontrol.get_out_of_range_pvs()
+        if self._runcontrol is not None:
+            return self._runcontrol.get_out_of_range_pvs()
+        else:
+            return list()
 
     def get_runcontrol_settings(self):
         """ Returns the current run-control settings
@@ -120,15 +127,19 @@ class ActiveConfigHolder(ConfigHolder):
         Returns:
             dict : The current run-control settings
         """
-        return self._runcontrol.get_current_settings(super(ActiveConfigHolder, self).get_block_details())
+        if self._runcontrol is not None:
+            return self._runcontrol.get_current_settings(super(ActiveConfigHolder, self).get_block_details())
+        else:
+            return dict()
 
     def set_runcontrol_settings(self, data):
-        """ Replaces the runc-control settings with new values.
+        """ Replaces the run-control settings with new values.
 
         Args:
             data (dict) : The new run-control settings to set
         """
-        self._runcontrol.set_runcontrol_settings(data)
+        if self._runcontrol is not None:
+            self._runcontrol.set_runcontrol_settings(data)
 
     def iocs_changed(self):
         """Checks to see if the IOCs have changed on saving."
