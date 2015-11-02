@@ -217,6 +217,9 @@ class BlockServer(Driver):
         except NotUnderVersionControl as err:
             print_and_log("Warning: Configurations not under version control", "INFO")
             self._vc = MockVersionControl()
+        except Exception as err:
+            print_and_log("Version control failed: " + str(err), "INFO")
+            self._vc = MockVersionControl()
 
         # Import data about all configs
         try:
