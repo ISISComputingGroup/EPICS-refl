@@ -73,11 +73,12 @@ EVALUATION ORDER DENY, ALLOW
             pv = pv.rstrip(".VAL")
         if pv.endswith(":SP"):
             # The block points at a setpoint
-            lines.append("## The block points at a :SP, so it needs an optional group as genie_python will append an additional :SP\n")
+            lines.append("## The block points at a :SP, so it needs an optional group as genie_python will append an additional :SP, but ignore :RC:\n")
             if local:
                 # Pattern match is for picking up any extras like :RBV or .EGU
                 lines.append('%s%s%s\(:SP\)?\([.:].*\)    ALIAS    %s%s\\2\n' % (self._pv_prefix, self._block_prefix,
                                                                                  blockname, self._pv_prefix, pv))
+                lines.append('%s%s%s\(:SP\)?:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
                 lines.append('%s%s%s\(:SP\)?    ALIAS    %s%s\n' %
                              (self._pv_prefix, self._block_prefix, blockname, self._pv_prefix, pv))
             else:
@@ -85,14 +86,16 @@ EVALUATION ORDER DENY, ALLOW
                 # Pattern match is for picking up any extras like :RBV or .EGU
                 lines.append('%s%s%s\(:SP\)?\([.:].*\)    ALIAS    %s\\2\n' % (self._pv_prefix, self._block_prefix,
                                                                                blockname, pv))
+                lines.append('%s%s%s\(:SP\)?:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
                 lines.append('%s%s%s\(:SP\)?    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
         elif pv.endswith(".RBV"):
             # The block points at a readback value (most likely for a motor)
-            lines.append("## The block points at a .RBV, so it needs entries for both reading the RBV and for the rest\n")
+            lines.append("## The block points at a .RBV, so it needs entries for both reading the RBV and for the rest, but ignore :RC:\n")
             if local:
                 # Pattern match is for picking up any extras like :RBV or .EGU
                 lines.append('%s%s%s\([.:].*\)    ALIAS    %s%s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
                                                                          self._pv_prefix, pv.rstrip(".RBV")))
+                lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
                 lines.append('%s%s%s[.]VAL    ALIAS    %s%s\n' % (self._pv_prefix, self._block_prefix, blockname,
                                                             self._pv_prefix, pv))
                 lines.append('%s%s%s    ALIAS    %s%s\n' % (self._pv_prefix, self._block_prefix, blockname,
@@ -102,15 +105,17 @@ EVALUATION ORDER DENY, ALLOW
                 # Pattern match is for picking up any extras like :RBV or .EGU
                 lines.append('%s%s%s\([.:].*\)    ALIAS    %s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
                                                                        pv.rstrip(".RBV")))
+                lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
                 lines.append('%s%s%s[.]VAL    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
                 lines.append('%s%s%s    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
         else:
             # Standard case
-            lines.append("## Standard block with entries for matching :SP and :SP:RBV as well as .EGU\n")
+            lines.append("## Standard block with entries for matching :SP and :SP:RBV as well as .EGU, but ignore :RC:\n")
             if local:
                 # Pattern match is for picking up any any SP or SP:RBV
                 lines.append('%s%s%s\([.:].*\)    ALIAS    %s%s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
                                                                          self._pv_prefix, pv))
+                lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
                 lines.append('%s%s%s    ALIAS    %s%s\n' % (self._pv_prefix, self._block_prefix, blockname,
                                                             self._pv_prefix, pv))
             else:
@@ -118,6 +123,7 @@ EVALUATION ORDER DENY, ALLOW
                 # Pattern match is for picking up any any SP or SP:RBV
                 lines.append('%s%s%s\([.:].*\)    ALIAS    %s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
                                                                        pv))
+                lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
                 lines.append('%s%s%s    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
         return lines
 
