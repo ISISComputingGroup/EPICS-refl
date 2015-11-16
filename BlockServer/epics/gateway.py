@@ -46,10 +46,9 @@ class Gateway(object):
         # Generate blocks.pvlist for gateway
         f = open(self._pvlist_file, 'w')
         header = """\
-## Make ALLOW rules override DENY rules
-EVALUATION ORDER DENY, ALLOW
-## serve nothing by default, this is to avoid gateway loops
-.*												DENY
+## 
+EVALUATION ORDER ALLOW, DENY
+
 ## serve blockserver internal variables, including Flag variables needed by blockserver process to restart gateway
 %sCS:GATEWAY:BLOCKSERVER:.*    				    ALLOW	ANYBODY	    1
 ## allow anybody to generate gateway reports 
