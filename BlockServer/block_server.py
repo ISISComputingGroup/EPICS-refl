@@ -15,7 +15,8 @@ from BlockServer.epics.gateway import Gateway
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.channel_access_server import CAServer
-from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, convert_to_json, convert_from_json
+from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
+    convert_to_json, convert_from_json
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.file_watcher_manager import ConfigFileWatcherManager
@@ -27,7 +28,7 @@ from vc_exceptions import NotUnderVersionControl
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.ioc_control import IocControl
 from BlockServer.core.database_server_client import DatabaseServerClient
-from BlockServer.core.runcontrol import RunControlManager
+from BlockServer.core.runcontrol_manager import RunControlManager
 from BlockServer.epics.archiver_manager import ArchiverManager
 
 
@@ -216,6 +217,9 @@ class BlockServer(Driver):
         except NotUnderVersionControl as err:
             print_and_log("Warning: Configurations not under version control", "INFO")
             self._vc = MockVersionControl()
+        except Exception as err:
+            print_and_log("Version control failed: " + str(err), "INFO")
+            self._vc = MockVersionControl()
 
         # Import data about all configs
         try:
@@ -240,15 +244,19 @@ class BlockServer(Driver):
         write_thread.start()
 
         with self.write_lock:
-            self.write_queue.append((self.initialise_configserver, (), "INITIALISING"))
+            self.write_queue.append((self.initialise_configserver, (FACILITY,), "INITIALISING"))
 
-    def initialise_configserver(self):
+    def initialise_configserver(self, facility):
         """Initialises the ActiveConfigHolder.
         """
         # This is in a separate method so it can be sent to the thread queue
         arch = ArchiverManager(ARCHIVE_UPLOADER, ARCHIVE_SETTINGS)
-        rcm = RunControlManager(MACROS["$(MYPVPREFIX)"], MACROS["$(ICPCONFIGROOT)"], MACROS["$(ICPVARDIR)"],
-                                self._ioc_control)
+
+        if facility == "ISIS":
+            rcm = RunControlManager(MACROS["$(MYPVPREFIX)"], MACROS["$(ICPCONFIGROOT)"], MACROS["$(ICPVARDIR)"],
+                                    self._ioc_control)
+        else:
+            rcm = None
         self._active_configserver = ActiveConfigHolder(CONFIG_DIR, MACROS, arch, self._vc, self._ioc_control, rcm)
 
         try:
@@ -691,8 +699,16 @@ if __name__ == '__main__':
     parser.add_argument('-as', '--archive_settings', nargs=1,
                         default=["%EPICS_KIT_ROOT%\\CSS\\master\\ArchiveEngine\\block_config.xml"],
                         help='The XML file containing the new PV Archiver log settings')
+    parser.add_argument('-f', '--facility', nargs=1, type=str, default=['ISIS'],
+                        help='Which facility is this being run for (default=ISIS)')
 
     args = parser.parse_args()
+
+    FACILITY = args.facility[0]
+    if FACILITY == "ISIS":
+        from server_common.loggers.isis_logger import IsisLogger
+        set_logger(IsisLogger())
+    print_and_log("FACILITY = %s" % FACILITY)
 
     GATEWAY_PREFIX = args.gateway_prefix[0]
     if not GATEWAY_PREFIX.endswith(':'):

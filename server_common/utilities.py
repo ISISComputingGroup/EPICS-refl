@@ -1,12 +1,35 @@
 import zlib
-import datetime
-import socket
 import re
 import json
 from xml.etree import ElementTree
 
-IOCLOG_HOST = "127.0.0.1"
-IOCLOG_PORT = 7004
+from loggers.logger import Logger
+
+
+# Default to base class - does not actually log anything
+LOGGER = Logger()
+
+
+def set_logger(logger):
+    """Sets the logger used by the print_and_log function.
+
+    Args:
+        logger (Logger) : The logger to use. Must inherit from Logger.
+    """
+    global LOGGER
+    LOGGER = logger
+
+
+def print_and_log(message, severity="INFO", src="BLOCKSVR"):
+    """Prints the specified message to the console and writes it to the log.
+
+    Args:
+        severity (string, optional) : Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
+                                    Default severity is INFO.
+        src (string, optional) : Gives the source of the message. Default source is BLOCKSVR.
+    """
+    print "%s: %s" % (severity, message)
+    LOGGER.write_to_log(message, severity, src)
 
 
 def compress_and_hex(value):
@@ -75,42 +98,6 @@ def parse_boolean(string):
         return False
     else:
         raise ValueError(str(string) + ': Attribute must be "true" or "false"')
-
-
-def write_to_ioc_log(message, severity="INFO", src="BLOCKSVR"):
-    """Writes a message to the IOC log. It is preferable to use print_and_log for easier debugging.
-
-    Args:
-        severity (string, optional) : Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
-                                    Default severity is INFO
-        src (string, optional) : Gives the source of the message. Default source is BLOCKSVR
-    """
-    if severity not in ['INFO','MINOR','MAJOR','FATAL'] :
-        print "write_to_ioc_log: invalid severity ", severity
-        return
-    msg_time = datetime.datetime.utcnow()
-    msg_time_str = msg_time.isoformat()
-    if msg_time.utcoffset() is None:
-        msg_time_str += "Z"
-
-    xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-    xml += "<message>"
-    xml += "<clientName>%s</clientName>" % src
-    xml += "<severity>%s</severity>" % severity
-    xml += "<contents><![CDATA[%s]]></contents>" % message
-    xml += "<type>ioclog</type>"
-    xml += "<eventTime>%s</eventTime>" % msg_time_str
-    xml += "</message>\n"
-
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((IOCLOG_HOST, IOCLOG_PORT))
-        sock.sendall(xml)
-    except Exception as err:
-        print "Could not send message to IOC log: %s" % err
-    finally:
-        if sock is not None:
-            sock.close()
 
 
 def value_list_to_xml(list, grp, group_tag, item_tag):
@@ -187,16 +174,4 @@ def parse_xml_removing_namespace(file_path):
         if ':' in el.tag:
             el.tag = el.tag.split('}', 1)[1]
     return it.root
-
-
-def print_and_log(message, severity="INFO", src="BLOCKSVR"):
-    """Prints the specified message to the console and writes it to the IOC log.
-
-    Args:
-        severity (string, optional) : Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
-                                    Default severity is INFO.
-        src (string, optional) : Gives the source of the message. Default source is BLOCKSVR.
-    """
-    print "%s: %s" % (severity, message)
-    write_to_ioc_log(message, severity, src)
 
