@@ -22,7 +22,7 @@ def generate_fake_db(iocdb):
     testfile = open(testpath, 'w')
     for line in schemafile:
         if not line.isspace():
-            if line[:3] == "-- " or line[0] == "#":
+            if line[:3] == "-- " or line[0] == "#" or 'GRANT' in line or 'FLUSH' in line:
                 pass
             else:
                 testfile.write(line.replace('iocdb',iocdb))
