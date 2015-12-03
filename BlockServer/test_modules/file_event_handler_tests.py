@@ -11,9 +11,9 @@ import BlockServer.core.constants as const
 from BlockServer.mocks.mock_version_control import MockVersionControl
 
 
-TEST_DIRECTORY = os.path.abspath(".\\test_configs")
+TEST_DIRECTORY = os.path.abspath("test_configs")
 CONFIG_DIR = TEST_DIRECTORY + const.CONFIG_DIRECTORY
-SCHEMA_DIR = os.path.abspath("..\\..\\..\\..\\schema\\configurations")
+SCHEMA_DIR = os.path.abspath(os.path.join("..","..","..","..","schema","configurations"))
 
 MACROS = {
     "$(MYPVPREFIX)": "",
@@ -31,18 +31,18 @@ class TestFileEventHandler(unittest.TestCase):
         self.eh = ConfigFileEventHandler(TEST_DIRECTORY, SCHEMA_DIR, RLock(), self.config_list, False)
 
     def tearDown(self):
-        if os.path.isdir(TEST_DIRECTORY + '\\'):
-            shutil.rmtree(os.path.abspath(TEST_DIRECTORY + '\\'))
+        if os.path.isdir(TEST_DIRECTORY + os.sep):
+            shutil.rmtree(os.path.abspath(TEST_DIRECTORY + os.sep))
 
     def test_get_config_name_valid_structure(self):
         config_folder = 'TEST_CONFIG'
-        name = self.eh._get_config_name(CONFIG_DIR + config_folder + '\\TEST_FILE.xml')
+        name = self.eh._get_config_name(os.path.join(CONFIG_DIR, config_folder, 'TEST_FILE.xml'))
 
         self.assertEqual(name, config_folder)
 
     def test_get_config_name_valid_nested_structure(self):
         config_folder = 'TEST_CONFIG'
-        name = self.eh._get_config_name(CONFIG_DIR + config_folder + '\\ANOTHER_FOLDER\\TEST_FILE.xml')
+        name = self.eh._get_config_name(os.path.join(CONFIG_DIR, config_folder, 'ANOTHER_FOLDER','TEST_FILE.xml'))
 
         self.assertEqual(name, config_folder)
 

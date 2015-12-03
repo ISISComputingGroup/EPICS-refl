@@ -27,7 +27,7 @@ class SynopticFileEventHandler(FileSystemEventHandler):
             schema_folder (string) : The location of the schema
             synoptic_list_manager (SynopticListManager) : The SynopticListManager
         """
-        self._schema_filepath = schema_folder + "\\" + SYNOPTIC_SCHEMA
+        self._schema_filepath = os.path.join(schema_folder, SYNOPTIC_SCHEMA)
         self._schema_lock = schema_lock
         self._root_path = root_path
         self._synoptic_list = synoptic_list_manager

@@ -1,3 +1,4 @@
+import os
 import string
 
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
@@ -100,7 +101,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             rel_path = string.replace(path, self._root_path + CONFIG_DIRECTORY, '')
         else:
             rel_path = string.replace(path, self._root_path + COMPONENT_DIRECTORY, '')
-        folders = string.split(rel_path, '\\')
+        folders = string.split(rel_path, os.sep)
         return folders
 
     def _check_file_at_root(self, path):

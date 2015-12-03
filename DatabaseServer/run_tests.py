@@ -13,7 +13,7 @@ from test_modules.mysql_wrapper_tests import TestMySQLWrapperSequence
 from test_modules.options_holder_tests import TestOptionsHolderSequence
 from test_modules.database_server_test_mysql import TestDatabaseServer
 
-DEFAULT_DIRECTORY = '..\\..\\..\\..\\test-reports'
+DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 
 if __name__ == '__main__':
     # get output directory from command line arguments

@@ -27,7 +27,7 @@ class ConfigurationFileManager(object):
             macros (dict) : The BlockServer macros
         """
         configuration = Configuration(macros)
-        config_folder = os.path.abspath(root_path) + "\\" + config_name
+        config_folder = os.path.abspath(os.path.join(root_path, config_name))
         path = os.path.abspath(config_folder)
         if not os.path.isdir(path):
             raise IOError("Configuration could not be found: " + config_name)
@@ -89,7 +89,7 @@ class ConfigurationFileManager(object):
             root_path (string) : The root folder where configuration are stored
             config_name (string) : The configuration name to save under
         """
-        config_folder = os.path.abspath(root_path) + "\\" + config_name
+        config_folder = os.path.abspath(os.path.join(root_path, config_name))
         path = os.path.abspath(config_folder)
         if not os.path.isdir(path):
             # Create the directory
@@ -135,7 +135,7 @@ class ConfigurationFileManager(object):
         Raises:
             (Exception) : raises an Exception if the component does not exist
         """
-        if not os.path.isdir(root_path + '\\' + name):
+        if not os.path.isdir(os.path.join(root_path, name)):
             raise Exception("Subconfig does not exist")
 
     @staticmethod

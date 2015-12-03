@@ -244,7 +244,7 @@ class DatabaseServer(Driver):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-bs', '--blockserver_prefix', nargs=1, type=str, default=['%MYPVPREFIX%CS:BLOCKSERVER:'],
+    parser.add_argument('-bs', '--blockserver_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"]+'CS:BLOCKSERVER:'],
                         help='The prefix for PVs served by the blockserver(default=%MYPVPREFIX%CS:BLOCKSERVER:)')
 
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
