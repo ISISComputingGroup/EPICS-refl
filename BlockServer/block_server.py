@@ -228,7 +228,7 @@ class BlockServer(Driver):
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
         # Import all the synoptic data and create PVs
-        self._syn = SynopticManager(self, CONFIG_DIR + "\\" + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR, self._vc)
+        self._syn = SynopticManager(self, os.path.join(CONFIG_DIR, SYNOPTIC_DIRECTORY), ca_server, SCHEMA_DIR, self._vc)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list, self._syn)
@@ -689,15 +689,15 @@ if __name__ == '__main__':
                         help='The directory from which to load the configuration schema (default=current directory)')
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration options(default=current directory)')
-    parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=['%MYPVPREFIX%CS:GATEWAY:BLOCKSERVER:'],
-                        help='The prefix for the blocks gateway (default=%MYPVPREFIX%CS:GATEWAY:BLOCKSERVER:)')
+    parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:BLOCKSERVER:'],
+                        help='The prefix for the blocks gateway (default=MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:BLOCKSERVER:)')
     parser.add_argument('-pv', '--pvlist_name', nargs=1, type=str, default=['gwblock.pvlist'],
                         help='The filename for the pvlist file used by the blocks gateway (default=gwblock.pvlist)')
     parser.add_argument('-au', '--archive_uploader', nargs=1,
-                        default=["%EPICS_KIT_ROOT%\\CSS\\master\\ArchiveEngine\\set_block_config.bat"],
+                        default=[os.path.join(MACROS["$(EPICS_KIT_ROOT)"],"CSS","master","ArchiveEngine","set_block_config.bat")],
                         help='The batch file used to upload settings to the PV Archiver')
     parser.add_argument('-as', '--archive_settings', nargs=1,
-                        default=["%EPICS_KIT_ROOT%\\CSS\\master\\ArchiveEngine\\block_config.xml"],
+                        default=[os.path.join(MACROS["$(EPICS_KIT_ROOT)"],"CSS","master","ArchiveEngine","block_config.xml")],
                         help='The XML file containing the new PV Archiver log settings')
     parser.add_argument('-f', '--facility', nargs=1, type=str, default=['ISIS'],
                         help='Which facility is this being run for (default=ISIS)')

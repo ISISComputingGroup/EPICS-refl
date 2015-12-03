@@ -472,7 +472,7 @@ class ConfigHolder(object):
         else:
             path = self._config_path
 
-        self._vc.add(path + "\\" + name)
+        self._vc.add(os.path.join(path, name))
         self._vc.commit("%s modified by client" % name)
 
     def _set_as_subconfig(self, value):

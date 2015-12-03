@@ -41,7 +41,7 @@ class SynopticManager(object):
             try:
                 with open(os.path.join(self._directory, f), 'r') as synfile:
                     data = synfile.read()
-                    ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder + "\\" + SYNOPTIC_SCHEMA,
+                    ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
                                                                              data)
                 # Get the synoptic name
                 self._create_pv(data)
@@ -138,7 +138,7 @@ class SynopticManager(object):
         """
         try:
             # Check against schema
-            ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_folder + "\\" + SYNOPTIC_SCHEMA,
+            ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
                                                                      xml_data)
             # Update PVs
             self._create_pv(xml_data)
@@ -168,7 +168,7 @@ class SynopticManager(object):
 
     def _add_to_version_control(self, synoptic_name, commit_message=None):
         # Add to version control
-        self._vc.add(self._directory + "\\" + synoptic_name + ".xml")
+        self._vc.add(os.path.join(self._directory, synoptic_name + ".xml"))
         if commit_message is not None:
             self._vc.commit(commit_message)
 

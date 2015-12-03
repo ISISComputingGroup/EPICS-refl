@@ -67,7 +67,7 @@ class ConfigurationSchemaChecker(object):
             config_xml_path (string) : The location of the configuration
             is_subconfig (bool) : Whether it is a component
         """
-        folder, file_name = string.rsplit(config_xml_path, '\\', 1)
+        folder, file_name = string.rsplit(config_xml_path, os.sep, 1)
         if file_name in SCHEMA_FOR:
             schema_name = string.split(file_name, '.')[0] + '.xsd'
             try:
@@ -96,7 +96,7 @@ class ConfigurationSchemaChecker(object):
             schema_filepath (string) : The location of the schema file
             synoptic_xml_data (string) : The XML for the synoptic
         """
-        folder, file_name = string.rsplit(schema_filepath, '\\', 1)
+        folder, file_name = string.rsplit(schema_filepath, os.sep, 1)
         xmlparser = ConfigurationSchemaChecker._import_schema(folder, file_name)
 
         try:

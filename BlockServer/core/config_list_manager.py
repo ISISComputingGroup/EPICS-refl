@@ -131,7 +131,7 @@ class ConfigListManager(object):
         # Must load components first for them all to be known in dependencies
         for comp_name in subconfig_list:
             try:
-                path = self._comp_path + '\\' + comp_name + '\\'
+                path = os.path.join(self._comp_path, comp_name) + os.sep
                 ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path, True)
                 config = self.load_config(comp_name, True)
                 self.update_a_config_in_list(config, True)
@@ -145,7 +145,7 @@ class ConfigListManager(object):
 
         for config_name in config_list:
             try:
-                path = self._conf_path + '\\' + config_name + '\\'
+                path = os.path.join(self._conf_path, config_name) + os.sep
                 ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path)
                 config = self.load_config(config_name)
                 self.update_a_config_in_list(config)

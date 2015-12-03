@@ -9,26 +9,26 @@ from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_block_server import MockBlockServer
 
-TEST_DIR = os.path.abspath(".\\" + SYNOPTIC_DIRECTORY)
+TEST_DIR = os.path.abspath("." + os.sep + SYNOPTIC_DIRECTORY)
 
 EXAMPLE_SYNOPTIC = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                       <instrument xmlns="http://www.isis.stfc.ac.uk//instrument">
                       <name>%s</name>
                       </instrument>"""
 
-SCHEMA_PATH = "./../../../../schema/configurations"
+SCHEMA_PATH = os.path.join(".","..","..","..","..","schema","configurations")
 
 
 class TestSynopticManagerSequence(unittest.TestCase):
     def setUp(self):
         # Make directory and fill with fake synoptics
-        if not os.path.isdir(TEST_DIR + '\\'):
+        if not os.path.isdir(TEST_DIR + os.sep):
             os.makedirs(TEST_DIR)
 
-        f1 = open(TEST_DIR + "\\synoptic1.xml", "a")
+        f1 = open(os.path.join(TEST_DIR, "synoptic1.xml"), "a")
         f1.write(EXAMPLE_SYNOPTIC % "synoptic1")
         f1.close()
-        f2 = open(TEST_DIR + "\\synoptic2.xml", "a")
+        f2 = open(os.path.join(TEST_DIR, "synoptic2.xml"), "a")
         f2.write(EXAMPLE_SYNOPTIC % "synoptic2")
         f2.close()
 
