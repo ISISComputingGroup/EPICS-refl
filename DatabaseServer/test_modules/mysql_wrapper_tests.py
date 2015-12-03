@@ -16,7 +16,7 @@ def generate_fake_db(iocdb):
     import os
     import fileinput
     #create the schema file
-    schemapath = os.path.join(os.environ['EPICS_KIT_ROOT'],'iocstartup',iocdb_mysql_schema.txt')
+    schemapath = os.path.join(os.environ['EPICS_KIT_ROOT'],'iocstartup','iocdb_mysql_schema.txt')
     testpath = os.path.join(os.environ['EPICS_KIT_ROOT'],'iocstartup','test_iocdb_mysql_schema.txt')
     schemafile = open(schemapath, 'r')
     testfile = open(testpath, 'w')
