@@ -17,6 +17,16 @@ class ConfigurationFileManager(object):
 
     Contains utilities to save and load configurations and to communicate with the version control system.
     """
+
+    @staticmethod
+    def find_ci(root_path, name):
+        """find a file with a case insensitive match"""
+        res = ''
+        for f in os.listdir(root_path):
+            if (f.lower() == name.lower()):
+                res = f
+        return res
+    
     @staticmethod
     def load_config(root_path, config_name, macros):
         """Loads the configuration from the specified folder.
@@ -27,7 +37,11 @@ class ConfigurationFileManager(object):
             macros (dict) : The BlockServer macros
         """
         configuration = Configuration(macros)
-        config_folder = os.path.abspath(os.path.join(root_path, config_name))
+        # we need to do a case insensitive file system match
+        cn = ConfigurationFileManager.find_ci(root_path, config_name)
+        if not cn:
+            raise IOError("Configuration could not be found: " + config_name)
+        config_folder = os.path.abspath(os.path.join(root_path, cn))
         path = os.path.abspath(config_folder)
         if not os.path.isdir(path):
             raise IOError("Configuration could not be found: " + config_name)
