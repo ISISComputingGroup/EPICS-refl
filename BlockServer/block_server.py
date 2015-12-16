@@ -690,7 +690,7 @@ if __name__ == '__main__':
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration options(default=current directory)')
     parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:BLOCKSERVER:'],
-                        help='The prefix for the blocks gateway (default=MACROS["$(MYPVPREFIX)"]'+'CS:GATEWAY:BLOCKSERVER:)')
+                        help='The prefix for the blocks gateway (default='+MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:BLOCKSERVER:)')
     parser.add_argument('-pv', '--pvlist_name', nargs=1, type=str, default=['gwblock.pvlist'],
                         help='The filename for the pvlist file used by the blocks gateway (default=gwblock.pvlist)')
     parser.add_argument('-au', '--archive_uploader', nargs=1,
