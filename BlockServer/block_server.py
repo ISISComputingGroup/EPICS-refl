@@ -1,7 +1,6 @@
 # Add root path for access to server_commons and path for version control module
 import os
 import sys
-from pygments.lexers.asm import CObjdumpLexer
 
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRVC"]))
