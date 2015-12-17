@@ -1,6 +1,8 @@
 # Add root path for access to server_commons and path for version control module
 import os
 import sys
+from pygments.lexers.asm import CObjdumpLexer
+
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRVC"]))
 
@@ -228,7 +230,7 @@ class BlockServer(Driver):
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
         # Import all the synoptic data and create PVs
-        self._syn = SynopticManager(self, os.path.join(CONFIG_DIR, SYNOPTIC_DIRECTORY), ca_server, SCHEMA_DIR, self._vc)
+        self._syn = SynopticManager(self, CONFIG_DIR + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR, self._vc)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list, self._syn)
