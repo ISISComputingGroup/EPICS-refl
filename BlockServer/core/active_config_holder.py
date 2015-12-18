@@ -48,7 +48,7 @@ class ActiveConfigHolder(ConfigHolder):
             super(ActiveConfigHolder, self).save_configuration(name, True)
         else:
             super(ActiveConfigHolder, self).save_configuration(name, False)
-            self.set_last_config(CONFIG_DIRECTORY + name)
+            self.set_last_config(name)
 
     def load_active(self, name):
         """ Load a configuration as the active configuration.
@@ -59,7 +59,7 @@ class ActiveConfigHolder(ConfigHolder):
         """
         conf = super(ActiveConfigHolder, self).load_configuration(name, False)
         super(ActiveConfigHolder, self).set_config(conf, False)
-        self.set_last_config(CONFIG_DIRECTORY + name)
+        self.set_last_config(name)
 
     def update_archiver(self):
         """ Update the archiver configuration.
@@ -87,15 +87,11 @@ class ActiveConfigHolder(ConfigHolder):
             return None
         with open(last, 'r') as f:
             last_config = f.readline().strip()
-        # If it somehow is a component raise an error
-        if last_config.startswith("/" + COMPONENT_DIRECTORY):
-            print_and_log("Could not load last configuration as it was a component")
-            return None
         if last_config.replace(CONFIG_DIRECTORY, "").strip() == "":
             print_and_log("No last configuration defined")
             return None
         print_and_log("Trying to load last_configuration %s" % last_config)
-        self.load_active(last_config.replace(CONFIG_DIRECTORY, ""))
+        self.load_active(last_config)
         return last_config
 
     def create_runcontrol_pvs(self, clear_autosave):
