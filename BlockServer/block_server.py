@@ -225,10 +225,10 @@ class BlockServer(Driver):
             self._vc = MockVersionControl()
 
         # Import data about all configs
-        #try:
-        self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR, self._vc)
-        #except Exception as err:
-        #    print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
+        try:
+            self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR, self._vc)
+        except Exception as err:
+            print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
         # Import all the synoptic data and create PVs
         self._syn = SynopticManager(self, os.path.join(CONFIG_DIR, SYNOPTIC_DIRECTORY), ca_server, SCHEMA_DIR, self._vc)
