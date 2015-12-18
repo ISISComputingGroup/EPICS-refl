@@ -22,8 +22,6 @@ class SynopticManager(object):
             schema_folder (string) : The filepath for the synoptic schema
             vc_manager (ConfigVersionControl) : The manager to allow version control modifications
         """
-        if not os.path.exists(synoptic_folder):
-            os.mkdir(synoptic_folder)
         self._directory = os.path.abspath(synoptic_folder)
         self._schema_folder = schema_folder
         self._cas = cas

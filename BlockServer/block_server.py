@@ -22,7 +22,7 @@ from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
-from BlockServer.core.constants import SYNOPTIC_DIRECTORY
+from BlockServer.core.constants import SYNOPTIC_DIRECTORY, COMPONENT_DIRECTORY, CONFIG_DIRECTORY
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
@@ -212,6 +212,8 @@ class BlockServer(Driver):
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
 
+        self.create_default_folders()
+
         # Connect to version control
         try:
             self._vc = ConfigVersionControl(CONFIG_DIR)
@@ -223,13 +225,13 @@ class BlockServer(Driver):
             self._vc = MockVersionControl()
 
         # Import data about all configs
-        try:
-            self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR, self._vc)
-        except Exception as err:
-            print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
+        #try:
+        self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR, self._vc)
+        #except Exception as err:
+        #    print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
         # Import all the synoptic data and create PVs
-        self._syn = SynopticManager(self, CONFIG_DIR + SYNOPTIC_DIRECTORY, ca_server, SCHEMA_DIR, self._vc)
+        self._syn = SynopticManager(self, os.path.join(CONFIG_DIR, SYNOPTIC_DIRECTORY), ca_server, SCHEMA_DIR, self._vc)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list, self._syn)
@@ -246,6 +248,15 @@ class BlockServer(Driver):
 
         with self.write_lock:
             self.write_queue.append((self.initialise_configserver, (FACILITY,), "INITIALISING"))
+
+    def create_default_folders(self):
+        # Create default folders
+        paths = [os.path.join(CONFIG_DIR, CONFIG_DIRECTORY), os.path.join(CONFIG_DIR, COMPONENT_DIRECTORY),
+                 os.path.join(CONFIG_DIR, SYNOPTIC_DIRECTORY)]
+        for p in paths:
+            if not os.path.isdir(p):
+                # Create it then
+                os.makedirs(os.path.abspath(p))
 
     def initialise_configserver(self, facility):
         """Initialises the ActiveConfigHolder.
@@ -633,6 +644,7 @@ class BlockServer(Driver):
             self.setParam("SYNOPTICS:GET_DEFAULT", compress_and_hex(synoptic))
             names = convert_to_json(self._syn.get_synoptic_list())
             self.setParam("SYNOPTICS:NAMES", compress_and_hex(names))
+            self.updatePVs()
 
     def update_bumpstrip_availability(self):
             """Updates the monitor for the configurations, so the clients can see any changes.

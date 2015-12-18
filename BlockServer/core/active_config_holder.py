@@ -88,7 +88,7 @@ class ActiveConfigHolder(ConfigHolder):
         with open(last, 'r') as f:
             last_config = f.readline().strip()
         # If it somehow is a component raise an error
-        if last_config.startswith(COMPONENT_DIRECTORY):
+        if last_config.startswith("/" + COMPONENT_DIRECTORY):
             print_and_log("Could not load last configuration as it was a component")
             return None
         if last_config.replace(CONFIG_DIRECTORY, "").strip() == "":

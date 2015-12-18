@@ -159,5 +159,5 @@ class ConfigurationFileManager(object):
         Args:
             dest_path (string) : The root folder where configurations are stored
         """
-        shutil.copytree(os.path.abspath(os.environ["MYDIRBLOCK"] + EXAMPLE_DEFAULT),
-                        dest_path + "//" + DEFAULT_COMPONENT)
+        shutil.copytree(os.path.abspath(os.path.join(os.environ["MYDIRBLOCK"], EXAMPLE_DEFAULT)),
+                        os.path.join(dest_path,DEFAULT_COMPONENT))

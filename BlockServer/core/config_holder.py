@@ -38,8 +38,8 @@ class ConfigHolder(object):
         self._macros = macros
         self._vc = vc_manager
 
-        self._config_path = os.path.abspath(config_folder + CONFIG_DIRECTORY)
-        self._component_path = os.path.abspath(config_folder + COMPONENT_DIRECTORY)
+        self._config_path = os.path.abspath(os.path.join(config_folder, CONFIG_DIRECTORY))
+        self._component_path = os.path.abspath(os.path.join(config_folder, COMPONENT_DIRECTORY))
         self._filemanager = file_manager
 
         self._cached_config = Configuration(macros)
