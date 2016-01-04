@@ -48,3 +48,4 @@ class TestFileEventHandler(unittest.TestCase):
 
     def test_get_config_name_invalid_structure(self):
         self.assertTrue(self.eh._check_file_at_root(os.path.join(CONFIG_DIR, 'TEST_FILE.xml')))
+
