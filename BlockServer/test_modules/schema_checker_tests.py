@@ -79,7 +79,6 @@ class TestSchemaChecker(unittest.TestCase):
         self.cs.save_active("TEST_SUB", as_comp=True)
         self.cs.set_config_details(TEST_CONFIG)
         self.cs.save_active("TEST_CONFIG")
-        raw_input("Hey")
 
         for xml in SCHEMA_FOR:
             self.assertTrue(ConfigurationSchemaChecker.check_config_file_matches_schema(SCHEMA_DIR,
