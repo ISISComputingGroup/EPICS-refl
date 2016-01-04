@@ -73,16 +73,17 @@ class TestSchemaChecker(unittest.TestCase):
 
         for xml in SCHEMA_FOR:
             self.assertTrue(ConfigurationSchemaChecker.check_config_file_matches_schema(SCHEMA_DIR,
-                                                                          os.path.join(CONFIG_DIR,'TEST_CONFIG',xml)))
+                                                                          os.path.join(CONFIG_DIR, 'TEST_CONFIG', xml)))
 
     def test_schema_valid_xml_full_config(self):
         self.cs.save_active("TEST_SUB", as_comp=True)
         self.cs.set_config_details(TEST_CONFIG)
         self.cs.save_active("TEST_CONFIG")
+        raw_input("Hey")
 
         for xml in SCHEMA_FOR:
             self.assertTrue(ConfigurationSchemaChecker.check_config_file_matches_schema(SCHEMA_DIR,
-                                                                          os.path.join(CONFIG_DIR,'TEST_CONFIG',xml)))
+                                                                         os.path.join(CONFIG_DIR, 'TEST_CONFIG', xml)))
 
     def test_schema_invalid_xml(self):
         os.makedirs(os.path.join(CONFIG_DIR, 'TEST_CONFIG') + os.sep)
@@ -98,8 +99,8 @@ class TestSchemaChecker(unittest.TestCase):
         with open(new_file, 'w') as f:
             f.write("This file is not part of a configuration")
 
-        self.assertRaises(NotConfigFileException, ConfigurationSchemaChecker.check_config_file_matches_schema, SCHEMA_DIR,
-                          new_file)
+        self.assertRaises(NotConfigFileException, ConfigurationSchemaChecker.check_config_file_matches_schema,
+                          SCHEMA_DIR, new_file)
 
     def test_schema_whole_directory_valid(self):
         self.cs.save_active("TEST_CONFIG")
