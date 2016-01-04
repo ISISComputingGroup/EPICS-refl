@@ -1,4 +1,5 @@
 from threading import RLock
+import os
 
 from watchdog.observers import Observer
 
@@ -21,9 +22,9 @@ class ConfigFileWatcherManager(object):
             config_list_manager (ConfigListManager) : The ConfigListManager
         """
         schema_lock = RLock()
-        self._config_dir = root_path + CONFIG_DIRECTORY
-        self._comp_dir = root_path + COMPONENT_DIRECTORY
-        self._syn_dir = root_path + SYNOPTIC_DIRECTORY
+        self._config_dir = os.path.join(root_path, CONFIG_DIRECTORY)
+        self._comp_dir = os.path.join(root_path, COMPONENT_DIRECTORY)
+        self._syn_dir = os.path.join(root_path, SYNOPTIC_DIRECTORY)
         self._observers = []
 
         # Create config watcher

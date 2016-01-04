@@ -31,9 +31,9 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         self._config_list = config_list_manager
 
         if self._is_subconfig:
-            self._watching_path = self._root_path + COMPONENT_DIRECTORY
+            self._watching_path = os.path.join(self._root_path, COMPONENT_DIRECTORY)
         else:
-            self._watching_path = self._root_path + CONFIG_DIRECTORY
+            self._watching_path = os.path.join(self._root_path, CONFIG_DIRECTORY)
 
     def on_any_event(self, event):
         """Catch-all event handler.
@@ -96,20 +96,33 @@ class ConfigFileEventHandler(FileSystemEventHandler):
 
         return ic
 
-    def _split_config_folders(self, path):
+    def _split_config_path(self, path):
+        """Splits the given path into its components after removing the root path.
+
+        Args:
+            path (string) : The path to be split
+
+        Returns:
+            list : The parts of the file path in order
+        """
         if not self._is_subconfig:
-            rel_path = string.replace(path, self._root_path + CONFIG_DIRECTORY, '')
+            rel_path = string.replace(path, os.path.join(self._root_path, CONFIG_DIRECTORY), '')
         else:
-            rel_path = string.replace(path, self._root_path + COMPONENT_DIRECTORY, '')
+            rel_path = string.replace(path, os.path.join(self._root_path, COMPONENT_DIRECTORY), '')
+
+        if rel_path.startswith(os.sep):
+            # Remove stray separator
+            rel_path = rel_path[1:]
+
         folders = string.split(rel_path, os.sep)
         return folders
 
     def _check_file_at_root(self, path):
-        folders = self._split_config_folders(path)
+        folders = self._split_config_path(path)
         if len(folders) < 2:
             return True
         else:
             return False
 
     def _get_config_name(self, path):
-        return self._split_config_folders(path)[0]
+        return self._split_config_path(path)[0]

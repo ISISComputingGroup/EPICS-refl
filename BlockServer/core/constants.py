@@ -1,4 +1,6 @@
 """Contains string constants used by the modules of the config package"""
+import os
+
 GRP_NONE = "NONE"
 
 TAG_NAME = 'name'
@@ -45,14 +47,14 @@ SIMLEVELS = ['recsim', 'devsim']
 
 IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
 
-CONFIG_DIRECTORY = "/configurations/"
-COMPONENT_DIRECTORY = "/components/"
-SYNOPTIC_DIRECTORY = "/synoptics/"
+CONFIG_DIRECTORY = "configurations"
+COMPONENT_DIRECTORY = "components"
+SYNOPTIC_DIRECTORY = "synoptics"
 
 # Name of default component/subconfiguration that is loaded with every configuration.
 # Contains essential IOCs (and blocks/groups?) e.g. DAE, INSTETC
 DEFAULT_COMPONENT = "_base"
-EXAMPLE_DEFAULT = "/BlockServer/example_base/"  # Relative to MYDIRBLOCK
+EXAMPLE_DEFAULT = os.path.join("BlockServer", "example_base")  # Relative to MYDIRBLOCK
 
 FILENAME_BLOCKS = "blocks.xml"
 FILENAME_GROUPS = "groups.xml"
