@@ -47,7 +47,7 @@ IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLO
 
 CONFIG_DIRECTORY = "configurations/"
 COMPONENT_DIRECTORY = "components/"
-SYNOPTIC_DIRECTORY = "synoptics"
+SYNOPTIC_DIRECTORY = "synoptics/"
 
 # Name of default component/subconfiguration that is loaded with every configuration.
 # Contains essential IOCs (and blocks/groups?) e.g. DAE, INSTETC
