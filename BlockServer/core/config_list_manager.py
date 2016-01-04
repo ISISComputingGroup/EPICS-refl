@@ -55,8 +55,8 @@ class ConfigListManager(object):
         self._lock = RLock()
         self._vc = vc_manager
 
-        self._conf_path = os.path.abspath(config_folder + CONFIG_DIRECTORY)
-        self._comp_path = os.path.abspath(config_folder + COMPONENT_DIRECTORY)
+        self._conf_path = os.path.abspath(os.path.join(config_folder, CONFIG_DIRECTORY))
+        self._comp_path = os.path.abspath(os.path.join(config_folder, COMPONENT_DIRECTORY))
 
         self._import_configs(schema_folder)
 

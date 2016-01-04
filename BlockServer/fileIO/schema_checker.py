@@ -46,12 +46,12 @@ class ConfigurationSchemaChecker(object):
         """
         valid = True
 
-        for root, dirs, files in os.walk(root_path + CONFIG_DIRECTORY):
+        for root, dirs, files in os.walk(os.path.join(root_path, CONFIG_DIRECTORY)):
             for f in files:
                 full_path = os.path.join(root, f)
                 valid &= ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, full_path)
 
-        for root, dirs, files in os.walk(root_path + COMPONENT_DIRECTORY):
+        for root, dirs, files in os.walk(os.path.join(root_path, COMPONENT_DIRECTORY)):
             for f in files:
                 full_path = os.path.join(root, f)
                 valid &= ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, full_path, True)

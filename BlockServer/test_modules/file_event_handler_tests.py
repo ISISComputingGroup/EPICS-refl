@@ -12,7 +12,7 @@ from BlockServer.mocks.mock_version_control import MockVersionControl
 
 
 TEST_DIRECTORY = os.path.abspath("test_configs")
-CONFIG_DIR = TEST_DIRECTORY + const.CONFIG_DIRECTORY
+CONFIG_DIR = os.path.join(TEST_DIRECTORY, const.CONFIG_DIRECTORY)
 SCHEMA_DIR = os.path.abspath(os.path.join("..","..","..","..","schema","configurations"))
 
 MACROS = {
@@ -47,4 +47,4 @@ class TestFileEventHandler(unittest.TestCase):
         self.assertEqual(name, config_folder)
 
     def test_get_config_name_invalid_structure(self):
-        self.assertTrue(self.eh._check_file_at_root(CONFIG_DIR + 'TEST_FILE.xml'))
+        self.assertTrue(self.eh._check_file_at_root(os.path.join(CONFIG_DIR,'TEST_FILE.xml')))

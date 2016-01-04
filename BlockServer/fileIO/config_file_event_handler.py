@@ -31,9 +31,9 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         self._config_list = config_list_manager
 
         if self._is_subconfig:
-            self._watching_path = self._root_path + COMPONENT_DIRECTORY
+            self._watching_path = os.path.join(self._root_path, COMPONENT_DIRECTORY)
         else:
-            self._watching_path = self._root_path + CONFIG_DIRECTORY
+            self._watching_path = os.path.join(self._root_path, CONFIG_DIRECTORY)
 
     def on_any_event(self, event):
         """Catch-all event handler.
@@ -98,9 +98,9 @@ class ConfigFileEventHandler(FileSystemEventHandler):
 
     def _split_config_folders(self, path):
         if not self._is_subconfig:
-            rel_path = string.replace(path, self._root_path + CONFIG_DIRECTORY, '')
+            rel_path = string.replace(path, os.path.join(self._root_path, CONFIG_DIRECTORY), '')
         else:
-            rel_path = string.replace(path, self._root_path + COMPONENT_DIRECTORY, '')
+            rel_path = string.replace(path, os.path.join(self._root_path, COMPONENT_DIRECTORY), '')
         folders = string.split(rel_path, os.sep)
         return folders
 
