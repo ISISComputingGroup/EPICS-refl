@@ -7,6 +7,7 @@ from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
 from BlockServer.fileIO.synoptic_file_event_handler import SynopticFileEventHandler
 from BlockServer.core.constants import CONFIG_DIRECTORY, COMPONENT_DIRECTORY, SYNOPTIC_DIRECTORY
 
+import os
 
 class ConfigFileWatcherManager(object):
     """ The ConfigFileWatcherManager class.

@@ -3,7 +3,7 @@ import string
 
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
-from BlockServer.core.constants import *
+from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY
 from server_common.utilities import print_and_log
 from schema_checker import ConfigurationSchemaChecker
 from schema_checker import ConfigurationIncompleteException, NotConfigFileException
@@ -126,3 +126,4 @@ class ConfigFileEventHandler(FileSystemEventHandler):
 
     def _get_config_name(self, path):
         return self._split_config_path(path)[0]
+
