@@ -70,6 +70,8 @@ class ActiveConfigHolder(ConfigHolder):
     def set_last_config(self, config):
         """ Save the last configuration used to file.
 
+        The last configuration is saved without any file path.
+
         Args:
             config (string) : The name of the last configuration used
         """
@@ -80,14 +82,19 @@ class ActiveConfigHolder(ConfigHolder):
     def load_last_config(self):
         """ Load the last used configuration.
 
+        The last configuration is saved without any file path.
+
         Note: should not be a component.
         """
         last = os.path.abspath(self._last_config_file)
         if not os.path.isfile(last):
             return None
         with open(last, 'r') as f:
-            last_config = f.readline().strip()
-        if last_config.replace(CONFIG_DIRECTORY, "").strip() == "":
+            last_config = f.readline().replace(CONFIG_DIRECTORY, "").strip()
+            # Remove any legacy path separators
+            last_config = last_config.replace("/", "")
+            last_config = last_config.replace("\\", "")
+        if last_config == "":
             print_and_log("No last configuration defined")
             return None
         print_and_log("Trying to load last_configuration %s" % last_config)
