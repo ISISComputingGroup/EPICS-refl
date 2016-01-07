@@ -6,6 +6,7 @@ ALLOWED_BLOCK_NAME_REGEX = r"^[a-zA-Z]\w*$"
 BLOCK_REGEX_ERROR_MESSAGE = "Block name must start with a letter and only contain letters, numbers and underscores"
 BLOCK_RULES_PV = "BLOCK_RULES"
 
+
 class BlockRules(object):
     """Class for managing exposing the rules for allowed block names"""
 
