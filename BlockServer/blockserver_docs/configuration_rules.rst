@@ -18,6 +18,7 @@ Blocks
 
 #. Blocks are uniquely named and case is ignored (i.e. Block1 is the same as BLOCK1)
 #. Block names can only include alpha-numeric chars and '_', and must start with an alpha-numeric char
+#. Blocks must not be named "lowlimit", "highlimit", "runcontrol" or "wait"
 #. Blocks do not know which group they are in
 #. Blocks can only belong to one group
 #. Blocks know which component they are in with null (None in Python) meaning they are not in a component
