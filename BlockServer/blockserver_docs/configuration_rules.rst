@@ -43,7 +43,7 @@ Components
 ----------
 
 #. Components cannot contain other components
-#. A component groups cannot contain blocks that are not in that component
+#. A component group cannot contain blocks that are not in that component
 #. When a component is loaded as part of a configuration its IOCs are started if they are not already started
 #. Components cannot be loaded on their own only as part of a configuration
 
@@ -53,4 +53,5 @@ IOCs
 
 #. If an IOC's macros or pvsets changes then restart the IOC on a configuration change
 #. It should be possible to force IOCs to restart on a configuration change even if the macros or pvsets have not changed
+#. An IOC is only included in a configuration/component if its auto-start setting is true
 
