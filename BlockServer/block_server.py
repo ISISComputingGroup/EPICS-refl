@@ -31,6 +31,7 @@ from BlockServer.core.ioc_control import IocControl
 from BlockServer.core.database_server_client import DatabaseServerClient
 from BlockServer.core.runcontrol_manager import RunControlManager
 from BlockServer.epics.archiver_manager import ArchiverManager
+from BlockServer.site_specific.default.block_rules import BlockRules
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
@@ -210,10 +211,7 @@ class BlockServer(Driver):
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
-
-        if FACILITY == "ISIS":
-            from BlockServer.isis.block_rules import BlockRules
-            self.block_rules = BlockRules(ca_server)
+        self.block_rules = BlockRules(ca_server)
 
         self.create_default_folders()
 
