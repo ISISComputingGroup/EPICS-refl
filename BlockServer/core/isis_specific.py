@@ -2,7 +2,7 @@ from server_common.utilities import compress_and_hex
 import json
 
 DISALLOWED_BLOCK_NAMES = ["lowlimit", "highlimit", "runcontrol", "wait"]
-ALLOWED_BLOCK_REGEX = r"\w+$"
+ALLOWED_BLOCK_REGEX = r"^[a-zA-Z]\w*$"
 BLOCK_RULES_PV = "BLOCK_RULES"
 
 class BlockRules(object):
