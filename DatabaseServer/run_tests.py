@@ -30,8 +30,12 @@ if __name__ == '__main__':
     database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
-    xmlrunner.XMLTestRunner(output=xml_dir).run(sqlite_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite)
+    ret_vals = list()
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(sqlite_suite))
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite))
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite))
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite))
     print "------ UNIT TESTS COMPLETE ------\n\n"
+
+    # Return failure exit code if a test failed
+    sys.exit(False in ret_vals)

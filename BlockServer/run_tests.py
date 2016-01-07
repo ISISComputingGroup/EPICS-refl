@@ -47,16 +47,19 @@ if __name__ == '__main__':
 
     print "\n\n------ BEGINNING BLOCKSERVER UNIT TESTS ------"
 
-    xmlrunner.XMLTestRunner(output=xml_dir).run(configuration_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(config_xml_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(config_json_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(active_config_holder_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(container_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(config_holder_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(inactive_config_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(file_watcher_event_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(schema_checker_event_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(synoptic_manager_suite)
-    xmlrunner.XMLTestRunner(output=xml_dir).run(ioc_control_suite)
+    ret_vals = list()
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(configuration_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(config_xml_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(config_json_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(active_config_holder_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(container_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(config_holder_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(inactive_config_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(file_watcher_event_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(schema_checker_event_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(synoptic_manager_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(ioc_control_suite).wasSuccessful())
 
     print "------ BLOCKSERVER UNIT TESTS COMPLETE ------\n\n"
+    # Return failure exit code if a test failed
+    sys.exit(False in ret_vals)
