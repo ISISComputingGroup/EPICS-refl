@@ -365,7 +365,9 @@ class BlockServer(Driver):
             elif reason == 'STOP_IOCS':
                 self._ioc_control.stop_iocs(convert_from_json(data))
             elif reason == 'RESTART_IOCS':
-                self._ioc_control.restart_iocs(convert_from_json(data))
+                with self.write_lock:
+                    self.write_queue.append((self._ioc_control.restart_iocs, (convert_from_json(data),),
+                                             "RESTART_IOCS"))
             elif reason == 'SET_RC_PARS':
                 self._active_configserver.set_runcontrol_settings(convert_from_json(data))
             elif reason == 'SET_CURR_CONFIG_DETAILS':
@@ -462,22 +464,34 @@ class BlockServer(Driver):
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
+        # iocs_to_start, iocs_to_restart are not used at the moment, but longer term they could be used
+        # for only restarting IOCs for which the setting have changed.
         non_conf_iocs = [x for x in self._get_iocs() if x not in self._active_configserver.get_ioc_names()]
         self._ioc_control.stop_iocs(non_conf_iocs)
         self._start_config_iocs()
 
     def _start_config_iocs(self):
         # Start the IOCs, if they are available and if they are flagged for autostart
+        # Note: autostart means the IOC is started when the config is loaded,
+        # restart means the IOC should automatically restart if it stops for some reason (e.g. it crashes)
         for n, ioc in self._active_configserver.get_ioc_details().iteritems():
             try:
-                # Throws if IOC does not exist
-                # If it is already running restart it, otherwise start it
-                running = self._ioc_control.get_ioc_status(n)
-                if running == "RUNNING" and ioc.restart:
-                    self._ioc_control.restart_ioc(n)
-                else:
-                    if ioc.autostart:
+                # If autostart is not set to True then the IOC is not part of the configuration
+                if ioc.autostart:
+                    # Throws if IOC does not exist
+                    running = self._ioc_control.get_ioc_status(n)
+                    if running == "RUNNING":
+                        # Restart it
+                        self._ioc_control.restart_ioc(n, reapply_auto=False)
+                    else:
+                        # Start it
                         self._ioc_control.start_ioc(n)
+
+                    # Give it time to start as IOC has to be running to be able to set restart property
+                    sleep(2)
+                    # Set the restart property
+                    print_and_log("Setting IOC %s's auto-restart to %s" % (n, ioc.restart))
+                    self._ioc_control.set_autorestart(n, ioc.restart)
             except Exception as err:
                 print_and_log("Could not (re)start IOC %s: %s" % (n, str(err)), "MAJOR")
 
@@ -619,6 +633,9 @@ class BlockServer(Driver):
 
     def update_server_status(self, status=""):
         """Updates the monitor for the server status, so the clients can see any changes.
+
+        Args:
+            status (string) : The status to set
         """
         if self._active_configserver is not None:
             d = dict()

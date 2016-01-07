@@ -56,3 +56,11 @@ class TestIocControlSequence(unittest.TestCase):
     def test_ioc_exists(self):
         ic = IocControl("", MockProcServWrapper())
         self.assertTrue(ic.ioc_exists("TESTIOC"))
+
+    def test_set_autorestart_works(self):
+        ic = IocControl("", MockProcServWrapper())
+        ic.start_ioc("TESTIOC")
+        ic.set_autorestart("TESTIOC", True)
+        self.assertEqual(ic.get_autorestart("TESTIOC"), True)
+        ic.set_autorestart("TESTIOC", False)
+        self.assertEqual(ic.get_autorestart("TESTIOC"), False)
