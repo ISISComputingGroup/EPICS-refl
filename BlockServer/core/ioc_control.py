@@ -1,3 +1,4 @@
+from time import sleep
 from BlockServer.epics.procserv_utils import ProcServWrapper
 from server_common.utilities import print_and_log
 
@@ -27,18 +28,27 @@ class IocControl(object):
         except Exception as err:
             print_and_log("Could not start IOC %s: %s" % (ioc, str(err)), "MAJOR")
 
-    def restart_ioc(self, ioc, force=False):
+    def restart_ioc(self, ioc, force=False, reapply_auto=True):
         """Restart an IOC.
+
+        Note: restarting an IOC automatically sets the IOC to auto-restart, so it is neccessary to reapply the
+        previous auto-restart setting
 
         Args:
             ioc (string) : The name of the IOC
             force (bool) : Force it to restart even if it is an IOC not to stop
+            reapply_auto (bool) : Whether to reapply the current auto-restart setting
         """
         # Check it is okay to stop it
         if not force and ioc.startswith(IOCS_NOT_TO_STOP):
             return
         try:
+            auto = self._proc.get_autorestart(self._prefix, ioc)
             self._proc.restart_ioc(self._prefix, ioc)
+            if reapply_auto:
+                # Need the IOC to restart before reapplying the auto-restart
+                sleep(2)
+                self.set_autorestart(ioc, auto)
         except Exception as err:
             print_and_log("Could not restart IOC %s: %s" % (ioc, str(err)), "MAJOR")
 
@@ -109,3 +119,38 @@ class IocControl(object):
             return True
         except:
             return False
+
+    def set_autorestart(self, ioc, enable):
+        """Used to set the auto-restart property.
+
+        Args:
+            ioc (string) : The name of the IOC
+            enable (bool) : Whether to enable auto-restart
+        """
+        try:
+            if self.get_ioc_status(ioc) == "RUNNING":
+                # Get current auto-restart status
+                curr = self._proc.get_autorestart(self._prefix, ioc)
+                if curr != enable:
+                    # If different to requested then change it
+                    self._proc.toggle_autorestart(self._prefix, ioc)
+                    return
+                print_and_log("Auto-restart for IOC %s unchanged as value has not changed" % ioc)
+            else:
+                print_and_log("Auto-restart for IOC %s unchanged as IOC is not running" % ioc)
+        except Exception as err:
+            print_and_log("Could not set auto-restart IOC %s: %s" % (ioc, str(err)), "MAJOR")
+
+    def get_autorestart(self, ioc):
+        """Gets the current auto-restart setting of the specified IOC.
+
+        Args:
+            ioc (string) : The name of the IOC
+
+        Returns:
+            bool : Whether auto-restart is enabled
+        """
+        try:
+            return self._proc.get_autorestart(self._prefix, ioc)
+        except Exception as err:
+            print_and_log("Could not get auto-restart setting for IOC %s: %s" % (ioc, str(err)), "MAJOR")

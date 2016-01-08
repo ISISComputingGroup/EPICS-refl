@@ -155,7 +155,7 @@ class ActiveConfigHolder(ConfigHolder):
         iocs_to_start = list()
         iocs_to_restart = list()
 
-        # Check to see if any macros, pvs, pvsets have changed
+        # Check to see if any macros, pvs, pvsets etc. have changed
         for n in self._config.iocs.keys():
             if n not in self._cached_config.iocs.keys():
                 # If not in previously then add it to start
@@ -179,6 +179,12 @@ class ActiveConfigHolder(ConfigHolder):
             if cmp(old_pvsets, new_pvsets) != 0:
                 if n not in iocs_to_restart:
                     iocs_to_restart.append(n)
+            # Auto-restart changed
+            if n in self._cached_config.iocs.keys() and \
+                            self._config.iocs[n].restart != self._cached_config.iocs[n].restart:
+                # If not in previously then add it to start
+                iocs_to_restart.append(n)
+                continue
 
         # Look for any new components
         for cn, cv in self._components.iteritems():

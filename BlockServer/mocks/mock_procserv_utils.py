@@ -6,6 +6,7 @@ class MockProcServWrapper(object):
         self.ps_status["simple1"] = "SHUTDOWN"
         self.ps_status["simple2"] = "SHUTDOWN"
         self.ps_status["testioc"] = "SHUTDOWN"
+        self.autorestart = False
 
     @staticmethod
     def generate_prefix(prefix, ioc):
@@ -33,3 +34,9 @@ class MockProcServWrapper(object):
             return True
         except:
             return False
+
+    def get_autorestart(self, prefix, ioc):
+        return self.autorestart
+
+    def toggle_autorestart(self, prefix, ioc):
+        self.autorestart = not self.autorestart

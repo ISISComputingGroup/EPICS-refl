@@ -217,7 +217,7 @@ class ConfigHolder(object):
         Returns:
             dict : A copy of all the IOC details
         """
-        # TODO: make sure iocs are from default are returned
+        # TODO: make sure iocs from default are returned
         iocs = copy.deepcopy(self._config.iocs)
         for cn, cv in self._components.iteritems():
             for n, v in cv.iocs.iteritems():
