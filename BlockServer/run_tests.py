@@ -22,6 +22,8 @@ from BlockServer.test_modules.schema_checker_tests import TestSchemaChecker
 from BlockServer.test_modules.synoptic_manager_tests import TestSynopticManagerSequence
 from BlockServer.test_modules.ioc_control_tests import TestIocControlSequence
 
+from BlockServer.site_specific.default.test_modules.block_rules_tests import TestBlockRulesSequence
+
 DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 
 if __name__ == '__main__':
@@ -45,6 +47,9 @@ if __name__ == '__main__':
     synoptic_manager_suite = unittest.TestLoader().loadTestsFromTestCase(TestSynopticManagerSequence)
     ioc_control_suite = unittest.TestLoader().loadTestsFromTestCase(TestIocControlSequence)
 
+    # Site specific tests
+    block_rules_suite = unittest.TestLoader().loadTestsFromTestCase(TestBlockRulesSequence)
+
     print "\n\n------ BEGINNING BLOCKSERVER UNIT TESTS ------"
 
     xmlrunner.XMLTestRunner(output=xml_dir).run(configuration_suite)
@@ -58,5 +63,8 @@ if __name__ == '__main__':
     xmlrunner.XMLTestRunner(output=xml_dir).run(schema_checker_event_suite)
     xmlrunner.XMLTestRunner(output=xml_dir).run(synoptic_manager_suite)
     xmlrunner.XMLTestRunner(output=xml_dir).run(ioc_control_suite)
+
+    # Site specific tests
+    xmlrunner.XMLTestRunner(output=xml_dir).run(block_rules_suite)
 
     print "------ BLOCKSERVER UNIT TESTS COMPLETE ------\n\n"
