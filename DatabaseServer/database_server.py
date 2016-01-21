@@ -47,6 +47,12 @@ PVDB = {
         'count': 64000,
         'value': [0],
     },
+    'PVS:INTEREST:FACILITY': {
+        # Handled by the monitor thread
+        'type': 'char',
+        'count': 64000,
+        'value': [0],
+    },
     'PVS:ACTIVE': {
         # Handled by the monitor thread
         'type': 'char',
@@ -176,6 +182,7 @@ class DatabaseServer(Driver):
                 self.setParam("PVS:ACTIVE", self.encode4return(self._get_active_pvs()))
                 self.setParam("PVS:INTEREST:HIGH", self.encode4return(self._get_interesting_pvs("HIGH")))
                 self.setParam("PVS:INTEREST:MEDIUM", self.encode4return(self._get_interesting_pvs("MEDIUM")))
+                self.setParam("PVS:INTEREST:FACILITY", self.encode4return(self._get_interesting_pvs("FACILITY")))
                 self._update_individual_interesting_pvs()
                 # Update them
                 with self.monitor_lock:
