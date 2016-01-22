@@ -1,4 +1,4 @@
-from time import sleep
+from time import sleep, time
 from BlockServer.epics.procserv_utils import ProcServWrapper
 from server_common.utilities import print_and_log
 
@@ -47,7 +47,7 @@ class IocControl(object):
             self._proc.restart_ioc(self._prefix, ioc)
             if reapply_auto:
                 # Need the IOC to restart before reapplying the auto-restart
-                sleep(2)
+                self.waitfor_running(ioc)
                 self.set_autorestart(ioc, auto)
         except Exception as err:
             print_and_log("Could not restart IOC %s: %s" % (ioc, str(err)), "MAJOR")
@@ -154,3 +154,18 @@ class IocControl(object):
             return self._proc.get_autorestart(self._prefix, ioc)
         except Exception as err:
             print_and_log("Could not get auto-restart setting for IOC %s: %s" % (ioc, str(err)), "MAJOR")
+
+    def waitfor_running(self, ioc, timeout=5):
+        """Waits for the IOC to start running.
+
+        Args:
+            ioc (string) : The name of the IOC
+            timeout(int, optional) : Maximum time to wait before returning
+        """
+        if self.ioc_exists(ioc):
+            start = time()
+            while self.get_ioc_status(ioc) != "RUNNING":
+                sleep(0.5)
+                if time() - start >= timeout:
+                    print_and_log("Gave up waiting for IOC %s to be running" % ioc, "MAJOR")
+                    return

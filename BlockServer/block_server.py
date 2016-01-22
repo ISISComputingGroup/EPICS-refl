@@ -362,7 +362,8 @@ class BlockServer(Driver):
                 self._active_configserver.clear_config()
                 self._initialise_config()
             elif reason == 'START_IOCS':
-                self._ioc_control.start_iocs(convert_from_json(data))
+                self.write_queue.append((self.start_iocs, (convert_from_json(data),),
+                                             "START_IOCS"))
             elif reason == 'STOP_IOCS':
                 self._ioc_control.stop_iocs(convert_from_json(data))
             elif reason == 'RESTART_IOCS':
@@ -710,6 +711,20 @@ class BlockServer(Driver):
         else:
             pass
             # TODO: check not a component of active, don't know what do to for this case?
+
+    def start_iocs(self, iocs):
+        # If the IOC is in the config and auto-restart is set to true then
+        # reapply the auto-restart setting after starting.
+        # This is because stopping an IOC via procServ turns auto-restart off.
+        conf_iocs = self._active_configserver.get_ioc_details()
+        for i in iocs:
+            self._ioc_control.start_ioc(i)
+            # Is IOC in config?
+            if i in conf_iocs and conf_iocs[i].restart:
+                # Give it time to start as IOC has to be running to be able to set restart property
+                print "Re-applying auto-restart setting to %s" % i
+                self._ioc_control.waitfor_running(i)
+                self._ioc_control.set_autorestart(i, True)
 
 
 if __name__ == '__main__':
