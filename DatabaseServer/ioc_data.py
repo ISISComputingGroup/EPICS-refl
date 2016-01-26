@@ -131,8 +131,8 @@ class IOCData(object):
         """Queries the database for PVs based on their interest level and their IOC.
 
         Args:
-            level (string, optional) : The interest level to search for, either High or Medium. Default to all interest
-                                    levels
+            level (string, optional) : The interest level to search for, either High, Medium or Facility. Default to
+                                    all interest levels
             ioc (string, optional) : The IOC to search. Default is all IOCs.
 
         Returns:
@@ -152,6 +152,8 @@ class IOCData(object):
                 sqlquery += " WHERE (infoname='INTEREST' AND value='HIGH' {0})".format(where_ioc)
             elif level.lower().startswith('m'):
                 sqlquery += " WHERE (infoname='INTEREST' AND value='MEDIUM' {0})".format(where_ioc)
+            elif level.lower().startswith('f'):
+                sqlquery += " WHERE (infoname='INTEREST' AND value='FACILITY' {0})".format(where_ioc)
             else:
                 # Try to get all pvs!
                 pass

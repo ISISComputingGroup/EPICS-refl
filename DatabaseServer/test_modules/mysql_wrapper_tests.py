@@ -6,6 +6,7 @@ from mocks.mock_procserv_utils import MockProcServWrapper
 TEST_DB = 'test_iocdb'
 HIGH_PV_NAMES = list()
 MEDIUM_PV_NAMES = list()
+FACILITY_PV_NAMES = ["AC:EPB1:BEAM:CURR"]
 BL_PVS = ["PARS:BL:FOEMIRROR", "PARS:BL:A1", "PARS:BL:CHOPEN:ANG"]
 SAMPLE_PVS = ["PARS:SAMPLE:AOI", "PARS:SAMPLE:GEOMETRY", "PARS:SAMPLE:WIDTH"]
 
@@ -72,6 +73,11 @@ def generate_fake_db(iocdb):
         sql.append("""INSERT INTO `%s`.`pvs` (`pvname`, `record_type`, `record_desc`, `iocname`) VALUES ('%s','%s','%s','%s')""" % (iocdb, pv, 'ai', 'Fake pv for testing', 'INSTETC'))
         # Add interesting PVs
         sql.append("""INSERT INTO `%s`.`pvinfo` (`pvname`, `infoname`, `value`) VALUES ('%s','%s','%s')""" % (iocdb, pv, 'INTEREST', 'MEDIUM'))
+    pvnames = list(FACILITY_PV_NAMES)
+    for pv in pvnames:
+        sql.append("""INSERT INTO `%s`.`pvs` (`pvname`, `record_type`, `record_desc`, `iocname`) VALUES ('%s','%s','%s','%s')""" % (iocdb, pv, 'ai', 'Fake pv for testing', 'INSTETC'))
+        # Add interesting PVs
+        sql.append("""INSERT INTO `%s`.`pvinfo` (`pvname`, `infoname`, `value`) VALUES ('%s','%s','%s')""" % (iocdb, pv, 'INTEREST', 'FACILITY'))
     for line in sql:
         cursor.execute(line)
     cnx.commit()
@@ -118,7 +124,7 @@ class TestMySQLWrapperSequence(unittest.TestCase):
         # Get all PVs
         pvs = self.wrapper.get_interesting_pvs()
         for pv in pvs:
-            self.assertTrue(pv[0] in MEDIUM_PV_NAMES or pv[0] in HIGH_PV_NAMES)
+            self.assertTrue(pv[0] in MEDIUM_PV_NAMES or pv[0] in HIGH_PV_NAMES or pv[0] in FACILITY_PV_NAMES)
 
     def test_get_interesting_pvs_high(self):
         # Get all PVs
@@ -131,6 +137,12 @@ class TestMySQLWrapperSequence(unittest.TestCase):
         pvs = self.wrapper.get_interesting_pvs("MEDIUM")
         for pv in pvs:
             self.assertTrue(pv[0] in MEDIUM_PV_NAMES)
+
+    def test_get_interesting_pvs_facility(self):
+        # Get all PVs
+        pvs = self.wrapper.get_interesting_pvs("FACILITY")
+        for pv in pvs:
+            self.assertTrue(pv[0] in FACILITY_PV_NAMES)
 
     def test_get_active_pvs_high(self):
         # Get all Active PVs
