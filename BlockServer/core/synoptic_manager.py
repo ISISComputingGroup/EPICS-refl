@@ -75,11 +75,16 @@ class SynopticManager(object):
             list : Alphabetical list of synoptics files on the server, along with their associated pvs
         """
         syn_list = list()
+        default_is_none_synoptic = True
         for k, v in self._synoptic_pvs.iteritems():
-            syn_list.append({"name": k, "pv": v})
+            if "<name>" + k + "</name>" in self._default_syn_xml:
+                syn_list.append({"name": k + " (recommended)", "pv": v, "is_default": True})
+                default_is_none_synoptic = False
+            else:
+                syn_list.append({"name": k, "pv": v, "is_default": False})
         ans = sorted(syn_list, key=lambda x: x['name'].lower())
         # Insert the "blank" synoptic
-        ans.insert(0, {"pv": "__BLANK__", "name": "-- NONE --"})
+        ans.insert(0, {"pv": "__BLANK__", "name": "-- NONE --", "is_default": default_is_none_synoptic})
         return ans
 
     def _get_synoptic_filenames(self):
