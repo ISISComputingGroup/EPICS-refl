@@ -463,6 +463,8 @@ class BlockServer(Driver):
         self.update_get_details_monitors()
         self._active_configserver.update_archiver()
         self._active_configserver.create_runcontrol_pvs(clear_runcontrol)
+        # Restart the Blocks cache
+        self._ioc_control.restart_ioc(RUNCONTROL_IOC, force=True)
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
