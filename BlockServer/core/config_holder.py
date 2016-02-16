@@ -212,17 +212,31 @@ class ConfigHolder(object):
         return iocs
 
     def get_ioc_details(self):
-        """ Get the details of the IOCs in the configuration and any components.
+        """ Get the details of the IOCs in the configuration.
+
+        Returns:
+            dict : A copy of all the configuration IOC details
+        """
+        iocs = copy.deepcopy(self._config.iocs)
+        return iocs
+
+    def get_component_ioc_details(self):
+        """ Get the details of the IOCs in any components.
+
+        Returns:
+            dict : A copy of all the component IOC details
+        """
+        iocs = copy.deepcopy(self._config.component_iocs)
+        return iocs
+
+    def get_all_ioc_details(self):
+        """  Ge the details of the IOCs in the configuration and any components.
 
         Returns:
             dict : A copy of all the IOC details
         """
-        # TODO: make sure iocs from default are returned
-        iocs = copy.deepcopy(self._config.iocs)
-        for cn, cv in self._components.iteritems():
-            for n, v in cv.iocs.iteritems():
-                if n not in iocs:
-                    iocs[n] = v
+        iocs = self.get_ioc_details()
+        iocs.update(self.get_component_ioc_details())
         return iocs
 
     def get_component_names(self, include_base=False):
@@ -274,6 +288,7 @@ class ConfigHolder(object):
         config['blocks'] = self._blocks_to_list(True)
         config['groups'] = self._groups_to_list()
         config['iocs'] = self._iocs_to_list()
+        config['component_iocs'] = self._iocs_to_list_with_components()
         # Just return the names of the components
         config['components'] = self._comps_to_list()
         config['name'] = self._config.get_name()
@@ -319,6 +334,11 @@ class ConfigHolder(object):
         ioc_list = list()
         for n, ioc in self._config.iocs.iteritems():
             ioc_list.append(ioc.to_dict())
+
+        return ioc_list
+
+    def _iocs_to_list_with_components(self):
+        ioc_list = self._iocs_to_list()
 
         for cn, cv in self._components.iteritems():
             for n, ioc in cv.iocs.iteritems():
