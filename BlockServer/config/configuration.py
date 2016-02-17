@@ -29,7 +29,6 @@ class Configuration(object):
         self.macros = macros
         self.groups = OrderedDict()
         self.iocs = OrderedDict()
-        self.component_iocs = OrderedDict()
         self.meta = MetaData("")
         self.subconfigs = OrderedDict()
         self.is_component = False
@@ -76,11 +75,7 @@ class Configuration(object):
         """
         # Only add it if it has not been added before
         if not name.upper() in self.iocs.keys():
-            if subconfig is None:
-                self.iocs[name.upper()] = IOC(name, autostart, restart, subconfig, macros, pvs, pvsets, simlevel)
-            else:
-                self.component_iocs[name.upper()] = IOC(name, autostart, restart, subconfig, macros, pvs, pvsets,
-                                                        simlevel)
+            self.iocs[name.upper()] = IOC(name, autostart, restart, subconfig, macros, pvs, pvsets, simlevel)
 
     def update_runcontrol_settings_for_saving(self, rc_data):
         """ Updates the run-control settings for the configuration's blocks.
