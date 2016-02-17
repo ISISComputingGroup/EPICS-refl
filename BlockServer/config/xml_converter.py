@@ -108,8 +108,8 @@ class ConfigurationXmlConverter(object):
         root.attrib["xmlns"] = SCHEMA_PATH + COMPONENT_SCHEMA
         root.attrib["xmlns:comp"] = SCHEMA_PATH + COMPONENT_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
-        for name, sub in comps.iteritems():
-            ConfigurationXmlConverter._subconfig_to_xml(root, name)
+        for name, case_sensitve_name in comps.iteritems():
+            ConfigurationXmlConverter._subconfig_to_xml(root, case_sensitve_name)
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
     @staticmethod
@@ -378,7 +378,7 @@ class ConfigurationXmlConverter(object):
         for i in subconfigs_xml:
             n = i.attrib[TAG_NAME]
             if n is not None and n != "":
-                subconfigs[n.lower()] = None
+                subconfigs[n.lower()] = n
 
     @staticmethod
     def meta_from_xml(root_xml, data):
