@@ -560,6 +560,10 @@ class BlockServer(Driver):
         finally:
             self._filewatcher.resume()
 
+        # Reload configuration if a component has changed
+        if (as_subconfig) and (new_details["name"] in self._active_configserver.get_component_names()):
+            self.load_last_config()
+
     def _get_inactive_history(self, name, is_component=False):
         # If it already exists load it
         try:
