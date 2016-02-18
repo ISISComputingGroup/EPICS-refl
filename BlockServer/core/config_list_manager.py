@@ -203,9 +203,10 @@ class ConfigListManager(object):
             if is_subconfig:
                 self._block_server.update_comp_monitor()
                 if config.get_config_name().lower() in [x.lower() for x in self.active_components]:
-                    print_and_log("Active component edited in filesystem, reload to receive changes",
+                    print_and_log("Active component edited in filesystem, reloading to get changes",
                                   src="FILEWTCHR")
                     self.set_active_changed(True)
+                    self._block_server.load_last_config()
             else:
                 self._block_server.update_config_monitors()
                 if config.get_config_name().lower() == self.active_config_name.lower():
