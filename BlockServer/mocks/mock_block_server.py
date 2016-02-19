@@ -22,3 +22,6 @@ class MockBlockServer(object):
 
     def update_synoptic_monitor(self):
         pass
+
+    def load_last_config(self):
+        pass

@@ -221,10 +221,11 @@ class ConfigListManager(object):
             config (ConfigHolder) : The configuration holder
             is_subconfig (bool) : Whether it is a component or not
         """
-        name = config.get_config_name().lower()
+        name = config.get_config_name()
+        name_lower = name.lower()
 
         # Get pv name (create if doesn't exist)
-        pv_name = self._get_pv_name(name, is_subconfig)
+        pv_name = self._get_pv_name(name_lower, is_subconfig)
 
         # Get meta data from config
         meta = config.get_config_meta()
@@ -232,26 +233,26 @@ class ConfigListManager(object):
 
         # Add metas and update pvs appropriately
         if is_subconfig:
-            if name is not DEFAULT_COMPONENT.lower():
-                self._subconfig_metas[name] = meta
-                self._update_subconfig_pv(name, config.get_config_details())
-                self._update_subconfig_dependencies_pv(name)
+            if name_lower is not DEFAULT_COMPONENT.lower():
+                self._subconfig_metas[name_lower] = meta
+                self._update_subconfig_pv(name_lower, config.get_config_details())
+                self._update_subconfig_dependencies_pv(name_lower.lower())
         else:
-            if name in self._config_metas.keys():
+            if name_lower in self._config_metas.keys():
                 # Config already exists
                 self._remove_config_from_dependencies(name)
 
-            self._config_metas[name] = meta
-            self._update_config_pv(name, config.get_config_details())
+            self._config_metas[name_lower] = meta
+            self._update_config_pv(name_lower, config.get_config_details())
 
             # Update component dependencies
             comps = config.get_component_names()
             for comp in comps:
                 if comp in self._comp_dependecncies:
-                    self._comp_dependecncies[comp].append(name)
+                    self._comp_dependecncies[comp.lower()].append(config.get_config_name())
                 else:
-                    self._comp_dependecncies[comp] = [name]
-                self._update_subconfig_dependencies_pv(comp)
+                    self._comp_dependecncies[comp.lower()] = [config.get_config_name()]
+                self._update_subconfig_dependencies_pv(comp.lower())
 
     def _remove_config_from_dependencies(self, config):
         # Remove old config from dependencies list
@@ -297,9 +298,9 @@ class ConfigListManager(object):
                     raise InvalidDeleteException("Cannot delete currently active configuration")
                 if not lower_delete_list.issubset(self._config_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown configurations")
-                for config in lower_delete_list:
-                    self._ca_server.deletePV(self._config_metas[config].pv + GET_CONFIG_PV)
-                    del self._config_metas[config]
+                for config in delete_list:
+                    self._ca_server.deletePV(self._config_metas[config.lower()].pv + GET_CONFIG_PV)
+                    del self._config_metas[config.lower()]
                     self._remove_config_from_dependencies(config)
                 self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
             else:
