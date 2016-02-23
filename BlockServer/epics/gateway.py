@@ -2,6 +2,17 @@ import time
 from server_common.channel_access import caget, caput
 from server_common.utilities import print_and_log
 
+ALIAS_HEADER = """\
+##
+EVALUATION ORDER ALLOW, DENY
+
+## serve blockserver internal variables, including Flag variables needed by blockserver process to restart gateway
+%sCS:GATEWAY:BLOCKSERVER:.*    				    ALLOW	ANYBODY	    1
+## allow anybody to generate gateway reports
+%sCS:GATEWAY:BLOCKSERVER:report[1-9]Flag		ALLOW	ANYBODY		1
+"""
+
+
 class Gateway(object):
     """A class for interacting with the EPICS gateway that creates the aliases used for implementing blocks"""
 
@@ -36,7 +47,7 @@ class Gateway(object):
         try:
             # Have to wait after put as the gateway does not do completion callbacks (it is not an IOC)
             caput(self._prefix + "newAsFlag", 1, False)
-            while(caget(self._prefix + "newAsFlag") == 1) :
+            while caget(self._prefix + "newAsFlag") == 1:
                 time.sleep(1)
             print_and_log("Gateway reloaded")
         except Exception as err:
@@ -45,15 +56,7 @@ class Gateway(object):
     def _generate_alias_file(self, blocks=None):
         # Generate blocks.pvlist for gateway
         f = open(self._pvlist_file, 'w')
-        header = """\
-## 
-EVALUATION ORDER ALLOW, DENY
-
-## serve blockserver internal variables, including Flag variables needed by blockserver process to restart gateway
-%sCS:GATEWAY:BLOCKSERVER:.*    				    ALLOW	ANYBODY	    1
-## allow anybody to generate gateway reports 
-%sCS:GATEWAY:BLOCKSERVER:report[1-9]Flag		ALLOW	ANYBODY		1
-""" % (self._pv_prefix, self._pv_prefix)
+        header = ALIAS_HEADER % (self._pv_prefix, self._pv_prefix)
         f.write(header)
         if blocks is not None:
             for name, value in blocks.iteritems():
@@ -96,7 +99,7 @@ EVALUATION ORDER ALLOW, DENY
                                                                          self._pv_prefix, pv.rstrip(".RBV")))
                 lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
                 lines.append('%s%s%s[.]VAL    ALIAS    %s%s\n' % (self._pv_prefix, self._block_prefix, blockname,
-                                                            self._pv_prefix, pv))
+                                                                  self._pv_prefix, pv))
                 lines.append('%s%s%s    ALIAS    %s%s\n' % (self._pv_prefix, self._block_prefix, blockname,
                                                             self._pv_prefix, pv))
             else:
