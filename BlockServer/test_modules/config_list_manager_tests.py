@@ -538,7 +538,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
         confs = json.loads(dehex_and_decompress(ms.pv_list.get("TEST_SUBCONFIG1:" + DEPENDENCIES_PV)))
         self.assertEqual(len(confs), 1)
-        self.assertTrue("TEST_INACTIVE".lower() in confs)
+        self.assertTrue("TEST_INACTIVE" in confs)
 
     def test_dependencies_updates_remove(self):
         create_subconfigs(["TEST_SUBCONFIG1"])

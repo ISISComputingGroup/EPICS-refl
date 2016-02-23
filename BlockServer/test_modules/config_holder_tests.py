@@ -203,7 +203,7 @@ class TestConfigHolderSequence(unittest.TestCase):
 
         subs = ch.get_component_names()
         self.assertEqual(len(subs), 1)
-        self.assertTrue("TESTSUBCONFIG".lower() in subs)
+        self.assertTrue("TESTSUBCONFIG" in subs)
 
     def test_dummy_config_components_add_remove_subconfig(self):
         ch = ConfigHolder(CONFIG_PATH, MACROS, MockVersionControl(), test_config=create_dummy_config())
@@ -294,9 +294,9 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(details['groups']), 2)
         self.assertEqual(details['groups'][0]['blocks'], ["SUBBLOCK1"])
         self.assertEqual(details['groups'][1]['blocks'], ["SUBBLOCK2"])
-        self.assertEqual(len(details['iocs']), 1)
+        self.assertEqual(len(details['iocs']), 0)
         iocs = [x['name'] for x in details['iocs']]
-        self.assertTrue("SUBSIMPLE1" in iocs)
+        self.assertFalse("SUBSIMPLE1" in iocs)
         self.assertEqual(len(details['components']), 1)
 
     def test_empty_config_save_and_load(self):

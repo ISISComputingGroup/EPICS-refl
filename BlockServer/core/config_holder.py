@@ -74,7 +74,7 @@ class ConfigHolder(object):
             # Add it
             component.set_name(name)
             self._components[name.lower()] = component
-            self._config.subconfigs[name.lower()] = None  # Does not need to actual hold anything
+            self._config.subconfigs[name.lower()] = name  # Only needs its case sensitive name name
         else:
             raise Exception("Requested component is already part of the configuration: " + str(name))
 
@@ -212,17 +212,35 @@ class ConfigHolder(object):
         return iocs
 
     def get_ioc_details(self):
-        """ Get the details of the IOCs in the configuration and any components.
+        """ Get the details of the IOCs in the configuration.
+
+        Returns:
+            dict : A copy of all the configuration IOC details
+        """
+        iocs = copy.deepcopy(self._config.iocs)
+        return iocs
+
+    def get_component_ioc_details(self):
+        """ Get the details of the IOCs in any components.
+
+        Returns:
+            dict : A copy of all the component IOC details
+        """
+        iocs = {}
+        for cn, cv in self._components.iteritems():
+            for n, v in cv.iocs.iteritems():
+                if n not in iocs:
+                     iocs[n] = v
+        return iocs
+
+    def get_all_ioc_details(self):
+        """  Ge the details of the IOCs in the configuration and any components.
 
         Returns:
             dict : A copy of all the IOC details
         """
-        # TODO: make sure iocs from default are returned
-        iocs = copy.deepcopy(self._config.iocs)
-        for cn, cv in self._components.iteritems():
-            for n, v in cv.iocs.iteritems():
-                if n not in iocs:
-                    iocs[n] = v
+        iocs = self.get_ioc_details()
+        iocs.update(self.get_component_ioc_details())
         return iocs
 
     def get_component_names(self, include_base=False):
@@ -235,11 +253,9 @@ class ConfigHolder(object):
             list : A list of components in the configuration
         """
         l = list()
-        for cn in self._components.keys():
-            if include_base:
-                l.append(cn)
-            elif cn.lower() != DEFAULT_COMPONENT.lower():
-                l.append(cn)
+        for cn, cv in self._components.iteritems():
+            if (include_base) or (cn.lower() != DEFAULT_COMPONENT.lower()):
+                l.append(cv.get_name())
         return l
 
     def add_block(self, blockargs):
@@ -274,6 +290,7 @@ class ConfigHolder(object):
         config['blocks'] = self._blocks_to_list(True)
         config['groups'] = self._groups_to_list()
         config['iocs'] = self._iocs_to_list()
+        config['component_iocs'] = self._iocs_to_list_with_components()
         # Just return the names of the components
         config['components'] = self._comps_to_list()
         config['name'] = self._config.get_name()
@@ -319,6 +336,11 @@ class ConfigHolder(object):
         ioc_list = list()
         for n, ioc in self._config.iocs.iteritems():
             ioc_list.append(ioc.to_dict())
+
+        return ioc_list
+
+    def _iocs_to_list_with_components(self):
+        ioc_list = self._iocs_to_list()
 
         for cn, cv in self._components.iteritems():
             for n, ioc in cv.iocs.iteritems():
@@ -373,7 +395,7 @@ class ConfigHolder(object):
                 # List of dicts
                 for args in details["components"]:
                     comp = self.load_configuration(args['name'], True)
-                    self.add_subconfig(args['name'], comp)
+                    self.add_subconfig(comp.get_name(), comp)
         except Exception as err:
             self._retrieve_cache()
             raise err
@@ -400,8 +422,8 @@ class ConfigHolder(object):
         if not is_component:
             for n, v in config.subconfigs.iteritems():
                 if n.lower() != DEFAULT_COMPONENT.lower():
-                    comp = self.load_configuration(n, True)
-                    self.add_subconfig(n, comp)
+                    comp = self.load_configuration(v.lower(), True)
+                    self.add_subconfig(v, comp)
             # add default subconfig to list of subconfigs
             basecomp = self.load_configuration(DEFAULT_COMPONENT, True)
             self.add_subconfig(DEFAULT_COMPONENT, basecomp)

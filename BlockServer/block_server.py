@@ -476,7 +476,7 @@ class BlockServer(Driver):
         # Start the IOCs, if they are available and if they are flagged for autostart
         # Note: autostart means the IOC is started when the config is loaded,
         # restart means the IOC should automatically restart if it stops for some reason (e.g. it crashes)
-        for n, ioc in self._active_configserver.get_ioc_details().iteritems():
+        for n, ioc in self._active_configserver.get_all_ioc_details().iteritems():
             try:
                 # If autostart is not set to True then the IOC is not part of the configuration
                 if ioc.autostart:
@@ -559,6 +559,10 @@ class BlockServer(Driver):
             print_and_log("Saved")
         finally:
             self._filewatcher.resume()
+
+        # Reload configuration if a component has changed
+        if (as_subconfig) and (new_details["name"] in self._active_configserver.get_component_names()):
+            self.load_last_config()
 
     def _get_inactive_history(self, name, is_component=False):
         # If it already exists load it
@@ -716,7 +720,7 @@ class BlockServer(Driver):
         # If the IOC is in the config and auto-restart is set to true then
         # reapply the auto-restart setting after starting.
         # This is because stopping an IOC via procServ turns auto-restart off.
-        conf_iocs = self._active_configserver.get_ioc_details()
+        conf_iocs = self._active_configserver.get_all_ioc_details()
         for i in iocs:
             self._ioc_control.start_ioc(i)
             # Is IOC in config?
