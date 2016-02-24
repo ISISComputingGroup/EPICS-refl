@@ -175,3 +175,12 @@ def parse_xml_removing_namespace(file_path):
             el.tag = el.tag.split('}', 1)[1]
     return it.root
 
+
+def waveform_to_string(data):
+    output = ""
+    for i in data:
+        if i == 0:
+            break
+        output += str(unichr(i))
+    return output
+

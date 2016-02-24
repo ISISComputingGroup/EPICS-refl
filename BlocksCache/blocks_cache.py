@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 from pcaspy import SimpleServer, Driver
 from CaChannel import ca, CaChannel, CaChannelException
-from server_common.utilities import compress_and_hex, convert_to_json
+from server_common.utilities import compress_and_hex, convert_to_json, waveform_to_string, dehex_and_decompress
 
 EXISTS_TIMEOUT = 3 
 PEND_EVENT_TIMEOUT = 0.1
@@ -26,19 +26,6 @@ PVDB = {
 }
 
 
-def dehex_and_decompress(value):
-    return zlib.decompress(value.decode("hex"))
-
-    
-def waveform2string(data):
-    output = ""
-    for i in data:
-        if i == 0:
-            break
-        output += str(unichr(i))
-    return output
-
-    
 class BlocksMonitor(Driver):
     def __init__(self, prefix):
         super(BlocksMonitor, self).__init__()    
@@ -70,23 +57,35 @@ class BlocksMonitor(Driver):
             if name in values:
                 return values[name]
             else:
-                return None
+                return None, None
         values = self.get_curr_values()
         blks = dict()
 
         for b in self.block_names:
             full_name = "%sCS:SB:%s" % (self.prefix, b)
-            rcname = '%s:RC:ENABLE' % full_name 
+            rcname = '%s:RC:ENABLE' % full_name
             rclname = '%s:RC:LOW' % full_name
             rchname = '%s:RC:HIGH' % full_name
-            
-            blks[b] = (_get_value(full_name), _get_value(rcname), _get_value(rclname), _get_value(rchname))
+
+            pvinfo = _get_value(full_name)
+
+            if pvinfo[1] is not None:
+                if ca.dbr_type_is_ENUM(pvinfo[1]) or ca.dbr_type_is_STRING(pvinfo[1]):
+                    ftype = "STRING"
+                elif ca.dbr_type_is_CHAR(pvinfo[1]):
+                    ftype = "CHAR"
+                else:
+                    ftype = "NUMERIC"
+            else:
+                ftype = "UNKNOWN"
+
+            blks[b] = (pvinfo[0], _get_value(rcname)[0], _get_value(rclname)[0], _get_value(rchname)[0], ftype)
             
         return blks
       
     def connect(self):
         def _blocknames_callback(epics_args, user_args):
-            names = json.loads(dehex_and_decompress(waveform2string(epics_args['pv_value'])))
+            names = json.loads(dehex_and_decompress(waveform_to_string(epics_args['pv_value'])))
             if self.block_names is None or names != self.block_names:
                 self.block_names = names
                 print "Updated"
@@ -146,7 +145,7 @@ class BlocksMonitor(Driver):
                 print ca.name(epics_args[0]), "DOWN"
                 self.curr_lock.acquire()
                 try:
-                    self.curr_values[ca.name(epics_args[0])] = "*** disconnected"
+                    self.curr_values[ca.name(epics_args[0])] = ("*** disconnected", None)
                 except:
                     # Don't care, it is all about releasing the lock
                     pass
@@ -170,7 +169,7 @@ class BlocksMonitor(Driver):
             # Update the current value...
             self.curr_lock.acquire()
             try:
-                self.curr_values[user_args[0]] = epics_args['pv_value']
+                self.curr_values[user_args[0]] = (epics_args['pv_value'], epics_args['type'])
             except:
                 # Don't care, it is all about releasing the lock
                 print "Could not update value"
@@ -181,7 +180,7 @@ class BlocksMonitor(Driver):
                 pass
                 
         ftype = chan.field_type()
-            
+
         if ca.dbr_type_is_ENUM(ftype) or ca.dbr_type_is_STRING(ftype):
             req_type = ca.DBR_STRING
         else:
@@ -255,6 +254,3 @@ if __name__ == '__main__':
     # Process CA transactions
     while True:
         SERVER.process(0.1)
-        
-
-                
