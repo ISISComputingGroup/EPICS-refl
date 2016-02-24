@@ -54,6 +54,7 @@ class BlocksMonitor(Driver):
         
     def _get_organised_values(self):
         def _get_value(name):
+            # Returns a tuple of the current value and the type
             if name in values:
                 return values[name]
             else:
@@ -69,20 +70,21 @@ class BlocksMonitor(Driver):
 
             pvinfo = _get_value(full_name)
 
-            if pvinfo[1] is not None:
-                if ca.dbr_type_is_ENUM(pvinfo[1]) or ca.dbr_type_is_STRING(pvinfo[1]):
-                    ftype = "STRING"
-                elif ca.dbr_type_is_CHAR(pvinfo[1]):
-                    ftype = "CHAR"
-                else:
-                    ftype = "NUMERIC"
-            else:
-                ftype = "UNKNOWN"
-
-            blks[b] = (pvinfo[0], _get_value(rcname)[0], _get_value(rclname)[0], _get_value(rchname)[0], ftype)
-            
+            # Tuple of value, rc_enabled, rc_low, rc_high, type
+            blks[b] = (pvinfo[0], _get_value(rcname)[0], _get_value(rclname)[0], _get_value(rchname)[0],
+                       self._get_type_as_string(pvinfo[1]))
         return blks
-      
+
+    def _get_type_as_string(self, ftype):
+        if ftype is not None:
+            if ca.dbr_type_is_ENUM(ftype) or ca.dbr_type_is_STRING(ftype):
+                return "STRING"
+            elif ca.dbr_type_is_CHAR(ftype):
+                return "CHAR"
+            else:
+                return "NUMERIC"
+        return "UNKNOWN"
+
     def connect(self):
         def _blocknames_callback(epics_args, user_args):
             names = json.loads(dehex_and_decompress(waveform_to_string(epics_args['pv_value'])))
