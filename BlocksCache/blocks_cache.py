@@ -28,6 +28,11 @@ PVDB = {
 
 class BlocksMonitor(Driver):
     def __init__(self, prefix):
+        """Constructor.
+
+        Args:
+            prefix (string): The PV prefix.
+        """
         super(BlocksMonitor, self).__init__()    
         # Holds a list of block names 
         self.block_names = None
@@ -45,6 +50,14 @@ class BlocksMonitor(Driver):
         self.prefix = prefix
         
     def read(self, reason):
+        """Overrides the read method of the pcaspy Driver class.
+
+        Args:
+            reason (string): The PV name.
+
+        Returns:
+            The PV value.
+        """
         if reason == 'CS:BLOCKSERVER:BLOCKVALUES':
             ans = convert_to_json(self._get_organised_values())
             value = compress_and_hex(ans)
@@ -53,13 +66,18 @@ class BlocksMonitor(Driver):
         return value
         
     def _get_organised_values(self):
+        """Organises the current values into a tuple.
+
+        Returns:
+            Tuple of the form (value, rc_enabled, rc_low, rc_high, type).
+        """
         def _get_value(name):
             # Returns a tuple of the current value and the type
             if name in values:
                 return values[name]
             else:
                 return None, None
-        values = self.get_curr_values()
+        values = self._get_curr_values()
         blks = dict()
 
         for b in self.block_names:
@@ -85,7 +103,9 @@ class BlocksMonitor(Driver):
                 return "NUMERIC"
         return "UNKNOWN"
 
-    def connect(self):
+    def connect_to_names_pv(self):
+        """Connects amonitor to the block-server to get the names of the blocks.
+        """
         def _blocknames_callback(epics_args, user_args):
             names = json.loads(dehex_and_decompress(waveform_to_string(epics_args['pv_value'])))
             if self.block_names is None or names != self.block_names:
@@ -103,6 +123,8 @@ class BlocksMonitor(Driver):
         chan.pend_event(PEND_EVENT_TIMEOUT)
 
     def disconnect_block_monitors(self):
+        """Disconnects the existing block monitors.
+        """
         self.mon_lock.acquire()
         try:
             for bn, bv in self.block_monitors.iteritems():
@@ -119,6 +141,11 @@ class BlocksMonitor(Driver):
             self.mon_lock.release()
 
     def initialise_block(self, name):
+        """Creates the monitors for the block and its associated run-control PVs.
+
+        Args:
+            name (string): The name of the block without a prefix.
+        """
         full_name = '%sCS:SB:%s' % (self.prefix, name)
 
         self.mon_lock.acquire()
@@ -135,7 +162,11 @@ class BlocksMonitor(Driver):
             self.mon_lock.release()
             
     def _initialise_channel(self, name):
-        """Creates the channel with a connection callback"""
+        """Initialises the channel by creating a connection callback.
+
+        Args:
+            name (string): The name of the PV to connect to.
+        """
         def _block_connection_callback(epics_args, user_args):
             connection_state = epics_args[1]
             if connection_state == ca.CA_OP_CONN_UP:
@@ -167,6 +198,12 @@ class BlocksMonitor(Driver):
             return None
     
     def _create_monitor(self, chan, name):
+        """Creates a monitor for the PV's value.
+
+        Args:
+            chan (CaChannel): The channel object.
+            name (string): The PV name.
+        """
         def _block_updated_callback(epics_args, user_args):
             # Update the current value...
             self.curr_lock.acquire()
@@ -195,7 +232,12 @@ class BlocksMonitor(Driver):
             name)
         chan.pend_event(PEND_EVENT_TIMEOUT)
             
-    def get_curr_values(self):
+    def _get_curr_values(self):
+        """Returns a copy of the current values for the blocks and associated run-control settings.
+
+        Returns:
+            A dictionary of the current values where the key is the full PV name.
+        """
         self.curr_lock.acquire()
         try:
             ans = copy.deepcopy(self.curr_values)
@@ -207,6 +249,8 @@ class BlocksMonitor(Driver):
         return ans
     
     def clear_curr_values(self):
+        """Clears the dictionary containing the current values.
+        """
         self.curr_lock.acquire()
         try:
             self.curr_values = dict()
@@ -220,9 +264,17 @@ class BlocksMonitor(Driver):
             
     @staticmethod        
     def _monitor_changes(blocks_mon):
+        """Monitors the block names PV on the block server for changes.
+
+        If the block names changes then the existing block monitors are disconnected and new monitors created.
+        This must be run in a separate thread.
+
+        Args:
+            blocks_mon (BlocksMonitor): The BlocksMonitor instance.
+        """
         count = 0
         local_names = blocks_mon.block_names
-        blocks_mon.connect()
+        blocks_mon.connect_to_names_pv()
         while True:
             if blocks_mon.stop_thread:
                 break
@@ -239,18 +291,20 @@ class BlocksMonitor(Driver):
             time.sleep(1)
     
     def start_thread(self):
+        """Starts the thread that monitors the block names for changes.
+        """
         t = threading.Thread(target=self._monitor_changes, args=(self,))
         t.setDaemon(True)
         t.start()
 
         
 if __name__ == '__main__':   
-    prefix = os.environ["MYPVPREFIX"]
-    print "Prefix is %s" % prefix
+    my_prefix = os.environ["MYPVPREFIX"]
+    print "Prefix is %s" % my_prefix
     
     SERVER = SimpleServer()
-    SERVER.createPV(prefix, PVDB)
-    DRIVER = BlocksMonitor(prefix)
+    SERVER.createPV(my_prefix, PVDB)
+    DRIVER = BlocksMonitor(my_prefix)
     DRIVER.start_thread()
 
     # Process CA transactions
