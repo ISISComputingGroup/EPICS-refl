@@ -207,7 +207,7 @@ class BlockServer(Driver):
             ca_server (CAServer): The CA server used for generating PVs on the fly
         """
         super(BlockServer, self).__init__()
-        FILEPATH_MANAGER.initialise(CONFIG_DIR, SCHEMA_DIR)
+        FILEPATH_MANAGER.initialise(CONFIG_DIR)
 
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])
         self._active_configserver = None
