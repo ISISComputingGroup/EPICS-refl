@@ -11,6 +11,7 @@ from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_runcontrol_manager import MockRunControlManager
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
 CONFIG_PATH = "./test_configs/"
@@ -59,11 +60,8 @@ def create_grouping(groups):
 class TestActiveConfigHolderSequence(unittest.TestCase):
     def setUp(self):
         # Create components folder and copying DEFAULT_COMPONENT fileIO into it
-        path = os.path.abspath(CONFIG_PATH)
-        os.mkdir(path)
-        component_path = path + "/components/"
-        os.mkdir(component_path)
-        shutil.copytree(BASE_PATH, component_path + "/" + DEFAULT_COMPONENT)
+        FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH))
+        shutil.copytree(BASE_PATH, os.path.join(FILEPATH_MANAGER.component_dir, DEFAULT_COMPONENT))
 
         # Create in test mode
         self.mock_archive = ArchiverManager(None, None, MockArchiverWrapper())
@@ -72,7 +70,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def tearDown(self):
         # Delete any configs created as part of the test
-        path = os.path.abspath(CONFIG_PATH)
+        path = FILEPATH_MANAGER.config_root_dir
         if os.path.isdir(path):
             shutil.rmtree(path)
 

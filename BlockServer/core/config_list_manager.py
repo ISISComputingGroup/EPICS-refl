@@ -3,12 +3,14 @@ import json
 import re
 from threading import RLock
 
-from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.core.macros import MACROS
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
+from BlockServer.core.constants import DEFAULT_COMPONENT
+
 
 
 GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
@@ -38,7 +40,6 @@ class ConfigListManager(object):
 
         Args:
             block_server (BlockServer) : A reference to the BlockServer itself
-            config_folder (string) : The location of the configuration
             server (CAServer) : A reference to the CaServer of the BlockServer
             schema_folder (string) : The location of the schemas for validation
             vc_manager (ConfigVersionControl) : The object for managing version control
@@ -47,16 +48,16 @@ class ConfigListManager(object):
         self._subconfig_metas = dict()
         self._comp_dependecncies = dict()
         self._ca_server = server
-        self._config_folder = config_folder
-        self._block_server = block_server  # Referencing a higher level object == bad
+        self._config_folder = FILEPATH_MANAGER.config_root_dir
+        self._block_server = block_server
         self.active_config_name = ""
         self.active_components = []
         self._active_changed = False
         self._lock = RLock()
         self._vc = vc_manager
 
-        self._conf_path = os.path.abspath(os.path.join(config_folder, CONFIG_DIRECTORY))
-        self._comp_path = os.path.abspath(os.path.join(config_folder, COMPONENT_DIRECTORY))
+        self._conf_path = FILEPATH_MANAGER.config_dir
+        self._comp_path = FILEPATH_MANAGER.component_dir
 
         self._import_configs(schema_folder)
 

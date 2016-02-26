@@ -26,8 +26,8 @@ class RunControlManager(object):
             ioc_control (IocControl) : The object for restarting the IOC
         """
         self._prefix = prefix
-        self._settings_file = config_dir + RUNCONTROL_SETTINGS
-        self._autosave_dir = var_dir + AUTOSAVE_DIR
+        self._settings_file = os.join(config_dir, RUNCONTROL_SETTINGS)
+        self._autosave_dir = os.join(var_dir, AUTOSAVE_DIR)
         self._block_prefix = prefix + "CS:SB:"
         self._stored_settings = None
         self._ioc_control = ioc_control

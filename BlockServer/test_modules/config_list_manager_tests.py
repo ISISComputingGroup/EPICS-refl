@@ -9,13 +9,14 @@ from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from server_common.utilities import dehex_and_decompress
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
-from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.config.configuration import Configuration
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_runcontrol_manager import MockRunControlManager
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
 MACROS = {
@@ -74,6 +75,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def setUp(self):
         # Create components folder and copying DEFAULT_COMPONENT fileIO into it
         path = os.path.abspath(CONFIG_PATH)
+        FILEPATH_MANAGER.initialise(path)
         self.ms = MockCAServer()
         self.bs = MockBlockServer()
 
@@ -439,10 +441,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        self.assertEqual(len(os.listdir(CONFIG_PATH + CONFIG_DIRECTORY)), 2)
+        self.assertEqual(len(os.listdir(FILEPATH_MANAGER.config_dir)), 2)
         ic.delete_configs(["TEST_CONFIG1"])
 
-        configs = os.listdir(CONFIG_PATH + CONFIG_DIRECTORY)
+        configs = os.listdir(FILEPATH_MANAGER.config_dir)
         self.assertEqual(len(configs), 1)
         self.assertTrue("TEST_CONFIG2" in configs)
 
@@ -451,10 +453,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        self.assertEqual(len(os.listdir(os.path.join(CONFIG_PATH, COMPONENT_DIRECTORY))), 3)
+        self.assertEqual(len(os.listdir(FILEPATH_MANAGER.component_dir)), 3)
         ic.delete_configs(["TEST_SUBCONFIG1"], True)
 
-        configs = os.listdir(os.path.join(CONFIG_PATH, COMPONENT_DIRECTORY))
+        configs = os.listdir(FILEPATH_MANAGER.component_dir)
         self.assertEqual(len(configs), 2)
         self.assertTrue("TEST_SUBCONFIG2" in configs)
 

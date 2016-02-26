@@ -3,7 +3,8 @@ import string
 
 from lxml import etree
 
-from BlockServer.core.constants import SCHEMA_FOR, COMPONENT_DIRECTORY, CONFIG_DIRECTORY, FILENAME_SUBCONFIGS
+from BlockServer.core.constants import SCHEMA_FOR, FILENAME_SUBCONFIGS
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
 class NotConfigFileException(Exception):
@@ -46,12 +47,12 @@ class ConfigurationSchemaChecker(object):
         """
         valid = True
 
-        for root, dirs, files in os.walk(os.path.join(root_path, CONFIG_DIRECTORY)):
+        for root, dirs, files in os.walk(FILEPATH_MANAGER.config_dir):
             for f in files:
                 full_path = os.path.join(root, f)
                 valid &= ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, full_path)
 
-        for root, dirs, files in os.walk(os.path.join(root_path, COMPONENT_DIRECTORY)):
+        for root, dirs, files in os.walk(FILEPATH_MANAGER.component_dir):
             for f in files:
                 full_path = os.path.join(root, f)
                 valid &= ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, full_path, True)
@@ -132,8 +133,8 @@ class ConfigurationSchemaChecker(object):
         with open(schema_file, 'r') as f:
             schema_raw = etree.XML(f.read())
 
-        schema = etree.XMLSchema(schema_raw)
-        xmlparser = etree.XMLParser(schema=schema)
+        conf_schema = etree.XMLSchema(schema_raw)
+        xmlparser = etree.XMLParser(schema=conf_schema)
         os.chdir(cur)
 
         return xmlparser

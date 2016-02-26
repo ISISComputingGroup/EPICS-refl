@@ -2,6 +2,7 @@ import os
 from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.config_list_manager import InvalidDeleteException
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from xml.dom import minidom
 from lxml import etree
 
@@ -9,27 +10,28 @@ SYNOPTIC_PRE = "SYNOPTICS:"
 SYNOPTIC_GET = ":GET"
 SYNOPTIC_SET = ":SET"
 SYNOPTIC_SCHEMA = "synoptic.xsd"
+SYNOPTIC_DIRECTORY = "synoptics"
 
 
 class SynopticManager(object):
     """Class for managing the PVs associated with synoptics"""
-    def __init__(self, block_server, synoptic_folder, cas, schema_folder, vc_manager):
+    def __init__(self, block_server, cas, schema_folder, vc_manager):
         """Constructor.
 
         Args:
-            synoptic_folder (string) : The filepath where synoptics are stored
-            cas (CAServer) : The channel access server for creating PVs on-the-fly
-            schema_folder (string) : The filepath for the synoptic schema
-            vc_manager (ConfigVersionControl) : The manager to allow version control modifications
+            block_server (BlockServer): A reference to the BlockServer instance.
+            root_folder (string): The filepath which is the root of where synoptic, configs etc are stored.
+            cas (CAServer): The channel access server for creating PVs on-the-fly
+            schema_folder (string): The filepath for the synoptic schema
+            vc_manager (ConfigVersionControl): The manager to allow version control modifications
         """
-        self._directory = os.path.abspath(synoptic_folder)
+        self._directory = FILEPATH_MANAGER.synoptic_dir
         self._schema_folder = schema_folder
         self._cas = cas
         self._synoptic_pvs = dict()
         self._vc = vc_manager
         self._bs = block_server
         self._default_syn_xml = ""
-
         self._load_initial()
 
     def _load_initial(self):

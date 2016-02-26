@@ -5,27 +5,29 @@ from watchdog.observers import Observer
 
 from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
 from BlockServer.fileIO.synoptic_file_event_handler import SynopticFileEventHandler
-from BlockServer.core.constants import CONFIG_DIRECTORY, COMPONENT_DIRECTORY, SYNOPTIC_DIRECTORY
+import BlockServer.core.file_path_lookup as file_path_lookup
 
 import os
+
 
 class ConfigFileWatcherManager(object):
     """ The ConfigFileWatcherManager class.
 
     Registers and communicates with the event handlers for configuration and synoptic filewatchers.
     """
-    def __init__(self, root_path, schema_folder, config_list_manager, synoptic_list_manager):
+    def __init__(self, root_path, schema_folder, config_list_manager, synoptic_manager):
         """Constructor.
 
         Args:
-            root_path (string) : The root folder where configurations are stored
-            schema_folder (string) : The folder where the schemas are kept
-            config_list_manager (ConfigListManager) : The ConfigListManager
+            root_path (string): The root folder where configurations are stored.
+            schema_folder (string): The folder where the schemas are kept.
+            config_list_manager (ConfigListManager): The ConfigListManager instance.
+            synoptic_manager (SynopticManager): The SynopticManager instance.
         """
         schema_lock = RLock()
-        self._config_dir = os.path.join(root_path, CONFIG_DIRECTORY)
-        self._comp_dir = os.path.join(root_path, COMPONENT_DIRECTORY)
-        self._syn_dir = os.path.join(root_path, SYNOPTIC_DIRECTORY)
+        self._config_dir = file_path_lookup.CONFIG_DIR
+        self._comp_dir = file_path_lookup.COMPONENT_DIR
+        self._syn_dir = file_path_lookup.SYNOPTIC_DIR
         self._observers = []
 
         # Create config watcher
@@ -42,7 +44,7 @@ class ConfigFileWatcherManager(object):
 
         # Create synoptic watcher
         self._synoptic_event_handler = SynopticFileEventHandler(root_path, schema_folder, schema_lock,
-                                                                synoptic_list_manager)
+                                                                synoptic_manager)
 
         self._syn_observer = self._create_observer(self._synoptic_event_handler, self._syn_dir)
 

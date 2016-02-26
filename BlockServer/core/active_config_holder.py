@@ -1,7 +1,6 @@
 import os
 import json
 
-from BlockServer.core.constants import CONFIG_DIRECTORY, COMPONENT_DIRECTORY
 from server_common.utilities import print_and_log
 from BlockServer.core.macros import BLOCKSERVER_PREFIX, BLOCK_PREFIX, MACROS
 from BlockServer.core.config_holder import ConfigHolder
@@ -25,7 +24,7 @@ class ActiveConfigHolder(ConfigHolder):
         self._archive_manager = archive_manager
         self._ioc_control = ioc_control
         self._db = None
-        self._last_config_file = os.path.abspath(config_folder + "/last_config.txt")
+        self._last_config_file = os.path.abspath(os.path.join(config_folder, "last_config.txt"))
         self._runcontrol = run_control
         if run_control is not None:
             self._start_runcontrol()
@@ -90,7 +89,7 @@ class ActiveConfigHolder(ConfigHolder):
         if not os.path.isfile(last):
             return None
         with open(last, 'r') as f:
-            last_config = f.readline().replace(CONFIG_DIRECTORY, "").strip()
+            last_config = os.path.split(f.readline().strip())[-1]
             # Remove any legacy path separators
             last_config = last_config.replace("/", "")
             last_config = last_config.replace("\\", "")

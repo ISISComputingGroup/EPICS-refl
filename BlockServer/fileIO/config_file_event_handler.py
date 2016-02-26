@@ -3,7 +3,7 @@ import string
 
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
-from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 from schema_checker import ConfigurationSchemaChecker
 from schema_checker import ConfigurationIncompleteException, NotConfigFileException
@@ -31,9 +31,9 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         self._config_list = config_list_manager
 
         if self._is_subconfig:
-            self._watching_path = os.path.join(self._root_path, COMPONENT_DIRECTORY)
+            self._watching_path = FILEPATH_MANAGER.component_dir
         else:
-            self._watching_path = os.path.join(self._root_path, CONFIG_DIRECTORY)
+            self._watching_path = FILEPATH_MANAGER.config_dir
 
     def on_any_event(self, event):
         """Catch-all event handler.
@@ -106,9 +106,9 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             list : The parts of the file path in order
         """
         if not self._is_subconfig:
-            rel_path = string.replace(path, os.path.join(self._root_path, CONFIG_DIRECTORY), '')
+            rel_path = string.replace(path, FILEPATH_MANAGER.config_dir, '')
         else:
-            rel_path = string.replace(path, os.path.join(self._root_path, COMPONENT_DIRECTORY), '')
+            rel_path = string.replace(path, FILEPATH_MANAGER.component_dir, '')
 
         if rel_path.startswith(os.sep):
             # Remove stray separator

@@ -7,10 +7,10 @@ import re
 
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.config.configuration import Configuration
-from BlockServer.core.constants import GRP_NONE
-from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+from BlockServer.core.constants import DEFAULT_COMPONENT, GRP_NONE
 from BlockServer.config.containers import Group
 from BlockServer.core.macros import PVPREFIX_MACRO
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
 class ConfigHolder(object):
@@ -38,19 +38,12 @@ class ConfigHolder(object):
         self._macros = macros
         self._vc = vc_manager
 
-        self._config_path = os.path.abspath(os.path.join(config_folder, CONFIG_DIRECTORY))
-        self._component_path = os.path.abspath(os.path.join(config_folder, COMPONENT_DIRECTORY))
+        self._config_path = FILEPATH_MANAGER.config_dir
+        self._component_path = FILEPATH_MANAGER.component_dir
         self._filemanager = file_manager
 
         self._cached_config = Configuration(macros)
         self._cached_components = OrderedDict()
-
-        if not os.path.isdir(self._config_path):
-            # Create it
-            os.makedirs(self._config_path)
-        if not os.path.isdir(self._component_path):
-            # Create it
-            os.makedirs(self._component_path)
 
     def clear_config(self):
         """ Clears the configuration.

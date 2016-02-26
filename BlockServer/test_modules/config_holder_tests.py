@@ -8,6 +8,7 @@ from BlockServer.config.configuration import Configuration
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_version_control import MockVersionControl
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
 CONFIG_PATH = "./test_configs/"
@@ -41,15 +42,12 @@ def create_dummy_subconfig():
 class TestConfigHolderSequence(unittest.TestCase):
     def setUp(self):
         # Create components folder and copying DEFAULT_COMPONENT fileIO into it
-        path = os.path.abspath(CONFIG_PATH)
-        os.mkdir(path)
-        component_path = path + "/components/"
-        os.mkdir(component_path)
-        shutil.copytree(BASE_PATH, component_path + "/" + DEFAULT_COMPONENT)
+        FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH))
+        shutil.copytree(BASE_PATH, os.path.join(FILEPATH_MANAGER.component_dir, DEFAULT_COMPONENT))
 
     def tearDown(self):
         # Delete any configs created as part of the test
-        path = os.path.abspath(CONFIG_PATH)
+        path = FILEPATH_MANAGER.config_root_dir
         if os.path.isdir(path):
             shutil.rmtree(path)
 

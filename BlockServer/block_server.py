@@ -12,6 +12,7 @@ import argparse
 from threading import Thread, RLock
 from time import sleep
 import datetime
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.epics.gateway import Gateway
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
@@ -22,7 +23,6 @@ from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
-from BlockServer.core.constants import SYNOPTIC_DIRECTORY, COMPONENT_DIRECTORY, CONFIG_DIRECTORY
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
@@ -32,6 +32,7 @@ from BlockServer.core.database_server_client import DatabaseServerClient
 from BlockServer.core.runcontrol_manager import RunControlManager
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.site_specific.default.block_rules import BlockRules
+
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
@@ -206,6 +207,8 @@ class BlockServer(Driver):
             ca_server (CAServer) : The CA server used for generating PVs on the fly
         """
         super(BlockServer, self).__init__()
+        FILEPATH_MANAGER.initialise(CONFIG_DIR)
+
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])
         self._active_configserver = None
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
@@ -232,7 +235,7 @@ class BlockServer(Driver):
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
         # Import all the synoptic data and create PVs
-        self._syn = SynopticManager(self, os.path.join(CONFIG_DIR, SYNOPTIC_DIRECTORY), ca_server, SCHEMA_DIR, self._vc)
+        self._syn = SynopticManager(self, ca_server, SCHEMA_DIR, self._vc)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list, self._syn)
@@ -249,15 +252,6 @@ class BlockServer(Driver):
 
         with self.write_lock:
             self.write_queue.append((self.initialise_configserver, (FACILITY,), "INITIALISING"))
-
-    def create_default_folders(self):
-        # Create default folders
-        paths = [os.path.join(CONFIG_DIR, CONFIG_DIRECTORY), os.path.join(CONFIG_DIR, COMPONENT_DIRECTORY),
-                 os.path.join(CONFIG_DIR, SYNOPTIC_DIRECTORY)]
-        for p in paths:
-            if not os.path.isdir(p):
-                # Create it then
-                os.makedirs(os.path.abspath(p))
 
     def initialise_configserver(self, facility):
         """Initialises the ActiveConfigHolder.
@@ -767,10 +761,7 @@ if __name__ == '__main__':
     print_and_log("BLOCK GATEWAY PREFIX = %s" % GATEWAY_PREFIX)
 
     CONFIG_DIR = os.path.abspath(args.config_dir[0])
-    print_and_log("CONFIGURATION DIRECTORY = %s" % CONFIG_DIR)
-    if not os.path.isdir(os.path.abspath(CONFIG_DIR)):
-        # Create it then
-        os.makedirs(os.path.abspath(CONFIG_DIR))
+    print_and_log("CONFIGURATION DIRECTORROOT_DIR %s" % CONFIG_DIR)
 
     SCHEMA_DIR = os.path.abspath(args.schema_dir[0])
     print_and_log("SCHEMA DIRECTORY = %s" % SCHEMA_DIR)
