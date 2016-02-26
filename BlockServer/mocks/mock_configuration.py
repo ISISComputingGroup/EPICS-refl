@@ -39,7 +39,7 @@ class MockConfigurationFileManager(object):
         self.blocks_xml = ""
         self.groups_xml = ""
         self.iocs_xml = ""
-        self.subconfigs_xml = ""
+        self.components_xml = ""
 
     @staticmethod
     def load_config(configuration, root_path, config_name):
@@ -49,7 +49,7 @@ class MockConfigurationFileManager(object):
         self.blocks_xml = ConfigurationXmlConverter.blocks_to_xml(configuration.blocks, configuration.macros)
         self.groups_xml = ConfigurationXmlConverter.groups_to_xml(configuration.groups)
         self.iocs_xml = ConfigurationXmlConverter.iocs_to_xml(configuration.iocs)
-        self.subconfigs_xml = ConfigurationXmlConverter.subconfigs_to_xml(configuration.subconfigs)
+        self.components_xml = ConfigurationXmlConverter.components_to_xml(configuration.components)
 
 
 class MockConfigurationXmlConverter(object):
@@ -57,7 +57,7 @@ class MockConfigurationXmlConverter(object):
         self.blocks_xml = ""
         self.groups_xml = ""
         self.iocs_xml = ""
-        self.subconfigs_xml = ""
+        self.components_xml = ""
 
     def blocks_to_xml(self, blocks, macros):
         return self.blocks_xml
@@ -68,8 +68,8 @@ class MockConfigurationXmlConverter(object):
     def iocs_to_xml(self, iocs):
         return self.iocs_xml
 
-    def subconfigs_to_xml(self, subconfigs):
-        return self.subconfigs_xml
+    def components_to_xml(self, components):
+        return self.components_xml
 
     @staticmethod
     def groups_from_xml(xml, groups, blocks):

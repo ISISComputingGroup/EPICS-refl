@@ -9,7 +9,7 @@ TAG_VALUE = 'value'
 TAG_BLOCKS = 'blocks'
 TAG_GROUPS = 'groups'
 TAG_IOCS = 'iocs'
-TAG_SUBCONFIGS = 'components'
+TAG_COMPONENTS = 'components'
 TAG_MACROS = 'macros'
 TAG_PVS = 'pvs'
 TAG_PVSETS = 'pvsets'
@@ -18,7 +18,7 @@ TAG_EDITS = 'edits'
 TAG_BLOCK = 'block'
 TAG_GROUP = 'group'
 TAG_IOC = 'ioc'
-TAG_SUBCONFIG = 'component'
+TAG_COMPONENT = 'component'
 TAG_MACRO = 'macro'
 TAG_PV = 'pv'
 TAG_PVSET = 'pvset'
@@ -51,7 +51,7 @@ CONFIG_DIRECTORY = "configurations"
 COMPONENT_DIRECTORY = "components"
 SYNOPTIC_DIRECTORY = "synoptics"
 
-# Name of default component/subconfiguration that is loaded with every configuration.
+# Name of default component that is loaded with every configuration.
 # Contains essential IOCs (and blocks/groups?) e.g. DAE, INSTETC
 DEFAULT_COMPONENT = "_base"
 EXAMPLE_DEFAULT = os.path.join("BlockServer", "example_base")  # Relative to MYDIRBLOCK
@@ -59,7 +59,7 @@ EXAMPLE_DEFAULT = os.path.join("BlockServer", "example_base")  # Relative to MYD
 FILENAME_BLOCKS = "blocks.xml"
 FILENAME_GROUPS = "groups.xml"
 FILENAME_IOCS = "iocs.xml"
-FILENAME_SUBCONFIGS = "components.xml"
+FILENAME_COMPONENTS = "components.xml"
 FILENAME_META = "meta.xml"
 
-SCHEMA_FOR = [FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_SUBCONFIGS, FILENAME_META]
+SCHEMA_FOR = [FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_COMPONENTS, FILENAME_META]

@@ -3,7 +3,7 @@ import string
 
 from lxml import etree
 
-from BlockServer.core.constants import SCHEMA_FOR, COMPONENT_DIRECTORY, CONFIG_DIRECTORY, FILENAME_SUBCONFIGS
+from BlockServer.core.constants import SCHEMA_FOR, COMPONENT_DIRECTORY, CONFIG_DIRECTORY, FILENAME_COMPONENTS
 
 
 class NotConfigFileException(Exception):
@@ -59,13 +59,13 @@ class ConfigurationSchemaChecker(object):
         return valid
 
     @staticmethod
-    def check_config_file_matches_schema(schema_folder, config_xml_path, is_subconfig=False):
+    def check_config_file_matches_schema(schema_folder, config_xml_path, is_component=False):
         """Check the configuration file is schematically correct.
 
         Args:
             schema_folder (string) : The location of the schema files
             config_xml_path (string) : The location of the configuration
-            is_subconfig (bool) : Whether it is a component
+            is_component (bool) : Whether it is a component
         """
         folder, file_name = string.rsplit(config_xml_path, os.sep, 1)
         if file_name in SCHEMA_FOR:
@@ -80,7 +80,7 @@ class ConfigurationSchemaChecker(object):
 
         missing_files = set(SCHEMA_FOR).difference(set(os.listdir(folder)))
         if len(missing_files) != 0:
-            if not (is_subconfig and missing_files == [FILENAME_SUBCONFIGS]):
+            if not (is_component and missing_files == [FILENAME_COMPONENT]):
                 raise ConfigurationIncompleteException("Files missing in " + config_xml_path +
                                                        " (%s)" % ','.join(list(missing_files)))
 

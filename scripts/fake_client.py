@@ -14,22 +14,22 @@ TEST_CONFIG = {"iocs":
                  "macros": [],
                  "pvsets": [],
                  "pvs": [],
-                 "name": "SIMPLE", "subconfig": None},
+                 "name": "SIMPLE", "component": None},
                  ],
               "blocks":
                        [{"name": "testblock1", "local": True,
-                       "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": None, "visible": True},
+                       "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "component": None, "visible": True},
                         {"name": "testblock2", "local": True,
-                        "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": None, "visible": True},
+                        "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "component": None, "visible": True},
                         {"name": "testblock3", "local": True,
-                        "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": None, "visible": True}
+                        "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "component": None, "visible": True}
                        ],
               "components":
                            [],
               "groups":
-                       [{"blocks": ["testblock1"], "name": "Group1", "subconfig": None},
-                        {"blocks": ["testblock2"], "name": "Group2", "subconfig": None},
-                        {"blocks": ["testblock3"], "name": "NONE", "subconfig": None}],
+                       [{"blocks": ["testblock1"], "name": "Group1", "component": None},
+                        {"blocks": ["testblock2"], "name": "Group2", "component": None},
+                        {"blocks": ["testblock3"], "name": "NONE", "component": None}],
               "name": "",
               "description": "A test configuration",
               "history": ["2015-02-16"]
@@ -39,19 +39,19 @@ TEST_CONFIG = {"iocs":
 TEST_COMP = {"iocs":
                  [],
               "blocks":
-                       [{"name": "subtestblock1", "local": True,
-                       "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": None, "visible": True},
-                        {"name": "subtestblock2", "local": True,
-                        "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": None, "visible": True},
-                        {"name": "subtestblock3", "local": True,
-                        "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": None, "visible": True}
+                       [{"name": "comptestblock1", "local": True,
+                       "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "component": None, "visible": True},
+                        {"name": "comptestblock2", "local": True,
+                        "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "component": None, "visible": True},
+                        {"name": "comptestblock3", "local": True,
+                        "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "component": None, "visible": True}
                        ],
               "components":
                            [],
               "groups":
-                       [{"blocks": ["subtestblock1"], "name": "SubGroup1", "subconfig": None},
-                        {"blocks": ["subtestblock2"], "name": "Group2", "subconfig": None},
-                        {"blocks": ["subtestblock3"], "name": "NONE", "subconfig": None}],
+                       [{"blocks": ["comptestblock1"], "name": "CompGroup1", "component": None},
+                        {"blocks": ["comptestblock2"], "name": "Group2", "component": None},
+                        {"blocks": ["comptestblock3"], "name": "NONE", "component": None}],
               "name": "",
               "description": "A test component",
               "history": ["2015-02-16"]

@@ -15,22 +15,22 @@ class ConfigFileEventHandler(FileSystemEventHandler):
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and
     creates/removes available configurations as necessary.
     """
-    def __init__(self, root_path, schema_folder, schema_lock, config_list_manager, is_subconfig=False):
+    def __init__(self, root_path, schema_folder, schema_lock, config_list_manager, is_component=False):
         """Constructor.
 
         Args:
             root_path (string) : The location of the configurations and components
             schema_folder (string) : The location of the schemas
             config_list_manager (ConfigListManager) : The ConfigListManager
-            is_subconfig (bool) : Whether it is a component or not
+            is_component (bool) : Whether it is a component or not
         """
         self._schema_folder = schema_folder
-        self._is_subconfig = is_subconfig
+        self._is_comp = is_component
         self._schema_lock = schema_lock
         self._root_path = root_path
         self._config_list = config_list_manager
 
-        if self._is_subconfig:
+        if self._is_comp:
             self._watching_path = os.path.join(self._root_path, COMPONENT_DIRECTORY)
         else:
             self._watching_path = os.path.join(self._root_path, CONFIG_DIRECTORY)
@@ -46,14 +46,14 @@ class ConfigFileEventHandler(FileSystemEventHandler):
                 try:
                     if type(event) is FileMovedEvent:
                         modified_path = event.dest_path
-                        self._config_list.delete_configs([self._get_config_name(event.src_path)], self._is_subconfig)
+                        self._config_list.delete_configs([self._get_config_name(event.src_path)], self._is_comp)
                     else:
                         modified_path = event.src_path
 
                     conf = self._check_config_valid(modified_path)
 
                     # Update PVs
-                    self._config_list.update_a_config_in_list_filewatcher(conf, self._is_subconfig)
+                    self._config_list.update_a_config_in_list_filewatcher(conf, self._is_comp)
 
                     # Inform user
                     print_and_log("The configuration, %s, has been modified in the filesystem, ensure it is added to "
@@ -86,11 +86,11 @@ class ConfigFileEventHandler(FileSystemEventHandler):
             raise NotConfigFileException("File in root directory")
 
         with self._schema_lock:
-            ConfigurationSchemaChecker.check_config_file_matches_schema(self._schema_folder, path, self._is_subconfig)
+            ConfigurationSchemaChecker.check_config_file_matches_schema(self._schema_folder, path, self._is_comp)
 
         # Check can load into config
         try:
-            ic = self._config_list.load_config(self._get_config_name(path), self._is_subconfig)
+            ic = self._config_list.load_config(self._get_config_name(path), self._is_comp)
         except Exception as err:
             print_and_log("File Watcher, loading config: " + str(err), "INFO", "FILEWTCHR")
 
@@ -105,7 +105,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         Returns:
             list : The parts of the file path in order
         """
-        if not self._is_subconfig:
+        if not self._is_comp:
             rel_path = string.replace(path, os.path.join(self._root_path, CONFIG_DIRECTORY), '')
         else:
             rel_path = string.replace(path, os.path.join(self._root_path, COMPONENT_DIRECTORY), '')

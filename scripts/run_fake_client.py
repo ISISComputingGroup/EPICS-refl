@@ -77,7 +77,7 @@ sleep(3)
 # Add a block
 print "Adding a block"
 copy = TEST_CONFIG
-copy["blocks"] = [{"name": "TESTBLOCK1", "local": True, "pv": "SIMPLE:VALUE1", "subconfig": None, "visible": True}] 
+copy["blocks"] = [{"name": "TESTBLOCK1", "local": True, "pv": "SIMPLE:VALUE1", "component": None, "visible": True}]
 set_curr_config_details("TEST_CONFIG", copy)
 
 # Get RC parameters

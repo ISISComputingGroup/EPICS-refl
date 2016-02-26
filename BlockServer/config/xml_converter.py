@@ -43,8 +43,8 @@ class ConfigurationXmlConverter(object):
         root.attrib["xmlns:blk"] = SCHEMA_PATH + BLOCK_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, block in blocks.iteritems():
-            # Don't save if in subconfig
-            if block.subconfig is None:
+            # Don't save if in component
+            if block.component is None:
                 ConfigurationXmlConverter._block_to_xml(root, block, macros)
 
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
@@ -89,13 +89,13 @@ class ConfigurationXmlConverter(object):
         root.attrib["xmlns:ioc"] = SCHEMA_PATH + IOC_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name in iocs.keys():
-            # Don't save if in subconfig
-            if iocs[name].subconfig is None:
+            # Don't save if in component
+            if iocs[name].component is None:
                 ConfigurationXmlConverter._ioc_to_xml(root, iocs[name])
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
     @staticmethod
-    def subconfigs_to_xml(comps):
+    def components_to_xml(comps):
         """ Generates an XML representation for a supplied dictionary of components.
 
         Args:
@@ -104,12 +104,12 @@ class ConfigurationXmlConverter(object):
         Returns:
             string : The XML representation of the components in a configuration
         """
-        root = ElementTree.Element(TAG_SUBCONFIGS)
+        root = ElementTree.Element(TAG_COMPONENTS)
         root.attrib["xmlns"] = SCHEMA_PATH + COMPONENT_SCHEMA
         root.attrib["xmlns:comp"] = SCHEMA_PATH + COMPONENT_SCHEMA
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, case_sensitve_name in comps.iteritems():
-            ConfigurationXmlConverter._subconfig_to_xml(root, case_sensitve_name)
+            ConfigurationXmlConverter._component_to_xml(root, case_sensitve_name)
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
     @staticmethod
@@ -214,9 +214,9 @@ class ConfigurationXmlConverter(object):
         value_list_to_xml(ioc.pvsets, grp, TAG_PVSETS, TAG_PVSET)
 
     @staticmethod
-    def _subconfig_to_xml(root_xml, name):
-        """Generates the XML for a subconfig"""
-        grp = ElementTree.SubElement(root_xml, TAG_SUBCONFIG)
+    def _component_to_xml(root_xml, name):
+        """Generates the XML for a component"""
+        grp = ElementTree.SubElement(root_xml, TAG_COMPONENT)
         grp.set(TAG_NAME, name)
 
     @staticmethod
@@ -367,18 +367,18 @@ class ConfigurationXmlConverter(object):
                     raise Exception("Tag not found in ioc.xml (" + str(err) + ")")
 
     @staticmethod
-    def subconfigs_from_xml(root_xml, subconfigs):
+    def components_from_xml(root_xml, components):
         """Populates the supplied dictionary of components based on an XML tree.
 
         Args:
             root_xml (ElementTree.Element) : The XML tree object
-            subconfigs (OrderedDict) : The components dictionary
+            components (OrderedDict) : The components dictionary
         """
-        subconfigs_xml = root_xml.findall("./" + TAG_SUBCONFIG)
-        for i in subconfigs_xml:
+        components_xml = root_xml.findall("./" + TAG_COMPONENT)
+        for i in components_xml:
             n = i.attrib[TAG_NAME]
             if n is not None and n != "":
-                subconfigs[n.lower()] = n
+                components[n.lower()] = n
 
     @staticmethod
     def meta_from_xml(root_xml, data):

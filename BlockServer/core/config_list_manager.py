@@ -12,7 +12,7 @@ from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 
 
 GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
-GET_SUBCONFIG_PV = ":GET_COMPONENT_DETAILS"
+GET_COMPONENT_PV = ":GET_COMPONENT_DETAILS"
 DEPENDENCIES_PV = ":DEPENDENCIES"
 CONFIG_CHANGED_PV = ":CURR_CONFIG_CHANGED"
 
@@ -44,7 +44,7 @@ class ConfigListManager(object):
             vc_manager (ConfigVersionControl) : The object for managing version control
         """
         self._config_metas = dict()
-        self._subconfig_metas = dict()
+        self._component_metas = dict()
         self._comp_dependecncies = dict()
         self._ca_server = server
         self._config_folder = config_folder
@@ -87,10 +87,10 @@ class ConfigListManager(object):
     def _get_config_names(self):
         return self._get_file_list(os.path.abspath(self._conf_path))
 
-    def _get_subconfig_names(self):
-        sub_conf_list = self._get_file_list(os.path.abspath(self._comp_path))
+    def _get_component_names(self):
+        comp_list = self._get_file_list(os.path.abspath(self._comp_path))
         l = list()
-        for cn in sub_conf_list:
+        for cn in comp_list:
             l.append(cn)
         return l
 
@@ -111,25 +111,25 @@ class ConfigListManager(object):
             configs_string.append(config.to_dict())
         return configs_string
 
-    def get_subconfigs(self):
+    def get_components(self):
         """Returns all of the valid components, made up of those found on startup and those subsequently created.
 
         Returns:
             list : A list of available components
         """
-        subconfigs_string = list()
-        for cn, cv in self._subconfig_metas.iteritems():
+        comps = list()
+        for cn, cv in self._component_metas.iteritems():
             if cn.lower() != DEFAULT_COMPONENT.lower():
-                subconfigs_string.append(cv.to_dict())
-        return subconfigs_string
+                comps.append(cv.to_dict())
+        return comps
 
     def _import_configs(self, schema_folder):
         # Create the pvs and get meta data
         config_list = self._get_config_names()
-        subconfig_list = self._get_subconfig_names()
+        comp_list = self._get_component_names()
 
         # Must load components first for them all to be known in dependencies
-        for comp_name in subconfig_list:
+        for comp_name in comp_list:
             try:
                 path = os.path.join(self._comp_path, comp_name) + os.sep
                 ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path, True)
@@ -137,10 +137,10 @@ class ConfigListManager(object):
                 self.update_a_config_in_list(config, True)
                 self._vc.add(path)
             except Exception as err:
-                print_and_log("Error in loading subconfig: " + str(err), "MINOR")
+                print_and_log("Error in loading component: " + str(err), "MINOR")
 
         # Create default if it does not exist
-        if DEFAULT_COMPONENT.lower() not in subconfig_list:
+        if DEFAULT_COMPONENT.lower() not in comp_list:
             ConfigurationFileManager.copy_default(self._comp_path)
 
         for config_name in config_list:
@@ -156,51 +156,51 @@ class ConfigListManager(object):
         # Add files to version control
         self._vc.commit("Blockserver started, configs updated")
 
-    def load_config(self, name, is_subconfig=False):
+    def load_config(self, name, is_component=False):
         """Loads an inactive configuration or component.
 
         Args:
             name (string) : The name of the configuration to load
-            is_subconfig (bool) : Whether it is a component or not
+            is_component (bool) : Whether it is a component or not
 
         Returns:
             InactiveConfigHolder : The holder for the requested configuration
         """
         config = InactiveConfigHolder(self._config_folder, MACROS, self._vc)
-        config.load_inactive(name, is_subconfig)
+        config.load_inactive(name, is_component)
         return config
 
-    def _update_subconfig_dependencies_pv(self, name):
-        # Updates PV with list of configs that depend on a subconfig
+    def _update_component_dependencies_pv(self, name):
+        # Updates PV with list of configs that depend on a component
         configs = []
         if name in self._comp_dependecncies.keys():
             configs = self._comp_dependecncies[name]
-        if name in self._subconfig_metas.keys():
-            # Check just in case sub-config failed to load
-            self._ca_server.updatePV(self._subconfig_metas[name].pv + DEPENDENCIES_PV,
+        if name in self._component_metas.keys():
+            # Check just in case component failed to load
+            self._ca_server.updatePV(self._component_metas[name].pv + DEPENDENCIES_PV,
                                      compress_and_hex(json.dumps(configs)))
 
     def _update_config_pv(self, name, data):
         # Updates pvs with new data
         self._ca_server.updatePV(self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(json.dumps(data)))
 
-    def _update_subconfig_pv(self, name, data):
+    def _update_component_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(self._subconfig_metas[name].pv + GET_SUBCONFIG_PV, compress_and_hex(json.dumps(data)))
+        self._ca_server.updatePV(self._component_metas[name].pv + GET_COMPONENT_PV, compress_and_hex(json.dumps(data)))
 
-    def update_a_config_in_list_filewatcher(self, config, is_subconfig=False):
+    def update_a_config_in_list_filewatcher(self, config, is_component=False):
         """Updates the PVs associated with a configuration
 
         Args:
             config (ConfigHolder) : The configuration holder
-            is_subconfig (bool) : Whether it is a component or not
+            is_component (bool) : Whether it is a component or not
         """
         with self._lock:
             # Update dynamic PVs
-            self.update_a_config_in_list(config, is_subconfig)
+            self.update_a_config_in_list(config, is_component)
 
             # Update static PVs (some of these aren't completely necessary)
-            if is_subconfig:
+            if is_component:
                 self._block_server.update_comp_monitor()
                 if config.get_config_name().lower() in [x.lower() for x in self.active_components]:
                     print_and_log("Active component edited in filesystem, reloading to get changes",
@@ -214,29 +214,29 @@ class ConfigListManager(object):
                                   src="FILEWTCHR")
                     self.set_active_changed(True)
 
-    def update_a_config_in_list(self, config, is_subconfig=False):
+    def update_a_config_in_list(self, config, is_component=False):
         """Takes a ConfigServerManager object and updates the list of meta data and the individual PVs.
 
         Args:
             config (ConfigHolder) : The configuration holder
-            is_subconfig (bool) : Whether it is a component or not
+            is_component (bool) : Whether it is a component or not
         """
         name = config.get_config_name()
         name_lower = name.lower()
 
         # Get pv name (create if doesn't exist)
-        pv_name = self._get_pv_name(name_lower, is_subconfig)
+        pv_name = self._get_pv_name(name_lower, is_component)
 
         # Get meta data from config
         meta = config.get_config_meta()
         meta.pv = pv_name
 
         # Add metas and update pvs appropriately
-        if is_subconfig:
+        if is_component:
             if name_lower is not DEFAULT_COMPONENT.lower():
-                self._subconfig_metas[name_lower] = meta
-                self._update_subconfig_pv(name_lower, config.get_config_details())
-                self._update_subconfig_dependencies_pv(name_lower.lower())
+                self._component_metas[name_lower] = meta
+                self._update_component_pv(name_lower, config.get_config_details())
+                self._update_component_dependencies_pv(name_lower.lower())
         else:
             if name_lower in self._config_metas.keys():
                 # Config already exists
@@ -252,28 +252,28 @@ class ConfigListManager(object):
                     self._comp_dependecncies[comp.lower()].append(config.get_config_name())
                 else:
                     self._comp_dependecncies[comp.lower()] = [config.get_config_name()]
-                self._update_subconfig_dependencies_pv(comp.lower())
+                self._update_component_dependencies_pv(comp.lower())
 
     def _remove_config_from_dependencies(self, config):
         # Remove old config from dependencies list
         for comp, confs in self._comp_dependecncies.iteritems():
             if config in confs:
                 self._comp_dependecncies[comp].remove(config)
-                self._update_subconfig_dependencies_pv(comp)
+                self._update_component_dependencies_pv(comp)
 
-    def _get_pv_name(self, config_name, is_subconfig=False):
+    def _get_pv_name(self, config_name, is_component=False):
         """Returns the name of the pv corresponding to config_name, this name is generated if not already created."""
-        if not is_subconfig:
+        if not is_component:
             if config_name in self._config_metas:
                 pv_name = self._config_metas[config_name].pv
             else:
                 curr_pvs = [meta.pv for meta in self._config_metas.values()]
                 pv_name = create_pv_name(config_name, curr_pvs, "CONFIG")
         else:
-            if config_name in self._subconfig_metas:
-                pv_name = self._subconfig_metas[config_name].pv
+            if config_name in self._component_metas:
+                pv_name = self._component_metas[config_name].pv
             else:
-                curr_pvs = [meta.pv for meta in self._subconfig_metas.values()]
+                curr_pvs = [meta.pv for meta in self._component_metas.values()]
                 pv_name = create_pv_name(config_name, curr_pvs, "COMPONENT")
         return pv_name
 
@@ -282,18 +282,18 @@ class ConfigListManager(object):
             self._vc.remove(os.path.join(folder, config))
         self._vc.commit("Deleted %s" % ', '.join(list(files)))
 
-    def delete_configs(self, delete_list, are_subconfigs=False):
+    def delete_configs(self, delete_list, are_comps=False):
         """Takes a list of configurations and removes them from the file system and any relevant PVs.
 
         Args:
             delete_list (list) : The configurations/components to delete
-            are_subconfigs (bool) : Whether they are components or not
+            are_comps (bool) : Whether they are components or not
         """
         with self._lock:
             # TODO: clean this up?
             print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
             lower_delete_list = set([x.lower() for x in delete_list])
-            if not are_subconfigs:
+            if not are_comps:
                 if self.active_config_name.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete currently active configuration")
                 if not lower_delete_list.issubset(self._config_metas.keys()):
@@ -310,12 +310,12 @@ class ConfigListManager(object):
                 for comp in lower_delete_list:
                     if self._comp_dependecncies.get(comp):
                         raise InvalidDeleteException(comp + " is in use in: " + ', '.join(self._comp_dependecncies[comp]))
-                if not lower_delete_list.issubset(self._subconfig_metas.keys()):
+                if not lower_delete_list.issubset(self._component_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown components")
                 for comp in lower_delete_list:
-                    self._ca_server.deletePV(self._subconfig_metas[comp].pv + GET_SUBCONFIG_PV)
-                    self._ca_server.deletePV(self._subconfig_metas[comp].pv + DEPENDENCIES_PV)
-                    del self._subconfig_metas[comp]
+                    self._ca_server.deletePV(self._component_metas[comp].pv + GET_COMPONENT_PV)
+                    self._ca_server.deletePV(self._component_metas[comp].pv + DEPENDENCIES_PV)
+                    del self._component_metas[comp]
                 self._update_version_control_post_delete(self._comp_path, delete_list)
 
     def get_dependencies(self, comp_name):

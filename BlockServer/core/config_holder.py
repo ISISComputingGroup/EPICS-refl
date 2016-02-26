@@ -18,14 +18,14 @@ class ConfigHolder(object):
 
     Holds a configuration which can then be manpulated via this class.
     """
-    def __init__(self, config_folder, macros, vc_manager, is_subconfig=False, file_manager=ConfigurationFileManager(),
+    def __init__(self, config_folder, macros, vc_manager, is_component=False, file_manager=ConfigurationFileManager(),
                  test_config=None):
         """ Constructor.
 
         Args:
             config_folder (string) : The folder where configurations and components are saved
             macros (dict) : The dictionary containing the macros
-            is_subconfig (bool) : Defines whether the configuration held is a component or not
+            is_component (bool) : Defines whether the configuration held is a component or not
             file_manager (ConfigurationFileManager) : The object used to save the configuration
             test_config (Configuration) : A dummy configuration used for the unit tests
         """
@@ -34,7 +34,7 @@ class ConfigHolder(object):
         else:
             self._config = test_config
         self._components = OrderedDict()
-        self._is_subconfig = is_subconfig
+        self._is_comp = is_component
         self._macros = macros
         self._vc = vc_manager
 
@@ -57,9 +57,9 @@ class ConfigHolder(object):
         """
         self._config = Configuration(self._macros)
         self._components = OrderedDict()
-        self._is_subconfig = False
+        self._is_comp = False
 
-    def add_subconfig(self, name, component):
+    def add_component(self, name, component):
         """ Add a component to the configuration.
 
         Args:
@@ -67,18 +67,18 @@ class ConfigHolder(object):
             component (Component) : The component object to be added
         """
         # Add it to the holder
-        if self._is_subconfig:
+        if self._is_comp:
             raise Exception("Can not add a component to a component")
 
         if name.lower() not in self._components:
             # Add it
             component.set_name(name)
             self._components[name.lower()] = component
-            self._config.subconfigs[name.lower()] = name  # Only needs its case sensitive name name
+            self._config.components[name.lower()] = name  # Only needs its case sensitive name name
         else:
             raise Exception("Requested component is already part of the configuration: " + str(name))
 
-    def remove_subconfig(self, name):
+    def remove_comp(self, name):
         """ Removes a component from the configuration.
 
         This is not needed as part of the BlockServer as such, but it helps with unit testing.
@@ -87,10 +87,10 @@ class ConfigHolder(object):
             name (string) : The name of the component to remove
         """
         # Remove it from the holder
-        if self._is_subconfig:
+        if self._is_comp:
             raise Exception("Can not remove a component from a component")
         del self._components[name.lower()]
-        del self._config.subconfigs[name.lower()]
+        del self._config.components[name.lower()]
 
     def get_blocknames(self):
         """ Get all the blocknames including those in the components.
@@ -143,7 +143,7 @@ class ConfigHolder(object):
                         groups[gn].blocks = blks
                         used_blocks.extend(blks)
                 else:
-                    # If group exists then append with subconfig group
+                    # If group exists then append with component group
                     # But don't add any duplicate blocks or blocks that don't exist
                     for bn in grp.blocks:
                         if bn not in groups[gn].blocks and bn not in used_blocks and bn in blocks:
@@ -170,7 +170,7 @@ class ConfigHolder(object):
                         self._config.groups[grp["name"].lower()].blocks.append(blk)
                         homeless_blocks.remove(blk)
             else:
-                # Not in config yet, so add it (it will override settings in any subconfigs)
+                # Not in config yet, so add it (it will override settings in any components)
                 # Only add it if there are actually blocks
                 if len(grp["blocks"]) > 0:
                     self._config.groups[grp["name"].lower()] = Group(grp["name"])
@@ -266,17 +266,17 @@ class ConfigHolder(object):
         """
         self._config.add_block(**blockargs)
 
-    def _add_ioc(self, name, subconfig=None, autostart=True, restart=True, macros=None, pvs=None, pvsets=None,
-                simlevel=None):
+    def _add_ioc(self, name, component=None, autostart=True, restart=True, macros=None, pvs=None, pvsets=None,
+                 simlevel=None):
         # TODO: use IOC object instead?
-        if subconfig is None:
+        if component is None:
             self._config.add_ioc(name, None, autostart, restart, macros, pvs, pvsets, simlevel)
         else:
-            if subconfig.lower() in self._components:
-                self._components[subconfig.lower()].add_ioc(name, subconfig, autostart, restart, macros, pvs, pvsets,
+            if component.lower() in self._components:
+                self._components[component.lower()].add_ioc(name, component, autostart, restart, macros, pvs, pvsets,
                                                             simlevel)
             else:
-                raise Exception("No component called %s" % subconfig)
+                raise Exception("No component called %s" % component)
 
     def get_config_details(self):
         """ Get the details of the configuration.
@@ -286,7 +286,7 @@ class ConfigHolder(object):
         """
         config = dict()
 
-        # Blocks, groups and IOC include the subconfig ones
+        # Blocks, groups and IOC include the component ones
         config['blocks'] = self._blocks_to_list(True)
         config['groups'] = self._groups_to_list()
         config['iocs'] = self._iocs_to_list()
@@ -364,7 +364,7 @@ class ConfigHolder(object):
                     pvs = self._to_dict(ioc.get('pvs'))
                     pvsets = self._to_dict(ioc.get('pvsets'))
 
-                    if ioc.get('subconfig') is not None:
+                    if ioc.get('component') is not None:
                         raise Exception('Cannot override iocs from components')
 
                     self._add_ioc(ioc['name'], autostart=ioc.get('autostart'), restart=ioc.get('restart'),
@@ -373,13 +373,13 @@ class ConfigHolder(object):
             if "blocks" in details:
                 # List of dicts
                 for args in details["blocks"]:
-                    if args.get('subconfig') is not None:
+                    if args.get('component') is not None:
                         raise Exception('Cannot override blocks from components')
                     self.add_block(args)
             if "groups" in details:
                 # List of dicts
                 for args in details["groups"]:
-                    if args.get('subconfig') is not None:
+                    if args.get('component') is not None:
                         raise Exception('Cannot override groups from components')
                     self._set_group_details(details['groups'])
             if "name" in details:
@@ -395,7 +395,7 @@ class ConfigHolder(object):
                 # List of dicts
                 for args in details["components"]:
                     comp = self.load_configuration(args['name'], True)
-                    self.add_subconfig(comp.get_name(), comp)
+                    self.add_component(comp.get_name(), comp)
         except Exception as err:
             self._retrieve_cache()
             raise err
@@ -417,25 +417,25 @@ class ConfigHolder(object):
         """
         self.clear_config()
         self._config = config
-        self._is_subconfig = is_component
+        self._is_comp = is_component
         self._components = OrderedDict()
         if not is_component:
-            for n, v in config.subconfigs.iteritems():
+            for n, v in config.components.iteritems():
                 if n.lower() != DEFAULT_COMPONENT.lower():
                     comp = self.load_configuration(v.lower(), True)
-                    self.add_subconfig(v, comp)
-            # add default subconfig to list of subconfigs
+                    self.add_component(v, comp)
+            # add default component to list of components
             basecomp = self.load_configuration(DEFAULT_COMPONENT, True)
-            self.add_subconfig(DEFAULT_COMPONENT, basecomp)
+            self.add_component(DEFAULT_COMPONENT, basecomp)
 
     def _set_component_names(self, comp, name):
-        # Set the subconfig for blocks, groups and IOCs
+        # Set the component for blocks, groups and IOCs
         for n, v in comp.blocks.iteritems():
-            v.subconfig = name
+            v.component = name
         for n, v in comp.groups.iteritems():
-            v.subconfig = name
+            v.component = name
         for n, v in comp.iocs.iteritems():
-            v.subconfig = name
+            v.component = name
 
     def load_configuration(self, name, is_component=False, set_component_names=True):
         """ Load a configuration.
@@ -463,10 +463,10 @@ class ConfigHolder(object):
             as_component (bool) : Whether to save as a component
         """
         self._check_name(name, as_component)
-        if self._is_subconfig != as_component:
-            self._set_as_subconfig(as_component)
+        if self._is_comp != as_component:
+            self._set_as_component(as_component)
 
-        if self._is_subconfig:
+        if self._is_comp:
             self._set_config_name(name)
             self._filemanager.save_config(self._config, self._component_path, name)
             self._update_version_control(name)
@@ -489,7 +489,7 @@ class ConfigHolder(object):
             raise Exception("Configuration name contains invalid characters")
 
     def _update_version_control(self, name):
-        if self._is_subconfig:
+        if self._is_comp:
             path = self._component_path
         else:
             path = self._config_path
@@ -497,14 +497,14 @@ class ConfigHolder(object):
         self._vc.add(os.path.join(path, name))
         self._vc.commit("%s modified by client" % name)
 
-    def _set_as_subconfig(self, value):
+    def _set_as_component(self, value):
         if value is True:
             if len(self._components) == 0:
-                self._is_subconfig = True
+                self._is_comp = True
             else:
                 raise Exception("Can not cast to a component as the configuration contains at least one component")
         else:
-            self._is_subconfig = False
+            self._is_comp = False
 
     def update_runcontrol_settings_for_saving(self, rc_data):
         """ Updates the run-control settings stored in the configuration so they can be saved.

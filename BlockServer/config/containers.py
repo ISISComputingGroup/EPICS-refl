@@ -10,7 +10,7 @@ class Block(object):
             pv (string) : The PV pointed at
             local (bool) : Whether the PV is local to the instrument
             visible (bool) : Whether the block should be shown
-            subconfig (string) : The component the block belongs to
+            component (string) : The component the block belongs to
 
             runcontrol (bool) : Whether run-control is enabled
             lowlimt (float) : The low limit for run-control
@@ -20,7 +20,7 @@ class Block(object):
             arch_rate (float) : Time between archive samples (in seconds)
             arch_deadband (float) : Deadband for the block to be archived
     """
-    def __init__(self, name, pv, local=True, visible=True, subconfig=None, runcontrol=False, lowlimit=None,
+    def __init__(self, name, pv, local=True, visible=True, component=None, runcontrol=False, lowlimit=None,
                  highlimit=None, log_periodic=False, log_rate=5, log_deadband=0):
         """ Constructor.
 
@@ -29,7 +29,7 @@ class Block(object):
             pv (string) : The PV pointed at
             local (bool) : Whether the PV is local to the instrument
             visible (bool) : Whether the block should be shown
-            subconfig (string) : The component the block belongs to
+            component (string) : The component the block belongs to
 
             runcontrol (bool) : Whether run-control is enabled
             lowlimt (float) : The low limit for run-control
@@ -43,7 +43,7 @@ class Block(object):
         self.pv = pv
         self.local = local
         self.visible = visible
-        self.subconfig = subconfig
+        self.component = component
         self.rc_lowlimit = lowlimit
         self.rc_highlimit = highlimit
         self.rc_enabled = runcontrol
@@ -67,8 +67,8 @@ class Block(object):
         self.visible = visible
 
     def __str__(self):
-        data = "Name: %s, PV: %s, Local: %s, Visible: %s, Subconfig: %s" \
-               % (self.name, self.pv, self.local, self.visible, self.subconfig)
+        data = "Name: %s, PV: %s, Local: %s, Visible: %s, Component: %s" \
+               % (self.name, self.pv, self.local, self.visible, self.component)
         data += ", RCEnabled: %s, RCLow: %s, RCHigh: %s" \
                 % (self.rc_enabled, self.rc_lowlimit, self.rc_highlimit)
         return data
@@ -80,7 +80,7 @@ class Block(object):
             dict : The block's details
         """
         return {"name": self.name, "pv": self._get_pv(), "local": self.local,
-                "visible": self.visible, "subconfig": self.subconfig, "runcontrol": self.rc_enabled,
+                "visible": self.visible, "component": self.component, "runcontrol": self.rc_enabled,
                 "lowlimit": self.rc_lowlimit, "highlimit": self.rc_highlimit,
                 "log_periodic": self.log_periodic, "log_rate": self.log_rate, "log_deadband": self.log_deadband}
 
@@ -91,21 +91,21 @@ class Group(object):
         Attributes:
             name (string) : The name of the group
             blocks (dict) : The blocks that are in the group
-            subconfig (string) : The component the group belongs to
+            component (string) : The component the group belongs to
     """
-    def __init__(self, name, subconfig=None):
+    def __init__(self, name, component=None):
         """ Constructor.
 
         Args:
             name (string) : The name for the group
-            subconfig (string) : The component to which the group belongs
+            component (string) : The component to which the group belongs
         """
         self.name = name
         self.blocks = []
-        self.subconfig = subconfig
+        self.component = component
 
     def __str__(self):
-        data = "Name: %s, Subconfig: %s, Blocks: %s" % (self.name, self.subconfig, self.blocks)
+        data = "Name: %s, Component: %s, Blocks: %s" % (self.name, self.component, self.blocks)
         return data
 
     def to_dict(self):
@@ -114,7 +114,7 @@ class Group(object):
         Returns:
             dict : The group's details
         """
-        return {'name': self.name, 'blocks': self.blocks, "subconfig": self.subconfig}
+        return {'name': self.name, 'blocks': self.blocks, "component": self.component}
 
 
 class IOC(object):
@@ -124,13 +124,13 @@ class IOC(object):
         name (string) : The name of the IOC
         autostart (bool) : Whether the IOC should automatically start
         restart (bool) : Whether the IOC should automatically restart
-        subconfig (string) : The component the IOC belongs to
+        component (string) : The component the IOC belongs to
         macros (dict) : The IOC's macros
         pvs (dict) : The IOC's PVs
         pvsets (dict) : The IOC's PV sets
         simlevel (string) : The level of simulation
     """
-    def __init__(self, name, autostart=True, restart=True, subconfig=None, macros=None, pvs=None, pvsets=None,
+    def __init__(self, name, autostart=True, restart=True, component=None, macros=None, pvs=None, pvsets=None,
                  simlevel=None):
         """ Constructor.
 
@@ -138,7 +138,7 @@ class IOC(object):
             name (string) : The name of the IOC
             autostart (bool) : Whether the IOC should automatically start
             restart (bool) : Whether the IOC should automatically restart
-            subconfig (string) : The component the IOC belongs to
+            component (string) : The component the IOC belongs to
             macros (dict) : The IOC's macros
             pvs (dict) : The IOC's PVs
             pvsets (dict) : The IOC's PV sets
@@ -147,7 +147,7 @@ class IOC(object):
         self.name = name
         self.autostart = autostart
         self.restart = restart
-        self.subconfig = subconfig
+        self.component = component
 
         if simlevel is None:
             self.simlevel = "None"
@@ -189,7 +189,7 @@ class IOC(object):
         return out_list
 
     def __str__(self):
-        data = "Name: %s, Subconfig: %s" % (self.name, self.subconfig)
+        data = "Name: %s, Component: %s" % (self.name, self.component)
         return data
 
     def to_dict(self):
@@ -201,7 +201,7 @@ class IOC(object):
         return {'name': self.name, 'autostart': self.autostart, 'restart': self.restart,
                 'simlevel': self.simlevel, 'pvs': self._dict_to_list(self.pvs),
                 'pvsets': self._dict_to_list(self.pvsets), 'macros': self._dict_to_list(self.macros),
-                'subconfig': self.subconfig}
+                'component': self.component}
 
 
 class MetaData(object):
