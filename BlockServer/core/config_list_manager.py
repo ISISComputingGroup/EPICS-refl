@@ -32,23 +32,22 @@ class ConfigListManager(object):
     """ Class to handle data on all available configurations and manage their associated PVs.
 
     Attributes:
-        active_config_name (string) : The name of the active configuration
-        active_components (list) : The names of the components in the active configuration
+        active_config_name (string): The name of the active configuration
+        active_components (list): The names of the components in the active configuration
     """
-    def __init__(self, block_server, config_folder, server, schema_folder, vc_manager):
+    def __init__(self, block_server, server, schema_folder, vc_manager):
         """Constructor.
 
         Args:
-            block_server (BlockServer) : A reference to the BlockServer itself
-            server (CAServer) : A reference to the CaServer of the BlockServer
-            schema_folder (string) : The location of the schemas for validation
-            vc_manager (ConfigVersionControl) : The object for managing version control
+            block_server (BlockServer): A reference to the BlockServer itself
+            server (CAServer): A reference to the CaServer of the BlockServer
+            schema_folder (string): The location of the schemas for validation
+            vc_manager (ConfigVersionControl): The object for managing version control
         """
         self._config_metas = dict()
         self._subconfig_metas = dict()
         self._comp_dependecncies = dict()
         self._ca_server = server
-        self._config_folder = FILEPATH_MANAGER.config_root_dir
         self._block_server = block_server
         self.active_config_name = ""
         self.active_components = []
@@ -80,7 +79,7 @@ class ConfigListManager(object):
         """Set the flag to indicate whether the active configuration has changed or not.
 
         Args:
-            value (bool) : Whether the active configuration has changed or not
+            value (bool): Whether the active configuration has changed or not
         """
         self._active_changed = value
         self._ca_server.updatePV(CONFIG_CHANGED_PV, self.get_active_changed())
@@ -132,7 +131,7 @@ class ConfigListManager(object):
         # Must load components first for them all to be known in dependencies
         for comp_name in subconfig_list:
             try:
-                path = os.path.join(self._comp_path, comp_name) + os.sep
+                path = FILEPATH_MANAGER.get_component_path(comp_name)
                 ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path, True)
                 config = self.load_config(comp_name, True)
                 self.update_a_config_in_list(config, True)
@@ -146,7 +145,7 @@ class ConfigListManager(object):
 
         for config_name in config_list:
             try:
-                path = os.path.join(self._conf_path, config_name) + os.sep
+                path = FILEPATH_MANAGER.get_config_path(config_name)
                 ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path)
                 config = self.load_config(config_name)
                 self.update_a_config_in_list(config)
@@ -161,13 +160,13 @@ class ConfigListManager(object):
         """Loads an inactive configuration or component.
 
         Args:
-            name (string) : The name of the configuration to load
-            is_subconfig (bool) : Whether it is a component or not
+            name (string): The name of the configuration to load
+            is_subconfig (bool): Whether it is a component or not
 
         Returns:
             InactiveConfigHolder : The holder for the requested configuration
         """
-        config = InactiveConfigHolder(self._config_folder, MACROS, self._vc)
+        config = InactiveConfigHolder(MACROS, self._vc)
         config.load_inactive(name, is_subconfig)
         return config
 
@@ -193,8 +192,8 @@ class ConfigListManager(object):
         """Updates the PVs associated with a configuration
 
         Args:
-            config (ConfigHolder) : The configuration holder
-            is_subconfig (bool) : Whether it is a component or not
+            config (ConfigHolder): The configuration holder
+            is_subconfig (bool): Whether it is a component or not
         """
         with self._lock:
             # Update dynamic PVs
@@ -219,8 +218,8 @@ class ConfigListManager(object):
         """Takes a ConfigServerManager object and updates the list of meta data and the individual PVs.
 
         Args:
-            config (ConfigHolder) : The configuration holder
-            is_subconfig (bool) : Whether it is a component or not
+            config (ConfigHolder): The configuration holder
+            is_subconfig (bool): Whether it is a component or not
         """
         name = config.get_config_name()
         name_lower = name.lower()
@@ -287,8 +286,8 @@ class ConfigListManager(object):
         """Takes a list of configurations and removes them from the file system and any relevant PVs.
 
         Args:
-            delete_list (list) : The configurations/components to delete
-            are_subconfigs (bool) : Whether they are components or not
+            delete_list (list): The configurations/components to delete
+            are_subconfigs (bool): Whether they are components or not
         """
         with self._lock:
             # TODO: clean this up?
@@ -323,7 +322,7 @@ class ConfigListManager(object):
         """Get the names of any configurations that depend on this component.
 
         Args:
-            comp_name (string) : The name of the component
+            comp_name (string): The name of the component
 
         Returns:
             list : The configurations that depend on the component

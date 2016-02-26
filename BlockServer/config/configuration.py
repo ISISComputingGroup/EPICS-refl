@@ -10,19 +10,19 @@ class Configuration(object):
     """ The Configuration class.
 
     Attributes:
-        blocks (OrderedDict) : The blocks for the configuration
-        macros (dict) : The EPICS/BlockServer related macros
-        groups (OrderedDict) : The groups for the configuration
-        iocs (OrderedDict) : The IOCs for the configuration
-        meta (MetaData) : The meta-data for the configuration
-        subconfigs (OrderedDict) : The components which are part of the configuration
-        is_component (bool) : Whether it is actually a component
+        blocks (OrderedDict): The blocks for the configuration
+        macros (dict): The EPICS/BlockServer related macros
+        groups (OrderedDict): The groups for the configuration
+        iocs (OrderedDict): The IOCs for the configuration
+        meta (MetaData): The meta-data for the configuration
+        subconfigs (OrderedDict): The components which are part of the configuration
+        is_component (bool): Whether it is actually a component
     """
     def __init__(self, macros):
         """ Constructor.
 
         Args:
-            macros (dict) : The dictionary containing the macros
+            macros (dict): The dictionary containing the macros
         """
         # All dictionary keys are lowercase except iocs which is uppercase
         self.blocks = OrderedDict()
@@ -37,11 +37,11 @@ class Configuration(object):
         """ Add a block to the configuration.
 
         Args:
-            name (string) : The name for the new block
-            pv (string) : The PV that is aliased
-            group (string, optional) : The group that the block belongs to
-            local (bool, optional) : Is the block local
-            kwargs (dict) : Keyword arguments for the other parameters
+            name (string): The name for the new block
+            pv (string): The PV that is aliased
+            group (string, optional): The group that the block belongs to
+            local (bool, optional): Is the block local
+            kwargs (dict): Keyword arguments for the other parameters
         """
         # Check block name is unique
         if name.lower() in self.blocks.keys():
@@ -63,14 +63,14 @@ class Configuration(object):
         """ Add an IOC to the configuration.
 
         Args:
-            name (string) : The name of the IOC to add
-            subconfig (string, optional) : The component that the IOC belongs to
-            autostart (bool, optional) : Should the IOC automatically start
-            restart (bool, optional) : Should the IOC automatically restart
-            macros (dict, optional) : The macro sets relating to the IOC
-            pvs (, optional) :
-            pvsets (, optional) : Any PV values that should be set at start up
-            simlevel (, optional) : Sets the simulation level
+            name (string): The name of the IOC to add
+            subconfig (string, optional): The component that the IOC belongs to
+            autostart (bool, optional): Should the IOC automatically start
+            restart (bool, optional): Should the IOC automatically restart
+            macros (dict, optional): The macro sets relating to the IOC
+            pvs (, optional):
+            pvsets (, optional): Any PV values that should be set at start up
+            simlevel (, optional): Sets the simulation level
 
         """
         # Only add it if it has not been added before
@@ -81,7 +81,7 @@ class Configuration(object):
         """ Updates the run-control settings for the configuration's blocks.
 
         Args:
-            rc_data (dict) : A dictionary containing all the run-control settings
+            rc_data (dict): A dictionary containing all the run-control settings
         """
         # Only do it for blocks that are not in a sub-config
         for bn, blk in self.blocks.iteritems():
@@ -103,7 +103,7 @@ class Configuration(object):
         """ Sets the configuration's name.
 
         Args:
-            name (string) : The new name for the configuration
+            name (string): The new name for the configuration
         """
         self.meta.name = name
 

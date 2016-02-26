@@ -5,7 +5,7 @@ from watchdog.observers import Observer
 
 from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
 from BlockServer.fileIO.synoptic_file_event_handler import SynopticFileEventHandler
-import BlockServer.core.file_path_lookup as file_path_lookup
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 import os
 
@@ -15,35 +15,34 @@ class ConfigFileWatcherManager(object):
 
     Registers and communicates with the event handlers for configuration and synoptic filewatchers.
     """
-    def __init__(self, root_path, schema_folder, config_list_manager, synoptic_manager):
+    def __init__(self, schema_folder, config_list_manager, synoptic_manager):
         """Constructor.
 
         Args:
-            root_path (string): The root folder where configurations are stored.
             schema_folder (string): The folder where the schemas are kept.
             config_list_manager (ConfigListManager): The ConfigListManager instance.
             synoptic_manager (SynopticManager): The SynopticManager instance.
         """
         schema_lock = RLock()
-        self._config_dir = file_path_lookup.CONFIG_DIR
-        self._comp_dir = file_path_lookup.COMPONENT_DIR
-        self._syn_dir = file_path_lookup.SYNOPTIC_DIR
+        self._config_dir = FILEPATH_MANAGER.config_dir
+        self._comp_dir = FILEPATH_MANAGER.component_dir
+        self._syn_dir = FILEPATH_MANAGER.synoptic_dir
         self._observers = []
 
         # Create config watcher
-        self._config_event_handler = ConfigFileEventHandler(root_path, schema_folder, schema_lock,
+        self._config_event_handler = ConfigFileEventHandler(schema_folder, schema_lock,
                                                             config_list_manager)
 
         self._config_observer = self._create_observer(self._config_event_handler, self._config_dir)
 
         # Create component watcher
-        self._component_event_handler = ConfigFileEventHandler(root_path, schema_folder, schema_lock,
+        self._component_event_handler = ConfigFileEventHandler(schema_folder, schema_lock,
                                                                config_list_manager, True)
 
         self._component_observer = self._create_observer(self._component_event_handler, self._comp_dir)
 
         # Create synoptic watcher
-        self._synoptic_event_handler = SynopticFileEventHandler(root_path, schema_folder, schema_lock,
+        self._synoptic_event_handler = SynopticFileEventHandler(schema_folder, schema_lock,
                                                                 synoptic_manager)
 
         self._syn_observer = self._create_observer(self._synoptic_event_handler, self._syn_dir)

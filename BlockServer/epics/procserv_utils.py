@@ -10,8 +10,8 @@ class ProcServWrapper(object):
         """Generate the PV prefix for an IOCs ProcServ.
 
         Args:
-            prefix (string) : The prefix for the instrument
-            ioc (string) : The name of the IOC
+            prefix (string): The prefix for the instrument
+            ioc (string): The name of the IOC
 
         Returns:
             string : The PV prefix
@@ -22,8 +22,8 @@ class ProcServWrapper(object):
         """Starts the specified IOC.
 
         Args:
-            prefix (string) : The prefix for the instrument
-            ioc (string) : The name of the IOC
+            prefix (string): The prefix for the instrument
+            ioc (string): The name of the IOC
         """
         print_and_log("Starting IOC %s" % ioc)
         caput(self.generate_prefix(prefix, ioc) + ":START", 1)
@@ -32,8 +32,8 @@ class ProcServWrapper(object):
         """Stops the specified IOC.
 
         Args:
-            prefix (string) : The prefix for the instrument
-            ioc (string) : The name of the IOC
+            prefix (string): The prefix for the instrument
+            ioc (string): The name of the IOC
         """
         print_and_log("Stopping IOC %s" % ioc)
         caput(self.generate_prefix(prefix, ioc) + ":STOP", 1)
@@ -42,8 +42,8 @@ class ProcServWrapper(object):
         """Restarts the specified IOC.
 
         Args:
-            prefix (string) : The prefix for the instrument
-            ioc (string) : The name of the IOC
+            prefix (string): The prefix for the instrument
+            ioc (string): The name of the IOC
         """
         print_and_log("Restarting IOC %s" % ioc)
         caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1)
@@ -52,8 +52,8 @@ class ProcServWrapper(object):
         """Gets the status of the specified IOC.
 
         Args:
-            prefix (string) : The prefix for the instrument
-            ioc (string) : The name of the IOC
+            prefix (string): The prefix for the instrument
+            ioc (string): The name of the IOC
 
         Returns:
             string : The status
@@ -67,8 +67,8 @@ class ProcServWrapper(object):
         """Toggles the auto-restart property.
 
         Args:
-            prefix (string) : The prefix for the instrument
-            ioc (string) : The name of the IOC
+            prefix (string): The prefix for the instrument
+            ioc (string): The name of the IOC
         """
         # Check IOC is running, otherwise command is ignored
         print_and_log("Toggling auto-restart for IOC %s" % ioc)
@@ -78,8 +78,8 @@ class ProcServWrapper(object):
         """Gets the current auto-restart setting of the specified IOC.
 
         Args:
-            prefix (string) : The prefix for the instrument
-            ioc (string) : The name of the IOC
+            prefix (string): The prefix for the instrument
+            ioc (string): The name of the IOC
 
         Returns:
             bool : Whether auto-restart is enabled

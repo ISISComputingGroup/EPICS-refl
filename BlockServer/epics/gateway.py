@@ -2,6 +2,7 @@ import time
 from server_common.channel_access import caget, caput
 from server_common.utilities import print_and_log
 
+
 class Gateway(object):
     """A class for interacting with the EPICS gateway that creates the aliases used for implementing blocks"""
 
@@ -9,10 +10,10 @@ class Gateway(object):
         """Constructor.
 
         Args:
-            prefix (string) : The prefix for the gateway
-            block_prefix (string) : The block prefix
-            pvlist_file (string) : Where to write the gateway file
-            pv_prefix (string) : Prefix for instrument PVs
+            prefix (string): The prefix for the gateway
+            block_prefix (string): The block prefix
+            pvlist_file (string): Where to write the gateway file
+            pv_prefix (string): Prefix for instrument PVs
         """
         self._prefix = prefix
         self._block_prefix = block_prefix
@@ -36,7 +37,7 @@ class Gateway(object):
         try:
             # Have to wait after put as the gateway does not do completion callbacks (it is not an IOC)
             caput(self._prefix + "newAsFlag", 1, False)
-            while(caget(self._prefix + "newAsFlag") == 1) :
+            while(caget(self._prefix + "newAsFlag") == 1):
                 time.sleep(1)
             print_and_log("Gateway reloaded")
         except Exception as err:
@@ -130,7 +131,7 @@ EVALUATION ORDER ALLOW, DENY
         """Creates the aliases for the blocks and restarts the gateway.
 
         Args:
-            blocks (OrderedDict) : The blocks that belong to the configuration
+            blocks (OrderedDict): The blocks that belong to the configuration
         """
         self._generate_alias_file(blocks)
         self._reload()

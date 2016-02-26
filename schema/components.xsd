@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://epics.isis.rl.ac.uk/schema/components/1.0"
+  xmlns:comp="http://epics.isis.rl.ac.uk/schema/components/1.0"
+  elementFormDefault="qualified">
+  <xs:element name="components">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="comp:component"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="component">
+    <xs:complexType>
+      <xs:attribute name="name" use="required"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

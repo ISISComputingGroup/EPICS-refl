@@ -36,8 +36,8 @@ class ExpData(object):
         """Constructor
 
         Args:
-            dbid (string) : The id of the database that holds IOC information
-            prefix (string) : The pv prefix of the instrument the server is being run on
+            dbid (string): The id of the database that holds IOC information
+            prefix (string): The pv prefix of the instrument the server is being run on
         """
         # Set up the database connection
         self._db = SQLAbstraction('exp_data', "exp_data", "$exp_data")
@@ -62,10 +62,10 @@ class ExpData(object):
         """Gets the team members
 
         Args:
-            experimentID (string) : the id of the experiment to load related data from
+            experimentID (string): the id of the experiment to load related data from
 
         Returns:
-            team (list) : the team data found by the SQL query
+            team (list): the team data found by the SQL query
         """
         try:
             sqlquery = "SELECT user.name, user.organisation, role.name"
@@ -86,7 +86,7 @@ class ExpData(object):
         """ Gets the experiment
 
         Args:
-            experimentID (string) : the id of the experiment to load related data from
+            experimentID (string): the id of the experiment to load related data from
 
         Returns:
             exists (boolean): TRUE if the experiment exists, FALSE otherwise
@@ -107,7 +107,7 @@ class ExpData(object):
         """Converts data to JSON, compresses it and converts it to hex.
 
         Args:
-            data (string) : The data to encode
+            data (string): The data to encode
 
         Returns:
             string : The encoded data
@@ -124,7 +124,7 @@ class ExpData(object):
         """Updates the associated PVs when an experiment ID is set
 
         Args:
-            experimentID (string) : the id of the experiment to load related data from
+            experimentID (string): the id of the experiment to load related data from
 
         Returns:
             None specifically, but the following information external to the server is set
@@ -172,7 +172,7 @@ class ExpData(object):
         """Updates the associated PVs when the User Names are altered
 
         Args:
-            users (string) : uncompressed and dehexed json string with the user details
+            users (string): uncompressed and dehexed json string with the user details
 
         Returns:
             None specifically, but the following information external to the server is set

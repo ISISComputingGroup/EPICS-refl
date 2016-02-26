@@ -16,9 +16,9 @@ class ArchiverManager(object):
         """Constructor.
 
         Args:
-            uploader_path (string) : The filepath for the program that uploads the archiver settings
-            settings_path (string) : The filepath for the settings to be writen to
-            test_mode (bool) : Whether to run in test_mode
+            uploader_path (string): The filepath for the program that uploads the archiver settings
+            settings_path (string): The filepath for the settings to be writen to
+            test_mode (bool): Whether to run in test_mode
         """
         self._uploader_path = uploader_path
         self._settings_path = settings_path
@@ -28,8 +28,8 @@ class ArchiverManager(object):
         """Update the archiver to log the blocks specified.
 
         Args:
-            block_prefix (string) : The block prefix
-            blocks (list) : The blocks to archive
+            block_prefix (string): The block prefix
+            blocks (list): The blocks to archive
         """
         try:
             if self._settings_path is not None:

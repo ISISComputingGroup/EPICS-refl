@@ -25,9 +25,9 @@ class TestFileEventHandler(unittest.TestCase):
 
     def setUp(self):
         FILEPATH_MANAGER.initialise(TEST_DIRECTORY)
-        self.config_list = ConfigListManager(MockBlockServer, TEST_DIRECTORY, MockCAServer(), SCHEMA_DIR,
+        self.config_list = ConfigListManager(MockBlockServer, MockCAServer(), SCHEMA_DIR,
                                              MockVersionControl())
-        self.eh = ConfigFileEventHandler(TEST_DIRECTORY, SCHEMA_DIR, RLock(), self.config_list, False)
+        self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list, False)
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + os.sep):

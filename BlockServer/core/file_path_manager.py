@@ -28,5 +28,14 @@ class FilePathManager(object):
                 # Create it then
                 os.makedirs(os.path.abspath(p))
 
+    def get_component_path(self, component_name):
+        return os.path.join(self.component_dir, component_name) + os.sep
+
+    def get_config_path(self, config_name):
+        return os.path.join(self.config_dir, config_name) + os.sep
+
+    def get_synoptic_path(self, synoptic_name):
+        return os.path.join(self.synoptic_dir, synoptic_name) + ".xml"
+
 # This is the singleton to use
 FILEPATH_MANAGER = FilePathManager()

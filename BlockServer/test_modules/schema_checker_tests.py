@@ -15,7 +15,7 @@ from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 TEST_DIRECTORY = os.path.abspath("test_configs")
-SCHEMA_DIR = os.path.abspath(os.path.join("..","..","..","..","schema","configurations"))
+SCHEMA_DIR = os.path.abspath(os.path.join("..", "schema"))
 
 TEST_CONFIG = {"iocs":
                  [{"simlevel": "devsim", "autostart": True, "restart": False,
@@ -60,7 +60,7 @@ def strip_out_whitespace(string):
 class TestSchemaChecker(unittest.TestCase):
     def setUp(self):
         FILEPATH_MANAGER.initialise(TEST_DIRECTORY)
-        self.cs = ActiveConfigHolder(TEST_DIRECTORY, MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
+        self.cs = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
                                      MockVersionControl(), MockIocControl(""), MockRunControlManager())
 
     def tearDown(self):

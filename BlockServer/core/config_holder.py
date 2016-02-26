@@ -18,23 +18,22 @@ class ConfigHolder(object):
 
     Holds a configuration which can then be manpulated via this class.
     """
-    def __init__(self, config_folder, macros, vc_manager, is_subconfig=False, file_manager=ConfigurationFileManager(),
+    def __init__(self, macros, vc_manager, is_subconfig=False, file_manager=ConfigurationFileManager(),
                  test_config=None):
         """ Constructor.
 
         Args:
-            config_folder (string) : The folder where configurations and components are saved
-            macros (dict) : The dictionary containing the macros
-            is_subconfig (bool) : Defines whether the configuration held is a component or not
-            file_manager (ConfigurationFileManager) : The object used to save the configuration
-            test_config (Configuration) : A dummy configuration used for the unit tests
+            macros (dict): The dictionary containing the macros
+            is_subconfig (bool): Defines whether the configuration held is a component or not
+            file_manager (ConfigurationFileManager): The object used to save the configuration
+            test_config (Configuration): A dummy configuration used for the unit tests
         """
         if test_config is None:
             self._config = Configuration(macros)
         else:
             self._config = test_config
         self._components = OrderedDict()
-        self._is_subconfig = is_subconfig
+        self._is_component = is_subconfig
         self._macros = macros
         self._vc = vc_manager
 
@@ -50,17 +49,17 @@ class ConfigHolder(object):
         """
         self._config = Configuration(self._macros)
         self._components = OrderedDict()
-        self._is_subconfig = False
+        self._is_component = False
 
     def add_subconfig(self, name, component):
         """ Add a component to the configuration.
 
         Args:
-            name (string) : The name of the component being added
-            component (Component) : The component object to be added
+            name (string): The name of the component being added
+            component (Component): The component object to be added
         """
         # Add it to the holder
-        if self._is_subconfig:
+        if self._is_component:
             raise Exception("Can not add a component to a component")
 
         if name.lower() not in self._components:
@@ -77,10 +76,10 @@ class ConfigHolder(object):
         This is not needed as part of the BlockServer as such, but it helps with unit testing.
 
         Args:
-            name (string) : The name of the component to remove
+            name (string): The name of the component to remove
         """
         # Remove it from the holder
-        if self._is_subconfig:
+        if self._is_component:
             raise Exception("Can not remove a component from a component")
         del self._components[name.lower()]
         del self._config.subconfigs[name.lower()]
@@ -191,7 +190,7 @@ class ConfigHolder(object):
         """ Get the names of the IOCs in the configuration and any components.
 
         Args:
-            include_base (bool, optional) : Whether to include the IOCs in base
+            include_base (bool, optional): Whether to include the IOCs in base
 
         Returns:
             list : The names of the IOCs
@@ -240,7 +239,7 @@ class ConfigHolder(object):
         """ Get the names of the components in the configuration.
 
         Args:
-            include_base (bool, optional) : Whether to include the base in the list of names
+            include_base (bool, optional): Whether to include the base in the list of names
 
         Returns:
             list : A list of components in the configuration
@@ -255,7 +254,7 @@ class ConfigHolder(object):
         """ Add a block to the configuration.
 
         Args:
-            blockargs (dict) : A dictionary of settings for the new block
+            blockargs (dict): A dictionary of settings for the new block
         """
         self._config.add_block(**blockargs)
 
@@ -344,7 +343,7 @@ class ConfigHolder(object):
         """ Set the details of the configuration from a dictionary.
 
         Args:
-            details (dict) : A dictionary containing the new configuration settings
+            details (dict): A dictionary containing the new configuration settings
         """
         self._cache_config()
 
@@ -405,12 +404,12 @@ class ConfigHolder(object):
         """ Replace the existing configuration with the supplied configuration.
 
         Args:
-            config (Configuration) : A configuration
-            is_component (bool, optional) : Whether it is a component
+            config (Configuration): A configuration
+            is_component (bool, optional): Whether it is a component
         """
         self.clear_config()
         self._config = config
-        self._is_subconfig = is_component
+        self._is_component = is_component
         self._components = OrderedDict()
         if not is_component:
             for n, v in config.subconfigs.iteritems():
@@ -434,39 +433,37 @@ class ConfigHolder(object):
         """ Load a configuration.
 
         Args:
-            name (string) : The name of the configuration to load
-            is_component (bool, optional) : Whether it is a component
-            set_component_names (bool, optional) : Whether to set the component names
+            name (string): The name of the configuration to load
+            is_component (bool, optional): Whether it is a component
+            set_component_names (bool, optional): Whether to set the component names
         """
         if is_component:
-            path = self._component_path
-            comp = self._filemanager.load_config(path, name, self._macros)
+            comp = self._filemanager.load_config(FILEPATH_MANAGER.get_component_path(name), name, self._macros)
             if set_component_names:
                 self._set_component_names(comp, name)
             return comp
         else:
-            path = self._config_path
-            return self._filemanager.load_config(path, name, self._macros)
+            return self._filemanager.load_config(FILEPATH_MANAGER.get_config_path(name), name, self._macros)
 
     def save_configuration(self, name, as_component):
         """ Save the configuration.
 
         Args:
-            name (string) : The name to save the configuration under
-            as_component (bool) : Whether to save as a component
+            name (string): The name to save the configuration under
+            as_component (bool): Whether to save as a component
         """
         self._check_name(name, as_component)
-        if self._is_subconfig != as_component:
+        if self._is_component != as_component:
             self._set_as_subconfig(as_component)
 
-        if self._is_subconfig:
+        if self._is_component:
             self._set_config_name(name)
-            self._filemanager.save_config(self._config, self._component_path, name)
+            self._filemanager.save_config(self._config, FILEPATH_MANAGER.get_component_path(name))
             self._update_version_control(name)
         else:
             self._set_config_name(name)
             # TODO: CHECK WHAT COMPONENTS self._config contains and remove _base if it is in there
-            self._filemanager.save_config(self._config, self._config_path, name)
+            self._filemanager.save_config(self._config, FILEPATH_MANAGER.get_config_path(name))
             self._update_version_control(name)
 
     def _check_name(self, name, is_comp = False):
@@ -482,28 +479,27 @@ class ConfigHolder(object):
             raise Exception("Configuration name contains invalid characters")
 
     def _update_version_control(self, name):
-        if self._is_subconfig:
-            path = self._component_path
+        if self._is_component:
+            self._vc.add(FILEPATH_MANAGER.get_component_path(name))
         else:
-            path = self._config_path
+            self._vc.add(FILEPATH_MANAGER.get_config_path(name))
 
-        self._vc.add(os.path.join(path, name))
         self._vc.commit("%s modified by client" % name)
 
     def _set_as_subconfig(self, value):
         if value is True:
             if len(self._components) == 0:
-                self._is_subconfig = True
+                self._is_component = True
             else:
                 raise Exception("Can not cast to a component as the configuration contains at least one component")
         else:
-            self._is_subconfig = False
+            self._is_component = False
 
     def update_runcontrol_settings_for_saving(self, rc_data):
         """ Updates the run-control settings stored in the configuration so they can be saved.
 
         Args:
-            rc_data (dict) : The current run-control settings
+            rc_data (dict): The current run-control settings
         """
         self._config.update_runcontrol_settings_for_saving(rc_data)
 
@@ -535,7 +531,7 @@ class ConfigHolder(object):
         """ Set history for configuration.
 
         Args:
-            history (list) : The new history
+            history (list): The new history
         """
         self._config.meta.history = history
 

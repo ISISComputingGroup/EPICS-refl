@@ -8,8 +8,8 @@ from server_common.utilities import print_and_log
 
 TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
 RC_PV = "CS:IOC:RUNCTRL_01:DEVIOS:SysReset"
-RUNCONTROL_SETTINGS = "/rc_settings.cmd"
-AUTOSAVE_DIR = "/autosave/RUNCTRL_01/"
+RUNCONTROL_SETTINGS = "rc_settings.cmd"
+AUTOSAVE_DIR = "autosave"
 RUNCONTROL_IOC = "RUNCTRL_01"
 
 
@@ -20,14 +20,14 @@ class RunControlManager(object):
         """Constructor.
 
         Args:
-            prefix (string) : The instrument prefix
-            config_dir (string) : The root of the configuration directory
-            var_dir (string) : The root of the VAR directory
-            ioc_control (IocControl) : The object for restarting the IOC
+            prefix (string): The instrument prefix
+            config_dir (string): The root of the configuration directory
+            var_dir (string): The root of the VAR directory
+            ioc_control (IocControl): The object for restarting the IOC
         """
         self._prefix = prefix
-        self._settings_file = os.join(config_dir, RUNCONTROL_SETTINGS)
-        self._autosave_dir = os.join(var_dir, AUTOSAVE_DIR)
+        self._settings_file = os.path.join(config_dir, RUNCONTROL_SETTINGS)
+        self._autosave_dir = os.path.join(var_dir, AUTOSAVE_DIR, RUNCONTROL_IOC)
         self._block_prefix = prefix + "CS:SB:"
         self._stored_settings = None
         self._ioc_control = ioc_control
@@ -38,7 +38,7 @@ class RunControlManager(object):
         """Update the run-control settings in the run-control IOC with the current blocks.
 
         Args:
-            blocks (OrderedDict) : The blocks that are part of the current configuration
+            blocks (OrderedDict): The blocks that are part of the current configuration
         """
         f = None
         try:
@@ -95,7 +95,7 @@ class RunControlManager(object):
         """Restore run-control settings based on what is stored in a configuration.
 
         Args:
-            blocks (OrderedDict) : The blocks for the configuration
+            blocks (OrderedDict): The blocks for the configuration
         """
         for n, blk in blocks.iteritems():
             settings = dict()
@@ -113,7 +113,7 @@ class RunControlManager(object):
         """ Replaces the run-control settings with new values.
 
         Args:
-            data (dict) : The new run-control settings to set (dictionary of dictionaries)
+            data (dict): The new run-control settings to set (dictionary of dictionaries)
         """
         for bn, settings in data.iteritems():
             if settings is not None:
@@ -154,7 +154,7 @@ class RunControlManager(object):
         """ Restarts the IOC.
 
         Args:
-            clear_autosave (bool) : Whether to delete the autosave files first
+            clear_autosave (bool): Whether to delete the autosave files first
         """
         if clear_autosave:
             print_and_log("Removing the run-control autosave files")
