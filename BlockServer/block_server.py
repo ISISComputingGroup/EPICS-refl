@@ -31,6 +31,7 @@ from BlockServer.core.ioc_control import IocControl
 from BlockServer.core.database_server_client import DatabaseServerClient
 from BlockServer.core.runcontrol_manager import RunControlManager
 from BlockServer.epics.archiver_manager import ArchiverManager
+from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
 
 
@@ -211,6 +212,7 @@ class BlockServer(Driver):
 
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])
         self._active_configserver = None
+        self._block_cache = None
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
@@ -260,6 +262,7 @@ class BlockServer(Driver):
         if facility == "ISIS":
             rcm = RunControlManager(MACROS["$(MYPVPREFIX)"], MACROS["$(ICPCONFIGROOT)"], MACROS["$(ICPVARDIR)"],
                                     self._ioc_control)
+            self._block_cache = BlockCacheManager(self._ioc_control)
         else:
             rcm = None
         self._active_configserver = ActiveConfigHolder(MACROS, arch, self._vc, self._ioc_control, rcm)
@@ -455,6 +458,10 @@ class BlockServer(Driver):
         self.update_get_details_monitors()
         self._active_configserver.update_archiver()
         self._active_configserver.create_runcontrol_pvs(clear_runcontrol)
+        # Restart the Blocks cache
+        if self._block_cache is not None:
+            print_and_log("Restarting block cache...")
+            self._block_cache.restart()
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""

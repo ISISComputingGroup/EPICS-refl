@@ -16,9 +16,9 @@ class ArchiverManager(object):
         """Constructor.
 
         Args:
-            uploader_path (string): The filepath for the program that uploads the archiver settings
-            settings_path (string): The filepath for the settings to be writen to
-            test_mode (bool): Whether to run in test_mode
+            uploader_path (string): The filepath for the program that uploads the archiver settings.
+            settings_path (string): The filepath for the settings to be writen to.
+            archiver (ArchiverWrapper): The instance used to access the Archiver.
         """
         self._uploader_path = uploader_path
         self._settings_path = settings_path
