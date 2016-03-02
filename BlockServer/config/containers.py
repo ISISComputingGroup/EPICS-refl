@@ -6,38 +6,38 @@ class Block(object):
     """ Contains all the information about a block.
 
         Attributes:
-            name (string) : The block name
-            pv (string) : The PV pointed at
-            local (bool) : Whether the PV is local to the instrument
-            visible (bool) : Whether the block should be shown
-            subconfig (string) : The component the block belongs to
+            name (string): The block name
+            pv (string): The PV pointed at
+            local (bool): Whether the PV is local to the instrument
+            visible (bool): Whether the block should be shown
+            subconfig (string): The component the block belongs to
 
-            runcontrol (bool) : Whether run-control is enabled
-            lowlimt (float) : The low limit for run-control
-            highlimit (float) : The high limit for run-control
+            runcontrol (bool): Whether run-control is enabled
+            lowlimt (float): The low limit for run-control
+            highlimit (float): The high limit for run-control
 
-            arch_periodic (bool) : Whether the block is sampled periodically in the archiver
-            arch_rate (float) : Time between archive samples (in seconds)
-            arch_deadband (float) : Deadband for the block to be archived
+            arch_periodic (bool): Whether the block is sampled periodically in the archiver
+            arch_rate (float): Time between archive samples (in seconds)
+            arch_deadband (float): Deadband for the block to be archived
     """
     def __init__(self, name, pv, local=True, visible=True, subconfig=None, runcontrol=False, lowlimit=None,
                  highlimit=None, log_periodic=False, log_rate=5, log_deadband=0):
         """ Constructor.
 
         Args:
-            name (string) : The block name
-            pv (string) : The PV pointed at
-            local (bool) : Whether the PV is local to the instrument
-            visible (bool) : Whether the block should be shown
-            subconfig (string) : The component the block belongs to
+            name (string): The block name
+            pv (string): The PV pointed at
+            local (bool): Whether the PV is local to the instrument
+            visible (bool): Whether the block should be shown
+            subconfig (string): The component the block belongs to
 
-            runcontrol (bool) : Whether run-control is enabled
-            lowlimt (float) : The low limit for run-control
-            highlimit (float) : The high limit for run-control
+            runcontrol (bool): Whether run-control is enabled
+            lowlimt (float): The low limit for run-control
+            highlimit (float): The high limit for run-control
 
-            arch_periodic (bool) : Whether the block is sampled periodically in the archiver
-            arch_rate (float) : Time between archive samples (in seconds)
-            arch_deadband (float) : Deadband for the block to be archived
+            arch_periodic (bool): Whether the block is sampled periodically in the archiver
+            arch_rate (float): Time between archive samples (in seconds)
+            arch_deadband (float): Deadband for the block to be archived
         """
         self.name = name
         self.pv = pv
@@ -62,7 +62,7 @@ class Block(object):
         """ Toggle the visibility of the block.
 
         Args:
-            visible (bool) : Whether the block is visible or not
+            visible (bool): Whether the block is visible or not
         """
         self.visible = visible
 
@@ -89,16 +89,16 @@ class Group(object):
     """ Represents a group.
 
         Attributes:
-            name (string) : The name of the group
-            blocks (dict) : The blocks that are in the group
-            subconfig (string) : The component the group belongs to
+            name (string): The name of the group
+            blocks (dict): The blocks that are in the group
+            subconfig (string): The component the group belongs to
     """
     def __init__(self, name, subconfig=None):
         """ Constructor.
 
         Args:
-            name (string) : The name for the group
-            subconfig (string) : The component to which the group belongs
+            name (string): The name for the group
+            subconfig (string): The component to which the group belongs
         """
         self.name = name
         self.blocks = []
@@ -121,28 +121,28 @@ class IOC(object):
     """ Represents an IOC.
 
     Attributes:
-        name (string) : The name of the IOC
-        autostart (bool) : Whether the IOC should automatically start
-        restart (bool) : Whether the IOC should automatically restart
-        subconfig (string) : The component the IOC belongs to
-        macros (dict) : The IOC's macros
-        pvs (dict) : The IOC's PVs
-        pvsets (dict) : The IOC's PV sets
-        simlevel (string) : The level of simulation
+        name (string): The name of the IOC
+        autostart (bool): Whether the IOC should automatically start
+        restart (bool): Whether the IOC should automatically restart
+        subconfig (string): The component the IOC belongs to
+        macros (dict): The IOC's macros
+        pvs (dict): The IOC's PVs
+        pvsets (dict): The IOC's PV sets
+        simlevel (string): The level of simulation
     """
     def __init__(self, name, autostart=True, restart=True, subconfig=None, macros=None, pvs=None, pvsets=None,
                  simlevel=None):
         """ Constructor.
 
         Args:
-            name (string) : The name of the IOC
-            autostart (bool) : Whether the IOC should automatically start
-            restart (bool) : Whether the IOC should automatically restart
-            subconfig (string) : The component the IOC belongs to
-            macros (dict) : The IOC's macros
-            pvs (dict) : The IOC's PVs
-            pvsets (dict) : The IOC's PV sets
-            simlevel (string) : The level of simulation
+            name (string): The name of the IOC
+            autostart (bool): Whether the IOC should automatically start
+            restart (bool): Whether the IOC should automatically restart
+            subconfig (string): The component the IOC belongs to
+            macros (dict): The IOC's macros
+            pvs (dict): The IOC's PVs
+            pvsets (dict): The IOC's PV sets
+            simlevel (string): The level of simulation
         """
         self.name = name
         self.autostart = autostart
@@ -175,7 +175,7 @@ class IOC(object):
         It's messy but it's what the GUI wants.
 
         Args:
-            in_dict (dict) : The dictionary to be converted
+            in_dict (dict): The dictionary to be converted
 
         Returns:
             list : The newly created list
@@ -208,20 +208,20 @@ class MetaData(object):
     """Represents the metadata from a configuration/component.
 
     Attributes:
-        name (string) : The name of the configuration
-        pv (string) : The PV for the configuration
-        description (string) : The description
-        synoptic (string) : The default synoptic view for this configuration
-        history (list) : The save history of the configuration
+        name (string): The name of the configuration
+        pv (string): The PV for the configuration
+        description (string): The description
+        synoptic (string): The default synoptic view for this configuration
+        history (list): The save history of the configuration
     """
     def __init__(self, config_name, pv_name="", description="", synoptic=""):
         """ Constructor.
 
         Args:
-            config_name (string) : The name of the configuration
-            pv (string) : The PV for the configuration
-            description (string) : The description
-            synoptic (string) : The default synoptic view for this configuration
+            config_name (string): The name of the configuration
+            pv (string): The PV for the configuration
+            description (string): The description
+            synoptic (string): The default synoptic view for this configuration
         """
         self.name = config_name
         self.pv = pv_name

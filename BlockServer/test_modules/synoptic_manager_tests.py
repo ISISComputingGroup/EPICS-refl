@@ -4,12 +4,12 @@ import shutil
 
 from BlockServer.core.synoptic_manager import SynopticManager, SYNOPTIC_PRE, SYNOPTIC_GET
 from server_common.mocks.mock_ca_server import MockCAServer
-from BlockServer.core.constants import SYNOPTIC_DIRECTORY
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_block_server import MockBlockServer
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
-TEST_DIR = os.path.abspath("." + os.sep + SYNOPTIC_DIRECTORY)
+TEST_DIR = os.path.abspath(".")
 
 EXAMPLE_SYNOPTIC = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                       <instrument xmlns="http://www.isis.stfc.ac.uk//instrument">
@@ -21,24 +21,26 @@ SCHEMA_PATH = os.path.join(".","..","..","..","..","schema","configurations")
 
 class TestSynopticManagerSequence(unittest.TestCase):
     def setUp(self):
-        # Make directory and fill with fake synoptics
-        if not os.path.isdir(TEST_DIR + os.sep):
-            os.makedirs(TEST_DIR)
+        FILEPATH_MANAGER.initialise(TEST_DIR)
 
-        f1 = open(os.path.join(TEST_DIR, "synoptic1.xml"), "a")
+        # Make directory and fill with fake synoptics
+        if not os.path.isdir(FILEPATH_MANAGER.synoptic_dir):
+            os.makedirs(FILEPATH_MANAGER.synoptic_dir)
+
+        f1 = open(os.path.join(FILEPATH_MANAGER.synoptic_dir, "synoptic1.xml"), "a")
         f1.write(EXAMPLE_SYNOPTIC % "synoptic1")
         f1.close()
-        f2 = open(os.path.join(TEST_DIR, "synoptic2.xml"), "a")
+        f2 = open(os.path.join(FILEPATH_MANAGER.synoptic_dir, "synoptic2.xml"), "a")
         f2.write(EXAMPLE_SYNOPTIC % "synoptic2")
         f2.close()
 
         self.cas = MockCAServer()
-        self.sm = SynopticManager(MockBlockServer(), TEST_DIR, self.cas, SCHEMA_PATH, MockVersionControl())
+        self.sm = SynopticManager(MockBlockServer(), self.cas, SCHEMA_PATH, MockVersionControl())
         self.initial_len = len([c["name"] for c in self.sm.get_synoptic_list()])
 
     def tearDown(self):
         # Delete test directory
-        shutil.rmtree(TEST_DIR)
+        shutil.rmtree(FILEPATH_MANAGER.synoptic_dir)
 
     def test_get_synoptic_filenames_from_directory_returns_names_alphabetically(self):
         # Arrange
@@ -145,7 +147,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.sm.delete_synoptics(["synoptic1"])
 
         # Assert
-        synoptics = os.listdir(TEST_DIR)
+        synoptics = os.listdir(FILEPATH_MANAGER.synoptic_dir)
         self.assertEqual(len(synoptics), 1)
         self.assertTrue("synoptic2.xml" in synoptics)
 

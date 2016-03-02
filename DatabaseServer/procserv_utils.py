@@ -13,8 +13,8 @@ class ProcServWrapper(object):
         """Creates a PV based on the given prefix and IOC name
 
         Args:
-            prefix (string) : The prefix of the instrument the IOC is being run on
-            ioc (string) : The name of the requested IOC
+            prefix (string): The prefix of the instrument the IOC is being run on
+            ioc (string): The name of the requested IOC
         """
         return "%sCS:PS:%s" % (prefix, ioc)
 
@@ -22,8 +22,8 @@ class ProcServWrapper(object):
         """Starts the specified IOC
 
         Args:
-            prefix (string) : The prefix of the instrument the IOC is being run on
-            ioc (string) : The name of the IOC to start
+            prefix (string): The prefix of the instrument the IOC is being run on
+            ioc (string): The name of the IOC to start
         """
         print_and_log("Starting IOC %s" % ioc)
         caput(self.generate_prefix(prefix, ioc) + ":START", 1)
@@ -32,8 +32,8 @@ class ProcServWrapper(object):
         """Stops the specified IOC
 
         Args:
-            prefix (string) : The prefix of the instrument the IOC is being run on
-            ioc (string) : The name of the IOC to stop
+            prefix (string): The prefix of the instrument the IOC is being run on
+            ioc (string): The name of the IOC to stop
         """
         print_and_log("Stopping IOC %s" % ioc)
         caput(self.generate_prefix(prefix, ioc) + ":STOP", 1)
@@ -42,8 +42,8 @@ class ProcServWrapper(object):
         """Restarts the specified IOC
 
         Args:
-            prefix (string) : The prefix of the instrument the IOC is being run on
-            ioc (string) : The name of the IOC to restart
+            prefix (string): The prefix of the instrument the IOC is being run on
+            ioc (string): The name of the IOC to restart
         """
         print_and_log("Restarting IOC %s" % ioc)
         caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1)
@@ -52,8 +52,8 @@ class ProcServWrapper(object):
         """Gets the status of the specified IOC
 
         Args:
-            prefix (string) : The prefix of the instrument the IOC is being run on
-            ioc (string) : The name of the IOC
+            prefix (string): The prefix of the instrument the IOC is being run on
+            ioc (string): The name of the IOC
 
         Returns:
             string : The status of the requested IOC
@@ -68,8 +68,8 @@ class ProcServWrapper(object):
         """Checks if the IOC exists on ProcServ
 
         Args:
-            prefix (string) : The prefix of the instrument the IOC is being run on
-            ioc (string) : The name of the IOC
+            prefix (string): The prefix of the instrument the IOC is being run on
+            ioc (string): The name of the IOC
 
         Returns:
             bool : True if IOC exists, False otherwise

@@ -11,8 +11,8 @@ class IocControl(object):
         """Constructor.
 
         Args:
-            prefix (string) : The PV prefix for the instrument
-            proc (ProcServWrapper, optional) : The underlying object for talking to ProcServ
+            prefix (string): The PV prefix for the instrument
+            proc (ProcServWrapper, optional): The underlying object for talking to ProcServ
         """
         self._prefix = prefix
         self._proc = proc
@@ -21,7 +21,7 @@ class IocControl(object):
         """Start an IOC.
 
         Args:
-            ioc (string) : The name of the IOC
+            ioc (string): The name of the IOC
         """
         try:
             self._proc.start_ioc(self._prefix, ioc)
@@ -35,9 +35,9 @@ class IocControl(object):
         previous auto-restart setting
 
         Args:
-            ioc (string) : The name of the IOC
-            force (bool) : Force it to restart even if it is an IOC not to stop
-            reapply_auto (bool) : Whether to reapply the current auto-restart setting
+            ioc (string): The name of the IOC
+            force (bool): Force it to restart even if it is an IOC not to stop
+            reapply_auto (bool): Whether to reapply the current auto-restart setting
         """
         # Check it is okay to stop it
         if not force and ioc.startswith(IOCS_NOT_TO_STOP):
@@ -56,8 +56,8 @@ class IocControl(object):
         """Stop an IOC.
 
         Args:
-            ioc (string) : The name of the IOC
-            force (bool) : Force it to stop even if it is an IOC not to stop
+            ioc (string): The name of the IOC
+            force (bool): Force it to stop even if it is an IOC not to stop
         """
         # Check it is okay to stop it
         if not force and ioc.startswith(IOCS_NOT_TO_STOP):
@@ -71,7 +71,7 @@ class IocControl(object):
         """Get the running status of an IOC.
 
         Args:
-            ioc (string) : The name of the IOC
+            ioc (string): The name of the IOC
 
         Returns:
             string : The status of the IOC (RUNNING or SHUTDOWN)
@@ -82,7 +82,7 @@ class IocControl(object):
         """ Start a number of IOCs.
 
         Args:
-            iocs (list) : The IOCs to start
+            iocs (list): The IOCs to start
         """
         for ioc in iocs:
             self.start_ioc(ioc)
@@ -91,7 +91,7 @@ class IocControl(object):
         """ Restart a number of IOCs.
 
         Args:
-            iocs (list) : The IOCs to restart
+            iocs (list): The IOCs to restart
         """
         for ioc in iocs:
             self.restart_ioc(ioc)
@@ -100,7 +100,7 @@ class IocControl(object):
         """ Stop a number of IOCs.
 
         Args:
-            iocs (list) : The IOCs to stop
+            iocs (list): The IOCs to stop
         """
         for ioc in iocs:
             self.stop_ioc(ioc)
@@ -109,7 +109,7 @@ class IocControl(object):
         """Checks an IOC exists.
 
         Args:
-            ioc (string) : The name of the IOC
+            ioc (string): The name of the IOC
 
         Returns:
             bool : Whether the IOC exists
@@ -124,8 +124,8 @@ class IocControl(object):
         """Used to set the auto-restart property.
 
         Args:
-            ioc (string) : The name of the IOC
-            enable (bool) : Whether to enable auto-restart
+            ioc (string): The name of the IOC
+            enable (bool): Whether to enable auto-restart
         """
         try:
             if self.get_ioc_status(ioc) == "RUNNING":
@@ -145,7 +145,7 @@ class IocControl(object):
         """Gets the current auto-restart setting of the specified IOC.
 
         Args:
-            ioc (string) : The name of the IOC
+            ioc (string): The name of the IOC
 
         Returns:
             bool : Whether auto-restart is enabled
@@ -159,8 +159,8 @@ class IocControl(object):
         """Waits for the IOC to start running.
 
         Args:
-            ioc (string) : The name of the IOC
-            timeout(int, optional) : Maximum time to wait before returning
+            ioc (string): The name of the IOC
+            timeout(int, optional): Maximum time to wait before returning
         """
         if self.ioc_exists(ioc):
             start = time()

@@ -14,7 +14,7 @@ class BlockRules(object):
         """Constructor.
 
         Args:
-            cas (CAServer) : The channel access server for creating PVs on-the-fly
+            cas (CAServer): The channel access server for creating PVs on-the-fly
         """
         self._cas = cas
         self._create_pv()

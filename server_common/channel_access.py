@@ -4,8 +4,8 @@ def caget(name, as_string=False):
     the tests can run without having genie_python installed
 
     Args:
-        name (string) : The name of the PV to be read
-        as_string (bool, optional) : Set to read a char array as a string, defaults to false
+        name (string): The name of the PV to be read
+        as_string (bool, optional): Set to read a char array as a string, defaults to false
 
     Returns:
         obj : The value of the requested PV, None if no value was read

@@ -12,6 +12,7 @@ import argparse
 from threading import Thread, RLock
 from time import sleep
 import datetime
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.epics.gateway import Gateway
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
@@ -20,9 +21,8 @@ from server_common.utilities import compress_and_hex, dehex_and_decompress, prin
     convert_to_json, convert_from_json
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.config_list_manager import ConfigListManager
-from BlockServer.fileIO.file_watcher_manager import ConfigFileWatcherManager
+from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
-from BlockServer.core.constants import SYNOPTIC_DIRECTORY, COMPONENT_DIRECTORY, CONFIG_DIRECTORY
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
@@ -33,6 +33,7 @@ from BlockServer.core.runcontrol_manager import RunControlManager
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
+
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
@@ -204,9 +205,11 @@ class BlockServer(Driver):
         """Constructor.
 
         Args:
-            ca_server (CAServer) : The CA server used for generating PVs on the fly
+            ca_server (CAServer): The CA server used for generating PVs on the fly
         """
         super(BlockServer, self).__init__()
+        FILEPATH_MANAGER.initialise(CONFIG_DIR)
+
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])
         self._active_configserver = None
         self._block_cache = None
@@ -214,8 +217,6 @@ class BlockServer(Driver):
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
         self.block_rules = BlockRules(ca_server)
-
-        self.create_default_folders()
 
         # Connect to version control
         try:
@@ -229,15 +230,15 @@ class BlockServer(Driver):
 
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(self, CONFIG_DIR, ca_server, SCHEMA_DIR, self._vc)
+            self._config_list = ConfigListManager(self, ca_server, SCHEMA_DIR, self._vc)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
         # Import all the synoptic data and create PVs
-        self._syn = SynopticManager(self, os.path.join(CONFIG_DIR, SYNOPTIC_DIRECTORY), ca_server, SCHEMA_DIR, self._vc)
+        self._syn = SynopticManager(self, ca_server, SCHEMA_DIR, self._vc)
 
         # Start file watcher
-        self._filewatcher = ConfigFileWatcherManager(CONFIG_DIR, SCHEMA_DIR, self._config_list, self._syn)
+        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
 
         # Threading stuff
         self.monitor_lock = RLock()
@@ -252,15 +253,6 @@ class BlockServer(Driver):
         with self.write_lock:
             self.write_queue.append((self.initialise_configserver, (FACILITY,), "INITIALISING"))
 
-    def create_default_folders(self):
-        # Create default folders
-        paths = [os.path.join(CONFIG_DIR, CONFIG_DIRECTORY), os.path.join(CONFIG_DIR, COMPONENT_DIRECTORY),
-                 os.path.join(CONFIG_DIR, SYNOPTIC_DIRECTORY)]
-        for p in paths:
-            if not os.path.isdir(p):
-                # Create it then
-                os.makedirs(os.path.abspath(p))
-
     def initialise_configserver(self, facility):
         """Initialises the ActiveConfigHolder.
         """
@@ -273,7 +265,7 @@ class BlockServer(Driver):
             self._block_cache = BlockCacheManager(self._ioc_control)
         else:
             rcm = None
-        self._active_configserver = ActiveConfigHolder(CONFIG_DIR, MACROS, arch, self._vc, self._ioc_control, rcm)
+        self._active_configserver = ActiveConfigHolder(MACROS, arch, self._vc, self._ioc_control, rcm)
 
         try:
             if self._gateway.exists():
@@ -294,7 +286,7 @@ class BlockServer(Driver):
         """A method called by SimpleServer when a PV is read from the BlockServer over Channel Access.
 
         Args:
-            reason (string) : The PV that is being requested (without the PV prefix)
+            reason (string): The PV that is being requested (without the PV prefix)
 
         Returns:
             string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
@@ -344,8 +336,8 @@ class BlockServer(Driver):
             commands are queued as Channel Access is single-threaded.
 
         Args:
-            reason (string) : The PV that is being requested (without the PV prefix)
-            value (string) : The data being written to the 'reason' PV
+            reason (string): The PV that is being requested (without the PV prefix)
+            value (string): The data being written to the 'reason' PV
 
         Returns:
             string : "OK" in compressed and hexed JSON if function succeeds. Otherwise returns the Exception in
@@ -432,7 +424,7 @@ class BlockServer(Driver):
         """Sets the current configuration details to that defined in the XML, then initialises it.
 
         Args:
-            details (string) : the configuration XML
+            details (string): the configuration XML
         """
         self._active_configserver.set_config_details(details)
         self._initialise_config()
@@ -442,8 +434,8 @@ class BlockServer(Driver):
         Sets all the monitors, initialises the gateway, sets up run-control etc.
 
         Args:
-            init_gateway (bool, optional) : whether to initialise the gateway
-            clear_runcontrol (bool, optional) : whether to delete the autosave settings for run-control
+            init_gateway (bool, optional): whether to initialise the gateway
+            clear_runcontrol (bool, optional): whether to delete the autosave settings for run-control
         """
         # First stop all IOCS, then start the ones for the config
         # TODO: Should we stop all configs?
@@ -516,8 +508,8 @@ class BlockServer(Driver):
         """Load a configuration.
 
         Args:
-            config (string) : The name of the configuration
-            is_subconfig (bool) : Whether it is a component or not
+            config (string): The name of the configuration
+            is_subconfig (bool): Whether it is a component or not
         """
         try:
             if is_subconfig:
@@ -535,11 +527,11 @@ class BlockServer(Driver):
         """Save an inactive configuration.
 
         Args:
-            json_data (string) : The JSON data containing the configuration/component
-            as_subconfig (bool) : Whether it is a component or not
+            json_data (string): The JSON data containing the configuration/component
+            as_subconfig (bool): Whether it is a component or not
         """
         new_details = convert_from_json(json_data)
-        inactive = InactiveConfigHolder(CONFIG_DIR, MACROS, self._vc)
+        inactive = InactiveConfigHolder(MACROS, self._vc)
 
         history = self._get_inactive_history(new_details["name"], as_subconfig)
 
@@ -574,7 +566,7 @@ class BlockServer(Driver):
     def _get_inactive_history(self, name, is_component=False):
         # If it already exists load it
         try:
-            inactive = InactiveConfigHolder(CONFIG_DIR, MACROS, self._vc)
+            inactive = InactiveConfigHolder(MACROS, self._vc)
             inactive.load_inactive(name, is_component)
             # Get previous history
             history = inactive.get_history()
@@ -590,7 +582,7 @@ class BlockServer(Driver):
         """Save the active configuration.
 
         Args:
-            name (string) : The name to save it under
+            name (string): The name to save it under
         """
         self._filewatcher.pause()
         try:
@@ -648,7 +640,7 @@ class BlockServer(Driver):
         """Updates the monitor for the server status, so the clients can see any changes.
 
         Args:
-            status (string) : The status to set
+            status (string): The status to set
         """
         if self._active_configserver is not None:
             d = dict()
@@ -712,7 +704,7 @@ class BlockServer(Driver):
         Returns:
             dict : A dictionary containing all the details of a blank configuration
         """
-        temp_config = InactiveConfigHolder(CONFIG_DIR, MACROS, self._vc)
+        temp_config = InactiveConfigHolder(MACROS, self._vc)
         return temp_config.get_config_details()
 
     def _check_config_inactive(self, inactive_name, is_subconfig=False):
@@ -774,10 +766,7 @@ if __name__ == '__main__':
     print_and_log("BLOCK GATEWAY PREFIX = %s" % GATEWAY_PREFIX)
 
     CONFIG_DIR = os.path.abspath(args.config_dir[0])
-    print_and_log("CONFIGURATION DIRECTORY = %s" % CONFIG_DIR)
-    if not os.path.isdir(os.path.abspath(CONFIG_DIR)):
-        # Create it then
-        os.makedirs(os.path.abspath(CONFIG_DIR))
+    print_and_log("CONFIGURATION DIRECTORROOT_DIR %s" % CONFIG_DIR)
 
     SCHEMA_DIR = os.path.abspath(args.schema_dir[0])
     print_and_log("SCHEMA DIRECTORY = %s" % SCHEMA_DIR)

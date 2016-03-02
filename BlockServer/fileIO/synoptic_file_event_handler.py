@@ -19,24 +19,23 @@ class SynopticFileEventHandler(FileSystemEventHandler):
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and
     creates/removes available synoptics as necessary.
     """
-    def __init__(self, root_path, schema_folder, schema_lock, synoptic_list_manager):
+    def __init__(self, schema_folder, schema_lock, synoptic_list_manager):
         """Constructor.
 
         Args:
-            root_path (string) : The location of the configurations and components
-            schema_folder (string) : The location of the schema
-            synoptic_list_manager (SynopticListManager) : The SynopticListManager
+            root_path (string): The location of the configurations and components
+            schema_folder (string): The location of the schema
+            synoptic_list_manager (SynopticListManager): The SynopticListManager
         """
         self._schema_filepath = os.path.join(schema_folder, SYNOPTIC_SCHEMA)
         self._schema_lock = schema_lock
-        self._root_path = root_path
         self._synoptic_list = synoptic_list_manager
 
     def on_any_event(self, event):
         """Catch-all event handler.
 
         Args:
-            event (FileSystemEvent) : The event object representing the file system event
+            event (FileSystemEvent): The event object representing the file system event
         """
         if not event.is_directory:
             if type(event) is not FileDeletedEvent:
@@ -68,7 +67,7 @@ class SynopticFileEventHandler(FileSystemEventHandler):
         """"Called when a file or directory is deleted.
 
         Args:
-            event (DirDeletedEvent) : Event representing directory deletion.
+            event (DirDeletedEvent): Event representing directory deletion.
         """
         # Recover and return error
         try:

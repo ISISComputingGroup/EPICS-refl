@@ -11,9 +11,9 @@ class IsisLogger(object):
     def write_to_log(self, message, severity="INFO", src="BLOCKSVR"):
         """Writes a message to the IOC log. It is preferable to use print_and_log for easier debugging.
         Args:
-            severity (string, optional) : Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
+            severity (string, optional): Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
                                         Default severity is INFO
-            src (string, optional) : Gives the source of the message. Default source is BLOCKSVR
+            src (string, optional): Gives the source of the message. Default source is BLOCKSVR
         """
         if severity not in ['INFO','MINOR','MAJOR','FATAL'] :
             print "write_to_ioc_log: invalid severity ", severity
