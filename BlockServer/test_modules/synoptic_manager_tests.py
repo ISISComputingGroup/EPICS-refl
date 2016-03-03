@@ -16,13 +16,11 @@ EXAMPLE_SYNOPTIC = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                       <name>%s</name>
                       </instrument>"""
 
-SCHEMA_PATH = os.path.join(".","..","..","..","..","schema","configurations")
+SCHEMA_PATH = os.path.abspath(os.path.join(".", "..", "schema"))
 
 
 class TestSynopticManagerSequence(unittest.TestCase):
     def setUp(self):
-        FILEPATH_MANAGER.initialise(TEST_DIR)
-
         # Make directory and fill with fake synoptics
         if not os.path.isdir(FILEPATH_MANAGER.synoptic_dir):
             os.makedirs(FILEPATH_MANAGER.synoptic_dir)
