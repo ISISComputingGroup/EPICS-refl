@@ -23,7 +23,7 @@ class OptionsLoader(object):
         """Loads the IOC options from file and converts them into IocOptions objects
 
         Args:
-            path (string) : The path to the xml file to be loaded
+            path (string): The path to the xml file to be loaded
 
         Returns:
             OrderedDict : A dict of IOCs and their associated options

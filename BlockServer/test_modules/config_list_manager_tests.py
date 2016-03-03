@@ -9,13 +9,14 @@ from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from server_common.utilities import dehex_and_decompress
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
-from BlockServer.core.constants import COMPONENT_DIRECTORY, CONFIG_DIRECTORY, DEFAULT_COMPONENT
+from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.config.configuration import Configuration
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_runcontrol_manager import MockRunControlManager
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
 MACROS = {
@@ -57,13 +58,13 @@ VALID_CONFIG = {
 
 
 def create_configs(names):
-        configserver = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        configserver = InactiveConfigHolder(MACROS, MockVersionControl())
         for name in names:
             configserver.save_inactive(name)
 
 
 def create_components(names):
-        configserver = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        configserver = InactiveConfigHolder(MACROS, MockVersionControl())
         for name in names:
             configserver.save_inactive(name, True)
         return configserver
@@ -74,11 +75,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def setUp(self):
         # Create components folder and copying DEFAULT_COMPONENT fileIO into it
         path = os.path.abspath(CONFIG_PATH)
+        print path
+        FILEPATH_MANAGER.initialise(path)
         self.ms = MockCAServer()
         self.bs = MockBlockServer()
 
     def _create_ic(self):
-        return ConfigListManager(self.bs, CONFIG_PATH, self.ms, SCHEMA_PATH, MockVersionControl())
+        return ConfigListManager(self.bs, self.ms, SCHEMA_PATH, MockVersionControl())
 
     def tearDown(self):
         # Delete any configs created as part of the test
@@ -155,7 +158,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_config_from_object(self):
         ics = self._create_ic()
-        ic = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        ic = InactiveConfigHolder(MACROS, MockVersionControl())
         ic.set_config_details(VALID_CONFIG)
         ics.update_a_config_in_list(ic)
 
@@ -171,7 +174,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_component_from_object(self):
         ics = self._create_ic()
-        ic = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        ic = InactiveConfigHolder(MACROS, MockVersionControl())
         ic.set_config_details(VALID_CONFIG)
         ics.update_a_config_in_list(ic, True)
 
@@ -285,7 +288,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         ms = self.ms
         ic = self._create_ic()
-        active = ActiveConfigHolder(CONFIG_PATH, MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
+        active = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
                                     MockVersionControl(), MockIocControl(""),
                                     MockRunControlManager())
         active.save_active("TEST_ACTIVE")
@@ -304,7 +307,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_components(["TEST_COMPONENT1", "TEST_COMPONENT2", "TEST_COMPONENT3"])
         ms = self.ms
         ic = self._create_ic()
-        active = ActiveConfigHolder(CONFIG_PATH, MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
+        active = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
                                     MockVersionControl(), MockIocControl(""),
                                     MockRunControlManager())
         active.add_component("TEST_COMPONENT1", Configuration(MACROS))
@@ -328,7 +331,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ms = self.ms
         ic = self._create_ic()
 
-        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        inactive = InactiveConfigHolder(MACROS, MockVersionControl())
         inactive.add_component("TEST_COMPONENT1", Configuration(MACROS))
         inactive.save_inactive("TEST_INACTIVE")
 
@@ -439,10 +442,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        self.assertEqual(len(os.listdir(CONFIG_PATH + CONFIG_DIRECTORY)), 2)
+        self.assertEqual(len(os.listdir(FILEPATH_MANAGER.config_dir)), 2)
         ic.delete_configs(["TEST_CONFIG1"])
 
-        configs = os.listdir(CONFIG_PATH + CONFIG_DIRECTORY)
+        configs = os.listdir(FILEPATH_MANAGER.config_dir)
         self.assertEqual(len(configs), 1)
         self.assertTrue("TEST_CONFIG2" in configs)
 
@@ -451,10 +454,10 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        self.assertEqual(len(os.listdir(os.path.join(CONFIG_PATH, COMPONENT_DIRECTORY))), 3)
-        ic.delete_configs(["TEST_COMPONENT1"], True)
+        self.assertEqual(len(os.listdir(FILEPATH_MANAGER.component_dir)), 3)
+        ic.delete_configs(["TEST_SUBCONFIG1"], True)
 
-        configs = os.listdir(os.path.join(CONFIG_PATH, COMPONENT_DIRECTORY))
+        configs = os.listdir(FILEPATH_MANAGER.component_dir)
         self.assertEqual(len(configs), 2)
         self.assertTrue("TEST_COMPONENT2" in configs)
 
@@ -486,7 +489,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic = self._create_ic()
         ic.active_config_name = "TEST_ACTIVE"
 
-        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        inactive = InactiveConfigHolder(MACROS, MockVersionControl())
 
         inactive.add_component("TEST_COMPONENT1", Configuration(MACROS))
         inactive.save_inactive("TEST_INACTIVE")
@@ -526,7 +529,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_components(["TEST_COMPONENT1"])
         ms = self.ms
         ic = self._create_ic()
-        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        inactive = InactiveConfigHolder(MACROS, MockVersionControl())
 
         inactive.add_component("TEST_COMPONENT1", Configuration(MACROS))
         inactive.save_inactive("TEST_INACTIVE")
@@ -544,7 +547,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_components(["TEST_COMPONENT1"])
         ms = self.ms
         ic = self._create_ic()
-        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        inactive = InactiveConfigHolder(MACROS, MockVersionControl())
 
         inactive.add_component("TEST_COMPONENT1", Configuration(MACROS))
         inactive.save_inactive("TEST_INACTIVE", False)
@@ -566,7 +569,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         create_components(["TEST_COMPONENT1"])
         ms = self.ms
         ic = self._create_ic()
-        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        inactive = InactiveConfigHolder(MACROS, MockVersionControl())
         ic.active_config_name = "TEST_ACTIVE"
         inactive.add_component("TEST_COMPONENT1", Configuration(MACROS))
         inactive.save_inactive("TEST_INACTIVE", False)
@@ -591,7 +594,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_inactive_config_from_filewatcher(self):
         ic = self._create_ic()
-        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        inactive = InactiveConfigHolder(MACROS, MockVersionControl())
         self.bs.set_config_list(ic)
 
         inactive.save_inactive("TEST_INACTIVE")
@@ -605,7 +608,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_inactive_config_from_filewatcher(self):
         ic = self._create_ic()
-        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        inactive = InactiveConfigHolder(MACROS, MockVersionControl())
         self.bs.set_config_list(ic)
 
         inactive.save_inactive("TEST_INACTIVE_COMP", True)
@@ -619,7 +622,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_active_config_from_filewatcher(self):
         ic = self._create_ic()
-        active = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        active = InactiveConfigHolder(MACROS, MockVersionControl())
         active_config_name = "TEST_ACTIVE"
 
         self.bs.set_config_list(ic)
@@ -636,7 +639,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_update_active_component_from_filewatcher(self):
         ic = self._create_ic()
-        inactive = InactiveConfigHolder(CONFIG_PATH, MACROS, MockVersionControl())
+        inactive = InactiveConfigHolder(MACROS, MockVersionControl())
         active_config_name = "TEST_ACTIVE"
         active_config_comp = "TEST_ACTIVE_COMP"
 

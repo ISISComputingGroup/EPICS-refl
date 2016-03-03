@@ -29,7 +29,7 @@ class ConfigurationJsonConverter(object):
         """ Converts the groups dictionary to a JSON list
 
         Args:
-            groups (OrderedDict) : The groups to convert to JSON
+            groups (OrderedDict): The groups to convert to JSON
 
         Returns:
             string : The groups as a JSON list

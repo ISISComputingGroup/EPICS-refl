@@ -32,8 +32,8 @@ class ConfigurationXmlConverter(object):
         """ Generates an XML representation for a supplied dictionary of blocks.
 
         Args:
-            blocks (OrderedDict) : The blocks in a configuration or component
-            macros (dict) : The macros for the BlockServer
+            blocks (OrderedDict): The blocks in a configuration or component
+            macros (dict): The macros for the BlockServer
 
         Returns:
             string : The XML representation of the blocks in a configuration
@@ -54,8 +54,8 @@ class ConfigurationXmlConverter(object):
         """ Generates an XML representation for a supplied dictionary of groups.
 
         Args:
-            groups (OrderedDict) : The groups in a configuration or component
-            include_none (bool) : Whether to include the NONE group
+            groups (OrderedDict): The groups in a configuration or component
+            include_none (bool): Whether to include the NONE group
 
         Returns:
             string : The XML representation of the groups in a configuration
@@ -79,7 +79,7 @@ class ConfigurationXmlConverter(object):
         """ Generates an XML representation for a supplied list of iocs.
 
         Args:
-            iocs (OrderedDict) : The IOCs in a configuration or component
+            iocs (OrderedDict): The IOCs in a configuration or component
 
         Returns:
             string : The XML representation of the IOCs in a configuration
@@ -99,7 +99,7 @@ class ConfigurationXmlConverter(object):
         """ Generates an XML representation for a supplied dictionary of components.
 
         Args:
-            comps (OrderedDict) : The components in the configuration
+            comps (OrderedDict): The components in the configuration
 
         Returns:
             string : The XML representation of the components in a configuration
@@ -117,7 +117,7 @@ class ConfigurationXmlConverter(object):
         """ Generates an XML representation of the meta data for each configuration.
 
         Args:
-            data (MetaData) : The metadata to convert to XML
+            data (MetaData): The metadata to convert to XML
 
         Returns:
             string : The XML representation of the metadata in a configuration
@@ -224,9 +224,9 @@ class ConfigurationXmlConverter(object):
         """ Populates the supplied dictionary of blocks and groups based on an XML tree.
 
         Args:
-            root_xml (ElementTree.Element) : The XML tree object
-            blocks (OrderedDict) : The blocks dictionary to populate
-            groups (OrderedDict) : The groups dictionary to populate with the blocks
+            root_xml (ElementTree.Element): The XML tree object
+            blocks (OrderedDict): The blocks dictionary to populate
+            groups (OrderedDict): The groups dictionary to populate with the blocks
 
         """
         # Get the blocks
@@ -283,9 +283,9 @@ class ConfigurationXmlConverter(object):
         """ Populates the supplied dictionary of groups and blocks based on an XML string.
 
         Args:
-            xml (string) : The XML
-            groups (OrderedDict) : The groups dictionary to populate with the blocks
-            blocks (OrderedDict) : The blocks dictionary to populate
+            xml (string): The XML
+            groups (OrderedDict): The groups dictionary to populate with the blocks
+            blocks (OrderedDict): The blocks dictionary to populate
         """
         root_xml = ElementTree.fromstring(xml)
         ConfigurationXmlConverter.groups_from_xml(root_xml, groups, blocks)
@@ -295,9 +295,9 @@ class ConfigurationXmlConverter(object):
         """ Populates the supplied dictionary of groups and assign blocks based on an XML tree
 
         Args:
-            root_xml (ElementTree.Element) : The XML tree object
-            blocks (OrderedDict) : The blocks dictionary
-            groups (OrderedDict) : The groups dictionary to populate
+            root_xml (ElementTree.Element): The XML tree object
+            blocks (OrderedDict): The blocks dictionary
+            groups (OrderedDict): The groups dictionary to populate
         """
         # Get the groups
         grps = root_xml.findall("./" + TAG_GROUP)
@@ -330,8 +330,8 @@ class ConfigurationXmlConverter(object):
         """ Populates the supplied dictionary of IOCs based on an XML tree.
 
         Args:
-            root_xml (ElementTree.Element) : The XML tree object
-            iocs (OrderedDict) : The IOCs dictionary
+            root_xml (ElementTree.Element): The XML tree object
+            iocs (OrderedDict): The IOCs dictionary
         """
         iocs_xml = root_xml.findall("./" + TAG_IOC)
         for i in iocs_xml:
@@ -371,8 +371,8 @@ class ConfigurationXmlConverter(object):
         """Populates the supplied dictionary of components based on an XML tree.
 
         Args:
-            root_xml (ElementTree.Element) : The XML tree object
-            components (OrderedDict) : The components dictionary
+            root_xml (ElementTree.Element): The XML tree object
+            components (OrderedDict): The components dictionary
         """
         components_xml = root_xml.findall("./" + TAG_COMPONENT)
         for i in components_xml:
@@ -385,8 +385,8 @@ class ConfigurationXmlConverter(object):
         """Populates the supplied MetaData object based on an XML tree.
 
         Args:
-            root_xml (ElementTree.Element) : The XML tree object
-            data (MetaData) : The metadata object
+            root_xml (ElementTree.Element): The XML tree object
+            data (MetaData): The metadata object
         """
         description = root_xml.find("./" + TAG_DESC)
         if description is not None:

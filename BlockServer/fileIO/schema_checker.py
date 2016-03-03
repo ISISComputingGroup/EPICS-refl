@@ -3,7 +3,8 @@ import string
 
 from lxml import etree
 
-from BlockServer.core.constants import SCHEMA_FOR, COMPONENT_DIRECTORY, CONFIG_DIRECTORY, FILENAME_COMPONENTS
+from BlockServer.core.constants import SCHEMA_FOR, FILENAME_COMPONENTS
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
 class NotConfigFileException(Exception):
@@ -41,17 +42,17 @@ class ConfigurationSchemaChecker(object):
         """Check all the configuration files are schematically correct.
 
         Args:
-            schema_folder (string) : The location of the schema files
-            root_path (string) : The location of all the configuration
+            schema_folder (string): The location of the schema files
+            root_path (string): The location of all the configuration
         """
         valid = True
 
-        for root, dirs, files in os.walk(os.path.join(root_path, CONFIG_DIRECTORY)):
+        for root, dirs, files in os.walk(FILEPATH_MANAGER.config_dir):
             for f in files:
                 full_path = os.path.join(root, f)
                 valid &= ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, full_path)
 
-        for root, dirs, files in os.walk(os.path.join(root_path, COMPONENT_DIRECTORY)):
+        for root, dirs, files in os.walk(FILEPATH_MANAGER.component_dir):
             for f in files:
                 full_path = os.path.join(root, f)
                 valid &= ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, full_path, True)
@@ -63,9 +64,9 @@ class ConfigurationSchemaChecker(object):
         """Check the configuration file is schematically correct.
 
         Args:
-            schema_folder (string) : The location of the schema files
-            config_xml_path (string) : The location of the configuration
-            is_component (bool) : Whether it is a component
+            schema_folder (string): The location of the schema files
+            config_xml_path (string): The location of the configuration
+            is_subconfig (bool): Whether it is a component
         """
         folder, file_name = string.rsplit(config_xml_path, os.sep, 1)
         if file_name in SCHEMA_FOR:
@@ -93,8 +94,8 @@ class ConfigurationSchemaChecker(object):
         A ConfigurationInvalidUnderSchema error is raised if the file is incorrect.
 
         Args:
-            schema_filepath (string) : The location of the schema file
-            synoptic_xml_data (string) : The XML for the synoptic
+            schema_filepath (string): The location of the schema file
+            synoptic_xml_data (string): The XML for the synoptic
         """
         folder, file_name = string.rsplit(schema_filepath, os.sep, 1)
         xmlparser = ConfigurationSchemaChecker._import_schema(folder, file_name)
@@ -109,9 +110,9 @@ class ConfigurationSchemaChecker(object):
         """ This method takes an xml file and checks it against a given schema.
 
         Args:
-            xml_file (string) : The XML file to check
-            schema_folder (string) : The location of the schema files
-            schema_file (string) : The schema file to use
+            xml_file (string): The XML file to check
+            schema_folder (string): The location of the schema files
+            schema_file (string): The schema file to use
 
         Raises:
             etree.XMLSyntaxError : Raised if the file is incorrect
@@ -132,8 +133,8 @@ class ConfigurationSchemaChecker(object):
         with open(schema_file, 'r') as f:
             schema_raw = etree.XML(f.read())
 
-        schema = etree.XMLSchema(schema_raw)
-        xmlparser = etree.XMLParser(schema=schema)
+        conf_schema = etree.XMLSchema(schema_raw)
+        xmlparser = etree.XMLParser(schema=conf_schema)
         os.chdir(cur)
 
         return xmlparser

@@ -47,10 +47,6 @@ SIMLEVELS = ['recsim', 'devsim']
 
 IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
 
-CONFIG_DIRECTORY = "configurations"
-COMPONENT_DIRECTORY = "components"
-SYNOPTIC_DIRECTORY = "synoptics"
-
 # Name of default component that is loaded with every configuration.
 # Contains essential IOCs (and blocks/groups?) e.g. DAE, INSTETC
 DEFAULT_COMPONENT = "_base"

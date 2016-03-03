@@ -19,4 +19,4 @@ if exist "%ICPSETTINGSDIR%/gwblock.pvlist" (
 
 set MYDIRVC=%MYDIRBLOCK%..\..\ConfigVersionControl\master
 
-%PYTHONW% %MYDIRBLOCK%BlockServer\block_server.py -od %MYDIRBLOCK%..\..\..\iocstartup -sd %MYDIRBLOCK%..\..\..\schema\configurations -cd %ICPCONFIGROOT% -pv %GWBLOCK_PVLIST% -f ISIS
+%PYTHONW% %MYDIRBLOCK%BlockServer\block_server.py -od %MYDIRBLOCK%..\..\..\iocstartup -sd %MYDIRBLOCK%\schema\ -cd %ICPCONFIGROOT% -pv %GWBLOCK_PVLIST% -f ISIS

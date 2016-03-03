@@ -9,7 +9,7 @@ class DynamicStringPV(cas.casPV):
         """Constructor
 
         Args:
-            data (string) : The initial data held in the PV
+            data (string): The initial data held in the PV
         """
         super(DynamicStringPV, self).__init__()
         self.stored_value = cas.gdd()
@@ -20,7 +20,7 @@ class DynamicStringPV(cas.casPV):
         """Overrides the getValue method in cas.casPV. Used by pcaspy to get the value of the PV.
 
         Args:
-            value (gdd) : A gdd object used to store the PV's value.
+            value (gdd): A gdd object used to store the PV's value.
 
         Returns:
             cas.S_casApp_success if successful
@@ -34,7 +34,7 @@ class DynamicStringPV(cas.casPV):
         """Overrides the updateValue method in cas.casPV. Used by pcaspy to update the value of the PV.
 
         Args:
-            value (gdd) : A gdd object which holds the new value for the PV.
+            value (gdd): A gdd object which holds the new value for the PV.
         """
         self.stored_value.put(value)
         self.stored_value.setTimeStamp()
@@ -101,7 +101,7 @@ class CAServer(SimpleServer):
         """Creates a PV in the dictionary of this server.
 
         Args:
-            name (string) : The name of the PV to create (without the PV prefix)
+            name (string): The name of the PV to create (without the PV prefix)
             data (string, optional): The initial data stored in the PV
         """
         if name not in self._pvs:
@@ -111,8 +111,8 @@ class CAServer(SimpleServer):
         """Updates a PV in the dictionary of this server. The PV will be created if it does not exist.
 
         Args:
-            name (string) : The name of the PV to update (without the PV prefix)
-            data (string) : The data to store in the PV
+            name (string): The name of the PV to update (without the PV prefix)
+            data (string): The data to store in the PV
         """
         if name in self._pvs:
             self._pvs[name].updateValue(data)
@@ -123,7 +123,7 @@ class CAServer(SimpleServer):
         """Removes a PV from the dictionary of this server.
 
         Args:
-            name (string) : The name of the PV to remove (without the PV prefix)
+            name (string): The name of the PV to remove (without the PV prefix)
         """
         if name in self._pvs:
             del self._pvs[name]

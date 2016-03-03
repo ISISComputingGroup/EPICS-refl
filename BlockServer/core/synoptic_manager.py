@@ -2,6 +2,7 @@ import os
 from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.config_list_manager import InvalidDeleteException
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from xml.dom import minidom
 from lxml import etree
 
@@ -13,23 +14,22 @@ SYNOPTIC_SCHEMA = "synoptic.xsd"
 
 class SynopticManager(object):
     """Class for managing the PVs associated with synoptics"""
-    def __init__(self, block_server, synoptic_folder, cas, schema_folder, vc_manager):
+    def __init__(self, block_server, cas, schema_folder, vc_manager):
         """Constructor.
 
         Args:
-            synoptic_folder (string) : The filepath where synoptics are stored
-            cas (CAServer) : The channel access server for creating PVs on-the-fly
-            schema_folder (string) : The filepath for the synoptic schema
-            vc_manager (ConfigVersionControl) : The manager to allow version control modifications
+            block_server (BlockServer): A reference to the BlockServer instance.
+            cas (CAServer): The channel access server for creating PVs on-the-fly
+            schema_folder (string): The filepath for the synoptic schema
+            vc_manager (ConfigVersionControl): The manager to allow version control modifications
         """
-        self._directory = os.path.abspath(synoptic_folder)
+        self._directory = FILEPATH_MANAGER.synoptic_dir
         self._schema_folder = schema_folder
         self._cas = cas
         self._synoptic_pvs = dict()
         self._vc = vc_manager
         self._bs = block_server
         self._default_syn_xml = ""
-
         self._load_initial()
 
     def _load_initial(self):
@@ -54,7 +54,7 @@ class SynopticManager(object):
         """Creates a single PV based on a name and data. Adds this PV to the dictionary returned on get_synoptic_list
 
         Args:
-            data (string) : Starting data for the pv, the pv name is derived from the name tag of this
+            data (string): Starting data for the pv, the pv name is derived from the name tag of this
         """
         name = self._get_synoptic_name_from_xml(data)
         if name not in self._synoptic_pvs:
@@ -102,7 +102,7 @@ class SynopticManager(object):
         """Sets the default synoptic.
 
         Args:
-            name (string) : the name of the synoptic to load
+            name (string): the name of the synoptic to load
         """
         fullname = name + ".xml"
         f = self._get_synoptic_filenames()
@@ -137,7 +137,7 @@ class SynopticManager(object):
         """Saves the xml under the filename taken from the xml name tag.
 
         Args:
-            xml_data (string) : The XML to be saved
+            xml_data (string): The XML to be saved
         """
         try:
             # Check against schema
@@ -152,7 +152,7 @@ class SynopticManager(object):
 
         name = self._get_synoptic_name_from_xml(xml_data)
 
-        save_path = os.path.join(self._directory, name + ".xml")
+        save_path = FILEPATH_MANAGER.get_synoptic_path(name)
 
         # If save file already exists remove first to avoid case issues
         if os.path.exists(save_path):
@@ -171,7 +171,7 @@ class SynopticManager(object):
 
     def _add_to_version_control(self, synoptic_name, commit_message=None):
         # Add to version control
-        self._vc.add(os.path.join(self._directory, synoptic_name + ".xml"))
+        self._vc.add(FILEPATH_MANAGER.get_synoptic_path(synoptic_name))
         if commit_message is not None:
             self._vc.commit(commit_message)
 
@@ -179,7 +179,7 @@ class SynopticManager(object):
         """Takes a list of synoptics and removes them from the file system and any relevant PVs.
 
         Args:
-            delete_list (list) : The synoptics to delete
+            delete_list (list): The synoptics to delete
         """
         print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
         delete_list = set(delete_list)
@@ -192,7 +192,7 @@ class SynopticManager(object):
 
     def _update_version_control_post_delete(self, files):
         for synoptic in files:
-            self._vc.remove(os.path.join(self._directory, synoptic + ".xml"))
+            self._vc.remove(FILEPATH_MANAGER.get_synoptic_path(synoptic))
         self._vc.commit("Deleted %s" % ', '.join(list(files)))
 
     def recover_from_version_control(self):
@@ -203,8 +203,8 @@ class SynopticManager(object):
         """Updates the synoptic list when modifications are made via the filesystem.
 
         Args:
-            name (string) :  The name of the synoptic
-            xml_data (string) : The xml data to update the PV with
+            name (string):  The name of the synoptic
+            xml_data (string): The xml data to update the PV with
 
         """
         self._add_to_version_control(name, "%s modified on filesystem" % name)

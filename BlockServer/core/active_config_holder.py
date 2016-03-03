@@ -1,31 +1,30 @@
 import os
 import json
 
-from BlockServer.core.constants import CONFIG_DIRECTORY, COMPONENT_DIRECTORY
 from server_common.utilities import print_and_log
 from BlockServer.core.macros import BLOCKSERVER_PREFIX, BLOCK_PREFIX, MACROS
 from BlockServer.core.config_holder import ConfigHolder
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
 class ActiveConfigHolder(ConfigHolder):
     """Class to serve up the active configuration.
     """
-    def __init__(self, config_folder, macros, archive_manager, vc_manager, ioc_control, run_control=None):
+    def __init__(self, macros, archive_manager, vc_manager, ioc_control, run_control=None):
         """ Constructor.
 
         Args:
-            config_folder (string) : The location of the configurations folder
-            macros (dict) : The BlockServer macros
-            archive_manager (ArchiveManager) : Responsible for updating the archiver
-            vc_manager (ConfigVersionControl) : Manages version control
-            ioc_control (IocControl) : Manages stopping and starting IOCs
-            run_control (RunControlManager) : Manages run-control
+            macros (dict): The BlockServer macros
+            archive_manager (ArchiveManager): Responsible for updating the archiver
+            vc_manager (ConfigVersionControl): Manages version control
+            ioc_control (IocControl): Manages stopping and starting IOCs
+            run_control (RunControlManager): Manages run-control
         """
-        super(ActiveConfigHolder, self).__init__(config_folder, macros, vc_manager)
+        super(ActiveConfigHolder, self).__init__(macros, vc_manager)
         self._archive_manager = archive_manager
         self._ioc_control = ioc_control
         self._db = None
-        self._last_config_file = os.path.abspath(config_folder + "/last_config.txt")
+        self._last_config_file = os.path.abspath(os.path.join(FILEPATH_MANAGER.config_root_dir, "last_config.txt"))
         self._runcontrol = run_control
         if run_control is not None:
             self._start_runcontrol()
@@ -41,8 +40,8 @@ class ActiveConfigHolder(ConfigHolder):
         """ Save the active configuration.
 
         Args:
-            name (string) : The name to save the configuration under
-            as_comp (bool) : Whether to save as a component
+            name (string): The name to save the configuration under
+            as_comp (bool): Whether to save as a component
         """
         if as_comp:
             super(ActiveConfigHolder, self).save_configuration(name, True)
@@ -55,7 +54,7 @@ class ActiveConfigHolder(ConfigHolder):
         Cannot load a component as the active configuration.
 
         Args:
-            name (string) : The name of the configuration to load
+            name (string): The name of the configuration to load
         """
         conf = super(ActiveConfigHolder, self).load_configuration(name, False)
         super(ActiveConfigHolder, self).set_config(conf, False)
@@ -73,7 +72,7 @@ class ActiveConfigHolder(ConfigHolder):
         The last configuration is saved without any file path.
 
         Args:
-            config (string) : The name of the last configuration used
+            config (string): The name of the last configuration used
         """
         last = os.path.abspath(self._last_config_file)
         with open(last, 'w') as f:
@@ -90,7 +89,7 @@ class ActiveConfigHolder(ConfigHolder):
         if not os.path.isfile(last):
             return None
         with open(last, 'r') as f:
-            last_config = f.readline().replace(CONFIG_DIRECTORY, "").strip()
+            last_config = os.path.split(f.readline().strip())[-1]
             # Remove any legacy path separators
             last_config = last_config.replace("/", "")
             last_config = last_config.replace("\\", "")
@@ -139,7 +138,7 @@ class ActiveConfigHolder(ConfigHolder):
         """ Replaces the run-control settings with new values.
 
         Args:
-            data (dict) : The new run-control settings to set
+            data (dict): The new run-control settings to set
         """
         if self._runcontrol is not None:
             self._runcontrol.set_runcontrol_settings(data)

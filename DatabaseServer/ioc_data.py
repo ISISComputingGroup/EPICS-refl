@@ -11,9 +11,9 @@ class IOCData(object):
         """Constructor
 
         Args:
-            dbid (string) : The id of the database that holds IOC information
-            procserver (ProcServWrapper) : An instance of ProcServWrapper, used to start and stop IOCs
-            prefix (string) : The pv prefix of the instrument the server is being run on
+            dbid (string): The id of the database that holds IOC information
+            procserver (ProcServWrapper): An instance of ProcServWrapper, used to start and stop IOCs
+            prefix (string): The pv prefix of the instrument the server is being run on
         """
 
         # Set up the database connection
@@ -131,9 +131,9 @@ class IOCData(object):
         """Queries the database for PVs based on their interest level and their IOC.
 
         Args:
-            level (string, optional) : The interest level to search for, either High, Medium or Facility. Default to
+            level (string, optional): The interest level to search for, either High, Medium or Facility. Default to
                                     all interest levels
-            ioc (string, optional) : The IOC to search. Default is all IOCs.
+            ioc (string, optional): The IOC to search. Default is all IOCs.
 
         Returns:
             list : A list of the PVs that match the search given by level and ioc

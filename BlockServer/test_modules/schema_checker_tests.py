@@ -5,18 +5,17 @@ import shutil
 
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema, NotConfigFileException
 from BlockServer.core.active_config_holder import ActiveConfigHolder
-from BlockServer.core.constants import SCHEMA_FOR, FILENAME_IOCS, CONFIG_DIRECTORY, COMPONENT_DIRECTORY
+from BlockServer.core.constants import SCHEMA_FOR, FILENAME_IOCS
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_runcontrol_manager import MockRunControlManager
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 TEST_DIRECTORY = os.path.abspath("test_configs")
-CONFIG_DIR = os.path.join(TEST_DIRECTORY, CONFIG_DIRECTORY)
-COMP_DIR = os.path.join(TEST_DIRECTORY, COMPONENT_DIRECTORY)
-SCHEMA_DIR = os.path.abspath(os.path.join("..","..","..","..","schema","configurations"))
+SCHEMA_DIR = os.path.abspath(os.path.join("..", "schema"))
 
 TEST_CONFIG = {"iocs":
                  [{"simlevel": "devsim", "autostart": True, "restart": False,
@@ -60,8 +59,8 @@ def strip_out_whitespace(string):
 
 class TestSchemaChecker(unittest.TestCase):
     def setUp(self):
-        os.makedirs(CONFIG_DIR)
-        self.cs = ActiveConfigHolder(TEST_DIRECTORY, MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
+        FILEPATH_MANAGER.initialise(TEST_DIRECTORY)
+        self.cs = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
                                      MockVersionControl(), MockIocControl(""), MockRunControlManager())
 
     def tearDown(self):
@@ -73,7 +72,8 @@ class TestSchemaChecker(unittest.TestCase):
 
         for xml in SCHEMA_FOR:
             self.assertTrue(ConfigurationSchemaChecker.check_config_file_matches_schema(SCHEMA_DIR,
-                                                                          os.path.join(CONFIG_DIR, 'TEST_CONFIG', xml)))
+                                                                          os.path.join(FILEPATH_MANAGER.config_dir,
+                                                                                       'TEST_CONFIG', xml)))
 
     def test_schema_valid_xml_full_config(self):
         self.cs.save_active("TEST_COMP", as_comp=True)
@@ -82,11 +82,12 @@ class TestSchemaChecker(unittest.TestCase):
 
         for xml in SCHEMA_FOR:
             self.assertTrue(ConfigurationSchemaChecker.check_config_file_matches_schema(SCHEMA_DIR,
-                                                                         os.path.join(CONFIG_DIR, 'TEST_CONFIG', xml)))
+                                                                         os.path.join(FILEPATH_MANAGER.config_dir,
+                                                                                      'TEST_CONFIG', xml)))
 
     def test_schema_invalid_xml(self):
-        os.makedirs(os.path.join(CONFIG_DIR, 'TEST_CONFIG') + os.sep)
-        new_file = os.path.join(CONFIG_DIR, 'TEST_CONFIG', FILENAME_IOCS)
+        os.makedirs(os.path.join(FILEPATH_MANAGER.config_dir, 'TEST_CONFIG') + os.sep)
+        new_file = os.path.join(FILEPATH_MANAGER.config_dir, 'TEST_CONFIG', FILENAME_IOCS)
         with open(new_file, 'w') as f:
             f.write("Invalid xml")
 
@@ -94,7 +95,7 @@ class TestSchemaChecker(unittest.TestCase):
                           SCHEMA_DIR, new_file)
 
     def test_schema_invalid_file(self):
-        new_file = os.path.join(CONFIG_DIR, 'TEST_FILE.xml')
+        new_file = os.path.join(FILEPATH_MANAGER.config_dir, 'TEST_FILE.xml')
         with open(new_file, 'w') as f:
             f.write("This file is not part of a configuration")
 
@@ -108,8 +109,8 @@ class TestSchemaChecker(unittest.TestCase):
         self.assertTrue(ConfigurationSchemaChecker.check_all_config_files_correct(SCHEMA_DIR, TEST_DIRECTORY))
 
     def test_schema_whole_directory_invalid(self):
-        os.makedirs(os.path.join(COMP_DIR, 'TEST_COMP') + os.sep)
-        new_file = os.path.join(COMP_DIR, 'TEST_COMP', FILENAME_IOCS)
+        os.makedirs(os.path.join(FILEPATH_MANAGER.component_dir, 'TEST_COMP') + os.sep)
+        new_file = os.path.join(FILEPATH_MANAGER.component_dir, 'TEST_COMP', FILENAME_IOCS)
         with open(new_file, 'w') as f:
             f.write("Invalid xml")
 

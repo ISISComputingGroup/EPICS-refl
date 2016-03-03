@@ -8,10 +8,10 @@ class SQLAbstraction(object):
         """Constructor
 
         Args:
-            dbid (string) : The id of the database that holds the required information
-            user (string) : The username to use to connect to the database
-            password (string) : The password to use to connect to the database
-            host (string) : The host address to use, defaults to local host
+            dbid (string): The id of the database that holds the required information
+            user (string): The username to use to connect to the database
+            password (string): The password to use to connect to the database
+            host (string): The host address to use, defaults to local host
         """
         self._dbid = dbid
         self._user = user
@@ -29,8 +29,8 @@ class SQLAbstraction(object):
         """Open a connection to the database
 
         Returns:
-            conn (mysql connector) : a connection to the database
-            curs (mysql cursor) : a cursor to communicate with the database
+            conn (mysql connector): a connection to the database
+            curs (mysql cursor): a cursor to communicate with the database
         """
         conn = mysql.connector.connect(user=self._user, password=self._password, host=self._host, database=self._dbid)
         curs = conn.cursor()
@@ -45,10 +45,10 @@ class SQLAbstraction(object):
         """Executes a query on the database, and returns all values
 
         Args:
-            query (string) : the SQL command to run
+            query (string): the SQL command to run
 
         Returns:
-            values (list) : list of all rows returned
+            values (list): list of all rows returned
         """
         conn = None
         try:

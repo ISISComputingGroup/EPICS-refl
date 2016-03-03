@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://epics.isis.rl.ac.uk/schema/blocks/1.0"
+  xmlns:blk="http://epics.isis.rl.ac.uk/schema/blocks/1.0"
+  elementFormDefault="qualified">
+  <xs:element name="blocks">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="blk:block"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="block">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="blk:name"/>
+        <xs:element ref="blk:read_pv"/>
+        <xs:element ref="blk:local"/>
+        <xs:element ref="blk:visible"/>
+        <xs:element ref="blk:rc_lowlimit" minOccurs="0"/>
+        <xs:element ref="blk:rc_highlimit" minOccurs="0"/>
+        <xs:element ref="blk:rc_enabled" minOccurs="0"/>
+        <xs:element ref="blk:log_periodic" minOccurs="0"/>
+        <xs:element ref="blk:log_rate" minOccurs="0"/>
+        <xs:element ref="blk:log_deadband" minOccurs="0"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="name" type="xs:NCName"/>
+  <xs:element name="read_pv" type="xs:NMTOKEN"/>
+  <xs:element name="local" type="xs:string"/>
+  <xs:element name="visible" type="xs:string"/>
+  <xs:element name="rc_lowlimit" type="xs:decimal"/>
+  <xs:element name="rc_highlimit" type="xs:decimal"/>
+  <xs:element name="rc_enabled" type="xs:string"/>
+  <xs:element name="log_periodic" type="xs:string"/>
+  <xs:element name="log_rate" type="xs:decimal"/>
+  <xs:element name="log_deadband" type="xs:decimal"/>
+</xs:schema>

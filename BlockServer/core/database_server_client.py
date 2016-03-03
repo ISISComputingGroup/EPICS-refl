@@ -10,7 +10,7 @@ class DatabaseServerClient(object):
         """ Constructor.
 
         Args:
-            blockserver_prefix (string) : The prefix for the BlockServer
+            blockserver_prefix (string): The prefix for the BlockServer
         """
         self._blockserver_prefix = blockserver_prefix
 
