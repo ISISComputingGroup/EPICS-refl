@@ -16,11 +16,10 @@ class ConfigFileEventHandler(FileSystemEventHandler):
     creates/removes available configurations as necessary.
     """
 
-    def __init__(self, root_path, schema_folder, schema_lock, config_list_manager, is_component=False):
+    def __init__(self, schema_folder, schema_lock, config_list_manager, is_component=False):
         """Constructor.
 
         Args:
-            root_path (string): The location of the configurations and components
             schema_folder (string): The location of the schemas
             config_list_manager (ConfigListManager): The ConfigListManager
             is_component (bool): Whether it is a component or not
