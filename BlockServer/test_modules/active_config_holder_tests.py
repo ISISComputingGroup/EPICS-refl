@@ -126,22 +126,22 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         cs = self.activech
         self.assertRaises(IOError, lambda: cs.load_active("DOES_NOT_EXIST"))
 
-    def test_save_as_subconfig(self):
+    def test_save_as_component(self):
         cs = self.activech
         try:
             cs.save_active("TEST_CONFIG1", as_comp=True)
         except Exception:
-            self.fail("test_save_as_subconfig raised Exception unexpectedly!")
+            self.fail("test_save_as_component raised Exception unexpectedly!")
 
-    def test_save_config_for_sub_config(self):
+    def test_save_config_for_component(self):
         cs = self.activech
         cs.save_active("TEST_CONFIG1", as_comp=True)
         try:
             cs.save_active("TEST_CONFIG1")
         except Exception:
-            self.fail("test_save_config_for_subconfig raised Exception unexpectedly!")
+            self.fail("test_save_config_for_component raised Exception unexpectedly!")
 
-    def test_load_subconfig_fails(self):
+    def test_load_component_fails(self):
         cs = self.activech
         add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
         add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
@@ -149,9 +149,9 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
         cs._add_ioc("SIMPLE1")
         cs._add_ioc("SIMPLE2")
-        cs.save_active("TEST_SUBCONFIG", as_comp=True)
+        cs.save_active("TEST_COMPONENT", as_comp=True)
         cs.clear_config()
-        self.assertRaises(IOError, lambda: cs.load_active("TEST_SUBCONFIG"))
+        self.assertRaises(IOError, lambda: cs.load_active("TEST_COMPONENT"))
 
     def test_load_last_config(self):
         cs = self.activech
@@ -294,7 +294,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [],
                                 "pvs": [],
                                 "pvsets": [],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -310,7 +310,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [],
                                 "pvs": [],
                                 "pvsets": [],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'].pop(0)
@@ -329,14 +329,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [],
                                 "pvs": [],
                                 "pvsets": [],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
                               "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
                               "pvs": [],
                               "pvsets": [],
-                              "subconfig": None}
+                              "component": None}
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -352,14 +352,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
                                 "pvs": [],
                                 "pvsets": [],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
                               "macros": [],
                               "pvs": [],
                               "pvsets": [],
-                              "subconfig": None}
+                              "component": None}
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -375,14 +375,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
                                 "pvs": [],
                                 "pvsets": [],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
                               "macros": [{"name": "TESTMACRO1", "value": "TEST_NEW"}],
                               "pvs": [],
                               "pvsets": [],
-                              "subconfig": None}
+                              "component": None}
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -398,14 +398,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
                                 "pvs": [],
                                 "pvsets": [],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
                               "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
                               "pvs": [],
                               "pvsets": [],
-                              "subconfig": None}
+                              "component": None}
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -421,14 +421,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [],
                                 "pvs": [],
                                 "pvsets": [],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
                               "macros": [],
                               "pvs": [{"name": "TESTPV1", "value": 123}],
                               "pvsets": [],
-                              "subconfig": None}
+                              "component": None}
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -444,14 +444,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [],
                                 "pvs": [{"name": "TESTPV1", "value": 123}],
                                 "pvsets": [],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
                               "macros": [],
                               "pvs": [],
                               "pvsets": [],
-                              "subconfig": None}
+                              "component": None}
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -467,14 +467,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [],
                                 "pvs": [{"name": "TESTPV1", "value": 123}],
                                 "pvsets": [],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
                               "macros": [],
                               "pvs": [{"name": "TESTPV1", "value": 456}],
                               "pvsets": [],
-                              "subconfig": None}
+                              "component": None}
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -490,14 +490,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [],
                                 "pvs": [],
                                 "pvsets": [],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
                               "macros": [],
                               "pvs": [],
                               "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
-                              "subconfig": None}
+                              "component": None}
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -513,14 +513,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [],
                                 "pvs": [],
                                 "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
                               "macros": [],
                               "pvs": [],
                               "pvsets": [],
-                              "subconfig": None}
+                              "component": None}
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -536,14 +536,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
                                 "macros": [],
                                 "pvs": [],
                                 "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
-                                "subconfig": None})
+                                "component": None})
         ch.set_config_details(details)
         # Act
         details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
                               "macros": [],
                               "pvs": [],
                               "pvsets": [{"name": "TESTPVSET1", "enabled": False}],
-                              "subconfig": None}
+                              "component": None}
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()

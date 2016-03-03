@@ -17,11 +17,11 @@ class ConfigurationJsonConverter(object):
         if groups is not None:
             for group in groups.values():
                 if group.name.lower() != GRP_NONE.lower():
-                    grps.append({"name": group.name, "subconfig": group.subconfig, "blocks": group.blocks})
+                    grps.append({"name": group.name, "component": group.component, "blocks": group.blocks})
 
             # Add NONE group at end
             if GRP_NONE.lower() in groups.keys():
-                grps.append({"name": GRP_NONE, "subconfig": None, "blocks": groups[GRP_NONE.lower()].blocks})
+                grps.append({"name": GRP_NONE, "component": None, "blocks": groups[GRP_NONE.lower()].blocks})
         return grps
 
     @staticmethod

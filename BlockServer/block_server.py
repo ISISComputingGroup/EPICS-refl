@@ -302,7 +302,7 @@ class BlockServer(Driver):
             elif reason == 'CONFIGS':
                 value = compress_and_hex(convert_to_json(self._config_list.get_configs()))
             elif reason == 'COMPS':
-                value = compress_and_hex(convert_to_json(self._config_list.get_subconfigs()))
+                value = compress_and_hex(convert_to_json(self._config_list.get_components()))
             elif reason == 'GET_RC_OUT':
                 js = convert_to_json(self._active_configserver.get_out_of_range_pvs())
                 value = compress_and_hex(js)
@@ -504,16 +504,16 @@ class BlockServer(Driver):
             print_and_log("Could not retrieve IOC list: %s" % str(err), "MAJOR")
             return []
 
-    def load_config(self, config, is_subconfig=False):
+    def load_config(self, config, is_component=False):
         """Load a configuration.
 
         Args:
             config (string): The name of the configuration
-            is_subconfig (bool): Whether it is a component or not
+            is_component (bool): Whether it is a component or not
         """
         try:
-            if is_subconfig:
-                print_and_log("Loading sub-configuration: %s" % config)
+            if is_component:
+                print_and_log("Loading component: %s" % config)
                 self._active_configserver.load_active(config, True)
             else:
                 print_and_log("Loading configuration: %s" % config)
@@ -523,17 +523,17 @@ class BlockServer(Driver):
         except Exception as err:
             print_and_log(str(err), "MAJOR")
 
-    def save_inactive_config(self, json_data, as_subconfig=False):
+    def save_inactive_config(self, json_data, as_comp=False):
         """Save an inactive configuration.
 
         Args:
             json_data (string): The JSON data containing the configuration/component
-            as_subconfig (bool): Whether it is a component or not
+            as_comp (bool): Whether it is a component or not
         """
         new_details = convert_from_json(json_data)
         inactive = InactiveConfigHolder(MACROS, self._vc)
 
-        history = self._get_inactive_history(new_details["name"], as_subconfig)
+        history = self._get_inactive_history(new_details["name"], as_comp)
 
         inactive.set_config_details(new_details)
 
@@ -542,16 +542,16 @@ class BlockServer(Driver):
         inactive.set_history(history)
 
         config_name = inactive.get_config_name()
-        self._check_config_inactive(config_name, as_subconfig)
+        self._check_config_inactive(config_name, as_comp)
         self._filewatcher.pause()
         try:
-            if not as_subconfig:
+            if not as_comp:
                 print_and_log("Saving configuration: %s" % config_name)
                 inactive.save_inactive()
                 self._config_list.update_a_config_in_list(inactive)
                 self.update_config_monitors()
             else:
-                print_and_log("Saving sub-configuration: %s" % config_name)
+                print_and_log("Saving component: %s" % config_name)
                 inactive.save_inactive(as_comp=True)
                 self._config_list.update_a_config_in_list(inactive, True)
                 self.update_comp_monitor()
@@ -560,7 +560,7 @@ class BlockServer(Driver):
             self._filewatcher.resume()
 
         # Reload configuration if a component has changed
-        if (as_subconfig) and (new_details["name"] in self._active_configserver.get_component_names()):
+        if (as_comp) and (new_details["name"] in self._active_configserver.get_component_names()):
             self.load_last_config()
 
     def _get_inactive_history(self, name, is_component=False):
@@ -632,7 +632,7 @@ class BlockServer(Driver):
         """Updates the monitor for the components, so the clients can see any changes.
         """
         with self.monitor_lock:
-            self.setParam("COMPS", compress_and_hex(convert_to_json(self._config_list.get_subconfigs())))
+            self.setParam("COMPS", compress_and_hex(convert_to_json(self._config_list.get_components())))
             # Update them
             self.updatePVs()
 
@@ -707,8 +707,8 @@ class BlockServer(Driver):
         temp_config = InactiveConfigHolder(MACROS, self._vc)
         return temp_config.get_config_details()
 
-    def _check_config_inactive(self, inactive_name, is_subconfig=False):
-        if not is_subconfig:
+    def _check_config_inactive(self, inactive_name, is_component=False):
+        if not is_component:
             if inactive_name == self._active_configserver.get_config_name():
                 raise ValueError("Cannot change config, use SET_CURR_CONFIG_DETAILS to change the active config")
         else:

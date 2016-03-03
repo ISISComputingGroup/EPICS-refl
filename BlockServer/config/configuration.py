@@ -15,7 +15,7 @@ class Configuration(object):
         groups (OrderedDict): The groups for the configuration
         iocs (OrderedDict): The IOCs for the configuration
         meta (MetaData): The meta-data for the configuration
-        subconfigs (OrderedDict): The components which are part of the configuration
+        components (OrderedDict): The components which are part of the configuration
         is_component (bool): Whether it is actually a component
     """
     def __init__(self, macros):
@@ -30,7 +30,7 @@ class Configuration(object):
         self.groups = OrderedDict()
         self.iocs = OrderedDict()
         self.meta = MetaData("")
-        self.subconfigs = OrderedDict()
+        self.components = OrderedDict()
         self.is_component = False
 
     def add_block(self, name, pv, group=GRP_NONE, local=True, **kwargs):
@@ -58,13 +58,13 @@ class Configuration(object):
                 self.groups[group.lower()] = Group(group)
             self.groups[group.lower()].blocks.append(name)
 
-    def add_ioc(self, name, subconfig=None, autostart=None, restart=None, macros=None, pvs=None, pvsets=None,
+    def add_ioc(self, name, component=None, autostart=None, restart=None, macros=None, pvs=None, pvsets=None,
                 simlevel=None):
         """ Add an IOC to the configuration.
 
         Args:
             name (string): The name of the IOC to add
-            subconfig (string, optional): The component that the IOC belongs to
+            component (string, optional): The component that the IOC belongs to
             autostart (bool, optional): Should the IOC automatically start
             restart (bool, optional): Should the IOC automatically restart
             macros (dict, optional): The macro sets relating to the IOC
@@ -75,7 +75,7 @@ class Configuration(object):
         """
         # Only add it if it has not been added before
         if not name.upper() in self.iocs.keys():
-            self.iocs[name.upper()] = IOC(name, autostart, restart, subconfig, macros, pvs, pvsets, simlevel)
+            self.iocs[name.upper()] = IOC(name, autostart, restart, component, macros, pvs, pvsets, simlevel)
 
     def update_runcontrol_settings_for_saving(self, rc_data):
         """ Updates the run-control settings for the configuration's blocks.
@@ -83,9 +83,9 @@ class Configuration(object):
         Args:
             rc_data (dict): A dictionary containing all the run-control settings
         """
-        # Only do it for blocks that are not in a sub-config
+        # Only do it for blocks that are not in a component
         for bn, blk in self.blocks.iteritems():
-            if blk.subconfig is None:
+            if blk.component is None:
                 if blk.name in rc_data.keys():
                     blk.rc_enabled = rc_data[blk.name]['ENABLE']
                     blk.rc_lowlimit = rc_data[blk.name]['LOW']

@@ -27,7 +27,7 @@ class TestConfigurationJsonConverterSequence(unittest.TestCase):
         groups["TESTGROUP1".lower()].blocks = ["TESTGROUP1BLOCK1", "TESTGROUP1BLOCK2"]
         groups["TESTGROUP2".lower()] = Group("TESTGROUP2")
         groups["TESTGROUP2".lower()].blocks = ["TESTGROUP2BLOCK1", "TESTGROUP2BLOCK2"]
-        groups["TESTGROUP3".lower()] = Group("TESTGROUP3", "TESTSUBCONFIG1")
+        groups["TESTGROUP3".lower()] = Group("TESTGROUP3", "TESTCOMPONENT1")
         groups["TESTGROUP3".lower()].blocks = ["TESTGROUP3BLOCK1", "TESTGROUP3BLOCK2"]
         groups[GRP_NONE.lower()] = Group(GRP_NONE)
         groups[GRP_NONE.lower()].blocks = ["TESTGROUPNONEBLOCK1", "TESTGROUPNONEBLOCK2"]
@@ -51,10 +51,10 @@ class TestConfigurationJsonConverterSequence(unittest.TestCase):
         self.assertTrue("TESTGROUP3BLOCK2" in returned[2]['blocks'])
         self.assertTrue("TESTGROUPNONEBLOCK1" in returned[3]['blocks'])
         self.assertTrue("TESTGROUPNONEBLOCK2" in returned[3]['blocks'])
-        self.assertIsNone(returned[0]["subconfig"])
-        self.assertIsNone(returned[1]["subconfig"])
-        self.assertEqual(returned[2]["subconfig"], "TESTSUBCONFIG1")
-        self.assertIsNone(returned[3]["subconfig"])
+        self.assertIsNone(returned[0]["component"])
+        self.assertIsNone(returned[1]["component"])
+        self.assertEqual(returned[2]["component"], "TESTCOMPONENT1")
+        self.assertIsNone(returned[3]["component"])
 
 
 

@@ -22,30 +22,30 @@ TEST_CONFIG = {"iocs":
                  "macros": [{"name": "COMPORT", "value": "COM[0-9]+"}],
                  "pvsets": [{"name": "SET", "enabled": "true"}],
                  "pvs": [{"name": "NDWXXX:xxxx:SIMPLE:VALUE1", "value": "100"}],
-                 "name": "SIMPLE1", "subconfig": None},
+                 "name": "SIMPLE1", "component": None},
 
                   {"simlevel": "recsim", "autostart": False, "restart": True,
                   "macros": [],
                   "pvsets": [],
                   "pvs": [],
-                  "name": "SIMPLE2", "subconfig": None}
+                  "name": "SIMPLE2", "component": None}
                  ],
           "blocks":
                    [{"name": "testblock1", "local": True,
-                   "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": None, "visible": True},
+                   "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "component": None, "visible": True},
                     {"name": "testblock2", "local": True,
-                    "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "subconfig": None, "visible": True},
+                    "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "component": None, "visible": True},
                     {"name": "testblock3", "local": True,
-                    "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "subconfig": None, "visible": True,
+                    "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "component": None, "visible": True,
                         "runcontrol": False,
                         "log_periodic": False, "log_rate": 5, "log_deadband": 0}
                    ],
           "components":
-                       [{"name": "TEST_SUB"}],
+                       [{"name": "TEST_COMP"}],
           "groups":
-                   [{"blocks": ["testblock1"], "name": "Group1", "subconfig": None},
-                    {"blocks": ["testblock2"], "name": "Group2", "subconfig": None},
-                    {"blocks": ["testblock3"], "name": "NONE", "subconfig": None}],
+                   [{"blocks": ["testblock1"], "name": "Group1", "component": None},
+                    {"blocks": ["testblock2"], "name": "Group2", "component": None},
+                    {"blocks": ["testblock3"], "name": "NONE", "component": None}],
           "name": "TESTCONFIG1",
 		  "description": "A test configuration",
           "synoptic": "TEST_SYNOPTIC",
@@ -76,7 +76,7 @@ class TestSchemaChecker(unittest.TestCase):
                                                                                        'TEST_CONFIG', xml)))
 
     def test_schema_valid_xml_full_config(self):
-        self.cs.save_active("TEST_SUB", as_comp=True)
+        self.cs.save_active("TEST_COMP", as_comp=True)
         self.cs.set_config_details(TEST_CONFIG)
         self.cs.save_active("TEST_CONFIG")
 
@@ -104,7 +104,7 @@ class TestSchemaChecker(unittest.TestCase):
 
     def test_schema_whole_directory_valid(self):
         self.cs.save_active("TEST_CONFIG")
-        self.cs.save_active("TEST_SUBCONFIG", as_comp=True)
+        self.cs.save_active("TEST_COMP", as_comp=True)
 
         self.assertTrue(ConfigurationSchemaChecker.check_all_config_files_correct(SCHEMA_DIR, TEST_DIRECTORY))
 

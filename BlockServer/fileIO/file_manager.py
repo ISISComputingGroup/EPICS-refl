@@ -8,7 +8,7 @@ from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.configuration import Configuration, MetaData
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
-from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_SUBCONFIGS, FILENAME_META
+from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_COMPONENTS, FILENAME_META
 from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
 
 
@@ -44,7 +44,7 @@ class ConfigurationFileManager(object):
         # Create empty containers
         blocks = OrderedDict()
         groups = OrderedDict()
-        subconfigs = OrderedDict()
+        components = OrderedDict()
         iocs = OrderedDict()
 
         # Make sure NONE group exists
@@ -68,11 +68,11 @@ class ConfigurationFileManager(object):
             root = parse_xml_removing_namespace(iocs_path)
             ConfigurationXmlConverter.ioc_from_xml(root, iocs)
 
-        # Import the subconfigs
-        subconfig_path = config_folder + "/" + FILENAME_SUBCONFIGS
-        if os.path.isfile(subconfig_path):
-            root = parse_xml_removing_namespace(subconfig_path)
-            ConfigurationXmlConverter.subconfigs_from_xml(root, subconfigs)
+        # Import the components
+        component_path = config_folder + "/" + FILENAME_COMPONENTS
+        if os.path.isfile(component_path):
+            root = parse_xml_removing_namespace(component_path)
+            ConfigurationXmlConverter.components_from_xml(root, components)
 
         # Import the metadata
         meta = MetaData(name)
@@ -85,7 +85,7 @@ class ConfigurationFileManager(object):
         configuration.blocks = blocks
         configuration.groups = groups
         configuration.iocs = iocs
-        configuration.subconfigs = subconfigs
+        configuration.components = components
         configuration.meta = meta
         return configuration
 
@@ -107,10 +107,10 @@ class ConfigurationFileManager(object):
         iocs_xml = ConfigurationXmlConverter.iocs_to_xml(configuration.iocs)
         meta_xml = ConfigurationXmlConverter.meta_to_xml(configuration.meta)
         try:
-            subconfigs_xml = ConfigurationXmlConverter.subconfigs_to_xml(configuration.subconfigs)
+            components_xml = ConfigurationXmlConverter.components_to_xml(configuration.components)
         except:
-            # Is a subconfig, so no subconfigs
-            subconfigs_xml = ConfigurationXmlConverter.subconfigs_to_xml(dict())
+            # Is a component, so no components
+            components_xml = ConfigurationXmlConverter.components_to_xml(dict())
 
         # Save blocks
         with open(path + '/' + FILENAME_BLOCKS, 'w') as f:
@@ -124,16 +124,16 @@ class ConfigurationFileManager(object):
         with open(path + '/' + FILENAME_IOCS, 'w') as f:
             f.write(iocs_xml)
 
-        # Save subconfigs
-        with open(path + '/' + FILENAME_SUBCONFIGS, 'w') as f:
-            f.write(subconfigs_xml)
+        # Save components
+        with open(path + '/' + FILENAME_COMPONENTS, 'w') as f:
+            f.write(components_xml)
 
         # Save meta
         with open(path + '/' + FILENAME_META, 'w') as f:
             f.write(meta_xml)
 
     @staticmethod
-    def subconfig_exists(root_path, name):
+    def component_exists(root_path, name):
         """Checks to see if a component exists.
 
         root_path (string): The root folder where components are stored
@@ -143,7 +143,7 @@ class ConfigurationFileManager(object):
             (Exception): raises an Exception if the component does not exist
         """
         if not os.path.isdir(os.path.join(root_path, name)):
-            raise Exception("Subconfig does not exist")
+            raise Exception("Component does not exist")
 
     @staticmethod
     def copy_default(dest_path):

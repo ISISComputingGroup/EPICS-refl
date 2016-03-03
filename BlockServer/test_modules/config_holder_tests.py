@@ -31,11 +31,11 @@ def create_dummy_config():
     return config
 
 
-def create_dummy_subconfig():
+def create_dummy_component():
     config = Configuration(MACROS)
-    config.add_block("SUBBLOCK1", "PV1", "GROUP1", True)
-    config.add_block("SUBBLOCK2", "PV2", "SUBGROUP", True)
-    config.add_ioc("SUBSIMPLE1")
+    config.add_block("COMPBLOCK1", "PV1", "GROUP1", True)
+    config.add_block("COMPBLOCK2", "PV2", "COMPGROUP", True)
+    config.add_ioc("COMPSIMPLE1")
     return config
 
 
@@ -89,37 +89,36 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(blk_details["TESTBLOCK3".lower()].local, True)
         self.assertEqual(blk_details["TESTBLOCK4".lower()].local, False)
 
-    def test_dummy_config_blocks_add_subconfig(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
 
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
+    def test_dummy_config_blocks_add_component(self):
+        ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
 
         blks = ch.get_blocknames()
         self.assertEqual(len(blks), 6)
-        self.assertEqual(blks[4], "SUBBLOCK1")
-        self.assertEqual(blks[5], "SUBBLOCK2")
+        self.assertEqual(blks[4], "COMPBLOCK1")
+        self.assertEqual(blks[5], "COMPBLOCK2")
 
         blk_details = ch.get_block_details()
         self.assertEqual(len(blk_details), 6)
-        self.assertTrue("SUBBLOCK1".lower() in blk_details)
-        self.assertTrue("SUBBLOCK2".lower() in blk_details)
-        self.assertEqual(blk_details["SUBBLOCK1".lower()].pv, "PV1")
-        self.assertEqual(blk_details["SUBBLOCK2".lower()].pv, "PV2")
+        self.assertTrue("COMPBLOCK1".lower() in blk_details)
+        self.assertTrue("COMPBLOCK2".lower() in blk_details)
+        self.assertEqual(blk_details["COMPBLOCK1".lower()].pv, "PV1")
+        self.assertEqual(blk_details["COMPBLOCK2".lower()].pv, "PV2")
         self.assertEqual(blk_details["TESTBLOCK1".lower()].local, True)
 
-    def test_dummy_config_blocks_add_remove_subconfig(self):
+    def test_dummy_config_blocks_add_remove_component(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
 
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
-
-        ch.remove_subconfig("TESTSUBCONFIG")
+        ch.remove_comp("TESTCOMPONENT")
 
         blks = ch.get_blocknames()
         self.assertEqual(len(blks), 4)
-        self.assertFalse("SUBBLOCK1" in blks)
-        self.assertFalse("SUBBLOCK2" in blks)
+        self.assertFalse("COMPBLOCK1" in blks)
+        self.assertFalse("COMPBLOCK2" in blks)
 
     def test_dummy_config_groups(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
@@ -134,29 +133,27 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTBLOCK3" in grp_details["GROUP2".lower()].blocks)
         self.assertTrue("TESTBLOCK4" in grp_details["NONE".lower()].blocks)
 
-    def test_dummy_config_groups_add_subconfig(self):
+    def test_dummy_config_groups_add_component(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
-
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
 
         grp_details = ch.get_group_details()
         self.assertEqual(len(grp_details), 4)
-        self.assertTrue("SUBGROUP".lower() in grp_details)
-        self.assertTrue("SUBBLOCK1" in grp_details["GROUP1".lower()].blocks)
-        self.assertTrue("SUBBLOCK2" in grp_details["SUBGROUP".lower()].blocks)
+        self.assertTrue("COMPGROUP".lower() in grp_details)
+        self.assertTrue("COMPBLOCK1" in grp_details["GROUP1".lower()].blocks)
+        self.assertTrue("COMPBLOCK2" in grp_details["COMPGROUP".lower()].blocks)
 
-    def test_dummy_config_groups_add_remove_subconfig(self):
+    def test_dummy_config_groups_add_remove_component(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
-
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
-        ch.remove_subconfig("TESTSUBCONFIG")
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
+        ch.remove_comp("TESTCOMPONENT")
 
         grp_details = ch.get_group_details()
         self.assertEqual(len(grp_details), 3)
-        self.assertFalse("SUBGROUP".lower() in grp_details)
-        self.assertFalse("SUBBLOCK1" in grp_details["GROUP1".lower()].blocks)
+        self.assertFalse("COMPGROUP".lower() in grp_details)
+        self.assertFalse("COMPBLOCK1" in grp_details["GROUP1".lower()].blocks)
 
     def test_dummy_config_iocs(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
@@ -166,53 +163,49 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("SIMPLE1" in ioc_names)
         self.assertTrue("SIMPLE2" in ioc_names)
 
-    def test_dummy_config_iocs_add_subconfig(self):
+    def test_dummy_config_iocs_add_component(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
-
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
 
         ioc_names = ch.get_ioc_names()
         self.assertEqual(len(ioc_names), 3)
-        self.assertTrue("SUBSIMPLE1" in ioc_names)
+        self.assertTrue("COMPSIMPLE1" in ioc_names)
 
-    def test_dummy_config_iocs_add_remove_subconfig(self):
+    def test_dummy_config_iocs_add_remove_component(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
-
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
-        ch.remove_subconfig("TESTSUBCONFIG")
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
+        ch.remove_comp("TESTCOMPONENT")
 
         ioc_names = ch.get_ioc_names()
         self.assertEqual(len(ioc_names), 2)
-        self.assertFalse("SUBSIMPLE1" in ioc_names)
+        self.assertFalse("COMPSIMPLE1" in ioc_names)
 
     def test_dummy_config_components(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
 
-        subs = ch.get_component_names()
-        self.assertEqual(len(subs), 0)
+        comps = ch.get_component_names()
+        self.assertEqual(len(comps), 0)
 
-    def test_dummy_config_components_add_subconfig(self):
+    def test_dummy_config_components_add_component(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
 
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
+        comps = ch.get_component_names()
+        self.assertEqual(len(comps), 1)
+        self.assertTrue("TESTCOMPONENT" in comps)
 
-        subs = ch.get_component_names()
-        self.assertEqual(len(subs), 1)
-        self.assertTrue("TESTSUBCONFIG" in subs)
-
-    def test_dummy_config_components_add_remove_subconfig(self):
+    def test_dummy_config_components_add_remove_component(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
+        ch.remove_comp("TESTCOMPONENT")
 
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
-        ch.remove_subconfig("TESTSUBCONFIG")
-
-        subs = ch.get_component_names()
-        self.assertEqual(len(subs), 0)
-        self.assertFalse("TESTSUBCONFIG".lower() in subs)
+        comps = ch.get_component_names()
+        self.assertEqual(len(comps), 0)
+        self.assertFalse("TESTCOMPONENT".lower() in comps)
 
     def test_add_block(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=Configuration(MACROS))
@@ -235,11 +228,11 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(ioc_details), 1)
         self.assertTrue("TESTIOC1" in ioc_details)
 
-    def test_add_ioc_subconfig(self):
+    def test_add_ioc_component(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=Configuration(MACROS))
 
-        ch.add_subconfig("TESTSUBCONFIG", Configuration(MACROS))
-        ch._add_ioc("TESTIOC1", "TESTSUBCONFIG")
+        ch.add_component("TESTCOMPONENT", Configuration(MACROS))
+        ch._add_ioc("TESTIOC1", "TESTCOMPONENT")
 
         ioc_details = ch.get_ioc_names()
         self.assertEqual(len(ioc_details), 1)
@@ -278,23 +271,22 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("SIMPLE2" in iocs)
         self.assertEqual(len(details['components']), 0)
 
-    def test_get_config_details_add_subconfig(self):
+    def test_get_config_details_add_component(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=Configuration(MACROS))
-
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
 
         details = ch.get_config_details()
         self.assertEqual(len(details['blocks']), 2)
         blks = [x['name'] for x in details['blocks']]
-        self.assertTrue("SUBBLOCK1" in blks)
-        self.assertTrue("SUBBLOCK2" in blks)
+        self.assertTrue("COMPBLOCK1" in blks)
+        self.assertTrue("COMPBLOCK2" in blks)
         self.assertEqual(len(details['groups']), 2)
-        self.assertEqual(details['groups'][0]['blocks'], ["SUBBLOCK1"])
-        self.assertEqual(details['groups'][1]['blocks'], ["SUBBLOCK2"])
+        self.assertEqual(details['groups'][0]['blocks'], ["COMPBLOCK1"])
+        self.assertEqual(details['groups'][1]['blocks'], ["COMPBLOCK2"])
         self.assertEqual(len(details['iocs']), 0)
         iocs = [x['name'] for x in details['iocs']]
-        self.assertFalse("SUBSIMPLE1" in iocs)
+        self.assertFalse("COMPSIMPLE1" in iocs)
         self.assertEqual(len(details['components']), 1)
 
     def test_empty_config_save_and_load(self):
@@ -312,15 +304,15 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(ch.get_ioc_names()), 0)
         self.assertEqual(len(ch.get_component_names()), 0)
 
-    def test_empty_subconfig_save_and_load(self):
+    def test_empty_component_save_and_load(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=Configuration(MACROS))
-        ch.save_configuration("TESTSUBCONFIG", True)
+        ch.save_configuration("TESTCOMPONENT", True)
         ch.clear_config()
 
-        conf = ch.load_configuration("TESTSUBCONFIG", True)
+        conf = ch.load_configuration("TESTCOMPONENT", True)
         ch.set_config(conf, True)
 
-        self.assertEqual(ch.get_config_name(), "TESTSUBCONFIG")
+        self.assertEqual(ch.get_config_name(), "TESTCOMPONENT")
         self.assertEqual(len(ch.get_blocknames()), 0)
         self.assertEqual(len(ch.get_group_details()), 1)
         self.assertEqual(ch.get_group_details().keys()[0], "NONE".lower())
@@ -342,15 +334,16 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(ch.get_component_names()), 0)
 
     def test_save_comp_add_to_config(self):
-        # Create and save a subconfig
-        ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_subconfig())
-        ch.save_configuration("TESTSUBCONFIG", True)
+        # Create and save a component
+        ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_component())
+        ch.save_configuration("TESTCOMPONENT", True)
         ch.clear_config()
 
-        # Create and save a config that uses the subconfig
+        # Create and save a config that uses the component
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
-        comp = ch.load_configuration("TESTSUBCONFIG", True)
-        ch.add_subconfig("TESTSUBCONFIG", comp)
+        comp = ch.load_configuration("TESTCOMPONENT", True)
+        ch.add_component("TESTCOMPONENT", comp)
+
         ch.save_configuration("TESTCONFIG", False)
         ch.clear_config()
         conf = ch.load_configuration("TESTCONFIG", False)
@@ -375,27 +368,27 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTBLOCK3" in grps['group2'].blocks)
         self.assertTrue("TESTBLOCK4" in grps['none'].blocks)
 
-    def test_add_subconfig_then_get_groups_list(self):
+    def test_add_component_then_get_groups_list(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
 
         grps = ch.get_group_details()
         self.assertEqual(len(grps), 4)
-        self.assertTrue('subgroup' in grps)
-        self.assertTrue("SUBBLOCK1" in grps['group1'].blocks)
-        self.assertTrue("SUBBLOCK2" in grps['subgroup'].blocks)
+        self.assertTrue('compgroup' in grps)
+        self.assertTrue("COMPBLOCK1" in grps['group1'].blocks)
+        self.assertTrue("COMPBLOCK2" in grps['compgroup'].blocks)
 
-    def test_add_subconfig_remove_subconfig_then_get_groups_list(self):
+    def test_add_component_remove_component_then_get_groups_list(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
-        ch.remove_subconfig("TESTSUBCONFIG")
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
+        ch.remove_comp("TESTCOMPONENT")
 
         grps = ch.get_group_details()
         self.assertEqual(len(grps), 3)
-        self.assertFalse('subgroup' in grps)
-        self.assertFalse("SUBBLOCK1" in grps['group1'].blocks)
+        self.assertFalse('compgroup' in grps)
+        self.assertFalse("COMPBLOCK1" in grps['group1'].blocks)
 
     def test_redefine_groups_from_list_simple_move(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
@@ -432,23 +425,23 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTBLOCK4" in grps['group1'].blocks)
         self.assertEqual(len(grps['none'].blocks), 0)
 
-    def test_redefine_groups_from_list_subconfig_changes(self):
+    def test_redefine_groups_from_list_component_changes(self):
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
-        sub = create_dummy_subconfig()
-        ch.add_subconfig("TESTSUBCONFIG", sub)
+        comp = create_dummy_component()
+        ch.add_component("TESTCOMPONENT", comp)
 
-        # Move SUBBLOCK1 and SUBBLOCK2 into group 1
-        redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK3", "TESTBLOCK4", "SUBBLOCK1",
-                                               "SUBBLOCK2"]},
+        # Move COMPBLOCK1 and COMPBLOCK2 into group 1
+        redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK3", "TESTBLOCK4", "COMPBLOCK1",
+                                               "COMPBLOCK2"]},
                  {"name": "group2", "blocks": []},
-                 {"name": "subgroup", "blocks": []}]
+                 {"name": "compgroup", "blocks": []}]
         ch._set_group_details(redef)
 
         grps = ch.get_group_details()
         self.assertEqual(len(grps), 2)  # group1 and none
         self.assertTrue('group1' in grps)
         self.assertFalse('group2' in grps)
-        self.assertFalse('subgroup' in grps)
+        self.assertFalse('compgroup' in grps)
         self.assertTrue("TESTBLOCK1" in grps['group1'].blocks)
         self.assertTrue("TESTBLOCK2" in grps['group1'].blocks)
         self.assertTrue("TESTBLOCK3" in grps['group1'].blocks)
@@ -456,29 +449,29 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(grps['none'].blocks), 0)
 
     def test_set_config_details(self):
-        # Need subconfig
+        # Need component
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=Configuration(MACROS))
-        ch.save_configuration("TESTSUBCONFIG", True)
+        ch.save_configuration("TESTCOMPONENT", True)
 
         ch = ConfigHolder(MACROS, MockVersionControl(), test_config=create_dummy_config())
 
         new_details = {"iocs":
                            [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": [], "pvs": [],
-                             "pvsets": [], "subconfig": None},
+                             "pvsets": [], "component": None},
                             {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": [], "pvs": [],
-                             "pvsets": [], "subconfig": None}],
+                             "pvsets": [], "component": None}],
                        "blocks":
-                           [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "subconfig": None,
+                           [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "component": None,
                              "visible": True},
-                            {"name": "TESTBLOCK2", "local": True, "pv": "PV2", "subconfig": None,
+                            {"name": "TESTBLOCK2", "local": True, "pv": "PV2", "component": None,
                              "visible": True},
-                            {"name": "TESTBLOCK3", "local": True, "pv": "PV3", "subconfig": None,
+                            {"name": "TESTBLOCK3", "local": True, "pv": "PV3", "component": None,
                              "visible": True}],
-                       "components": [{"name": "TESTSUBCONFIG"}],
+                       "components": [{"name": "TESTCOMPONENT"}],
                        "groups":
-                           [{"blocks": ["TESTBLOCK1"], "name": "Group1", "subconfig": None},
-                            {"blocks": ["TESTBLOCK2"], "name": "Group2", "subconfig": None},
-                            {"blocks": ["TESTBLOCK3"], "name": "NONE", "subconfig": None}],
+                           [{"blocks": ["TESTBLOCK1"], "name": "Group1", "component": None},
+                            {"blocks": ["TESTBLOCK2"], "name": "Group2", "component": None},
+                            {"blocks": ["TESTBLOCK3"], "name": "NONE", "component": None}],
                        "name": "TESTCONFIG",
                        "description": "Test Description",
                        "synoptic": "TEST_SYNOPTIC"
@@ -502,7 +495,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(details['groups'][2]['blocks'], ["TESTBLOCK3"])
 
         self.assertEqual(len(details['components']), 1)
-        self.assertEqual(details['components'][0]['name'], "TESTSUBCONFIG")
+        self.assertEqual(details['components'][0]['name'], "TESTCOMPONENT")
 
         self.assertEqual(details['name'], "TESTCONFIG")
         self.assertEqual(details['description'], "Test Description")
@@ -513,21 +506,21 @@ class TestConfigHolderSequence(unittest.TestCase):
 
         new_details = {"iocs":
                            [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": [], "pvs": [],
-                             "pvsets": [], "subconfig": None},
+                             "pvsets": [], "component": None},
                             {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": [], "pvs": [],
-                             "pvsets": [], "subconfig": None}],
+                             "pvsets": [], "component": None}],
                        "blocks":
-                           [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "subconfig": None,
+                           [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "component": None,
                              "visible": True},
-                            {"name": "TESTBLOCK2", "local": True, "pv": "PV2", "subconfig": None,
+                            {"name": "TESTBLOCK2", "local": True, "pv": "PV2", "component": None,
                              "visible": True},
-                            {"name": "TESTBLOCK3", "local": True, "pv": "PV3", "subconfig": None,
+                            {"name": "TESTBLOCK3", "local": True, "pv": "PV3", "component": None,
                              "visible": True}],
                        "components": [],
                        "groups":
-                           [{"blocks": ["TESTBLOCK1", "IDONTEXIST"], "name": "Group1", "subconfig": None},
-                            {"blocks": ["TESTBLOCK2"], "name": "Group2", "subconfig": None},
-                            {"blocks": ["TESTBLOCK3"], "name": "NONE", "subconfig": None}],
+                           [{"blocks": ["TESTBLOCK1", "IDONTEXIST"], "name": "Group1", "component": None},
+                            {"blocks": ["TESTBLOCK2"], "name": "Group2", "component": None},
+                            {"blocks": ["TESTBLOCK3"], "name": "NONE", "component": None}],
                        "name": "TESTCONFIG"
         }
         ch.set_config_details(new_details)
@@ -550,21 +543,21 @@ class TestConfigHolderSequence(unittest.TestCase):
 
         new_details = {"iocs":
                            [{"name": "TESTSIMPLE1", "autostart": True, "restart": True, "macros": {}, "pvs": {},
-                             "pvsets": {}, "subconfig": None},
+                             "pvsets": {}, "component": None},
                             {"name": "TESTSIMPLE2", "autostart": True, "restart": True, "macros": {}, "pvs": {},
-                             "pvsets": {}, "subconfig": None}],
+                             "pvsets": {}, "component": None}],
                        "blocks":
-                           [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "subconfig": None,
+                           [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "component": None,
                              "visible": True},
-                            {"name": "TESTBLOCK2", "local": True, "pv": "PV2", "subconfig": None,
+                            {"name": "TESTBLOCK2", "local": True, "pv": "PV2", "component": None,
                              "visible": True},
-                            {"name": "TESTBLOCK3", "local": True, "pv": "PV3", "subconfig": None,
+                            {"name": "TESTBLOCK3", "local": True, "pv": "PV3", "component": None,
                              "visible": True}],
                        "components": [],
                        "groups":
-                           [{"blocks": ["TESTBLOCK1", "TESTBLOCK2"], "name": "Group1", "subconfig": None},
-                            {"blocks": [], "name": "Group2", "subconfig": None},
-                            {"blocks": ["TESTBLOCK3"], "name": "NONE", "subconfig": None}],
+                           [{"blocks": ["TESTBLOCK1", "TESTBLOCK2"], "name": "Group1", "component": None},
+                            {"blocks": [], "name": "Group2", "component": None},
+                            {"blocks": ["TESTBLOCK3"], "name": "NONE", "component": None}],
                        "name": "TESTCONFIG"
         }
         ch.set_config_details(new_details)
@@ -585,24 +578,24 @@ class TestConfigHolderSequence(unittest.TestCase):
                                                                                       "value" : 123}],
                                 "pvs": [{"name": "TESTPV1", "value": 123}],
                                 "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
-                                "subconfig": None},
+                                "component": None},
                             {"name": "TESTSIMPLE2", "autostart": True, "restart": True,
                                 "macros": [{"name": "TESTMACRO3", "value" : "TEST2"}],
                                 "pvs": [],
                                 "pvsets": [],
-                                "subconfig": None}],
+                                "component": None}],
                        "blocks":
-                           [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "subconfig": None,
+                           [{"name": "TESTBLOCK1", "local": True, "pv": "PV1", "component": None,
                              "visible": True},
-                            {"name": "TESTBLOCK2", "local": True, "pv": "PV2", "subconfig": None,
+                            {"name": "TESTBLOCK2", "local": True, "pv": "PV2", "component": None,
                              "visible": True},
-                            {"name": "TESTBLOCK3", "local": True, "pv": "PV3", "subconfig": None,
+                            {"name": "TESTBLOCK3", "local": True, "pv": "PV3", "component": None,
                              "visible": True}],
                        "components": [],
                        "groups":
-                           [{"blocks": ["TESTBLOCK1", "IDONTEXIST"], "name": "Group1", "subconfig": None},
-                            {"blocks": ["TESTBLOCK2"], "name": "Group2", "subconfig": None},
-                            {"blocks": ["TESTBLOCK3"], "name": "NONE", "subconfig": None}],
+                           [{"blocks": ["TESTBLOCK1", "IDONTEXIST"], "name": "Group1", "component": None},
+                            {"blocks": ["TESTBLOCK2"], "name": "Group2", "component": None},
+                            {"blocks": ["TESTBLOCK3"], "name": "NONE", "component": None}],
                        "name": "TESTCONFIG"
         }
         ch.set_config_details(new_details)

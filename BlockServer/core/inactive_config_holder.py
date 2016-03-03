@@ -24,12 +24,12 @@ class InactiveConfigHolder(ConfigHolder):
         super(InactiveConfigHolder, self).save_configuration(name, as_comp)
 
     # Could we override load_configuration?
-    def load_inactive(self, name, is_subconfig=False):
+    def load_inactive(self, name, is_component=False):
         """Loads a configuration or component into memory for editing only.
 
         Args:
             name (string): The name of the configuration to load
-            is_subconfig (bool): Whether it is a component
+            is_component (bool): Whether it is a component
         """
-        config = super(InactiveConfigHolder, self).load_configuration(name, is_subconfig, False)
-        super(InactiveConfigHolder, self).set_config(config, is_subconfig)
+        config = super(InactiveConfigHolder, self).load_configuration(name, is_component, False)
+        super(InactiveConfigHolder, self).set_config(config, is_component)

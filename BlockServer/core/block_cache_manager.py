@@ -12,7 +12,7 @@ class BlockCacheManager(object):
         """Constructor.
 
         Args:
-            ioc_control (IocControl) : The object for restarting the IOC
+            ioc_control (IocControl): The object for restarting the IOC
         """
         self._ioc_control = ioc_control
 
