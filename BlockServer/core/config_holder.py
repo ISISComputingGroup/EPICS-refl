@@ -414,7 +414,7 @@ class ConfigHolder(object):
         if not is_component:
             for n, v in config.components.iteritems():
                 if n.lower() != DEFAULT_COMPONENT.lower():
-                    comp = self.load_configuration(v.lower(), True)
+                    comp = self.load_configuration(v, True)
                     self.add_component(v, comp)
             # add default component to list of components
             basecomp = self.load_configuration(DEFAULT_COMPONENT, True)
