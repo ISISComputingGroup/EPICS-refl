@@ -1,5 +1,5 @@
 import unittest
-from config.containers import IOC
+from BlockServer.config.ioc import IOC
 
 
 class TestContainersSequence(unittest.TestCase):

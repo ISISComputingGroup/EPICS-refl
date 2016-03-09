@@ -455,7 +455,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ic.active_config_name = "TEST_ACTIVE"
 
         self.assertEqual(len(os.listdir(FILEPATH_MANAGER.component_dir)), 3)
-        ic.delete_configs(["TEST_SUBCONFIG1"], True)
+        ic.delete_configs(["TEST_COMPONENT1"], True)
 
         configs = os.listdir(FILEPATH_MANAGER.component_dir)
         self.assertEqual(len(configs), 2)

@@ -10,7 +10,7 @@ class Block(object):
             pv (string): The PV pointed at
             local (bool): Whether the PV is local to the instrument
             visible (bool): Whether the block should be shown
-            subconfig (string): The component the block belongs to
+            component (string): The component the block belongs to
 
             runcontrol (bool): Whether run-control is enabled
             lowlimt (float): The low limit for run-control
@@ -20,7 +20,7 @@ class Block(object):
             arch_rate (float): Time between archive samples (in seconds)
             arch_deadband (float): Deadband for the block to be archived
     """
-    def __init__(self, name, pv, local=True, visible=True, subconfig=None, runcontrol=False, lowlimit=None,
+    def __init__(self, name, pv, local=True, visible=True, component=None, runcontrol=False, lowlimit=None,
                  highlimit=None, log_periodic=False, log_rate=5, log_deadband=0):
         """ Constructor.
 
@@ -29,7 +29,7 @@ class Block(object):
             pv (string): The PV pointed at
             local (bool): Whether the PV is local to the instrument
             visible (bool): Whether the block should be shown
-            subconfig (string): The component the block belongs to
+            component (string): The component the block belongs to
 
             runcontrol (bool): Whether run-control is enabled
             lowlimt (float): The low limit for run-control
@@ -43,7 +43,7 @@ class Block(object):
         self.pv = pv
         self.local = local
         self.visible = visible
-        self.subconfig = subconfig
+        self.component = component
         self.rc_lowlimit = lowlimit
         self.rc_highlimit = highlimit
         self.rc_enabled = runcontrol
@@ -67,8 +67,8 @@ class Block(object):
         self.visible = visible
 
     def __str__(self):
-        data = "Name: %s, PV: %s, Local: %s, Visible: %s, Subconfig: %s" \
-               % (self.name, self.pv, self.local, self.visible, self.subconfig)
+        data = "Name: %s, PV: %s, Local: %s, Visible: %s, Component: %s" \
+               % (self.name, self.pv, self.local, self.visible, self.component)
         data += ", RCEnabled: %s, RCLow: %s, RCHigh: %s" \
                 % (self.rc_enabled, self.rc_lowlimit, self.rc_highlimit)
         return data
@@ -80,7 +80,7 @@ class Block(object):
             dict : The block's details
         """
         return {"name": self.name, "pv": self._get_pv(), "local": self.local,
-                "visible": self.visible, "subconfig": self.subconfig, "runcontrol": self.rc_enabled,
+                "visible": self.visible, "component": self.component, "runcontrol": self.rc_enabled,
                 "lowlimit": self.rc_lowlimit, "highlimit": self.rc_highlimit,
                 "log_periodic": self.log_periodic, "log_rate": self.log_rate, "log_deadband": self.log_deadband}
 

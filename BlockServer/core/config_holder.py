@@ -8,7 +8,7 @@ import re
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.config.configuration import Configuration
 from BlockServer.core.constants import DEFAULT_COMPONENT, GRP_NONE
-from BlockServer.config.containers import Group
+from BlockServer.config.group import Group
 from BlockServer.core.macros import PVPREFIX_MACRO
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 

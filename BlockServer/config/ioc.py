@@ -8,13 +8,13 @@ class IOC(object):
         name (string): The name of the IOC
         autostart (bool): Whether the IOC should automatically start
         restart (bool): Whether the IOC should automatically restart
-        subconfig (string): The component the IOC belongs to
+        component (string): The component the IOC belongs to
         macros (dict): The IOC's macros
         pvs (dict): The IOC's PVs
         pvsets (dict): The IOC's PV sets
         simlevel (string): The level of simulation
     """
-    def __init__(self, name, autostart=True, restart=True, subconfig=None, macros=None, pvs=None, pvsets=None,
+    def __init__(self, name, autostart=True, restart=True, component=None, macros=None, pvs=None, pvsets=None,
                  simlevel=None):
         """ Constructor.
 
@@ -22,7 +22,7 @@ class IOC(object):
             name (string): The name of the IOC
             autostart (bool): Whether the IOC should automatically start
             restart (bool): Whether the IOC should automatically restart
-            subconfig (string): The component the IOC belongs to
+            component (string): The component the IOC belongs to
             macros (dict): The IOC's macros
             pvs (dict): The IOC's PVs
             pvsets (dict): The IOC's PV sets
@@ -31,7 +31,7 @@ class IOC(object):
         self.name = name
         self.autostart = autostart
         self.restart = restart
-        self.subconfig = subconfig
+        self.component = component
 
         if simlevel is None:
             self.simlevel = "None"
@@ -73,7 +73,7 @@ class IOC(object):
         return out_list
 
     def __str__(self):
-        data = "Name: %s, Subconfig: %s" % (self.name, self.subconfig)
+        data = "Name: %s, COMPONENT: %s" % (self.name, self.component)
         return data
 
     def to_dict(self):
@@ -85,4 +85,4 @@ class IOC(object):
         return {'name': self.name, 'autostart': self.autostart, 'restart': self.restart,
                 'simlevel': self.simlevel, 'pvs': self._dict_to_list(self.pvs),
                 'pvsets': self._dict_to_list(self.pvsets), 'macros': self._dict_to_list(self.macros),
-                'subconfig': self.subconfig}
+                'component': self.component}
