@@ -23,5 +23,5 @@ fi
 
 export MYDIRVC="$MYDIRBLOCK/../../ConfigVersionControl/master"
 
-python "$MYDIRBLOCK/BlockServer/block_server.py" -od "$MYDIRBLOCK/../../../iocstartup" -sd "$MYDIRBLOCK/../../../schema/configurations" -cd "$ICPCONFIGROOT" -pv "$GWBLOCK_PVLIST" -f ISIS
+python "$MYDIRBLOCK/BlockServer/block_server.py" -od "$MYDIRBLOCK/../../../iocstartup" -sd "$MYDIRBLOCK/schema" -cd "$ICPCONFIGROOT" -pv "$GWBLOCK_PVLIST" -f ISIS
 
