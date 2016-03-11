@@ -19,7 +19,7 @@ import shutil
 from collections import OrderedDict
 
 from server_common.utilities import parse_xml_removing_namespace, print_and_log
-from BlockServer.config.containers import Group
+from BlockServer.config.group import Group
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.configuration import Configuration, MetaData
 from config_version_control import ConfigVersionControl

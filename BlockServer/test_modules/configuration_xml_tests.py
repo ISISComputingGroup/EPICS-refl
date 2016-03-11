@@ -20,7 +20,10 @@ import unittest
 from xml.etree import ElementTree
 from collections import OrderedDict
 
-from config.containers import Group, Block, IOC, MetaData
+from BlockServer.config.group import Group
+from BlockServer.config.block import Block
+from BlockServer.config.ioc import IOC
+from BlockServer.config.metadata import MetaData
 from config.xml_converter import ConfigurationXmlConverter
 
 
