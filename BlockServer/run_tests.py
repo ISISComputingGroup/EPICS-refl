@@ -21,6 +21,7 @@ from BlockServer.test_modules.file_event_handler_tests import TestFileEventHandl
 from BlockServer.test_modules.schema_checker_tests import TestSchemaChecker
 from BlockServer.test_modules.synoptic_manager_tests import TestSynopticManagerSequence
 from BlockServer.test_modules.ioc_control_tests import TestIocControlSequence
+from BlockServer.test_modules.file_path_manager_tests import TestFilePathManagerSequence
 
 from BlockServer.site_specific.default.test_modules.block_rules_tests import TestBlockRulesSequence
 
@@ -46,6 +47,7 @@ if __name__ == '__main__':
     schema_checker_event_suite = unittest.TestLoader().loadTestsFromTestCase(TestSchemaChecker)
     synoptic_manager_suite = unittest.TestLoader().loadTestsFromTestCase(TestSynopticManagerSequence)
     ioc_control_suite = unittest.TestLoader().loadTestsFromTestCase(TestIocControlSequence)
+    file_path_manager_suite = unittest.TestLoader().loadTestsFromTestCase(TestFilePathManagerSequence)
 
     # Site specific tests
     block_rules_suite = unittest.TestLoader().loadTestsFromTestCase(TestBlockRulesSequence)
@@ -64,6 +66,7 @@ if __name__ == '__main__':
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(schema_checker_event_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(synoptic_manager_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(ioc_control_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(file_path_manager_suite).wasSuccessful())
 
     # Site specific tests
     xmlrunner.XMLTestRunner(output=xml_dir).run(block_rules_suite)

@@ -1,7 +1,10 @@
 """ Contains all the code for defining a configuration or component"""
 from collections import OrderedDict
 
-from BlockServer.config.containers import Group, Block, IOC, MetaData
+from BlockServer.config.group import Group
+from BlockServer.config.block import Block
+from BlockServer.config.ioc import IOC
+from BlockServer.config.metadata import MetaData
 from BlockServer.core.constants import GRP_NONE
 from BlockServer.core.macros import PVPREFIX_MACRO
 

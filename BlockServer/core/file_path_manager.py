@@ -1,8 +1,8 @@
 import os
 
-_CONFIG_DIRECTORY = "configurations"
-_COMPONENT_DIRECTORY = "components"
-_SYNOPTIC_DIRECTORY = "synoptics"
+CONFIG_DIRECTORY = "configurations"
+COMPONENT_DIRECTORY = "components"
+SYNOPTIC_DIRECTORY = "synoptics"
 
 
 # Do not create an instance of this class, instead use FILEPATH_MANAGER as a singleton
@@ -15,9 +15,9 @@ class FilePathManager(object):
 
     def initialise(self, config_root):
         self.config_root_dir = config_root
-        self.config_dir = os.path.join(config_root, _CONFIG_DIRECTORY)
-        self.component_dir = os.path.join(config_root, _COMPONENT_DIRECTORY)
-        self.synoptic_dir = os.path.join(config_root, _SYNOPTIC_DIRECTORY)
+        self.config_dir = os.path.join(config_root, CONFIG_DIRECTORY)
+        self.component_dir = os.path.join(config_root, COMPONENT_DIRECTORY)
+        self.synoptic_dir = os.path.join(config_root, SYNOPTIC_DIRECTORY)
         self._create_default_folders()
 
     def _create_default_folders(self):

@@ -2,7 +2,7 @@ import unittest
 from BlockServer.config.ioc import IOC
 
 
-class TestContainersSequence(unittest.TestCase):
+class TestIocClassSequence(unittest.TestCase):
     def test_ioc_to_dict(self):
         ioc = IOC("SIMPLE1")
         macros = {"macro1": {'value': 123}, "macro2": {'value': "Hello"}}

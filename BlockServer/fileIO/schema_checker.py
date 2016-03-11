@@ -66,7 +66,7 @@ class ConfigurationSchemaChecker(object):
         Args:
             schema_folder (string): The location of the schema files
             config_xml_path (string): The location of the configuration
-            is_subconfig (bool): Whether it is a component
+            is_cOMPONENT (bool): Whether it is a component
         """
         folder, file_name = string.rsplit(config_xml_path, os.sep, 1)
         if file_name in SCHEMA_FOR:
