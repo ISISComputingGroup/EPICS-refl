@@ -293,10 +293,7 @@ class BlockServer(Driver):
         except Exception as err:
             print_and_log("Could not load last configuration. Message was: %s" % err, "MAJOR")
             self._active_configserver.clear_config()
-
-        # Update monitors to current values
-        self.update_blocks_monitors()
-        self.update_config_monitors()
+            self._initialise_config()
 
     def read(self, reason):
         """A method called by SimpleServer when a PV is read from the BlockServer over Channel Access.
@@ -309,10 +306,7 @@ class BlockServer(Driver):
             If an Exception is thrown in the reading of the information this is returned in compressed and hexed JSON.
         """
         try:
-            if reason == 'BLOCKNAMES':
-                bn = convert_to_json(self._active_configserver.get_blocknames())
-                value = compress_and_hex(bn)
-            elif reason == 'GROUPS':
+            if reason == 'GROUPS':
                 grps = ConfigurationJsonConverter.groups_to_json(self._active_configserver.get_group_details())
                 value = compress_and_hex(grps)
             elif reason == 'CONFIGS':
@@ -325,8 +319,6 @@ class BlockServer(Driver):
             elif reason == 'GET_RC_PARS':
                 pars = convert_to_json(self._active_configserver.get_runcontrol_settings())
                 value = compress_and_hex(pars)
-            elif reason == "GET_CURR_CONFIG_DETAILS":
-                value = compress_and_hex(convert_to_json(self._active_configserver.get_config_details()))
             elif reason == "BLANK_CONFIG":
                 js = convert_to_json(self.get_blank_config())
                 value = compress_and_hex(js)
