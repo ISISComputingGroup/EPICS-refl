@@ -22,23 +22,6 @@ from xml.dom import minidom
 GET_SCREENS = "GET_SCREENS"
 SET_SCREENS = "SET_SCREENS"
 
-TEST_DATA = """<?xml version="1.0" ?>
-<DeviceScreens xmlns:xi="http://www.w3.org/2001/XInclude">
-    <devices>
-        <device>
-            <name>Eurotherm 1</name>
-            <key>Eurotherm</key>
-            <type>OPI</type>
-            <properties>
-                <property>
-                    <key>EURO</key>
-                    <value>EUROTHERM1</value>
-                </property>
-            </properties>
-        </device>
-    </devices>
-</DeviceScreens>"""
-
 SCREENS_FILE = "screens.xml"
 
 class DevicesManager(object):
