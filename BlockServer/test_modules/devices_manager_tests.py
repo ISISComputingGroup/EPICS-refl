@@ -27,8 +27,9 @@ from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from xml.dom import minidom
 
-CONFIG_PATH = "./test_configs/"
-BASE_PATH = "./example_base/"
+CONFIG_PATH = "." + os.sep + "test_configs" + os.sep
+BASE_PATH = "example_base"
+SCREENS_FILE = "screens.xml"
 
 EXAMPLE_DEVICES = """<?xml version="1.0" ?>
 <devices xmlns:xi="http://www.w3.org/2001/XInclude">
@@ -47,12 +48,15 @@ EXAMPLE_DEVICES = """<?xml version="1.0" ?>
 
 # SCHEMA_PATH = os.path.abspath(os.path.join(".", "..", "schema"))
 
+def get_expected_devices_file_path():
+    return os.path.join(FILEPATH_MANAGER.get_config_path(BASE_PATH),SCREENS_FILE)
+
 
 class TestDevicesManagerSequence(unittest.TestCase):
     def setUp(self):
         # Make directory and fill with fake content
         FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH))
-        shutil.copytree(BASE_PATH, os.path.join(FILEPATH_MANAGER.component_dir, DEFAULT_COMPONENT))
+        shutil.copytree("." + os.sep + BASE_PATH, FILEPATH_MANAGER.get_config_path(BASE_PATH))
 
         self.cas = MockCAServer()
         self.dm = DevicesManager(MockBlockServer(), self.cas, "", MockVersionControl())
@@ -81,7 +85,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
     def test_when_config_file_is_set_then_get_devices_filename_returns_correct_file_name(self):
         # Arrange
         self.dm.set_current_config_file(BASE_PATH)
-        expected = os.path.join(BASE_PATH, "screens.xml")
+        expected = get_expected_devices_file_path()
 
         # Act
         result = self.dm.get_devices_filename()
@@ -106,7 +110,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
         self.dm.set_current_config_file(BASE_PATH)
         pv_key = "GET_SCREENS"
 
-        devices_file_name = os.path.join(BASE_PATH, "screens.xml")
+        devices_file_name = get_expected_devices_file_path()
         with open(devices_file_name, 'r') as devfile:
             data = devfile.read()
 
@@ -120,7 +124,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
 
     def test_given_new_xml_data_when_device_xml_saved_then_screens_file_contains_prettified_new_data(self):
         self.dm.set_current_config_file(BASE_PATH)
-        devices_file_name = os.path.join(BASE_PATH, "screens.xml")
+        devices_file_name = get_expected_devices_file_path()
 
         # New data
         new_data = "<ModifiedByUnitTest/>"
@@ -137,7 +141,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
 
     def test_save_devices_xml_creates_get_screens_pv(self):
         self.dm.set_current_config_file(BASE_PATH)
-        devices_file_name = os.path.join(BASE_PATH, "screens.xml")
+        devices_file_name = get_expected_devices_file_path()
 
         # Act: Save the new data to file
         self.dm.save_devices_xml("<TestData/>")
@@ -147,7 +151,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
 
     def test_save_devices_xml_creates_pv_with_prettified_input_data(self):
         self.dm.set_current_config_file(BASE_PATH)
-        devices_file_name = os.path.join(BASE_PATH, "screens.xml")
+        devices_file_name = get_expected_devices_file_path()
 
         # Arrange
         new_xml_data = "<TestData/>"

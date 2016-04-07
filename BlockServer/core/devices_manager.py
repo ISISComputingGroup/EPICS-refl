@@ -35,7 +35,6 @@ class DevicesManager(object):
             schema_folder (string): The filepath for the devices schema
             vc_manager (ConfigVersionControl): The manager to allow version control modifications
         """
-        self._directory = FILEPATH_MANAGER.config_dir
         self._schema_folder = schema_folder
         self._cas = cas
         self._devices_pvs = dict()
@@ -84,14 +83,17 @@ class DevicesManager(object):
             return ""
         return self._current_config_file
 
-    def set_current_config_file(self, current_config_dir):
+    def set_current_config_file(self, current_config_name):
         """Sets the names of the current configuration file.
 
         Args:
-            current_config_dir (string): The name of the current configuration file.
+            current_config_name (string): The name of the current configuration file.
         """
 
-        self._current_config_file = os.path.join(current_config_dir, SCREENS_FILE)
+        self._current_config_file = os.path.join(FILEPATH_MANAGER.get_config_path(current_config_name)
+                                                 ,SCREENS_FILE)
+
+        print_and_log("Devices configuration file set to %s" % self._current_config_file)
 
     def save_devices_xml(self,xml_data):
         """Saves the xml in the current "screens.xml" config file.
