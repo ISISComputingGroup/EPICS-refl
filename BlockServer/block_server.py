@@ -39,6 +39,7 @@ from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
+from BlockServer.core.devices_manager import DevicesManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
@@ -252,6 +253,9 @@ class BlockServer(Driver):
 
         # Import all the synoptic data and create PVs
         self._syn = SynopticManager(self, ca_server, SCHEMA_DIR, self._vc)
+
+        # Import all the devices data and create PVs
+        self._devices = DevicesManager(self, ca_server, SCHEMA_DIR, self._vc)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
