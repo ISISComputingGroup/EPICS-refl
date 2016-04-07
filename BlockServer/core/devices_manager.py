@@ -80,7 +80,7 @@ class DevicesManager(object):
             string : Current devices file name. Returns empty string if the file does not exist.
         """
         if not os.path.exists(self._current_config_file):
-            print_and_log("Current devices file does not exist")
+            print_and_log("Current devices file %s does not exist" % self._current_config_file)
             return ""
         return self._current_config_file
 
@@ -123,7 +123,7 @@ class DevicesManager(object):
 
         self._add_to_version_control("%s modified by client" % self._current_config_file)
 
-        print_and_log("Devices saved")
+        print_and_log("Devices saved to %s" % self._current_config_file)
 
     def _add_to_version_control(self, commit_message=None):
         # Add to version control

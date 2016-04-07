@@ -212,7 +212,7 @@ PVDB = {
         'value': [0],
     },
 
-    'SET_SCREENS' : {
+    'SET_SCREENS': {
         'type': 'char',
         'count': 16000,
         'value': [0],
