@@ -1,0 +1,119 @@
+#This file is part of the ISIS IBEX application.
+#Copyright (C) 2012-2016 Science & Technology Facilities Council.
+#All rights reserved.
+#
+#This program is distributed in the hope that it will be useful.
+#This program and the accompanying materials are made available under the
+#terms of the Eclipse Public License v1.0 which accompanies this distribution.
+#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+#
+#You should have received a copy of the Eclipse Public License v1.0
+#along with this program; if not, you can obtain a copy from
+#https://www.eclipse.org/org/documents/epl-v10.php or
+#http://opensource.org/licenses/eclipse-1.0.php
+
+import unittest
+import os
+import shutil
+
+from server_common.utilities import compress_and_hex
+from BlockServer.core.constants import DEFAULT_COMPONENT
+from BlockServer.core.devices_manager import DevicesManager
+from server_common.mocks.mock_ca_server import MockCAServer
+from BlockServer.mocks.mock_version_control import MockVersionControl
+from BlockServer.mocks.mock_block_server import MockBlockServer
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+
+CONFIG_PATH = "./test_configs/"
+BASE_PATH = "./example_base/"
+
+EXAMPLE_DEVICES = """<?xml version="1.0" ?>
+<devices xmlns:xi="http://www.w3.org/2001/XInclude">
+    <device>
+        <name>Eurotherm 1</name>
+        <key>Eurotherm</key>
+        <type>OPI</type>
+        <properties>
+            <property>
+                <key>EURO</key>
+                <value>EUROTHERM1</value>
+            </property>
+        </properties>
+    </device>
+</devices>"""
+
+# SCHEMA_PATH = os.path.abspath(os.path.join(".", "..", "schema"))
+
+
+class TestDevicesManagerSequence(unittest.TestCase):
+    def setUp(self):
+        # Make directory and fill with fake content
+        FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH))
+        shutil.copytree(BASE_PATH, os.path.join(FILEPATH_MANAGER.component_dir, DEFAULT_COMPONENT))
+
+        self.cas = MockCAServer()
+        self.dm = DevicesManager(MockBlockServer(), self.cas, "", MockVersionControl())
+
+    def tearDown(self):
+        # Delete any configs created as part of the test
+        path = FILEPATH_MANAGER.config_root_dir
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+
+    def test_get_devices_filename_returns_empty_string_when_no_current_config_file_set(self):
+        # Arrange
+        # Act
+        # Assert
+        self.assertEquals("", self.dm.get_devices_filename())
+
+    def test_when_set_config_file_does_not_exist_then_get_devices_filename_returns_empty_string(self):
+        # Arrange
+        non_existing_path = os.path.join("Non", "existing")
+        self.dm.set_current_config_file(non_existing_path)
+
+        # Act
+        # Assert
+        self.assertEquals("", self.dm.get_devices_filename())
+
+    def test_when_config_file_is_set_then_get_devices_filename_returns_correct_file_name(self):
+        # Arrange
+        self.dm.set_current_config_file(BASE_PATH)
+        expected = os.path.join(BASE_PATH, "screens.xml")
+
+        # Act
+        result = self.dm.get_devices_filename()
+
+        # Assert
+        self.assertEquals(expected, result)
+
+    def test_loading_config_file_creates_a_pv_in_the_ca_server_with_correct_key(self):
+        # Arrange
+        self.dm.set_current_config_file(BASE_PATH)
+        expected_key = "GET_SCREENS"
+        self.assertFalse(self.cas.pv_list.has_key(expected_key))
+
+        # Act
+        self.dm.load_current()
+
+        # Assert
+        self.assertTrue(self.cas.pv_list.has_key(expected_key))
+
+    def test_loading_config_file_creates_a_pv_in_the_ca_server_with_correct_data(self):
+        # Arrange
+        self.dm.set_current_config_file(BASE_PATH)
+        pv_key = "GET_SCREENS"
+
+        devices_file_name = os.path.join(BASE_PATH, "screens.xml")
+        with open(devices_file_name, 'r') as devfile:
+            data = devfile.read()
+
+        expected_data = compress_and_hex(data)
+
+        # Act
+        self.dm.load_current()
+
+        # Assert
+        self.assertEquals(expected_data, self.cas.pv_list[pv_key])
+

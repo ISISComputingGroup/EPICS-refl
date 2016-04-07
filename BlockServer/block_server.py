@@ -475,6 +475,10 @@ class BlockServer(Driver):
             print_and_log("Restarting block cache...")
             self._block_cache.restart()
 
+        # Set current config file name in Devices Manager
+        self._devices.set_current_config_file(self._active_configserver.get_config_name())
+        self._devices.load_current()
+
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
         # iocs_to_start, iocs_to_restart are not used at the moment, but longer term they could be used
