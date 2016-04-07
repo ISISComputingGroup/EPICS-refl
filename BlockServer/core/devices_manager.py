@@ -5,19 +5,21 @@ GET_SCREENS = "GET_SCREENS"
 SET_SCREENS = "SET_SCREENS"
 
 TEST_DATA = """<?xml version="1.0" ?>
-<devices xmlns:xi="http://www.w3.org/2001/XInclude">
-    <device>
-        <name>Eurotherm 1</name>
-        <key>Eurotherm</key>
-        <type>OPI</type>
-        <properties>
-            <property>
-                <key>EURO</key>
-                <value>EUROTHERM1</value>
-            </property>
-        </properties>
-    </device>
-</devices>"""
+<DeviceScreens xmlns:xi="http://www.w3.org/2001/XInclude">
+    <devices>
+        <device>
+            <name>Eurotherm 1</name>
+            <key>Eurotherm</key>
+            <type>OPI</type>
+            <properties>
+                <property>
+                    <key>EURO</key>
+                    <value>EUROTHERM1</value>
+                </property>
+            </properties>
+        </device>
+    </devices>
+</DeviceScreens>"""
 
 
 class DevicesManager(object):
