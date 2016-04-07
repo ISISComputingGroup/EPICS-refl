@@ -25,6 +25,7 @@ from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from xml.dom import minidom
 
 CONFIG_PATH = "./test_configs/"
 BASE_PATH = "./example_base/"
@@ -117,3 +118,45 @@ class TestDevicesManagerSequence(unittest.TestCase):
         # Assert
         self.assertEquals(expected_data, self.cas.pv_list[pv_key])
 
+    def test_given_new_xml_data_when_device_xml_saved_then_screens_file_contains_prettified_new_data(self):
+        self.dm.set_current_config_file(BASE_PATH)
+        devices_file_name = os.path.join(BASE_PATH, "screens.xml")
+
+        # New data
+        new_data = "<ModifiedByUnitTest/>"
+
+        # Act: Save the new data to file
+        self.dm.save_devices_xml(new_data)
+
+        expected_data = minidom.parseString(new_data).toprettyxml()
+        with open(devices_file_name, 'r') as devfile:
+            result_data = devfile.read()
+
+        # Assert
+        self.assertEquals(expected_data,result_data)
+
+    def test_save_devices_xml_creates_get_screens_pv(self):
+        self.dm.set_current_config_file(BASE_PATH)
+        devices_file_name = os.path.join(BASE_PATH, "screens.xml")
+
+        # Act: Save the new data to file
+        self.dm.save_devices_xml("<TestData/>")
+
+        # Assert
+        self.assertTrue(self.cas.pv_list.has_key("GET_SCREENS"))
+
+    def test_save_devices_xml_creates_pv_with_prettified_input_data(self):
+        self.dm.set_current_config_file(BASE_PATH)
+        devices_file_name = os.path.join(BASE_PATH, "screens.xml")
+
+        # Arrange
+        new_xml_data = "<TestData/>"
+
+        # Act: Save the new data to file
+        self.dm.save_devices_xml(new_xml_data)
+        expected_data = minidom.parseString(new_xml_data).toprettyxml()
+        with open(devices_file_name, 'r') as devfile:
+            result_data = devfile.read()
+
+        # Assert
+        self.assertEquals(expected_data,result_data)

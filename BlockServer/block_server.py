@@ -211,6 +211,12 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
+
+    'SET_SCREENS' : {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
+    }
 }
 
 
@@ -403,6 +409,8 @@ class BlockServer(Driver):
             elif reason == "BUMPSTRIP_AVAILABLE:SP":
                 self.bumpstrip = data
                 self.update_bumpstrip_availability()
+            elif reason == "SET_SCREENS":
+                self._devices.save_devices_xml(data)
             else:
                 status = False
         except Exception as err:
