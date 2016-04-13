@@ -26,7 +26,7 @@ from server_common.utilities import print_and_log
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
-from BlockServer.core.synoptic_manager import SYNOPTIC_SCHEMA
+from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA
 
 
 class SynopticFileEventHandler(FileSystemEventHandler):

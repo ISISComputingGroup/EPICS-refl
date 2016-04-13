@@ -15,20 +15,59 @@
 #http://opensource.org/licenses/eclipse-1.0.php
 
 import os
-from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name
+from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, convert_to_json
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from pv_set_listener import PvSetListener
 from xml.dom import minidom
 from lxml import etree
 
 SYNOPTIC_PRE = "SYNOPTICS:"
 SYNOPTIC_GET = ":GET"
 SYNOPTIC_SET = ":SET"
-SYNOPTIC_SCHEMA = "synoptic.xsd"
+SYNOPTIC_NAMES = "NAMES"
+SYNOPTIC_GET_DEFAULT = "GET_DEFAULT"
+SYNOPTIC_BLANK = "__BLANK__"
+SYNOPTIC_SET_DETAILS = "SET_DETAILS"
+SYNOPTIC_DELETE = "DELETE"
+SYNOPTIC_SCHEMA = "SCHEMA1"
+
+SYNOPTIC_SCHEMA_FILE = "synoptic.xsd"
+
+# 'SYNOPTICS:NAMES': {
+#         'type': 'char',
+#         'count': 16000,
+#         'value': [0],
+#     },
+#     'SYNOPTICS:GET_DEFAULT': {
+#         'type': 'char',
+#         'count': 16000,
+#         'value': [0],
+#     },
+#     'SYNOPTICS:__BLANK__:GET': {
+#         'type': 'char',
+#         'count': 16000,
+#         'value': [0],
+#     },
+#     'SYNOPTICS:SET_DETAILS': {
+#         'type': 'char',
+#         'count': 16000,
+#         'value': [0],
+#     },
+#     'SYNOPTICS:DELETE': {
+#         'type': 'char',
+#         'count': 16000,
+#         'value': [0],
+#     },
+#     'SYNOPTICS:SCHEMA': {
+#         'type': 'char',
+#         'count': 16000,
+#         'value': [0],
+#     },
 
 
-class SynopticManager(object):
+class SynopticManager(PvSetListener):
     """Class for managing the PVs associated with synoptics"""
     def __init__(self, block_server, cas, schema_folder, vc_manager):
         """Constructor.
@@ -39,6 +78,7 @@ class SynopticManager(object):
             schema_folder (string): The filepath for the synoptic schema
             vc_manager (ConfigVersionControl): The manager to allow version control modifications
         """
+        self._pvs_to_set = [SYNOPTIC_DELETE, SYNOPTIC_SET_DETAILS]
         self._directory = FILEPATH_MANAGER.synoptic_dir
         self._schema_folder = schema_folder
         self._cas = cas
@@ -46,7 +86,24 @@ class SynopticManager(object):
         self._vc = vc_manager
         self._bs = block_server
         self._default_syn_xml = ""
+        self._create_standard_pvs()
         self._load_initial()
+
+    def handle_pv_write(self, pv, data):
+        print "handle_pv_write called"
+
+    def _create_standard_pvs(self):
+        self._bs.add_string_pv_to_db(SYNOPTIC_PRE + SYNOPTIC_NAMES, 16000)
+        self._bs.add_string_pv_to_db(SYNOPTIC_PRE + SYNOPTIC_GET_DEFAULT, 16000)
+        self._bs.add_string_pv_to_db(SYNOPTIC_PRE + SYNOPTIC_BLANK + SYNOPTIC_GET, 16000)
+        self._bs.add_string_pv_to_db(SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS, 16000)
+        self._bs.add_string_pv_to_db(SYNOPTIC_PRE + SYNOPTIC_DELETE, 16000)
+        self._bs.add_string_pv_to_db(SYNOPTIC_PRE + SYNOPTIC_SCHEMA, 16000)
+
+        # Set values for PVs that don't change
+        self.update_pv_value(SYNOPTIC_PRE + SYNOPTIC_BLANK + SYNOPTIC_GET,
+                             compress_and_hex(self.get_blank_synoptic()))
+        self.update_pv_value(SYNOPTIC_PRE + SYNOPTIC_SCHEMA, compress_and_hex(self.get_synoptic_schema()))
 
     def _load_initial(self):
         """Create the PVs for all the synoptics found in the synoptics directory."""
@@ -55,7 +112,7 @@ class SynopticManager(object):
             try:
                 with open(os.path.join(self._directory, f), 'r') as synfile:
                     data = synfile.read()
-                    ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
+                    ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA_FILE),
                                                                              data)
                 # Get the synoptic name
                 self._create_pv(data)
@@ -74,7 +131,7 @@ class SynopticManager(object):
         """
         name = self._get_synoptic_name_from_xml(data)
         if name not in self._synoptic_pvs:
-            # Extra check, if a non-case sensitive match exits remove it
+            # Extra check, if a non-case sensitive match exist remove it
             for key in self._synoptic_pvs.keys():
                 if name.lower() == key.lower():
                     self._synoptic_pvs.pop(key)
@@ -82,7 +139,13 @@ class SynopticManager(object):
             self._synoptic_pvs[name] = pv
 
         # Create the PV
-        self._cas.updatePV(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(data))
+        self._bs.add_string_pv_to_db(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, 16000)
+        # Update the value
+        self.update_pv_value(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(data))
+
+    def update_pv_value(self, name, data):
+        self._bs.setParam(name, data)
+        self._bs.updatePVs()
 
     def get_synoptic_list(self):
         """Gets the names and associated pvs of the synoptic files in the synoptics directory.
@@ -157,7 +220,7 @@ class SynopticManager(object):
         """
         try:
             # Check against schema
-            ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
+            ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA_FILE),
                                                                      xml_data)
             # Update PVs
             self._create_pv(xml_data)
@@ -240,7 +303,7 @@ class SynopticManager(object):
             string : The XML for the synoptic schema
         """
         schema = ""
-        with open(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA ), 'r') as schemafile:
+        with open(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA_FILE), 'r') as schemafile:
             schema = schemafile.read()
         return schema
 
@@ -252,3 +315,11 @@ class SynopticManager(object):
         """
         return """<?xml version="1.0" ?><instrument xmlns="http://www.isis.stfc.ac.uk//instrument">
                <name>-- NONE --</name><components/></instrument>"""
+
+    def set_synoptic_monitors(self):
+        print "UPDATING SYNOPTIC MONITORS"
+        print self.get_default_synoptic_xml()
+        self._bs.setParam("SYNOPTICS:GET_DEFAULT", compress_and_hex(self.get_default_synoptic_xml()))
+        names = convert_to_json(self.get_synoptic_list())
+        self._bs.setParam("SYNOPTICS:NAMES", compress_and_hex(names))
+        self._bs.updatePVs()

@@ -1,0 +1,99 @@
+
+
+------ BEGINNING BLOCKSERVER UNIT TESTS ------
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+INFO: Deleting: _base
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+INFO: Deleting: TEST_CONFIG1
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+INFO: Deleting: TEST_SUBCONFIG1
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_CONFIG_AND_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_CONFIG_AND_SUBCONFIG2\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+INFO: Runcontrol IOC started
+INFO: Deleting: TEST_ACTIVE
+INFO: Deleting: TEST_ACTIVE, TEST_CONFIG1
+INFO: Deleting: TEST_CONFIG1, TEST_ACTIVE
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG3\
+INFO: Runcontrol IOC started
+INFO: Deleting: TEST_SUBCONFIG1
+INFO: Deleting: TEST_SUBCONFIG1, TEST_SUBCONFIG2
+INFO: Deleting: TEST_CONFIG2, TEST_SUBCONFIG1
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+INFO: Deleting: TEST_CONFIG1
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+INFO: Deleting: TEST_INACTIVE
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+INFO: Deleting: 
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+INFO: Deleting: TEST_CONFIG1, TEST_CONFIG3
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG3\
+INFO: Deleting: TEST_SUBCONFIG1, TEST_SUBCONFIG3
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+INFO: Deleting: TEST_CONFIG1
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+INFO: Deleting: TEST_SUBCONFIG1
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+INFO: Deleting: TEST_SUBCONFIG1
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG3\
+INFO: Deleting: TEST_SUBCONFIG1
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+INFO: Deleting: 
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG3\
+INFO: Deleting: TEST_SUBCONFIG1
+INFO: Deleting: TEST_SUBCONFIG1, TEST_SUBCONFIG2
+INFO: Deleting: TEST_CONFIG2, TEST_SUBCONFIG1
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG1\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs\components\TEST_SUBCONFIG2\
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+INFO: Active config edited in filesystem, reload to receive changes
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+INFO: Active component edited in filesystem, reloading to get changes
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+C:\Instrument\Apps\EPICS\ISIS\inst_servers\master\BlockServer\test_configs
+------ BLOCKSERVER UNIT TESTS COMPLETE ------
+
+
