@@ -91,6 +91,11 @@ PVDB = {
         'count': 10000,
         'value': [0],
     },
+    'USER_PARS': {
+        'type': 'char',
+        'count': 10000,
+        'value': [0],
+    },
     'IOCS_NOT_TO_STOP': {
         'type': 'char',
         'count': 16000,
@@ -156,6 +161,8 @@ class DatabaseServer(Driver):
             value = self.encode4return(self.get_sample_par_names())
         elif reason == 'BEAMLINE_PARS':
             value = self.encode4return(self.get_beamline_par_names())
+        elif reason == 'USER_PARS':
+            value = self.encode4return(self.get_user_par_names())
         elif reason == "IOCS_NOT_TO_STOP":
             value = self.encode4return(IOCS_NOT_TO_STOP)
         else:
@@ -261,6 +268,17 @@ class DatabaseServer(Driver):
         """
         if self._db is not None:
             return [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in self._db.get_beamline_pars()]
+        else:
+            return list()
+
+    def get_user_par_names(self):
+        """Returns the user parameters from the database, replacing the MYPVPREFIX macro
+
+        Returns:
+            list : A list of user parameter names, an empty list if the database does not exist
+        """
+        if self._db is not None:
+            return [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in self._db.get_user_pars()]
         else:
             return list()
 
