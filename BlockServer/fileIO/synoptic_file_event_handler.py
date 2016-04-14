@@ -26,7 +26,7 @@ from server_common.utilities import print_and_log
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
-from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA
+from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA_FILE
 
 
 class SynopticFileEventHandler(FileSystemEventHandler):
@@ -43,7 +43,7 @@ class SynopticFileEventHandler(FileSystemEventHandler):
             schema_folder (string): The location of the schema
             synoptic_list_manager (SynopticListManager): The SynopticListManager
         """
-        self._schema_filepath = os.path.join(schema_folder, SYNOPTIC_SCHEMA)
+        self._schema_filepath = os.path.join(schema_folder, SYNOPTIC_SCHEMA_FILE)
         self._schema_lock = schema_lock
         self._synoptic_list = synoptic_list_manager
 

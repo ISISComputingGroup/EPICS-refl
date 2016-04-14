@@ -70,11 +70,11 @@ class ConfigListManager(object):
         self._active_changed = False
         self._lock = RLock()
         self._vc = vc_manager
+        self.schema_folder = schema_folder
 
         self._conf_path = FILEPATH_MANAGER.config_dir
         self._comp_path = FILEPATH_MANAGER.component_dir
-
-        self._import_configs(schema_folder)
+        self._import_configs(self.schema_folder)
 
         # Create the changed PV
         self.set_active_changed(False)
@@ -91,6 +91,17 @@ class ConfigListManager(object):
             else:
                 return 0
 
+    def update_pv_value(self, name, data):
+        # First check PV exists if not create it
+        if not self._block_server.does_pv_exist(name):
+            self._block_server.add_string_pv_to_db(name, 16000)
+
+        self._block_server.setParam(name, data)
+        self._block_server.updatePVs()
+
+    def delete_pv_from_db(self, name):
+        self._block_server.delete_pv_from_db(name)
+
     def set_active_changed(self, value):
         """Set the flag to indicate whether the active configuration has changed or not.
 
@@ -98,7 +109,7 @@ class ConfigListManager(object):
             value (bool): Whether the active configuration has changed or not
         """
         self._active_changed = value
-        self._ca_server.updatePV(CONFIG_CHANGED_PV, self.get_active_changed())
+        self.update_pv_value(CONFIG_CHANGED_PV, self.get_active_changed())
 
     def _get_config_names(self):
         return self._get_file_list(os.path.abspath(self._conf_path))
@@ -193,16 +204,16 @@ class ConfigListManager(object):
             configs = self._comp_dependecncies[name]
         if name in self._component_metas.keys():
             # Check just in case component failed to load
-            self._ca_server.updatePV(self._component_metas[name].pv + DEPENDENCIES_PV,
+            self.update_pv_value(self._component_metas[name].pv + DEPENDENCIES_PV,
                                      compress_and_hex(json.dumps(configs)))
 
     def _update_config_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(json.dumps(data)))
+        self.update_pv_value(self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(json.dumps(data)))
 
     def _update_component_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(self._component_metas[name].pv + GET_COMPONENT_PV, compress_and_hex(json.dumps(data)))
+        self.update_pv_value(self._component_metas[name].pv + GET_COMPONENT_PV, compress_and_hex(json.dumps(data)))
 
     def update_a_config_in_list_filewatcher(self, config, is_component=False):
         """Updates the PVs associated with a configuration
@@ -217,14 +228,14 @@ class ConfigListManager(object):
 
             # Update static PVs (some of these aren't completely necessary)
             if is_component:
-                self._block_server.update_comp_monitor()
+                self.update_comp_monitor()
                 if config.get_config_name().lower() in [x.lower() for x in self.active_components]:
                     print_and_log("Active component edited in filesystem, reloading to get changes",
                                   src="FILEWTCHR")
                     self.set_active_changed(True)
-                    self._block_server.load_last_config()
+                    self.load_last_config()
             else:
-                self._block_server.update_config_monitors()
+                self.update_config_monitors()
                 if config.get_config_name().lower() == self.active_config_name.lower():
                     print_and_log("Active config edited in filesystem, reload to receive changes",
                                   src="FILEWTCHR")
@@ -315,7 +326,7 @@ class ConfigListManager(object):
                 if not lower_delete_list.issubset(self._config_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown configurations")
                 for config in delete_list:
-                    self._ca_server.deletePV(self._config_metas[config.lower()].pv + GET_CONFIG_PV)
+                    self.delete_pv_from_db(self._config_metas[config.lower()].pv + GET_CONFIG_PV)
                     del self._config_metas[config.lower()]
                     self._remove_config_from_dependencies(config)
                 self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
@@ -329,8 +340,8 @@ class ConfigListManager(object):
                 if not lower_delete_list.issubset(self._component_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown components")
                 for comp in lower_delete_list:
-                    self._ca_server.deletePV(self._component_metas[comp].pv + GET_COMPONENT_PV)
-                    self._ca_server.deletePV(self._component_metas[comp].pv + DEPENDENCIES_PV)
+                    self.delete_pv_from_db(self._component_metas[comp].pv + GET_COMPONENT_PV)
+                    self.delete_pv_from_db(self._component_metas[comp].pv + DEPENDENCIES_PV)
                     del self._component_metas[comp]
                 self._update_version_control_post_delete(self._comp_path, delete_list)
 

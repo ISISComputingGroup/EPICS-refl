@@ -15,7 +15,8 @@
 #http://opensource.org/licenses/eclipse-1.0.php
 
 import os
-from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, convert_to_json
+from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, \
+    convert_to_json, convert_from_json
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
@@ -31,57 +32,24 @@ SYNOPTIC_GET_DEFAULT = "GET_DEFAULT"
 SYNOPTIC_BLANK = "__BLANK__"
 SYNOPTIC_SET_DETAILS = "SET_DETAILS"
 SYNOPTIC_DELETE = "DELETE"
-SYNOPTIC_SCHEMA = "SCHEMA1"
+SYNOPTIC_SCHEMA = "SCHEMA"
 
 SYNOPTIC_SCHEMA_FILE = "synoptic.xsd"
-
-# 'SYNOPTICS:NAMES': {
-#         'type': 'char',
-#         'count': 16000,
-#         'value': [0],
-#     },
-#     'SYNOPTICS:GET_DEFAULT': {
-#         'type': 'char',
-#         'count': 16000,
-#         'value': [0],
-#     },
-#     'SYNOPTICS:__BLANK__:GET': {
-#         'type': 'char',
-#         'count': 16000,
-#         'value': [0],
-#     },
-#     'SYNOPTICS:SET_DETAILS': {
-#         'type': 'char',
-#         'count': 16000,
-#         'value': [0],
-#     },
-#     'SYNOPTICS:DELETE': {
-#         'type': 'char',
-#         'count': 16000,
-#         'value': [0],
-#     },
-#     'SYNOPTICS:SCHEMA': {
-#         'type': 'char',
-#         'count': 16000,
-#         'value': [0],
-#     },
 
 
 class SynopticManager(PvSetListener):
     """Class for managing the PVs associated with synoptics"""
-    def __init__(self, block_server, cas, schema_folder, vc_manager):
+    def __init__(self, block_server, schema_folder, vc_manager):
         """Constructor.
 
         Args:
             block_server (BlockServer): A reference to the BlockServer instance.
-            cas (CAServer): The channel access server for creating PVs on-the-fly
             schema_folder (string): The filepath for the synoptic schema
             vc_manager (ConfigVersionControl): The manager to allow version control modifications
         """
-        self._pvs_to_set = [SYNOPTIC_DELETE, SYNOPTIC_SET_DETAILS]
+        self._pvs_to_set = [SYNOPTIC_PRE + SYNOPTIC_DELETE, SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS]
         self._directory = FILEPATH_MANAGER.synoptic_dir
         self._schema_folder = schema_folder
-        self._cas = cas
         self._synoptic_pvs = dict()
         self._vc = vc_manager
         self._bs = block_server
@@ -89,8 +57,16 @@ class SynopticManager(PvSetListener):
         self._create_standard_pvs()
         self._load_initial()
 
+    def pv_exists(self, pv):
+        return pv in self._pvs_to_set
+
     def handle_pv_write(self, pv, data):
-        print "handle_pv_write called"
+        if pv == SYNOPTIC_PRE + SYNOPTIC_DELETE:
+            self.delete_synoptics(convert_from_json(data))
+            self.update_monitors()
+        elif pv == SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS:
+            self.save_synoptic_xml(data)
+            self.update_monitors()
 
     def _create_standard_pvs(self):
         self._bs.add_string_pv_to_db(SYNOPTIC_PRE + SYNOPTIC_NAMES, 16000)
@@ -244,8 +220,6 @@ class SynopticManager(PvSetListener):
 
         self._add_to_version_control(name, "%s modified by client" % name)
 
-        self._bs.update_synoptic_monitor()
-
         print_and_log("Synoptic saved: " + name)
 
     def _add_to_version_control(self, synoptic_name, commit_message=None):
@@ -265,7 +239,7 @@ class SynopticManager(PvSetListener):
         if not delete_list.issubset(self._synoptic_pvs.keys()):
             raise InvalidDeleteException("Delete list contains unknown configurations")
         for synoptic in delete_list:
-            self._cas.deletePV(SYNOPTIC_PRE + self._synoptic_pvs[synoptic] + SYNOPTIC_GET)
+            self._bs.delete_pv_from_db(SYNOPTIC_PRE + self._synoptic_pvs[synoptic] + SYNOPTIC_GET)
             del self._synoptic_pvs[synoptic]
         self._update_version_control_post_delete(delete_list)  # Git is case sensitive
 
@@ -290,11 +264,11 @@ class SynopticManager(PvSetListener):
 
         names = self._synoptic_pvs.keys()
         if name in names:
-            self._cas.updatePV(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(xml_data))
+            self.update_pv_value(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(xml_data))
         else:
             self._create_pv(xml_data)
 
-        self._bs.update_synoptic_monitor()
+        self.update_monitors()
 
     def get_synoptic_schema(self):
         """Gets the XSD data for the synoptic.
@@ -316,10 +290,11 @@ class SynopticManager(PvSetListener):
         return """<?xml version="1.0" ?><instrument xmlns="http://www.isis.stfc.ac.uk//instrument">
                <name>-- NONE --</name><components/></instrument>"""
 
-    def set_synoptic_monitors(self):
-        print "UPDATING SYNOPTIC MONITORS"
-        print self.get_default_synoptic_xml()
-        self._bs.setParam("SYNOPTICS:GET_DEFAULT", compress_and_hex(self.get_default_synoptic_xml()))
-        names = convert_to_json(self.get_synoptic_list())
-        self._bs.setParam("SYNOPTICS:NAMES", compress_and_hex(names))
-        self._bs.updatePVs()
+    def update_monitors(self):
+        with self._bs.monitor_lock:
+            print "UPDATING SYNOPTIC MONITORS"
+            print self.get_default_synoptic_xml()
+            self._bs.setParam("SYNOPTICS:GET_DEFAULT", compress_and_hex(self.get_default_synoptic_xml()))
+            names = convert_to_json(self.get_synoptic_list())
+            self._bs.setParam("SYNOPTICS:NAMES", compress_and_hex(names))
+            self._bs.updatePVs()

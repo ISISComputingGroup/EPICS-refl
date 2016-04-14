@@ -164,42 +164,12 @@ PVDB = {
         'count': 64000,
         'value': [0],
     },
-    # 'CURR_CONFIG_CHANGED': {
-    #     'type': 'int'
-    # },
+    'CURR_CONFIG_CHANGED': {
+        'type': 'int'
+    },
     'ACK_CURR_CHANGED': {
         'type': 'int'
     },
-    # 'SYNOPTICS:NAMES': {
-    #     'type': 'char',
-    #     'count': 16000,
-    #     'value': [0],
-    # },
-    # 'SYNOPTICS:GET_DEFAULT': {
-    #     'type': 'char',
-    #     'count': 16000,
-    #     'value': [0],
-    # },
-    # 'SYNOPTICS:__BLANK__:GET': {
-    #     'type': 'char',
-    #     'count': 16000,
-    #     'value': [0],
-    # },
-    # 'SYNOPTICS:SET_DETAILS': {
-    #     'type': 'char',
-    #     'count': 16000,
-    #     'value': [0],
-    # },
-    # 'SYNOPTICS:DELETE': {
-    #     'type': 'char',
-    #     'count': 16000,
-    #     'value': [0],
-    # },
-    # 'SYNOPTICS:SCHEMA': {
-    #     'type': 'char',
-    #     'count': 16000,
-    #     'value': [0],
-    # },
     'BUMPSTRIP_AVAILABLE': {
         'type': 'char',
         'count': 16000,
@@ -227,14 +197,14 @@ class BlockServer(Driver):
         super(BlockServer, self).__init__()
         FILEPATH_MANAGER.initialise(CONFIG_DIR)
 
+        self._cas = ca_server
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])
         self._active_configserver = None
         self._block_cache = None
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
-        #self.block_rules = BlockRules(ca_server)
-        self._cas = ca_server
+        self.block_rules = BlockRules(self)
 
         # Connect to version control
         try:
@@ -253,13 +223,13 @@ class BlockServer(Driver):
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
         # Import all the synoptic data and create PVs
-        self._syn = SynopticManager(self, ca_server, SCHEMA_DIR, self._vc)
+        self._syn = SynopticManager(self, SCHEMA_DIR, self._vc)
 
         # These handle calls to set PVs that are created on the fly
         self.write_handlers = [self._syn]
 
         # Start file watcher
-        #self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
+        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
 
         # Threading stuff
         self.monitor_lock = RLock()
@@ -387,21 +357,16 @@ class BlockServer(Driver):
                 self.update_comp_monitor()
             elif reason == 'ACK_CURR_CHANGED':
                 self._config_list.set_active_changed(False)
-            # elif reason == "SYNOPTICS:SET_DETAILS":
-            #     self._syn.save_synoptic_xml(data)
-            #     self.update_synoptic_monitor()
-            # elif reason == "SYNOPTICS:DELETE":
-            #     self._syn.delete_synoptics(convert_from_json(data))
-            #     self.update_synoptic_monitor()
             elif reason == "BUMPSTRIP_AVAILABLE:SP":
                 self.bumpstrip = data
                 self.update_bumpstrip_availability()
             else:
                 status = False
                 # Check to see if it is a on-the-fly PV
-                print reason
-                for h in self.handlers:
-                    if h.handle_pv_write(reason, value):
+                for h in self.write_handlers:
+                    if h.pv_exists(reason):
+                        with self.write_lock:
+                            self.write_queue.append((h.handle_pv_write, (reason, data), "SETTING_CONFIG"))
                         status = True
                         break
 
@@ -457,16 +422,15 @@ class BlockServer(Driver):
         # If the config has a default synoptic then set the PV to that
         synoptic = self._active_configserver.get_config_meta().synoptic
         self._syn.set_default_synoptic(synoptic)
-        self.update_synoptic_monitor()
+        self._syn.update_monitors()
 
         if len(iocs_to_start) > 0 or len(iocs_to_restart) > 0:
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
         # Set up the gateway
         if init_gateway:
             self._gateway.set_new_aliases(self._active_configserver.get_block_details())
-        # TODO:
-        # self._config_list.active_config_name = self._active_configserver.get_config_name()
-        # self._config_list.active_components = self._active_configserver.get_component_names()
+        self._config_list.active_config_name = self._active_configserver.get_config_name()
+        self._config_list.active_components = self._active_configserver.get_component_names()
         self.update_blocks_monitors()
         self.update_config_monitors()
         self.update_get_details_monitors()
@@ -614,7 +578,7 @@ class BlockServer(Driver):
             self._active_configserver.set_history(history)
 
             self._active_configserver.save_active(name)
-            #self._config_list.update_a_config_in_list(self._active_configserver)
+            self._config_list.update_a_config_in_list(self._active_configserver)
             self.update_config_monitors()
         finally:
             self._filewatcher.resume()
@@ -638,8 +602,7 @@ class BlockServer(Driver):
         """
         with self.monitor_lock:
             # set the available configs
-            # TODO:
-            #self.setParam("CONFIGS", compress_and_hex(convert_to_json(self._config_list.get_configs())))
+            self.setParam("CONFIGS", compress_and_hex(convert_to_json(self._config_list.get_configs())))
             # Update them
             self.updatePVs()
 
@@ -647,7 +610,7 @@ class BlockServer(Driver):
         """Updates the monitor for the components, so the clients can see any changes.
         """
         with self.monitor_lock:
-            #self.setParam("COMPS", compress_and_hex(convert_to_json(self._config_list.get_components())))
+            self.setParam("COMPS", compress_and_hex(convert_to_json(self._config_list.get_components())))
             # Update them
             self.updatePVs()
 
@@ -667,17 +630,11 @@ class BlockServer(Driver):
     def update_get_details_monitors(self):
         """Updates the monitor for the active configuration, so the clients can see any changes.
         """
-        #self._config_list.set_active_changed(False)
+        self._config_list.set_active_changed(False)
         with self.monitor_lock:
             js = convert_to_json(self._active_configserver.get_config_details())
             self.setParam("GET_CURR_CONFIG_DETAILS", compress_and_hex(js))
             self.updatePVs()
-
-    def update_synoptic_monitor(self):
-        """Updates the monitor for the current synoptic, so the clients can see any changes.
-        """
-        with self.monitor_lock:
-            self._syn.set_synoptic_monitors()
 
     def update_bumpstrip_availability(self):
             """Updates the monitor for the configurations, so the clients can see any changes.
@@ -741,9 +698,12 @@ class BlockServer(Driver):
                 self._ioc_control.set_autorestart(i, True)
 
     # Code for new pvs on-the-fly
+    def does_pv_exist(self, name):
+        return name in manager.pvs[self.port]
+
     def delete_pv_from_db(self, name):
         if name in manager.pvs[self.port]:
-            print "Removing PV %s" % name
+            print_and_log("Removing PV %s" % name)
             fullname = manager.pvs[self.port][name].name
             del manager.pvs[self.port][name]
             del manager.pvf[fullname]
@@ -753,7 +713,7 @@ class BlockServer(Driver):
     def add_string_pv_to_db(self, name, count=1000):
         # Check name not already in PVDB and that a PV does not already exist
         if name not in PVDB and name not in manager.pvs[self.port]:
-            print "Adding PV %s" % name
+            print_and_log("Adding PV %s" % name)
             PVDB[name] = {
                 'type': 'char',
                 'count': count,

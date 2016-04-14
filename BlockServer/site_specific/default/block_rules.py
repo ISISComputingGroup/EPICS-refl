@@ -26,16 +26,19 @@ BLOCK_RULES_PV = "BLOCK_RULES"
 class BlockRules(object):
     """Class for managing exposing the rules for allowed block names"""
 
-    def __init__(self, cas):
+    def __init__(self, block_server):
         """Constructor.
 
         Args:
-            cas (CAServer): The channel access server for creating PVs on-the-fly
+            block_server (BlockServer): A reference to the BlockServer instance.
         """
-        self._cas = cas
+        self._bs = block_server
         self._create_pv()
 
     def _create_pv(self):
         data = {"disallowed": DISALLOWED_BLOCK_NAMES,
                 "regex": ALLOWED_BLOCK_NAME_REGEX, "regex_message": BLOCK_REGEX_ERROR_MESSAGE}
-        self._cas.updatePV(BLOCK_RULES_PV, compress_and_hex(json.dumps(data)))
+        self._bs.add_string_pv_to_db(BLOCK_RULES_PV, 16000)
+        self._bs.setParam(BLOCK_RULES_PV, compress_and_hex(json.dumps(data)))
+        self._bs.updatePVs()
+
