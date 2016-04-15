@@ -76,22 +76,26 @@ class IOCData(object):
         """
         return self._running_iocs
 
-    def get_sample_pars(self):
-        """Gets the sample parameters from the IOC database
+    def get_pars(self, category):
+        """Gets parameters of a particular category from the IOC database of
 
         Returns:
-            list : A list of the names of PVs associated with sample parameters
+            list : A list of the names of PVs associated with the parameter category
         """
         values = []
         try:
-            sqlquery = ("SELECT pvname FROM pvs"
-                        " WHERE (pvname LIKE '%PARS:SAMPLE:%' AND pvname NOT LIKE '%:SEND'"
-                        " AND pvname NOT LIKE '%:SP' AND pvname NOT LIKE '%:TYPE')"
-                        )
+            sqlquery = "SELECT DISTINCT pvinfo.pvname FROM pvinfo"
+            sqlquery += " INNER JOIN pvs ON pvs.pvname = pvinfo.pvname"
+            sqlquery += " WHERE (infoname='PVCATEGORY' AND value LIKE '%" + category + "%' AND pvinfo.pvname NOT LIKE '%:SP')"
             # Get as a plain list
             values = [str(element[0]) for element in self._db.execute_query(sqlquery)]
+            # Convert any bytearrays
+            for i, pv in enumerate(values):
+                for j, element in enumerate(pv):
+                    if type(element) == bytearray:
+                        values[i][j] = element.decode("utf-8")
         except Exception as err:
-            print_and_log("could not get sample parameters from database: %s" % err, "MAJOR", "DBSVR")
+            print_and_log("could not get parameters category %s from database: %s" % (category, err), "MAJOR", "DBSVR")
         return values
 
     def get_beamline_pars(self):
@@ -100,17 +104,23 @@ class IOCData(object):
         Returns:
             list : A list of the names of PVs associated with beamline parameters
         """
-        values = []
-        try:
-            sqlquery = ("SELECT pvname FROM pvs"
-                        " WHERE (pvname LIKE '%PARS:BL:%' AND pvname NOT LIKE '%:SEND'"
-                        " AND pvname NOT LIKE '%:SP' AND pvname NOT LIKE '%:TYPE')"
-                        )
-            # Get as a plain list
-            values = [str(element[0]) for element in self._db.execute_query(sqlquery)]
-        except Exception as err:
-            print_and_log("could not get beamline parameters from database: %s" % err, "MAJOR", "DBSVR")
-        return values
+        return self.get_pars('BEAMLINEPAR')
+
+    def get_sample_pars(self):
+        """Gets the sample parameters from the IOC database
+
+        Returns:
+            list : A list of the names of PVs associated with sample parameters
+        """
+        return self.get_pars('SAMPLEPAR')
+
+    def get_user_pars(self):
+        """Gets the user parameters from the IOC database
+
+        Returns:
+            list : A list of the names of PVs associated with user parameters
+        """
+        return self.get_pars('USERPAR')
 
     def update_iocs_status(self):
         """Accesses the db to get a list of IOCs and checks to see if they are currently running
