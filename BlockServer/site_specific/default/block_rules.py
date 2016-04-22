@@ -37,5 +37,5 @@ class BlockRules(object):
 
     def _create_pv(self):
         data = {"disallowed": DISALLOWED_BLOCK_NAMES,
-                "regex": ALLOWED_BLOCK_NAME_REGEX, "regex_message": BLOCK_REGEX_ERROR_MESSAGE}
+                "regex": ALLOWED_BLOCK_NAME_REGEX, "regexMessage": BLOCK_REGEX_ERROR_MESSAGE}
         self._cas.updatePV(BLOCK_RULES_PV, compress_and_hex(json.dumps(data)))

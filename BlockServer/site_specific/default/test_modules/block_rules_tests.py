@@ -48,7 +48,7 @@ class TestBlockRulesSequence(unittest.TestCase):
         self.assertTrue("regex" in self.get_block_rules_json())
 
     def test_regex_message_in_json(self):
-        self.assertTrue("regex_message" in self.get_block_rules_json())
+        self.assertTrue("regexMessage" in self.get_block_rules_json())
 
     def test_regex_lowercase_valid(self):
         self.assertTrue(self.get_regex().match("abc"))
