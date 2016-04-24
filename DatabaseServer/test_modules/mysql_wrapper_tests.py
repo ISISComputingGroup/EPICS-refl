@@ -83,12 +83,19 @@ def generate_fake_db(iocdb):
     # Add sample and beamline parameters
     sql.append("""INSERT INTO `%s`.`iocs` (`iocname`, `dir`, `consoleport`, `logport`, `exe`, `cmd`) VALUES ('%s','%s','%s','%s','%s','%s')""" % (iocdb,'INSTETC', 'fake_dir', count, count, 'fake_exe', 'fake_cmd'))
     pvnames = list(SAMPLE_PVS)
-    pvnames.extend(BL_PVS)
     for pv in pvnames:
         MEDIUM_PV_NAMES.append(pv)
         sql.append("""INSERT INTO `%s`.`pvs` (`pvname`, `record_type`, `record_desc`, `iocname`) VALUES ('%s','%s','%s','%s')""" % (iocdb, pv, 'ai', 'Fake pv for testing', 'INSTETC'))
         # Add interesting PVs
         sql.append("""INSERT INTO `%s`.`pvinfo` (`pvname`, `infoname`, `value`) VALUES ('%s','%s','%s')""" % (iocdb, pv, 'INTEREST', 'MEDIUM'))
+        sql.append("""INSERT INTO `%s`.`pvinfo` (`pvname`, `infoname`, `value`) VALUES ('%s','%s','%s')""" % (iocdb, pv, 'PVCATEGORY', 'SAMPLEPAR'))
+    pvnames = list(BL_PVS)
+    for pv in pvnames:
+        MEDIUM_PV_NAMES.append(pv)
+        sql.append("""INSERT INTO `%s`.`pvs` (`pvname`, `record_type`, `record_desc`, `iocname`) VALUES ('%s','%s','%s','%s')""" % (iocdb, pv, 'ai', 'Fake pv for testing', 'INSTETC'))
+        # Add interesting PVs
+        sql.append("""INSERT INTO `%s`.`pvinfo` (`pvname`, `infoname`, `value`) VALUES ('%s','%s','%s')""" % (iocdb, pv, 'INTEREST', 'MEDIUM'))
+        sql.append("""INSERT INTO `%s`.`pvinfo` (`pvname`, `infoname`, `value`) VALUES ('%s','%s','%s')""" % (iocdb, pv, 'PVCATEGORY', 'BEAMLINEPAR'))
     pvnames = list(FACILITY_PV_NAMES)
     for pv in pvnames:
         sql.append("""INSERT INTO `%s`.`pvs` (`pvname`, `record_type`, `record_desc`, `iocname`) VALUES ('%s','%s','%s','%s')""" % (iocdb, pv, 'ai', 'Fake pv for testing', 'INSTETC'))
