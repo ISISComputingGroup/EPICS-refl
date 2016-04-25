@@ -18,7 +18,7 @@ import unittest
 import os
 import shutil
 
-from BlockServer.core.synoptic_manager import SynopticManager, SYNOPTIC_PRE, SYNOPTIC_GET
+from BlockServer.synoptic.synoptic_manager import SynopticManager, SYNOPTIC_PRE, SYNOPTIC_GET
 from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.mocks.mock_version_control import MockVersionControl
@@ -34,6 +34,13 @@ EXAMPLE_SYNOPTIC = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 SCHEMA_PATH = os.path.abspath(os.path.join(".", "..", "schema"))
 
+SYNOPTIC_1 = "synoptic1"
+SYNOPTIC_2 = "synoptic2"
+
+
+def construct_pv_name(name):
+    return SYNOPTIC_PRE + name + SYNOPTIC_GET
+
 
 class TestSynopticManagerSequence(unittest.TestCase):
     def setUp(self):
@@ -41,15 +48,15 @@ class TestSynopticManagerSequence(unittest.TestCase):
         if not os.path.isdir(FILEPATH_MANAGER.synoptic_dir):
             os.makedirs(FILEPATH_MANAGER.synoptic_dir)
 
-        f1 = open(os.path.join(FILEPATH_MANAGER.synoptic_dir, "synoptic1.xml"), "a")
-        f1.write(EXAMPLE_SYNOPTIC % "synoptic1")
+        f1 = open(os.path.join(FILEPATH_MANAGER.synoptic_dir, SYNOPTIC_1 + ".xml"), "a")
+        f1.write(EXAMPLE_SYNOPTIC % SYNOPTIC_1)
         f1.close()
-        f2 = open(os.path.join(FILEPATH_MANAGER.synoptic_dir, "synoptic2.xml"), "a")
-        f2.write(EXAMPLE_SYNOPTIC % "synoptic2")
+        f2 = open(os.path.join(FILEPATH_MANAGER.synoptic_dir, SYNOPTIC_2 + ".xml"), "a")
+        f2.write(EXAMPLE_SYNOPTIC % SYNOPTIC_2)
         f2.close()
 
-        self.cas = MockCAServer()
-        self.sm = SynopticManager(MockBlockServer(), self.cas, SCHEMA_PATH, MockVersionControl())
+        self.bs = MockBlockServer()
+        self.sm = SynopticManager(self.bs, SCHEMA_PATH, MockVersionControl())
         self.initial_len = len([c["name"] for c in self.sm.get_synoptic_list()])
 
     def tearDown(self):
@@ -64,8 +71,8 @@ class TestSynopticManagerSequence(unittest.TestCase):
         # Assert
         self.assertTrue(len(s) > 0)
         s = [x['name'] for x in s]
-        self.assertTrue(s[0], "synoptic1")
-        self.assertTrue(s[0], "synoptic2")
+        self.assertTrue(s[0], SYNOPTIC_1)
+        self.assertTrue(s[0], SYNOPTIC_2)
 
     def test_create_pvs_is_okay(self):
         # Arrange
@@ -73,8 +80,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.sm._load_initial()
 
         # Assert
-        self.assertTrue(len(self.cas.pv_list) > 0)
-        self.assertTrue("%sSYNOPTIC1%s" % (SYNOPTIC_PRE, SYNOPTIC_GET) in self.cas.pv_list.keys())
+        self.assertTrue(self.bs.does_pv_exist("%sSYNOPTIC1%s" % (SYNOPTIC_PRE, SYNOPTIC_GET)))
 
     def test_get_default_synoptic_xml_returns_nothing(self):
         # Arrange
@@ -116,8 +122,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % syn_name)
 
         # Assert
-        self.assertTrue(len(self.cas.pv_list) > 0)
-        self.assertTrue("%sNEW_SYNOPTIC%s" % (SYNOPTIC_PRE, SYNOPTIC_GET) in self.cas.pv_list.keys())
+        self.assertTrue(self.bs.does_pv_exist("%sNEW_SYNOPTIC%s" % (SYNOPTIC_PRE, SYNOPTIC_GET)))
 
     def test_delete_synoptics_empty(self):
         # Arrange
@@ -127,38 +132,41 @@ class TestSynopticManagerSequence(unittest.TestCase):
         # Assert
         synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
         self.assertEqual(len(synoptic_names), self.initial_len)
-        self.assertTrue("synoptic1" in synoptic_names)
-        self.assertTrue("synoptic2" in synoptic_names)
-        self.assertEqual(len(self.cas.pv_list), 2)
+        self.assertTrue(SYNOPTIC_1 in synoptic_names)
+        self.assertTrue(SYNOPTIC_2 in synoptic_names)
+        self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_1.upper())))
+        self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_2.upper())))
 
     def test_delete_one_config(self):
         # Arrange
         # Act
-        self.sm.delete_synoptics(["synoptic1"])
+        self.sm.delete_synoptics([SYNOPTIC_1])
 
         # Assert
         synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
         self.assertEqual(len(synoptic_names), self.initial_len - 1)
-        self.assertFalse("synoptic1" in synoptic_names)
-        self.assertTrue("synoptic2" in synoptic_names)
-        self.assertEqual(len(self.cas.pv_list), 1)
+        self.assertFalse(SYNOPTIC_1 in synoptic_names)
+        self.assertTrue(SYNOPTIC_2 in synoptic_names)
+        self.assertFalse(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_1.upper())))
+        self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_2.upper())))
 
     def test_delete_many_configs(self):
         # Arrange
         # Act
-        self.sm.delete_synoptics(["synoptic1", "synoptic2"])
+        self.sm.delete_synoptics([SYNOPTIC_1, SYNOPTIC_2])
 
         # Assert
         synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
         self.assertEqual(len(synoptic_names), self.initial_len - 2)
-        self.assertFalse("synoptic1" in synoptic_names)
-        self.assertFalse("synoptic2" in synoptic_names)
-        self.assertEqual(len(self.cas.pv_list), 0)
+        self.assertFalse(SYNOPTIC_1 in synoptic_names)
+        self.assertFalse(SYNOPTIC_2 in synoptic_names)
+        self.assertFalse(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_1.upper())))
+        self.assertFalse(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_2.upper())))
 
     def test_delete_config_affects_filesystem(self):
         # Arrange
         # Act
-        self.sm.delete_synoptics(["synoptic1"])
+        self.sm.delete_synoptics([SYNOPTIC_1])
 
         # Assert
         synoptics = os.listdir(FILEPATH_MANAGER.synoptic_dir)
@@ -173,4 +181,6 @@ class TestSynopticManagerSequence(unittest.TestCase):
         # Assert
         synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
         self.assertEqual(len(synoptic_names), self.initial_len)
-        self.assertEqual(len(self.cas.pv_list), 2)
+        self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_1.upper())))
+        self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_2.upper())))
+        

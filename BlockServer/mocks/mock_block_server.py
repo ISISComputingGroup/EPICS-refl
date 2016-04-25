@@ -14,12 +14,15 @@
 #https://www.eclipse.org/org/documents/epl-v10.php or 
 #http://opensource.org/licenses/eclipse-1.0.php
 
-import json
+from threading import RLock
+
 
 class MockBlockServer(object):
     def __init__(self):
         self._comps = list()
         self._confs = list()
+        self._pvs = dict()
+        self.monitor_lock = RLock()
 
     def set_config_list(self, cl):
         self._config_list = cl
@@ -40,4 +43,20 @@ class MockBlockServer(object):
         pass
 
     def load_last_config(self):
+        pass
+
+    def does_pv_exist(self, name):
+        return name in self._pvs
+
+    def delete_pv_from_db(self, name):
+        del self._pvs[name]
+
+    def add_string_pv_to_db(self, name, count=1000):
+        print name
+        self._pvs[name] = ""
+
+    def setParam(self, name, data):
+        self._pvs[name] = data
+
+    def updatePVs(self):
         pass

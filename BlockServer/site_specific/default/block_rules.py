@@ -33,12 +33,12 @@ class BlockRules(object):
             block_server (BlockServer): A reference to the BlockServer instance.
         """
         self._bs = block_server
+        self.rules = {"disallowed": DISALLOWED_BLOCK_NAMES, "regex": ALLOWED_BLOCK_NAME_REGEX,
+                      "regex_message": BLOCK_REGEX_ERROR_MESSAGE}
         self._create_pv()
 
     def _create_pv(self):
-        data = {"disallowed": DISALLOWED_BLOCK_NAMES,
-                "regex": ALLOWED_BLOCK_NAME_REGEX, "regex_message": BLOCK_REGEX_ERROR_MESSAGE}
         self._bs.add_string_pv_to_db(BLOCK_RULES_PV, 16000)
-        self._bs.setParam(BLOCK_RULES_PV, compress_and_hex(json.dumps(data)))
+        self._bs.setParam(BLOCK_RULES_PV, compress_and_hex(json.dumps(self.rules)))
         self._bs.updatePVs()
 

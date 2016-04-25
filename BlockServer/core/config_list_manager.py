@@ -23,7 +23,7 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.core.macros import MACROS
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
-from server_common.utilities import print_and_log, compress_and_hex, create_pv_name
+from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.constants import DEFAULT_COMPONENT
 
@@ -51,20 +51,18 @@ class ConfigListManager(object):
         active_config_name (string): The name of the active configuration
         active_components (list): The names of the components in the active configuration
     """
-    def __init__(self, block_server, server, schema_folder, vc_manager):
+    def __init__(self, block_server, schema_folder, vc_manager):
         """Constructor.
 
         Args:
             block_server (BlockServer): A reference to the BlockServer itself
-            server (CAServer): A reference to the CaServer of the BlockServer
             schema_folder (string): The location of the schemas for validation
             vc_manager (ConfigVersionControl): The object for managing version control
         """
         self._config_metas = dict()
         self._component_metas = dict()
         self._comp_dependecncies = dict()
-        self._ca_server = server
-        self._block_server = block_server
+        self._bs = block_server
         self.active_config_name = ""
         self.active_components = []
         self._active_changed = False
@@ -93,14 +91,14 @@ class ConfigListManager(object):
 
     def update_pv_value(self, name, data):
         # First check PV exists if not create it
-        if not self._block_server.does_pv_exist(name):
-            self._block_server.add_string_pv_to_db(name, 16000)
+        if not self._bs.does_pv_exist(name):
+            self._bs.add_string_pv_to_db(name, 16000)
 
-        self._block_server.setParam(name, data)
-        self._block_server.updatePVs()
+        self._bs.setParam(name, data)
+        self._bs.updatePVs()
 
     def delete_pv_from_db(self, name):
-        self._block_server.delete_pv_from_db(name)
+        self._bs.delete_pv_from_db(name)
 
     def set_active_changed(self, value):
         """Set the flag to indicate whether the active configuration has changed or not.
@@ -227,15 +225,14 @@ class ConfigListManager(object):
             self.update_a_config_in_list(config, is_component)
 
             # Update static PVs (some of these aren't completely necessary)
+            self.update_monitors()
             if is_component:
-                self.update_comp_monitor()
                 if config.get_config_name().lower() in [x.lower() for x in self.active_components]:
                     print_and_log("Active component edited in filesystem, reloading to get changes",
                                   src="FILEWTCHR")
                     self.set_active_changed(True)
-                    self.load_last_config()
+                    self._bs.load_last_config()
             else:
-                self.update_config_monitors()
                 if config.get_config_name().lower() == self.active_config_name.lower():
                     print_and_log("Active config edited in filesystem, reload to receive changes",
                                   src="FILEWTCHR")
@@ -364,3 +361,13 @@ class ConfigListManager(object):
     def recover_from_version_control(self):
         """A method to revert the configurations directory back to the state held in version control."""
         self._vc.update()
+
+    def update_monitors(self):
+        with self._bs.monitor_lock:
+            print "UPDATING CONFIG LIST MONITORS"
+            # Set the available configs
+            self._bs.setParam("CONFIGS", compress_and_hex(convert_to_json(self.get_configs())))
+            # Set the available comps
+            self._bs.setParam("COMPS", compress_and_hex(convert_to_json(self.get_components())))
+            # Update them
+            self._bs.updatePVs()
