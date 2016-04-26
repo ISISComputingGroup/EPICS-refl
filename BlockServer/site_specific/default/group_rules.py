@@ -18,12 +18,12 @@ from server_common.utilities import compress_and_hex
 import json
 
 DISALLOWED_BLOCK_NAMES = ["lowlimit", "highlimit", "runcontrol", "wait"]
-BLOCK_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME.format("Block")
-BLOCK_RULES_PV = "BLOCK_RULES"
+BLOCK_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME.format("Group")
+GROUP_RULES_PV = "GROUP_RULES"
 
 
-class BlockRules(object):
-    """Class for managing exposing the rules for allowed block names"""
+class GroupRules(object):
+    """Class for managing exposing the rules for allowed group names"""
 
     def __init__(self, cas):
         """Constructor.
@@ -38,4 +38,4 @@ class BlockRules(object):
         data = {"disallowed": DISALLOWED_BLOCK_NAMES,
                 "regex": REGEX_PV_NAME_LIKE,
                 "regexMessage": BLOCK_REGEX_ERROR_MESSAGE}
-        self._cas.updatePV(BLOCK_RULES_PV, compress_and_hex(json.dumps(data)))
+        self._cas.updatePV(GROUP_RULES_PV, compress_and_hex(json.dumps(data)))

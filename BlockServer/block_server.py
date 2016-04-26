@@ -18,6 +18,7 @@
 import os
 import sys
 
+
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRVC"]))
 
@@ -49,6 +50,7 @@ from BlockServer.core.runcontrol_manager import RunControlManager
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
+from BlockServer.site_specific.default.group_rules import GroupRules
 
 
 # For documentation on these commands see the accompanying block_server.rst file
@@ -233,6 +235,7 @@ class BlockServer(Driver):
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
         self.block_rules = BlockRules(ca_server)
+        self.group_rules = GroupRules(ca_server)
 
         # Connect to version control
         try:
