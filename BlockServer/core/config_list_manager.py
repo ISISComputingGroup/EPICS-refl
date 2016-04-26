@@ -28,7 +28,6 @@ from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.constants import DEFAULT_COMPONENT
 
 
-
 GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
 GET_COMPONENT_PV = ":GET_COMPONENT_DETAILS"
 DEPENDENCIES_PV = ":DEPENDENCIES"

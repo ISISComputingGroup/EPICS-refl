@@ -218,7 +218,7 @@ class BlockServer(Driver):
 
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(self, ca_server, SCHEMA_DIR, self._vc)
+            self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
