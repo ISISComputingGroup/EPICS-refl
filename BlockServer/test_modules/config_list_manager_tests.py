@@ -29,7 +29,6 @@ from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.config.configuration import Configuration
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
-from BlockServer.mocks.mock_runcontrol_manager import MockRunControlManager
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
@@ -78,7 +77,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def setUp(self):
         # Create components folder and copying DEFAULT_COMPONENT fileIO into it
         path = os.path.abspath(CONFIG_PATH)
-        print path
         FILEPATH_MANAGER.initialise(path)
         self.bs = MockBlockServer()
         self.clm = ConfigListManager(self.bs, SCHEMA_PATH, MockVersionControl())
@@ -260,8 +258,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_delete_active_config(self):
         self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
         active = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
-                                    MockVersionControl(), MockIocControl(""),
-                                    MockRunControlManager())
+                                    MockVersionControl(), MockIocControl(""))
         active.save_active("TEST_ACTIVE")
         self.clm.update_a_config_in_list(active)
         self.clm.active_config_name = "TEST_ACTIVE"
@@ -277,8 +274,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_delete_active_component(self):
         self._create_components(["TEST_COMPONENT1", "TEST_COMPONENT2", "TEST_COMPONENT3"])
         active = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
-                                    MockVersionControl(), MockIocControl(""),
-                                    MockRunControlManager())
+                                    MockVersionControl(), MockIocControl(""))
         active.add_component("TEST_COMPONENT1", Configuration(MACROS))
         active.save_active("TEST_ACTIVE")
         self.clm.active_config_name = "TEST_ACTIVE"

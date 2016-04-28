@@ -14,7 +14,7 @@
 #https://www.eclipse.org/org/documents/epl-v10.php or 
 #http://opensource.org/licenses/eclipse-1.0.php
 
-from server_common.channel_access import caget, caput
+from server_common.channel_access import ChannelAccess
 from server_common.utilities import print_and_log
 
 
@@ -42,7 +42,7 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC to start
         """
         print_and_log("Starting IOC %s" % ioc)
-        caput(self.generate_prefix(prefix, ioc) + ":START", 1)
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":START", 1)
 
     def stop_ioc(self, prefix, ioc):
         """Stops the specified IOC
@@ -52,7 +52,7 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC to stop
         """
         print_and_log("Stopping IOC %s" % ioc)
-        caput(self.generate_prefix(prefix, ioc) + ":STOP", 1)
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":STOP", 1)
 
     def restart_ioc(self, prefix, ioc):
         """Restarts the specified IOC
@@ -62,7 +62,7 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC to restart
         """
         print_and_log("Restarting IOC %s" % ioc)
-        caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1)
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1)
 
     def get_ioc_status(self, prefix, ioc):
         """Gets the status of the specified IOC
@@ -75,7 +75,7 @@ class ProcServWrapper(object):
             string : The status of the requested IOC
         """
         pv = self.generate_prefix(prefix, ioc) + ":STATUS"
-        ans = caget(pv, as_string=True)
+        ans = ChannelAccess.caget(pv, as_string=True)
         if ans is None:
             raise Exception("Could not find IOC (%s)" % pv)
         return ans.upper()

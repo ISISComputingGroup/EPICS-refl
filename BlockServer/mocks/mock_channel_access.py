@@ -13,3 +13,19 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+
+PVS = dict()
+
+
+class MockChannelAccess(object):
+    @staticmethod
+    def caget(name, as_string=False):
+        if name in PVS:
+            return PVS[name]
+        return "Something that is not None"
+
+    @staticmethod
+    def caput(name, value, wait=False):
+        global PVS
+        PVS[name] = value
+

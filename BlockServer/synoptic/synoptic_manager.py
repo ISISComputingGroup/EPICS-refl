@@ -1,18 +1,18 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
 import os
 from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, \
@@ -43,7 +43,7 @@ class SynopticManager(PvSetListener):
         """Constructor.
 
         Args:
-            block_server (BlockServer): A reference to the BlockServer instance.
+            block_server (BlockServer): A reference to the BlockServer instance
             schema_folder (string): The filepath for the synoptic schema
             vc_manager (ConfigVersionControl): The manager to allow version control modifications
         """
@@ -67,6 +67,21 @@ class SynopticManager(PvSetListener):
         elif pv == SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS:
             self.save_synoptic_xml(data)
             self.update_monitors()
+
+    def handle_pv_read(self, pv):
+        # Nothing to do as it is all handled by monitors
+        pass
+
+    def update_monitors(self):
+        with self._bs.monitor_lock:
+            print "UPDATING SYNOPTIC MONITORS"
+            self._bs.setParam("SYNOPTICS:GET_DEFAULT", compress_and_hex(self.get_default_synoptic_xml()))
+            names = convert_to_json(self.get_synoptic_list())
+            self._bs.setParam("SYNOPTICS:NAMES", compress_and_hex(names))
+            self._bs.updatePVs()
+
+    def initialise(self, full_init=False):
+        pass
 
     def _create_standard_pvs(self):
         self._bs.add_string_pv_to_db(SYNOPTIC_PRE + SYNOPTIC_NAMES, 16000)
@@ -290,11 +305,3 @@ class SynopticManager(PvSetListener):
         return """<?xml version="1.0" ?><instrument xmlns="http://www.isis.stfc.ac.uk//instrument">
                <name>-- NONE --</name><components/></instrument>"""
 
-    def update_monitors(self):
-        with self._bs.monitor_lock:
-            print "UPDATING SYNOPTIC MONITORS"
-            print self.get_default_synoptic_xml()
-            self._bs.setParam("SYNOPTICS:GET_DEFAULT", compress_and_hex(self.get_default_synoptic_xml()))
-            names = convert_to_json(self.get_synoptic_list())
-            self._bs.setParam("SYNOPTICS:NAMES", compress_and_hex(names))
-            self._bs.updatePVs()

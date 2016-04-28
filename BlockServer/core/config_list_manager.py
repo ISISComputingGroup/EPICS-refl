@@ -1,18 +1,18 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
 import os
 import json
@@ -88,7 +88,7 @@ class ConfigListManager(object):
             else:
                 return 0
 
-    def update_pv_value(self, name, data):
+    def _update_pv_value(self, name, data):
         # First check PV exists if not create it
         if not self._bs.does_pv_exist(name):
             self._bs.add_string_pv_to_db(name, 16000)
@@ -96,7 +96,7 @@ class ConfigListManager(object):
         self._bs.setParam(name, data)
         self._bs.updatePVs()
 
-    def delete_pv_from_db(self, name):
+    def _delete_pv(self, name):
         self._bs.delete_pv_from_db(name)
 
     def set_active_changed(self, value):
@@ -106,7 +106,7 @@ class ConfigListManager(object):
             value (bool): Whether the active configuration has changed or not
         """
         self._active_changed = value
-        self.update_pv_value(CONFIG_CHANGED_PV, self.get_active_changed())
+        self._update_pv_value(CONFIG_CHANGED_PV, self.get_active_changed())
 
     def _get_config_names(self):
         return self._get_file_list(os.path.abspath(self._conf_path))
@@ -201,16 +201,16 @@ class ConfigListManager(object):
             configs = self._comp_dependecncies[name]
         if name in self._component_metas.keys():
             # Check just in case component failed to load
-            self.update_pv_value(self._component_metas[name].pv + DEPENDENCIES_PV,
-                                     compress_and_hex(json.dumps(configs)))
+            self._update_pv_value(self._component_metas[name].pv + DEPENDENCIES_PV,
+                                  compress_and_hex(json.dumps(configs)))
 
     def _update_config_pv(self, name, data):
         # Updates pvs with new data
-        self.update_pv_value(self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(json.dumps(data)))
+        self._update_pv_value(self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(json.dumps(data)))
 
     def _update_component_pv(self, name, data):
         # Updates pvs with new data
-        self.update_pv_value(self._component_metas[name].pv + GET_COMPONENT_PV, compress_and_hex(json.dumps(data)))
+        self._update_pv_value(self._component_metas[name].pv + GET_COMPONENT_PV, compress_and_hex(json.dumps(data)))
 
     def update_a_config_in_list_filewatcher(self, config, is_component=False):
         """Updates the PVs associated with a configuration
@@ -276,6 +276,7 @@ class ConfigListManager(object):
                 else:
                     self._comp_dependecncies[comp.lower()] = [config.get_config_name()]
                 self._update_component_dependencies_pv(comp.lower())
+        self.update_monitors()
 
     def _remove_config_from_dependencies(self, config):
         # Remove old config from dependencies list
@@ -322,7 +323,7 @@ class ConfigListManager(object):
                 if not lower_delete_list.issubset(self._config_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown configurations")
                 for config in delete_list:
-                    self.delete_pv_from_db(self._config_metas[config.lower()].pv + GET_CONFIG_PV)
+                    self._delete_pv(self._config_metas[config.lower()].pv + GET_CONFIG_PV)
                     del self._config_metas[config.lower()]
                     self._remove_config_from_dependencies(config)
                 self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
@@ -332,14 +333,16 @@ class ConfigListManager(object):
                 # Only allow comps to be deleted if they appear in no configs
                 for comp in lower_delete_list:
                     if self._comp_dependecncies.get(comp):
-                        raise InvalidDeleteException(comp + " is in use in: " + ', '.join(self._comp_dependecncies[comp]))
+                        raise InvalidDeleteException(comp + " is in use in: "
+                                                     + ', '.join(self._comp_dependecncies[comp]))
                 if not lower_delete_list.issubset(self._component_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown components")
                 for comp in lower_delete_list:
-                    self.delete_pv_from_db(self._component_metas[comp].pv + GET_COMPONENT_PV)
-                    self.delete_pv_from_db(self._component_metas[comp].pv + DEPENDENCIES_PV)
+                    self._delete_pv(self._component_metas[comp].pv + GET_COMPONENT_PV)
+                    self._delete_pv(self._component_metas[comp].pv + DEPENDENCIES_PV)
                     del self._component_metas[comp]
                 self._update_version_control_post_delete(self._comp_path, delete_list)
+            self.update_monitors()
 
     def get_dependencies(self, comp_name):
         """Get the names of any configurations that depend on this component.

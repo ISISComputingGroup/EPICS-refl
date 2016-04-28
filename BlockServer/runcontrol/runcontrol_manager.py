@@ -1,25 +1,28 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
 import os
 from time import sleep
 
-from server_common.channel_access import caget, caput
 from BlockServer.core.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
 from server_common.utilities import print_and_log
+from BlockServer.synoptic.pv_set_listener import PvSetListener
+from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, \
+    convert_to_json, convert_from_json
+from server_common.channel_access import ChannelAccess
 
 
 TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
@@ -28,11 +31,15 @@ RUNCONTROL_SETTINGS = "rc_settings.cmd"
 AUTOSAVE_DIR = "autosave"
 RUNCONTROL_IOC = "RUNCTRL_01"
 
+RUNCONTROL_OUT_PV = 'GET_RC_OUT'
+RUNCONTROL_GET_PV = 'GET_RC_PARS'
 
-class RunControlManager(object):
+
+class RunControlManager(PvSetListener):
     """A class for taking care of setting up run-control.
     """
-    def __init__(self, prefix, config_dir, var_dir, ioc_control):
+    def __init__(self, prefix, config_dir, var_dir, ioc_control, active_configholder, block_server,
+                 channel_access=ChannelAccess()):
         """Constructor.
 
         Args:
@@ -40,6 +47,9 @@ class RunControlManager(object):
             config_dir (string): The root of the configuration directory
             var_dir (string): The root of the VAR directory
             ioc_control (IocControl): The object for restarting the IOC
+            active_configholder (ActiveConfigHolder): The current configuration
+            block_server (BlockServer): A reference to the BlockServer instance
+            channel_access (ChannelAccess): A reference to the ChannelAccess instance
         """
         self._prefix = prefix
         self._settings_file = os.path.join(config_dir, RUNCONTROL_SETTINGS)
@@ -47,8 +57,63 @@ class RunControlManager(object):
         self._block_prefix = prefix + "CS:SB:"
         self._stored_settings = None
         self._ioc_control = ioc_control
+        self._active_configholder = active_configholder
+        self._bs = block_server
+        self._pvs_to_set = [RUNCONTROL_GET_PV, RUNCONTROL_OUT_PV]
+        self._create_standard_pvs()
+        self._channel_access = channel_access
         print "RUNCONTROL SETTINGS FILE: %s" % self._settings_file
         print "RUNCONTROL AUTOSAVE DIRECTORY: %s" % self._autosave_dir
+        self._intialise_runcontrol_ioc()
+
+    def pv_exists(self, pv):
+        return pv in self._pvs_to_set
+
+    def handle_pv_write(self, pv, data):
+        pass
+
+    def handle_pv_read(self, pv):
+        if pv == RUNCONTROL_GET_PV:
+            js = convert_to_json(self.get_current_settings())
+            value = compress_and_hex(js)
+            return value
+        elif pv == RUNCONTROL_OUT_PV:
+            js = convert_to_json(self.get_out_of_range_pvs())
+            value = compress_and_hex(js)
+            return value
+        return ""
+
+    def update_monitors(self):
+        # No monitors
+        pass
+
+    def initialise(self, full_init=False):
+        self.create_runcontrol_pvs(full_init)
+
+    def _create_standard_pvs(self):
+        self._bs.add_string_pv_to_db(RUNCONTROL_OUT_PV, 16000)
+        self._bs.add_string_pv_to_db(RUNCONTROL_GET_PV, 16000)
+
+    def _intialise_runcontrol_ioc(self):
+        # Start runcontrol IOC
+        self._start_ioc()
+        # Need to wait for RUNCONTROL_IOC to start
+        self.wait_for_ioc_start()
+        print_and_log("Runcontrol IOC started")
+
+    def create_runcontrol_pvs(self, clear_autosave):
+        """ Create the PVs for run-control.
+
+        Configures the run-control IOC to have PVs for the current configuration.
+
+        Args:
+            clear_autosave: Whether to remove any values stored by autosave
+        """
+        self.update_runcontrol_blocks(self._active_configholder.get_block_details())
+        self.restart_ioc(clear_autosave)
+        # Need to wait for RUNCONTROL_IOC to restart
+        self.wait_for_ioc_start()
+        self.restore_config_settings(self._active_configholder.get_block_details())
 
     def update_runcontrol_blocks(self, blocks):
         """Update the run-control settings in the run-control IOC with the current blocks.
@@ -78,7 +143,7 @@ class RunControlManager(object):
         Returns:
             list : A list of PVs that are out of range
         """
-        raw = caget(self._prefix + TAG_RC_OUT_LIST, True).strip()
+        raw = self._channel_access.caget(self._prefix + TAG_RC_OUT_LIST, True).strip()
         raw = raw.split(" ")
         if raw is not None and len(raw) > 0:
             ans = list()
@@ -87,19 +152,20 @@ class RunControlManager(object):
                     ans.append(i)
             return ans
         else:
-            return []
+            return list()
 
-    def get_current_settings(self, blocks):
+    def get_current_settings(self):
         """ Returns the current run-control settings
 
         Returns:
             dict : The current run-control settings
         """
+        blocks = self._active_configholder.get_block_details()
         settings = dict()
         for bn, blk in blocks.iteritems():
-            low = caget(self._block_prefix + blk.name + TAG_RC_LOW)
-            high = caget(self._block_prefix + blk.name + TAG_RC_HIGH)
-            enable = caget(self._block_prefix + blk.name + TAG_RC_ENABLE)
+            low = self._channel_access.caget(self._block_prefix + blk.name + TAG_RC_LOW)
+            high = self._channel_access.caget(self._block_prefix + blk.name + TAG_RC_HIGH)
+            enable = self._channel_access.caget(self._block_prefix + blk.name + TAG_RC_ENABLE)
             if enable == "YES":
                 enable = True
             else:
@@ -116,9 +182,9 @@ class RunControlManager(object):
         for n, blk in blocks.iteritems():
             settings = dict()
             if blk.rc_enabled:
-                settings["ENABLE"] = True
+                settings["ENABLE"] = "YES"
             else:
-                settings["ENABLE"] = False
+                settings["ENABLE"] = "NO"
             if blk.rc_lowlimit is not None:
                 settings["LOW"] = blk.rc_lowlimit
             if blk.rc_highlimit is not None:
@@ -139,7 +205,7 @@ class RunControlManager(object):
         for key, value in settings.iteritems():
             if key.upper() in TAG_RC_DICT.keys():
                 try:
-                    caput(self._block_prefix + bn + TAG_RC_DICT[key.upper()], value)
+                    self._channel_access.caput(self._block_prefix + bn + TAG_RC_DICT[key.upper()], value)
                 except Exception as err:
                     print_and_log("Problem with setting runcontrol for %s: %s" % (bn, err))
 
@@ -151,7 +217,7 @@ class RunControlManager(object):
             sleep(2)
             # See if the IOC has restarted by looking for a standard PV
             try:
-                ans = caget(self._prefix + RC_PV)
+                ans = self._channel_access.caget(self._prefix + RC_PV)
             except Exception as err:
                 # Probably has timed out
                 ans = None
@@ -159,7 +225,7 @@ class RunControlManager(object):
                 print_and_log("Runcontrol IOC started")
                 break
 
-    def start_ioc(self):
+    def _start_ioc(self):
         """Start the IOC."""
         try:
             self._ioc_control.start_ioc(RUNCONTROL_IOC)

@@ -52,7 +52,6 @@ class MockBlockServer(object):
         del self._pvs[name]
 
     def add_string_pv_to_db(self, name, count=1000):
-        print name
         self._pvs[name] = ""
 
     def setParam(self, name, data):
