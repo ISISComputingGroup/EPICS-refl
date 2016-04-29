@@ -19,7 +19,7 @@ from time import sleep
 
 from BlockServer.core.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
 from server_common.utilities import print_and_log
-from BlockServer.synoptic.pv_set_listener import PvSetListener
+from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, \
     convert_to_json, convert_from_json
 from server_common.channel_access import ChannelAccess
@@ -35,7 +35,7 @@ RUNCONTROL_OUT_PV = 'GET_RC_OUT'
 RUNCONTROL_GET_PV = 'GET_RC_PARS'
 
 
-class RunControlManager(PvSetListener):
+class RunControlManager(OnTheFlyPvInterface):
     """A class for taking care of setting up run-control.
     """
     def __init__(self, prefix, config_dir, var_dir, ioc_control, active_configholder, block_server,

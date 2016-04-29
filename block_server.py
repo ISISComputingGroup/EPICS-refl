@@ -192,6 +192,9 @@ class BlockServer(Driver):
         self._active_configserver = None
         self._run_control = None
         self._block_cache = None
+        self._syn = None
+        self._filewatcher = None
+        self.on_the_fly_handlers = list()
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
@@ -212,15 +215,6 @@ class BlockServer(Driver):
             self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
-
-        # Import all the synoptic data and create PVs
-        self._syn = SynopticManager(self, SCHEMA_DIR, self._vc)
-
-        # These handle calls to set PVs that are created on the fly
-        self.on_the_fly_handlers = [self._syn]
-
-        # Start file watcher
-        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
 
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
@@ -247,6 +241,15 @@ class BlockServer(Driver):
                                                   self)
             self.on_the_fly_handlers.append(self._run_control)
             self._block_cache = BlockCacheManager(self._ioc_control)
+
+        # Import all the synoptic data and create PVs
+        self._syn = SynopticManager(self, SCHEMA_DIR, self._vc, self._active_configserver)
+
+        # These handle calls to set PVs that are created on the fly
+        self.on_the_fly_handlers.append(self._syn)
+
+        # Start file watcher
+        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
 
         try:
             if self._gateway.exists():
@@ -321,8 +324,7 @@ class BlockServer(Driver):
                 self._active_configserver.clear_config()
                 self._initialise_config()
             elif reason == 'START_IOCS':
-                self.write_queue.append((self.start_iocs, (convert_from_json(data),),
-                                             "START_IOCS"))
+                self.write_queue.append((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
             elif reason == 'STOP_IOCS':
                 self._ioc_control.stop_iocs(convert_from_json(data))
             elif reason == 'RESTART_IOCS':
@@ -404,11 +406,6 @@ class BlockServer(Driver):
         # First stop all IOCS, then start the ones for the config
         # TODO: Should we stop all configs?
         iocs_to_start, iocs_to_restart = self._active_configserver.iocs_changed()
-
-        # If the config has a default synoptic then set the PV to that
-        synoptic = self._active_configserver.get_config_meta().synoptic
-        self._syn.set_default_synoptic(synoptic)
-        self._syn.update_monitors()
 
         if len(iocs_to_start) > 0 or len(iocs_to_restart) > 0:
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)

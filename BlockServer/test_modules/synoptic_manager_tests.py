@@ -56,7 +56,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         f2.close()
 
         self.bs = MockBlockServer()
-        self.sm = SynopticManager(self.bs, SCHEMA_PATH, MockVersionControl())
+        self.sm = SynopticManager(self.bs, SCHEMA_PATH, MockVersionControl(), None)
         self.initial_len = len([c["name"] for c in self.sm.get_synoptic_list()])
 
     def tearDown(self):

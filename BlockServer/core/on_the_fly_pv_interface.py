@@ -16,7 +16,7 @@
 from abc import ABCMeta, abstractmethod
 
 
-class PvSetListener(object):
+class OnTheFlyPvInterface(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -65,7 +65,7 @@ class PvSetListener(object):
     def initialise(self, full_init=False):
         """ Performs any tasks that need to be carried out on initialisation.
 
-        For example: on loading a new configuration
+        For example: on loading a new configuration.
 
         Args:
             full_init (bool): Whether it is a full initialisation

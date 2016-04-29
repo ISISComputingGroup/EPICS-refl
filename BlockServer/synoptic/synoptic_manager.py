@@ -15,14 +15,16 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import os
-from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, \
-    convert_to_json, convert_from_json
-from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
+from xml.dom import minidom
+
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from pv_set_listener import PvSetListener
-from xml.dom import minidom
+from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from lxml import etree
+from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, \
+    convert_to_json, convert_from_json
+
 
 SYNOPTIC_PRE = "SYNOPTICS:"
 SYNOPTIC_GET = ":GET"
@@ -37,15 +39,16 @@ SYNOPTIC_SCHEMA = "SCHEMA"
 SYNOPTIC_SCHEMA_FILE = "synoptic.xsd"
 
 
-class SynopticManager(PvSetListener):
+class SynopticManager(OnTheFlyPvInterface):
     """Class for managing the PVs associated with synoptics"""
-    def __init__(self, block_server, schema_folder, vc_manager):
+    def __init__(self, block_server, schema_folder, vc_manager, active_configholder):
         """Constructor.
 
         Args:
             block_server (BlockServer): A reference to the BlockServer instance
             schema_folder (string): The filepath for the synoptic schema
             vc_manager (ConfigVersionControl): The manager to allow version control modifications
+            active_configholder (ActiveConfigHolder): A reference to the active configuration
         """
         self._pvs_to_set = [SYNOPTIC_PRE + SYNOPTIC_DELETE, SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS]
         self._directory = FILEPATH_MANAGER.synoptic_dir
@@ -53,6 +56,7 @@ class SynopticManager(PvSetListener):
         self._synoptic_pvs = dict()
         self._vc = vc_manager
         self._bs = block_server
+        self._activech = active_configholder
         self._default_syn_xml = ""
         self._create_standard_pvs()
         self._load_initial()
@@ -81,7 +85,10 @@ class SynopticManager(PvSetListener):
             self._bs.updatePVs()
 
     def initialise(self, full_init=False):
-        pass
+        # If the config has a default synoptic then set the PV to that
+        default = self._activech.get_config_meta().synoptic
+        self.set_default_synoptic(default)
+        self.update_monitors()
 
     def _create_standard_pvs(self):
         self._bs.add_string_pv_to_db(SYNOPTIC_PRE + SYNOPTIC_NAMES, 16000)
