@@ -165,7 +165,7 @@ class RunControlManager(PvSetListener):
         for bn, blk in blocks.iteritems():
             low = self._channel_access.caget(self._block_prefix + blk.name + TAG_RC_LOW)
             high = self._channel_access.caget(self._block_prefix + blk.name + TAG_RC_HIGH)
-            enable = self._channel_access.caget(self._block_prefix + blk.name + TAG_RC_ENABLE)
+            enable = self._channel_access.caget(self._block_prefix + blk.name + TAG_RC_ENABLE, True)
             if enable == "YES":
                 enable = True
             else:
@@ -182,9 +182,9 @@ class RunControlManager(PvSetListener):
         for n, blk in blocks.iteritems():
             settings = dict()
             if blk.rc_enabled:
-                settings["ENABLE"] = "YES"
+                settings["ENABLE"] = True
             else:
-                settings["ENABLE"] = "NO"
+                settings["ENABLE"] = False
             if blk.rc_lowlimit is not None:
                 settings["LOW"] = blk.rc_lowlimit
             if blk.rc_highlimit is not None:

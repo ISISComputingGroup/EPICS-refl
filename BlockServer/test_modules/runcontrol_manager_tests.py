@@ -72,6 +72,15 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertTrue("HIGH" in ans["TESTBLOCK1"])
         self.assertTrue("LOW" in ans["TESTBLOCK1"])
         self.assertTrue("ENABLE" in ans["TESTBLOCK1"])
+        self.assertTrue("HIGH" in ans["TESTBLOCK2"])
+        self.assertTrue("LOW" in ans["TESTBLOCK2"])
+        self.assertTrue("ENABLE" in ans["TESTBLOCK2"])
+        self.assertTrue("HIGH" in ans["TESTBLOCK3"])
+        self.assertTrue("LOW" in ans["TESTBLOCK3"])
+        self.assertTrue("ENABLE" in ans["TESTBLOCK3"])
+        self.assertTrue("HIGH" in ans["TESTBLOCK4"])
+        self.assertTrue("LOW" in ans["TESTBLOCK4"])
+        self.assertTrue("ENABLE" in ans["TESTBLOCK4"])
 
     def test_get_runcontrol_settings_blocks_limits(self):
         data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
@@ -81,9 +90,8 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertTrue(len(ans) == 1)
         self.assertTrue(ans["TESTBLOCK1"]["HIGH"] == 5)
         self.assertTrue(ans["TESTBLOCK1"]["LOW"] == -5)
-        self.assertTrue(ans["TESTBLOCK1"]["ENABLE"])
 
-    def test_set_runcontrol_settings(self):
+    def test_set_runcontrol_settings_limits(self):
         data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
         add_block(self.activech, data)
         self.rcm.create_runcontrol_pvs(False)
@@ -95,4 +103,3 @@ class TestRunControlSequence(unittest.TestCase):
         ans = self.rcm.get_current_settings()
         self.assertEqual(ans["TESTBLOCK1"]["HIGH"], 10)
         self.assertEqual(ans["TESTBLOCK1"]["LOW"], 0)
-        self.assertTrue(not ans["TESTBLOCK1"]["ENABLE"])
