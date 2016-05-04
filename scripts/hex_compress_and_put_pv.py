@@ -42,9 +42,7 @@ def set_env():
     """ If we're not in an EPICS terminal, add the address list to the set of
     environment keys """
     if not epics_ca_addr_list in os.environ.keys():
-        #Gives duplicate address warning
-        #os.environ[epics_ca_addr_list] = "127.255.255.255 130.246.51.255"
-        os.environ[epics_ca_addr_list] = "127.255.255.255"
+        os.environ[epics_ca_addr_list] = "127.255.255.255 130.246.51.255"
     print epics_ca_addr_list + " = " + str(os.environ.get(epics_ca_addr_list))
 
 if __name__ == "__main__":
