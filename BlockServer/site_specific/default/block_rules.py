@@ -18,7 +18,7 @@ from server_common.utilities import compress_and_hex
 import json
 
 DISALLOWED_BLOCK_NAMES = ["lowlimit", "highlimit", "runcontrol", "wait"]
-BLOCK_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME.format("Block")
+BLOCK_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME.format("Block name")
 BLOCK_RULES_PV = "BLOCK_RULES"
 
 
