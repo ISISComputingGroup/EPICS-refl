@@ -15,6 +15,8 @@
 #http://opensource.org/licenses/eclipse-1.0.php
 
 from server_common.utilities import compress_and_hex
+from BlockServer.core.macros import BLOCKSERVER
+
 import json
 
 DISALLOWED_BLOCK_NAMES = ["lowlimit", "highlimit", "runcontrol", "wait"]
@@ -38,4 +40,4 @@ class BlockRules(object):
     def _create_pv(self):
         data = {"disallowed": DISALLOWED_BLOCK_NAMES,
                 "regex": ALLOWED_BLOCK_NAME_REGEX, "regex_message": BLOCK_REGEX_ERROR_MESSAGE}
-        self._cas.updatePV(BLOCK_RULES_PV, compress_and_hex(json.dumps(data)))
+        self._cas.updatePV(BLOCKSERVER + BLOCK_RULES_PV, compress_and_hex(json.dumps(data)))
