@@ -13,31 +13,32 @@
 #along with this program; if not, you can obtain a copy from
 #https://www.eclipse.org/org/documents/epl-v10.php or 
 #http://opensource.org/licenses/eclipse-1.0.php
-
+from BlockServer.site_specific.default.general_rules import GroupRules
 from server_common.mocks.mock_ca_server import MockCAServer
-from BlockServer.site_specific.default.block_rules import BlockRules
 import unittest
 import json
 import re
 from server_common.utilities import dehex_and_decompress
 
+GROUP_RULES_PV_NAME = "GROUP_RULES"
 
-class TestBlockRulesSequence(unittest.TestCase):
+
+class TestGroupRulesSequence(unittest.TestCase):
     """ Unit tests for block rules, note that changes here may have to be propagated to clients """
 
     def setUp(self):
         self.cas = MockCAServer()
-        self.block_rules = BlockRules(self.cas)
+        self.group_rules = GroupRules(self.cas)
 
     def get_block_rules_json(self):
-        return json.loads(dehex_and_decompress(self.cas.pv_list.get("BLOCK_RULES")))
+        return json.loads(dehex_and_decompress(self.cas.pv_list.get(GROUP_RULES_PV_NAME)))
 
     def get_regex(self):
         regex_string = self.get_block_rules_json().get("regex")
         return re.compile(regex_string)
 
     def test_block_rules_pv(self):
-        self.assertTrue("BLOCK_RULES" in self.cas.pv_list)
+        self.assertTrue(GROUP_RULES_PV_NAME in self.cas.pv_list)
 
     def test_disallowed_in_json(self):
         self.assertTrue("disallowed" in self.get_block_rules_json())
