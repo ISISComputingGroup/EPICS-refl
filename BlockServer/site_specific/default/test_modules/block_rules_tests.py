@@ -21,6 +21,7 @@ import json
 import re
 from server_common.utilities import dehex_and_decompress
 
+BLOCKSERVER = "BLOCKSERVER:"
 
 class TestBlockRulesSequence(unittest.TestCase):
     """ Unit tests for block rules, note that changes here may have to be propagated to clients """
@@ -30,14 +31,17 @@ class TestBlockRulesSequence(unittest.TestCase):
         self.block_rules = BlockRules(self.cas)
 
     def get_block_rules_json(self):
-        return json.loads(dehex_and_decompress(self.cas.pv_list.get("BLOCK_RULES")))
+        return json.loads(dehex_and_decompress(self.cas.pv_list.get(self.prepend_blockserver("BLOCK_RULES"))))
 
     def get_regex(self):
         regex_string = self.get_block_rules_json().get("regex")
         return re.compile(regex_string)
 
+    def prepend_blockserver(self, base_name):
+        return BLOCKSERVER + base_name
+
     def test_block_rules_pv(self):
-        self.assertTrue("BLOCK_RULES" in self.cas.pv_list)
+        self.assertTrue(self.prepend_blockserver("BLOCK_RULES") in self.cas.pv_list)
 
     def test_disallowed_in_json(self):
         self.assertTrue("disallowed" in self.get_block_rules_json())
