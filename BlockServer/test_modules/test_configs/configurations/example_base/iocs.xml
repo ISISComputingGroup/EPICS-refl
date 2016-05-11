@@ -1,5 +1,0 @@
-<?xml version="1.0" ?>
-<iocs>
-	<ioc autostart="true" name="INSTETC_01" restart="true" simlevel="none"/>
-    <ioc autostart="true" name="ISISDAE_01" restart="true" simlevel="none"/>
-</iocs>

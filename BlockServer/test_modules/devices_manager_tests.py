@@ -31,21 +31,37 @@ CONFIG_PATH = os.path.join(os.getcwd(),"test_configs")
 BASE_PATH = "example_base"
 SCREENS_FILE = "screens.xml"
 
-EXAMPLE_DEVICES = """<devices>
-    <device>
-        <name>Eurotherm 1</name>
-        <key>Eurotherm</key>
-        <type>OPI</type>
-        <properties>
-            <property>
-                <key>EURO</key>
-                <value>EUROTHERM1</value>
-            </property>
-        </properties>
-    </device>
-</devices>"""
+EXAMPLE_DEVICES = """<?xml version="1.0" ?>
+    <devices>
+        <device>
+            <name>Eurotherm 1</name>
+            <key>Eurotherm</key>
+            <type>OPI</type>
+            <properties>
+                <property>
+                    <key>EURO</key>
+                    <value>EUROTHERM1</value>
+                </property>
+            </properties>
+        </device>
+    </devices>"""
 
-SCHEMA_PATH = os.path.abspath(os.path.join(".", "..", "..","schema"))
+EXAMPLE_DEVICES_2 = """<?xml version="1.0" ?>
+    <devices>
+        <device>
+            <name>Eurotherm 2</name>
+            <key>Eurotherm</key>
+            <type>OPI</type>
+            <properties>
+                <property>
+                    <key>EURO</key>
+                    <value>EUROTHERM1</value>
+                </property>
+            </properties>
+        </device>
+    </devices>"""
+
+SCHEMA_PATH = os.path.abspath(os.path.join(".", "..","schema"))
 
 def get_expected_devices_file_path():
     return os.path.join(FILEPATH_MANAGER.get_config_path(BASE_PATH),SCREENS_FILE)
@@ -55,7 +71,11 @@ class TestDevicesManagerSequence(unittest.TestCase):
     def setUp(self):
         # Make directory and fill with fake content
         FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH))
-        shutil.copytree(os.path.join(os.getcwd(),BASE_PATH), FILEPATH_MANAGER.get_config_path(BASE_PATH))
+
+        test_config_path = FILEPATH_MANAGER.get_config_path(BASE_PATH)
+        if os.path.exists(test_config_path):
+            shutil.rmtree(test_config_path)
+        shutil.copytree(os.path.join(os.getcwd(),BASE_PATH), test_config_path)
 
         self.cas = MockCAServer()
         self.dm = DevicesManager(MockBlockServer(), self.cas, SCHEMA_PATH, MockVersionControl())
@@ -143,7 +163,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
         devices_file_name = get_expected_devices_file_path()
 
         # Act: Save the new data to file
-        self.dm.save_devices_xml("<TestData/>")
+        self.dm.save_devices_xml(EXAMPLE_DEVICES)
 
         # Assert
         self.assertTrue(self.cas.pv_list.has_key("GET_SCREENS"))
@@ -153,7 +173,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
         devices_file_name = get_expected_devices_file_path()
 
         # Arrange
-        new_xml_data = "<TestData/>"
+        new_xml_data = EXAMPLE_DEVICES_2
 
         # Act: Save the new data to file
         self.dm.save_devices_xml(new_xml_data)

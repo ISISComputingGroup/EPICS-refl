@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<devices>
+    <device>
+        <name>Eurotherm 1</name>
+        <key>Eurotherm</key>
+        <type>OPI</type>
+        <properties>
+            <property>
+                <key>EURO</key>
+                <value>EUROTHERM1</value>
+            </property>
+        </properties>
+    </device>
+</devices>
