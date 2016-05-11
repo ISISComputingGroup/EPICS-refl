@@ -17,12 +17,14 @@
 import os
 from server_common.utilities import print_and_log, compress_and_hex
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from xml.dom import minidom
 
 GET_SCREENS = "GET_SCREENS"
 SET_SCREENS = "SET_SCREENS"
 
 SCREENS_FILE = "screens.xml"
+SCREENS_SCHEMA = "screens.xsd"
 
 class DevicesManager(object):
     """Class for managing the PVs associated with devices"""
@@ -50,9 +52,9 @@ class DevicesManager(object):
         try:
             with open(devices_file_name, 'r') as devfile:
                 data = devfile.read()
-                # ConfigurationSchemaChecker.check_device_matches_schema(
-                #     os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
-                #     data)
+                ConfigurationSchemaChecker.check_screens_match_schema(
+                     os.path.join(self._schema_folder, SCREENS_SCHEMA),
+                     data)
             # Get the device name
             self._create_pv(data)
 
@@ -73,7 +75,7 @@ class DevicesManager(object):
         self._cas.updatePV(GET_SCREENS, compress_and_hex(data))
 
     def get_devices_filename(self):
-        """Gets the names of the synoptic files in the synoptics directory. Without the .xml extension.
+        """Gets the names of the devices files in the devices directory. Without the .xml extension.
 
         Returns:
             string : Current devices file name. Returns empty string if the file does not exist.
@@ -103,8 +105,8 @@ class DevicesManager(object):
         """
         try:
             # Check against schema
-            #ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
-            #                                                         xml_data)
+            ConfigurationSchemaChecker.check_screens_match_schema(os.path.join(self._schema_folder, SCREENS_SCHEMA),
+                                                                  xml_data)
             # Update PVs
             self._create_pv(xml_data)
 

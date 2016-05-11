@@ -27,12 +27,11 @@ from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from xml.dom import minidom
 
-CONFIG_PATH = "." + os.sep + "test_configs" + os.sep
+CONFIG_PATH = os.path.join(os.getcwd(),"test_configs")
 BASE_PATH = "example_base"
 SCREENS_FILE = "screens.xml"
 
-EXAMPLE_DEVICES = """<?xml version="1.0" ?>
-<devices xmlns:xi="http://www.w3.org/2001/XInclude">
+EXAMPLE_DEVICES = """<devices>
     <device>
         <name>Eurotherm 1</name>
         <key>Eurotherm</key>
@@ -46,7 +45,7 @@ EXAMPLE_DEVICES = """<?xml version="1.0" ?>
     </device>
 </devices>"""
 
-# SCHEMA_PATH = os.path.abspath(os.path.join(".", "..", "schema"))
+SCHEMA_PATH = os.path.abspath(os.path.join(".", "..", "..","schema"))
 
 def get_expected_devices_file_path():
     return os.path.join(FILEPATH_MANAGER.get_config_path(BASE_PATH),SCREENS_FILE)
@@ -56,10 +55,10 @@ class TestDevicesManagerSequence(unittest.TestCase):
     def setUp(self):
         # Make directory and fill with fake content
         FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH))
-        shutil.copytree("." + os.sep + BASE_PATH, FILEPATH_MANAGER.get_config_path(BASE_PATH))
+        shutil.copytree(os.path.join(os.getcwd(),BASE_PATH), FILEPATH_MANAGER.get_config_path(BASE_PATH))
 
         self.cas = MockCAServer()
-        self.dm = DevicesManager(MockBlockServer(), self.cas, "", MockVersionControl())
+        self.dm = DevicesManager(MockBlockServer(), self.cas, SCHEMA_PATH, MockVersionControl())
 
     def tearDown(self):
         # Delete any configs created as part of the test
@@ -127,7 +126,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
         devices_file_name = get_expected_devices_file_path()
 
         # New data
-        new_data = "<ModifiedByUnitTest/>"
+        new_data = EXAMPLE_DEVICES
 
         # Act: Save the new data to file
         self.dm.save_devices_xml(new_data)
