@@ -369,7 +369,8 @@ class BlockServer(Driver):
                 self._active_configserver.clear_config()
                 self._initialise_config()
             elif reason == 'START_IOCS':
-                self.write_queue.append((self.start_iocs, (convert_from_json(data),),
+                with self.write_lock:
+                    self.write_queue.append((self.start_iocs, (convert_from_json(data),),
                                              "START_IOCS"))
             elif reason == 'STOP_IOCS':
                 self._ioc_control.stop_iocs(convert_from_json(data))
@@ -383,9 +384,11 @@ class BlockServer(Driver):
                 with self.write_lock:
                     self.write_queue.append((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
             elif reason == 'SAVE_NEW_CONFIG':
-                self.save_inactive_config(data)
+                with self.write_lock:
+                    self.write_queue.append((self.save_inactive_config, (data,), "SAVING_NEW_CONFIG"))
             elif reason == 'SAVE_NEW_COMPONENT':
-                self.save_inactive_config(data, True)
+                with self.write_lock:
+                    self.write_queue.append((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
             elif reason == 'DELETE_CONFIGS':
                 self._config_list.delete_configs(convert_from_json(data))
                 self.update_config_monitors()
@@ -568,6 +571,8 @@ class BlockServer(Driver):
                 self._config_list.update_a_config_in_list(inactive, True)
                 self.update_comp_monitor()
             print_and_log("Saved")
+        except Exception as err:
+            print_and_log("Problem occurred saving configuration: %s" % err)
         finally:
             self._filewatcher.resume()
 
@@ -614,6 +619,8 @@ class BlockServer(Driver):
             self._active_configserver.save_active(name)
             self._config_list.update_a_config_in_list(self._active_configserver)
             self.update_config_monitors()
+        except Exception as err:
+            print_and_log("Problem occurred saving configuration: %s" % err)
         finally:
             self._filewatcher.resume()
 
