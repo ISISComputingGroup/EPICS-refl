@@ -61,6 +61,21 @@ EXAMPLE_DEVICES_2 = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     </device>
 </devices>"""
 
+INVALID_DEVICES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
+    <device>
+        <name>Eurotherm 1</name>
+        <key>Eurotherm</key>
+        <type>NOT A CORRECT TYPE</type>
+        <properties>
+            <property>
+                <key>EURO</key>
+                <value>EUROTHERM1</value>
+            </property>
+        </properties>
+    </device>
+</devices>"""
+
 SCHEMA_PATH = os.path.abspath(os.path.join(".", "..","schema"))
 
 def get_expected_devices_file_path():
@@ -140,6 +155,14 @@ class TestDevicesManagerSequence(unittest.TestCase):
 
         # Assert
         self.assertEquals(expected_data, self.cas.pv_list[pv_key])
+
+    def test_given_invalid_devices_data_when_device_xml_saved_then_error(self):
+        self.dm.set_current_config_file(BASE_PATH)
+        devices_file_name = get_expected_devices_file_path()
+
+        # Act: Save the new data to file
+        with self.assertRaises(Exception):
+            self.dm.save_devices_xml(INVALID_DEVICES)
 
     def test_given_new_xml_data_when_device_xml_saved_then_screens_file_contains_prettified_new_data(self):
         self.dm.set_current_config_file(BASE_PATH)
