@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schema targetNamespace="http://www.isis.stfc.ac.uk//instrument" 
-        elementFormDefault="qualified" 
-        xmlns="http://www.w3.org/2001/XMLSchema" 
-        xmlns:tns="http://www.isis.stfc.ac.uk//instrument">
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+        targetNamespace="http://epics.isis.rl.ac.uk/schema/screens/1.0/"
+        xmlns:scns="http://epics.isis.rl.ac.uk/schema/screens/1.0/"
+        elementFormDefault="qualified">
 
     <annotation>
         <documentation xml:lang="en">
@@ -10,11 +10,11 @@
         </documentation>
     </annotation>
 	
-    <element name="devices" type="tns:devices"></element>
-
+    <element name="devices" type="scns:devices"></element>
+    
     <complexType name="devices">
         <sequence>
-            <element name="device" type="tns:device" maxOccurs="unbounded" minOccurs="0"></element>
+            <element name="device" type="scns:device" maxOccurs="unbounded" minOccurs="0"></element>
         </sequence>
     </complexType>
 
@@ -26,10 +26,10 @@
             <element name="key" type="string" maxOccurs="1"
                 minOccurs="1">
             </element>
-            <element name="type" type="tns:devicetype" maxOccurs="1"
+            <element name="type" type="scns:devicetype" maxOccurs="1"
                 minOccurs="1">
             </element>
-            <element name="properties" type="tns:properties" maxOccurs="1" minOccurs="0"></element>
+            <element name="properties" type="scns:properties" maxOccurs="1" minOccurs="0"></element>
         </sequence>
     </complexType>
 
@@ -49,7 +49,7 @@
 
     <complexType name="properties">
         <sequence>
-            <element name="property" type="tns:property" maxOccurs="unbounded" minOccurs="0"></element>
+            <element name="property" type="scns:property" maxOccurs="unbounded" minOccurs="0"></element>
         </sequence>
     </complexType>
 </schema>

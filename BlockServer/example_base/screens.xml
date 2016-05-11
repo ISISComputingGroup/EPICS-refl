@@ -1,7 +1,7 @@
-<?xml version="1.0" ?>
-<devices>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
     <device>
-        <name>Eurotherm 1</name>
+        <name>Eurotherm 2</name>
         <key>Eurotherm</key>
         <type>OPI</type>
         <properties>

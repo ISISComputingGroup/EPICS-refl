@@ -31,35 +31,35 @@ CONFIG_PATH = os.path.join(os.getcwd(),"test_configs")
 BASE_PATH = "example_base"
 SCREENS_FILE = "screens.xml"
 
-EXAMPLE_DEVICES = """<?xml version="1.0" ?>
-    <devices>
-        <device>
-            <name>Eurotherm 1</name>
-            <key>Eurotherm</key>
-            <type>OPI</type>
-            <properties>
-                <property>
-                    <key>EURO</key>
-                    <value>EUROTHERM1</value>
-                </property>
-            </properties>
-        </device>
-    </devices>"""
+EXAMPLE_DEVICES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
+    <device>
+        <name>Eurotherm 1</name>
+        <key>Eurotherm</key>
+        <type>OPI</type>
+        <properties>
+            <property>
+                <key>EURO</key>
+                <value>EUROTHERM1</value>
+            </property>
+        </properties>
+    </device>
+</devices>"""
 
-EXAMPLE_DEVICES_2 = """<?xml version="1.0" ?>
-    <devices>
-        <device>
-            <name>Eurotherm 2</name>
-            <key>Eurotherm</key>
-            <type>OPI</type>
-            <properties>
-                <property>
-                    <key>EURO</key>
-                    <value>EUROTHERM1</value>
-                </property>
-            </properties>
-        </device>
-    </devices>"""
+EXAMPLE_DEVICES_2 = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
+    <device>
+        <name>Eurotherm 2</name>
+        <key>Eurotherm</key>
+        <type>OPI</type>
+        <properties>
+            <property>
+                <key>EURO</key>
+                <value>EUROTHERM1</value>
+            </property>
+        </properties>
+    </device>
+</devices>"""
 
 SCHEMA_PATH = os.path.abspath(os.path.join(".", "..","schema"))
 

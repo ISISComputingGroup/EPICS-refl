@@ -52,13 +52,15 @@ class DevicesManager(object):
         try:
             with open(devices_file_name, 'r') as devfile:
                 data = devfile.read()
-                ConfigurationSchemaChecker.check_screens_match_schema(
-                     os.path.join(self._schema_folder, SCREENS_SCHEMA),
-                     data)
+            ConfigurationSchemaChecker.check_screens_match_schema(
+                os.path.join(self._schema_folder, SCREENS_SCHEMA),
+                data)
             # Get the device name
             self._create_pv(data)
 
             self._add_to_version_control("New change found in devices file %s" % self._current_config_file)
+        except ConfigurationSchemaChecker as err:
+            print_and_log(err)
         except Exception as err:
             print_and_log("Error creating device PV: %s" % str(err), "MAJOR")
 
