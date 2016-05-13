@@ -1,18 +1,18 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
 import unittest
 import os
@@ -78,6 +78,7 @@ INVALID_DEVICES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 SCHEMA_PATH = os.path.abspath(os.path.join(".", "..","schema"))
 
+
 def get_expected_devices_file_path():
     return os.path.join(FILEPATH_MANAGER.get_config_path(BASE_PATH),SCREENS_FILE)
 
@@ -110,7 +111,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
     def test_when_set_config_file_does_not_exist_then_get_devices_filename_returns_empty_string(self):
         # Arrange
         non_existing_path = os.path.join("Non", "existing")
-        self.dm.set_current_config_file(non_existing_path)
+        self.dm.set_current_config_name(non_existing_path)
 
         # Act
         # Assert
@@ -118,7 +119,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
 
     def test_when_config_file_is_set_then_get_devices_filename_returns_correct_file_name(self):
         # Arrange
-        self.dm.set_current_config_file(BASE_PATH)
+        self.dm.set_current_config_name(BASE_PATH)
         expected = get_expected_devices_file_path()
 
         # Act
@@ -129,7 +130,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
 
     def test_loading_config_file_creates_a_pv_in_the_ca_server_with_correct_key(self):
         # Arrange
-        self.dm.set_current_config_file(BASE_PATH)
+        self.dm.set_current_config_name(BASE_PATH)
         expected_key = "GET_SCREENS"
         self.assertFalse(self.cas.pv_list.has_key(expected_key))
 
@@ -141,7 +142,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
 
     def test_loading_config_file_creates_a_pv_in_the_ca_server_with_correct_data(self):
         # Arrange
-        self.dm.set_current_config_file(BASE_PATH)
+        self.dm.set_current_config_name(BASE_PATH)
         pv_key = "GET_SCREENS"
 
         devices_file_name = get_expected_devices_file_path()
@@ -157,7 +158,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
         self.assertEquals(expected_data, self.cas.pv_list[pv_key])
 
     def test_given_invalid_devices_data_when_device_xml_saved_then_error(self):
-        self.dm.set_current_config_file(BASE_PATH)
+        self.dm.set_current_config_name(BASE_PATH)
         devices_file_name = get_expected_devices_file_path()
 
         # Act: Save the new data to file
@@ -165,7 +166,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
             self.dm.save_devices_xml(INVALID_DEVICES)
 
     def test_given_new_xml_data_when_device_xml_saved_then_screens_file_contains_prettified_new_data(self):
-        self.dm.set_current_config_file(BASE_PATH)
+        self.dm.set_current_config_name(BASE_PATH)
         devices_file_name = get_expected_devices_file_path()
 
         # New data
@@ -182,7 +183,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
         self.assertEquals(expected_data,result_data)
 
     def test_save_devices_xml_creates_get_screens_pv(self):
-        self.dm.set_current_config_file(BASE_PATH)
+        self.dm.set_current_config_name(BASE_PATH)
         devices_file_name = get_expected_devices_file_path()
 
         # Act: Save the new data to file
@@ -192,7 +193,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
         self.assertTrue(self.cas.pv_list.has_key("GET_SCREENS"))
 
     def test_save_devices_xml_creates_pv_with_prettified_input_data(self):
-        self.dm.set_current_config_file(BASE_PATH)
+        self.dm.set_current_config_name(BASE_PATH)
         devices_file_name = get_expected_devices_file_path()
 
         # Arrange

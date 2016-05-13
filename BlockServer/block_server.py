@@ -205,13 +205,11 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
-
     'BUMPSTRIP_AVAILABLE:SP': {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-
     'SET_SCREENS': {
         'type': 'char',
         'count': 16000,
@@ -484,7 +482,7 @@ class BlockServer(Driver):
             self._block_cache.restart()
 
         # Set current config file name in Devices Manager
-        self._devices.set_current_config_file(self._active_configserver.get_config_name())
+        self._devices.set_current_config_name(self._active_configserver.get_config_name())
         self._devices.load_current()
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
