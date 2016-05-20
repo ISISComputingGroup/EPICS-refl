@@ -64,8 +64,8 @@ class SynopticManager(object):
             try:
                 with open(os.path.join(self._directory, f), 'r') as synfile:
                     data = synfile.read()
-                    ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
-                                                                             data)
+                    ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
+                                                                        data,"Synoptic")
                 # Get the synoptic name
                 self._create_pv(data)
 
@@ -166,8 +166,8 @@ class SynopticManager(object):
         """
         try:
             # Check against schema
-            ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
-                                                                     xml_data)
+            ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
+                                                                xml_data,"Synoptic")
             # Update PVs
             self._create_pv(xml_data)
 

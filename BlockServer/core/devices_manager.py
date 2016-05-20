@@ -53,9 +53,9 @@ class DevicesManager(object):
         try:
             with open(devices_file_name, 'r') as devfile:
                 data = devfile.read()
-            ConfigurationSchemaChecker.check_screens_match_schema(
+            ConfigurationSchemaChecker.check_xml_matches_schema(
                 os.path.join(self._schema_folder, SCREENS_SCHEMA),
-                data)
+                data,"Screens")
             # Get the device name
             self._create_pv(data)
 
@@ -106,8 +106,8 @@ class DevicesManager(object):
         """
         try:
             # Check against schema
-            ConfigurationSchemaChecker.check_screens_match_schema(os.path.join(self._schema_folder, SCREENS_SCHEMA),
-                                                                  xml_data)
+            ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SCREENS_SCHEMA),
+                                                                xml_data,"Screens")
             # Update PVs
             self._create_pv(xml_data)
 
