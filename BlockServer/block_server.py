@@ -40,6 +40,7 @@ from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
+from BlockServer.core.devices_manager import DevicesManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
@@ -206,12 +207,16 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
-
     'BUMPSTRIP_AVAILABLE:SP': {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
+    'SET_SCREENS': {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
+    }
 }
 
 
@@ -256,6 +261,9 @@ class BlockServer(Driver):
 
         # Import all the synoptic data and create PVs
         self._syn = SynopticManager(self, ca_server, SCHEMA_DIR, self._vc)
+
+        # Import all the devices data and create PVs
+        self._devices = DevicesManager(self, ca_server, SCHEMA_DIR, self._vc)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
@@ -406,6 +414,8 @@ class BlockServer(Driver):
             elif reason == "BUMPSTRIP_AVAILABLE:SP":
                 self.bumpstrip = data
                 self.update_bumpstrip_availability()
+            elif reason == "SET_SCREENS":
+                self._devices.save_devices_xml(data)
             else:
                 status = False
         except Exception as err:
@@ -477,6 +487,10 @@ class BlockServer(Driver):
         if self._block_cache is not None:
             print_and_log("Restarting block cache...")
             self._block_cache.restart()
+
+        # Set current config file name in Devices Manager
+        self._devices.set_current_config_name(self._active_configserver.get_config_name())
+        self._devices.load_current()
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""

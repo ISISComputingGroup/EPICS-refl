@@ -104,22 +104,30 @@ class ConfigurationSchemaChecker(object):
         return True
 
     @staticmethod
-    def check_synoptic_matches_schema(schema_filepath, synoptic_xml_data):
+    def check_xml_data_matches_schema(schema_filepath,xml_data):
         """ This method takes xml data and checks it against a given schema.
 
         A ConfigurationInvalidUnderSchema error is raised if the file is incorrect.
 
         Args:
             schema_filepath (string): The location of the schema file
-            synoptic_xml_data (string): The XML for the synoptic
+            synoptic_xml_data (string): The XML for the screens
         """
         folder, file_name = string.rsplit(schema_filepath, os.sep, 1)
         xmlparser = ConfigurationSchemaChecker._import_schema(folder, file_name)
 
         try:
-            etree.fromstring(synoptic_xml_data, xmlparser)
+            etree.fromstring(xml_data, xmlparser)
         except etree.XMLSyntaxError as err:
-            raise ConfigurationInvalidUnderSchema("Synoptic incorrectly formatted: " + str(err.message))
+            raise ConfigurationInvalidUnderSchema(str(err.message))
+
+    @staticmethod
+    def check_xml_matches_schema(schema_filepath, screen_xml_data, object_type):
+        try:
+            ConfigurationSchemaChecker.check_xml_data_matches_schema(schema_filepath,screen_xml_data)
+        except ConfigurationInvalidUnderSchema as err:
+            raise ConfigurationInvalidUnderSchema(
+                "{object_type} incorrectly formatted: {err}".format(object_type=object_type, err=str(err.value)))
 
     @staticmethod
     def _check_file_against_schema(xml_file, schema_folder, schema_file):
