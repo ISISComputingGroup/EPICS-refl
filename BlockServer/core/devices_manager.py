@@ -47,7 +47,10 @@ class DevicesManager(object):
 
     def load_current(self):
         """Create the PVs for all the devices found in the devices directory."""
-        devices_file_name = self.get_devices_filename()
+        try:
+            devices_file_name = self.get_devices_filename()
+        except IOError as err:
+            print_and_log(str(err))
 
         # Load the data, checking the schema
         try:
@@ -83,8 +86,7 @@ class DevicesManager(object):
             string : Current devices file name. Returns empty string if the file does not exist.
         """
         if not os.path.exists(self._current_config):
-            print_and_log("Current devices file %s does not exist" % self._current_config)
-            return ""
+            raise IOError("Current devices file %s does not exist" % self._current_config)
         return self._current_config
 
     def set_current_config_name(self, current_config_name):
