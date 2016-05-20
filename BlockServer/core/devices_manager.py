@@ -18,12 +18,12 @@ import os
 from server_common.utilities import print_and_log, compress_and_hex
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
+from BlockServer.core.constants import FILENAME_SCREENS as SCREENS_FILE
 from xml.dom import minidom
 
 GET_SCREENS = "GET_SCREENS"
 SET_SCREENS = "SET_SCREENS"
 
-SCREENS_FILE = "screens.xml"
 SCREENS_SCHEMA = "screens.xsd"
 
 
