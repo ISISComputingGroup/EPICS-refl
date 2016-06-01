@@ -18,6 +18,7 @@
 import os
 import sys
 
+
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRVC"]))
 
@@ -50,6 +51,7 @@ from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
 from pcaspy.driver import manager, Data
+from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
 
 
 # For documentation on these commands see the accompanying block_server.rst file
@@ -199,6 +201,8 @@ class BlockServer(Driver):
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
         self.block_rules = BlockRules(self)
+        self.group_rules = GroupRules(self)
+        self.config_desc = ConfigurationDescriptionRules(self)
 
         # Connect to version control
         try:

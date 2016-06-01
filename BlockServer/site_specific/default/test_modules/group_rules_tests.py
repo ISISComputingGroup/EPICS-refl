@@ -15,34 +15,40 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 from BlockServer.mocks.mock_block_server import MockBlockServer
-from BlockServer.site_specific.default.block_rules import BlockRules
+from BlockServer.site_specific.default.general_rules import GroupRules
+from server_common.mocks.mock_ca_server import MockCAServer
 import unittest
 import json
 import re
 from server_common.utilities import dehex_and_decompress
 
+GROUP_RULES_PV_NAME = "GROUP_RULES"
 
-class TestBlockRulesSequence(unittest.TestCase):
+
+class TestGroupRulesSequence(unittest.TestCase):
     """ Unit tests for block rules, note that changes here may have to be propagated to clients """
 
     def setUp(self):
         self.bs = MockBlockServer()
-        self.block_rules = BlockRules(self.bs)
+        self.group_rules = GroupRules(self.bs)
+
+    def get_block_rules_json(self):
+        return json.loads(dehex_and_decompress(self.bs.pvs["GROUP_RULES"]))
 
     def get_regex(self):
-        regex_string = self.block_rules.rules["regex"]
+        regex_string = self.group_rules.rules["regex"]
         return re.compile(regex_string)
 
     def test_disallowed_in_json(self):
-        self.assertTrue("disallowed" in self.block_rules.rules)
-        disallowed_list = self.block_rules.rules["disallowed"]
+        self.assertTrue("disallowed" in self.get_block_rules_json())
+        disallowed_list = self.get_block_rules_json().get("disallowed")
         self.assertTrue(isinstance(disallowed_list, list))
 
     def test_regex_in_json(self):
-        self.assertTrue("regex" in self.block_rules.rules)
+        self.assertTrue("regex" in self.get_block_rules_json())
 
     def test_regex_message_in_json(self):
-        self.assertTrue("regex_message" in self.block_rules.rules)
+        self.assertTrue("regexMessage" in self.get_block_rules_json())
 
     def test_regex_lowercase_valid(self):
         self.assertTrue(self.get_regex().match("abc"))

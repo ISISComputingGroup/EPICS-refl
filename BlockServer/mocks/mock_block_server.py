@@ -21,7 +21,7 @@ class MockBlockServer(object):
     def __init__(self):
         self._comps = list()
         self._confs = list()
-        self._pvs = dict()
+        self.pvs = dict()
         self.monitor_lock = RLock()
 
     def set_config_list(self, cl):
@@ -46,16 +46,16 @@ class MockBlockServer(object):
         pass
 
     def does_pv_exist(self, name):
-        return name in self._pvs
+        return name in self.pvs
 
     def delete_pv_from_db(self, name):
-        del self._pvs[name]
+        del self.pvs[name]
 
     def add_string_pv_to_db(self, name, count=1000):
-        self._pvs[name] = ""
+        self.pvs[name] = ""
 
     def setParam(self, name, data):
-        self._pvs[name] = data
+        self.pvs[name] = data
 
     def updatePVs(self):
         pass

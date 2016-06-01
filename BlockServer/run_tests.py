@@ -38,9 +38,9 @@ from BlockServer.test_modules.schema_checker_tests import TestSchemaChecker
 from BlockServer.test_modules.synoptic_manager_tests import TestSynopticManagerSequence
 from BlockServer.test_modules.ioc_control_tests import TestIocControlSequence
 from BlockServer.test_modules.file_path_manager_tests import TestFilePathManagerSequence
-
 from BlockServer.site_specific.default.test_modules.block_rules_tests import TestBlockRulesSequence
 from BlockServer.test_modules.runcontrol_manager_tests import TestRunControlSequence
+from BlockServer.site_specific.default.test_modules.group_rules_tests import TestGroupRulesSequence
 
 DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 
@@ -69,6 +69,7 @@ if __name__ == '__main__':
     # Site specific tests
     block_rules_suite = unittest.TestLoader().loadTestsFromTestCase(TestBlockRulesSequence)
     runcontrol_suite = unittest.TestLoader().loadTestsFromTestCase(TestRunControlSequence)
+    group_rules_suite = unittest.TestLoader().loadTestsFromTestCase(TestGroupRulesSequence)
 
     print "\n\n------ BEGINNING BLOCKSERVER UNIT TESTS ------"
 
@@ -87,8 +88,9 @@ if __name__ == '__main__':
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(file_path_manager_suite).wasSuccessful())
 
     # Site specific tests
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(block_rules_suite))
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(runcontrol_suite))
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(block_rules_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(runcontrol_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(group_rules_suite).wasSuccessful())
 
     print "------ BLOCKSERVER UNIT TESTS COMPLETE ------\n\n"
     # Return failure exit code if a test failed

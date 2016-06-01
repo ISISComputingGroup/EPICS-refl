@@ -183,4 +183,3 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.assertEqual(len(synoptic_names), self.initial_len)
         self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_1.upper())))
         self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_2.upper())))
-        
