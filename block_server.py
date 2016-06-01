@@ -54,7 +54,7 @@ from pcaspy.driver import manager, Data
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
 
 
-# For documentation on these commands see the accompanying block_server.rst file
+# For documentation on these commands see the wiki
 PVDB = {
     'BLOCKNAMES': {
         'type': 'char',
