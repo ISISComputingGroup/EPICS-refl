@@ -102,14 +102,14 @@ class TestDevicesManagerSequence(unittest.TestCase):
         if os.path.isdir(path):
             shutil.rmtree(path)
 
-    def test_get_devices_filename_returns_empty_string_when_no_current_config_file_set(self):
+    def test_get_devices_filename_raises_IOError_when_no_current_config_file_set(self):
         # Arrange
         # Act
         # Assert
         with self.assertRaises(IOError):
             self.dm.get_devices_filename()
 
-    def test_when_set_config_file_does_not_exist_then_get_devices_filename_returns_empty_string(self):
+    def test_when_set_config_file_does_not_exist_then_get_devices_filename_raises_IOError(self):
         # Arrange
         non_existing_path = os.path.join("Non", "existing")
         self.dm.set_current_config_name(non_existing_path)
