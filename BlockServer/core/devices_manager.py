@@ -151,3 +151,4 @@ class DevicesManager(object):
         return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                 <devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
                 </devices>"""
+    
