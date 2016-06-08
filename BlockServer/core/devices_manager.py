@@ -47,15 +47,19 @@ class DevicesManager(object):
 
     def load_current(self):
         """Create the PVs for all the devices found in the devices directory."""
+        devices_file_name = None
         try:
             devices_file_name = self.get_devices_filename()
         except IOError as err:
-            print_and_log(str(err))
+            print_and_log("Unable to load devices file. " + str(err))
 
         # Load the data, checking the schema
         try:
-            with open(devices_file_name, 'r') as devfile:
-                data = devfile.read()
+            if devices_file_name is None:
+                data = self.get_blank_devices()
+            else:
+                with open(devices_file_name, 'r') as devfile:
+                    data = devfile.read()
             ConfigurationSchemaChecker.check_xml_matches_schema(
                 os.path.join(self._schema_folder, SCREENS_SCHEMA),
                 data,"Screens")
@@ -137,3 +141,13 @@ class DevicesManager(object):
         self._vc.add(self._current_config)
         if commit_message is not None:
             self._vc.commit(commit_message)
+
+    def get_blank_devices(self):
+        """Gets a blank devices xml
+
+                Returns:
+                    string : The XML for the blank devices set
+                """
+        return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
+                </devices>"""

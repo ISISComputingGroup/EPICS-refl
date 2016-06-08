@@ -130,6 +130,17 @@ class TestDevicesManagerSequence(unittest.TestCase):
         # Assert
         self.assertEquals(expected, result)
 
+    def test_when_config_file_does_not_exist_then_load_current_uses_blank_devices_data(self):
+        #Arrange
+        self.dm.set_current_config_name("DOES_NOT_EXIST")
+
+        #Act
+        self.dm.load_current()
+
+        #Assert
+        self.assertEquals(self.dm._cas.pv_list["GET_SCREENS"],compress_and_hex(self.dm.get_blank_devices()))
+
+
     def test_loading_config_file_creates_a_pv_in_the_ca_server_with_correct_key(self):
         # Arrange
         self.dm.set_current_config_name(BASE_PATH)
