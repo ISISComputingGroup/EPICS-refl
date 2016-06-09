@@ -55,7 +55,7 @@ class DevicesManager(object):
                 data = devfile.read()
         except IOError as err:
             data = self.get_blank_devices()
-            print_and_log("Unable to load devices file. " + str(err) + ". The PV data will default to a blank set of devices.","MINOR")
+            print_and_log("Unable to load devices file. " + str(err) + ". The PV data will default to a blank set of devices.", "MINOR")
 
         try:
             ConfigurationSchemaChecker.check_xml_matches_schema(
