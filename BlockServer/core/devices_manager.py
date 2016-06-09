@@ -64,9 +64,13 @@ class DevicesManager(object):
 
         try:
             self._create_pv(data)
-            self._add_to_version_control("New change found in devices file %s" % self._current_config)
         except Exception as err:
             print_and_log("Error creating device PV: %s" % str(err), "MAJOR")
+
+        try:
+            self._add_to_version_control("New change found in devices file %s" % self._current_config)
+        except IOError as err:
+            print_and_log("Unable to add new data to version control. " + str(err),"MINOR")
 
         self._vc.commit("Blockserver started, devices updated")
 
