@@ -328,7 +328,8 @@ class BlockServer(Driver):
                 self._active_configserver.clear_config()
                 self._initialise_config()
             elif reason == 'START_IOCS':
-                self.write_queue.append((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
+                with self.write_lock:
+                    self.write_queue.append((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
             elif reason == 'STOP_IOCS':
                 self._ioc_control.stop_iocs(convert_from_json(data))
             elif reason == 'RESTART_IOCS':
