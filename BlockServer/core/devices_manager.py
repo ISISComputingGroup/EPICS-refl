@@ -47,6 +47,8 @@ class DevicesManager(object):
 
     def load_current(self):
         """Create the PVs for all the devices found in the devices directory."""
+
+        devices_file_name = None
         try:
             devices_file_name = self.get_devices_filename()
             with open(devices_file_name, 'r') as devfile:
@@ -67,10 +69,11 @@ class DevicesManager(object):
         except Exception as err:
             print_and_log("Error creating device PV: %s" % str(err), "MAJOR")
 
-        try:
-            self._add_to_version_control("New change found in devices file %s" % self._current_config)
-        except Exception as err:
-            print_and_log("Unable to add new data to version control. " + str(err),"MINOR")
+        if devices_file_name is not None:
+            try:
+                self._add_to_version_control("New change found in devices file %s" % self._current_config)
+            except Exception as err:
+                print_and_log("Unable to add new data to version control. " + str(err), "MINOR")
 
         self._vc.commit("Blockserver started, devices updated")
 
