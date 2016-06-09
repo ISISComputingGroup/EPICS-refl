@@ -53,7 +53,7 @@ class DevicesManager(object):
                 data = devfile.read()
         except IOError as err:
             data = self.get_blank_devices()
-            print_and_log("Unable to load devices file. " + str(err) + ". The PV data will default to a blank set of devices.","MINOR")
+            print_and_log("Unable to load devices file. " + str(err) + ". The PV data will default to a blank set of devices.", "MINOR")
 
         try:
             ConfigurationSchemaChecker.check_xml_matches_schema(
@@ -70,7 +70,7 @@ class DevicesManager(object):
         try:
             self._add_to_version_control("New change found in devices file %s" % self._current_config)
         except Exception as err:
-            print_and_log("Unable to add new data to version control. " + str(err),"MINOR")
+            print_and_log("Unable to add new data to version control. " + str(err), "MINOR")
 
         self._vc.commit("Blockserver started, devices updated")
 
