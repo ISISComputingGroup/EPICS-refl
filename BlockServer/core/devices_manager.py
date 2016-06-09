@@ -17,7 +17,7 @@
 import os
 from server_common.utilities import print_and_log, compress_and_hex
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema
 from BlockServer.core.constants import FILENAME_SCREENS as SCREENS_FILE
 from xml.dom import minidom
 
@@ -47,26 +47,33 @@ class DevicesManager(object):
 
     def load_current(self):
         """Create the PVs for all the devices found in the devices directory."""
+
+        devices_file_name = None
         try:
             devices_file_name = self.get_devices_filename()
-        except IOError as err:
-            print_and_log(str(err))
-
-        # Load the data, checking the schema
-        try:
             with open(devices_file_name, 'r') as devfile:
                 data = devfile.read()
+        except IOError as err:
+            data = self.get_blank_devices()
+            print_and_log("Unable to load devices file. " + str(err) + ". The PV data will default to a blank set of devices.", "MINOR")
+
+        try:
             ConfigurationSchemaChecker.check_xml_matches_schema(
                 os.path.join(self._schema_folder, SCREENS_SCHEMA),
-                data,"Screens")
-            # Get the device name
-            self._create_pv(data)
-
-            self._add_to_version_control("New change found in devices file %s" % self._current_config)
-        except ConfigurationSchemaChecker as err:
+                data, "Screens")
+        except ConfigurationInvalidUnderSchema as err:
             print_and_log(err)
+
+        try:
+            self._create_pv(data)
         except Exception as err:
             print_and_log("Error creating device PV: %s" % str(err), "MAJOR")
+
+        if devices_file_name is not None:
+            try:
+                self._add_to_version_control("New change found in devices file %s" % self._current_config)
+            except Exception as err:
+                print_and_log("Unable to add new data to version control. " + str(err), "MINOR")
 
         self._vc.commit("Blockserver started, devices updated")
 
@@ -137,3 +144,14 @@ class DevicesManager(object):
         self._vc.add(self._current_config)
         if commit_message is not None:
             self._vc.commit(commit_message)
+
+    def get_blank_devices(self):
+        """Gets a blank devices xml
+
+                Returns:
+                    string : The XML for the blank devices set
+                """
+        return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
+                </devices>"""
+    
