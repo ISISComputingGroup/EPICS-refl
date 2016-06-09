@@ -47,28 +47,24 @@ class DevicesManager(object):
 
     def load_current(self):
         """Create the PVs for all the devices found in the devices directory."""
-        devices_file_name = None
         try:
             devices_file_name = self.get_devices_filename()
+            with open(devices_file_name, 'r') as devfile:
+                data = devfile.read()
         except IOError as err:
+            data = self.get_blank_devices()
             print_and_log("Unable to load devices file. " + str(err))
 
-        # Load the data, checking the schema
         try:
-            if devices_file_name is None:
-                data = self.get_blank_devices()
-            else:
-                with open(devices_file_name, 'r') as devfile:
-                    data = devfile.read()
             ConfigurationSchemaChecker.check_xml_matches_schema(
                 os.path.join(self._schema_folder, SCREENS_SCHEMA),
-                data,"Screens")
-            # Get the device name
-            self._create_pv(data)
-
-            self._add_to_version_control("New change found in devices file %s" % self._current_config)
+                data, "Screens")
         except ConfigurationSchemaChecker as err:
             print_and_log(err)
+
+        try:
+            self._create_pv(data)
+            self._add_to_version_control("New change found in devices file %s" % self._current_config)
         except Exception as err:
             print_and_log("Error creating device PV: %s" % str(err), "MAJOR")
 
