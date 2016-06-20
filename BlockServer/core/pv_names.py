@@ -53,6 +53,7 @@ class BlockserverPVNames:
     ACK_CURR_CHANGED = prepend_blockserver.__func__('ACK_CURR_CHANGED')
     BUMPSTRIP_AVAILABLE = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE')
     BUMPSTRIP_AVAILABLE_SP = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE:SP')
+    GET_SCREENS = prepend_blockserver.__func__('GET_SCREENS')
     SET_SCREENS = prepend_blockserver.__func__('SET_SCREENS')
 
     @staticmethod

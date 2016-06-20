@@ -19,10 +19,9 @@ from server_common.utilities import print_and_log, compress_and_hex
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema
 from BlockServer.core.constants import FILENAME_SCREENS as SCREENS_FILE
-from BlockServer.core.macros import BLOCKSERVER
+from BlockServer.core.pv_names import BlockserverPVNames
 from xml.dom import minidom
 
-GET_SCREENS = "GET_SCREENS"
 
 SCREENS_SCHEMA = "screens.xsd"
 
@@ -84,7 +83,7 @@ class DevicesManager(object):
             data (string): Starting data for the pv, the pv name is derived from the name tag of this
         """
         # Create the PV
-        self._cas.updatePV(BLOCKSERVER + GET_SCREENS, compress_and_hex(data))
+        self._cas.updatePV(BlockserverPVNames.GET_SCREENS, compress_and_hex(data))
 
     def get_devices_filename(self):
         """Gets the names of the devices files in the devices directory. Without the .xml extension.
