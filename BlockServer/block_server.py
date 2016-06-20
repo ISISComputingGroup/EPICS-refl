@@ -37,6 +37,7 @@ from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
     convert_to_json, convert_from_json
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX, BLOCKSERVER
+from BlockServer.core.pv_names import DbNames, SynopticsPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
@@ -52,48 +53,6 @@ from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
-
-
-def prepend_blockserver(base_name):
-    return BLOCKSERVER + base_name
-
-class DbNames:
-    BLOCKNAMES = prepend_blockserver('BLOCKNAMES')
-    BLOCK_DETAILS = prepend_blockserver('BLOCK_DETAILS')
-    GROUPS = prepend_blockserver('GROUPS')
-    COMPS = prepend_blockserver('COMPS')
-    LOAD_CONFIG = prepend_blockserver('LOAD_CONFIG')
-    SAVE_CONFIG = prepend_blockserver('SAVE_CONFIG')
-    CLEAR_CONFIG = prepend_blockserver('CLEAR_CONFIG')
-    START_IOCS = prepend_blockserver('START_IOCS')
-    STOP_IOCS = prepend_blockserver('STOP_IOCS')
-    RESTART_IOCS = prepend_blockserver('RESTART_IOCS')
-    CONFIGS = prepend_blockserver('CONFIGS')
-    GET_RC_OUT = prepend_blockserver('GET_RC_OUT')
-    GET_RC_PARS = prepend_blockserver('GET_RC_PARS')
-    SET_RC_PARS = prepend_blockserver('SET_RC_PARS')
-    GET_CURR_CONFIG_DETAILS = prepend_blockserver('GET_CURR_CONFIG_DETAILS')
-    SET_CURR_CONFIG_DETAILS = prepend_blockserver('SET_CURR_CONFIG_DETAILS')
-    SAVE_NEW_CONFIG = prepend_blockserver('SAVE_NEW_CONFIG')
-    SAVE_NEW_COMPONENT = prepend_blockserver('SAVE_NEW_COMPONENT')
-    SERVER_STATUS = prepend_blockserver('SERVER_STATUS')
-    DELETE_CONFIGS = prepend_blockserver('DELETE_CONFIGS')
-    DELETE_COMPONENTS = prepend_blockserver('DELETE_COMPONENTS')
-    BLANK_CONFIG = prepend_blockserver('BLANK_CONFIG')
-    CURR_CONFIG_CHANGED = prepend_blockserver('CURR_CONFIG_CHANGED')
-    ACK_CURR_CHANGED = prepend_blockserver('ACK_CURR_CHANGED')
-
-    # Synoptics PVs don't have "BLOCKSERVER" in their namespace
-    SYNOPTICS_NAMES = 'SYNOPTICS:NAMES'
-    SYNOPTICS_GET_DEFAULT = 'SYNOPTICS:GET_DEFAULT'
-    SYNOPTICS_BLANK_GET = 'SYNOPTICS:__BLANK__:GET'
-    SYNOPTICS_SET_DETAILS = 'SYNOPTICS:SET_DETAILS'
-    SYNOPTICS_DELETE = 'SYNOPTICS:DELETE'
-    SYNOPTICS_SCHEMA = 'SYNOPTICS:SCHEMA'
-
-    BUMPSTRIP_AVAILABLE = prepend_blockserver('BUMPSTRIP_AVAILABLE')
-    BUMPSTRIP_AVAILABLE_SP = prepend_blockserver('BUMPSTRIP_AVAILABLE:SP')
-    SET_SCREENS = prepend_blockserver('SET_SCREENS')
 
 
 # For documentation on these commands see the accompanying block_server.rst file
@@ -214,32 +173,32 @@ PVDB = {
     DbNames.ACK_CURR_CHANGED: {
         'type': 'int'
     },
-    DbNames.SYNOPTICS_NAMES: {
+    SynopticsPVNames.SYNOPTICS_NAMES: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.SYNOPTICS_GET_DEFAULT: {
+    SynopticsPVNames.SYNOPTICS_GET_DEFAULT: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.SYNOPTICS_BLANK_GET: {
+    SynopticsPVNames.SYNOPTICS_BLANK_GET: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.SYNOPTICS_SET_DETAILS: {
+    SynopticsPVNames.SYNOPTICS_SET_DETAILS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.SYNOPTICS_DELETE: {
+    SynopticsPVNames.SYNOPTICS_DELETE: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.SYNOPTICS_SCHEMA: {
+    SynopticsPVNames.SYNOPTICS_SCHEMA: {
         'type': 'char',
         'count': 16000,
         'value': [0],
@@ -376,13 +335,13 @@ class BlockServer(Driver):
             elif reason == DbNames.BLANK_CONFIG:
                 js = convert_to_json(self.get_blank_config())
                 value = compress_and_hex(js)
-            elif reason == DbNames.SYNOPTICS_NAMES:
+            elif reason == SynopticsPVNames.SYNOPTICS_NAMES:
                 value = compress_and_hex(convert_to_json(self._syn.get_synoptic_list()))
-            elif reason == DbNames.SYNOPTICS_GET_DEFAULT:
+            elif reason == SynopticsPVNames.SYNOPTICS_GET_DEFAULT:
                 value = compress_and_hex(self._syn.get_default_synoptic_xml())
-            elif reason == DbNames.SYNOPTICS_BLANK_GET:
+            elif reason == SynopticsPVNames.SYNOPTICS_BLANK_GET:
                 value = compress_and_hex(self._syn.get_blank_synoptic())
-            elif reason == DbNames.SYNOPTICS_SCHEMA:
+            elif reason == SynopticsPVNames.SYNOPTICS_SCHEMA:
                 value = compress_and_hex(self._syn.get_synoptic_schema())
             elif reason == DbNames.BUMPSTRIP_AVAILABLE:
                 value = compress_and_hex(self.bumpstrip)
@@ -447,10 +406,10 @@ class BlockServer(Driver):
                 self.update_comp_monitor()
             elif reason == DbNames.ACK_CURR_CHANGED:
                 self._config_list.set_active_changed(False)
-            elif reason == DbNames.SYNOPTICS_SET_DETAILS:
+            elif reason == SynopticsPVNames.SYNOPTICS_SET_DETAILS:
                 self._syn.save_synoptic_xml(data)
                 self.update_synoptic_monitor()
-            elif reason == DbNames.SYNOPTICS_DELETE:
+            elif reason == SynopticsPVNames.SYNOPTICS_DELETE:
                 self._syn.delete_synoptics(convert_from_json(data))
                 self.update_synoptic_monitor()
             elif reason == DbNames.BUMPSTRIP_AVAILABLE_SP:
@@ -738,9 +697,9 @@ class BlockServer(Driver):
         """
         with self.monitor_lock:
             synoptic = self._syn.get_default_synoptic_xml()
-            self.setParam(DbNames.SYNOPTICS_GET_DEFAULT, compress_and_hex(synoptic))
+            self.setParam(SynopticsPVNames.SYNOPTICS_GET_DEFAULT, compress_and_hex(synoptic))
             names = convert_to_json(self._syn.get_synoptic_list())
-            self.setParam(DbNames.SYNOPTICS_NAMES, compress_and_hex(names))
+            self.setParam(SynopticsPVNames.SYNOPTICS_NAMES, compress_and_hex(names))
             self.updatePVs()
 
     def update_bumpstrip_availability(self):
