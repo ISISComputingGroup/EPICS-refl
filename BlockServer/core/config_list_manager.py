@@ -26,12 +26,10 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.constants import DEFAULT_COMPONENT
+from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.macros import BLOCKSERVER
 
 
-GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
-GET_COMPONENT_PV = ":GET_COMPONENT_DETAILS"
-DEPENDENCIES_PV = ":DEPENDENCIES"
 CONFIG_CHANGED_PV = ":CURR_CONFIG_CHANGED"
 
 
@@ -193,16 +191,18 @@ class ConfigListManager(object):
             configs = self._comp_dependecncies[name]
         if name in self._component_metas.keys():
             # Check just in case component failed to load
-            self._ca_server.updatePV(BLOCKSERVER + self._component_metas[name].pv + DEPENDENCIES_PV,
-                                     compress_and_hex(json.dumps(configs)))
+            pv_name = BlockserverPVNames.get_dependencies_pv(self._component_metas[name].pv)
+            self._ca_server.updatePV(pv_name, compress_and_hex(json.dumps(configs)))
 
     def _update_config_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(BLOCKSERVER + self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(json.dumps(data)))
+        pv_name = BlockserverPVNames.get_config_details_pv(self._config_metas[name].pv)
+        self._ca_server.updatePV(pv_name, compress_and_hex(json.dumps(data)))
 
     def _update_component_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(BLOCKSERVER + self._component_metas[name].pv + GET_COMPONENT_PV, compress_and_hex(json.dumps(data)))
+        pv_name = BlockserverPVNames.get_component_details_pv(self._component_metas[name].pv)
+        self._ca_server.updatePV(pv_name, compress_and_hex(json.dumps(data)))
 
     def update_a_config_in_list_filewatcher(self, config, is_component=False):
         """Updates the PVs associated with a configuration
@@ -315,7 +315,8 @@ class ConfigListManager(object):
                 if not lower_delete_list.issubset(self._config_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown configurations")
                 for config in delete_list:
-                    self._ca_server.deletePV(BLOCKSERVER + self._config_metas[config.lower()].pv + GET_CONFIG_PV)
+                    pv_name = BlockserverPVNames.get_config_details_pv(self._config_metas[config.lower()].pv)
+                    self._ca_server.deletePV(pv_name)
                     del self._config_metas[config.lower()]
                     self._remove_config_from_dependencies(config)
                 self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
@@ -329,8 +330,8 @@ class ConfigListManager(object):
                 if not lower_delete_list.issubset(self._component_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown components")
                 for comp in lower_delete_list:
-                    self._ca_server.deletePV(BLOCKSERVER + self._component_metas[comp].pv + GET_COMPONENT_PV)
-                    self._ca_server.deletePV(BLOCKSERVER + self._component_metas[comp].pv + DEPENDENCIES_PV)
+                    self._ca_server.deletePV(BlockserverPVNames.get_component_details_pv(self._component_metas[comp].pv))
+                    self._ca_server.deletePV(BlockserverPVNames.get_dependencies_pv(self._component_metas[comp].pv))
                     del self._component_metas[comp]
                 self._update_version_control_post_delete(self._comp_path, delete_list)
 
