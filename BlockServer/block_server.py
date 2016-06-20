@@ -37,7 +37,7 @@ from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
     convert_to_json, convert_from_json
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX, BLOCKSERVER
-from BlockServer.core.pv_names import DbNames, SynopticsPVNames
+from BlockServer.core.pv_names import BlockserverPVNames, SynopticsPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
@@ -57,120 +57,120 @@ from BlockServer.site_specific.default.general_rules import GroupRules, Configur
 
 # For documentation on these commands see the accompanying block_server.rst file
 PVDB = {
-    DbNames.BLOCKNAMES: {
+    BlockserverPVNames.BLOCKNAMES: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.BLOCK_DETAILS: {
+    BlockserverPVNames.BLOCK_DETAILS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.GROUPS: {
+    BlockserverPVNames.GROUPS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.COMPS: {
+    BlockserverPVNames.COMPS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.LOAD_CONFIG: {
+    BlockserverPVNames.LOAD_CONFIG: {
         'type': 'char',
         'count': 1000,
         'value': [0],
     },
-    DbNames.SAVE_CONFIG: {
+    BlockserverPVNames.SAVE_CONFIG: {
         'type': 'char',
         'count': 1000,
         'value': [0],
     },
-    DbNames.CLEAR_CONFIG: {
+    BlockserverPVNames.CLEAR_CONFIG: {
         'type': 'char',
         'count': 100,
         'value': [0],
     },
-    DbNames.START_IOCS: {
+    BlockserverPVNames.START_IOCS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.STOP_IOCS: {
+    BlockserverPVNames.STOP_IOCS: {
         'type': 'char',
         'count': 1000,
         'value': [0],
     },
-    DbNames.RESTART_IOCS: {
+    BlockserverPVNames.RESTART_IOCS: {
         'type': 'char',
         'count': 1000,
         'value': [0],
     },
-    DbNames.CONFIGS: {
+    BlockserverPVNames.CONFIGS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.GET_RC_OUT: {
+    BlockserverPVNames.GET_RC_OUT: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.GET_RC_PARS: {
+    BlockserverPVNames.GET_RC_PARS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.SET_RC_PARS: {
+    BlockserverPVNames.SET_RC_PARS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.GET_CURR_CONFIG_DETAILS: {
+    BlockserverPVNames.GET_CURR_CONFIG_DETAILS: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    DbNames.SET_CURR_CONFIG_DETAILS: {
+    BlockserverPVNames.SET_CURR_CONFIG_DETAILS: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    DbNames.SAVE_NEW_CONFIG: {
+    BlockserverPVNames.SAVE_NEW_CONFIG: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    DbNames.SAVE_NEW_COMPONENT: {
+    BlockserverPVNames.SAVE_NEW_COMPONENT: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    DbNames.SERVER_STATUS: {
+    BlockserverPVNames.SERVER_STATUS: {
         'type': 'char',
         'count': 1000,
         'value': [0],
     },
-    DbNames.DELETE_CONFIGS: {
+    BlockserverPVNames.DELETE_CONFIGS: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    DbNames.DELETE_COMPONENTS: {
+    BlockserverPVNames.DELETE_COMPONENTS: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    DbNames.BLANK_CONFIG: {
+    BlockserverPVNames.BLANK_CONFIG: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    DbNames.CURR_CONFIG_CHANGED: {
+    BlockserverPVNames.CURR_CONFIG_CHANGED: {
         'type': 'int'
     },
-    DbNames.ACK_CURR_CHANGED: {
+    BlockserverPVNames.ACK_CURR_CHANGED: {
         'type': 'int'
     },
     SynopticsPVNames.SYNOPTICS_NAMES: {
@@ -203,17 +203,17 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
-    DbNames.BUMPSTRIP_AVAILABLE: {
+    BlockserverPVNames.BUMPSTRIP_AVAILABLE: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.BUMPSTRIP_AVAILABLE_SP: {
+    BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    DbNames.SET_SCREENS: {
+    BlockserverPVNames.SET_SCREENS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
@@ -319,20 +319,20 @@ class BlockServer(Driver):
             If an Exception is thrown in the reading of the information this is returned in compressed and hexed JSON.
         """
         try:
-            if reason == DbNames.GROUPS:
+            if reason == BlockserverPVNames.GROUPS:
                 grps = ConfigurationJsonConverter.groups_to_json(self._active_configserver.get_group_details())
                 value = compress_and_hex(grps)
-            elif reason == DbNames.CONFIGS:
+            elif reason == BlockserverPVNames.CONFIGS:
                 value = compress_and_hex(convert_to_json(self._config_list.get_configs()))
-            elif reason == DbNames.COMPS:
+            elif reason == BlockserverPVNames.COMPS:
                 value = compress_and_hex(convert_to_json(self._config_list.get_components()))
-            elif reason == DbNames.GET_RC_OUT:
+            elif reason == BlockserverPVNames.GET_RC_OUT:
                 js = convert_to_json(self._active_configserver.get_out_of_range_pvs())
                 value = compress_and_hex(js)
-            elif reason == DbNames.GET_RC_PARS:
+            elif reason == BlockserverPVNames.GET_RC_PARS:
                 pars = convert_to_json(self._active_configserver.get_runcontrol_settings())
                 value = compress_and_hex(pars)
-            elif reason == DbNames.BLANK_CONFIG:
+            elif reason == BlockserverPVNames.BLANK_CONFIG:
                 js = convert_to_json(self.get_blank_config())
                 value = compress_and_hex(js)
             elif reason == SynopticsPVNames.SYNOPTICS_NAMES:
@@ -343,7 +343,7 @@ class BlockServer(Driver):
                 value = compress_and_hex(self._syn.get_blank_synoptic())
             elif reason == SynopticsPVNames.SYNOPTICS_SCHEMA:
                 value = compress_and_hex(self._syn.get_synoptic_schema())
-            elif reason == DbNames.BUMPSTRIP_AVAILABLE:
+            elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE:
                 value = compress_and_hex(self.bumpstrip)
             else:
                 value = self.getParam(reason)
@@ -368,43 +368,43 @@ class BlockServer(Driver):
         try:
             self._filewatcher.pause()
             data = dehex_and_decompress(value).strip('"')
-            if reason == DbNames.LOAD_CONFIG:
+            if reason == BlockserverPVNames.LOAD_CONFIG:
                 with self.write_lock:
                     self.write_queue.append((self.load_config, (data,), "LOADING_CONFIG"))
-            elif reason == DbNames.SAVE_CONFIG:
+            elif reason == BlockserverPVNames.SAVE_CONFIG:
                 with self.write_lock:
                     self.write_queue.append((self.save_active_config, (data,), "SAVING_CONFIG"))
-            elif reason == DbNames.CLEAR_CONFIG:
+            elif reason == BlockserverPVNames.CLEAR_CONFIG:
                 self._active_configserver.clear_config()
                 self._initialise_config()
-            elif reason == DbNames.START_IOCS:
+            elif reason == BlockserverPVNames.START_IOCS:
                 with self.write_lock:
                     self.write_queue.append((self.start_iocs, (convert_from_json(data),),
                                              "START_IOCS"))
-            elif reason == DbNames.STOP_IOCS:
+            elif reason == BlockserverPVNames.STOP_IOCS:
                 self._ioc_control.stop_iocs(convert_from_json(data))
-            elif reason == DbNames.RESTART_IOCS:
+            elif reason == BlockserverPVNames.RESTART_IOCS:
                 with self.write_lock:
                     self.write_queue.append((self._ioc_control.restart_iocs, (convert_from_json(data),),
                                              "RESTART_IOCS"))
-            elif reason == DbNames.SET_RC_PARS:
+            elif reason == BlockserverPVNames.SET_RC_PARS:
                 self._active_configserver.set_runcontrol_settings(convert_from_json(data))
-            elif reason == DbNames.SET_CURR_CONFIG_DETAILS:
+            elif reason == BlockserverPVNames.SET_CURR_CONFIG_DETAILS:
                 with self.write_lock:
                     self.write_queue.append((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
-            elif reason == DbNames.SAVE_NEW_CONFIG:
+            elif reason == BlockserverPVNames.SAVE_NEW_CONFIG:
                 with self.write_lock:
                     self.write_queue.append((self.save_inactive_config, (data,), "SAVING_NEW_CONFIG"))
-            elif reason == DbNames.SAVE_NEW_COMPONENT:
+            elif reason == BlockserverPVNames.SAVE_NEW_COMPONENT:
                 with self.write_lock:
                     self.write_queue.append((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
-            elif reason == DbNames.DELETE_CONFIGS:
+            elif reason == BlockserverPVNames.DELETE_CONFIGS:
                 self._config_list.delete_configs(convert_from_json(data))
                 self.update_config_monitors()
-            elif reason == DbNames.DELETE_COMPONENTS:
+            elif reason == BlockserverPVNames.DELETE_COMPONENTS:
                 self._config_list.delete_configs(convert_from_json(data), True)
                 self.update_comp_monitor()
-            elif reason == DbNames.ACK_CURR_CHANGED:
+            elif reason == BlockserverPVNames.ACK_CURR_CHANGED:
                 self._config_list.set_active_changed(False)
             elif reason == SynopticsPVNames.SYNOPTICS_SET_DETAILS:
                 self._syn.save_synoptic_xml(data)
@@ -412,10 +412,10 @@ class BlockServer(Driver):
             elif reason == SynopticsPVNames.SYNOPTICS_DELETE:
                 self._syn.delete_synoptics(convert_from_json(data))
                 self.update_synoptic_monitor()
-            elif reason == DbNames.BUMPSTRIP_AVAILABLE_SP:
+            elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP:
                 self.bumpstrip = data
                 self.update_bumpstrip_availability()
-            elif reason == DbNames.SET_SCREENS:
+            elif reason == BlockserverPVNames.SET_SCREENS:
                 self._devices.save_devices_xml(data)
             else:
                 status = False
@@ -645,11 +645,11 @@ class BlockServer(Driver):
         with self.monitor_lock:
             # Blocks
             bn = convert_to_json(self._active_configserver.get_blocknames())
-            self.setParam(DbNames.BLOCKNAMES, compress_and_hex(bn))
+            self.setParam(BlockserverPVNames.BLOCKNAMES, compress_and_hex(bn))
             # Groups
             # Update the PV, so that groupings are updated for any CA monitors
             grps = ConfigurationJsonConverter.groups_to_json(self._active_configserver.get_group_details())
-            self.setParam(DbNames.GROUPS, compress_and_hex(grps))
+            self.setParam(BlockserverPVNames.GROUPS, compress_and_hex(grps))
             # Update them
             self.updatePVs()
 
@@ -658,7 +658,7 @@ class BlockServer(Driver):
         """
         with self.monitor_lock:
             # set the available configs
-            self.setParam(DbNames.CONFIGS, compress_and_hex(convert_to_json(self._config_list.get_configs())))
+            self.setParam(BlockserverPVNames.CONFIGS, compress_and_hex(convert_to_json(self._config_list.get_configs())))
             # Update them
             self.updatePVs()
 
@@ -666,7 +666,7 @@ class BlockServer(Driver):
         """Updates the monitor for the components, so the clients can see any changes.
         """
         with self.monitor_lock:
-            self.setParam(DbNames.COMPS, compress_and_hex(convert_to_json(self._config_list.get_components())))
+            self.setParam(BlockserverPVNames.COMPS, compress_and_hex(convert_to_json(self._config_list.get_components())))
             # Update them
             self.updatePVs()
 
@@ -680,7 +680,7 @@ class BlockServer(Driver):
             d = dict()
             d['status'] = status
             with self.monitor_lock:
-                self.setParam(DbNames.SERVER_STATUS, compress_and_hex(convert_to_json(d)))
+                self.setParam(BlockserverPVNames.SERVER_STATUS, compress_and_hex(convert_to_json(d)))
                 self.updatePVs()
 
     def update_get_details_monitors(self):
@@ -689,7 +689,7 @@ class BlockServer(Driver):
         self._config_list.set_active_changed(False)
         with self.monitor_lock:
             js = convert_to_json(self._active_configserver.get_config_details())
-            self.setParam(DbNames.GET_CURR_CONFIG_DETAILS, compress_and_hex(js))
+            self.setParam(BlockserverPVNames.GET_CURR_CONFIG_DETAILS, compress_and_hex(js))
             self.updatePVs()
 
     def update_synoptic_monitor(self):
@@ -707,7 +707,7 @@ class BlockServer(Driver):
             """
             with self.monitor_lock:
                 # set the available configs
-                self.setParam(DbNames.BUMPSTRIP_AVAILABLE, compress_and_hex(self.bumpstrip))
+                self.setParam(BlockserverPVNames.BUMPSTRIP_AVAILABLE, compress_and_hex(self.bumpstrip))
                 # Update them
                 self.updatePVs()
 

@@ -19,7 +19,7 @@ import os
 from BlockServer.core.macros import BLOCKSERVER
 
 
-class DbNames:
+class BlockserverPVNames:
     """Holds and manages blockserver PV names
     """
 
