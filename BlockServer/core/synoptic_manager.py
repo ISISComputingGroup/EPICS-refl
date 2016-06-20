@@ -1,18 +1,18 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
 import os
 from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name
@@ -46,7 +46,16 @@ class SynopticManager(object):
         self._vc = vc_manager
         self._bs = block_server
         self._default_syn_xml = ""
+        self._create_directory()
         self._load_initial()
+
+    def _create_directory(self):
+        """If the synoptics directory does not exist then create it"""
+        try:
+            if not os.path.exists(self._directory):
+                os.makedirs(self._directory)
+        except Exception as err:
+            print_and_log("Error creating synoptic directory: %s" % str(err), "MAJOR")
 
     def _load_initial(self):
         """Create the PVs for all the synoptics found in the synoptics directory."""
@@ -55,8 +64,8 @@ class SynopticManager(object):
             try:
                 with open(os.path.join(self._directory, f), 'r') as synfile:
                     data = synfile.read()
-                    ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
-                                                                             data)
+                    ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
+                                                                        data,"Synoptic")
                 # Get the synoptic name
                 self._create_pv(data)
 
@@ -157,8 +166,8 @@ class SynopticManager(object):
         """
         try:
             # Check against schema
-            ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
-                                                                     xml_data)
+            ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA),
+                                                                xml_data,"Synoptic")
             # Update PVs
             self._create_pv(xml_data)
 

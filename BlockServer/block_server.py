@@ -18,6 +18,7 @@
 import os
 import sys
 
+
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRVC"]))
 
@@ -39,6 +40,7 @@ from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX, BL
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.core.synoptic_manager import SynopticManager
+from BlockServer.core.devices_manager import DevicesManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
@@ -49,6 +51,7 @@ from BlockServer.core.runcontrol_manager import RunControlManager
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
+from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
 
 
 def prepend_blockserver(base_name):
@@ -90,6 +93,7 @@ class DbNames:
 
     BUMPSTRIP_AVAILABLE = prepend_blockserver('BUMPSTRIP_AVAILABLE')
     BUMPSTRIP_AVAILABLE_SP = prepend_blockserver('BUMPSTRIP_AVAILABLE:SP')
+    SET_SCREENS = prepend_blockserver('SET_SCREENS')
 
 
 # For documentation on these commands see the accompanying block_server.rst file
@@ -245,12 +249,16 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
-
     DbNames.BUMPSTRIP_AVAILABLE_SP: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
+    DbNames.SET_SCREENS: {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
+    }
 }
 
 
@@ -274,6 +282,8 @@ class BlockServer(Driver):
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
         self.block_rules = BlockRules(ca_server)
+        self.group_rules = GroupRules(ca_server)
+        self.config_desc = ConfigurationDescriptionRules(ca_server)
 
         # Connect to version control
         try:
@@ -293,6 +303,9 @@ class BlockServer(Driver):
 
         # Import all the synoptic data and create PVs
         self._syn = SynopticManager(self, ca_server, SCHEMA_DIR, self._vc)
+
+        # Import all the devices data and create PVs
+        self._devices = DevicesManager(self, ca_server, SCHEMA_DIR, self._vc)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
@@ -406,7 +419,8 @@ class BlockServer(Driver):
                 self._active_configserver.clear_config()
                 self._initialise_config()
             elif reason == DbNames.START_IOCS:
-                self.write_queue.append((self.start_iocs, (convert_from_json(data),),
+                with self.write_lock:
+                    self.write_queue.append((self.start_iocs, (convert_from_json(data),),
                                              "START_IOCS"))
             elif reason == DbNames.STOP_IOCS:
                 self._ioc_control.stop_iocs(convert_from_json(data))
@@ -420,9 +434,11 @@ class BlockServer(Driver):
                 with self.write_lock:
                     self.write_queue.append((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
             elif reason == DbNames.SAVE_NEW_CONFIG:
-                self.save_inactive_config(data)
+                with self.write_lock:
+                    self.write_queue.append((self.save_inactive_config, (data,), "SAVING_NEW_CONFIG"))
             elif reason == DbNames.SAVE_NEW_COMPONENT:
-                self.save_inactive_config(data, True)
+                with self.write_lock:
+                    self.write_queue.append((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
             elif reason == DbNames.DELETE_CONFIGS:
                 self._config_list.delete_configs(convert_from_json(data))
                 self.update_config_monitors()
@@ -440,6 +456,8 @@ class BlockServer(Driver):
             elif reason == DbNames.BUMPSTRIP_AVAILABLE_SP:
                 self.bumpstrip = data
                 self.update_bumpstrip_availability()
+            elif reason == DbNames.SET_SCREENS:
+                self._devices.save_devices_xml(data)
             else:
                 status = False
         except Exception as err:
@@ -511,6 +529,10 @@ class BlockServer(Driver):
         if self._block_cache is not None:
             print_and_log("Restarting block cache...")
             self._block_cache.restart()
+
+        # Set current config file name in Devices Manager
+        self._devices.set_current_config_name(self._active_configserver.get_config_name())
+        self._devices.load_current()
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
@@ -605,6 +627,8 @@ class BlockServer(Driver):
                 self._config_list.update_a_config_in_list(inactive, True)
                 self.update_comp_monitor()
             print_and_log("Saved")
+        except Exception as err:
+            print_and_log("Problem occurred saving configuration: %s" % err)
         finally:
             self._filewatcher.resume()
 
@@ -651,6 +675,8 @@ class BlockServer(Driver):
             self._active_configserver.save_active(name)
             self._config_list.update_a_config_in_list(self._active_configserver)
             self.update_config_monitors()
+        except Exception as err:
+            print_and_log("Problem occurred saving configuration: %s" % err)
         finally:
             self._filewatcher.resume()
 
