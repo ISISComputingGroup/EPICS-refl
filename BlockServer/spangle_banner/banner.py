@@ -17,16 +17,16 @@
 import json
 
 class Banner:
-    items = []
 
     def __init__(self):
-        pass
+        self.items = list()
 
     def get_description(self):
         return json.dumps(self.items)
 
     def add_item(self, item):
-        self.items.append(item)
+        if item.is_valid():
+            self.items.append(item.get_description())
 
 
 

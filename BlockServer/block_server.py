@@ -52,6 +52,8 @@ from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
+from BlockServer.spangle_banner.banner import Banner
+from BlockServer.spangle_banner.bool_str import BoolStr
 
 
 # For documentation on these commands see the accompanying block_server.rst file
@@ -216,6 +218,11 @@ PVDB = {
         'type': 'char',
         'count': 16000,
         'value': [0],
+    },
+    'BANNER_DESCRIPTION': {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
     }
 }
 
@@ -264,6 +271,17 @@ class BlockServer(Driver):
 
         # Import all the devices data and create PVs
         self._devices = DevicesManager(self, ca_server, SCHEMA_DIR, self._vc)
+
+        # Create banner object
+        bool_str = BoolStr("bumpstrip", "INSTR:TEST:PV")
+        t_state = {"colour": "GREEN", "message": "true"}
+        f_state = {"colour": "RED", "message": "false"}
+        u_state = {"colour": "RED", "message": "unknown"}
+        bool_str.set_true_state(t_state)
+        bool_str.set_false_state(f_state)
+        bool_str.set_unknown_state(u_state)
+        self.banner = Banner()
+        self.banner.add_item(bool_str)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
@@ -344,6 +362,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(self._syn.get_synoptic_schema())
             elif reason == "BUMPSTRIP_AVAILABLE":
                 value = compress_and_hex(self.bumpstrip)
+            elif reason == "BANNER_DESCRIPTION":
+                value = compress_and_hex(self.banner.get_description())
             else:
                 value = self.getParam(reason)
         except Exception as err:

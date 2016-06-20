@@ -33,14 +33,6 @@ class TestBannerSequence(unittest.TestCase):
         except:
             self.fail("Invalid JSON received")
 
-    def test_set_value_and_read_it_back(self):
-        banner = Banner()
-        item = dict()
-        item["type"] = "bool_str"
-        banner.add_item(item)
-        ans = json.loads(banner.get_description())[0]["type"]
-        self.assertEquals("bool_str", ans)
-
     def test_bool_str_constructor_sets_name_and_pv(self):
         bool_str = BoolStr("test_name", "INSTR:TEST:PV")
         self.assertEqual("test_name", bool_str.get_name())
@@ -151,10 +143,22 @@ class TestBannerSequence(unittest.TestCase):
         bool_str.set_true_state(t_state)
         bool_str.set_false_state(f_state)
         banner = Banner()
-        banner.add_item(bool_str.get_description())
+        banner.add_item(bool_str)
         self.assertEquals(list(), json.loads(banner.get_description()))
 
-
+    def test_add_to_banner_and_get_json_description_is_correct_if_bool_str_is_valid(self):
+        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        t_state = {"colour": "true_red", "message": "true"}
+        f_state = {"colour": "false_red", "message": "false"}
+        u_state = {"colour": "unknown_red", "message": "unknown"}
+        bool_str.set_true_state(t_state)
+        bool_str.set_false_state(f_state)
+        bool_str.set_unknown_state(u_state)
+        banner = Banner()
+        banner.add_item(bool_str)
+        ans = json.loads(banner.get_description())
+        self.assertEquals(1, len(ans))
+        self.assertEquals("true_red", ans[0]["true_state"]["colour"])
 
 if __name__ == '__main__':
     # Run tests
