@@ -27,6 +27,9 @@ from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from xml.dom import minidom
 
+
+BLOCKSERVER = "BLOCKSERVER:"
+
 CONFIG_PATH = os.path.join(os.getcwd(),"test_configs")
 BASE_PATH = "example_base"
 SCREENS_FILE = "screens.xml"
@@ -82,6 +85,8 @@ SCHEMA_PATH = os.path.abspath(os.path.join(".", "..","schema"))
 def get_expected_devices_file_path():
     return os.path.join(FILEPATH_MANAGER.get_config_path(BASE_PATH),SCREENS_FILE)
 
+def prepend_blockserver(base_name):
+    return BLOCKSERVER + base_name
 
 class TestDevicesManagerSequence(unittest.TestCase):
     def setUp(self):
@@ -133,18 +138,19 @@ class TestDevicesManagerSequence(unittest.TestCase):
     def test_when_config_file_does_not_exist_then_load_current_uses_blank_devices_data(self):
         #Arrange
         self.dm.set_current_config_name("DOES_NOT_EXIST")
+        pv_key = prepend_blockserver("GET_SCREENS")
 
         #Act
         self.dm.load_current()
 
         #Assert
-        self.assertEquals(self.dm._cas.pv_list["GET_SCREENS"],compress_and_hex(self.dm.get_blank_devices()))
+        self.assertEquals(self.dm._cas.pv_list[pv_key],compress_and_hex(self.dm.get_blank_devices()))
 
 
     def test_loading_config_file_creates_a_pv_in_the_ca_server_with_correct_key(self):
         # Arrange
         self.dm.set_current_config_name(BASE_PATH)
-        expected_key = "GET_SCREENS"
+        expected_key = prepend_blockserver("GET_SCREENS")
         self.assertFalse(self.cas.pv_list.has_key(expected_key))
 
         # Act
@@ -156,7 +162,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
     def test_loading_config_file_creates_a_pv_in_the_ca_server_with_correct_data(self):
         # Arrange
         self.dm.set_current_config_name(BASE_PATH)
-        pv_key = "GET_SCREENS"
+        pv_key = prepend_blockserver("GET_SCREENS")
 
         devices_file_name = get_expected_devices_file_path()
         with open(devices_file_name, 'r') as devfile:
@@ -198,12 +204,13 @@ class TestDevicesManagerSequence(unittest.TestCase):
     def test_save_devices_xml_creates_get_screens_pv(self):
         self.dm.set_current_config_name(BASE_PATH)
         devices_file_name = get_expected_devices_file_path()
+        expected_key = prepend_blockserver("GET_SCREENS")
 
         # Act: Save the new data to file
         self.dm.save_devices_xml(EXAMPLE_DEVICES)
 
         # Assert
-        self.assertTrue(self.cas.pv_list.has_key("GET_SCREENS"))
+        self.assertTrue(self.cas.pv_list.has_key(expected_key))
 
     def test_save_devices_xml_creates_pv_with_prettified_input_data(self):
         self.dm.set_current_config_name(BASE_PATH)

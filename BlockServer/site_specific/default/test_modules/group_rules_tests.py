@@ -20,8 +20,11 @@ import json
 import re
 from server_common.utilities import dehex_and_decompress
 
+BLOCKSERVER = "BLOCKSERVER:"
 GROUP_RULES_PV_NAME = "GROUP_RULES"
 
+def prepend_blockserver(base_name):
+    return BLOCKSERVER + base_name
 
 class TestGroupRulesSequence(unittest.TestCase):
     """ Unit tests for block rules, note that changes here may have to be propagated to clients """
@@ -38,7 +41,7 @@ class TestGroupRulesSequence(unittest.TestCase):
         return re.compile(regex_string)
 
     def test_block_rules_pv(self):
-        self.assertTrue(GROUP_RULES_PV_NAME in self.cas.pv_list)
+        self.assertTrue(prepend_blockserver(GROUP_RULES_PV_NAME) in self.cas.pv_list)
 
     def test_disallowed_in_json(self):
         self.assertTrue("disallowed" in self.get_block_rules_json())

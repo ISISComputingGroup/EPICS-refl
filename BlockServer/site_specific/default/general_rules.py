@@ -19,6 +19,7 @@ Set of shared utilities and constants for rules
 """
 
 from server_common.utilities import compress_and_hex
+from BlockServer.core.macros import BLOCKSERVER
 import json
 
 """Standard Regex in Java for PV like names,
@@ -56,7 +57,7 @@ class GroupRules(object):
         data = {"disallowed": DISALLOWED_NAMES,
                 "regex": REGEX_PV_NAME_LIKE,
                 "regexMessage": GROUP_REGEX_ERROR_MESSAGE}
-        self._cas.updatePV(GROUP_RULES_PV, compress_and_hex(json.dumps(data)))
+        self._cas.updatePV(BLOCKSERVER + GROUP_RULES_PV, compress_and_hex(json.dumps(data)))
 
 
 class ConfigurationDescriptionRules(object):
@@ -75,4 +76,4 @@ class ConfigurationDescriptionRules(object):
         data = {"disallowed": DISALLOWED_NAMES,
                 "regex": REGEX_PV_NAME_LIKE_WITH_SPACE,
                 "regexMessage": CONFIG_DESC_REGEX_ERROR_MESSAGE}
-        self._cas.updatePV(CONFIG_DESC_RULES_PV, compress_and_hex(json.dumps(data)))
+        self._cas.updatePV(BLOCKSERVER + CONFIG_DESC_RULES_PV, compress_and_hex(json.dumps(data)))
