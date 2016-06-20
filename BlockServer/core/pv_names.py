@@ -86,3 +86,13 @@ class SynopticsPVNames:
     SYNOPTICS_SET_DETAILS = prepend_synoptics.__func__('SET_DETAILS')
     SYNOPTICS_DELETE = prepend_synoptics.__func__('DELETE')
     SYNOPTICS_SCHEMA = prepend_synoptics.__func__('SCHEMA')
+
+    @staticmethod
+    def get_synoptic_get_pv(pv_key):
+        SYNOPTIC_GET = ":GET"
+        return  SynopticsPVNames.prepend_synoptics(pv_key + SYNOPTIC_GET)
+
+    @staticmethod
+    def get_synoptic_set_pv(pv_key):
+        SYNOPTIC_SET = ":SET"
+        return SynopticsPVNames.prepend_synoptics(pv_key + SYNOPTIC_SET)

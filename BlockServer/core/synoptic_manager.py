@@ -19,12 +19,11 @@ from server_common.utilities import print_and_log, compress_and_hex, check_pv_na
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from BlockServer.core.pv_names import SynopticsPVNames
 from xml.dom import minidom
 from lxml import etree
 
-SYNOPTIC_PRE = "SYNOPTICS:"
-SYNOPTIC_GET = ":GET"
-SYNOPTIC_SET = ":SET"
+
 SYNOPTIC_SCHEMA = "synoptic.xsd"
 
 
@@ -91,7 +90,7 @@ class SynopticManager(object):
             self._synoptic_pvs[name] = pv
 
         # Create the PV
-        self._cas.updatePV(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(data))
+        self._cas.updatePV(SynopticsPVNames.get_synoptic_get_pv(self._synoptic_pvs[name]), compress_and_hex(data))
 
     def get_synoptic_list(self):
         """Gets the names and associated pvs of the synoptic files in the synoptics directory.
@@ -211,7 +210,7 @@ class SynopticManager(object):
         if not delete_list.issubset(self._synoptic_pvs.keys()):
             raise InvalidDeleteException("Delete list contains unknown configurations")
         for synoptic in delete_list:
-            self._cas.deletePV(SYNOPTIC_PRE + self._synoptic_pvs[synoptic] + SYNOPTIC_GET)
+            self._cas.deletePV(SynopticsPVNames.get_synoptic_get_pv(self._synoptic_pvs[synoptic]))
             del self._synoptic_pvs[synoptic]
         self._update_version_control_post_delete(delete_list)  # Git is case sensitive
 
@@ -236,7 +235,7 @@ class SynopticManager(object):
 
         names = self._synoptic_pvs.keys()
         if name in names:
-            self._cas.updatePV(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(xml_data))
+            self._cas.updatePV(SynopticsPVNames.get_synoptic_get_pv(self._synoptic_pvs[name]), compress_and_hex(xml_data))
         else:
             self._create_pv(xml_data)
 
