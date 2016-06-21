@@ -27,10 +27,6 @@ from server_common.utilities import print_and_log, compress_and_hex, create_pv_n
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.pv_names import BlockserverPVNames
-from BlockServer.core.macros import BLOCKSERVER
-
-
-CONFIG_CHANGED_PV = "CURR_CONFIG_CHANGED"
 
 
 class InvalidDeleteException(Exception):
@@ -96,7 +92,7 @@ class ConfigListManager(object):
             value (bool): Whether the active configuration has changed or not
         """
         self._active_changed = value
-        self._ca_server.updatePV(BLOCKSERVER + CONFIG_CHANGED_PV, self.get_active_changed())
+        self._ca_server.updatePV(BlockserverPVNames.CURR_CONFIG_CHANGED, self.get_active_changed())
 
     def _get_config_names(self):
         return self._get_file_list(os.path.abspath(self._conf_path))
