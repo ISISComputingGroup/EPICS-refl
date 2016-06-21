@@ -30,7 +30,7 @@ from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.macros import BLOCKSERVER
 
 
-CONFIG_CHANGED_PV = ":CURR_CONFIG_CHANGED"
+CONFIG_CHANGED_PV = "CURR_CONFIG_CHANGED"
 
 
 class InvalidDeleteException(Exception):
