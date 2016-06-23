@@ -18,7 +18,7 @@ import os
 import json
 
 from server_common.utilities import print_and_log
-from BlockServer.core.macros import BLOCKSERVER_PREFIX, BLOCK_PREFIX, MACROS
+from BlockServer.core.macros import BLOCK_PREFIX, MACROS
 from BlockServer.core.config_holder import ConfigHolder
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 

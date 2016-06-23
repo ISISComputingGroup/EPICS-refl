@@ -15,6 +15,7 @@
 #http://opensource.org/licenses/eclipse-1.0.php
 
 from server_common.mocks.mock_ca_server import MockCAServer
+from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.site_specific.default.block_rules import BlockRules
 import unittest
 import json
@@ -30,14 +31,14 @@ class TestBlockRulesSequence(unittest.TestCase):
         self.block_rules = BlockRules(self.cas)
 
     def get_block_rules_json(self):
-        return json.loads(dehex_and_decompress(self.cas.pv_list.get("BLOCK_RULES")))
+        return json.loads(dehex_and_decompress(self.cas.pv_list.get(BlockserverPVNames.BLOCK_RULES)))
 
     def get_regex(self):
         regex_string = self.get_block_rules_json().get("regex")
         return re.compile(regex_string)
 
     def test_block_rules_pv(self):
-        self.assertTrue("BLOCK_RULES" in self.cas.pv_list)
+        self.assertTrue(BlockserverPVNames.BLOCK_RULES in self.cas.pv_list)
 
     def test_disallowed_in_json(self):
         self.assertTrue("disallowed" in self.get_block_rules_json())

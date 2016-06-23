@@ -19,6 +19,7 @@ Set of shared utilities and constants for rules
 """
 
 from server_common.utilities import compress_and_hex
+from BlockServer.core.pv_names import BlockserverPVNames
 import json
 
 """Standard Regex in Java for PV like names,
@@ -34,10 +35,7 @@ REGEX_ERROR_TEMPLATE_PV_NAME_WITH_SPACE = "{0} must start with a letter and only
 
 DISALLOWED_NAMES = ["lowlimit", "highlimit", "runcontrol", "wait"]
 GROUP_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME.format("Group name")
-GROUP_RULES_PV = "GROUP_RULES"
-
 CONFIG_DESC_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME_WITH_SPACE.format("Configuration description")
-CONFIG_DESC_RULES_PV = "CONF_DESC_RULES"
 
 
 class GroupRules(object):
@@ -56,7 +54,7 @@ class GroupRules(object):
         data = {"disallowed": DISALLOWED_NAMES,
                 "regex": REGEX_PV_NAME_LIKE,
                 "regexMessage": GROUP_REGEX_ERROR_MESSAGE}
-        self._cas.updatePV(GROUP_RULES_PV, compress_and_hex(json.dumps(data)))
+        self._cas.updatePV(BlockserverPVNames.GROUP_RULES, compress_and_hex(json.dumps(data)))
 
 
 class ConfigurationDescriptionRules(object):
@@ -75,4 +73,4 @@ class ConfigurationDescriptionRules(object):
         data = {"disallowed": DISALLOWED_NAMES,
                 "regex": REGEX_PV_NAME_LIKE_WITH_SPACE,
                 "regexMessage": CONFIG_DESC_REGEX_ERROR_MESSAGE}
-        self._cas.updatePV(CONFIG_DESC_RULES_PV, compress_and_hex(json.dumps(data)))
+        self._cas.updatePV(BlockserverPVNames.CONF_DESC_RULES, compress_and_hex(json.dumps(data)))

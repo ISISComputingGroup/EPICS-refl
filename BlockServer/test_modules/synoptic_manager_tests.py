@@ -18,7 +18,8 @@ import unittest
 import os
 import shutil
 
-from BlockServer.core.synoptic_manager import SynopticManager, SYNOPTIC_PRE, SYNOPTIC_GET
+from BlockServer.core.synoptic_manager import SynopticManager
+from BlockServer.core.pv_names import SynopticsPVNames
 from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.mocks.mock_version_control import MockVersionControl
@@ -74,7 +75,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
         # Assert
         self.assertTrue(len(self.cas.pv_list) > 0)
-        self.assertTrue("%sSYNOPTIC1%s" % (SYNOPTIC_PRE, SYNOPTIC_GET) in self.cas.pv_list.keys())
+        self.assertTrue(SynopticsPVNames.get_synoptic_get_pv("SYNOPTIC1") in self.cas.pv_list.keys())
 
     def test_get_default_synoptic_xml_returns_nothing(self):
         # Arrange
@@ -117,7 +118,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
         # Assert
         self.assertTrue(len(self.cas.pv_list) > 0)
-        self.assertTrue("%sNEW_SYNOPTIC%s" % (SYNOPTIC_PRE, SYNOPTIC_GET) in self.cas.pv_list.keys())
+        self.assertTrue(SynopticsPVNames.get_synoptic_get_pv("NEW_SYNOPTIC") in self.cas.pv_list.keys())
 
     def test_delete_synoptics_empty(self):
         # Arrange

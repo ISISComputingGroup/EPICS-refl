@@ -14,13 +14,12 @@
 #https://www.eclipse.org/org/documents/epl-v10.php or 
 #http://opensource.org/licenses/eclipse-1.0.php
 from BlockServer.site_specific.default.general_rules import GroupRules
+from BlockServer.core.pv_names import BlockserverPVNames
 from server_common.mocks.mock_ca_server import MockCAServer
 import unittest
 import json
 import re
 from server_common.utilities import dehex_and_decompress
-
-GROUP_RULES_PV_NAME = "GROUP_RULES"
 
 
 class TestGroupRulesSequence(unittest.TestCase):
@@ -31,14 +30,15 @@ class TestGroupRulesSequence(unittest.TestCase):
         self.group_rules = GroupRules(self.cas)
 
     def get_block_rules_json(self):
-        return json.loads(dehex_and_decompress(self.cas.pv_list.get(GROUP_RULES_PV_NAME)))
+        pv_key = BlockserverPVNames.GROUP_RULES
+        return json.loads(dehex_and_decompress(self.cas.pv_list.get(pv_key)))
 
     def get_regex(self):
         regex_string = self.get_block_rules_json().get("regex")
         return re.compile(regex_string)
 
     def test_block_rules_pv(self):
-        self.assertTrue(GROUP_RULES_PV_NAME in self.cas.pv_list)
+        self.assertTrue(BlockserverPVNames.GROUP_RULES in self.cas.pv_list)
 
     def test_disallowed_in_json(self):
         self.assertTrue("disallowed" in self.get_block_rules_json())
