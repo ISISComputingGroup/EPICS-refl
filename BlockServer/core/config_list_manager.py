@@ -207,7 +207,7 @@ class ConfigListManager(object):
     def _update_config_pv(self, name, data):
         # Updates pvs with new data
         pv_name = BlockserverPVNames.get_config_details_pv(self._config_metas[name].pv)
-        self._update_pv_value(pv_name + GET_CONFIG_PV, compress_and_hex(json.dumps(data)))
+        self._update_pv_value(pv_name, compress_and_hex(json.dumps(data)))
 
     def _update_component_pv(self, name, data):
         # Updates pvs with new data

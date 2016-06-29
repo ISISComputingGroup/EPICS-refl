@@ -53,8 +53,8 @@ class GroupRules(object):
         self._create_pv()
 
     def _create_pv(self):
-        self._bs.add_string_pv_to_db(GROUP_RULES_PV, 16000)
-        self._bs.setParam(GROUP_RULES_PV, compress_and_hex(json.dumps(self.rules)))
+        self._bs.add_string_pv_to_db(BlockserverPVNames.GROUP_RULES, 16000)
+        self._bs.setParam(BlockserverPVNames.GROUP_RULES, compress_and_hex(json.dumps(self.rules)))
         self._bs.updatePVs()
 
 
@@ -73,7 +73,7 @@ class ConfigurationDescriptionRules(object):
         self._create_pv()
 
     def _create_pv(self):
-        self._bs.add_string_pv_to_db(CONFIG_DESC_RULES_PV, 16000)
-        self._bs.setParam(CONFIG_DESC_RULES_PV, compress_and_hex(json.dumps(self.rules)))
+        self._bs.add_string_pv_to_db(BlockserverPVNames.CONF_DESC_RULES, 16000)
+        self._bs.setParam(BlockserverPVNames.CONF_DESC_RULES, compress_and_hex(json.dumps(self.rules)))
         self._bs.updatePVs()
 
