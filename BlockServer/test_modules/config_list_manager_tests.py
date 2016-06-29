@@ -222,10 +222,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         confs = self.clm.get_configs()
 
         self.assertEqual(len(confs), 1)
-
+        print "HELLO", self.bs.get_confs()
         self.assertEqual(confs[0]["pv"], expected_pv_name)
         self.assertEqual(confs[0]["name"], config_name)
-
         self.assertTrue(self.bs.does_pv_exist(expected_pv_name + ":" + GET_CONFIG_PV))
         self.assertFalse(self.bs.does_pv_exist(config_name + ":" + GET_CONFIG_PV))
 

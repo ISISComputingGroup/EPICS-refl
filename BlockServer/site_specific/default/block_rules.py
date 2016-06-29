@@ -39,7 +39,7 @@ class BlockRules(object):
         self._create_pv()
 
     def _create_pv(self):
-        self._bs.add_string_pv_to_db(BLOCK_RULES_PV, 16000)
-        self._bs.setParam(BLOCK_RULES_PV, compress_and_hex(json.dumps(self.rules)))
+        self._bs.add_string_pv_to_db(BlockserverPVNames.BLOCK_RULES, 16000)
+        self._bs.setParam(BlockserverPVNames.BLOCK_RULES, compress_and_hex(json.dumps(self.rules)))
         self._bs.updatePVs()
 

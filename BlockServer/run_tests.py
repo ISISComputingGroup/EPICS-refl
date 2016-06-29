@@ -90,7 +90,6 @@ if __name__ == '__main__':
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(file_path_manager_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(devices_manager_suite).wasSuccessful())
 
-
     # Site specific tests
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(block_rules_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(runcontrol_suite).wasSuccessful())

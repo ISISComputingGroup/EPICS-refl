@@ -17,7 +17,6 @@
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.site_specific.default.general_rules import GroupRules
 from BlockServer.core.pv_names import BlockserverPVNames
-from server_common.mocks.mock_ca_server import MockCAServer
 import unittest
 import json
 import re
@@ -32,7 +31,7 @@ class TestGroupRulesSequence(unittest.TestCase):
         self.group_rules = GroupRules(self.bs)
 
     def get_block_rules_json(self):
-        return json.loads(dehex_and_decompress(self.bs.pvs["GROUP_RULES"]))
+        return json.loads(dehex_and_decompress(self.bs.pvs[BlockserverPVNames.GROUP_RULES]))
 
     def get_regex(self):
         regex_string = self.group_rules.rules["regex"]
