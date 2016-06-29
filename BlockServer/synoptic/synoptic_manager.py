@@ -16,11 +16,12 @@
 
 import os
 from xml.dom import minidom
-
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
+from BlockServer.core.pv_names import SynopticsPVNames
+from xml.dom import minidom
 from lxml import etree
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, \
     convert_to_json, convert_from_json
@@ -35,7 +36,6 @@ SYNOPTIC_BLANK = "__BLANK__"
 SYNOPTIC_SET_DETAILS = "SET_DETAILS"
 SYNOPTIC_DELETE = "DELETE"
 SYNOPTIC_SCHEMA = "SCHEMA"
-
 SYNOPTIC_SCHEMA_FILE = "synoptic.xsd"
 
 
@@ -110,8 +110,8 @@ class SynopticManager(OnTheFlyPvInterface):
             try:
                 with open(os.path.join(self._directory, f), 'r') as synfile:
                     data = synfile.read()
-                    ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA_FILE),
-                                                                             data)
+                    ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA_FILE),
+                                                                        data,"Synoptic")
                 # Get the synoptic name
                 self._create_pv(data)
 
@@ -218,8 +218,8 @@ class SynopticManager(OnTheFlyPvInterface):
         """
         try:
             # Check against schema
-            ConfigurationSchemaChecker.check_synoptic_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA_FILE),
-                                                                     xml_data)
+            ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA_FILE),
+                                                                xml_data,"Synoptic")
             # Update PVs
             self._create_pv(xml_data)
 

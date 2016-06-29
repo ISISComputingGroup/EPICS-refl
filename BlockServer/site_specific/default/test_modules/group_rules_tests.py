@@ -16,13 +16,12 @@
 
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.site_specific.default.general_rules import GroupRules
+from BlockServer.core.pv_names import BlockserverPVNames
 from server_common.mocks.mock_ca_server import MockCAServer
 import unittest
 import json
 import re
 from server_common.utilities import dehex_and_decompress
-
-GROUP_RULES_PV_NAME = "GROUP_RULES"
 
 
 class TestGroupRulesSequence(unittest.TestCase):

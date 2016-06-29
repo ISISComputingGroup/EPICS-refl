@@ -15,12 +15,13 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 from BlockServer.site_specific.default.general_rules import REGEX_PV_NAME_LIKE, REGEX_ERROR_TEMPLATE_PV_NAME
 from server_common.utilities import compress_and_hex
+from BlockServer.core.pv_names import BlockserverPVNames
+
 import json
 
 ALLOWED_BLOCK_NAME_REGEX = r"^[a-zA-Z]\w*$"
 DISALLOWED_BLOCK_NAMES = ["lowlimit", "highlimit", "runcontrol", "wait"]
 BLOCK_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME.format("Block name")
-BLOCK_RULES_PV = "BLOCK_RULES"
 
 
 class BlockRules(object):

@@ -18,7 +18,9 @@ import unittest
 import os
 import shutil
 
+
 from BlockServer.synoptic.synoptic_manager import SynopticManager, SYNOPTIC_PRE, SYNOPTIC_GET
+from BlockServer.core.pv_names import SynopticsPVNames
 from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.mocks.mock_version_control import MockVersionControl

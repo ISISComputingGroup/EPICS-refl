@@ -36,10 +36,12 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
     convert_to_json, convert_from_json
-from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
+from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX, BLOCKSERVER
+from BlockServer.core.pv_names import BlockserverPVNames, SynopticsPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.synoptic.synoptic_manager import SynopticManager
+from BlockServer.core.devices_manager import DevicesManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
@@ -56,117 +58,122 @@ from BlockServer.site_specific.default.general_rules import GroupRules, Configur
 
 # For documentation on these commands see the wiki
 PVDB = {
-    'BLOCKNAMES': {
+    BlockserverPVNames.BLOCKNAMES: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    'BLOCK_DETAILS': {
+    BlockserverPVNames.BLOCK_DETAILS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    'GROUPS': {
+    BlockserverPVNames.GROUPS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    'COMPS': {
+    BlockserverPVNames.COMPS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    'LOAD_CONFIG': {
+    BlockserverPVNames.LOAD_CONFIG: {
         'type': 'char',
         'count': 1000,
         'value': [0],
     },
-    'SAVE_CONFIG': {
+    BlockserverPVNames.SAVE_CONFIG: {
         'type': 'char',
         'count': 1000,
         'value': [0],
     },
-    'CLEAR_CONFIG': {
+    BlockserverPVNames.CLEAR_CONFIG: {
         'type': 'char',
         'count': 100,
         'value': [0],
     },
-    'START_IOCS': {
+    BlockserverPVNames.START_IOCS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    'STOP_IOCS': {
+    BlockserverPVNames.STOP_IOCS: {
         'type': 'char',
         'count': 1000,
         'value': [0],
     },
-    'RESTART_IOCS': {
+    BlockserverPVNames.RESTART_IOCS: {
         'type': 'char',
         'count': 1000,
         'value': [0],
     },
-    'CONFIGS': {
+    BlockserverPVNames.CONFIGS: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    'GET_CURR_CONFIG_DETAILS': {
+    BlockserverPVNames.GET_CURR_CONFIG_DETAILS: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    'SET_CURR_CONFIG_DETAILS': {
+    BlockserverPVNames.SET_CURR_CONFIG_DETAILS: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    'SAVE_NEW_CONFIG': {
+    BlockserverPVNames.SAVE_NEW_CONFIG: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    'SAVE_NEW_COMPONENT': {
+    BlockserverPVNames.SAVE_NEW_COMPONENT: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    'SERVER_STATUS': {
+    BlockserverPVNames.SERVER_STATUS: {
         'type': 'char',
         'count': 1000,
         'value': [0],
     },
-    'DELETE_CONFIGS': {
+    BlockserverPVNames.DELETE_CONFIGS: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    'DELETE_COMPONENTS': {
+    BlockserverPVNames.DELETE_COMPONENTS: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    'BLANK_CONFIG': {
+    BlockserverPVNames.BLANK_CONFIG: {
         'type': 'char',
         'count': 64000,
         'value': [0],
     },
-    'CURR_CONFIG_CHANGED': {
+    BlockserverPVNames.CURR_CONFIG_CHANGED: {
         'type': 'int'
     },
-    'ACK_CURR_CHANGED': {
+    BlockserverPVNames.ACK_CURR_CHANGED: {
         'type': 'int'
     },
-    'BUMPSTRIP_AVAILABLE': {
+    BlockserverPVNames.BUMPSTRIP_AVAILABLE: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
-    'BUMPSTRIP_AVAILABLE:SP': {
+    BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP: {
         'type': 'char',
         'count': 16000,
         'value': [0],
     },
+    BlockserverPVNames.SET_SCREENS: {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
+    }
 }
 
 
@@ -278,23 +285,23 @@ class BlockServer(Driver):
             If an Exception is thrown in the reading of the information this is returned in compressed and hexed JSON.
         """
         try:
-            if reason == 'GROUPS':
+            if reason == BlockserverPVNames.GROUPS:
                 grps = ConfigurationJsonConverter.groups_to_json(self._active_configserver.get_group_details())
                 value = compress_and_hex(grps)
-            elif reason == 'CONFIGS':
+            elif reason == BlockserverPVNames.CONFIGS:
                 value = compress_and_hex(convert_to_json(self._config_list.get_configs()))
-            elif reason == 'COMPS':
+            elif reason == BlockserverPVNames.COMPS:
                 value = compress_and_hex(convert_to_json(self._config_list.get_components()))
-            elif reason == "BLANK_CONFIG":
+            elif reason == BlockserverPVNames.BLANK_CONFIG:
                 js = convert_to_json(self.get_blank_config())
                 value = compress_and_hex(js)
-            elif reason == "BUMPSTRIP_AVAILABLE":
+            elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE:
                 value = compress_and_hex(self.bumpstrip)
             else:
                 # Check to see if it is a on-the-fly PV
-                for h in self.on_the_fly_handlers:
-                    if h.pv_exists(reason):
-                        return h.handle_pv_read(reason)
+                for handler in self.on_the_fly_handlers:
+                    if handler.pv_exists(reason):
+                        return handler.handle_pv_read(reason)
 
                 value = self.getParam(reason)
         except Exception as err:
@@ -318,40 +325,44 @@ class BlockServer(Driver):
         try:
             self._filewatcher.pause()
             data = dehex_and_decompress(value).strip('"')
-            if reason == 'LOAD_CONFIG':
+            if reason == BlockserverPVNames.LOAD_CONFIG:
                 with self.write_lock:
                     self.write_queue.append((self.load_config, (data,), "LOADING_CONFIG"))
-            elif reason == 'SAVE_CONFIG':
+            elif reason == BlockserverPVNames.SAVE_CONFIG:
                 with self.write_lock:
                     self.write_queue.append((self.save_active_config, (data,), "SAVING_CONFIG"))
-            elif reason == 'CLEAR_CONFIG':
+            elif reason == BlockserverPVNames.CLEAR_CONFIG:
                 self._active_configserver.clear_config()
                 self._initialise_config()
-            elif reason == 'START_IOCS':
+            elif reason == BlockserverPVNames.START_IOCS:
                 with self.write_lock:
                     self.write_queue.append((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
-            elif reason == 'STOP_IOCS':
+            elif reason == BlockserverPVNames.STOP_IOCS:
                 self._ioc_control.stop_iocs(convert_from_json(data))
-            elif reason == 'RESTART_IOCS':
+            elif reason == BlockserverPVNames.RESTART_IOCS:
                 with self.write_lock:
                     self.write_queue.append((self._ioc_control.restart_iocs, (convert_from_json(data),),
                                              "RESTART_IOCS"))
-            elif reason == 'SET_CURR_CONFIG_DETAILS':
+            elif reason == BlockserverPVNames.SET_CURR_CONFIG_DETAILS:
                 with self.write_lock:
                     self.write_queue.append((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
-            elif reason == 'SAVE_NEW_CONFIG':
-                self.save_inactive_config(data)
-            elif reason == 'SAVE_NEW_COMPONENT':
-                self.save_inactive_config(data, True)
-            elif reason == 'DELETE_CONFIGS':
+            elif reason == BlockserverPVNames.SAVE_NEW_CONFIG:
+                with self.write_lock:
+                    self.write_queue.append((self.save_inactive_config, (data,), "SAVING_NEW_CONFIG"))
+            elif reason == BlockserverPVNames.SAVE_NEW_COMPONENT:
+                with self.write_lock:
+                    self.write_queue.append((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
+            elif reason == BlockserverPVNames.DELETE_CONFIGS:
                 self._config_list.delete_configs(convert_from_json(data))
-            elif reason == 'DELETE_COMPONENTS':
+            elif reason == BlockserverPVNames.DELETE_COMPONENTS:
                 self._config_list.delete_configs(convert_from_json(data), True)
-            elif reason == 'ACK_CURR_CHANGED':
+            elif reason == BlockserverPVNames.ACK_CURR_CHANGED:
                 self._config_list.set_active_changed(False)
-            elif reason == "BUMPSTRIP_AVAILABLE:SP":
+            elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP:
                 self.bumpstrip = data
                 self.update_bumpstrip_availability()
+            elif reason == BlockserverPVNames.SET_SCREENS:
+                self._devices.save_devices_xml(data)
             else:
                 status = False
                 # Check to see if it is a on-the-fly PV
@@ -434,6 +445,10 @@ class BlockServer(Driver):
         if self._block_cache is not None:
             print_and_log("Restarting block cache...")
             self._block_cache.restart()
+
+        # Set current config file name in Devices Manager
+        self._devices.set_current_config_name(self._active_configserver.get_config_name())
+        self._devices.load_current()
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
@@ -526,6 +541,8 @@ class BlockServer(Driver):
                 inactive.save_inactive(as_comp=True)
                 self._config_list.update_a_config_in_list(inactive, True)
             print_and_log("Saved")
+        except Exception as err:
+            print_and_log("Problem occurred saving configuration: %s" % err)
         finally:
             self._filewatcher.resume()
 
@@ -571,6 +588,8 @@ class BlockServer(Driver):
 
             self._active_configserver.save_active(name)
             self._config_list.update_a_config_in_list(self._active_configserver)
+        except Exception as err:
+            print_and_log("Problem occurred saving configuration: %s" % err)
         finally:
             self._filewatcher.resume()
 
@@ -580,11 +599,11 @@ class BlockServer(Driver):
         with self.monitor_lock:
             # Blocks
             bn = convert_to_json(self._active_configserver.get_blocknames())
-            self.setParam("BLOCKNAMES", compress_and_hex(bn))
+            self.setParam(BlockserverPVNames.BLOCKNAMES, compress_and_hex(bn))
             # Groups
             # Update the PV, so that groupings are updated for any CA monitors
             grps = ConfigurationJsonConverter.groups_to_json(self._active_configserver.get_group_details())
-            self.setParam("GROUPS", compress_and_hex(grps))
+            self.setParam(BlockserverPVNames.GROUPS, compress_and_hex(grps))
             # Update them
             self.updatePVs()
 
@@ -598,7 +617,7 @@ class BlockServer(Driver):
             d = dict()
             d['status'] = status
             with self.monitor_lock:
-                self.setParam("SERVER_STATUS", compress_and_hex(convert_to_json(d)))
+                self.setParam(BlockserverPVNames.SERVER_STATUS, compress_and_hex(convert_to_json(d)))
                 self.updatePVs()
 
     def update_get_details_monitors(self):
@@ -607,7 +626,7 @@ class BlockServer(Driver):
         self._config_list.set_active_changed(False)
         with self.monitor_lock:
             js = convert_to_json(self._active_configserver.get_config_details())
-            self.setParam("GET_CURR_CONFIG_DETAILS", compress_and_hex(js))
+            self.setParam(BlockserverPVNames.GET_CURR_CONFIG_DETAILS, compress_and_hex(js))
             self.updatePVs()
 
     def update_bumpstrip_availability(self):
@@ -615,7 +634,7 @@ class BlockServer(Driver):
             """
             with self.monitor_lock:
                 # set the available configs
-                self.setParam("BUMPSTRIP_AVAILABLE", compress_and_hex(self.bumpstrip))
+                self.setParam(BlockserverPVNames.BUMPSTRIP_AVAILABLE, compress_and_hex(self.bumpstrip))
                 # Update them
                 self.updatePVs()
 
@@ -708,8 +727,8 @@ if __name__ == '__main__':
                         help='The directory from which to load the configuration schema (default=current directory)')
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration options(default=current directory)')
-    parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:BLOCKSERVER:'],
-                        help='The prefix for the blocks gateway (default='+MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:BLOCKSERVER:)')
+    parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:'+BLOCKSERVER],
+                        help='The prefix for the blocks gateway (default='+MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:'+BLOCKSERVER+')')
     parser.add_argument('-pv', '--pvlist_name', nargs=1, type=str, default=['gwblock.pvlist'],
                         help='The filename for the pvlist file used by the blocks gateway (default=gwblock.pvlist)')
     parser.add_argument('-au', '--archive_uploader', nargs=1,
@@ -750,7 +769,6 @@ if __name__ == '__main__':
     PVLIST_FILE = args.pvlist_name[0]
 
     print_and_log("BLOCKSERVER PREFIX = %s" % BLOCKSERVER_PREFIX)
-    #SERVER = CAServer(BLOCKSERVER_PREFIX)
     SERVER = SimpleServer()
     SERVER.createPV(BLOCKSERVER_PREFIX, PVDB)
     DRIVER = BlockServer(SERVER)

@@ -19,6 +19,7 @@ Set of shared utilities and constants for rules
 """
 
 from server_common.utilities import compress_and_hex
+from BlockServer.core.pv_names import BlockserverPVNames
 import json
 
 """Standard Regex in Java for PV like names,
@@ -34,10 +35,7 @@ REGEX_ERROR_TEMPLATE_PV_NAME_WITH_SPACE = "{0} must start with a letter and only
 
 DISALLOWED_NAMES = ["lowlimit", "highlimit", "runcontrol", "wait"]
 GROUP_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME.format("Group name")
-GROUP_RULES_PV = "GROUP_RULES"
-
 CONFIG_DESC_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME_WITH_SPACE.format("Configuration description")
-CONFIG_DESC_RULES_PV = "CONF_DESC_RULES"
 
 
 class GroupRules(object):
@@ -78,3 +76,4 @@ class ConfigurationDescriptionRules(object):
         self._bs.add_string_pv_to_db(CONFIG_DESC_RULES_PV, 16000)
         self._bs.setParam(CONFIG_DESC_RULES_PV, compress_and_hex(json.dumps(self.rules)))
         self._bs.updatePVs()
+
