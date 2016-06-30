@@ -273,7 +273,7 @@ class BlockServer(Driver):
         self._devices = DevicesManager(self, ca_server, SCHEMA_DIR, self._vc)
 
         # Create banner object
-        bool_str = BoolStr("bumpstrip", "INSTR:TEST:PV")
+        bool_str = BoolStr("bumpstrip", "MOT:BUMP_STOP")
         t_state = {"colour": "GREEN", "message": "true"}
         f_state = {"colour": "RED", "message": "false"}
         u_state = {"colour": "RED", "message": "unknown"}
