@@ -23,14 +23,27 @@ class OnTheFlyPvInterface(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def pv_exists(self, pv):
-        """ Checks whether the PV is handled by this class.
+    def read_pv_exists(self, pv):
+        """ Checks whether the read PV is handled by this class.
+        If the read PV is handled by a monitor then this MUST return False
 
         Args:
             pv (string): The PV name
 
         Returns:
-            bool: Whether the PV exists
+            bool: Whether the PV exists for reading
+        """
+        pass
+
+    @abstractmethod
+    def write_pv_exists(self, pv):
+        """ Checks whether the write PV is handled by this class.
+
+        Args:
+            pv (string): The PV name
+
+        Returns:
+            bool: Whether the PV exists for writing
         """
         pass
 

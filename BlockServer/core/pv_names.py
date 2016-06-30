@@ -41,9 +41,6 @@ class BlockserverPVNames:
     STOP_IOCS = prepend_blockserver.__func__('STOP_IOCS')
     RESTART_IOCS = prepend_blockserver.__func__('RESTART_IOCS')
     CONFIGS = prepend_blockserver.__func__('CONFIGS')
-    GET_RC_OUT = prepend_blockserver.__func__('GET_RC_OUT')
-    GET_RC_PARS = prepend_blockserver.__func__('GET_RC_PARS')
-    SET_RC_PARS = prepend_blockserver.__func__('SET_RC_PARS')
     GET_CURR_CONFIG_DETAILS = prepend_blockserver.__func__('GET_CURR_CONFIG_DETAILS')
     SET_CURR_CONFIG_DETAILS = prepend_blockserver.__func__('SET_CURR_CONFIG_DETAILS')
     SAVE_NEW_CONFIG = prepend_blockserver.__func__('SAVE_NEW_CONFIG')
@@ -56,8 +53,6 @@ class BlockserverPVNames:
     ACK_CURR_CHANGED = prepend_blockserver.__func__('ACK_CURR_CHANGED')
     BUMPSTRIP_AVAILABLE = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE')
     BUMPSTRIP_AVAILABLE_SP = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE:SP')
-    GET_SCREENS = prepend_blockserver.__func__('GET_SCREENS')
-    SET_SCREENS = prepend_blockserver.__func__('SET_SCREENS')
 
     @staticmethod
     def get_config_details_pv(pv_key):
@@ -73,29 +68,3 @@ class BlockserverPVNames:
     def get_dependencies_pv(pv_key):
         DEPENDENCIES = ":DEPENDENCIES"
         return BlockserverPVNames.prepend_blockserver(pv_key + DEPENDENCIES)
-
-
-class SynopticsPVNames:
-    """Holds and manages the synoptic PV names
-    """
-
-    @staticmethod
-    def prepend_synoptics(base_name):
-        return "SYNOPTICS:" + base_name
-
-    SYNOPTICS_NAMES = prepend_synoptics.__func__('NAMES')
-    SYNOPTICS_GET_DEFAULT = prepend_synoptics.__func__('GET_DEFAULT')
-    SYNOPTICS_BLANK_GET = prepend_synoptics.__func__('__BLANK__:GET')
-    SYNOPTICS_SET_DETAILS = prepend_synoptics.__func__('SET_DETAILS')
-    SYNOPTICS_DELETE = prepend_synoptics.__func__('DELETE')
-    SYNOPTICS_SCHEMA = prepend_synoptics.__func__('SCHEMA')
-
-    @staticmethod
-    def get_synoptic_get_pv(pv_key):
-        SYNOPTIC_GET = ":GET"
-        return  SynopticsPVNames.prepend_synoptics(pv_key + SYNOPTIC_GET)
-
-    @staticmethod
-    def get_synoptic_set_pv(pv_key):
-        SYNOPTIC_SET = ":SET"
-        return SynopticsPVNames.prepend_synoptics(pv_key + SYNOPTIC_SET)

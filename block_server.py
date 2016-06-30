@@ -18,10 +18,8 @@
 import os
 import sys
 
-
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRVC"]))
-
 
 # Standard imports
 from pcaspy import Driver, SimpleServer
@@ -37,11 +35,11 @@ from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
     convert_to_json, convert_from_json
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX, BLOCKSERVER
-from BlockServer.core.pv_names import BlockserverPVNames, SynopticsPVNames
+from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.synoptic.synoptic_manager import SynopticManager
-from BlockServer.core.devices_manager import DevicesManager
+from BlockServer.devices.devices_manager import DevicesManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
@@ -168,11 +166,6 @@ PVDB = {
         'type': 'char',
         'count': 16000,
         'value': [0],
-    },
-    BlockserverPVNames.SET_SCREENS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
     }
 }
 
@@ -202,6 +195,7 @@ class BlockServer(Driver):
         self._run_control = None
         self._block_cache = None
         self._syn = None
+        self._devices = None
         self._filewatcher = None
         self.on_the_fly_handlers = list()
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
@@ -255,9 +249,11 @@ class BlockServer(Driver):
 
         # Import all the synoptic data and create PVs
         self._syn = SynopticManager(self, SCHEMA_DIR, self._vc, self._active_configserver)
-
-        # These handle calls to set PVs that are created on the fly
         self.on_the_fly_handlers.append(self._syn)
+
+        # Import all the devices data and create PVs
+        self._devices = DevicesManager(self, SCHEMA_DIR, self._vc, self._active_configserver)
+        self.on_the_fly_handlers.append(self._devices)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
@@ -300,7 +296,7 @@ class BlockServer(Driver):
             else:
                 # Check to see if it is a on-the-fly PV
                 for handler in self.on_the_fly_handlers:
-                    if handler.pv_exists(reason):
+                    if handler.read_pv_exists(reason):
                         return handler.handle_pv_read(reason)
 
                 value = self.getParam(reason)
@@ -361,13 +357,11 @@ class BlockServer(Driver):
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP:
                 self.bumpstrip = data
                 self.update_bumpstrip_availability()
-            elif reason == BlockserverPVNames.SET_SCREENS:
-                self._devices.save_devices_xml(data)
             else:
                 status = False
                 # Check to see if it is a on-the-fly PV
                 for h in self.on_the_fly_handlers:
-                    if h.pv_exists(reason):
+                    if h.write_pv_exists(reason):
                         with self.write_lock:
                             self.write_queue.append((h.handle_pv_write, (reason, data), "SETTING_CONFIG"))
                         status = True
@@ -445,10 +439,6 @@ class BlockServer(Driver):
         if self._block_cache is not None:
             print_and_log("Restarting block cache...")
             self._block_cache.restart()
-
-        # Set current config file name in Devices Manager
-        self._devices.set_current_config_name(self._active_configserver.get_config_name())
-        self._devices.load_current()
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""

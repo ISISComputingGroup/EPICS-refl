@@ -20,53 +20,88 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema
 from BlockServer.core.constants import FILENAME_SCREENS as SCREENS_FILE
 from BlockServer.core.pv_names import BlockserverPVNames
+from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from xml.dom import minidom
 
 
 SCREENS_SCHEMA = "screens.xsd"
+GET_SCREENS = BlockserverPVNames.prepend_blockserver('GET_SCREENS')
+SET_SCREENS = BlockserverPVNames.prepend_blockserver('SET_SCREENS')
 
 
-class DevicesManager(object):
+class DevicesManager(OnTheFlyPvInterface):
     """Class for managing the PVs associated with devices"""
-    def __init__(self, block_server, cas, schema_folder, vc_manager):
+    def __init__(self, block_server, schema_folder, vc_manager, active_configholder):
         """Constructor.
 
         Args:
-            block_server (BlockServer): A reference to the BlockServer instance.
-            cas (CAServer): The channel access server for creating PVs on-the-fly
+            block_server (BlockServer): A reference to the BlockServer instance
             schema_folder (string): The filepath for the devices schema
             vc_manager (ConfigVersionControl): The manager to allow version control modifications
+            active_configholder (ActiveConfigHolder): A reference to the active configuration
         """
+        self._pvs_to_set = [SET_SCREENS]
         self._schema_folder = schema_folder
-        self._cas = cas
         self._devices_pvs = dict()
         self._vc = vc_manager
         self._bs = block_server
+        self._activech = active_configholder
         self._current_config = ""
+        self._data = ""
+        self._create_standard_pvs()
 
-    def load_current(self):
+    def _create_standard_pvs(self):
+        self._bs.add_string_pv_to_db(GET_SCREENS, 16000)
+        self._bs.add_string_pv_to_db(SET_SCREENS, 16000)
+
+    def read_pv_exists(self, pv):
+        # Reads are handled by the monitors
+        return False
+
+    def write_pv_exists(self, pv):
+        return pv in self._pvs_to_set
+
+    def handle_pv_write(self, pv, data):
+        if pv == SET_SCREENS:
+            self.save_devices_xml(data)
+            self.update_monitors()
+
+    def handle_pv_read(self, pv):
+        # Nothing to do as it is all handled by monitors
+        pass
+
+    def update_monitors(self):
+        with self._bs.monitor_lock:
+            print "UPDATING DEVICES MONITORS"
+            self._bs.setParam(GET_SCREENS, compress_and_hex(self._data))
+            self._bs.updatePVs()
+
+    def initialise(self, full_init=False):
+        # Get the config name
+        name = self._activech.get_config_name()
+        self._set_current_config_name(name)
+        self._load_current()
+        self.update_monitors()
+
+    def _load_current(self):
         """Create the PVs for all the devices found in the devices directory."""
 
         devices_file_name = None
         try:
             devices_file_name = self.get_devices_filename()
             with open(devices_file_name, 'r') as devfile:
-                data = devfile.read()
+                self._data = devfile.read()
         except IOError as err:
-            data = self.get_blank_devices()
-            print_and_log("Unable to load devices file. " + str(err) + ". The PV data will default to a blank set of devices.", "MINOR")
+            self._data = self.get_blank_devices()
+            print_and_log("Unable to load devices file. %s. The PV data will default to a blank set of devices." % err,
+                          "MINOR")
 
         try:
             ConfigurationSchemaChecker.check_xml_matches_schema(
                 os.path.join(self._schema_folder, SCREENS_SCHEMA),
-                data, "Screens")
+                self._data, "Screens")
         except ConfigurationInvalidUnderSchema as err:
             print_and_log(err)
-
-        try:
-            self._create_pv(data)
-        except Exception as err:
-            print_and_log("Error creating device PV: %s" % str(err), "MAJOR")
 
         if devices_file_name is not None:
             try:
@@ -75,15 +110,6 @@ class DevicesManager(object):
                 print_and_log("Unable to add new data to version control. " + str(err), "MINOR")
 
         self._vc.commit("Blockserver started, devices updated")
-
-    def _create_pv(self, data):
-        """Creates a single PV based on a name and data.
-
-        Args:
-            data (string): Starting data for the pv, the pv name is derived from the name tag of this
-        """
-        # Create the PV
-        self._cas.updatePV(BlockserverPVNames.GET_SCREENS, compress_and_hex(data))
 
     def get_devices_filename(self):
         """Gets the names of the devices files in the devices directory. Without the .xml extension.
@@ -95,7 +121,7 @@ class DevicesManager(object):
             raise IOError("Current devices file %s does not exist" % self._current_config)
         return self._current_config
 
-    def set_current_config_name(self, current_config_name):
+    def _set_current_config_name(self, current_config_name):
         """Sets the names of the current configuration file.
 
         Args:
@@ -117,7 +143,7 @@ class DevicesManager(object):
             ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SCREENS_SCHEMA),
                                                                 xml_data,"Screens")
             # Update PVs
-            self._create_pv(xml_data)
+            self.update_monitors()
 
         except Exception as err:
             print_and_log(err)
@@ -153,4 +179,3 @@ class DevicesManager(object):
         return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                 <devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
                 </devices>"""
-    

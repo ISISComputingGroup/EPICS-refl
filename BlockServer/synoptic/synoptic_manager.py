@@ -20,13 +20,14 @@ from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
-from BlockServer.core.pv_names import SynopticsPVNames
 from xml.dom import minidom
 from lxml import etree
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, \
     convert_to_json, convert_from_json
 
 
+# Synoptics PVs are of the form IN:DEMO:SYNOPTICS:XXXXX (no BLOCKSERVER in the name)
+# This is to allow longer synoptic names without exceeded the maximum allowed length for PVs
 SYNOPTIC_PRE = "SYNOPTICS:"
 SYNOPTIC_GET = ":GET"
 SYNOPTIC_SET = ":SET"
@@ -61,7 +62,11 @@ class SynopticManager(OnTheFlyPvInterface):
         self._create_standard_pvs()
         self._load_initial()
 
-    def pv_exists(self, pv):
+    def read_pv_exists(self, pv):
+        # Reads are handled by the monitors
+        return False
+
+    def write_pv_exists(self, pv):
         return pv in self._pvs_to_set
 
     def handle_pv_write(self, pv, data):
@@ -79,9 +84,9 @@ class SynopticManager(OnTheFlyPvInterface):
     def update_monitors(self):
         with self._bs.monitor_lock:
             print "UPDATING SYNOPTIC MONITORS"
-            self._bs.setParam("SYNOPTICS:GET_DEFAULT", compress_and_hex(self.get_default_synoptic_xml()))
+            self._bs.setParam(SYNOPTIC_PRE + SYNOPTIC_GET_DEFAULT, compress_and_hex(self.get_default_synoptic_xml()))
             names = convert_to_json(self.get_synoptic_list())
-            self._bs.setParam("SYNOPTICS:NAMES", compress_and_hex(names))
+            self._bs.setParam(SYNOPTIC_PRE + SYNOPTIC_NAMES, compress_and_hex(names))
             self._bs.updatePVs()
 
     def initialise(self, full_init=False):

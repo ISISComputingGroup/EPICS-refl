@@ -26,6 +26,7 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.constants import DEFAULT_COMPONENT
+from BlockServer.core.pv_names import BlockserverPVNames
 
 GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
 GET_COMPONENT_PV = ":GET_COMPONENT_DETAILS"
@@ -89,14 +90,15 @@ class ConfigListManager(object):
 
     def _update_pv_value(self, name, data):
         # First check PV exists if not create it
-        if not self._bs.does_pv_exist(name):
-            self._bs.add_string_pv_to_db(name, 16000)
+        fullname = BlockserverPVNames.prepend_blockserver(name)
+        if not self._bs.does_pv_exist(fullname):
+            self._bs.add_string_pv_to_db(fullname, 16000)
 
-        self._bs.setParam(name, data)
+        self._bs.setParam(fullname, data)
         self._bs.updatePVs()
 
     def _delete_pv(self, name):
-        self._bs.delete_pv_from_db(name)
+        self._bs.delete_pv_from_db(BlockserverPVNames.prepend_blockserver(name))
 
     def set_active_changed(self, value):
         """Set the flag to indicate whether the active configuration has changed or not.
@@ -367,8 +369,8 @@ class ConfigListManager(object):
         with self._bs.monitor_lock:
             print "UPDATING CONFIG LIST MONITORS"
             # Set the available configs
-            self._bs.setParam("CONFIGS", compress_and_hex(convert_to_json(self.get_configs())))
+            self._bs.setParam(BlockserverPVNames.CONFIGS, compress_and_hex(convert_to_json(self.get_configs())))
             # Set the available comps
-            self._bs.setParam("COMPS", compress_and_hex(convert_to_json(self.get_components())))
+            self._bs.setParam(BlockserverPVNames.COMPS, compress_and_hex(convert_to_json(self.get_components())))
             # Update them
             self._bs.updatePVs()

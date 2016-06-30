@@ -23,6 +23,7 @@ from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, \
     convert_to_json, convert_from_json
 from server_common.channel_access import ChannelAccess
+from BlockServer.core.pv_names import BlockserverPVNames
 
 
 TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
@@ -31,8 +32,8 @@ RUNCONTROL_SETTINGS = "rc_settings.cmd"
 AUTOSAVE_DIR = "autosave"
 RUNCONTROL_IOC = "RUNCTRL_01"
 
-RUNCONTROL_OUT_PV = 'GET_RC_OUT'
-RUNCONTROL_GET_PV = 'GET_RC_PARS'
+RUNCONTROL_OUT_PV = BlockserverPVNames.prepend_blockserver('GET_RC_OUT')
+RUNCONTROL_GET_PV = BlockserverPVNames.prepend_blockserver('GET_RC_PARS')
 
 
 class RunControlManager(OnTheFlyPvInterface):
@@ -59,17 +60,21 @@ class RunControlManager(OnTheFlyPvInterface):
         self._ioc_control = ioc_control
         self._active_configholder = active_configholder
         self._bs = block_server
-        self._pvs_to_set = [RUNCONTROL_GET_PV, RUNCONTROL_OUT_PV]
+        self._pvs_to_read = [RUNCONTROL_GET_PV, RUNCONTROL_OUT_PV]
         self._create_standard_pvs()
         self._channel_access = channel_access
         print "RUNCONTROL SETTINGS FILE: %s" % self._settings_file
         print "RUNCONTROL AUTOSAVE DIRECTORY: %s" % self._autosave_dir
         self._intialise_runcontrol_ioc()
 
-    def pv_exists(self, pv):
-        return pv in self._pvs_to_set
+    def read_pv_exists(self, pv):
+        return pv in self._pvs_to_read
+
+    def write_pv_exists(self, pv):
+        return False
 
     def handle_pv_write(self, pv, data):
+        # Nothing to write
         pass
 
     def handle_pv_read(self, pv):
