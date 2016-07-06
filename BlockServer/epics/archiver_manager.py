@@ -103,6 +103,5 @@ class ArchiverManager(object):
             name = eTree.SubElement(channel, 'name')
             name.text = block_prefix + block.name
             period = eTree.SubElement(channel, 'period')
-            period.text = str(datetime.timedelta(seconds=5))
-            monitor = eTree.SubElement(channel, 'monitor')
-            monitor.text = "0"
+            period.text = str(datetime.timedelta(seconds=300))
+            eTree.SubElement(channel, 'scan')
