@@ -217,6 +217,11 @@ PVDB = {
         'type': 'char',
         'count': 16000,
         'value': [0],
+    },
+    BlockserverPVNames.SCREENS_SCHEMA: {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
     }
 }
 
@@ -345,6 +350,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(self._syn.get_synoptic_schema())
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE:
                 value = compress_and_hex(self.bumpstrip)
+            elif reason == BlockserverPVNames.SCREENS_SCHEMA:
+                value = compress_and_hex(self._devices.get_devices_schema())
             else:
                 value = self.getParam(reason)
         except Exception as err:
