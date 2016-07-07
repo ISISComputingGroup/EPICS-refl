@@ -19,10 +19,11 @@ import os
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER, CONFIG_DIRECTORY, COMPONENT_DIRECTORY, \
     SYNOPTIC_DIRECTORY
 
+CONFIG_PATH = "./test_configs/"
 
 class TestFilePathManagerSequence(unittest.TestCase):
     def setUp(self):
-        self.path = os.path.abspath(os.getcwd())
+        self.path = os.path.abspath(CONFIG_PATH)
         FILEPATH_MANAGER.initialise(self.path)
 
     def test_config_root_dir_correct(self):
