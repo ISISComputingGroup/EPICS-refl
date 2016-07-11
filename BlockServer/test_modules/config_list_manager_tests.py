@@ -129,7 +129,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self._create_ic()
         ms = self.ms
 
-        self.assertEqual(len(ms.pv_list), 3)
+        self.assertEqual(len(ms.pv_list), 2)
         self.assertTrue(BlockserverPVNames.get_config_details_pv("TEST_CONFIG1") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_config_details_pv("TEST_CONFIG2") in ms.pv_list.keys())
         self.assertFalse(BlockserverPVNames.get_component_details_pv("TEST_CONFIG1") in ms.pv_list.keys())
@@ -140,7 +140,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self._create_ic()
         ms = self.ms
 
-        self.assertEqual(len(ms.pv_list), 5)
+        self.assertEqual(len(ms.pv_list), 4)
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT1") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT2") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_dependencies_pv("TEST_COMPONENT1") in ms.pv_list.keys())
@@ -275,7 +275,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(config_names), 2)
         self.assertTrue("TEST_CONFIG1" in config_names)
         self.assertTrue("TEST_CONFIG2" in config_names)
-        self.assertEqual(len(ms.pv_list), 3)
+        self.assertEqual(len(ms.pv_list), 2)
 
     def test_delete_components_empty(self):
         create_components(["TEST_COMPONENT1", "TEST_COMPONENT2"])
@@ -290,7 +290,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_COMPONENT1" in config_names)
         self.assertTrue("TEST_COMPONENT2" in config_names)
 
-        self.assertEqual(len(ms.pv_list), 5)
+        self.assertEqual(len(ms.pv_list), 4)
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT1") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_dependencies_pv("TEST_COMPONENT1") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT2") in ms.pv_list.keys())
@@ -387,7 +387,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(config_names), 1)
         self.assertTrue("TEST_CONFIG2" in config_names)
         self.assertFalse("TEST_CONFIG1" in config_names)
-        self.assertEqual(len(ms.pv_list), 2)
+        self.assertEqual(len(ms.pv_list), 1)
 
     def test_delete_one_component(self):
         create_components(["TEST_COMPONENT1", "TEST_COMPONENT2"])
@@ -401,7 +401,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(config_names), 1)
         self.assertTrue("TEST_COMPONENT2" in config_names)
         self.assertFalse("TEST_COMPONENT1" in config_names)
-        self.assertEqual(len(ms.pv_list), 3)
+        self.assertEqual(len(ms.pv_list), 2)
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT2") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_dependencies_pv("TEST_COMPONENT2") in ms.pv_list.keys())
 
@@ -424,7 +424,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_CONFIG2" in config_names)
         self.assertFalse("TEST_CONFIG1" in config_names)
         self.assertFalse("TEST_CONFIG3" in config_names)
-        self.assertEqual(len(ms.pv_list), 2)
+        self.assertEqual(len(ms.pv_list), 1)
 
     def test_delete_many_components(self):
         create_components(["TEST_COMPONENT1", "TEST_COMPONENT2", "TEST_COMPONENT3"])
@@ -445,7 +445,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_COMPONENT2" in config_names)
         self.assertFalse("TEST_COMPONENT1" in config_names)
         self.assertFalse("TEST_COMPONENT3" in config_names)
-        self.assertEqual(len(ms.pv_list), 3)
+        self.assertEqual(len(ms.pv_list), 2)
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT2") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_dependencies_pv("TEST_COMPONENT2") in ms.pv_list.keys())
 
@@ -482,7 +482,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
         config_names = [c["name"] for c in ic.get_configs()]
         self.assertEqual(len(config_names), 0)
-        self.assertEqual(len(ms.pv_list), 1)
+        self.assertEqual(len(ms.pv_list), 0)
 
     def test_cant_delete_non_existant_component(self):
         ms = self.ms
@@ -493,7 +493,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
         config_names = [c["name"] for c in ic.get_components()]
         self.assertEqual(len(config_names), 0)
-        self.assertEqual(len(ms.pv_list), 1)
+        self.assertEqual(len(ms.pv_list), 0)
 
     def test_delete_component_after_add_and_remove(self):
         create_components(["TEST_COMPONENT1", "TEST_COMPONENT2", "TEST_COMPONENT3"])
@@ -518,7 +518,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_COMPONENT3" in config_names)
         self.assertFalse("TEST_COMPONENT1" in config_names)
 
-        self.assertEqual(len(ms.pv_list), 6)
+        self.assertEqual(len(ms.pv_list), 5)
         self.assertTrue(BlockserverPVNames.get_config_details_pv("TEST_INACTIVE") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT2") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_dependencies_pv("TEST_COMPONENT2") in ms.pv_list.keys())
@@ -530,7 +530,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         ms = self.ms
         self._create_ic()
 
-        self.assertEqual(len(ms.pv_list), 3)
+        self.assertEqual(len(ms.pv_list), 2)
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT1") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_dependencies_pv("TEST_COMPONENT1") in ms.pv_list.keys())
 
@@ -547,7 +547,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         inactive.save_inactive("TEST_INACTIVE")
         ic.update_a_config_in_list(inactive)
 
-        self.assertEqual(len(ms.pv_list), 4)
+        self.assertEqual(len(ms.pv_list), 3)
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT1") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_dependencies_pv("TEST_COMPONENT1") in ms.pv_list.keys())
 
@@ -569,7 +569,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         inactive.save_inactive("TEST_INACTIVE", False)
         ic.update_a_config_in_list(inactive)
 
-        self.assertEqual(len(ms.pv_list), 4)
+        self.assertEqual(len(ms.pv_list), 3)
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT1") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_dependencies_pv("TEST_COMPONENT1") in ms.pv_list.keys())
 
@@ -589,7 +589,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
         ic.delete_configs(["TEST_INACTIVE"])
 
-        self.assertEqual(len(ms.pv_list), 3)
+        self.assertEqual(len(ms.pv_list), 2)
         self.assertTrue(BlockserverPVNames.get_component_details_pv("TEST_COMPONENT1") in ms.pv_list.keys())
         self.assertTrue(BlockserverPVNames.get_dependencies_pv("TEST_COMPONENT1") in ms.pv_list.keys())
 
@@ -615,8 +615,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(self.bs.get_comps()), 0)
         self.assertEqual(len(self.bs.get_confs()), 1)
         self.assertTrue("TEST_INACTIVE" in [x['name'] for x in self.bs.get_confs()])
-        self.assertEqual(ic.get_active_changed(), 0)
-        self.assertEqual(self.ms.pv_list[BlockserverPVNames.CURR_CONFIG_CHANGED], 0)
 
     def test_update_inactive_config_from_filewatcher(self):
         ic = self._create_ic()
@@ -629,8 +627,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(self.bs.get_comps()), 1)
         self.assertEqual(len(self.bs.get_confs()), 0)
         self.assertTrue("TEST_INACTIVE_COMP" in [x['name'] for x in self.bs.get_comps()])
-        self.assertEqual(ic.get_active_changed(), 0)
-        self.assertEqual(self.ms.pv_list[BlockserverPVNames.CURR_CONFIG_CHANGED], 0)
 
     def test_update_active_config_from_filewatcher(self):
         ic = self._create_ic()
@@ -646,8 +642,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(self.bs.get_comps()), 0)
         self.assertEqual(len(self.bs.get_confs()), 1)
         self.assertTrue("TEST_ACTIVE" in [x['name'] for x in self.bs.get_confs()])
-        self.assertEqual(ic.get_active_changed(), 1)
-        self.assertEqual(self.ms.pv_list[BlockserverPVNames.CURR_CONFIG_CHANGED], 1)
 
     def test_update_active_component_from_filewatcher(self):
         ic = self._create_ic()
@@ -665,8 +659,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(self.bs.get_comps()), 1)
         self.assertEqual(len(self.bs.get_confs()), 0)
         self.assertTrue("TEST_ACTIVE_COMP" in [x['name'] for x in self.bs.get_comps()])
-        self.assertEqual(ic.get_active_changed(), 1)
-        self.assertEqual(self.ms.pv_list[BlockserverPVNames.CURR_CONFIG_CHANGED], 1)
 
     def test_default_filtered(self):
         ic = self._create_ic()
@@ -675,4 +667,4 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         comps = ic.get_components()
         self.assertTrue(DEFAULT_COMPONENT not in comps)
 
-        self.assertEqual(len(ms.pv_list.keys()), 1)
+        self.assertEqual(len(ms.pv_list.keys()), 0)

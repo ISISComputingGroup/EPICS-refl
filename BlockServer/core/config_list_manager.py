@@ -61,7 +61,6 @@ class ConfigListManager(object):
         self._block_server = block_server
         self.active_config_name = ""
         self.active_components = []
-        self._active_changed = False
         self._lock = RLock()
         self._vc = vc_manager
 
@@ -69,30 +68,6 @@ class ConfigListManager(object):
         self._comp_path = FILEPATH_MANAGER.component_dir
 
         self._import_configs(schema_folder)
-
-        # Create the changed PV
-        self.set_active_changed(False)
-
-    def get_active_changed(self):
-        """Check to see if the active configuration has changed.
-
-        Returns:
-            int : 1 if it has changed otherwise 0
-        """
-        with self._lock:
-            if self._active_changed:
-                return 1
-            else:
-                return 0
-
-    def set_active_changed(self, value):
-        """Set the flag to indicate whether the active configuration has changed or not.
-
-        Args:
-            value (bool): Whether the active configuration has changed or not
-        """
-        self._active_changed = value
-        self._ca_server.updatePV(BlockserverPVNames.CURR_CONFIG_CHANGED, self.get_active_changed())
 
     def _get_config_names(self):
         return self._get_file_list(os.path.abspath(self._conf_path))
@@ -217,14 +192,12 @@ class ConfigListManager(object):
                 if config.get_config_name().lower() in [x.lower() for x in self.active_components]:
                     print_and_log("Active component edited in filesystem, reloading to get changes",
                                   src="FILEWTCHR")
-                    self.set_active_changed(True)
                     self._block_server.load_last_config()
             else:
                 self._block_server.update_config_monitors()
                 if config.get_config_name().lower() == self.active_config_name.lower():
                     print_and_log("Active config edited in filesystem, reload to receive changes",
                                   src="FILEWTCHR")
-                    self.set_active_changed(True)
 
     def update_a_config_in_list(self, config, is_component=False):
         """Takes a ConfigServerManager object and updates the list of meta data and the individual PVs.

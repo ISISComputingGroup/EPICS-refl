@@ -52,8 +52,6 @@ class BlockserverPVNames:
     DELETE_CONFIGS = prepend_blockserver.__func__('DELETE_CONFIGS')
     DELETE_COMPONENTS = prepend_blockserver.__func__('DELETE_COMPONENTS')
     BLANK_CONFIG = prepend_blockserver.__func__('BLANK_CONFIG')
-    CURR_CONFIG_CHANGED = prepend_blockserver.__func__('CURR_CONFIG_CHANGED')
-    ACK_CURR_CHANGED = prepend_blockserver.__func__('ACK_CURR_CHANGED')
     BUMPSTRIP_AVAILABLE = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE')
     BUMPSTRIP_AVAILABLE_SP = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE:SP')
     GET_SCREENS = prepend_blockserver.__func__('GET_SCREENS')

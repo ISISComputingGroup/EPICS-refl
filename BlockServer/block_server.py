@@ -167,12 +167,6 @@ PVDB = {
         'count': 64000,
         'value': [0],
     },
-    BlockserverPVNames.CURR_CONFIG_CHANGED: {
-        'type': 'int'
-    },
-    BlockserverPVNames.ACK_CURR_CHANGED: {
-        'type': 'int'
-    },
     SynopticsPVNames.SYNOPTICS_NAMES: {
         'type': 'char',
         'count': 16000,
@@ -411,8 +405,6 @@ class BlockServer(Driver):
             elif reason == BlockserverPVNames.DELETE_COMPONENTS:
                 self._config_list.delete_configs(convert_from_json(data), True)
                 self.update_comp_monitor()
-            elif reason == BlockserverPVNames.ACK_CURR_CHANGED:
-                self._config_list.set_active_changed(False)
             elif reason == SynopticsPVNames.SYNOPTICS_SET_DETAILS:
                 self._syn.save_synoptic_xml(data)
                 self.update_synoptic_monitor()
@@ -693,7 +685,6 @@ class BlockServer(Driver):
     def update_get_details_monitors(self):
         """Updates the monitor for the active configuration, so the clients can see any changes.
         """
-        self._config_list.set_active_changed(False)
         with self.monitor_lock:
             js = convert_to_json(self._active_configserver.get_config_details())
             self.setParam(BlockserverPVNames.GET_CURR_CONFIG_DETAILS, compress_and_hex(js))
