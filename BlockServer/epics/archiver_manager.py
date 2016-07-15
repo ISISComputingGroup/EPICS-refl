@@ -79,7 +79,8 @@ class ArchiverManager(object):
         f = os.path.abspath(self._uploader_path)
         if os.path.isfile(f):
             print_and_log("Running archiver settings uploader: %s" % f)
-            Popen(f)
+            p = Popen(f)
+            p.wait()
         else:
             print_and_log("Could not find specified archiver uploader batch file: %s" % self._uploader_path)
 
