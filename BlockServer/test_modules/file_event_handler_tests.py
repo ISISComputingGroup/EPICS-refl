@@ -20,7 +20,6 @@ import os
 import shutil
 
 from BlockServer.core.config_list_manager import ConfigListManager
-from server_common.mocks.mock_ca_server import MockCAServer
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
 from BlockServer.mocks.mock_version_control import MockVersionControl
@@ -41,8 +40,7 @@ class TestFileEventHandler(unittest.TestCase):
 
     def setUp(self):
         FILEPATH_MANAGER.initialise(TEST_DIRECTORY)
-        self.config_list = ConfigListManager(MockBlockServer, MockCAServer(), SCHEMA_DIR,
-                                             MockVersionControl())
+        self.config_list = ConfigListManager(MockBlockServer(), SCHEMA_DIR, MockVersionControl())
         self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list, False)
 
     def tearDown(self):

@@ -20,12 +20,11 @@ import shutil
 
 from server_common.utilities import compress_and_hex
 from BlockServer.core.constants import DEFAULT_COMPONENT
-from BlockServer.core.devices_manager import DevicesManager
-from server_common.mocks.mock_ca_server import MockCAServer
+from BlockServer.devices.devices_manager import DevicesManager, GET_SCREENS
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_block_server import MockBlockServer
+from BlockServer.mocks.mock_active_config_holder import MockActiveConfigHolder
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from BlockServer.core.pv_names import BlockserverPVNames
 from xml.dom import minidom
 
 
@@ -95,8 +94,9 @@ class TestDevicesManagerSequence(unittest.TestCase):
             shutil.rmtree(test_config_path)
         shutil.copytree(os.path.join(os.getcwd(),BASE_PATH), test_config_path)
 
-        self.cas = MockCAServer()
-        self.dm = DevicesManager(MockBlockServer(), self.cas, SCHEMA_PATH, MockVersionControl())
+        self.bs = MockBlockServer()
+        self.ach = MockActiveConfigHolder()
+        self.dm = DevicesManager(self.bs, SCHEMA_PATH, MockVersionControl(), self.ach)
 
     def tearDown(self):
         # Delete any configs created as part of the test
@@ -114,7 +114,8 @@ class TestDevicesManagerSequence(unittest.TestCase):
     def test_when_set_config_file_does_not_exist_then_get_devices_filename_raises_IOError(self):
         # Arrange
         non_existing_path = os.path.join("Non", "existing")
-        self.dm.set_current_config_name(non_existing_path)
+        self.ach.set_config_name(non_existing_path)
+        self.dm.initialise()
 
         # Act
         # Assert
@@ -123,7 +124,8 @@ class TestDevicesManagerSequence(unittest.TestCase):
 
     def test_when_config_file_is_set_then_get_devices_filename_returns_correct_file_name(self):
         # Arrange
-        self.dm.set_current_config_name(BASE_PATH)
+        self.ach.set_config_name(BASE_PATH)
+        self.dm.initialise()
         expected = get_expected_devices_file_path()
 
         # Act
@@ -132,34 +134,31 @@ class TestDevicesManagerSequence(unittest.TestCase):
         # Assert
         self.assertEquals(expected, result)
 
-    def test_when_config_file_does_not_exist_then_load_current_uses_blank_devices_data(self):
-        #Arrange
-        self.dm.set_current_config_name("DOES_NOT_EXIST")
-        pv_key = BlockserverPVNames.GET_SCREENS
+    def test_when_config_file_does_not_exist_then_current_uses_blank_devices_data(self):
+        # Arrange
+        self.ach.set_config_name("DOES_NOT_EXIST")
+        pv_key = GET_SCREENS
 
-        #Act
-        self.dm.load_current()
+        # Act
+        self.dm.initialise()
 
-        #Assert
-        self.assertEquals(self.dm._cas.pv_list[pv_key],compress_and_hex(self.dm.get_blank_devices()))
-
+        # Assert
+        self.assertEquals(self.bs.pvs[pv_key], compress_and_hex(self.dm.get_blank_devices()))
 
     def test_loading_config_file_creates_a_pv_in_the_ca_server_with_correct_key(self):
         # Arrange
-        self.dm.set_current_config_name(BASE_PATH)
-        expected_key = BlockserverPVNames.GET_SCREENS
-        self.assertFalse(self.cas.pv_list.has_key(expected_key))
-
-        # Act
-        self.dm.load_current()
+        self.ach.set_config_name(BASE_PATH)
+        self.dm.initialise()
+        expected_key = GET_SCREENS
 
         # Assert
-        self.assertTrue(self.cas.pv_list.has_key(expected_key))
+        self.assertTrue(expected_key in self.bs.pvs)
 
     def test_loading_config_file_creates_a_pv_in_the_ca_server_with_correct_data(self):
         # Arrange
-        self.dm.set_current_config_name(BASE_PATH)
-        pv_key = BlockserverPVNames.GET_SCREENS
+        self.ach.set_config_name(BASE_PATH)
+        self.dm.initialise()
+        pv_key = GET_SCREENS
 
         devices_file_name = get_expected_devices_file_path()
         with open(devices_file_name, 'r') as devfile:
@@ -167,14 +166,12 @@ class TestDevicesManagerSequence(unittest.TestCase):
 
         expected_data = compress_and_hex(data)
 
-        # Act
-        self.dm.load_current()
-
         # Assert
-        self.assertEquals(expected_data, self.cas.pv_list[pv_key])
+        self.assertEquals(expected_data, self.bs.pvs[pv_key])
 
     def test_given_invalid_devices_data_when_device_xml_saved_then_error(self):
-        self.dm.set_current_config_name(BASE_PATH)
+        self.ach.set_config_name(BASE_PATH)
+        self.dm.initialise()
         devices_file_name = get_expected_devices_file_path()
 
         # Act: Save the new data to file
@@ -182,7 +179,8 @@ class TestDevicesManagerSequence(unittest.TestCase):
             self.dm.save_devices_xml(INVALID_DEVICES)
 
     def test_given_new_xml_data_when_device_xml_saved_then_screens_file_contains_prettified_new_data(self):
-        self.dm.set_current_config_name(BASE_PATH)
+        self.ach.set_config_name(BASE_PATH)
+        self.dm.initialise()
         devices_file_name = get_expected_devices_file_path()
 
         # New data
@@ -199,18 +197,21 @@ class TestDevicesManagerSequence(unittest.TestCase):
         self.assertEquals(expected_data,result_data)
 
     def test_save_devices_xml_creates_get_screens_pv(self):
-        self.dm.set_current_config_name(BASE_PATH)
+        self.ach.set_config_name(BASE_PATH)
+        self.dm.initialise()
+
         devices_file_name = get_expected_devices_file_path()
-        expected_key = BlockserverPVNames.GET_SCREENS
+        expected_key = GET_SCREENS
 
         # Act: Save the new data to file
         self.dm.save_devices_xml(EXAMPLE_DEVICES)
 
         # Assert
-        self.assertTrue(self.cas.pv_list.has_key(expected_key))
+        self.assertTrue(expected_key in self.bs.pvs)
 
     def test_save_devices_xml_creates_pv_with_prettified_input_data(self):
-        self.dm.set_current_config_name(BASE_PATH)
+        self.ach.set_config_name(BASE_PATH)
+        self.dm.initialise()
         devices_file_name = get_expected_devices_file_path()
 
         # Arrange

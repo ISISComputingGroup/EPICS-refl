@@ -15,7 +15,7 @@
 #http://opensource.org/licenses/eclipse-1.0.php
 
 import time
-from server_common.channel_access import caget, caput
+from server_common.channel_access import ChannelAccess
 from server_common.utilities import print_and_log
 
 
@@ -52,7 +52,7 @@ class Gateway(object):
         Returns:
             bool : Whether the gateway is running and is accessible
         """
-        val = caget(self._prefix + "pvtotal")
+        val = ChannelAccess.caget(self._prefix + "pvtotal")
         if val is None:
             return False
         else:
@@ -62,9 +62,9 @@ class Gateway(object):
         print_and_log("Reloading gateway")
         try:
             # Have to wait after put as the gateway does not do completion callbacks (it is not an IOC)
-            caput(self._prefix + "newAsFlag", 1, False)
+            ChannelAccess.caput(self._prefix + "newAsFlag", 1, False)
 
-            while caget(self._prefix + "newAsFlag") == 1:
+            while ChannelAccess.caget(self._prefix + "newAsFlag") == 1:
                 time.sleep(1)
             print_and_log("Gateway reloaded")
         except Exception as err:

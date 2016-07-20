@@ -16,7 +16,7 @@
 
 from server_common.utilities import dehex_and_decompress
 import json
-from server_common.channel_access import caget
+from server_common.channel_access import ChannelAccess
 
 
 class DatabaseServerClient(object):
@@ -36,5 +36,5 @@ class DatabaseServerClient(object):
         Returns:
             list : A list of IOC names
         """
-        rawjson = dehex_and_decompress(caget(self._blockserver_prefix + "IOCS"))
+        rawjson = dehex_and_decompress(ChannelAccess.caget(self._blockserver_prefix + "IOCS"))
         return json.loads(rawjson).keys()

@@ -1,30 +1,28 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
 # Add root path for access to server_commons and path for version control module
 import os
 import sys
 
-
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRVC"]))
 
-
 # Standard imports
-from pcaspy import Driver
+from pcaspy import Driver, SimpleServer
 import argparse
 from threading import Thread, RLock
 from time import sleep
@@ -37,25 +35,26 @@ from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
     convert_to_json, convert_from_json
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX, BLOCKSERVER
-from BlockServer.core.pv_names import BlockserverPVNames, SynopticsPVNames
+from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
-from BlockServer.core.synoptic_manager import SynopticManager
-from BlockServer.core.devices_manager import DevicesManager
+from BlockServer.synoptic.synoptic_manager import SynopticManager
+from BlockServer.devices.devices_manager import DevicesManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.ioc_control import IocControl
 from BlockServer.core.database_server_client import DatabaseServerClient
-from BlockServer.core.runcontrol_manager import RunControlManager
+from BlockServer.runcontrol.runcontrol_manager import RunControlManager
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
+from pcaspy.driver import manager, Data
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
 
 
-# For documentation on these commands see the accompanying block_server.rst file
+# For documentation on these commands see the wiki
 PVDB = {
     BlockserverPVNames.BLOCKNAMES: {
         'type': 'char',
@@ -112,21 +111,6 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
-    BlockserverPVNames.GET_RC_OUT: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.GET_RC_PARS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.SET_RC_PARS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
     BlockserverPVNames.GET_CURR_CONFIG_DETAILS: {
         'type': 'char',
         'count': 64000,
@@ -167,36 +151,6 @@ PVDB = {
         'count': 64000,
         'value': [0],
     },
-    SynopticsPVNames.SYNOPTICS_NAMES: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    SynopticsPVNames.SYNOPTICS_GET_DEFAULT: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    SynopticsPVNames.SYNOPTICS_BLANK_GET: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    SynopticsPVNames.SYNOPTICS_SET_DETAILS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    SynopticsPVNames.SYNOPTICS_DELETE: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    SynopticsPVNames.SYNOPTICS_SCHEMA: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
     BlockserverPVNames.BUMPSTRIP_AVAILABLE: {
         'type': 'char',
         'count': 16000,
@@ -231,17 +185,29 @@ class BlockServer(Driver):
             ca_server (CAServer): The CA server used for generating PVs on the fly
         """
         super(BlockServer, self).__init__()
+
+        # Threading stuff
+        self.monitor_lock = RLock()
+        self.write_lock = RLock()
+        self.write_queue = list()
+
         FILEPATH_MANAGER.initialise(CONFIG_DIR)
 
+        self._cas = ca_server
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])
         self._active_configserver = None
+        self._run_control = None
         self._block_cache = None
+        self._syn = None
+        self._devices = None
+        self._filewatcher = None
+        self.on_the_fly_handlers = list()
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
         self.bumpstrip = "No"
-        self.block_rules = BlockRules(ca_server)
-        self.group_rules = GroupRules(ca_server)
-        self.config_desc = ConfigurationDescriptionRules(ca_server)
+        self.block_rules = BlockRules(self)
+        self.group_rules = GroupRules(self)
+        self.config_desc = ConfigurationDescriptionRules(self)
 
         # Connect to version control
         try:
@@ -255,23 +221,9 @@ class BlockServer(Driver):
 
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(self, ca_server, SCHEMA_DIR, self._vc)
+            self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
-
-        # Import all the synoptic data and create PVs
-        self._syn = SynopticManager(self, ca_server, SCHEMA_DIR, self._vc)
-
-        # Import all the devices data and create PVs
-        self._devices = DevicesManager(self, ca_server, SCHEMA_DIR, self._vc)
-
-        # Start file watcher
-        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
-
-        # Threading stuff
-        self.monitor_lock = RLock()
-        self.write_lock = RLock()
-        self.write_queue = list()
 
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
@@ -283,17 +235,32 @@ class BlockServer(Driver):
 
     def initialise_configserver(self, facility):
         """Initialises the ActiveConfigHolder.
+
+        Args:
+            facility (string): The facility using the BlockServer
         """
         # This is in a separate method so it can be sent to the thread queue
         arch = ArchiverManager(ARCHIVE_UPLOADER, ARCHIVE_SETTINGS)
 
+        self._active_configserver = ActiveConfigHolder(MACROS, arch, self._vc, self._ioc_control)
+
         if facility == "ISIS":
-            rcm = RunControlManager(MACROS["$(MYPVPREFIX)"], MACROS["$(ICPCONFIGROOT)"], MACROS["$(ICPVARDIR)"],
-                                    self._ioc_control)
+            self._run_control = RunControlManager(MACROS["$(MYPVPREFIX)"], MACROS["$(ICPCONFIGROOT)"],
+                                                  MACROS["$(ICPVARDIR)"], self._ioc_control, self._active_configserver,
+                                                  self)
+            self.on_the_fly_handlers.append(self._run_control)
             self._block_cache = BlockCacheManager(self._ioc_control)
-        else:
-            rcm = None
-        self._active_configserver = ActiveConfigHolder(MACROS, arch, self._vc, self._ioc_control, rcm)
+
+        # Import all the synoptic data and create PVs
+        self._syn = SynopticManager(self, SCHEMA_DIR, self._vc, self._active_configserver)
+        self.on_the_fly_handlers.append(self._syn)
+
+        # Import all the devices data and create PVs
+        self._devices = DevicesManager(self, SCHEMA_DIR, self._vc, self._active_configserver)
+        self.on_the_fly_handlers.append(self._devices)
+
+        # Start file watcher
+        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
 
         try:
             if self._gateway.exists():
@@ -325,28 +292,19 @@ class BlockServer(Driver):
                 value = compress_and_hex(convert_to_json(self._config_list.get_configs()))
             elif reason == BlockserverPVNames.COMPS:
                 value = compress_and_hex(convert_to_json(self._config_list.get_components()))
-            elif reason == BlockserverPVNames.GET_RC_OUT:
-                js = convert_to_json(self._active_configserver.get_out_of_range_pvs())
-                value = compress_and_hex(js)
-            elif reason == BlockserverPVNames.GET_RC_PARS:
-                pars = convert_to_json(self._active_configserver.get_runcontrol_settings())
-                value = compress_and_hex(pars)
             elif reason == BlockserverPVNames.BLANK_CONFIG:
                 js = convert_to_json(self.get_blank_config())
                 value = compress_and_hex(js)
-            elif reason == SynopticsPVNames.SYNOPTICS_NAMES:
-                value = compress_and_hex(convert_to_json(self._syn.get_synoptic_list()))
-            elif reason == SynopticsPVNames.SYNOPTICS_GET_DEFAULT:
-                value = compress_and_hex(self._syn.get_default_synoptic_xml())
-            elif reason == SynopticsPVNames.SYNOPTICS_BLANK_GET:
-                value = compress_and_hex(self._syn.get_blank_synoptic())
-            elif reason == SynopticsPVNames.SYNOPTICS_SCHEMA:
-                value = compress_and_hex(self._syn.get_synoptic_schema())
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE:
                 value = compress_and_hex(self.bumpstrip)
             elif reason == BlockserverPVNames.SCREENS_SCHEMA:
                 value = compress_and_hex(self._devices.get_devices_schema())
             else:
+                # Check to see if it is a on-the-fly PV
+                for handler in self.on_the_fly_handlers:
+                    if handler.read_pv_exists(reason):
+                        return handler.handle_pv_read(reason)
+
                 value = self.getParam(reason)
         except Exception as err:
             value = compress_and_hex(convert_to_json("Error: " + str(err)))
@@ -380,16 +338,13 @@ class BlockServer(Driver):
                 self._initialise_config()
             elif reason == BlockserverPVNames.START_IOCS:
                 with self.write_lock:
-                    self.write_queue.append((self.start_iocs, (convert_from_json(data),),
-                                             "START_IOCS"))
+                    self.write_queue.append((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
             elif reason == BlockserverPVNames.STOP_IOCS:
                 self._ioc_control.stop_iocs(convert_from_json(data))
             elif reason == BlockserverPVNames.RESTART_IOCS:
                 with self.write_lock:
                     self.write_queue.append((self._ioc_control.restart_iocs, (convert_from_json(data),),
                                              "RESTART_IOCS"))
-            elif reason == BlockserverPVNames.SET_RC_PARS:
-                self._active_configserver.set_runcontrol_settings(convert_from_json(data))
             elif reason == BlockserverPVNames.SET_CURR_CONFIG_DETAILS:
                 with self.write_lock:
                     self.write_queue.append((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
@@ -401,23 +356,21 @@ class BlockServer(Driver):
                     self.write_queue.append((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
             elif reason == BlockserverPVNames.DELETE_CONFIGS:
                 self._config_list.delete_configs(convert_from_json(data))
-                self.update_config_monitors()
             elif reason == BlockserverPVNames.DELETE_COMPONENTS:
                 self._config_list.delete_configs(convert_from_json(data), True)
-                self.update_comp_monitor()
-            elif reason == SynopticsPVNames.SYNOPTICS_SET_DETAILS:
-                self._syn.save_synoptic_xml(data)
-                self.update_synoptic_monitor()
-            elif reason == SynopticsPVNames.SYNOPTICS_DELETE:
-                self._syn.delete_synoptics(convert_from_json(data))
-                self.update_synoptic_monitor()
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP:
                 self.bumpstrip = data
                 self.update_bumpstrip_availability()
-            elif reason == BlockserverPVNames.SET_SCREENS:
-                self._devices.save_devices_xml(data)
             else:
                 status = False
+                # Check to see if it is a on-the-fly PV
+                for h in self.on_the_fly_handlers:
+                    if h.write_pv_exists(reason):
+                        with self.write_lock:
+                            self.write_queue.append((h.handle_pv_write, (reason, data), "SETTING_CONFIG"))
+                        status = True
+                        break
+
         except Exception as err:
             value = compress_and_hex(convert_to_json("Error: " + str(err)))
             print_and_log(str(err), "MAJOR")
@@ -425,6 +378,7 @@ class BlockServer(Driver):
             if status:
                 value = compress_and_hex(convert_to_json("OK"))
         finally:
+            pass
             self._filewatcher.resume()
 
         # store the values
@@ -454,43 +408,41 @@ class BlockServer(Driver):
         self._active_configserver.set_config_details(details)
         self._initialise_config()
 
-    def _initialise_config(self, init_gateway=True, clear_runcontrol=False):
+    def _initialise_config(self, init_gateway=True, full_init=False):
         """Responsible for initialising the configuration.
-        Sets all the monitors, initialises the gateway, sets up run-control etc.
+        Sets all the monitors, initialises the gateway, etc.
 
         Args:
             init_gateway (bool, optional): whether to initialise the gateway
-            clear_runcontrol (bool, optional): whether to delete the autosave settings for run-control
+            full_init (bool, optional): whether this requires a full initialisation, e.g. on loading a new
+                configuration
         """
         # First stop all IOCS, then start the ones for the config
         # TODO: Should we stop all configs?
         iocs_to_start, iocs_to_restart = self._active_configserver.iocs_changed()
-
-        # If the config has a default synoptic then set the PV to that
-        synoptic = self._active_configserver.get_config_meta().synoptic
-        self._syn.set_default_synoptic(synoptic)
-        self.update_synoptic_monitor()
 
         if len(iocs_to_start) > 0 or len(iocs_to_restart) > 0:
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
         # Set up the gateway
         if init_gateway:
             self._gateway.set_new_aliases(self._active_configserver.get_block_details())
+
         self._config_list.active_config_name = self._active_configserver.get_config_name()
         self._config_list.active_components = self._active_configserver.get_component_names()
+        self._config_list.update_monitors()
+
         self.update_blocks_monitors()
-        self.update_config_monitors()
+
         self.update_get_details_monitors()
         self._active_configserver.update_archiver()
-        self._active_configserver.create_runcontrol_pvs(clear_runcontrol)
+
+        for h in self.on_the_fly_handlers:
+            h.initialise(full_init)
+
         # Restart the Blocks cache
         if self._block_cache is not None:
             print_and_log("Restarting block cache...")
             self._block_cache.restart()
-
-        # Set current config file name in Devices Manager
-        self._devices.set_current_config_name(self._active_configserver.get_config_name())
-        self._devices.load_current()
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
@@ -548,7 +500,7 @@ class BlockServer(Driver):
                 print_and_log("Loading configuration: %s" % config)
                 self._active_configserver.load_active(config)
             # If we get this far then assume the config is okay
-            self._initialise_config(clear_runcontrol=True)
+            self._initialise_config(full_init=True)
         except Exception as err:
             print_and_log(str(err), "MAJOR")
 
@@ -578,12 +530,10 @@ class BlockServer(Driver):
                 print_and_log("Saving configuration: %s" % config_name)
                 inactive.save_inactive()
                 self._config_list.update_a_config_in_list(inactive)
-                self.update_config_monitors()
             else:
                 print_and_log("Saving component: %s" % config_name)
                 inactive.save_inactive(as_comp=True)
                 self._config_list.update_a_config_in_list(inactive, True)
-                self.update_comp_monitor()
             print_and_log("Saved")
         except Exception as err:
             print_and_log("Problem occurred saving configuration: %s" % err)
@@ -591,7 +541,7 @@ class BlockServer(Driver):
             self._filewatcher.resume()
 
         # Reload configuration if a component has changed
-        if (as_comp) and (new_details["name"] in self._active_configserver.get_component_names()):
+        if as_comp and new_details["name"] in self._active_configserver.get_component_names():
             self.load_last_config()
 
     def _get_inactive_history(self, name, is_component=False):
@@ -632,7 +582,6 @@ class BlockServer(Driver):
 
             self._active_configserver.save_active(name)
             self._config_list.update_a_config_in_list(self._active_configserver)
-            self.update_config_monitors()
         except Exception as err:
             print_and_log("Problem occurred saving configuration: %s" % err)
         finally:
@@ -649,23 +598,6 @@ class BlockServer(Driver):
             # Update the PV, so that groupings are updated for any CA monitors
             grps = ConfigurationJsonConverter.groups_to_json(self._active_configserver.get_group_details())
             self.setParam(BlockserverPVNames.GROUPS, compress_and_hex(grps))
-            # Update them
-            self.updatePVs()
-
-    def update_config_monitors(self):
-        """Updates the monitor for the configurations, so the clients can see any changes.
-        """
-        with self.monitor_lock:
-            # set the available configs
-            self.setParam(BlockserverPVNames.CONFIGS, compress_and_hex(convert_to_json(self._config_list.get_configs())))
-            # Update them
-            self.updatePVs()
-
-    def update_comp_monitor(self):
-        """Updates the monitor for the components, so the clients can see any changes.
-        """
-        with self.monitor_lock:
-            self.setParam(BlockserverPVNames.COMPS, compress_and_hex(convert_to_json(self._config_list.get_components())))
             # Update them
             self.updatePVs()
 
@@ -688,16 +620,6 @@ class BlockServer(Driver):
         with self.monitor_lock:
             js = convert_to_json(self._active_configserver.get_config_details())
             self.setParam(BlockserverPVNames.GET_CURR_CONFIG_DETAILS, compress_and_hex(js))
-            self.updatePVs()
-
-    def update_synoptic_monitor(self):
-        """Updates the monitor for the current synoptic, so the clients can see any changes.
-        """
-        with self.monitor_lock:
-            synoptic = self._syn.get_default_synoptic_xml()
-            self.setParam(SynopticsPVNames.SYNOPTICS_GET_DEFAULT, compress_and_hex(synoptic))
-            names = convert_to_json(self._syn.get_synoptic_list())
-            self.setParam(SynopticsPVNames.SYNOPTICS_NAMES, compress_and_hex(names))
             self.updatePVs()
 
     def update_bumpstrip_availability(self):
@@ -761,6 +683,34 @@ class BlockServer(Driver):
                 self._ioc_control.waitfor_running(i)
                 self._ioc_control.set_autorestart(i, True)
 
+    # Code for handling on-the-fly PVs
+    def does_pv_exist(self, name):
+        return name in manager.pvs[self.port]
+
+    def delete_pv_from_db(self, name):
+        if name in manager.pvs[self.port]:
+            print_and_log("Removing PV %s" % name)
+            fullname = manager.pvs[self.port][name].name
+            del manager.pvs[self.port][name]
+            del manager.pvf[fullname]
+            del self.pvDB[name]
+            del PVDB[name]
+
+    def add_string_pv_to_db(self, name, count=1000):
+        # Check name not already in PVDB and that a PV does not already exist
+        if name not in PVDB and name not in manager.pvs[self.port]:
+            print_and_log("Adding PV %s" % name)
+            PVDB[name] = {
+                'type': 'char',
+                'count': count,
+                'value': [0],
+            }
+            self._cas.createPV(BLOCKSERVER_PREFIX, PVDB)
+            # self.configure_pv_db()
+            data = Data()
+            data.value = manager.pvs[self.port][name].info.value
+            self.pvDB[name] = data
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -812,7 +762,7 @@ if __name__ == '__main__':
     PVLIST_FILE = args.pvlist_name[0]
 
     print_and_log("BLOCKSERVER PREFIX = %s" % BLOCKSERVER_PREFIX)
-    SERVER = CAServer(BLOCKSERVER_PREFIX)
+    SERVER = SimpleServer()
     SERVER.createPV(BLOCKSERVER_PREFIX, PVDB)
     DRIVER = BlockServer(SERVER)
 
