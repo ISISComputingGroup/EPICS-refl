@@ -579,3 +579,4 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_default_filtered(self):
         comps = self.clm.get_components()
         self.assertTrue(DEFAULT_COMPONENT not in comps)
+

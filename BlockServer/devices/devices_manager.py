@@ -170,6 +170,17 @@ class DevicesManager(OnTheFlyPvInterface):
         if commit_message is not None:
             self._vc.commit(commit_message)
 
+    def get_devices_schema(self):
+        """Gets the XSD data for the devices screens.
+
+        Returns:
+            string : The XML for the devices screens schema
+        """
+        schema = ""
+        with open(os.path.join(self._schema_folder, SCREENS_SCHEMA), 'r') as schemafile:
+            schema = schemafile.read()
+        return schema
+
     def get_blank_devices(self):
         """Gets a blank devices xml
 

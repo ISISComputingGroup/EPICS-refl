@@ -64,9 +64,12 @@ class ArchiverManager(object):
         group = eTree.SubElement(root, 'group')
         name = eTree.SubElement(group, 'name')
         name.text = "BLOCKS"
+        dataweb = eTree.SubElement(root, 'group')
+        dataweb_name = eTree.SubElement(dataweb, 'name')
+        dataweb_name.text = "DATAWEB"
         for block in blocks:
             # Append prefix for the archiver
-            self._generate_archive_channel(group, block_prefix, block)
+            self._generate_archive_channel(group, block_prefix, block, dataweb)
 
         with open(self._settings_path, 'w') as f:
             xml = minidom.parseString(eTree.tostring(root)).toprettyxml()
@@ -76,13 +79,14 @@ class ArchiverManager(object):
         f = os.path.abspath(self._uploader_path)
         if os.path.isfile(f):
             print_and_log("Running archiver settings uploader: %s" % f)
-            Popen(f)
+            p = Popen(f)
+            p.wait()
         else:
             print_and_log("Could not find specified archiver uploader batch file: %s" % self._uploader_path)
 
-    def _generate_archive_channel(self, group, block_prefix, block):
-        # xml not produced for scans of 0 period
+    def _generate_archive_channel(self, group, block_prefix, block, dataweb):
         if not (block.log_periodic and block.log_rate == 0):
+            # Blocks that are logged
             channel = eTree.SubElement(group, 'channel')
             name = eTree.SubElement(channel, 'name')
             name.text = block_prefix + block.name
@@ -94,3 +98,11 @@ class ArchiverManager(object):
                 period.text = str(datetime.timedelta(seconds=1))
                 monitor = eTree.SubElement(channel, 'monitor')
                 monitor.text = str(block.log_deadband)
+        else:
+            # Blocks that aren't logged, but are needed for the dataweb view
+            channel = eTree.SubElement(dataweb, 'channel')
+            name = eTree.SubElement(channel, 'name')
+            name.text = block_prefix + block.name
+            period = eTree.SubElement(channel, 'period')
+            period.text = str(datetime.timedelta(seconds=300))
+            eTree.SubElement(channel, 'scan')
