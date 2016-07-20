@@ -530,9 +530,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(self.clm.get_components()), 0)
         self.assertEqual(len(self.clm.get_configs()), 1)
         self.assertTrue("TEST_INACTIVE" in [x['name'] for x in self.clm.get_configs()])
-        self.assertEqual(self.clm.get_active_changed(), 0)
 
-    def test_update_inactive_config_from_filewatcher(self):
+    def test_update_inactive_component_from_filewatcher(self):
         inactive = InactiveConfigHolder(MACROS, MockVersionControl())
         self.bs.set_config_list(self.clm)
 
@@ -542,7 +541,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(self.clm.get_components()), 1)
         self.assertEqual(len(self.clm.get_configs()), 0)
         self.assertTrue("TEST_INACTIVE_COMP" in [x['name'] for x in self.clm.get_components()])
-        self.assertEqual(self.clm.get_active_changed(), 0)
 
     def test_update_active_config_from_filewatcher(self):
         active = InactiveConfigHolder(MACROS, MockVersionControl())
@@ -557,7 +555,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(self.clm.get_components()), 0)
         self.assertEqual(len(self.clm.get_configs()), 1)
         self.assertTrue("TEST_ACTIVE" in [x['name'] for x in self.clm.get_configs()])
-        self.assertEqual(self.clm.get_active_changed(), 1)
 
     def test_update_active_component_from_filewatcher(self):
         inactive = InactiveConfigHolder(MACROS, MockVersionControl())
@@ -574,7 +571,6 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(self.clm.get_components()), 1)
         self.assertEqual(len(self.clm.get_configs()), 0)
         self.assertTrue("TEST_ACTIVE_COMP" in [x['name'] for x in self.clm.get_components()])
-        self.assertEqual(self.clm.get_active_changed(), 1)
 
     def test_default_filtered(self):
         comps = self.clm.get_components()
