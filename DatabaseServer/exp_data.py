@@ -130,7 +130,7 @@ class ExpData(object):
         """
         return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
 
-    def _get_surname_from_fullname(selfself, fullname):
+    def _get_surname_from_fullname(self, fullname):
         try:
             return fullname.split(" ")[-1]
         except:
@@ -221,9 +221,12 @@ class ExpData(object):
                 name = user(fullname, org, role.lower())
                 names.append(name.__dict__)
             orgs = list(set(orgs))
-            ChannelAccess.caput(self._simnames, self.encode4return(names))
-            ChannelAccess.caput(self._surnamepv, self.encode4return(surnames))
-            ChannelAccess.caput(self._orgspv, self.encode4return(orgs))
-            # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
-            # this is not available at this time in the ICP
+        ChannelAccess.caput(self._simnames, self.encode4return(names))
+        ChannelAccess.caput(self._surnamepv, self.encode4return(surnames))
+        ChannelAccess.caput(self._orgspv, self.encode4return(orgs))
+        # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
+        # this is not available at this time in the ICP
+        if not surnames:
+            ChannelAccess.caput(self._daenamespv, " ")
+        else:
             ChannelAccess.caput(self._daenamespv, ",".join(surnames))
