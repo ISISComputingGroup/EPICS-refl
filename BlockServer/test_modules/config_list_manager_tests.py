@@ -32,7 +32,6 @@ from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from BlockServer.core.macros import BLOCKSERVER
 
 
 MACROS = {

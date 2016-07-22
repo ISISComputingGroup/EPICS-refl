@@ -14,11 +14,15 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 import os
+
+# Set MYPVPREFIX env var
+os.environ['MYPVPREFIX'] = ""
+
 from BlockServer.runcontrol.runcontrol_manager import RunControlManager
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_channel_access import MockChannelAccess
-from BlockServer.core.active_config_holder import ActiveConfigHolder
+from BlockServer.mocks.mock_active_config_holder import MockActiveConfigHolder
 from BlockServer.config.configuration import Configuration
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
@@ -29,10 +33,7 @@ import unittest
 
 
 MACROS = {
-    "$(MYPVPREFIX)": "",
-    "$(EPICS_KIT_ROOT)": os.environ['EPICS_KIT_ROOT'],
-    "$(ICPCONFIGROOT)": os.environ['ICPCONFIGROOT'],
-    "$(ICPVARDIR)": os.environ['ICPVARDIR']
+    "$(MYPVPREFIX)": os.environ['MYPVPREFIX']
 }
 
 
@@ -49,14 +50,11 @@ def add_block(cs, data):
 class TestRunControlSequence(unittest.TestCase):
 
     def setUp(self):
-        self.mock_archive = ArchiverManager(None, None, MockArchiverWrapper())
-        self.activech = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(),
-                                           MockIocControl(""))
+        self.activech = MockActiveConfigHolder(MACROS)
         self.cs = MockChannelAccess()
         self.rcm = RunControlManager("", "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs)
 
     def test_get_runcontrol_settings_empty(self):
-
         self.rcm.create_runcontrol_pvs(False)
         ans = self.rcm.get_current_settings()
         self.assertTrue(len(ans) == 0)

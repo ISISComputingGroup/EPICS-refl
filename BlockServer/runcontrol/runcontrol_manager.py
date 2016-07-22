@@ -219,7 +219,6 @@ class RunControlManager(OnTheFlyPvInterface):
         # TODO: Give up after a bit
         print_and_log("Waiting for runcontrol IOC to start")
         while True:
-            sleep(2)
             # See if the IOC has restarted by looking for a standard PV
             try:
                 ans = self._channel_access.caget(self._prefix + RC_PV)
@@ -229,6 +228,7 @@ class RunControlManager(OnTheFlyPvInterface):
             if ans is not None:
                 print_and_log("Runcontrol IOC started")
                 break
+            sleep(2)
 
     def _start_ioc(self):
         """Start the IOC."""

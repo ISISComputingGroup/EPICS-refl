@@ -161,7 +161,7 @@ class ConfigListManager(object):
         Returns:
             InactiveConfigHolder : The holder for the requested configuration
         """
-        config = InactiveConfigHolder(MACROS, self._vc)
+        config = InactiveConfigHolder(MACROS, self._vc, ConfigurationFileManager())
         config.load_inactive(name, is_component)
         return config
 
