@@ -67,17 +67,16 @@ class ConfigListManager(object):
         self._comp_path = FILEPATH_MANAGER.component_dir
         self._import_configs(self.schema_folder)
 
-    def _update_pv_value(self, name, data):
+    def _update_pv_value(self, fullname, data):
         # First check PV exists if not create it
-        fullname = BlockserverPVNames.prepend_blockserver(name)
         if not self._bs.does_pv_exist(fullname):
             self._bs.add_string_pv_to_db(fullname, 16000)
 
         self._bs.setParam(fullname, data)
         self._bs.updatePVs()
 
-    def _delete_pv(self, name):
-        self._bs.delete_pv_from_db(BlockserverPVNames.prepend_blockserver(name))
+    def _delete_pv(self, fullname):
+        self._bs.delete_pv_from_db(fullname)
 
     def _get_config_names(self):
         return self._get_file_list(os.path.abspath(self._conf_path))
