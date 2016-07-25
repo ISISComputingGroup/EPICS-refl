@@ -92,7 +92,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
         test_config_path = FILEPATH_MANAGER.get_config_path(BASE_PATH)
         if os.path.exists(test_config_path):
             shutil.rmtree(test_config_path)
-        shutil.copytree(os.path.join(os.getcwd(),BASE_PATH), test_config_path)
+        shutil.copytree(os.path.join(os.getcwd(), BASE_PATH), test_config_path)
 
         self.bs = MockBlockServer()
         self.ach = MockActiveConfigHolder()

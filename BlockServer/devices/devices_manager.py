@@ -127,8 +127,7 @@ class DevicesManager(OnTheFlyPvInterface):
         Args:
             current_config_name (string): The name of the current configuration file.
         """
-        self._current_config = os.path.join(FILEPATH_MANAGER.get_config_path(current_config_name)
-                                            , SCREENS_FILE)
+        self._current_config = os.path.join(FILEPATH_MANAGER.get_config_path(current_config_name), SCREENS_FILE)
 
         print_and_log("Devices configuration file set to %s" % self._current_config)
 
@@ -141,7 +140,7 @@ class DevicesManager(OnTheFlyPvInterface):
         try:
             # Check against schema
             ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SCREENS_SCHEMA),
-                                                                xml_data,"Screens")
+                                                                xml_data, "Screens")
             # Update PVs
             self.update_monitors()
 
@@ -184,9 +183,9 @@ class DevicesManager(OnTheFlyPvInterface):
     def get_blank_devices(self):
         """Gets a blank devices xml
 
-                Returns:
-                    string : The XML for the blank devices set
-                """
+        Returns:
+            string : The XML for the blank devices set
+        """
         return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                 <devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
                 </devices>"""
