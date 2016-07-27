@@ -192,7 +192,7 @@ class BlockServer(Driver):
         self.write_lock = RLock()
         self.write_queue = list()
 
-        FILEPATH_MANAGER.initialise(CONFIG_DIR)
+        FILEPATH_MANAGER.initialise(CONFIG_DIR, SCHEMA_DIR)
 
         self._cas = ca_server
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])

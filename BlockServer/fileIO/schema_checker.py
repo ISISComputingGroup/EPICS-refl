@@ -52,59 +52,8 @@ class ConfigurationSchemaChecker(object):
 
     Contains utilities to check configurations against xml schema.
     """
-
     @staticmethod
-    def check_all_config_files_correct(schema_folder, root_path):
-        """Check all the configuration files are schematically correct.
-
-        Args:
-            schema_folder (string): The location of the schema files
-            root_path (string): The location of all the configuration
-        """
-        valid = True
-
-        for root, dirs, files in os.walk(FILEPATH_MANAGER.config_dir):
-            for f in files:
-                full_path = os.path.join(root, f)
-                valid &= ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, full_path)
-
-        for root, dirs, files in os.walk(FILEPATH_MANAGER.component_dir):
-            for f in files:
-                full_path = os.path.join(root, f)
-                valid &= ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, full_path, True)
-
-        return valid
-
-    @staticmethod
-    def check_config_file_matches_schema(schema_folder, config_xml_path, is_component=False):
-        """Check the configuration file is schematically correct.
-
-        Args:
-            schema_folder (string): The location of the schema files
-            config_xml_path (string): The location of the configuration
-            is_cOMPONENT (bool): Whether it is a component
-        """
-        folder, file_name = string.rsplit(config_xml_path, os.sep, 1)
-        if file_name in SCHEMA_FOR:
-            schema_name = string.split(file_name, '.')[0] + '.xsd'
-            try:
-                ConfigurationSchemaChecker._check_file_against_schema(config_xml_path, schema_folder, schema_name)
-            except etree.XMLSyntaxError as err:
-                raise ConfigurationInvalidUnderSchema(config_xml_path + " incorrectly formatted: " + str(err.message))
-        else:
-            if file_name != "":
-                raise NotConfigFileException("File in " + config_xml_path + " not known config xml (%s)" % file_name)
-
-        missing_files = set(SCHEMA_FOR).difference(set(os.listdir(folder)))
-        if len(missing_files) != 0:
-            if not (is_component and missing_files == [FILENAME_COMPONENTS]):
-                raise ConfigurationIncompleteException("Files missing in " + config_xml_path +
-                                                       " (%s)" % ','.join(list(missing_files)))
-
-        return True
-
-    @staticmethod
-    def check_xml_data_matches_schema(schema_filepath,xml_data):
+    def check_xml_data_matches_schema(schema_filepath, xml_data):
         """ This method takes xml data and checks it against a given schema.
 
         A ConfigurationInvalidUnderSchema error is raised if the file is incorrect.
@@ -124,7 +73,7 @@ class ConfigurationSchemaChecker(object):
     @staticmethod
     def check_xml_matches_schema(schema_filepath, screen_xml_data, object_type):
         try:
-            ConfigurationSchemaChecker.check_xml_data_matches_schema(schema_filepath,screen_xml_data)
+            ConfigurationSchemaChecker.check_xml_data_matches_schema(schema_filepath, screen_xml_data)
         except ConfigurationInvalidUnderSchema as err:
             raise ConfigurationInvalidUnderSchema(
                 "{object_type} incorrectly formatted: {err}".format(object_type=object_type, err=str(err.value)))

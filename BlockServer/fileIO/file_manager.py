@@ -13,7 +13,7 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
+import re
 import os
 import shutil
 from collections import OrderedDict
@@ -27,6 +27,7 @@ from vc_exceptions import NotUnderVersionControl
 from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_COMPONENTS, FILENAME_META
 from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationIncompleteException
 
 
 class ConfigurationFileManager(object):
@@ -70,36 +71,73 @@ class ConfigurationFileManager(object):
         # Make sure NONE group exists
         groups[GRP_NONE.lower()] = Group(GRP_NONE)
 
+        config_files_missing = list()
+
         # Open the block file first
-        blocks_path = path + "/" + FILENAME_BLOCKS
+        blocks_path = os.path.join(path, FILENAME_BLOCKS)
         if os.path.isfile(blocks_path):
             root = parse_xml_removing_namespace(blocks_path)
+
+            # Check against the schema - raises if incorrect
+            self._check_againgst_schema(root, FILENAME_BLOCKS)
+
             ConfigurationXmlConverter.blocks_from_xml(root, blocks, groups)
+        else:
+            config_files_missing.append(FILENAME_BLOCKS)
 
         # Import the groups
-        groups_path = path + "/" + FILENAME_GROUPS
+        groups_path = os.path.join(path, FILENAME_GROUPS)
         if os.path.isfile(groups_path):
             root = parse_xml_removing_namespace(groups_path)
+
+            # Check against the schema - raises if incorrect
+            self._check_againgst_schema(root, FILENAME_GROUPS)
+
             ConfigurationXmlConverter.groups_from_xml(root, groups, blocks)
+        else:
+            config_files_missing.append(FILENAME_GROUPS)
 
         # Import the IOCs
-        iocs_path = path + "/" + FILENAME_IOCS
+        iocs_path = os.path.join(path, FILENAME_IOCS)
         if os.path.isfile(iocs_path):
             root = parse_xml_removing_namespace(iocs_path)
+
+            # Check against the schema - raises if incorrect
+            self._check_againgst_schema(root, FILENAME_IOCS)
+
             ConfigurationXmlConverter.ioc_from_xml(root, iocs)
+        else:
+            config_files_missing.append(FILENAME_IOCS)
 
         # Import the components
-        component_path = path + "/" + FILENAME_COMPONENTS
+        component_path = os.path.join(path, FILENAME_COMPONENTS)
         if os.path.isfile(component_path):
             root = parse_xml_removing_namespace(component_path)
+
+            # Check against the schema - raises if incorrect
+            self._check_againgst_schema(root, FILENAME_COMPONENTS)
+
             ConfigurationXmlConverter.components_from_xml(root, components)
+        elif not is_component:
+            # It should be missing for a component
+            config_files_missing.append(FILENAME_COMPONENTS)
 
         # Import the metadata
         meta = MetaData(name)
-        meta_path = path + '/' + FILENAME_META
+        meta_path = os.path.join(path, FILENAME_META)
         if os.path.isfile(meta_path):
             root = parse_xml_removing_namespace(meta_path)
+
+            # Check against the schema - raises if incorrect
+            self._check_againgst_schema(root, FILENAME_META)
+
             ConfigurationXmlConverter.meta_from_xml(root, meta)
+        else:
+            config_files_missing.append(FILENAME_META)
+
+        if len(config_files_missing) > 0:
+            raise ConfigurationIncompleteException("Files missing in " + name +
+                                                   " (%s)" % ','.join(list(config_files_missing)))
 
         # Set properties in the config
         configuration.blocks = blocks
@@ -108,6 +146,12 @@ class ConfigurationFileManager(object):
         configuration.components = components
         configuration.meta = meta
         return configuration
+
+    def _check_againgst_schema(self, xml, filename):
+        regex = re.compile(re.escape('.xml'), re.IGNORECASE)
+        name = regex.sub('.xsd', filename)
+        schema_path = os.path.join(FILEPATH_MANAGER.schema_dir, name)
+        ConfigurationSchemaChecker.check_xml_data_matches_schema(schema_path, xml)
 
     def save_config(self, configuration, is_component):
         """Saves the current configuration with the specified name.
@@ -175,4 +219,18 @@ class ConfigurationFileManager(object):
             dest_path (string): The root folder where configurations are stored
         """
         shutil.copytree(os.path.abspath(os.path.join(os.environ["MYDIRBLOCK"], EXAMPLE_DEFAULT)),
-                        os.path.join(dest_path,DEFAULT_COMPONENT))
+                        os.path.join(dest_path, DEFAULT_COMPONENT))
+
+    def get_files_in_directory(self, path):
+        """Gets a list of the files in the specified folder
+
+        Args:
+            path (string): The path of the folder
+
+        Returns:
+            list: the files in the folder
+        """
+        files = list()
+        if os.path.isdir(path):
+            files = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+        return files

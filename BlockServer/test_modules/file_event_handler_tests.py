@@ -35,7 +35,7 @@ SCHEMA_DIR = os.path.abspath(os.path.join("..","..","..","..","schema","configur
 class TestFileEventHandler(unittest.TestCase):
 
     def setUp(self):
-        FILEPATH_MANAGER.initialise(TEST_DIRECTORY)
+        FILEPATH_MANAGER.initialise(TEST_DIRECTORY, SCHEMA_DIR)
         self.file_manager = MockConfigurationFileManager()
         self.config_list = ConfigListManager(MockBlockServer(), SCHEMA_DIR, MockVersionControl(), self.file_manager)
         self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list, False)

@@ -26,6 +26,7 @@ from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.mocks.mock_active_config_holder import MockActiveConfigHolder
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from xml.dom import minidom
+from BlockServer.core.macros import MACROS
 
 
 CONFIG_PATH = os.path.join(os.getcwd(),"test_configs")
@@ -87,7 +88,7 @@ def get_expected_devices_file_path():
 class TestDevicesManagerSequence(unittest.TestCase):
     def setUp(self):
         # Make directory and fill with fake content
-        FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH))
+        FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH), os.path.abspath(SCHEMA_PATH))
 
         test_config_path = FILEPATH_MANAGER.get_config_path(BASE_PATH)
         if os.path.exists(test_config_path):
@@ -95,7 +96,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
         shutil.copytree(os.path.join(os.getcwd(), BASE_PATH), test_config_path)
 
         self.bs = MockBlockServer()
-        self.ach = MockActiveConfigHolder()
+        self.ach = MockActiveConfigHolder(MACROS)
         self.dm = DevicesManager(self.bs, SCHEMA_PATH, MockVersionControl(), self.ach)
 
     def tearDown(self):

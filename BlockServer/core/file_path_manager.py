@@ -28,9 +28,11 @@ class FilePathManager(object):
         self.config_dir = ""
         self.component_dir = ""
         self.synoptic_dir = ""
+        self.schema_dir = ""
 
-    def initialise(self, config_root):
+    def initialise(self, config_root, schema_folder):
         self.config_root_dir = config_root
+        self.schema_dir = os.path.abspath(schema_folder)
         self.config_dir = os.path.join(config_root, CONFIG_DIRECTORY)
         self.component_dir = os.path.join(config_root, COMPONENT_DIRECTORY)
         self.synoptic_dir = os.path.join(config_root, SYNOPTIC_DIRECTORY)
@@ -52,6 +54,7 @@ class FilePathManager(object):
 
     def get_synoptic_path(self, synoptic_name):
         return os.path.join(self.synoptic_dir, synoptic_name) + ".xml"
+
 
 # This is the singleton to use
 FILEPATH_MANAGER = FilePathManager()

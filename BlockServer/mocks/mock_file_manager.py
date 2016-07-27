@@ -60,3 +60,6 @@ class MockConfigurationFileManager(object):
 
     def copy_default(self, dest_path):
         pass
+
+    def get_files_in_directory(self, path):
+        return list()

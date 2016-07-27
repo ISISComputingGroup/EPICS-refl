@@ -23,7 +23,6 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.macros import MACROS
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
-from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.pv_names import BlockserverPVNames
 
@@ -90,10 +89,7 @@ class ConfigListManager(object):
         return l
 
     def _get_file_list(self, path):
-        files = []
-        if os.path.isdir(path):
-            files = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
-        return files
+        return self.file_manager.get_files_in_directory(path)
 
     def get_configs(self):
         """Returns all of the valid configurations, made up of those found on startup and those subsequently created.
@@ -127,7 +123,7 @@ class ConfigListManager(object):
         for comp_name in comp_list:
             try:
                 path = FILEPATH_MANAGER.get_component_path(comp_name)
-                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path, True)
+                # load_config checks the schema
                 config = self.load_config(comp_name, True)
                 self.update_a_config_in_list(config, True)
                 self._vc.add(path)
@@ -141,7 +137,7 @@ class ConfigListManager(object):
         for config_name in config_list:
             try:
                 path = FILEPATH_MANAGER.get_config_path(config_name)
-                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path)
+                # load_config checks the schema
                 config = self.load_config(config_name)
                 self.update_a_config_in_list(config)
                 self._vc.add(path)

@@ -71,8 +71,6 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def setUp(self):
         # Note: All configurations are saved in memory
-
-        # Create in test mode
         self.mock_archive = ArchiverManager(None, None, MockArchiverWrapper())
         self.activech = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(),
                                            MockConfigurationFileManager(), MockIocControl(""))
