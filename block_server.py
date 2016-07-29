@@ -222,7 +222,7 @@ class BlockServer(Driver):
 
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc)
+            self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc, ConfigurationFileManager())
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 
@@ -243,7 +243,8 @@ class BlockServer(Driver):
         # This is in a separate method so it can be sent to the thread queue
         arch = ArchiverManager(ARCHIVE_UPLOADER, ARCHIVE_SETTINGS)
 
-        self._active_configserver = ActiveConfigHolder(MACROS, arch, self._vc, ConfigurationFileManager(), self._ioc_control)
+        self._active_configserver = ActiveConfigHolder(MACROS, arch, self._vc, ConfigurationFileManager(),
+                                                       self._ioc_control)
 
         if facility == "ISIS":
             self._run_control = RunControlManager(MACROS["$(MYPVPREFIX)"], MACROS["$(ICPCONFIGROOT)"],
@@ -721,10 +722,10 @@ if __name__ == '__main__':
                         help='The directory from which to load the configuration schema (default=current directory)')
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration options(default=current directory)')
-    parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"] + 'CS:GATEWAY:' +
-                                                                              BlockserverPVNames.BLOCKSERVER],
-                        help='The prefix for the blocks gateway (default='+MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:' +
-                             BlockserverPVNames.BLOCKSERVER + ')')
+    parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"] +
+                                                                              'CS:GATEWAY:BLOCKSERVER'],
+                        help='The prefix for the blocks gateway (default=' + MACROS[
+                            "$(MYPVPREFIX)"] + 'CS:GATEWAY:BLOCKSERVER)')
     parser.add_argument('-pv', '--pvlist_name', nargs=1, type=str, default=['gwblock.pvlist'],
                         help='The filename for the pvlist file used by the blocks gateway (default=gwblock.pvlist)')
     parser.add_argument('-au', '--archive_uploader', nargs=1,

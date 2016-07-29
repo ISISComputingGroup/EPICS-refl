@@ -17,8 +17,9 @@ import re
 import os
 import shutil
 from collections import OrderedDict
+from xml.etree import ElementTree
 
-from server_common.utilities import parse_xml_removing_namespace, print_and_log
+from server_common.utilities import print_and_log
 from BlockServer.config.group import Group
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.configuration import Configuration, MetaData
@@ -43,7 +44,7 @@ class ConfigurationFileManager(object):
             if f.lower() == name.lower():
                 res = f
         return res
-    
+
     def load_config(self, name, macros, is_component):
         """Loads the configuration from the specified folder.
 
@@ -76,10 +77,10 @@ class ConfigurationFileManager(object):
         # Open the block file first
         blocks_path = os.path.join(path, FILENAME_BLOCKS)
         if os.path.isfile(blocks_path):
-            root = parse_xml_removing_namespace(blocks_path)
+            root = ElementTree.parse(blocks_path).getroot()
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(root, FILENAME_BLOCKS)
+            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_BLOCKS)
 
             ConfigurationXmlConverter.blocks_from_xml(root, blocks, groups)
         else:
@@ -88,10 +89,10 @@ class ConfigurationFileManager(object):
         # Import the groups
         groups_path = os.path.join(path, FILENAME_GROUPS)
         if os.path.isfile(groups_path):
-            root = parse_xml_removing_namespace(groups_path)
+            root = ElementTree.parse(groups_path).getroot()
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(root, FILENAME_GROUPS)
+            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_GROUPS)
 
             ConfigurationXmlConverter.groups_from_xml(root, groups, blocks)
         else:
@@ -100,10 +101,10 @@ class ConfigurationFileManager(object):
         # Import the IOCs
         iocs_path = os.path.join(path, FILENAME_IOCS)
         if os.path.isfile(iocs_path):
-            root = parse_xml_removing_namespace(iocs_path)
+            root = ElementTree.parse(iocs_path).getroot()
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(root, FILENAME_IOCS)
+            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_IOCS)
 
             ConfigurationXmlConverter.ioc_from_xml(root, iocs)
         else:
@@ -112,10 +113,10 @@ class ConfigurationFileManager(object):
         # Import the components
         component_path = os.path.join(path, FILENAME_COMPONENTS)
         if os.path.isfile(component_path):
-            root = parse_xml_removing_namespace(component_path)
+            root = ElementTree.parse(component_path).getroot()
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(root, FILENAME_COMPONENTS)
+            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_COMPONENTS)
 
             ConfigurationXmlConverter.components_from_xml(root, components)
         elif not is_component:
@@ -126,10 +127,10 @@ class ConfigurationFileManager(object):
         meta = MetaData(name)
         meta_path = os.path.join(path, FILENAME_META)
         if os.path.isfile(meta_path):
-            root = parse_xml_removing_namespace(meta_path)
+            root = ElementTree.parse(meta_path).getroot()
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(root, FILENAME_META)
+            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_META)
 
             ConfigurationXmlConverter.meta_from_xml(root, meta)
         else:
