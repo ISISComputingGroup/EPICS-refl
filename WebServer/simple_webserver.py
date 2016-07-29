@@ -1,10 +1,9 @@
 from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
 from threading import Thread
-HOST, PORT = '', 8008
 from time import sleep
+HOST, PORT = '', 8008
 
-# This is a global variable as it's easier with threading and the way the handler class is defined
-# TODO: Fix later!!
+
 _response = ""
 
 class myHandler(BaseHTTPRequestHandler):
