@@ -237,7 +237,6 @@ class BlockServer(Driver):
         # Starts the Web Server
         self.server = Server()
         self.server.start()
-        self.server.set_text("Starting text")
 
     def initialise_configserver(self, facility):
         """Initialises the ActiveConfigHolder.
@@ -446,7 +445,7 @@ class BlockServer(Driver):
             h.initialise(full_init)
 
         # Update Web Server text
-        self.server.set_text(self._active_configserver.get_config_details())
+        self.server.set_config(self._active_configserver.get_config_details())
 
         # Restart the Blocks cache
         if self._block_cache is not None:
