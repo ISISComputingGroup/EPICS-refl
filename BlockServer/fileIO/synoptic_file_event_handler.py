@@ -103,7 +103,7 @@ class SynopticFileEventHandler(FileSystemEventHandler):
             xml_data = synfile.read()
 
         with self._schema_lock:
-            ConfigurationSchemaChecker.check_synoptic_matches_schema(self._schema_filepath, xml_data)
+            ConfigurationSchemaChecker.check_xml_data_matches_schema(self._schema_filepath, xml_data)
 
         return xml_data
 
