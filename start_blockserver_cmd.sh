@@ -21,7 +21,5 @@ else
     GWBLOCK_PVLIST="$MYDIRGATE/gwblock_dummy.pvlist"
 fi
 
-export MYDIRVC="$MYDIRBLOCK/../../ConfigVersionControl/master"
-
 python "$MYDIRBLOCK/block_server.py" -od "$MYDIRBLOCK/../../../iocstartup" -sd "$MYDIRBLOCK/schema" -cd "$ICPCONFIGROOT" -pv "$GWBLOCK_PVLIST" -f ISIS
 

@@ -19,7 +19,6 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
-sys.path.insert(0, os.path.abspath(os.environ["MYDIRVC"]))
 
 # Standard imports
 from pcaspy import Driver, SimpleServer
