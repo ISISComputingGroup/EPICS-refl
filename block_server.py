@@ -41,8 +41,8 @@ from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherMana
 from BlockServer.synoptic.synoptic_manager import SynopticManager
 from BlockServer.devices.devices_manager import DevicesManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
-from config_version_control import ConfigVersionControl
-from vc_exceptions import NotUnderVersionControl
+from ConfigVersionControl.config_version_control import ConfigVersionControl
+from ConfigVersionControl.vc_exceptions import NotUnderVersionControl
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.ioc_control import IocControl
 from BlockServer.core.database_server_client import DatabaseServerClient
