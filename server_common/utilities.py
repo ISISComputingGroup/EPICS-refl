@@ -165,12 +165,20 @@ def create_pv_name(name, current_pvs, default_pv):
     if re.search(r"[^0-9_]", pv_text) is None or pv_text == '':
         pv_text = default_pv
 
+    # Ensure PVs aren't too long
+    max_length = 6
+
+    if pv_text > max_length:
+        pv_text = pv_text[0:max_length]
+
     # Make sure PVs are unique
-    i = 0
+    i = 1
     pv = pv_text
 
     while pv in current_pvs:
-        pv = pv_text + str(i)
+        if len(pv) > max_length - 2:
+            pv = pv[0:max_length - 2]
+        pv += format(i, '02d')
         i += 1
 
     return pv
