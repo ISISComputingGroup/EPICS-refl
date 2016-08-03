@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
 # You should have received a copy of the Eclipse Public License v1.0
-# along with this program; if not, you can obtain a copy from
+# Along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
@@ -36,7 +36,9 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV1</read_pv>
         <local>True</local>
         <visible>True</visible>
-        <rc_enabled>False</rc_enabled>
+        <rc_enabled>True</rc_enabled>
+        <rc_lowlimit>1</rc_lowlimit>
+        <rc_highlimit>2</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -46,7 +48,9 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV2</read_pv>
         <local>True</local>
         <visible>True</visible>
-        <rc_enabled>False</rc_enabled>
+        <rc_enabled>True</rc_enabled>
+        <rc_lowlimit>1</rc_lowlimit>
+        <rc_highlimit>2</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -56,7 +60,9 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV3</read_pv>
         <local>True</local>
         <visible>True</visible>
-        <rc_enabled>False</rc_enabled>
+        <rc_enabled>True</rc_enabled>
+        <rc_lowlimit>1</rc_lowlimit>
+        <rc_highlimit>2</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -66,7 +72,9 @@ BLOCKS_XML = u"""
         <read_pv>TESTPV4</read_pv>
         <local>True</local>
         <visible>True</visible>
-        <rc_enabled>False</rc_enabled>
+        <rc_enabled>True</rc_enabled>
+        <rc_lowlimit>1</rc_lowlimit>
+        <rc_highlimit>2</rc_highlimit>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -91,23 +99,29 @@ IOCS_XML = u"""
 <iocs xmlns="http://epics.isis.rl.ac.uk/schema/iocs/1.0" xmlns:ioc="http://epics.isis.rl.ac.uk/schema/iocs/1.0" xmlns:xi="http://www.w3.org/2001/XInclude">
     <ioc autostart="true" name="TESTIOC1" restart="false" simlevel="recsim">
         <macros>
+            <macro name="TESTIOC2MACRO" value="1"/>
             <macro name="TESTIOC1MACRO" value="1"/>
         </macros>
         <pvs>
             <pv name="TESTIOC1PV" value="1"/>
+            <pv name="TESTIOC2PV" value="1"/>
         </pvs>
         <pvsets>
+            <pvset enabled="True" name="TESTIOC2PVSET"/>
             <pvset enabled="True" name="TESTIOC1PVSET"/>
         </pvsets>
     </ioc>
     <ioc autostart="true" name="TESTIOC2" restart="false" simlevel="devsim">
         <macros>
             <macro name="TESTIOC2MACRO" value="2"/>
+            <macro name="TESTIOC3MACRO" value="2"/>
         </macros>
         <pvs>
+            <pv name="TESTIOC3PV" value="2"/>
             <pv name="TESTIOC2PV" value="2"/>
         </pvs>
         <pvsets>
+            <pvset enabled="True" name="TESTIOC3PVSET"/>
             <pvset enabled="True" name="TESTIOC2PVSET"/>
         </pvsets>
     </ioc>
@@ -123,36 +137,16 @@ META_XML = u"""<?xml version="1.0" ?>
 </meta>
 """
 
-CONFIG_XML = u"""<?xml version="1.0" ?>
-<ioc_configs>
-	<ioc_config name="TESTIOC1">
-	    <config_part>
-            <macros>
-                <macro description="DESC TESTIOC1MAC1" name="TESTIOC1MAC1" pattern="PAT1"/>
-                <macro description="DESC TESTIOC1MAC2" name="TESTIOC1MAC2" pattern="PAT1"/>
-            </macros>
-            <pvsets>
-                <pvset description="DESC TESTIOC1PV1" name="TESTIOC1PV1"/>
-                <pvset description="DESC TESTIOC1PV2" name="TESTIOC1PV2"/>
-            </pvsets>
-	    </config_part>
-	</ioc_config>
-	<ioc_config name="TESTIOC2">
-	    <config_part>
-            <macros>
-                <macro description="DESC TESTIOC2MAC1" name="TESTIOC2MAC1" pattern="PAT2"/>
-                <macro description="DESC TESTIOC2MAC2" name="TESTIOC2MAC2" pattern="PAT2"/>
-            </macros>
-            <pvsets>
-                <pvset description="DESC TESTIOC2PV1" name="TESTIOC2PV1"/>
-                <pvset description="DESC TESTIOC2PV2" name="TESTIOC2PV2"/>
-            </pvsets>
-        </config_part>
-	</ioc_config>
-</ioc_configs>"""
+COMP_XML = u"""<?xml version="1.0" ?>
+<components xmlns="http://epics.isis.rl.ac.uk/schema/components/1.0" xmlns:comp="http://epics.isis.rl.ac.uk/schema/components/1.0" xmlns:xi="http://www.w3.org/2001/XInclude">
+    <component name="comp1"/>
+    <component name="comp2"/>
+</components>"""
+
 
 def strip_out_whitespace(string):
     return string.strip().replace("    ", "").replace("\t", "")
+
 
 def strip_out_namespace(string):
     return re.sub(' xmlns="[^"]+"', '', string, count=1)
@@ -160,13 +154,13 @@ def strip_out_namespace(string):
 BLOCKS_XML = strip_out_whitespace(BLOCKS_XML)
 GROUPS_XML = strip_out_whitespace(GROUPS_XML)
 IOCS_XML = strip_out_whitespace(IOCS_XML)
-CONFIG_XML = strip_out_whitespace(CONFIG_XML)
+
 
 def make_blocks():
     blocks = OrderedDict()
     for i in range(1, 5):
         num = str(i)
-        new_block_args = ["TESTBLOCK"+num, "TESTPV"+num, True, True]
+        new_block_args = ["TESTBLOCK" + num, "TESTPV" + num, True, True, False, True, 1, 2]
         key = new_block_args[0].lower()
         blocks[key] = Block(*new_block_args)
     return blocks
@@ -192,14 +186,19 @@ def make_iocs():
         iocs["TESTIOC" + str(i)].restart = False
         iocs["TESTIOC" + str(i)].simlevel = SIM_LEVELS[i-1]
         iocs["TESTIOC" + str(i)].macros["TESTIOC" + str(i) + "MACRO"] = {"value": i}
+        iocs["TESTIOC" + str(i)].macros["TESTIOC" + str(i+1) + "MACRO"] = {"value": i}
         iocs["TESTIOC" + str(i)].pvs["TESTIOC" + str(i) + "PV"] = {"value": i}
+        iocs["TESTIOC" + str(i)].pvs["TESTIOC" + str(i+1) + "PV"] = {"value": i}
         iocs["TESTIOC" + str(i)].pvsets["TESTIOC" + str(i) + "PVSET"] = {"enabled": True}
+        iocs["TESTIOC" + str(i)].pvsets["TESTIOC" + str(i+1) + "PVSET"] = {"enabled": True}
     return iocs
+
 
 def make_meta():
     meta = MetaData('Test', description='A test description', synoptic="TEST_SYNOPTIC")
     meta.history = ["1992-02-07"]
     return meta
+
 
 class TestConfigurationXmlConverterSequence(unittest.TestCase):
     def setUp(self):
@@ -210,67 +209,67 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
         pass
 
     def test_blocks_to_xml_converts_correctly(self):
-        # arrange
+        # Arrange
         xc = self.xml_converter
         blocks = make_blocks()
 
-        # act
+        # Act
         blocks_xml = xc.blocks_to_xml(blocks, MACROS)
         blocks_xml = strip_out_whitespace(blocks_xml)
 
-        #assert
+        # Assert
         self.maxDiff = None
         self.assertEqual(blocks_xml, BLOCKS_XML)
 
     def test_groups_to_xml_converts_correctly(self):
-        # arrange
+        # Arrange
         xc = self.xml_converter
         groups = make_groups()
 
-        # act
+        # Act
         groups_xml = xc.groups_to_xml(groups)
         groups_xml = strip_out_whitespace(groups_xml)
 
-        #assert
+        # Assert
         self.assertEqual(groups_xml, GROUPS_XML)
 
     def test_iocs_to_xml_converts_correctly(self):
-        # arrange
+        # Arrange
         self.maxDiff = None
         xc = self.xml_converter
         iocs = make_iocs()
 
-        #act
+        # Act
         iocs_xml = xc.iocs_to_xml(iocs)
         iocs_xml = strip_out_whitespace(iocs_xml)
 
-        #assert
+        # Assert
         self.assertEqual(iocs_xml.strip(), IOCS_XML.strip())
 
     def test_meta_to_xml_converts_correctly(self):
-        # arrange
+        # Arrange
         xc = self.xml_converter
         meta = make_meta()
 
-        #act
+        # Act
         meta_xml = xc.meta_to_xml(meta)
         meta_xml = strip_out_whitespace(meta_xml)
 
-        #assert
+        # Assert
         self.assertEqual(meta_xml.strip(), META_XML.strip())
 
     def test_xml_to_blocks_converts_correctly(self):
-        # arrange
+        # Arrange
         xc = self.xml_converter
         blocks = OrderedDict()
         groups = {"none": Group("NONE")}
-        root_xml = ElementTree.fromstring(strip_out_namespace(BLOCKS_XML))
+        root_xml = ElementTree.fromstring(BLOCKS_XML)
 
-        # act
+        # Act
         xc.blocks_from_xml(root_xml, blocks, groups)
         expected_blocks = make_blocks()
 
-        # assert
+        # Assert
         self.assertEqual(len(blocks), len(expected_blocks))
         for key, value in blocks.iteritems():
             self.assertTrue(key in expected_blocks)
@@ -278,41 +277,25 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
             self.assertEqual(value.name, expected.name)
             self.assertEqual(value.pv, expected.pv)
             self.assertEqual(value.local, expected.local)
+            self.assertEqual(value.rc_enabled, expected.rc_enabled)
+            self.assertEqual(value.rc_lowlimit, expected.rc_lowlimit)
+            self.assertEqual(value.rc_highlimit, expected.rc_highlimit)
             self.assertEqual(value.log_periodic, expected.log_periodic)
             self.assertEqual(value.log_rate, expected.log_rate)
             self.assertEqual(value.log_deadband, expected.log_deadband)
 
-    def test_xml_string_to_groups_converts_correctly(self):
-        # arrange
-        xc = self.xml_converter
-        groups = OrderedDict()
-        blocks = OrderedDict()
-
-        # act
-        xc.groups_from_xml_string(strip_out_namespace(GROUPS_XML), groups, blocks)
-        expected_groups = make_groups()
-
-        # assert
-        self.assertEqual(len(groups), len(expected_groups))
-        for key, value in groups.iteritems():
-            self.assertTrue(key in expected_groups)
-            expected = expected_groups[key]
-            self.assertEqual(value.name, expected.name)
-            for block in value.blocks:
-                self.assertTrue(block in expected.blocks)
-
     def test_xml_to_groups_converts_correctly(self):
-        # arrange
+        # Arrange
         xc = self.xml_converter
         groups = OrderedDict()
         blocks = OrderedDict()
-        root_xml = ElementTree.fromstring(strip_out_namespace(GROUPS_XML))
+        root_xml = ElementTree.fromstring(GROUPS_XML)
 
-        # act
+        # Act
         xc.groups_from_xml(root_xml, groups, blocks)
         expected_groups = make_groups()
 
-        # assert
+        # Assert
         self.assertEqual(len(groups), len(expected_groups))
         for key, value in groups.iteritems():
             self.assertTrue(key in expected_groups)
@@ -322,16 +305,16 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
                 self.assertTrue(block in expected.blocks)
 
     def test_xml_to_iocs_converts_correctly(self):
-        # arrange
+        # Arrange
         xc = self.xml_converter
         iocs = OrderedDict()
-        root_xml = ElementTree.fromstring(strip_out_namespace(IOCS_XML))
+        root_xml = ElementTree.fromstring(IOCS_XML)
 
-        # act
+        # Act
         xc.ioc_from_xml(root_xml, iocs)
         expected_iocs = make_iocs()
 
-        # assert
+        # Assert
         self.assertEqual(len(iocs), len(expected_iocs))
         for n, ioc in iocs.iteritems():
             self.assertTrue(n in expected_iocs)
@@ -339,31 +322,117 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
             self.assertEqual(ioc.autostart, True)
             self.assertEqual(ioc.restart, False)
 
-            self.assertEqual(len(ioc.macros), 1)
-            self.assertEqual(len(ioc.pvs), 1)
-            self.assertEqual(len(ioc.pvsets), 1)
+            self.assertEqual(len(ioc.macros), 2)
+            self.assertEqual(len(ioc.pvs), 2)
+            self.assertEqual(len(ioc.pvsets), 2)
 
-            for mn, v in ioc.macros.iteritems():
-                self.assertEqual(mn, n + "MACRO")
-                self.assertTrue(v > 0)
-            for pn, v in ioc.pvs.iteritems():
-                self.assertEqual(pn, n + "PV")
-                self.assertTrue(v > 0)
-            for pn, v in ioc.pvsets.iteritems():
-                self.assertEqual(pn, n + "PVSET")
-                self.assertTrue(v)
+    def test_xml_to_component_converts_correctly(self):
+        # Arrange
+        xc = self.xml_converter
+        comps = OrderedDict()
+        root_xml = ElementTree.fromstring(COMP_XML)
+
+        # Act
+        xc.components_from_xml(root_xml, comps)
+
+        # Assert
+        self.assertEqual(len(comps), 2)
+        self.assertTrue("comp1" in comps)
+        self.assertTrue("comp2" in comps)
 
     def test_xml_to_meta_converts_correctly(self):
-        #arrange
+        # Arrange
         xc = self.xml_converter
         root_xml = ElementTree.fromstring(META_XML)
         meta = MetaData('Test')
 
-        #act
+        # Act
         xc.meta_from_xml(root_xml, meta)
         expected_meta = make_meta()
 
-        #assert
+        # Assert
         self.assertEqual(meta.name, expected_meta.name)
         self.assertEqual(meta.description, expected_meta.description)
         self.assertEqual(meta.history, expected_meta.history)
+
+    def test_xml_to_blocks_converts_correctly_with_no_namespace(self):
+        # Arrange
+        xc = self.xml_converter
+        blocks = OrderedDict()
+        groups = {"none": Group("NONE")}
+        root_xml = ElementTree.fromstring(strip_out_namespace(BLOCKS_XML))
+
+        # Act
+        xc.blocks_from_xml(root_xml, blocks, groups)
+        expected_blocks = make_blocks()
+
+        # Assert
+        self.assertEqual(len(blocks), len(expected_blocks))
+        for key, value in blocks.iteritems():
+            self.assertTrue(key in expected_blocks)
+            expected = expected_blocks[key]
+            self.assertEqual(value.name, expected.name)
+            self.assertEqual(value.pv, expected.pv)
+            self.assertEqual(value.local, expected.local)
+            self.assertEqual(value.rc_enabled, expected.rc_enabled)
+            self.assertEqual(value.rc_lowlimit, expected.rc_lowlimit)
+            self.assertEqual(value.rc_highlimit, expected.rc_highlimit)
+            self.assertEqual(value.log_periodic, expected.log_periodic)
+            self.assertEqual(value.log_rate, expected.log_rate)
+            self.assertEqual(value.log_deadband, expected.log_deadband)
+
+    def test_xml_to_iocs_converts_correctly_with_no_namespace(self):
+        # Arrange
+        xc = self.xml_converter
+        iocs = OrderedDict()
+        root_xml = ElementTree.fromstring(strip_out_namespace(IOCS_XML))
+
+        # Act
+        xc.ioc_from_xml(root_xml, iocs)
+        expected_iocs = make_iocs()
+
+        # Assert
+        self.assertEqual(len(iocs), len(expected_iocs))
+        for n, ioc in iocs.iteritems():
+            self.assertTrue(n in expected_iocs)
+
+            self.assertEqual(ioc.autostart, True)
+            self.assertEqual(ioc.restart, False)
+
+            self.assertEqual(len(ioc.macros), 2)
+            self.assertEqual(len(ioc.pvs), 2)
+            self.assertEqual(len(ioc.pvsets), 2)
+
+    def test_xml_to_groups_converts_correctly_with_no_namespace(self):
+        # Arrange
+        xc = self.xml_converter
+        groups = OrderedDict()
+        blocks = OrderedDict()
+        root_xml = ElementTree.fromstring(strip_out_namespace(GROUPS_XML))
+
+        # Act
+        xc.groups_from_xml(root_xml, groups, blocks)
+        expected_groups = make_groups()
+
+        # Assert
+        self.assertEqual(len(groups), len(expected_groups))
+        for key, value in groups.iteritems():
+            self.assertTrue(key in expected_groups)
+            expected = expected_groups[key]
+            self.assertEqual(value.name, expected.name)
+            for block in value.blocks:
+                self.assertTrue(block in expected.blocks)
+
+    def test_xml_to_component_converts_correctly_with_no_namespace(self):
+        # Arrange
+        xc = self.xml_converter
+        comps = OrderedDict()
+        root_xml = ElementTree.fromstring(strip_out_namespace(COMP_XML))
+
+        # Act
+        xc.components_from_xml(root_xml, comps)
+
+        # Assert
+        self.assertEqual(len(comps), 2)
+        self.assertTrue("comp1" in comps)
+        self.assertTrue("comp2" in comps)
