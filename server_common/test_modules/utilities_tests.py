@@ -48,8 +48,8 @@ class TestCreatePVName(unittest.TestCase):
 
         # Assert
         self.assertEquals(pv_01, "PEEVEE")
-        self.assertEquals(pv_02, "peev01")
-        self.assertEquals(pv_03, "peev02")
+        self.assertEquals(pv_02, "PEEV01")
+        self.assertEquals(pv_03, "PEEV02")
 
     def test_WHEN_pv_name_too_long_THEN_truncate_to_six_chars(self):
         # Act
