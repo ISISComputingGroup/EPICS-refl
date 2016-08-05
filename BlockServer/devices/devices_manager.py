@@ -28,6 +28,7 @@ from xml.dom import minidom
 SCREENS_SCHEMA = "screens.xsd"
 GET_SCREENS = BlockserverPVNames.prepend_blockserver('GET_SCREENS')
 SET_SCREENS = BlockserverPVNames.prepend_blockserver('SET_SCREENS')
+GET_SCHEMA = BlockserverPVNames.SCREENS_SCHEMA
 
 
 class DevicesManager(OnTheFlyPvInterface):
@@ -45,6 +46,7 @@ class DevicesManager(OnTheFlyPvInterface):
         self._file_io = file_io
         self._pvs_to_set = [SET_SCREENS]
         self._schema_folder = schema_folder
+        self._schema = ""
         self._devices_pvs = dict()
         self._vc = vc_manager
         self._bs = block_server
@@ -56,9 +58,10 @@ class DevicesManager(OnTheFlyPvInterface):
     def _create_standard_pvs(self):
         self._bs.add_string_pv_to_db(GET_SCREENS, 16000)
         self._bs.add_string_pv_to_db(SET_SCREENS, 16000)
+        self._bs.add_string_pv_to_db(GET_SCHEMA, 16000)
 
     def read_pv_exists(self, pv):
-        # Reads are handled by the monitors
+        # All other reads are handled by the monitors
         return False
 
     def write_pv_exists(self, pv):
@@ -76,6 +79,7 @@ class DevicesManager(OnTheFlyPvInterface):
     def update_monitors(self):
         with self._bs.monitor_lock:
             print "UPDATING DEVICES MONITORS"
+            self._bs.setParam(GET_SCHEMA, compress_and_hex(self.get_devices_schema()))
             self._bs.setParam(GET_SCREENS, compress_and_hex(self._data))
             self._bs.updatePVs()
 
@@ -163,13 +167,16 @@ class DevicesManager(OnTheFlyPvInterface):
     def get_devices_schema(self):
         """Gets the XSD data for the devices screens.
 
+        Note: Only reads file once, if the file changes then the BlockServer will need to be restarted
+
         Returns:
             string : The XML for the devices screens schema
         """
-        schema = ""
-        with open(os.path.join(self._schema_folder, SCREENS_SCHEMA), 'r') as schemafile:
-            schema = schemafile.read()
-        return schema
+        if self._schema == "":
+            # Try loading it
+            with open(os.path.join(self._schema_folder, SCREENS_SCHEMA), 'r') as schemafile:
+                self._schema = schemafile.read()
+        return self._schema
 
     def get_blank_devices(self):
         """Gets a blank devices xml

@@ -161,16 +161,6 @@ PVDB = {
         'type': 'char',
         'count': 16000,
         'value': [0],
-    },
-    BlockserverPVNames.SET_SCREENS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.SCREENS_SCHEMA: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
     }
 }
 
@@ -299,8 +289,6 @@ class BlockServer(Driver):
                 value = compress_and_hex(js)
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE:
                 value = compress_and_hex(self.bumpstrip)
-            elif reason == BlockserverPVNames.SCREENS_SCHEMA:
-                value = compress_and_hex(self._devices.get_devices_schema())
             else:
                 # Check to see if it is a on-the-fly PV
                 for handler in self.on_the_fly_handlers:
