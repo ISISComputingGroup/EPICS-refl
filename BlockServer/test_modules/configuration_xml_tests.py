@@ -329,12 +329,12 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
 
         # Assert
         self.assertEqual(len(groups), len(expected_groups))
-        for key, value in groups.iteritems():
-            self.assertTrue(key in expected_groups)
-            expected = expected_groups[key]
-            self.assertEqual(value.name, expected.name)
+        for key, value in expected_groups.iteritems():
+            self.assertTrue(key in groups)
+            grp = groups[key]
+            self.assertEqual(value.name, grp.name)
             for block in value.blocks:
-                self.assertTrue(block in expected.blocks)
+                self.assertTrue(block in grp.blocks)
 
     def test_xml_to_iocs_converts_correctly(self):
         # Arrange

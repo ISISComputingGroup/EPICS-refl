@@ -325,7 +325,8 @@ class ConfigurationXmlConverter(object):
             # Add the group to the dict unless it already exists (i.e. the group is defined twice)
             if gname_low not in groups.keys():
                 groups[gname_low] = Group(gname)
-            blks = ConfigurationXmlConverter._find_all_nodes(g, NS_TAG_BLOCK, TAG_BLOCK)
+
+            blks = ConfigurationXmlConverter._find_all_nodes(g, NS_TAG_GROUP, TAG_BLOCK)
 
             for b in blks:
                 name = b.attrib[TAG_NAME]
