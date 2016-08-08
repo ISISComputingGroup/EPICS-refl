@@ -272,16 +272,6 @@ class BlockServer(Driver):
         # Import all the devices data and create PVs
         self._devices = DevicesManager(self, ca_server, SCHEMA_DIR, self._vc)
 
-        # Create banner object
-        bool_str = BoolStr("bumpstrip", "MOT:BUMP_STOP")
-        t_state = {"colour": "GREEN", "message": "true"}
-        f_state = {"colour": "RED", "message": "false"}
-        u_state = {"colour": "RED", "message": "unknown"}
-        bool_str.set_true_state(t_state)
-        bool_str.set_false_state(f_state)
-        bool_str.set_unknown_state(u_state)
-        self.banner = Banner()
-        self.banner.add_item(bool_str)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
