@@ -1,29 +1,36 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
 import os
 
+
+def _get_env_var(name):
+    try:
+        return os.environ[name]
+    except:
+        return ""
+
+
 MACROS = {
-    "$(MYPVPREFIX)": os.environ['MYPVPREFIX'],
-    "$(EPICS_KIT_ROOT)": os.environ['EPICS_KIT_ROOT'],
-    "$(ICPCONFIGROOT)": os.environ['ICPCONFIGROOT'],
-    "$(ICPVARDIR)": os.environ['ICPVARDIR']
+    "$(MYPVPREFIX)": _get_env_var('MYPVPREFIX'),
+    "$(EPICS_KIT_ROOT)": _get_env_var('EPICS_KIT_ROOT'),
+    "$(ICPCONFIGROOT)": _get_env_var('ICPCONFIGROOT'),
+    "$(ICPVARDIR)": _get_env_var('ICPVARDIR')
 }
 
 BLOCK_PREFIX = "CS:SB:"
 BLOCKSERVER_PREFIX = MACROS["$(MYPVPREFIX)"] + "CS:"
 PVPREFIX_MACRO = "$(MYPVPREFIX)"
-BLOCKSERVER = "BLOCKSERVER:"

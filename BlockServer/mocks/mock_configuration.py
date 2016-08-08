@@ -91,10 +91,6 @@ class MockConfigurationXmlConverter(object):
     def groups_from_xml(xml, groups, blocks):
         pass
 
-    @staticmethod
-    def groups_from_xml_string(root_xml, groups, blocks):
-        pass
-
 
 class MockConfigurationJsonConverter(object):
     def __init__(self):

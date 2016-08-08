@@ -13,31 +13,30 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
+import os
+from xml.dom import minidom
 from server_common.utilities import print_and_log
 
-BLOCKCACHE_PSC = "BLOCKCACHE"
 
+class SynopticFileIO(object):
 
-class BlockCacheManager(object):
-    """The BlockCache is a separate Python CAS which holds the current block values for use in cshow.
-    This class allows the Block Server to control that CAS via ProcServCtrl.
-    """
-    def __init__(self, ioc_control):
-        """Constructor.
+    def write_synoptic_file(self, name, save_path, xml_data):
+        # If save file already exists remove first to avoid case issues
+        if os.path.exists(save_path):
+            os.remove(save_path)
 
-        Args:
-            ioc_control (IocControl): The object for restarting the IOC
-        """
-        self._ioc_control = ioc_control
+        # Save the data
+        with open(save_path, 'w') as synfile:
+            pretty_xml = minidom.parseString(xml_data).toprettyxml()
+            synfile.write(pretty_xml)
 
-    def restart(self):
-        """ Restarts via ProcServCtrl.
-        """
-        try:
-            if self._ioc_control.get_ioc_status(BLOCKCACHE_PSC) == "RUNNING":
-                self._ioc_control.restart_ioc(BLOCKCACHE_PSC, force=True)
-            else:
-                self._ioc_control.start_ioc(BLOCKCACHE_PSC)
-        except Exception as err:
-            print_and_log("Problem with restarting the Block Cache: %s" % str(err), "MAJOR")
+    def read_synoptic_file(self, directory, fullname):
+        with open(os.path.join(directory, fullname), 'r') as synfile:
+            data = synfile.read()
+        return data
+
+    def get_list_synoptic_files(self, directory):
+        if not os.path.exists(directory):
+            print_and_log("Synoptics directory does not exist")
+            return list()
+        return [f for f in os.listdir(directory) if f.endswith(".xml")]
