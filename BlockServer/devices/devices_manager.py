@@ -26,8 +26,8 @@ from xml.dom import minidom
 
 
 SCREENS_SCHEMA = "screens.xsd"
-GET_SCREENS = BlockserverPVNames.prepend_blockserver('GET_SCREENS')
-SET_SCREENS = BlockserverPVNames.prepend_blockserver('SET_SCREENS')
+GET_SCREENS = BlockserverPVNames.GET_SCREENS
+SET_SCREENS = BlockserverPVNames.SET_SCREENS
 GET_SCHEMA = BlockserverPVNames.SCREENS_SCHEMA
 
 

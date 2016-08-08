@@ -7,7 +7,7 @@ class DevicesFileIO(object):
     """Responsible for loading and saving the devices file."""
 
     def load_devices_file(self, file_name):
-        """Load the devices file and checks it against the schema.
+        """Load the devices file.
 
         Args:
             file_name (string): the devices file (full path)
@@ -21,7 +21,7 @@ class DevicesFileIO(object):
         return data
 
     def save_devices_file(self, file_name, data):
-        """Check the data agains the schema then save it.
+        """Saves the devices info.
 
         Args:
             file_name (string): the devices file (full path)
