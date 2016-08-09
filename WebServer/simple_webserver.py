@@ -1,13 +1,19 @@
 from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
 from threading import Thread
 from time import sleep
+from server_common.utilities import print_and_log
 HOST, PORT = '', 8008
 
 _config = ""
 
 
 class MyHandler(BaseHTTPRequestHandler):
+
     def do_GET(self):
+        """
+        This is called by BaseHTTPRequestHandler every time a client does a GET.
+        The response is written to self.wfile
+        """
         if self.path == '/favicon.ico':
             pass
         self.send_response(200)
@@ -16,12 +22,17 @@ class MyHandler(BaseHTTPRequestHandler):
         global _config
         self.wfile.write(_config)
 
+    def log_message(self, format, *args):
+        """ By overriding this method and doing nothing we disable writing to console
+         for every client request. Remove this to re-enable """
+        return
+
 
 class Server(Thread):
 
     def run(self):
         server = HTTPServer(('', PORT), MyHandler)
-        print "Serving HTTP on port %s ..." % PORT
+        print_and_log("Serving HTTP on port %s ..." % PORT)
         server.serve_forever()
 
     def set_config(self, set_to):
