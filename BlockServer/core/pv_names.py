@@ -16,7 +16,7 @@
 
 import os
 
-from BlockServer.core.macros import BLOCKSERVER
+BLOCKSERVER = "BLOCKSERVER:"
 
 
 class BlockserverPVNames:

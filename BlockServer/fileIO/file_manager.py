@@ -1,24 +1,25 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
-
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
+import re
 import os
 import shutil
 from collections import OrderedDict
+from xml.etree import ElementTree
 
-from server_common.utilities import parse_xml_removing_namespace, print_and_log
+from server_common.utilities import print_and_log
 from BlockServer.config.group import Group
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.configuration import Configuration, MetaData
@@ -26,6 +27,8 @@ from config_version_control import ConfigVersionControl
 from vc_exceptions import NotUnderVersionControl
 from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_COMPONENTS, FILENAME_META
 from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationIncompleteException
 
 
 class ConfigurationFileManager(object):
@@ -34,27 +37,30 @@ class ConfigurationFileManager(object):
     Contains utilities to save and load configurations and to communicate with the version control system.
     """
 
-    @staticmethod
-    def find_ci(root_path, name):
+    def find_ci(self, root_path, name):
         """find a file with a case insensitive match"""
         res = ''
         for f in os.listdir(root_path):
             if f.lower() == name.lower():
                 res = f
         return res
-    
-    @staticmethod
-    def load_config(config_folder, name, macros):
+
+    def load_config(self, name, macros, is_component):
         """Loads the configuration from the specified folder.
 
         Args:
-            config_folder (string): The configuration's folder
             name (string): The name of the configuration
             macros (dict): The BlockServer macros
+            is_component (bool): Is it a component?
         """
         configuration = Configuration(macros)
 
-        if not os.path.isdir(config_folder):
+        if is_component:
+            path = os.path.abspath(FILEPATH_MANAGER.get_component_path(name))
+        else:
+            path = os.path.abspath(FILEPATH_MANAGER.get_config_path(name))
+
+        if not os.path.isdir(path):
             raise IOError("Configuration could not be found: " + name)
 
         # Create empty containers
@@ -66,36 +72,73 @@ class ConfigurationFileManager(object):
         # Make sure NONE group exists
         groups[GRP_NONE.lower()] = Group(GRP_NONE)
 
+        config_files_missing = list()
+
         # Open the block file first
-        blocks_path = config_folder + "/" + FILENAME_BLOCKS
+        blocks_path = os.path.join(path, FILENAME_BLOCKS)
         if os.path.isfile(blocks_path):
-            root = parse_xml_removing_namespace(blocks_path)
+            root = ElementTree.parse(blocks_path).getroot()
+
+            # Check against the schema - raises if incorrect
+            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_BLOCKS)
+
             ConfigurationXmlConverter.blocks_from_xml(root, blocks, groups)
+        else:
+            config_files_missing.append(FILENAME_BLOCKS)
 
         # Import the groups
-        groups_path = config_folder + "/" + FILENAME_GROUPS
+        groups_path = os.path.join(path, FILENAME_GROUPS)
         if os.path.isfile(groups_path):
-            root = parse_xml_removing_namespace(groups_path)
+            root = ElementTree.parse(groups_path).getroot()
+
+            # Check against the schema - raises if incorrect
+            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_GROUPS)
+
             ConfigurationXmlConverter.groups_from_xml(root, groups, blocks)
+        else:
+            config_files_missing.append(FILENAME_GROUPS)
 
         # Import the IOCs
-        iocs_path = config_folder + "/" + FILENAME_IOCS
+        iocs_path = os.path.join(path, FILENAME_IOCS)
         if os.path.isfile(iocs_path):
-            root = parse_xml_removing_namespace(iocs_path)
+            root = ElementTree.parse(iocs_path).getroot()
+
+            # Check against the schema - raises if incorrect
+            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_IOCS)
+
             ConfigurationXmlConverter.ioc_from_xml(root, iocs)
+        else:
+            config_files_missing.append(FILENAME_IOCS)
 
         # Import the components
-        component_path = config_folder + "/" + FILENAME_COMPONENTS
+        component_path = os.path.join(path, FILENAME_COMPONENTS)
         if os.path.isfile(component_path):
-            root = parse_xml_removing_namespace(component_path)
+            root = ElementTree.parse(component_path).getroot()
+
+            # Check against the schema - raises if incorrect
+            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_COMPONENTS)
+
             ConfigurationXmlConverter.components_from_xml(root, components)
+        elif not is_component:
+            # It should be missing for a component
+            config_files_missing.append(FILENAME_COMPONENTS)
 
         # Import the metadata
         meta = MetaData(name)
-        meta_path = config_folder + '/' + FILENAME_META
+        meta_path = os.path.join(path, FILENAME_META)
         if os.path.isfile(meta_path):
-            root = parse_xml_removing_namespace(meta_path)
+            root = ElementTree.parse(meta_path).getroot()
+
+            # Check against the schema - raises if incorrect
+            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_META)
+
             ConfigurationXmlConverter.meta_from_xml(root, meta)
+        else:
+            config_files_missing.append(FILENAME_META)
+
+        if len(config_files_missing) > 0:
+            raise ConfigurationIncompleteException("Files missing in " + name +
+                                                   " (%s)" % ','.join(list(config_files_missing)))
 
         # Set properties in the config
         configuration.blocks = blocks
@@ -105,15 +148,24 @@ class ConfigurationFileManager(object):
         configuration.meta = meta
         return configuration
 
-    @staticmethod
-    def save_config(configuration, config_folder):
+    def _check_againgst_schema(self, xml, filename):
+        regex = re.compile(re.escape('.xml'), re.IGNORECASE)
+        name = regex.sub('.xsd', filename)
+        schema_path = os.path.join(FILEPATH_MANAGER.schema_dir, name)
+        ConfigurationSchemaChecker.check_xml_data_matches_schema(schema_path, xml)
+
+    def save_config(self, configuration, is_component):
         """Saves the current configuration with the specified name.
 
         Args:
             configuration (Configuration): The actual configuration to save
-            config_folder (string): The configuration's folder
+            is_component (bool): Is it a component?
         """
-        path = os.path.abspath(config_folder)
+        if is_component:
+            path = os.path.abspath(FILEPATH_MANAGER.get_component_path(configuration.get_name()))
+        else:
+            path = os.path.abspath(FILEPATH_MANAGER.get_config_path(configuration.get_name()))
+
         if not os.path.isdir(path):
             # Create the directory
             os.makedirs(path)
@@ -148,8 +200,7 @@ class ConfigurationFileManager(object):
         with open(path + '/' + FILENAME_META, 'w') as f:
             f.write(meta_xml)
 
-    @staticmethod
-    def component_exists(root_path, name):
+    def component_exists(self, root_path, name):
         """Checks to see if a component exists.
 
         root_path (string): The root folder where components are stored
@@ -169,4 +220,18 @@ class ConfigurationFileManager(object):
             dest_path (string): The root folder where configurations are stored
         """
         shutil.copytree(os.path.abspath(os.path.join(os.environ["MYDIRBLOCK"], EXAMPLE_DEFAULT)),
-                        os.path.join(dest_path,DEFAULT_COMPONENT))
+                        os.path.join(dest_path, DEFAULT_COMPONENT))
+
+    def get_files_in_directory(self, path):
+        """Gets a list of the files in the specified folder
+
+        Args:
+            path (string): The path of the folder
+
+        Returns:
+            list: the files in the folder
+        """
+        files = list()
+        if os.path.isdir(path):
+            files = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+        return files

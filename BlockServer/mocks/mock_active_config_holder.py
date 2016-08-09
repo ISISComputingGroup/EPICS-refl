@@ -13,10 +13,15 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+import copy
+from BlockServer.config.configuration import Configuration
+
 
 class MockActiveConfigHolder(object):
-    def __init__(self):
+    def __init__(self, macros):
         self.config_name = ""
+        self.config = Configuration(macros)
+        self.blocks = dict()
 
     def get_config_name(self):
         return self.config_name
@@ -24,4 +29,16 @@ class MockActiveConfigHolder(object):
     def set_config_name(self, name):
         # This does not exist in the real thing
         self.config_name = name
+
+    def get_block_details(self):
+        blks = copy.deepcopy(self.config.blocks)
+        # for cn, cv in self.components.iteritems():
+        #     for bn, bv in cv.blocks.iteritems():
+        #         if bn not in blks:
+        #             blks[bn] = bv
+        return blks
+
+    def add_block(self, blockargs):
+        self.config.add_block(**blockargs)
+
 

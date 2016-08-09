@@ -34,7 +34,7 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
     convert_to_json, convert_from_json
-from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX, BLOCKSERVER
+from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
@@ -54,6 +54,7 @@ from pcaspy.driver import manager, Data
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
 from BlockServer.spangle_banner.banner import Banner
 from BlockServer.spangle_banner.bool_str import BoolStr
+from BlockServer.fileIO.file_manager import ConfigurationFileManager
 
 
 # For documentation on these commands see the wiki
@@ -163,16 +164,6 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
-    BlockserverPVNames.SET_SCREENS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.SCREENS_SCHEMA: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
     BlockserverPVNames.BANNER_DESCRIPTION: {
         'type': 'char',
         'count': 16000,
@@ -198,7 +189,7 @@ class BlockServer(Driver):
         self.write_lock = RLock()
         self.write_queue = list()
 
-        FILEPATH_MANAGER.initialise(CONFIG_DIR)
+        FILEPATH_MANAGER.initialise(CONFIG_DIR, SCHEMA_DIR)
 
         self._cas = ca_server
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])
@@ -228,7 +219,7 @@ class BlockServer(Driver):
 
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc)
+            self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc, ConfigurationFileManager())
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
 		
@@ -249,7 +240,8 @@ class BlockServer(Driver):
         # This is in a separate method so it can be sent to the thread queue
         arch = ArchiverManager(ARCHIVE_UPLOADER, ARCHIVE_SETTINGS)
 
-        self._active_configserver = ActiveConfigHolder(MACROS, arch, self._vc, self._ioc_control)
+        self._active_configserver = ActiveConfigHolder(MACROS, arch, self._vc, ConfigurationFileManager(),
+                                                       self._ioc_control)
 
         if facility == "ISIS":
             self._run_control = RunControlManager(MACROS["$(MYPVPREFIX)"], MACROS["$(ICPCONFIGROOT)"],
@@ -306,8 +298,6 @@ class BlockServer(Driver):
                 value = compress_and_hex(self.bumpstrip)
             elif reason == BlockserverPVNames.BANNER_DESCRIPTION:
                 value = compress_and_hex(self.banner.get_description())
-            elif reason == BlockserverPVNames.SCREENS_SCHEMA:
-                value = compress_and_hex(self._devices.get_devices_schema())
             else:
                 # Check to see if it is a on-the-fly PV
                 for handler in self.on_the_fly_handlers:
@@ -521,7 +511,7 @@ class BlockServer(Driver):
             as_comp (bool): Whether it is a component or not
         """
         new_details = convert_from_json(json_data)
-        inactive = InactiveConfigHolder(MACROS, self._vc)
+        inactive = InactiveConfigHolder(MACROS, self._vc, ConfigurationFileManager())
 
         history = self._get_inactive_history(new_details["name"], as_comp)
 
@@ -556,7 +546,7 @@ class BlockServer(Driver):
     def _get_inactive_history(self, name, is_component=False):
         # If it already exists load it
         try:
-            inactive = InactiveConfigHolder(MACROS, self._vc)
+            inactive = InactiveConfigHolder(MACROS, self._vc, ConfigurationFileManager())
             inactive.load_inactive(name, is_component)
             # Get previous history
             history = inactive.get_history()
@@ -667,7 +657,7 @@ class BlockServer(Driver):
         Returns:
             dict : A dictionary containing all the details of a blank configuration
         """
-        temp_config = InactiveConfigHolder(MACROS, self._vc)
+        temp_config = InactiveConfigHolder(MACROS, self._vc, ConfigurationFileManager())
         return temp_config.get_config_details()
 
     def _check_config_inactive(self, inactive_name, is_component=False):
@@ -729,15 +719,19 @@ if __name__ == '__main__':
                         help='The directory from which to load the configuration schema (default=current directory)')
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration options(default=current directory)')
-    parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:'+BLOCKSERVER],
-                        help='The prefix for the blocks gateway (default='+MACROS["$(MYPVPREFIX)"]+'CS:GATEWAY:'+BLOCKSERVER+')')
+    parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"] +
+                                                                              'CS:GATEWAY:BLOCKSERVER'],
+                        help='The prefix for the blocks gateway (default=' + MACROS[
+                            "$(MYPVPREFIX)"] + 'CS:GATEWAY:BLOCKSERVER)')
     parser.add_argument('-pv', '--pvlist_name', nargs=1, type=str, default=['gwblock.pvlist'],
                         help='The filename for the pvlist file used by the blocks gateway (default=gwblock.pvlist)')
     parser.add_argument('-au', '--archive_uploader', nargs=1,
-                        default=[os.path.join(MACROS["$(EPICS_KIT_ROOT)"],"CSS","master","ArchiveEngine","set_block_config.bat")],
+                        default=[os.path.join(MACROS["$(EPICS_KIT_ROOT)"], "CSS", "master", "ArchiveEngine",
+                                              "set_block_config.bat")],
                         help='The batch file used to upload settings to the PV Archiver')
     parser.add_argument('-as', '--archive_settings', nargs=1,
-                        default=[os.path.join(MACROS["$(EPICS_KIT_ROOT)"],"CSS","master","ArchiveEngine","block_config.xml")],
+                        default=[os.path.join(MACROS["$(EPICS_KIT_ROOT)"], "CSS", "master", "ArchiveEngine",
+                                              "block_config.xml")],
                         help='The XML file containing the new PV Archiver log settings')
     parser.add_argument('-f', '--facility', nargs=1, type=str, default=['ISIS'],
                         help='Which facility is this being run for (default=ISIS)')

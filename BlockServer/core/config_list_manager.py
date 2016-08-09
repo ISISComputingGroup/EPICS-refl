@@ -20,11 +20,9 @@ import re
 from threading import RLock
 
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.core.macros import MACROS
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
-from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.pv_names import BlockserverPVNames
 
@@ -45,23 +43,25 @@ class ConfigListManager(object):
         active_config_name (string): The name of the active configuration
         active_components (list): The names of the components in the active configuration
     """
-    def __init__(self, block_server, schema_folder, vc_manager):
+    def __init__(self, block_server, schema_folder, vc_manager, file_manager):
         """Constructor.
 
         Args:
             block_server (BlockServer): A reference to the BlockServer itself
             schema_folder (string): The location of the schemas for validation
             vc_manager (ConfigVersionControl): The object for managing version control
+            file_manager (ConfigurationFileManager): Deals with writing the config files
         """
         self._config_metas = dict()
         self._component_metas = dict()
-        self._comp_dependecncies = dict()
+        self._comp_dependencies = dict()
         self._bs = block_server
         self.active_config_name = ""
         self.active_components = []
         self._lock = RLock()
         self._vc = vc_manager
         self.schema_folder = schema_folder
+        self.file_manager = file_manager
 
         self._conf_path = FILEPATH_MANAGER.config_dir
         self._comp_path = FILEPATH_MANAGER.component_dir
@@ -89,10 +89,7 @@ class ConfigListManager(object):
         return l
 
     def _get_file_list(self, path):
-        files = []
-        if os.path.isdir(path):
-            files = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
-        return files
+        return self.file_manager.get_files_in_directory(path)
 
     def get_configs(self):
         """Returns all of the valid configurations, made up of those found on startup and those subsequently created.
@@ -126,7 +123,7 @@ class ConfigListManager(object):
         for comp_name in comp_list:
             try:
                 path = FILEPATH_MANAGER.get_component_path(comp_name)
-                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path, True)
+                # load_config checks the schema
                 config = self.load_config(comp_name, True)
                 self.update_a_config_in_list(config, True)
                 self._vc.add(path)
@@ -135,12 +132,12 @@ class ConfigListManager(object):
 
         # Create default if it does not exist
         if DEFAULT_COMPONENT.lower() not in comp_list:
-            ConfigurationFileManager.copy_default(self._comp_path)
+            self.file_manager.copy_default(self._comp_path)
 
         for config_name in config_list:
             try:
                 path = FILEPATH_MANAGER.get_config_path(config_name)
-                ConfigurationSchemaChecker.check_config_file_matches_schema(schema_folder, path)
+                # load_config checks the schema
                 config = self.load_config(config_name)
                 self.update_a_config_in_list(config)
                 self._vc.add(path)
@@ -160,15 +157,15 @@ class ConfigListManager(object):
         Returns:
             InactiveConfigHolder : The holder for the requested configuration
         """
-        config = InactiveConfigHolder(MACROS, self._vc)
+        config = InactiveConfigHolder(MACROS, self._vc, self.file_manager)
         config.load_inactive(name, is_component)
         return config
 
     def _update_component_dependencies_pv(self, name):
         # Updates PV with list of configs that depend on a component
         configs = []
-        if name in self._comp_dependecncies.keys():
-            configs = self._comp_dependecncies[name]
+        if name in self._comp_dependencies.keys():
+            configs = self._comp_dependencies[name]
         if name in self._component_metas.keys():
             # Check just in case component failed to load
             pv_name = BlockserverPVNames.get_dependencies_pv(self._component_metas[name].pv)
@@ -241,19 +238,19 @@ class ConfigListManager(object):
             # Update component dependencies
             comps = config.get_component_names()
             for comp in comps:
-                if comp in self._comp_dependecncies:
-                    self._comp_dependecncies[comp.lower()].append(config.get_config_name())
+                if comp in self._comp_dependencies:
+                    self._comp_dependencies[comp.lower()].append(config.get_config_name())
                 else:
-                    self._comp_dependecncies[comp.lower()] = [config.get_config_name()]
+                    self._comp_dependencies[comp.lower()] = [config.get_config_name()]
                 self._update_component_dependencies_pv(comp.lower())
         self.update_monitors()
 
     def _remove_config_from_dependencies(self, config):
         # Remove old config from dependencies list
-        for comp, confs in self._comp_dependecncies.iteritems():
+        for comp, confs in self._comp_dependencies.iteritems():
             if config in confs:
-                self._comp_dependecncies[comp].remove(config)
-                self._update_component_dependencies_pv(comp)
+                self._comp_dependencies[comp.lower()].remove(config)
+                self._update_component_dependencies_pv(comp.lower())
 
     def _get_pv_name(self, config_name, is_component=False):
         """Returns the name of the pv corresponding to config_name, this name is generated if not already created."""
@@ -302,9 +299,9 @@ class ConfigListManager(object):
                     raise InvalidDeleteException("Cannot delete default component")
                 # Only allow comps to be deleted if they appear in no configs
                 for comp in lower_delete_list:
-                    if self._comp_dependecncies.get(comp):
+                    if self._comp_dependencies.get(comp):
                         raise InvalidDeleteException(comp + " is in use in: "
-                                                     + ', '.join(self._comp_dependecncies[comp]))
+                                                     + ', '.join(self._comp_dependencies[comp]))
                 if not lower_delete_list.issubset(self._component_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown components")
                 for comp in lower_delete_list:
@@ -324,7 +321,7 @@ class ConfigListManager(object):
             list : The configurations that depend on the component
         """
         with self._lock:
-            dependencies = self._comp_dependecncies.get(comp_name)
+            dependencies = self._comp_dependencies.get(comp_name.lower())
             if dependencies is None:
                 return []
             else:
