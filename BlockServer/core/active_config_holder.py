@@ -26,16 +26,17 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 class ActiveConfigHolder(ConfigHolder):
     """Class to serve up the active configuration.
     """
-    def __init__(self, macros, archive_manager, vc_manager, ioc_control):
+    def __init__(self, macros, archive_manager, vc_manager, file_manager, ioc_control):
         """ Constructor.
 
         Args:
             macros (dict): The BlockServer macros
             archive_manager (ArchiveManager): Responsible for updating the archiver
             vc_manager (ConfigVersionControl): Manages version control
+            file_manager (ConfigurationFileManager): Deals with writing the config files
             ioc_control (IocControl): Manages stopping and starting IOCs
         """
-        super(ActiveConfigHolder, self).__init__(macros, vc_manager)
+        super(ActiveConfigHolder, self).__init__(macros, vc_manager, file_manager)
         self._archive_manager = archive_manager
         self._ioc_control = ioc_control
         self._db = None

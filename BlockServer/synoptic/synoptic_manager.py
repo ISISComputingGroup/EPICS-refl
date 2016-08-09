@@ -24,6 +24,7 @@ from xml.dom import minidom
 from lxml import etree
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, \
     convert_to_json, convert_from_json
+from synoptic_file_io import SynopticFileIO
 
 
 # Synoptics PVs are of the form IN:DEMO:SYNOPTICS:XXXXX (no BLOCKSERVER in the name)
@@ -42,7 +43,7 @@ SYNOPTIC_SCHEMA_FILE = "synoptic.xsd"
 
 class SynopticManager(OnTheFlyPvInterface):
     """Class for managing the PVs associated with synoptics"""
-    def __init__(self, block_server, schema_folder, vc_manager, active_configholder):
+    def __init__(self, block_server, schema_folder, vc_manager, active_configholder, file_io=SynopticFileIO()):
         """Constructor.
 
         Args:
@@ -50,6 +51,7 @@ class SynopticManager(OnTheFlyPvInterface):
             schema_folder (string): The filepath for the synoptic schema
             vc_manager (ConfigVersionControl): The manager to allow version control modifications
             active_configholder (ActiveConfigHolder): A reference to the active configuration
+            file_io (SynopticFileIO): Responsible for file IO
         """
         self._pvs_to_set = [SYNOPTIC_PRE + SYNOPTIC_DELETE, SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS]
         self._directory = FILEPATH_MANAGER.synoptic_dir
@@ -58,6 +60,7 @@ class SynopticManager(OnTheFlyPvInterface):
         self._vc = vc_manager
         self._bs = block_server
         self._activech = active_configholder
+        self._file_io = file_io
         self._default_syn_xml = ""
         self._create_standard_pvs()
         self._load_initial()
@@ -110,13 +113,12 @@ class SynopticManager(OnTheFlyPvInterface):
 
     def _load_initial(self):
         """Create the PVs for all the synoptics found in the synoptics directory."""
-        for f in self._get_synoptic_filenames():
+        for f in self._file_io.get_list_synoptic_files(self._directory):
             # Load the data, checking the schema
             try:
-                with open(os.path.join(self._directory, f), 'r') as synfile:
-                    data = synfile.read()
-                    ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA_FILE),
-                                                                        data,"Synoptic")
+                data = self._file_io.read_synoptic_file(self._directory, f)
+                ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder,
+                                                                                 SYNOPTIC_SCHEMA_FILE), data, "Synoptic")
                 # Get the synoptic name
                 self._create_pv(data)
 
@@ -169,17 +171,6 @@ class SynopticManager(OnTheFlyPvInterface):
         ans.insert(0, {"pv": "__BLANK__", "name": "-- NONE --", "is_default": default_is_none_synoptic})
         return ans
 
-    def _get_synoptic_filenames(self):
-        """Gets the names of the synoptic files in the synoptics directory. Without the .xml extension.
-
-        Returns:
-            list : List of synoptics files on the server
-        """
-        if not os.path.exists(self._directory):
-            print_and_log("Synoptics directory does not exist")
-            return list()
-        return [f for f in os.listdir(self._directory) if f.endswith(".xml")]
-
     def set_default_synoptic(self, name):
         """Sets the default synoptic.
 
@@ -187,11 +178,10 @@ class SynopticManager(OnTheFlyPvInterface):
             name (string): the name of the synoptic to load
         """
         fullname = name + ".xml"
-        f = self._get_synoptic_filenames()
+        f = self._file_io.get_list_synoptic_files(self._directory)
         if fullname in f:
             # Load the data
-            with open(os.path.join(self._directory, fullname), 'r') as synfile:
-                data = synfile.read()
+            data = self._file_io.read_synoptic_file(self._directory, fullname)
             self._default_syn_xml = data
         else:
             # No synoptic
@@ -224,7 +214,7 @@ class SynopticManager(OnTheFlyPvInterface):
         try:
             # Check against schema
             ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder, SYNOPTIC_SCHEMA_FILE),
-                                                                xml_data,"Synoptic")
+                                                                xml_data, "Synoptic")
             # Update PVs
             self._create_pv(xml_data)
 
@@ -236,17 +226,8 @@ class SynopticManager(OnTheFlyPvInterface):
 
         save_path = FILEPATH_MANAGER.get_synoptic_path(name)
 
-        # If save file already exists remove first to avoid case issues
-        if os.path.exists(save_path):
-            os.remove(save_path)
-
-        # Save the data
-        with open(save_path, 'w') as synfile:
-            pretty_xml = minidom.parseString(xml_data).toprettyxml()
-            synfile.write(pretty_xml)
-
+        self._file_io.write_synoptic_file(name, save_path, xml_data)
         self._add_to_version_control(name, "%s modified by client" % name)
-
         print_and_log("Synoptic saved: " + name)
 
     def _add_to_version_control(self, synoptic_name, commit_message=None):
