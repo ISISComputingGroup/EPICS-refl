@@ -103,8 +103,12 @@ class ConfigurationFileManager(object):
         if os.path.isfile(iocs_path):
             root = ElementTree.parse(iocs_path).getroot()
 
+            # There was a historic bug where the simlevel was saved as 'None' rather than "none".
+            # Correct that here
+            correct_xml = ElementTree.tostring(root, encoding='utf8').replace('simlevel="None"', 'simlevel="none"')
+
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_IOCS)
+            self._check_againgst_schema(correct_xml, FILENAME_IOCS)
 
             ConfigurationXmlConverter.ioc_from_xml(root, iocs)
         else:

@@ -50,9 +50,9 @@ class IOC(object):
         self.component = component
 
         if simlevel is None:
-            self.simlevel = "None"
+            self.simlevel = "none"
         else:
-            self.simlevel = simlevel
+            self.simlevel = simlevel.lower()
 
         if macros is None:
             self.macros = dict()
