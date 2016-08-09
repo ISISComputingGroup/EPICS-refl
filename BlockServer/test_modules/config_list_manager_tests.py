@@ -33,6 +33,7 @@ from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.macros import BLOCKSERVER
+from server_common.utilities import create_pv_name
 
 
 MACROS = {
@@ -44,10 +45,9 @@ MACROS = {
 CONFIG_PATH = "./test_configs/"
 SCHEMA_PATH = "./../../../../schema"
 
-GET_CONFIG_PV = "GET_CONFIG_DETAILS"
-GET_COMPONENT_PV = "GET_COMPONENT_DETAILS"
-DEPENDENCIES_PV = "DEPENDENCIES"
-CONFIG_CHANGED_PV = ":CURR_CONFIG_CHANGED"
+GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
+GET_COMPONENT_PV = ":GET_COMPONENT_DETAILS"
+DEPENDENCIES_PV = ":DEPENDENCIES"
 
 VALID_CONFIG = {
         "iocs": [{
@@ -205,14 +205,14 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         confs = self.clm.get_configs()
         self.assertEqual(len(confs), 2)
 
-        self.assertTrue("TEST_CONFIG_AND_COMPONENT1" in [m["pv"] for m in confs])
-        self.assertTrue("TEST_CONFIG_AND_COMPONENT2" in [m["pv"] for m in confs])
+        self.assertTrue(create_pv_name("TEST_CONFIG_AND_COMPONENT1", confs, "DEFAULT") in [m["pv"] for m in confs])
+        self.assertTrue(create_pv_name("TEST_CONFIG_AND_COMPONENT2", confs, "DEFAULT") in [m["pv"] for m in confs])
 
         comps = self.clm.get_components()
         self.assertEqual(len(comps), 2)
 
-        self.assertTrue("TEST_CONFIG_AND_COMPONENT1" in [m["pv"] for m in comps])
-        self.assertTrue("TEST_CONFIG_AND_COMPONENT2" in [m["pv"] for m in comps])
+        self.assertTrue(create_pv_name("TEST_CONFIG_AND_COMPONENT1", confs, "DEFAULT") in [m["pv"] for m in comps])
+        self.assertTrue(create_pv_name("TEST_CONFIG_AND_COMPONENT2", confs, "DEFAULT") in [m["pv"] for m in comps])
 
     def _test_is_configuration_json(self, data, name):
         self.assertTrue("name" in data)
@@ -232,8 +232,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(confs[0]["pv"], expected_pv_name)
         self.assertEqual(confs[0]["name"], config_name)
 
-        self.assertTrue(self._does_pv_exist(expected_pv_name + ":" + GET_CONFIG_PV))
-        self.assertFalse(self._does_pv_exist(config_name + ":" + GET_CONFIG_PV))
+        self.assertTrue(self._does_pv_exist(expected_pv_name + GET_CONFIG_PV))
+        self.assertFalse(self._does_pv_exist(config_name + GET_CONFIG_PV))
 
     def test_delete_configs_empty(self):
         self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
@@ -449,11 +449,16 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_COMPONENT3" in config_names)
         self.assertFalse("TEST_COMPONENT1" in config_names)
 
-        self.assertTrue(self._does_pv_exist("TEST_INACTIVE:" + GET_CONFIG_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT2:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT2:" + DEPENDENCIES_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT3:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT3:" + DEPENDENCIES_PV))
+        pvs = list()
+        pvs.append(create_pv_name("TEST_INACTIVE", pvs, "DEFAULT") + GET_CONFIG_PV)
+        pvs.append(create_pv_name("TEST_COMPONENT1", pvs, "DEFAULT") + GET_COMPONENT_PV)
+        pvs.append(create_pv_name("TEST_COMPONENT2", pvs, "DEFAULT") + GET_COMPONENT_PV)
+        pvs.append(create_pv_name("TEST_COMPONENT3", pvs, "DEFAULT") + GET_COMPONENT_PV)
+
+        self.assertTrue(self._does_pv_exist(pvs[0]))
+        self.assertTrue(self._does_pv_exist(pvs[2]), pvs[2] + " doesnt exist")
+        self.assertTrue(self._does_pv_exist(pvs[3]))
+        self.assertFalse(self._does_pv_exist(pvs[1]))
 
     def test_dependencies_initialises(self):
         self._create_components(["TEST_COMPONENT1"])
