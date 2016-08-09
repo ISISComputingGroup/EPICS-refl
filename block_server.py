@@ -173,7 +173,7 @@ PVDB = {
         'count': 16000,
         'value': [0],
     },
-    'BlockserverPVNames.BANNER_DESCRIPTION': {
+    BlockserverPVNames.BANNER_DESCRIPTION: {
         'type': 'char',
         'count': 16000,
         'value': [0],
@@ -231,7 +231,18 @@ class BlockServer(Driver):
             self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc)
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
-
+			
+		# Create banner object
+		bool_str = BoolStr("test property", "DAE:TITLE:DISPLAY")
+		t_state = {"colour": "GREEN", "message": "displaying"}
+		f_state = {"colour": "RED", "message": "not displaying"}
+		u_state = {"colour": "RED", "message": "unknown"}
+		bool_str.set_true_state(t_state)
+		bool_str.set_false_state(f_state)
+		bool_str.set_unknown_state(u_state)
+		self.banner = Banner()
+		self.banner.add_item(bool_str)
+		
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
         write_thread.daemon = True  # Daemonise thread
@@ -304,7 +315,7 @@ class BlockServer(Driver):
                 value = compress_and_hex(js)
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE:
                 value = compress_and_hex(self.bumpstrip)
-            elif reason == "BANNER_DESCRIPTION":
+            elif reason == BlockserverPVNames.BANNER_DESCRIPTION::
                 value = compress_and_hex(self.banner.get_description())
             elif reason == BlockserverPVNames.SCREENS_SCHEMA:
                 value = compress_and_hex(self._devices.get_devices_schema())
