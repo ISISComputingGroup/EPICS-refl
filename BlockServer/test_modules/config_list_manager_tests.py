@@ -18,6 +18,7 @@ import unittest
 import json
 import os
 import shutil
+from numpy.lib.financial import pv
 
 from BlockServer.core.config_list_manager import ConfigListManager, InvalidDeleteException
 from BlockServer.core.active_config_holder import ActiveConfigHolder
@@ -107,6 +108,14 @@ class TestInactiveConfigsSequence(unittest.TestCase):
             configserver.save_inactive(name, True)
         self.clm = ConfigListManager(self.bs, SCHEMA_PATH, MockVersionControl())
 
+    def _create_pvs(self, pv_names, suffix=""):
+        pvs = list()
+        for name in pv_names:
+            pvs.append(create_pv_name(name, pvs, "DEFAULT"))
+
+        pvs = [pv + suffix for pv in pvs]
+        return pvs
+
     def tearDown(self):
         # Delete any configs created as part of the test
         path = os.path.abspath(CONFIG_PATH)
@@ -136,20 +145,26 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_initialisation_with_configs_in_directory_pv(self):
         self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
 
-        self.assertTrue(self._does_pv_exist("TEST_CONFIG1:" + GET_CONFIG_PV))
-        self.assertTrue(self._does_pv_exist("TEST_CONFIG2:" + GET_CONFIG_PV))
-        self.assertFalse(self._does_pv_exist("TEST_CONFIG1:" + GET_COMPONENT_PV))
-        self.assertFalse(self._does_pv_exist("TEST_CONFIG2:" + GET_COMPONENT_PV))
+        pvs = self._create_pvs(["TEST_CONFIG1", "TEST_CONFIG2"], GET_CONFIG_PV)
+        pvs += self._create_pvs(["TEST_CONFIG1", "TEST_CONFIG2"], GET_COMPONENT_PV)
+
+        for pv in pvs[:2]:
+            self.assertTrue(self._does_pv_exist(pv))
+        for pv in pvs[2:]:
+            self.assertFalse(self._does_pv_exist(pv))
 
     def test_initialisation_with_components_in_directory_pv(self):
-        self._create_components(["TEST_COMPONENT1", "TEST_COMPONENT2"])
+        comps = ["TEST_COMPONENT1", "TEST_COMPONENT2"]
+        self._create_components(comps)
 
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT2:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + DEPENDENCIES_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT2:" + DEPENDENCIES_PV))
-        self.assertFalse(self._does_pv_exist("TEST_COMPONENT1:" + GET_CONFIG_PV))
-        self.assertFalse(self._does_pv_exist("TEST_COMPONENT2:" + GET_CONFIG_PV))
+        pvs = self._create_pvs(comps, GET_COMPONENT_PV)
+        pvs += self._create_pvs(comps, DEPENDENCIES_PV)
+        pvs += self._create_pvs(comps, GET_CONFIG_PV)
+
+        for pv in pvs[:4]:
+            self.assertTrue(self._does_pv_exist(pv))
+        for pv in pvs[4:]:
+            self.assertFalse(self._does_pv_exist(pv))
 
     def test_update_config_from_object(self):
         self.icm = InactiveConfigHolder(MACROS, MockVersionControl())
@@ -159,7 +174,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         confs = self.clm.get_configs()
         self.assertEqual(len(confs), 1)
         self.assertTrue("TEST_CONFIG" in [conf.get('name') for conf in confs])
-        self.assertTrue("TEST_CONFIG" in [conf.get('pv') for conf in confs])
+        self.assertTrue(create_pv_name("TEST_CONFIG", [], "") in [conf.get('pv') for conf in confs])
         self.assertTrue("A Test Configuration" in [conf.get('description') for conf in confs])
         self.assertTrue("TEST_SYNOPTIC" in [conf.get('synoptic') for conf in confs])
 
@@ -174,7 +189,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         confs = self.clm.get_components()
         self.assertEqual(len(confs), 1)
         self.assertTrue("TEST_CONFIG" in [conf.get('name') for conf in confs])
-        self.assertTrue("TEST_CONFIG" in [conf.get('pv') for conf in confs])
+        self.assertTrue(create_pv_name("TEST_CONFIG", [], "") in [conf.get('pv') for conf in confs])
         self.assertTrue("A Test Configuration" in [conf.get('description') for conf in confs])
         self.assertTrue("TEST_SYNOPTIC" in [conf.get('synoptic') for conf in confs])
 
@@ -196,7 +211,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_pv_of_lower_case_name(self):
         config_name = "test_CONfig1"
-        self._test_pv_changed_but_not_name(config_name, "TEST_CONFIG1")
+        self._test_pv_changed_but_not_name(config_name, create_pv_name(config_name, [], ""))
 
     def test_config_and_component_allowed_same_pv(self):
         self._create_configs(["TEST_CONFIG_AND_COMPONENT1", "TEST_CONFIG_AND_COMPONENT2"])
@@ -205,14 +220,16 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         confs = self.clm.get_configs()
         self.assertEqual(len(confs), 2)
 
-        self.assertTrue(create_pv_name("TEST_CONFIG_AND_COMPONENT1", confs, "DEFAULT") in [m["pv"] for m in confs])
-        self.assertTrue(create_pv_name("TEST_CONFIG_AND_COMPONENT2", confs, "DEFAULT") in [m["pv"] for m in confs])
+        pvs = self._create_pvs(["TEST_CONFIG_AND_COMPONENT1", "TEST_CONFIG_AND_COMPONENT2"], "")
+
+        self.assertTrue(pvs[0] in [m["pv"] for m in confs])
+        self.assertTrue(pvs[1] in [m["pv"] for m in confs])
 
         comps = self.clm.get_components()
         self.assertEqual(len(comps), 2)
 
-        self.assertTrue(create_pv_name("TEST_CONFIG_AND_COMPONENT1", confs, "DEFAULT") in [m["pv"] for m in comps])
-        self.assertTrue(create_pv_name("TEST_CONFIG_AND_COMPONENT2", confs, "DEFAULT") in [m["pv"] for m in comps])
+        self.assertTrue(pvs[0] in [m["pv"] for m in comps])
+        self.assertTrue(pvs[1] in [m["pv"] for m in comps])
 
     def _test_is_configuration_json(self, data, name):
         self.assertTrue("name" in data)
@@ -247,20 +264,22 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_CONFIG2" in config_names)
 
     def test_delete_components_empty(self):
-        self._create_components(["TEST_COMPONENT1", "TEST_COMPONENT2"])
+        comp_names = ["TEST_COMPONENT1", "TEST_COMPONENT2"]
+        self._create_components(comp_names)
 
         self.clm.active_config_name = "TEST_ACTIVE"
         self.clm.delete_configs([], True)
 
         config_names = [c["name"] for c in self.clm.get_components()]
         self.assertEqual(len(config_names), 2)
-        self.assertTrue("TEST_COMPONENT1" in config_names)
-        self.assertTrue("TEST_COMPONENT2" in config_names)
+        self.assertTrue(comp_names[0] in config_names)
+        self.assertTrue(comp_names[1] in config_names)
 
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + DEPENDENCIES_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT2:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT2:" + DEPENDENCIES_PV))
+        pvs = self._create_pvs(comp_names, GET_COMPONENT_PV)
+        pvs += self._create_pvs(comp_names, DEPENDENCIES_PV)
+
+        for pv in pvs:
+            self.assertTrue(self._does_pv_exist(pv))
 
     def test_delete_active_config(self):
         self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
@@ -340,7 +359,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertFalse("TEST_CONFIG1" in config_names)
 
     def test_delete_one_component(self):
-        self._create_components(["TEST_COMPONENT1", "TEST_COMPONENT2"])
+        comps = ["TEST_COMPONENT1", "TEST_COMPONENT2"]
+        self._create_components(comps)
 
         self.clm.delete_configs(["TEST_COMPONENT1"], True)
         self.clm.active_config_name = "TEST_ACTIVE"
@@ -349,8 +369,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(config_names), 1)
         self.assertTrue("TEST_COMPONENT2" in config_names)
         self.assertFalse("TEST_COMPONENT1" in config_names)
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT2:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT2:" + DEPENDENCIES_PV))
+
+        pvs = self._create_pvs(comps, GET_COMPONENT_PV)
+        pvs += self._create_pvs(comps, DEPENDENCIES_PV)
+        self.assertFalse(self._does_pv_exist(pvs[0]))
+        self.assertTrue(self._does_pv_exist(pvs[1]))
+        self.assertFalse(self._does_pv_exist(pvs[2]))
+        self.assertTrue(self._does_pv_exist(pvs[3]))
 
     def test_delete_many_configs(self):
         self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2", "TEST_CONFIG3"])
@@ -371,7 +396,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertFalse("TEST_CONFIG3" in config_names)
 
     def test_delete_many_components(self):
-        self._create_components(["TEST_COMPONENT1", "TEST_COMPONENT2", "TEST_COMPONENT3"])
+        all_comp_names = ["TEST_COMPONENT1", "TEST_COMPONENT2", "TEST_COMPONENT3"]
+        self._create_components(all_comp_names)
         self.clm.active_config_name = "TEST_ACTIVE"
 
         config_names = [c["name"] for c in self.clm.get_components()]
@@ -380,15 +406,23 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_COMPONENT2" in config_names)
         self.assertTrue("TEST_COMPONENT3" in config_names)
 
-        self.clm.delete_configs(["TEST_COMPONENT1", "TEST_COMPONENT3"],  True)
+        self.clm.delete_configs(["TEST_COMPONENT2", "TEST_COMPONENT3"],  True)
 
         config_names = [c["name"] for c in self.clm.get_components()]
         self.assertEqual(len(config_names), 1)
-        self.assertTrue("TEST_COMPONENT2" in config_names)
-        self.assertFalse("TEST_COMPONENT1" in config_names)
+        self.assertTrue("TEST_COMPONENT1" in config_names)
+        self.assertFalse("TEST_COMPONENT2" in config_names)
         self.assertFalse("TEST_COMPONENT3" in config_names)
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT2:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT2:" + DEPENDENCIES_PV))
+
+        pvs = self._create_pvs(all_comp_names, GET_COMPONENT_PV)
+        pvs += self._create_pvs(all_comp_names, DEPENDENCIES_PV)
+
+        self.assertTrue(self._does_pv_exist(pvs[0]))
+        self.assertTrue(self._does_pv_exist(pvs[3]))
+        self.assertFalse(self._does_pv_exist(pvs[1]))
+        self.assertFalse(self._does_pv_exist(pvs[2]))
+        for pv in pvs[4:]:
+            self.assertFalse(self._does_pv_exist(pv))
 
     def test_delete_config_affects_filesystem(self):
         self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
@@ -429,7 +463,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(config_names), 0)
 
     def test_delete_component_after_add_and_remove(self):
-        self._create_components(["TEST_COMPONENT1", "TEST_COMPONENT2", "TEST_COMPONENT3"])
+        comps = ["TEST_COMPONENT1", "TEST_COMPONENT2", "TEST_COMPONENT3"]
+        self._create_components(comps)
         self.clm.active_config_name = "TEST_ACTIVE"
 
         inactive = InactiveConfigHolder(MACROS, MockVersionControl())
@@ -449,22 +484,20 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_COMPONENT3" in config_names)
         self.assertFalse("TEST_COMPONENT1" in config_names)
 
-        pvs = list()
-        pvs.append(create_pv_name("TEST_INACTIVE", pvs, "DEFAULT") + GET_CONFIG_PV)
-        pvs.append(create_pv_name("TEST_COMPONENT1", pvs, "DEFAULT") + GET_COMPONENT_PV)
-        pvs.append(create_pv_name("TEST_COMPONENT2", pvs, "DEFAULT") + GET_COMPONENT_PV)
-        pvs.append(create_pv_name("TEST_COMPONENT3", pvs, "DEFAULT") + GET_COMPONENT_PV)
+        pvs = self._create_pvs(["TEST_INACTIVE"], GET_CONFIG_PV)
+        pvs += self._create_pvs(comps, GET_COMPONENT_PV)
 
         self.assertTrue(self._does_pv_exist(pvs[0]))
-        self.assertTrue(self._does_pv_exist(pvs[2]), pvs[2] + " doesnt exist")
+        self.assertTrue(self._does_pv_exist(pvs[2]))
         self.assertTrue(self._does_pv_exist(pvs[3]))
         self.assertFalse(self._does_pv_exist(pvs[1]))
 
     def test_dependencies_initialises(self):
         self._create_components(["TEST_COMPONENT1"])
 
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + DEPENDENCIES_PV))
+        pvs = self._create_pvs(["TEST_COMPONENT1:"])
+        self.assertTrue(self._does_pv_exist(pvs[0] + GET_COMPONENT_PV))
+        self.assertTrue(self._does_pv_exist(pvs[0] + DEPENDENCIES_PV))
 
     def test_dependencies_updates_add(self):
         self._create_components(["TEST_COMPONENT1"])
@@ -474,8 +507,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         inactive.save_inactive("TEST_INACTIVE")
         self.clm.update_a_config_in_list(inactive)
 
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + DEPENDENCIES_PV))
+        pvs = self._create_pvs(["TEST_COMPONENT1:"])
+        self.assertTrue(self._does_pv_exist(pvs[0] + GET_COMPONENT_PV))
+        self.assertTrue(self._does_pv_exist(pvs[0] + DEPENDENCIES_PV))
 
         confs = self.clm.get_configs()
         self.assertEqual(len(confs), 1)
@@ -494,8 +528,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         inactive.save_inactive("TEST_INACTIVE", False)
         self.clm.update_a_config_in_list(inactive)
 
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + DEPENDENCIES_PV))
+        pvs = self._create_pvs(["TEST_COMPONENT1:"])
+        self.assertTrue(self._does_pv_exist(pvs[0] + GET_COMPONENT_PV))
+        self.assertTrue(self._does_pv_exist(pvs[0] + DEPENDENCIES_PV))
 
         comps = self.clm.get_components()
         self.assertEqual(len(comps), 1)
@@ -512,8 +547,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
         self.clm.delete_configs(["TEST_INACTIVE"])
 
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + GET_COMPONENT_PV))
-        self.assertTrue(self._does_pv_exist("TEST_COMPONENT1:" + GET_COMPONENT_PV))
+        pvs = self._create_pvs(["TEST_COMPONENT1:"])
+        self.assertTrue(self._does_pv_exist(pvs[0] + GET_COMPONENT_PV))
+        self.assertTrue(self._does_pv_exist(pvs[0] + GET_COMPONENT_PV))
 
         comps = self.clm.get_components()
         self.assertEqual(len(comps), 1)
