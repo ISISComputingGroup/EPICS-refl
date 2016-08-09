@@ -48,7 +48,7 @@ class ExpData(object):
         },
     }
 
-    def __init__(self, prefix):
+    def __init__(self, prefix, ca=ChannelAccess):
         """Constructor
 
         Args:
@@ -65,6 +65,9 @@ class ExpData(object):
         self._daenamespv = prefix + "ED:USERNAME:DAE:SP"
         self._surnamepv = prefix + "ED:SURNAME"
         self._orgspv = prefix + "ED:ORGS"
+
+        # Set the channel access server to use
+        self.ca = ca
 
     def check_db_okay(self):
         """Attempts to connect to the database and raises an error if not able to do so
@@ -148,8 +151,8 @@ class ExpData(object):
 
         """
         # Update the RB Number for lookup - SIM for testing, DAE for production
-        ChannelAccess.caput(self._simrbpv, experimentID)
-        ChannelAccess.caput(self._daerbpv, experimentID)
+        self.ca.caput(self._simrbpv, experimentID)
+        self.ca.caput(self._daerbpv, experimentID)
 
         # Check for the experiment ID
         names = []
@@ -157,9 +160,9 @@ class ExpData(object):
         orgs = []
 
         if not self._experiment_exists(experimentID):
-            ChannelAccess.caput(self._simnames, self.encode4return(names))
-            ChannelAccess.caput(self._surnamepv, self.encode4return(surnames))
-            ChannelAccess.caput(self._orgspv, self.encode4return(orgs))
+            self.ca.caput(self._simnames, self.encode4return(names))
+            self.ca.caput(self._surnamepv, self.encode4return(surnames))
+            self.ca.caput(self._orgspv, self.encode4return(orgs))
             raise Exception("error finding the experiment: %s" % experimentID)
 
         # Get the user information from the database and update the associated PVs
@@ -177,12 +180,12 @@ class ExpData(object):
                     name = user(fullname, org, role.lower())
                     names.append(name.__dict__)
             orgs = list(set(orgs))
-            ChannelAccess.caput(self._simnames, self.encode4return(names))
-            ChannelAccess.caput(self._surnamepv, self.encode4return(surnames))
-            ChannelAccess.caput(self._orgspv, self.encode4return(orgs))
+            self.ca.caput(self._simnames, self.encode4return(names))
+            self.ca.caput(self._surnamepv, self.encode4return(surnames))
+            self.ca.caput(self._orgspv, self.encode4return(orgs))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
-            ChannelAccess.caput(self._daenamespv, ",".join(surnames))
+            self.ca.caput(self._daenamespv, ",".join(surnames))
 
     def updateUsername(self, users):
         """Updates the associated PVs when the User Names are altered
@@ -221,12 +224,12 @@ class ExpData(object):
                 name = user(fullname, org, role.lower())
                 names.append(name.__dict__)
             orgs = list(set(orgs))
-        ChannelAccess.caput(self._simnames, self.encode4return(names))
-        ChannelAccess.caput(self._surnamepv, self.encode4return(surnames))
-        ChannelAccess.caput(self._orgspv, self.encode4return(orgs))
+        self.ca.caput(self._simnames, self.encode4return(names))
+        self.ca.caput(self._surnamepv, self.encode4return(surnames))
+        self.ca.caput(self._orgspv, self.encode4return(orgs))
         # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
         # this is not available at this time in the ICP
         if not surnames:
-            ChannelAccess.caput(self._daenamespv, " ")
+            self.ca.caput(self._daenamespv, " ")
         else:
-            ChannelAccess.caput(self._daenamespv, ",".join(surnames))
+            self.ca.caput(self._daenamespv, ",".join(surnames))
