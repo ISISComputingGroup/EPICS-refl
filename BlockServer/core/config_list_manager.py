@@ -1,18 +1,18 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
 import os
 import json
@@ -23,16 +23,10 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.core.macros import MACROS
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
-from server_common.utilities import print_and_log, compress_and_hex, create_pv_name
+from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.core.constants import DEFAULT_COMPONENT
-
-
-
-GET_CONFIG_PV = ":GET_CONFIG_DETAILS"
-GET_COMPONENT_PV = ":GET_COMPONENT_DETAILS"
-DEPENDENCIES_PV = ":DEPENDENCIES"
-CONFIG_CHANGED_PV = ":CURR_CONFIG_CHANGED"
+from BlockServer.core.pv_names import BlockserverPVNames
 
 
 class InvalidDeleteException(Exception):
@@ -51,54 +45,38 @@ class ConfigListManager(object):
         active_config_name (string): The name of the active configuration
         active_components (list): The names of the components in the active configuration
     """
-    def __init__(self, block_server, server, schema_folder, vc_manager):
+    def __init__(self, block_server, schema_folder, vc_manager):
         """Constructor.
 
         Args:
             block_server (BlockServer): A reference to the BlockServer itself
-            server (CAServer): A reference to the CaServer of the BlockServer
             schema_folder (string): The location of the schemas for validation
             vc_manager (ConfigVersionControl): The object for managing version control
         """
         self._config_metas = dict()
         self._component_metas = dict()
         self._comp_dependecncies = dict()
-        self._ca_server = server
-        self._block_server = block_server
+        self._bs = block_server
         self.active_config_name = ""
         self.active_components = []
-        self._active_changed = False
         self._lock = RLock()
         self._vc = vc_manager
+        self.schema_folder = schema_folder
 
         self._conf_path = FILEPATH_MANAGER.config_dir
         self._comp_path = FILEPATH_MANAGER.component_dir
+        self._import_configs(self.schema_folder)
 
-        self._import_configs(schema_folder)
+    def _update_pv_value(self, fullname, data):
+        # First check PV exists if not create it
+        if not self._bs.does_pv_exist(fullname):
+            self._bs.add_string_pv_to_db(fullname, 16000)
 
-        # Create the changed PV
-        self.set_active_changed(False)
+        self._bs.setParam(fullname, data)
+        self._bs.updatePVs()
 
-    def get_active_changed(self):
-        """Check to see if the active configuration has changed.
-
-        Returns:
-            int : 1 if it has changed otherwise 0
-        """
-        with self._lock:
-            if self._active_changed:
-                return 1
-            else:
-                return 0
-
-    def set_active_changed(self, value):
-        """Set the flag to indicate whether the active configuration has changed or not.
-
-        Args:
-            value (bool): Whether the active configuration has changed or not
-        """
-        self._active_changed = value
-        self._ca_server.updatePV(CONFIG_CHANGED_PV, self.get_active_changed())
+    def _delete_pv(self, fullname):
+        self._bs.delete_pv_from_db(fullname)
 
     def _get_config_names(self):
         return self._get_file_list(os.path.abspath(self._conf_path))
@@ -193,16 +171,18 @@ class ConfigListManager(object):
             configs = self._comp_dependecncies[name]
         if name in self._component_metas.keys():
             # Check just in case component failed to load
-            self._ca_server.updatePV(self._component_metas[name].pv + DEPENDENCIES_PV,
-                                     compress_and_hex(json.dumps(configs)))
+            pv_name = BlockserverPVNames.get_dependencies_pv(self._component_metas[name].pv)
+            self._update_pv_value(pv_name, compress_and_hex(json.dumps(configs)))
 
     def _update_config_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(self._config_metas[name].pv + GET_CONFIG_PV, compress_and_hex(json.dumps(data)))
+        pv_name = BlockserverPVNames.get_config_details_pv(self._config_metas[name].pv)
+        self._update_pv_value(pv_name, compress_and_hex(json.dumps(data)))
 
     def _update_component_pv(self, name, data):
         # Updates pvs with new data
-        self._ca_server.updatePV(self._component_metas[name].pv + GET_COMPONENT_PV, compress_and_hex(json.dumps(data)))
+        pv_name = BlockserverPVNames.get_component_details_pv(self._component_metas[name].pv)
+        self._update_pv_value(pv_name, compress_and_hex(json.dumps(data)))
 
     def update_a_config_in_list_filewatcher(self, config, is_component=False):
         """Updates the PVs associated with a configuration
@@ -216,19 +196,16 @@ class ConfigListManager(object):
             self.update_a_config_in_list(config, is_component)
 
             # Update static PVs (some of these aren't completely necessary)
+            self.update_monitors()
             if is_component:
-                self._block_server.update_comp_monitor()
                 if config.get_config_name().lower() in [x.lower() for x in self.active_components]:
                     print_and_log("Active component edited in filesystem, reloading to get changes",
                                   src="FILEWTCHR")
-                    self.set_active_changed(True)
-                    self._block_server.load_last_config()
+                    self._bs.load_last_config()
             else:
-                self._block_server.update_config_monitors()
                 if config.get_config_name().lower() == self.active_config_name.lower():
                     print_and_log("Active config edited in filesystem, reload to receive changes",
                                   src="FILEWTCHR")
-                    self.set_active_changed(True)
 
     def update_a_config_in_list(self, config, is_component=False):
         """Takes a ConfigServerManager object and updates the list of meta data and the individual PVs.
@@ -269,6 +246,7 @@ class ConfigListManager(object):
                 else:
                     self._comp_dependecncies[comp.lower()] = [config.get_config_name()]
                 self._update_component_dependencies_pv(comp.lower())
+        self.update_monitors()
 
     def _remove_config_from_dependencies(self, config):
         # Remove old config from dependencies list
@@ -315,7 +293,7 @@ class ConfigListManager(object):
                 if not lower_delete_list.issubset(self._config_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown configurations")
                 for config in delete_list:
-                    self._ca_server.deletePV(self._config_metas[config.lower()].pv + GET_CONFIG_PV)
+                    self._delete_pv(BlockserverPVNames.get_config_details_pv(self._config_metas[config.lower()].pv))
                     del self._config_metas[config.lower()]
                     self._remove_config_from_dependencies(config)
                 self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
@@ -325,14 +303,16 @@ class ConfigListManager(object):
                 # Only allow comps to be deleted if they appear in no configs
                 for comp in lower_delete_list:
                     if self._comp_dependecncies.get(comp):
-                        raise InvalidDeleteException(comp + " is in use in: " + ', '.join(self._comp_dependecncies[comp]))
+                        raise InvalidDeleteException(comp + " is in use in: "
+                                                     + ', '.join(self._comp_dependecncies[comp]))
                 if not lower_delete_list.issubset(self._component_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown components")
                 for comp in lower_delete_list:
-                    self._ca_server.deletePV(self._component_metas[comp].pv + GET_COMPONENT_PV)
-                    self._ca_server.deletePV(self._component_metas[comp].pv + DEPENDENCIES_PV)
+                    self._delete_pv(BlockserverPVNames.get_component_details_pv(self._component_metas[comp].pv))
+                    self._delete_pv(BlockserverPVNames.get_dependencies_pv(self._component_metas[comp].pv))
                     del self._component_metas[comp]
                 self._update_version_control_post_delete(self._comp_path, delete_list)
+            self.update_monitors()
 
     def get_dependencies(self, comp_name):
         """Get the names of any configurations that depend on this component.
@@ -353,3 +333,13 @@ class ConfigListManager(object):
     def recover_from_version_control(self):
         """A method to revert the configurations directory back to the state held in version control."""
         self._vc.update()
+
+    def update_monitors(self):
+        with self._bs.monitor_lock:
+            print "UPDATING CONFIG LIST MONITORS"
+            # Set the available configs
+            self._bs.setParam(BlockserverPVNames.CONFIGS, compress_and_hex(convert_to_json(self.get_configs())))
+            # Set the available comps
+            self._bs.setParam(BlockserverPVNames.COMPS, compress_and_hex(convert_to_json(self.get_components())))
+            # Update them
+            self._bs.updatePVs()

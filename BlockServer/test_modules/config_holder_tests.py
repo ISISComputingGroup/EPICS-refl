@@ -17,6 +17,7 @@
 import unittest
 import os
 import shutil
+import stat
 import datetime
 
 from BlockServer.core.inactive_config_holder import ConfigHolder
@@ -53,6 +54,13 @@ def create_dummy_component():
     config.add_block("COMPBLOCK2", "PV2", "COMPGROUP", True)
     config.add_ioc("COMPSIMPLE1")
     return config
+
+
+def on_rm_error(func, path, exc_info):
+    # path contains the path of the file that couldn't be removed
+    # let's just assume that it's read-only and unlink it.
+    os.chmod(path, stat.S_IWRITE)
+    os.unlink(path)
 
 
 class TestConfigHolderSequence(unittest.TestCase):

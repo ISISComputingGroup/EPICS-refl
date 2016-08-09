@@ -1,24 +1,24 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
 import os
 import json
 
 from server_common.utilities import print_and_log
-from BlockServer.core.macros import BLOCKSERVER_PREFIX, BLOCK_PREFIX, MACROS
+from BlockServer.core.macros import BLOCK_PREFIX, MACROS
 from BlockServer.core.config_holder import ConfigHolder
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
@@ -26,7 +26,7 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 class ActiveConfigHolder(ConfigHolder):
     """Class to serve up the active configuration.
     """
-    def __init__(self, macros, archive_manager, vc_manager, ioc_control, run_control=None):
+    def __init__(self, macros, archive_manager, vc_manager, ioc_control):
         """ Constructor.
 
         Args:
@@ -34,23 +34,12 @@ class ActiveConfigHolder(ConfigHolder):
             archive_manager (ArchiveManager): Responsible for updating the archiver
             vc_manager (ConfigVersionControl): Manages version control
             ioc_control (IocControl): Manages stopping and starting IOCs
-            run_control (RunControlManager): Manages run-control
         """
         super(ActiveConfigHolder, self).__init__(macros, vc_manager)
         self._archive_manager = archive_manager
         self._ioc_control = ioc_control
         self._db = None
         self._last_config_file = os.path.abspath(os.path.join(FILEPATH_MANAGER.config_root_dir, "last_config.txt"))
-        self._runcontrol = run_control
-        if run_control is not None:
-            self._start_runcontrol()
-
-    def _start_runcontrol(self):
-        # Start runcontrol IOC
-        self._runcontrol.start_ioc()
-        # Need to wait for RUNCONTROL_IOC to start
-        self._runcontrol.wait_for_ioc_start()
-        print_and_log("Runcontrol IOC started")
 
     def save_active(self, name, as_comp=False):
         """ Save the active configuration.
@@ -115,49 +104,6 @@ class ActiveConfigHolder(ConfigHolder):
         print_and_log("Trying to load last_configuration %s" % last_config)
         self.load_active(last_config)
         return last_config
-
-    def create_runcontrol_pvs(self, clear_autosave):
-        """ Create the PVs for run-control.
-
-        Configures the run-control IOC to have PVs for the current configuration.
-        """
-        if self._runcontrol is not None:
-            self._runcontrol.update_runcontrol_blocks(super(ActiveConfigHolder, self).get_block_details())
-            self._runcontrol.restart_ioc(clear_autosave)
-            # Need to wait for RUNCONTROL_IOC to restart
-            self._runcontrol.wait_for_ioc_start()
-            self._runcontrol.restore_config_settings(super(ActiveConfigHolder, self).get_block_details())
-
-    def get_out_of_range_pvs(self):
-        """ Returns the PVs that are out of range.
-
-        Returns:
-            list : A list of PVs that are out of range
-        """
-        if self._runcontrol is not None:
-            return self._runcontrol.get_out_of_range_pvs()
-        else:
-            return list()
-
-    def get_runcontrol_settings(self):
-        """ Returns the current run-control settings
-
-        Returns:
-            dict : The current run-control settings
-        """
-        if self._runcontrol is not None:
-            return self._runcontrol.get_current_settings(super(ActiveConfigHolder, self).get_block_details())
-        else:
-            return dict()
-
-    def set_runcontrol_settings(self, data):
-        """ Replaces the run-control settings with new values.
-
-        Args:
-            data (dict): The new run-control settings to set
-        """
-        if self._runcontrol is not None:
-            self._runcontrol.set_runcontrol_settings(data)
 
     def iocs_changed(self):
         """Checks to see if the IOCs have changed on saving."

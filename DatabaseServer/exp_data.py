@@ -15,7 +15,7 @@
 #http://opensource.org/licenses/eclipse-1.0.php
 
 from mysql_abstraction_layer import SQLAbstraction
-from server_common.channel_access import caput
+from server_common.channel_access import ChannelAccess
 from server_common.utilities import compress_and_hex
 import json
 
@@ -148,8 +148,8 @@ class ExpData(object):
 
         """
         # Update the RB Number for lookup - SIM for testing, DAE for production
-        caput(self._simrbpv, experimentID)
-        caput(self._daerbpv, experimentID)
+        ChannelAccess.caput(self._simrbpv, experimentID)
+        ChannelAccess.caput(self._daerbpv, experimentID)
 
         # Check for the experiment ID
         names = []
@@ -157,9 +157,9 @@ class ExpData(object):
         orgs = []
 
         if not self._experiment_exists(experimentID):
-            caput(self._simnames, self.encode4return(names))
-            caput(self._surnamepv, self.encode4return(surnames))
-            caput(self._orgspv, self.encode4return(orgs))
+            ChannelAccess.caput(self._simnames, self.encode4return(names))
+            ChannelAccess.caput(self._surnamepv, self.encode4return(surnames))
+            ChannelAccess.caput(self._orgspv, self.encode4return(orgs))
             raise Exception("error finding the experiment: %s" % experimentID)
 
         # Get the user information from the database and update the associated PVs
@@ -177,12 +177,12 @@ class ExpData(object):
                     name = user(fullname, org, role.lower())
                     names.append(name.__dict__)
             orgs = list(set(orgs))
-            caput(self._simnames, self.encode4return(names))
-            caput(self._surnamepv, self.encode4return(surnames))
-            caput(self._orgspv, self.encode4return(orgs))
+            ChannelAccess.caput(self._simnames, self.encode4return(names))
+            ChannelAccess.caput(self._surnamepv, self.encode4return(surnames))
+            ChannelAccess.caput(self._orgspv, self.encode4return(orgs))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
-            caput(self._daenamespv, ",".join(surnames))
+            ChannelAccess.caput(self._daenamespv, ",".join(surnames))
 
     def updateUsername(self, users):
         """Updates the associated PVs when the User Names are altered
@@ -221,9 +221,9 @@ class ExpData(object):
                 name = user(fullname, org, role.lower())
                 names.append(name.__dict__)
             orgs = list(set(orgs))
-            caput(self._simnames, self.encode4return(names))
-            caput(self._surnamepv, self.encode4return(surnames))
-            caput(self._orgspv, self.encode4return(orgs))
+            ChannelAccess.caput(self._simnames, self.encode4return(names))
+            ChannelAccess.caput(self._surnamepv, self.encode4return(surnames))
+            ChannelAccess.caput(self._orgspv, self.encode4return(orgs))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
-            caput(self._daenamespv, ",".join(surnames))
+            ChannelAccess.caput(self._daenamespv, ",".join(surnames))

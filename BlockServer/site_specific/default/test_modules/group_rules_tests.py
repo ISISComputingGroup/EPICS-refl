@@ -1,44 +1,41 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
+
+from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.site_specific.default.general_rules import GroupRules
-from server_common.mocks.mock_ca_server import MockCAServer
+from BlockServer.core.pv_names import BlockserverPVNames
 import unittest
 import json
 import re
 from server_common.utilities import dehex_and_decompress
-
-GROUP_RULES_PV_NAME = "GROUP_RULES"
 
 
 class TestGroupRulesSequence(unittest.TestCase):
     """ Unit tests for block rules, note that changes here may have to be propagated to clients """
 
     def setUp(self):
-        self.cas = MockCAServer()
-        self.group_rules = GroupRules(self.cas)
+        self.bs = MockBlockServer()
+        self.group_rules = GroupRules(self.bs)
 
     def get_block_rules_json(self):
-        return json.loads(dehex_and_decompress(self.cas.pv_list.get(GROUP_RULES_PV_NAME)))
+        return json.loads(dehex_and_decompress(self.bs.pvs[BlockserverPVNames.GROUP_RULES]))
 
     def get_regex(self):
-        regex_string = self.get_block_rules_json().get("regex")
+        regex_string = self.group_rules.rules["regex"]
         return re.compile(regex_string)
-
-    def test_block_rules_pv(self):
-        self.assertTrue(GROUP_RULES_PV_NAME in self.cas.pv_list)
 
     def test_disallowed_in_json(self):
         self.assertTrue("disallowed" in self.get_block_rules_json())

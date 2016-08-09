@@ -1,20 +1,20 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
-from server_common.mocks.mock_ca_server import MockCAServer
+from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.site_specific.default.block_rules import BlockRules
 import unittest
 import json
@@ -26,29 +26,23 @@ class TestBlockRulesSequence(unittest.TestCase):
     """ Unit tests for block rules, note that changes here may have to be propagated to clients """
 
     def setUp(self):
-        self.cas = MockCAServer()
-        self.block_rules = BlockRules(self.cas)
-
-    def get_block_rules_json(self):
-        return json.loads(dehex_and_decompress(self.cas.pv_list.get("BLOCK_RULES")))
+        self.bs = MockBlockServer()
+        self.block_rules = BlockRules(self.bs)
 
     def get_regex(self):
-        regex_string = self.get_block_rules_json().get("regex")
+        regex_string = self.block_rules.rules["regex"]
         return re.compile(regex_string)
 
-    def test_block_rules_pv(self):
-        self.assertTrue("BLOCK_RULES" in self.cas.pv_list)
-
     def test_disallowed_in_json(self):
-        self.assertTrue("disallowed" in self.get_block_rules_json())
-        disallowed_list = self.get_block_rules_json().get("disallowed")
+        self.assertTrue("disallowed" in self.block_rules.rules)
+        disallowed_list = self.block_rules.rules["disallowed"]
         self.assertTrue(isinstance(disallowed_list, list))
 
     def test_regex_in_json(self):
-        self.assertTrue("regex" in self.get_block_rules_json())
+        self.assertTrue("regex" in self.block_rules.rules)
 
     def test_regex_message_in_json(self):
-        self.assertTrue("regexMessage" in self.get_block_rules_json())
+        self.assertTrue("regexMessage" in self.block_rules.rules)
 
     def test_regex_lowercase_valid(self):
         self.assertTrue(self.get_regex().match("abc"))

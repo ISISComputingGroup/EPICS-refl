@@ -23,4 +23,5 @@ class ArchiverWrapper(object):
         proxy_handler = urllib2.ProxyHandler({})
         opener = urllib2.build_opener(proxy_handler)
         urllib2.install_opener(opener)
-        urllib2.urlopen("http://localhost:4813/restart")
+        res = urllib2.urlopen("http://localhost:4813/restart")
+        d = res.read()
