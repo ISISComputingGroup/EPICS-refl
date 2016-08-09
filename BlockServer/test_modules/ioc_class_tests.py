@@ -31,3 +31,13 @@ class TestIocClassSequence(unittest.TestCase):
         self.assertTrue(macrotest in d["macros"])
         macrotest = {"name" : "macro2", "value" : "Hello"}
         self.assertTrue(macrotest in d["macros"])
+
+    def test_ioc_simlevel_none_spelling(self):
+        ioc = IOC("SIMPLE1")
+
+        self.assertEquals(ioc.simlevel, "none")
+
+    def test_ioc_simlevel_spelling(self):
+        ioc = IOC("SIMPLE1", simlevel="FOOSIM")
+
+        self.assertEquals(ioc.simlevel, "foosim")
