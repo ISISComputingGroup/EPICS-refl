@@ -53,7 +53,7 @@ from BlockServer.site_specific.default.block_rules import BlockRules
 from pcaspy.driver import manager, Data
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
-
+from WebServer.simple_webserver import Server
 
 # For documentation on these commands see the wiki
 PVDB = {
@@ -223,6 +223,10 @@ class BlockServer(Driver):
 
         with self.write_lock:
             self.write_queue.append((self.initialise_configserver, (FACILITY,), "INITIALISING"))
+
+        # Starts the Web Server
+        self.server = Server()
+        self.server.start()
 
     def initialise_configserver(self, facility):
         """Initialises the ActiveConfigHolder.
@@ -428,6 +432,9 @@ class BlockServer(Driver):
 
         for h in self.on_the_fly_handlers:
             h.initialise(full_init)
+
+        # Update Web Server text
+        self.server.set_config(self._active_configserver.get_config_details())
 
         # Restart the Blocks cache
         if self._block_cache is not None:
