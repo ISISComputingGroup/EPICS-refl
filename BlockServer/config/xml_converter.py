@@ -1,18 +1,18 @@
-#This file is part of the ISIS IBEX application.
-#Copyright (C) 2012-2016 Science & Technology Facilities Council.
-#All rights reserved.
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
 #
-#This program is distributed in the hope that it will be useful.
-#This program and the accompanying materials are made available under the
-#terms of the Eclipse Public License v1.0 which accompanies this distribution.
-#EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM 
-#AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES 
-#OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
 #
-#You should have received a copy of the Eclipse Public License v1.0
-#along with this program; if not, you can obtain a copy from
-#https://www.eclipse.org/org/documents/epl-v10.php or 
-#http://opensource.org/licenses/eclipse-1.0.php
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
 
 from xml.dom import minidom
 
@@ -38,6 +38,16 @@ TAG_META = "meta"
 TAG_DESC = "description"
 TAG_SYNOPTIC = "synoptic"
 
+NS_TAG_BLOCK = 'blk'
+NS_TAG_IOC = 'ioc'
+NS_TAG_COMP = 'comp'
+NS_TAG_GROUP = 'grp'
+
+NAMESPACES = {NS_TAG_BLOCK: SCHEMA_PATH + BLOCK_SCHEMA,
+              NS_TAG_IOC: SCHEMA_PATH + IOC_SCHEMA,
+              NS_TAG_COMP: SCHEMA_PATH + COMPONENT_SCHEMA,
+              NS_TAG_GROUP: SCHEMA_PATH + GROUP_SCHEMA}
+
 
 class ConfigurationXmlConverter(object):
     """Converts configuration data to and from XML.
@@ -62,7 +72,7 @@ class ConfigurationXmlConverter(object):
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, block in blocks.iteritems():
             # Don't save if in component
-            if block.component is None:
+            if block.component is None or block.component is False:
                 ConfigurationXmlConverter._block_to_xml(root, block, macros)
 
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
@@ -190,7 +200,7 @@ class ConfigurationXmlConverter(object):
             high = ElementTree.SubElement(block_xml, TAG_RUNCONTROL_HIGH)
             high.text = str(block.rc_highlimit)
 
-        #Logging
+        # Logging
         log_periodic = ElementTree.SubElement(block_xml, TAG_LOG_PERIODIC)
         log_periodic.text = str(block.log_periodic)
 
@@ -248,10 +258,11 @@ class ConfigurationXmlConverter(object):
 
         """
         # Get the blocks
-        blks = root_xml.findall("./" + TAG_BLOCK)
+        blks = ConfigurationXmlConverter._find_all_nodes(root_xml, NS_TAG_BLOCK, TAG_BLOCK)
+
         for b in blks:
-            n = b.find("./" + TAG_NAME)
-            read = b.find("./" + TAG_READ_PV)
+            n = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_NAME)
+            read = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_READ_PV)
             if n is not None and n.text != "" and read is not None and read.text is not None:
                 name = ConfigurationXmlConverter._replace_macros(n.text)
 
@@ -260,53 +271,41 @@ class ConfigurationXmlConverter(object):
                 groups[KEY_NONE].blocks.append(name)
 
                 # Check to see if not local
-                loc = b.find("./" + TAG_LOCAL)
+                loc = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_LOCAL)
                 if not (loc is None) and loc.text == "False":
                     blocks[name.lower()].local = False
 
                 # Check for visibility
-                vis = b.find("./" + TAG_VISIBLE)
+                vis = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_VISIBLE)
                 if not (vis is None) and vis.text == "False":
                     blocks[name.lower()].visible = False
 
                 # Runcontrol
-                rc_enabled = b.find("./" + TAG_RUNCONTROL_ENABLED)
+                rc_enabled = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_RUNCONTROL_ENABLED)
                 if rc_enabled is not None:
                     if rc_enabled.text == "True":
                         blocks[name.lower()].rc_enabled = True
                     else:
                         blocks[name.lower()].rc_enabled = False
-                rc_low = b.find("./" + TAG_RUNCONTROL_LOW)
+                rc_low = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_RUNCONTROL_LOW)
                 if rc_low is not None:
                     blocks[name.lower()].rc_lowlimit = float(rc_low.text)
-                rc_high = b.find("./" + TAG_RUNCONTROL_HIGH)
+                rc_high = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_RUNCONTROL_HIGH)
                 if rc_high is not None:
                     blocks[name.lower()].rc_highlimit = float(rc_high.text)
 
                 # Logging
-                log_periodic = b.find("./" + TAG_LOG_PERIODIC)
+                log_periodic = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_LOG_PERIODIC)
                 if not (log_periodic is None):
                     blocks[name.lower()].log_periodic = (log_periodic.text == "True")
 
-                log_rate = b.find("./" + TAG_LOG_RATE)
+                log_rate = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_LOG_RATE)
                 if not (log_rate is None):
                     blocks[name.lower()].log_rate = float(log_rate.text)
 
-                log_deadband = b.find("./" + TAG_LOG_DEADBAND)
+                log_deadband = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_LOG_DEADBAND)
                 if not (log_deadband is None):
                     blocks[name.lower()].log_deadband = float(log_deadband.text)
-
-    @staticmethod
-    def groups_from_xml_string(xml, groups, blocks):
-        """ Populates the supplied dictionary of groups and blocks based on an XML string.
-
-        Args:
-            xml (string): The XML
-            groups (OrderedDict): The groups dictionary to populate with the blocks
-            blocks (OrderedDict): The blocks dictionary to populate
-        """
-        root_xml = ElementTree.fromstring(xml)
-        ConfigurationXmlConverter.groups_from_xml(root_xml, groups, blocks)
 
     @staticmethod
     def groups_from_xml(root_xml, groups, blocks):
@@ -318,7 +317,7 @@ class ConfigurationXmlConverter(object):
             groups (OrderedDict): The groups dictionary to populate
         """
         # Get the groups
-        grps = root_xml.findall("./" + TAG_GROUP)
+        grps = ConfigurationXmlConverter._find_all_nodes(root_xml, NS_TAG_GROUP, TAG_GROUP)
         for g in grps:
             gname = g.attrib[TAG_NAME]
             gname_low = gname.lower()
@@ -326,7 +325,8 @@ class ConfigurationXmlConverter(object):
             # Add the group to the dict unless it already exists (i.e. the group is defined twice)
             if gname_low not in groups.keys():
                 groups[gname_low] = Group(gname)
-            blks = g.findall("./" + TAG_BLOCK)
+
+            blks = ConfigurationXmlConverter._find_all_nodes(g, NS_TAG_GROUP, TAG_BLOCK)
 
             for b in blks:
                 name = b.attrib[TAG_NAME]
@@ -351,7 +351,7 @@ class ConfigurationXmlConverter(object):
             root_xml (ElementTree.Element): The XML tree object
             iocs (OrderedDict): The IOCs dictionary
         """
-        iocs_xml = root_xml.findall("./" + TAG_IOC)
+        iocs_xml = ConfigurationXmlConverter._find_all_nodes(root_xml, NS_TAG_IOC, TAG_IOC)
         for i in iocs_xml:
             n = i.attrib[TAG_NAME]
             if n is not None and n != "":
@@ -369,15 +369,15 @@ class ConfigurationXmlConverter(object):
 
                 try:
                     # Get any macros
-                    macros_xml = i.findall("./" + TAG_MACROS + "/" + TAG_MACRO)
+                    macros_xml = ConfigurationXmlConverter._find_single_node(i, NS_TAG_IOC, TAG_MACROS)
                     for m in macros_xml:
                         iocs[n.upper()].macros[m.attrib[TAG_NAME]] = {TAG_VALUE: str(m.attrib[TAG_VALUE])}
                     # Get any pvs
-                    pvs_xml = i.findall("./" + TAG_PVS + "/" + TAG_PV)
+                    pvs_xml = ConfigurationXmlConverter._find_single_node(i, NS_TAG_IOC, TAG_PVS)
                     for p in pvs_xml:
                         iocs[n.upper()].pvs[p.attrib[TAG_NAME]] = {TAG_VALUE: str(p.attrib[TAG_VALUE])}
                     # Get any pvsets
-                    pvsets_xml = i.findall("./" + TAG_PVSETS + "/" + TAG_PVSET)
+                    pvsets_xml = ConfigurationXmlConverter._find_single_node(i, NS_TAG_IOC,  TAG_PVSETS)
                     for ps in pvsets_xml:
                         iocs[n.upper()].pvsets[ps.attrib[TAG_NAME]] = \
                             {TAG_ENABLED: parse_boolean(str(ps.attrib[TAG_ENABLED]))}
@@ -392,7 +392,7 @@ class ConfigurationXmlConverter(object):
             root_xml (ElementTree.Element): The XML tree object
             components (OrderedDict): The components dictionary
         """
-        components_xml = root_xml.findall("./" + TAG_COMPONENT)
+        components_xml = ConfigurationXmlConverter._find_all_nodes(root_xml, NS_TAG_COMP, TAG_COMPONENT)
         for i in components_xml:
             n = i.attrib[TAG_NAME]
             if n is not None and n != "":
@@ -421,3 +421,43 @@ class ConfigurationXmlConverter(object):
     def _replace_macros(name):
         """Currently does nothing!"""
         return name
+
+    @staticmethod
+    def _find_all_nodes(root, tag, name):
+        """Finds all the nodes regardless of whether it has a namespace or not.
+
+        For example the name space for IOCs is xmlns:ioc="http://epics.isis.rl.ac.uk/schema/iocs/1.0"
+
+        Args:
+            root (ElementTree.Element): The XML tree object
+            tag (string): The namespace tag
+            name (string): The item we are looking for
+
+        Returns: list of children
+        """
+        # First try with namespace
+        nodes = root.findall('%s:%s' % (tag, name), NAMESPACES)
+        if len(nodes) == 0:
+            # Try without namespace
+            nodes = root.findall('%s' % name)
+        return nodes
+
+    @staticmethod
+    def _find_single_node(root, tag, name):
+        """Finds a single node regardless of whether it has a namespace or not.
+
+        For example the name space for IOCs is xmlns:ioc="http://epics.isis.rl.ac.uk/schema/iocs/1.0"
+
+        Args:
+            root (ElementTree.Element): The XML tree object
+            tag (string): The namespace tag
+            name (string): The item we are looking for
+
+        Returns: ElementTree.Element the found node
+        """
+        # First try with namespace
+        node = root.find('%s:%s' % (tag, name), NAMESPACES)
+        if node is None:
+            # Try without namespace
+            node = root.find('%s' % name)
+        return node

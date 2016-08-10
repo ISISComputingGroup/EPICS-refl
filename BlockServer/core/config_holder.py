@@ -21,7 +21,6 @@ import datetime
 from collections import OrderedDict
 import re
 
-from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.config.configuration import Configuration
 from BlockServer.core.constants import DEFAULT_COMPONENT, GRP_NONE
 from BlockServer.config.group import Group
@@ -32,17 +31,16 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 class ConfigHolder(object):
     """ The ConfigHolder class.
 
-    Holds a configuration which can then be manpulated via this class.
+    Holds a configuration which can then be manipulated via this class.
     """
-    def __init__(self, macros, vc_manager, is_component=False, file_manager=ConfigurationFileManager(),
-                 test_config=None):
+    def __init__(self, macros, vc_manager, file_manager, is_component=False, test_config=None):
         """ Constructor.
 
         Args:
             macros (dict): The dictionary containing the macros
             is_component (bool): Defines whether the configuration held is a component or not
             file_manager (ConfigurationFileManager): The object used to save the configuration
-            test_config (Configuration): A dummy configuration used for the unit tests
+            test_config (Configuration): A dummy configuration used for the unit tests :o(
         """
         if test_config is None:
             self._config = Configuration(macros)
@@ -454,12 +452,12 @@ class ConfigHolder(object):
             set_component_names (bool, optional): Whether to set the component names
         """
         if is_component:
-            comp = self._filemanager.load_config(FILEPATH_MANAGER.get_component_path(name), name, self._macros)
+            comp = self._filemanager.load_config(name, self._macros, True)
             if set_component_names:
                 self._set_component_names(comp, name)
             return comp
         else:
-            return self._filemanager.load_config(FILEPATH_MANAGER.get_config_path(name), name, self._macros)
+            return self._filemanager.load_config(name, self._macros, False)
 
     def save_configuration(self, name, as_component):
         """ Save the configuration.
@@ -474,12 +472,12 @@ class ConfigHolder(object):
 
         if self._is_component:
             self._set_config_name(name)
-            self._filemanager.save_config(self._config, FILEPATH_MANAGER.get_component_path(name))
+            self._filemanager.save_config(self._config, True)
             self._update_version_control(name)
         else:
             self._set_config_name(name)
             # TODO: CHECK WHAT COMPONENTS self._config contains and remove _base if it is in there
-            self._filemanager.save_config(self._config, FILEPATH_MANAGER.get_config_path(name))
+            self._filemanager.save_config(self._config, False)
             self._update_version_control(name)
 
     def _check_name(self, name, is_comp = False):

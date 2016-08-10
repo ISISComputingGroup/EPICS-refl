@@ -17,9 +17,9 @@
         <xs:element ref="blk:read_pv"/>
         <xs:element ref="blk:local"/>
         <xs:element ref="blk:visible"/>
+        <xs:element ref="blk:rc_enabled" minOccurs="0"/>
         <xs:element ref="blk:rc_lowlimit" minOccurs="0"/>
         <xs:element ref="blk:rc_highlimit" minOccurs="0"/>
-        <xs:element ref="blk:rc_enabled" minOccurs="0"/>
         <xs:element ref="blk:log_periodic" minOccurs="0"/>
         <xs:element ref="blk:log_rate" minOccurs="0"/>
         <xs:element ref="blk:log_deadband" minOccurs="0"/>

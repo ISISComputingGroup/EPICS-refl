@@ -18,6 +18,7 @@ import unittest
 import os
 import json
 import shutil
+from lxml import etree
 
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema, NotConfigFileException
 from BlockServer.core.active_config_holder import ActiveConfigHolder
@@ -29,44 +30,47 @@ from BlockServer.mocks.mock_runcontrol_manager import MockRunControlManager
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
+from BlockServer.config.configuration import Configuration
+from BlockServer.config.xml_converter import ConfigurationXmlConverter
 
 TEST_DIRECTORY = os.path.abspath("test_configs")
-SCHEMA_DIR = os.path.abspath(os.path.join("..", "schema"))
+SCHEMA_FOLDER = "schema"
 
 TEST_CONFIG = {"iocs":
-                 [{"simlevel": "devsim", "autostart": True, "restart": False,
-                 "macros": [{"name": "COMPORT", "value": "COM[0-9]+"}],
-                 "pvsets": [{"name": "SET", "enabled": "true"}],
-                 "pvs": [{"name": "NDWXXX:xxxx:SIMPLE:VALUE1", "value": "100"}],
-                 "name": "SIMPLE1", "component": None},
+                   [{"simlevel": "devsim", "autostart": True, "restart": False,
+                     "macros": [{"name": "COMPORT", "value": "COM[0-9]+"}],
+                     "pvsets": [{"name": "SET", "enabled": "true"}],
+                     "pvs": [{"name": "NDWXXX:xxxx:SIMPLE:VALUE1", "value": "100"}],
+                     "name": "SIMPLE1", "component": None},
 
-                  {"simlevel": "recsim", "autostart": False, "restart": True,
-                  "macros": [],
-                  "pvsets": [],
-                  "pvs": [],
-                  "name": "SIMPLE2", "component": None}
-                 ],
-          "blocks":
+                    {"simlevel": "recsim", "autostart": False, "restart": True,
+                     "macros": [],
+                     "pvsets": [],
+                     "pvs": [],
+                     "name": "SIMPLE2", "component": None}
+                    ],
+               "blocks":
                    [{"name": "testblock1", "local": True,
-                   "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "component": None, "visible": True},
+                     "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "component": None, "visible": True},
                     {"name": "testblock2", "local": True,
-                    "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "component": None, "visible": True},
+                     "pv": "NDWXXX:xxxx:SIMPLE:VALUE1", "component": None, "visible": True},
                     {"name": "testblock3", "local": True,
-                    "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "component": None, "visible": True,
-                        "runcontrol": False,
-                        "log_periodic": False, "log_rate": 5, "log_deadband": 0}
-                   ],
-          "components":
-                       [{"name": "TEST_COMP"}],
-          "groups":
+                     "pv": "NDWXXX:xxxx:EUROTHERM1:RBV", "component": None, "visible": True,
+                     "runcontrol": False,
+                     "log_periodic": False, "log_rate": 5, "log_deadband": 0}
+                    ],
+               "components":
+                   [],
+               "groups":
                    [{"blocks": ["testblock1"], "name": "Group1", "component": None},
                     {"blocks": ["testblock2"], "name": "Group2", "component": None},
                     {"blocks": ["testblock3"], "name": "NONE", "component": None}],
-          "name": "TESTCONFIG1",
-		  "description": "A test configuration",
-          "synoptic": "TEST_SYNOPTIC",
-		  "history": ["2015-02-16"]
-         }
+               "name": "TESTCONFIG1",
+               "description": "A test configuration",
+               "synoptic": "TEST_SYNOPTIC",
+               "history": ["2015-02-16"]
+               }
 
 
 def strip_out_whitespace(string):
@@ -75,60 +79,126 @@ def strip_out_whitespace(string):
 
 class TestSchemaChecker(unittest.TestCase):
     def setUp(self):
-        FILEPATH_MANAGER.initialise(TEST_DIRECTORY)
+        # Find the schema directory
+        dir = os.path.join(".")
+        while SCHEMA_FOLDER not in os.listdir(dir):
+            dir = os.path.join(dir, "..")
+        self.schema_dir = os.path.join(dir, SCHEMA_FOLDER)
+
+        FILEPATH_MANAGER.initialise(TEST_DIRECTORY, self.schema_dir)
         self.cs = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
-                                     MockVersionControl(), MockIocControl(""))
+                                     MockVersionControl(), MockConfigurationFileManager(), MockIocControl(""))
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + os.sep):
             shutil.rmtree(os.path.abspath(TEST_DIRECTORY + os.sep))
 
-    def test_schema_valid_xml_empty_config(self):
-        self.cs.save_active("TEST_CONFIG")
-
-        for xml in SCHEMA_FOR:
-            self.assertTrue(ConfigurationSchemaChecker.check_config_file_matches_schema(SCHEMA_DIR,
-                                                                          os.path.join(FILEPATH_MANAGER.config_dir,
-                                                                                       'TEST_CONFIG', xml)))
-
-    def test_schema_valid_xml_full_config(self):
-        self.cs.save_active("TEST_COMP", as_comp=True)
+    def test_valid_blocks_xml_matches_schema(self):
         self.cs.set_config_details(TEST_CONFIG)
-        self.cs.save_active("TEST_CONFIG")
+        xml = ConfigurationXmlConverter.blocks_to_xml(self.cs.get_block_details(), MACROS)
 
-        for xml in SCHEMA_FOR:
-            self.assertTrue(ConfigurationSchemaChecker.check_config_file_matches_schema(SCHEMA_DIR,
-                                                                         os.path.join(FILEPATH_MANAGER.config_dir,
-                                                                                      'TEST_CONFIG', xml)))
+        try:
+            ConfigurationSchemaChecker.check_xml_data_matches_schema(os.path.join(self.schema_dir, "blocks.xsd"), xml)
+        except:
+            self.fail()
 
-    def test_schema_invalid_xml(self):
-        os.makedirs(os.path.join(FILEPATH_MANAGER.config_dir, 'TEST_CONFIG') + os.sep)
-        new_file = os.path.join(FILEPATH_MANAGER.config_dir, 'TEST_CONFIG', FILENAME_IOCS)
-        with open(new_file, 'w') as f:
-            f.write("Invalid xml")
+    def test_blocks_xml_does_not_match_schema_raises(self):
+        self.cs.set_config_details(TEST_CONFIG)
+        xml = ConfigurationXmlConverter.blocks_to_xml(self.cs.get_block_details(), MACROS)
 
-        self.assertRaises(ConfigurationInvalidUnderSchema, ConfigurationSchemaChecker.check_config_file_matches_schema,
-                          SCHEMA_DIR, new_file)
+        # Keep it valid XML but don't match schema
+        xml = xml.replace("visible>", "invisible>")
 
-    def test_schema_invalid_file(self):
-        new_file = os.path.join(FILEPATH_MANAGER.config_dir, 'TEST_FILE.xml')
-        with open(new_file, 'w') as f:
-            f.write("This file is not part of a configuration")
+        self.assertRaises(ConfigurationInvalidUnderSchema, ConfigurationSchemaChecker.check_xml_data_matches_schema,
+                          os.path.join(self.schema_dir, "blocks.xsd"), xml)
 
-        self.assertRaises(NotConfigFileException, ConfigurationSchemaChecker.check_config_file_matches_schema,
-                          SCHEMA_DIR, new_file)
+    def test_valid_groups_xml_matches_schema(self):
+        self.cs.set_config_details(TEST_CONFIG)
+        xml = ConfigurationXmlConverter.groups_to_xml(self.cs.get_group_details(), MACROS)
 
-    def test_schema_whole_directory_valid(self):
-        self.cs.save_active("TEST_CONFIG")
-        self.cs.save_active("TEST_COMP", as_comp=True)
+        try:
+            ConfigurationSchemaChecker.check_xml_data_matches_schema(os.path.join(self.schema_dir, "groups.xsd"), xml)
+        except:
+            self.fail()
 
-        self.assertTrue(ConfigurationSchemaChecker.check_all_config_files_correct(SCHEMA_DIR, TEST_DIRECTORY))
+    def test_groups_xml_does_not_match_schema_raises(self):
+        self.cs.set_config_details(TEST_CONFIG)
+        xml = ConfigurationXmlConverter.groups_to_xml(self.cs.get_group_details(), MACROS)
 
-    def test_schema_whole_directory_invalid(self):
-        os.makedirs(os.path.join(FILEPATH_MANAGER.component_dir, 'TEST_COMP') + os.sep)
-        new_file = os.path.join(FILEPATH_MANAGER.component_dir, 'TEST_COMP', FILENAME_IOCS)
-        with open(new_file, 'w') as f:
-            f.write("Invalid xml")
+        # Keep it valid XML but don't match schema
+        xml = xml.replace("<block ", "<notblock ")
 
-        self.assertRaises(ConfigurationInvalidUnderSchema, ConfigurationSchemaChecker.check_all_config_files_correct,
-                          SCHEMA_DIR, TEST_DIRECTORY)
+        self.assertRaises(ConfigurationInvalidUnderSchema, ConfigurationSchemaChecker.check_xml_data_matches_schema,
+                          os.path.join(self.schema_dir, "groups.xsd"), xml)
+
+    def test_valid_iocs_xml_matches_schema(self):
+        self.cs.set_config_details(TEST_CONFIG)
+        xml = ConfigurationXmlConverter.iocs_to_xml(self.cs.get_ioc_details())
+
+        try:
+            ConfigurationSchemaChecker.check_xml_data_matches_schema(os.path.join(self.schema_dir, "iocs.xsd"), xml)
+        except:
+            self.fail()
+
+    def test_iocs_xml_does_not_match_schema_raises(self):
+        self.cs.set_config_details(TEST_CONFIG)
+        xml = ConfigurationXmlConverter.iocs_to_xml(self.cs.get_ioc_details())
+
+        # Keep it valid XML but don't match schema
+        xml = xml.replace("<macro ", "<nacho ")
+
+        self.assertRaises(ConfigurationInvalidUnderSchema, ConfigurationSchemaChecker.check_xml_data_matches_schema,
+                          os.path.join(self.schema_dir, "iocs.xsd"), xml)
+
+    def test_valid_meta_xml_matches_schema(self):
+        self.cs.set_config_details(TEST_CONFIG)
+        xml = ConfigurationXmlConverter.meta_to_xml(self.cs.get_config_meta())
+
+        try:
+            ConfigurationSchemaChecker.check_xml_data_matches_schema(os.path.join(self.schema_dir, "meta.xsd"), xml)
+        except:
+            self.fail()
+
+    def test_meta_xml_does_not_match_schema_raises(self):
+        self.cs.set_config_details(TEST_CONFIG)
+        xml = ConfigurationXmlConverter.meta_to_xml(self.cs.get_config_meta())
+
+        # Keep it valid XML but don't match schema
+        xml = xml.replace("synoptic>", "snyoptic>")
+
+        self.assertRaises(ConfigurationInvalidUnderSchema, ConfigurationSchemaChecker.check_xml_data_matches_schema,
+                          os.path.join(self.schema_dir, "meta.xsd"), xml)
+
+    def test_valid_components_xml_matches_schema(self):
+        conf = Configuration(MACROS)
+        conf.components["COMP1"] = "COMP1"
+        conf.components["COMP2"] = "COMP2"
+
+        xml = ConfigurationXmlConverter.components_to_xml(conf.components)
+
+        try:
+            ConfigurationSchemaChecker.check_xml_data_matches_schema(os.path.join(self.schema_dir, "components.xsd"), xml)
+        except:
+            self.fail()
+
+    def test_components_xml_does_not_match_schema_raises(self):
+        conf = Configuration(MACROS)
+        conf.components["COMP1"] = "COMP1"
+        conf.components["COMP2"] = "COMP2"
+
+        xml = ConfigurationXmlConverter.components_to_xml(conf.components)
+
+        # Keep it valid XML but don't match schema
+        xml = xml.replace("<component ", "<domponent ")
+
+        self.assertRaises(ConfigurationInvalidUnderSchema, ConfigurationSchemaChecker.check_xml_data_matches_schema,
+                          os.path.join(self.schema_dir, "meta.xsd"), xml)
+
+    def test_cannot_find_schema_raises(self):
+        self.cs.set_config_details(TEST_CONFIG)
+        xml = ConfigurationXmlConverter.blocks_to_xml(self.cs.get_block_details(), MACROS)
+
+        self.assertRaises(IOError, ConfigurationSchemaChecker.check_xml_data_matches_schema,
+                          os.path.join(self.schema_dir, "does_not_exist.xsd"), xml)
+
+
