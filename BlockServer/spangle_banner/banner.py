@@ -16,17 +16,22 @@
 
 import json
 
+
 class Banner:
+    """ A class for holding and returning the state of the banner in the form of a list of items it contains."""
 
     def __init__(self):
         self.items = list()
 
     def get_description(self):
+        """ Returns the banner state as JSON. """
         return json.dumps(self.items)
 
     def add_item(self, item):
+        """ Add an item to the banner.
+
+        Args:
+            item (bool_str): The item being added.
+        """
         if item.is_valid():
             self.items.append(item.get_description())
-
-
-
