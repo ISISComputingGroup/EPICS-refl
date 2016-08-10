@@ -34,8 +34,8 @@ EXAMPLE_SYNOPTIC = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 SCHEMA_FOLDER = "schema"
 
-SYNOPTIC_1 = "synoptic1"
-SYNOPTIC_2 = "synoptic2"
+SYNOPTIC_1 = "synop1"
+SYNOPTIC_2 = "synop2"
 
 
 def construct_pv_name(name):
@@ -97,7 +97,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.sm._load_initial()
 
         # Assert
-        self.assertTrue(self.bs.does_pv_exist("%sSYNOPTIC1%s" % (SYNOPTIC_PRE, SYNOPTIC_GET)))
+        self.assertTrue(self.bs.does_pv_exist("%sSYNOP1%s" % (SYNOPTIC_PRE, SYNOPTIC_GET)))
 
     def test_get_default_synoptic_xml_returns_nothing(self):
         # Arrange
@@ -123,13 +123,13 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_set_current_synoptic_xml_creates_pv(self):
         # Arrange
-        syn_name = "new_synoptic"
+        syn_name = "synopt"
 
         # Act
         self.sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % syn_name)
 
         # Assert
-        self.assertTrue(self.bs.does_pv_exist("%sNEW_SYNOPTIC%s" % (SYNOPTIC_PRE, SYNOPTIC_GET)))
+        self.assertTrue(self.bs.does_pv_exist("%sSYNOPT%s" % (SYNOPTIC_PRE, SYNOPTIC_GET)))
 
     def test_delete_synoptics_empty(self):
         # Arrange
@@ -147,7 +147,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_1.upper())))
         self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_2.upper())))
 
-    def test_delete_one_config(self):
+    def test_delete_one_synoptic(self):
         # Arrange
         self._create_a_synoptic(SYNOPTIC_1)
         self._create_a_synoptic(SYNOPTIC_2)
@@ -164,7 +164,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.assertFalse(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_1.upper())))
         self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_2.upper())))
 
-    def test_delete_many_configs(self):
+    def test_delete_many_synoptics(self):
         # Arrange
         self._create_a_synoptic(SYNOPTIC_1)
         self._create_a_synoptic(SYNOPTIC_2)
@@ -180,7 +180,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.assertFalse(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_1.upper())))
         self.assertFalse(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_2.upper())))
 
-    def test_cannot_delete_non_existant_synoptic(self):
+    def test_cannot_delete_non_existent_synoptic(self):
         # Arrange
         self._create_a_synoptic(SYNOPTIC_1)
         self._create_a_synoptic(SYNOPTIC_2)

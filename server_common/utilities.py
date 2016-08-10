@@ -148,13 +148,14 @@ def check_pv_name_valid(name):
     return True
 
 
-def create_pv_name(name, current_pvs, default_pv):
+def create_pv_name(name, current_pvs, default_pv, limit=6):
     """Uses the given name as a basis for a valid PV.
 
     Args:
         name (string): The basis for the PV
         current_pvs (list): List of already allocated pvs
-        default_pv (string): Basis for the PV if name is unreasonable
+        default_pv (string): Basis for the PV if name is unreasonable, must be a valid PV name
+        limit (integer): Character limit for the PV
 
     Returns:
         string : A valid PV
@@ -165,12 +166,19 @@ def create_pv_name(name, current_pvs, default_pv):
     if re.search(r"[^0-9_]", pv_text) is None or pv_text == '':
         pv_text = default_pv
 
+    # Ensure PVs aren't too long for the 60 character limit
+    if pv_text > limit:
+        pv_text = pv_text[0:limit]
+
     # Make sure PVs are unique
-    i = 0
+    i = 1
     pv = pv_text
 
+    # Append a number if the PV already exists
     while pv in current_pvs:
-        pv = pv_text + str(i)
+        if len(pv) > limit - 2:
+            pv = pv[0:limit - 2]
+        pv += format(i, '02d')
         i += 1
 
     return pv
