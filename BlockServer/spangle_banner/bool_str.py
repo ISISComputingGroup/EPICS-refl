@@ -24,7 +24,8 @@ class BoolStr:
 
         Args:
             name: The name of the banner item.
-            pv: The associated PV.
+            pv: The associated PV which has to have "YES/NO" as possible values in order to be interpreted correctly
+                by the GUI.
         """
         self.name = name
         self.pv = pv
@@ -37,7 +38,7 @@ class BoolStr:
         return self.name
 
     def get_pv(self):
-        """ Returns the name associated to the banner item. """
+        """ Returns the PV address associated to the banner item. """
         return self.pv
 
     def check_state_valid(self, state):
