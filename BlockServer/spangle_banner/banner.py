@@ -15,13 +15,18 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import json
-
+from bool_str import BoolStr
 
 class Banner:
     """ A class for holding and returning the state of the banner in the form of a list of items it contains."""
 
-    def __init__(self):
+    def __init__(self, prefix):
         self.items = list()
+        print prefix
+
+        """ Temporary workaround for LARMOR until loading banner description from file is implemented."""
+        if "LARMOR" in prefix:
+            self.add_bumpstrip()
 
     def get_description(self):
         """ Returns the banner state as JSON. """
@@ -35,3 +40,14 @@ class Banner:
         """
         if item.is_valid():
             self.items.append(item.get_description())
+
+    def add_bumpstrip(self):
+        """ Temporary workaround for LARMOR until loading banner description from file is implemented."""
+        bumpstrip = BoolStr("Bump Strip", "DAE:TITLE:DISPLAY")
+        t_state = {"colour": "GREEN", "message": "not tripped"}
+        f_state = {"colour": "RED", "message": "tripped"}
+        u_state = {"colour": "RED", "message": "unknown"}
+        bumpstrip.set_true_state(t_state)
+        bumpstrip.set_false_state(f_state)
+        bumpstrip.set_unknown_state(u_state)
+        self.add_item(bumpstrip)

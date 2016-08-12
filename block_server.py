@@ -53,7 +53,6 @@ from BlockServer.site_specific.default.block_rules import BlockRules
 from pcaspy.driver import manager, Data
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
 from BlockServer.spangle_banner.banner import Banner
-from BlockServer.spangle_banner.bool_str import BoolStr
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 
 
@@ -217,12 +216,15 @@ class BlockServer(Driver):
             print_and_log("Version control failed: " + str(err), "INFO")
             self._vc = MockVersionControl()
 
+        # Create banner object
+        self.banner = Banner(MACROS["$(MYPVPREFIX)"])
+        
         # Import data about all configs
         try:
             self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc, ConfigurationFileManager())
         except Exception as err:
             print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
-		
+
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
         write_thread.daemon = True  # Daemonise thread
