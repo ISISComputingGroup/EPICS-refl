@@ -53,6 +53,7 @@ class BlockserverPVNames:
     BUMPSTRIP_AVAILABLE_SP = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE:SP')
     GET_SCREENS = prepend_blockserver.__func__('GET_SCREENS')
     SET_SCREENS = prepend_blockserver.__func__('SET_SCREENS')
+    BANNER_DESCRIPTION = prepend_blockserver.__func__('BANNER_DESCRIPTION')
     SCREENS_SCHEMA = prepend_blockserver.__func__('SCREENS_SCHEMA')
 
     @staticmethod

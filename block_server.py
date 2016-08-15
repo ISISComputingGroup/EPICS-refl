@@ -52,6 +52,7 @@ from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
 from pcaspy.driver import manager, Data
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
+from BlockServer.spangle_banner.banner import Banner
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from WebServer.simple_webserver import Server
 
@@ -161,6 +162,11 @@ PVDB = {
         'type': 'char',
         'count': 16000,
         'value': [0],
+    },
+    BlockserverPVNames.BANNER_DESCRIPTION: {
+        'type': 'char',
+        'count': 16000,
+        'value': [0],
     }
 }
 
@@ -210,6 +216,9 @@ class BlockServer(Driver):
             print_and_log("Version control failed: " + str(err), "INFO")
             self._vc = MockVersionControl()
 
+        # Create banner object
+        self.banner = Banner(MACROS["$(MYPVPREFIX)"])
+        
         # Import data about all configs
         try:
             self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc, ConfigurationFileManager())
@@ -293,6 +302,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(js)
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE:
                 value = compress_and_hex(self.bumpstrip)
+            elif reason == BlockserverPVNames.BANNER_DESCRIPTION:
+                value = compress_and_hex(self.banner.get_description())
             else:
                 # Check to see if it is a on-the-fly PV
                 for handler in self.on_the_fly_handlers:
