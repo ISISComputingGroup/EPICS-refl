@@ -27,7 +27,7 @@ class TestBannerSequence(unittest.TestCase):
         pass
 
     def test_returns_valid_json(self):
-        banner = Banner()
+        banner = Banner("")
         try:
             json.loads(banner.get_description())
         except:
@@ -142,7 +142,7 @@ class TestBannerSequence(unittest.TestCase):
         f_state = {"colour": "false_red", "message": "false"}
         bool_str.set_true_state(t_state)
         bool_str.set_false_state(f_state)
-        banner = Banner()
+        banner = Banner("")
         banner.add_item(bool_str)
         self.assertEquals(list(), json.loads(banner.get_description()))
 
@@ -154,7 +154,7 @@ class TestBannerSequence(unittest.TestCase):
         bool_str.set_true_state(t_state)
         bool_str.set_false_state(f_state)
         bool_str.set_unknown_state(u_state)
-        banner = Banner()
+        banner = Banner("")
         banner.add_item(bool_str)
         ans = json.loads(banner.get_description())
         self.assertEquals(1, len(ans))
