@@ -40,6 +40,10 @@ class TestConfigurationSequence(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_new_config_has_blank_name(self):
+        # assert
+        self.assertEqual(self.config.get_name(), "")
+
     def test_adding_a_block_and_getting_block_names_returns_the_name_of_the_block(self):
         # arrange
         cf = self.config

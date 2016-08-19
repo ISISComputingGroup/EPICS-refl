@@ -40,15 +40,20 @@ def quick_block_to_json(name, pv, group, local=True):
     data = {'name': name, 'pv': pv, 'group': group, 'local': local}
     return data
 
-
 def add_block(cs, data):
     cs.add_block(data)
 
+def add_basic_blocks_and_iocs(cs):
+    add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+    add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+    add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+    add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+    cs._add_ioc("SIMPLE1")
+    cs._add_ioc("SIMPLE2")
 
 def get_groups_and_blocks(jsondata):
     groups = json.loads(jsondata)
     return groups
-
 
 def create_grouping(groups):
     struct = []
@@ -72,8 +77,9 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
     def setUp(self):
         # Note: All configurations are saved in memory
         self.mock_archive = ArchiverManager(None, None, MockArchiverWrapper())
+        self.mock_file_manager = MockConfigurationFileManager()
         self.activech = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(),
-                                           MockConfigurationFileManager(), MockIocControl(""))
+                                           self.mock_file_manager, MockIocControl(""))
 
     def tearDown(self):
         pass
@@ -95,12 +101,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_save_config(self):
         cs = self.activech
-        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs._add_ioc("SIMPLE1")
-        cs._add_ioc("SIMPLE2")
+        add_basic_blocks_and_iocs(cs)
         try:
             cs.save_active("TEST_CONFIG")
         except Exception:
@@ -108,12 +109,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_load_config(self):
         cs = self.activech
-        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs._add_ioc("SIMPLE1")
-        cs._add_ioc("SIMPLE2")
+        add_basic_blocks_and_iocs(cs)
         cs.save_active("TEST_CONFIG")
         cs.clear_config()
         blocks = cs.get_blocknames()
@@ -152,24 +148,14 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_load_component_fails(self):
         cs = self.activech
-        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs._add_ioc("SIMPLE1")
-        cs._add_ioc("SIMPLE2")
+        add_basic_blocks_and_iocs(cs)
         cs.save_active("TEST_COMPONENT", as_comp=True)
         cs.clear_config()
         self.assertRaises(IOError, lambda: cs.load_active("TEST_COMPONENT"))
 
     def test_load_last_config(self):
         cs = self.activech
-        add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        cs._add_ioc("SIMPLE1")
-        cs._add_ioc("SIMPLE2")
+        add_basic_blocks_and_iocs(cs)
         cs.save_active("TEST_CONFIG")
         cs.clear_config()
         blocks = cs.get_blocknames()
@@ -188,6 +174,37 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         iocs = cs.get_ioc_names()
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
+
+    def test_reloading_current_config_with_blank_name_does_nothing(self):
+        # arrange
+        config_name = self.activech.get_config_name()
+        self.assertEquals(config_name, "")
+        load_requests = self.mock_file_manager.get_load_config_history()
+        self.assertEquals(len(load_requests), 0)
+
+        # act
+        self.activech.reload_current_config()
+
+        # assert
+        load_requests = self.mock_file_manager.get_load_config_history()
+        self.assertEquals(len(load_requests), 0)
+
+    def test_reloading_current_config_sends_load_request_correctly(self):
+        # arrange
+        cs = self.activech
+        config_name = "TEST_CONFIG"
+        add_basic_blocks_and_iocs(cs)
+        cs.save_active(config_name)
+
+        load_requests = self.mock_file_manager.get_load_config_history()
+        self.assertEquals(len(load_requests), 0)
+
+        # act
+        cs.reload_current_config()
+
+        # assert
+        load_requests = self.mock_file_manager.get_load_config_history()
+        self.assertEquals(load_requests.count(config_name), 1)
 
     def test_iocs_changed_no_changes(self):
         # Arrange

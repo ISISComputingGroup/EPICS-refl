@@ -36,6 +36,7 @@ class BlockserverPVNames:
     LOAD_CONFIG = prepend_blockserver.__func__('LOAD_CONFIG')
     SAVE_CONFIG = prepend_blockserver.__func__('SAVE_CONFIG')
     CLEAR_CONFIG = prepend_blockserver.__func__('CLEAR_CONFIG')
+    RELOAD_CURRENT_CONFIG = prepend_blockserver.__func__('RELOAD_CURRENT_CONFIG')
     CONF_DESC_RULES = prepend_blockserver.__func__('CONF_DESC_RULES')
     START_IOCS = prepend_blockserver.__func__('START_IOCS')
     STOP_IOCS = prepend_blockserver.__func__('STOP_IOCS')
