@@ -25,7 +25,7 @@ It has been placed here for tidiness. To run the script, move it to its parent d
 ...\EPICS\ISIS\inst_servers\master\
 """
 
-from server_common.channel_access import caget, caput
+from server_common.channel_access import ChannelAccess as ca
 import time
 import zlib
 import os
@@ -57,9 +57,9 @@ if __name__ == "__main__":
     
     new_value_compressed = compress_and_hex(new_value)
 
-    caput(pv_address, str(new_value_compressed), True)
+    ca.caput(pv_address, str(new_value_compressed), True)
 
-    result_compr = caget(pv_address, True)
+    result_compr = ca.caget(pv_address, True)
     result = dehex_and_decompress(result_compr)
 
     if result!=new_value:
