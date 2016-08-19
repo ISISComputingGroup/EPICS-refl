@@ -21,20 +21,20 @@ $(document).ready(function() {
 			var title = group_titles[i]
 			var block_titles = Object.keys(obj.groups[title])
 			document.getElementById("groups").innerHTML += title
-			document.getElementById("groups").innerHTML += "<ul>"
+			document.getElementById("groups").innerHTML += "<ul style='padding-left:20px'>"
 				for (j = 0; j < block_titles.length; j++) {
 					var block_values = obj.groups[title][block_titles[j]]["values"]
 					var status_text = obj.groups[title][block_titles[j]]["status_text"]
 					var alarms =  obj.groups[title][block_titles[j]]["alarms"]
 					if (status_text == "Disconnected") {
-						document.getElementById("groups").innerHTML += "<h5><li>" + block_titles[j] + ":&nbsp;&nbsp;" + status_text + "</li></h5>"
+						document.getElementById("groups").innerHTML += "<li>" + block_titles[j] + ":&nbsp;&nbsp;" + "<font color='BlueViolet'>" + status_text.toUpperCase() + "</font>" + "</li>"
 					}
 					else {
 						if (!alarms.startsWith("null") && !alarms.startsWith("OK")) {
-							document.getElementById("groups").innerHTML += "<h5><li>" + block_titles[j] + ":&nbsp;&nbsp;" + block_values + "&nbsp;&nbsp;" + "<font color='red'>" + "(" + alarms + ")" + "</font>" + "</li></h5>"
+							document.getElementById("groups").innerHTML += "<li>" + block_titles[j] + ":&nbsp;&nbsp;" + block_values + "&nbsp;&nbsp;" + "<font color='red'>" + "(" + alarms + ")" + "</font>" + "</li>"
 						}
 						else {
-							document.getElementById("groups").innerHTML += "<h5><li>" + block_titles[j] + ":&nbsp;&nbsp;" + block_values + "</li></h5>"
+							document.getElementById("groups").innerHTML += "<li>" + block_titles[j] + ":&nbsp;&nbsp;" + block_values + "</li>"
 						}
 					}
 				}
@@ -48,14 +48,14 @@ $(document).ready(function() {
 			var status_text = obj.inst_pvs[title]["status_text"]
 			var alarms =  obj.inst_pvs[title]["alarms"]
 						if (status_text == "Disconnected") {
-						document.getElementById("inst_pvs").innerHTML += "<li>" + title + ":&nbsp;&nbsp;" + status_text + "</li><br>"
+						document.getElementById("inst_pvs").innerHTML += "<li>" + title + ":&nbsp;&nbsp;" + "<font color='BlueViolet'>" + status_text.toUpperCase() + "</font>" + "</li>"
 						}
 						else {
 							if (!alarms.startsWith("null") && !alarms.startsWith("OK")) {
-								document.getElementById("inst_pvs").innerHTML += "<li>" + title + ":&nbsp;&nbsp;" + value + "&nbsp;&nbsp;" + "<font color='red'>" + "(" + alarms + ")" + "</font>" + "</li><br>"
+								document.getElementById("inst_pvs").innerHTML += "<li>" + title + ":&nbsp;&nbsp;" + value + "&nbsp;&nbsp;" + "<font color='red'>" + "(" + alarms + ")" + "</font>" + "</li>"
 							}
 							else {
-								document.getElementById("inst_pvs").innerHTML += "<li>" + title + ":&nbsp;&nbsp;" + value + "</li><br>"
+								document.getElementById("inst_pvs").innerHTML += "<li>" + title + ":&nbsp;&nbsp;" + value + "</li>"
 							}
 						}
 		}

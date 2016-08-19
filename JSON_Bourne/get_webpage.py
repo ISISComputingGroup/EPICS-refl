@@ -74,62 +74,62 @@ def get_instpvs():
 
     for k, v in ans.items():
         if "RUNSTATE" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "RUNNUMBER" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "_RBNUMBER" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "").replace("_", "")] = v
         elif "TITLE" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "_USERNAME" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "").replace("_", "")] = v
         elif "HIDE_TITLE" in k:
             # not all instruments have this
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "STARTTIME" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "RUNDURATION" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         # elif "RUNDURATION_PD" in k:
-        #     wanted[k] = v
+        #     wanted[k.replace(".VAL", "")] = v
         elif "GOODFRAMES" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         # elif "GOODFRAMES_PD" in k:
-        #     wanted[k] = v
+        #     wanted[k.replace(".VAL", "")] = v
         elif "RAWFRAMES" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         # elif "RAWFRAMES_PD" in k:
-        #     wanted[k] = v
+        #     wanted[k.replace(".VAL", "")] = v
         elif "PERIOD" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "NUMPERIODS" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         # elif "PERIODSEQ" in k:
-        #     wanted[k] = v
+        #     wanted[k.replace(".VAL", "")] = v
         elif "BEAMCURRENT" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "TOTALUAMPS" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "COUNTRATE" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "DAEMEMORYUSED" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "TOTALCOUNTS" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "DAETIMINGSOURCE" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "MONITORCOUNTS" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "MONITORSPECTRUM" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "MONITORFROM" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "MONITORTO" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "NUMTIMECHANNELS" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
         elif "NUMSPECTRA" in k:
-            wanted[k] = v
+            wanted[k.replace(".VAL", "")] = v
 
     return wanted
 
