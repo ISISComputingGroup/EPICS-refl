@@ -20,7 +20,7 @@ $(document).ready(function() {
 		for (i = 0; i < group_titles.length; i++) {
 			var title = group_titles[i]
 			var block_titles = Object.keys(obj.groups[title])
-			document.getElementById("groups").innerHTML += title
+			document.getElementById("groups").innerHTML += "<h3>" + title + "</h3>"
 			document.getElementById("groups").innerHTML += "<ul style='padding-left:20px'>"
 				for (j = 0; j < block_titles.length; j++) {
 					var block_values = obj.groups[title][block_titles[j]]["values"]
