@@ -1,6 +1,7 @@
 $(document).ready(function() {
 	$.getJSON("http://localhost:60000/", function(obj) {
-		document.getElementById("config_name").innerHTML = obj.config_name
+	    document.getElementById("inst_name").innerHTML = "DEMO"
+		document.getElementById("config_name").innerHTML = "Configuration: " + obj.config_name
 
 		var group_titles = Object.keys(obj.groups)
 		for (i = 0; i < group_titles.length; i++) {

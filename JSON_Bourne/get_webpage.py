@@ -1,7 +1,6 @@
 from lxml import html
 import requests
 import json
-import datetime
 
 
 def get_info(url):
@@ -29,6 +28,7 @@ def get_info(url):
 
     for i in range(len(titles)):
         if "STARTTIME" in titles[i]:
+            # Time is delimited by \t
             if info[i].text == "null":
                 values.append("null")
                 alarms.append("null")
@@ -37,6 +37,7 @@ def get_info(url):
                 values.append(single[1])
                 alarms.append(single[2])
         elif "TITLE" in titles[i] or "USERNAME" in titles[i]:
+            # Title and user name are ascii codes spaced by ", "
             if info[i].text == "null":
                 values.append("null")
                 alarms.append("null")
@@ -108,5 +109,4 @@ def scrape_webpage():
     output["config_name"] = config["name"]
     output["groups"] = groups
     output["inst_pvs"] = get_instpvs('http://ndxdemo:4812/group?name=INST')
-    print output["inst_pvs"]
     return output
