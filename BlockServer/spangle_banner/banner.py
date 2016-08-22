@@ -24,7 +24,9 @@ class Banner:
         self.items = list()
         print prefix
 
-        """ Temporary workaround for LARMOR until loading banner description from file is implemented."""
+        """Temporary workaround for LARMOR until loading banner description from file is implemented.
+        Remove prefix arg from this constructor and from tests when no longer needed.
+        """
         if "LARMOR" in prefix:
             self.add_bumpstrip()
 
