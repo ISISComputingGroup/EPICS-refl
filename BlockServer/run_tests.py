@@ -39,6 +39,8 @@ from BlockServer.test_modules.synoptic_manager_tests import TestSynopticManagerS
 from BlockServer.test_modules.devices_manager_tests import TestDevicesManagerSequence
 from BlockServer.test_modules.ioc_control_tests import TestIocControlSequence
 from BlockServer.test_modules.file_path_manager_tests import TestFilePathManagerSequence
+from BlockServer.test_modules.banner_tests import TestBannerSequence
+
 from BlockServer.site_specific.default.test_modules.block_rules_tests import TestBlockRulesSequence
 from BlockServer.test_modules.runcontrol_manager_tests import TestRunControlSequence
 from BlockServer.site_specific.default.test_modules.group_rules_tests import TestGroupRulesSequence
@@ -67,6 +69,7 @@ if __name__ == '__main__':
     devices_manager_suite = unittest.TestLoader().loadTestsFromTestCase(TestDevicesManagerSequence)
     ioc_control_suite = unittest.TestLoader().loadTestsFromTestCase(TestIocControlSequence)
     file_path_manager_suite = unittest.TestLoader().loadTestsFromTestCase(TestFilePathManagerSequence)
+    banner_suite = unittest.TestLoader().loadTestsFromTestCase(TestBannerSequence)
 
     # Site specific tests
     block_rules_suite = unittest.TestLoader().loadTestsFromTestCase(TestBlockRulesSequence)
@@ -89,6 +92,7 @@ if __name__ == '__main__':
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(ioc_control_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(file_path_manager_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(devices_manager_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(banner_suite).wasSuccessful())
 
     # Site specific tests
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(block_rules_suite).wasSuccessful())

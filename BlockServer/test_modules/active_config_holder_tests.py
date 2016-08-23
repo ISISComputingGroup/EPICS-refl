@@ -27,17 +27,12 @@ from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from BlockServer.core.macros import MACROS
+from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 
 
 CONFIG_PATH = "./test_configs/"
 BASE_PATH = "./example_base/"
-
-MACROS = {
-    "$(MYPVPREFIX)": "",
-    "$(EPICS_KIT_ROOT)": os.environ['EPICS_KIT_ROOT'],
-    "$(ICPCONFIGROOT)": os.environ['ICPCONFIGROOT'],
-    "$(ICPVARDIR)": os.environ['ICPVARDIR']
-}
 
 
 # Helper methods
@@ -73,21 +68,20 @@ def create_grouping(groups):
 #   We are testing that ActiveConfigServerManager correctly interfaces with Configuration, not testing the
 #   functionality of Configuration, which is done in Configuration's own suite of tests.
 class TestActiveConfigHolderSequence(unittest.TestCase):
-    def setUp(self):
-        # Create components folder and copying DEFAULT_COMPONENT fileIO into it
-        FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH))
-        shutil.copytree(BASE_PATH, os.path.join(FILEPATH_MANAGER.component_dir, DEFAULT_COMPONENT))
 
-        # Create in test mode
+    def setUp(self):
+        # Note: All configurations are saved in memory
         self.mock_archive = ArchiverManager(None, None, MockArchiverWrapper())
         self.activech = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(),
-                                           MockIocControl(""))
+                                           MockConfigurationFileManager(), MockIocControl(""))
 
     def tearDown(self):
-        # Delete any configs created as part of the test
-        path = FILEPATH_MANAGER.config_root_dir
-        if os.path.isdir(path):
-            shutil.rmtree(path)
+        pass
+
+    def create_ach(self):
+        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockConfigurationFileManager(),
+                                MockIocControl(""))
+        return ch
 
     def test_add_ioc(self):
         cs = self.activech
@@ -197,7 +191,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_no_changes(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         ch.set_config_details(details)
         # Assert
@@ -207,7 +201,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_ioc_added(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         # Act
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
@@ -223,7 +217,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_ioc_removed(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -241,7 +235,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_macro_added(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -263,7 +257,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_macro_removed(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
@@ -285,7 +279,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_macro_changed(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
@@ -307,7 +301,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_macro_not_changed(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
@@ -329,7 +323,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvs_added(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -351,7 +345,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvs_removed(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -373,7 +367,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvs_changed(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -395,7 +389,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvsets_added(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -417,7 +411,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvsets_removed(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],
@@ -439,7 +433,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_pvsets_changed(self):
         # Arrange
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockIocControl(""))
+        ch = self.create_ach()
         details = ch.get_config_details()
         details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
                                 "macros": [],

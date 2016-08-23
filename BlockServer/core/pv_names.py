@@ -16,7 +16,7 @@
 
 import os
 
-from BlockServer.core.macros import BLOCKSERVER
+BLOCKSERVER = "BLOCKSERVER:"
 
 
 class BlockserverPVNames:
@@ -51,6 +51,7 @@ class BlockserverPVNames:
     BLANK_CONFIG = prepend_blockserver.__func__('BLANK_CONFIG')
     GET_SCREENS = prepend_blockserver.__func__('GET_SCREENS')
     SET_SCREENS = prepend_blockserver.__func__('SET_SCREENS')
+    BANNER_DESCRIPTION = prepend_blockserver.__func__('BANNER_DESCRIPTION')
     SCREENS_SCHEMA = prepend_blockserver.__func__('SCREENS_SCHEMA')
     BUMPSTRIP_AVAILABLE = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE')
     BUMPSTRIP_AVAILABLE_SP = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE:SP')
