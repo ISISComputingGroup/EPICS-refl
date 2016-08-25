@@ -1,5 +1,16 @@
 <?xml version="1.0" ?>
-<iocs>
-	<ioc autostart="true" name="INSTETC_01" restart="true" simlevel="none"/>
-    <ioc autostart="true" name="ISISDAE_01" restart="true" simlevel="none"/>
+<iocs xmlns="http://epics.isis.rl.ac.uk/schema/iocs/1.0" xmlns:ioc="http://epics.isis.rl.ac.uk/schema/iocs/1.0" xmlns:xi="http://www.w3.org/2001/XInclude">
+	<ioc autostart="true" name="INSTETC_01" restart="true" simlevel="none">
+        <macros/>
+        <pvs/>
+        <pvsets/>
+    </ioc>
+    <ioc autostart="true" name="ISISDAE_01" restart="true" simlevel="none">
+        <macros/>
+        <pvs/>
+        <pvsets/>
+    </ioc>
+	
+	<!-- Above this line only change in master branch -->
+	
 </iocs>
