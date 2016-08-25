@@ -50,13 +50,13 @@ class BlockserverPVNames:
     DELETE_CONFIGS = prepend_blockserver.__func__('DELETE_CONFIGS')
     DELETE_COMPONENTS = prepend_blockserver.__func__('DELETE_COMPONENTS')
     BLANK_CONFIG = prepend_blockserver.__func__('BLANK_CONFIG')
-    BUMPSTRIP_AVAILABLE = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE')
-    BUMPSTRIP_AVAILABLE_SP = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE:SP')
     GET_SCREENS = prepend_blockserver.__func__('GET_SCREENS')
     SET_SCREENS = prepend_blockserver.__func__('SET_SCREENS')
     BANNER_DESCRIPTION = prepend_blockserver.__func__('BANNER_DESCRIPTION')
     SCREENS_SCHEMA = prepend_blockserver.__func__('SCREENS_SCHEMA')
-
+    BUMPSTRIP_AVAILABLE = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE')
+    BUMPSTRIP_AVAILABLE_SP = prepend_blockserver.__func__('BUMPSTRIP_AVAILABLE:SP')
+    
     @staticmethod
     def get_config_details_pv(pv_key):
         GET_CONFIG_DETAILS = ":GET_CONFIG_DETAILS"
