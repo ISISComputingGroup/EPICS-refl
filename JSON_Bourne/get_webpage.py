@@ -2,6 +2,7 @@ from lxml import html
 import requests
 import json
 
+
 def get_info(url):
     page = requests.get(url)
     tree = html.fromstring(page.content)
@@ -13,13 +14,13 @@ def get_info(url):
     # status = [s.text for s in status]
     status_text = list()
     for s in status:
-        if s.text == None:
-            text = s.xpath("//td/font")[0].text
-            status_text.append(text)
+        if s.text is None:
+            # This means there is an extra <font> in the XML to change the colour of the value
+            # This only happens when the PV is "Disconnected"
+            # This assumption speeds up the program significantly
+            status_text.append("Disconnected")
         else:
-            text = s.text
-            status_text.append(text)
-
+            status_text.append(s.text)
 
     info = tree.xpath("//table[2]/tbody/tr/td[3]")
     values = list()
@@ -27,6 +28,7 @@ def get_info(url):
 
     for i in range(len(titles)):
         if "STARTTIME" in titles[i]:
+            # Time is delimited by \t
             if info[i].text == "null":
                 values.append("null")
                 alarms.append("null")
@@ -35,6 +37,7 @@ def get_info(url):
                 values.append(single[1])
                 alarms.append(single[2])
         elif "TITLE" in titles[i] or "USERNAME" in titles[i]:
+            # Title and user name are ascii codes spaced by ", "
             if info[i].text == "null":
                 values.append("null")
                 alarms.append("null")
@@ -68,70 +71,23 @@ def get_blocks(url):
         blocks[t] = {"status_text": s, "values": v, "alarms": a}
     return blocks
 
-def get_instpvs():
-    wanted = dict()
-    ans = get_blocks('http://ndxdemo:4812/group?name=INST')
 
-    for k, v in ans.items():
-        if "RUNSTATE" in k:
-            wanted[k] = v
-        elif "RUNNUMBER" in k:
-            wanted[k] = v
-        elif "_RBNUMBER" in k:
-            wanted[k] = v
-        elif "TITLE" in k:
-            wanted[k] = v
-        elif "_USERNAME" in k:
-            wanted[k] = v
-        elif "HIDE_TITLE" in k:
-            # not all instruments have this
-            wanted[k] = v
-        elif "STARTTIME" in k:
-            wanted[k] = v
-        elif "RUNDURATION" in k:
-            wanted[k] = v
-        # elif "RUNDURATION_PD" in k:
-        #     wanted[k] = v
-        elif "GOODFRAMES" in k:
-            wanted[k] = v
-        # elif "GOODFRAMES_PD" in k:
-        #     wanted[k] = v
-        elif "RAWFRAMES" in k:
-            wanted[k] = v
-        # elif "RAWFRAMES_PD" in k:
-        #     wanted[k] = v
-        elif "PERIOD" in k:
-            wanted[k] = v
-        elif "NUMPERIODS" in k:
-            wanted[k] = v
-        # elif "PERIODSEQ" in k:
-        #     wanted[k] = v
-        elif "BEAMCURRENT" in k:
-            wanted[k] = v
-        elif "TOTALUAMPS" in k:
-            wanted[k] = v
-        elif "COUNTRATE" in k:
-            wanted[k] = v
-        elif "DAEMEMORYUSED" in k:
-            wanted[k] = v
-        elif "TOTALCOUNTS" in k:
-            wanted[k] = v
-        elif "DAETIMINGSOURCE" in k:
-            wanted[k] = v
-        elif "MONITORCOUNTS" in k:
-            wanted[k] = v
-        elif "MONITORSPECTRUM" in k:
-            wanted[k] = v
-        elif "MONITORFROM" in k:
-            wanted[k] = v
-        elif "MONITORTO" in k:
-            wanted[k] = v
-        elif "NUMTIMECHANNELS" in k:
-            wanted[k] = v
-        elif "NUMSPECTRA" in k:
-            wanted[k] = v
+def get_instpvs(url):
+    wanted = dict()
+    ans = get_blocks(url)
+
+    required_pvs = ["RUNSTATE", "RUNNUMBER", "_RBNUMBER", "TITLE", "_USERNAME", "HIDE_TITLE", "STARTTIME",
+                    "RUNDURATION", "RUNDURATION_PD", "GOODFRAMES", "GOODFRAMES_PD", "RAWFRAMES", "RAWFRAMES_PD",
+                    "PERIOD", "NUMPERIODS", "PERIODSEQ", "BEAMCURRENT", "TOTALUAMPS", "COUNTRATE", "DAEMEMORYUSED",
+                    "TOTALCOUNTS", "DAETIMINGSOURCE", "MONITORCOUNTS", "MONITORSPECTRUM", "MONITORFROM", "MONITORTO",
+                    "NUMTIMECHANNELS", "NUMSPECTRA"]
+
+    for pv in required_pvs:
+        if pv + ".VAL" in ans:
+            wanted[pv] = ans[pv + ".VAL"]
 
     return wanted
+
 
 def scrape_webpage():
     block_details = get_blocks('http://ndxdemo:4813/group?name=BLOCKS')
@@ -152,5 +108,5 @@ def scrape_webpage():
     output = dict()
     output["config_name"] = config["name"]
     output["groups"] = groups
-    output["inst_pvs"] = get_instpvs()
+    output["inst_pvs"] = get_instpvs('http://ndxdemo:4812/group?name=INST')
     return output
