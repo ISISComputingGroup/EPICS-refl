@@ -26,6 +26,7 @@ class MockConfigurationFileManager(object):
         base = Configuration(None)
         base.set_name("_base")
         self.comps["_base"] = base
+        self._load_config_requests = list()
 
     def find_ci(self, root_path, name):
         """Find a file with a case insensitive match"""
@@ -36,6 +37,7 @@ class MockConfigurationFileManager(object):
         return res
 
     def load_config(self, name, macros, is_component):
+        self._load_config_requests.append(name)
         if is_component:
             if name.lower() not in self.comps:
                 raise IOError("Component could not be found: " + name)
@@ -63,3 +65,6 @@ class MockConfigurationFileManager(object):
 
     def get_files_in_directory(self, path):
         return list()
+
+    def get_load_config_history(self):
+        return self._load_config_requests
