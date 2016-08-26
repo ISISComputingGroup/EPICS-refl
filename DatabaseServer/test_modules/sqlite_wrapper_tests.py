@@ -26,6 +26,7 @@ BL_PVS = ["PARS:BL:FOEMIRROR", "PARS:BL:A1", "PARS:BL:CHOPEN:ANG"]
 SAMPLE_PVS = ["PARS:SAMPLE:AOI", "PARS:SAMPLE:GEOMETRY", "PARS:SAMPLE:WIDTH"]
 
 def create_iocs_database(iocdb):
+    import os
     if os.path.exists(iocdb):
         os.remove(iocdb)
     conn = sqlite3.connect(iocdb)
@@ -74,8 +75,8 @@ def generate_fake_db(iocdb):
             row = (pv, 'ai', "Fake procserv pv for testing", iocname)
             c.execute("INSERT INTO pvs VALUES (?,?,?,?)", row)
     # Add sample and beamline parameters
-    row = ("INSTETC", 'fake_dir', count, count, 'fake_exe', 'fake_cmd')
-    c.execute("INSERT INTO iocs VALUES (?,?,?,?,?,?)", row)
+    row = ("INSTETC", 'fake_dir', count, count, 'fake_exe', 'fake_cmd', 'fake_description', 'fake_details')
+    c.execute("INSERT INTO iocs VALUES (?,?,?,?,?,?,?,?)", row)
     pvnames = list(SAMPLE_PVS)
     pvnames.extend(BL_PVS)
     for pv in pvnames:
