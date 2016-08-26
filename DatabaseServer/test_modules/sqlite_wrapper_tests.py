@@ -25,11 +25,23 @@ MEDIUM_PV_NAMES = list()
 BL_PVS = ["PARS:BL:FOEMIRROR", "PARS:BL:A1", "PARS:BL:CHOPEN:ANG"]
 SAMPLE_PVS = ["PARS:SAMPLE:AOI", "PARS:SAMPLE:GEOMETRY", "PARS:SAMPLE:WIDTH"]
 
+def create_iocs_database(iocdb):
+    import os
+    if os.path.exists(iocdb):
+        os.remove(iocdb)
+    conn = sqlite3.connect(iocdb)
+    c = conn.cursor()
+    c.execute("PRAGMA foreign_keys = ON")
+    c.execute("CREATE TABLE iocs (iocname TEXT PRIMARY KEY, dir TEXT, consoleport INT UNIQUE, logport INT UNQIUE, exe TEXT, cmd TEXT, descr TEXT, details TEXT)")
+    c.execute("CREATE TABLE pvs(pvname TEXT PRIMARY KEY, record_type TEXT, record_desc TEXT, iocname TEXT, FOREIGN KEY(iocname) REFERENCES iocs(iocname))")
+    c.execute("CREATE TABLE pvinfo(pvname TEXT, infoname TEXT, value TEXT, FOREIGN KEY(pvname) REFERENCES pvs(pvname) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, PRIMARY KEY(pvname, infoname))")
+    c.execute("CREATE TABLE iocrt(iocname TEXT PRIMARY KEY, pid INTEGER UNIQUE, start_time INTEGER, stop_time INTEGER, running INTEGER, exe_path TEXT, FOREIGN KEY(iocname) REFERENCES iocs(iocname))")
+    conn.commit()
+    conn.close()
 
 def generate_fake_db(iocdb):
     import sys
     sys.path.append("../../../../")
-    from build_ioc_startups import create_iocs_database
     # Create database with empty table
     create_iocs_database(iocdb)
     # Populate
@@ -39,8 +51,8 @@ def generate_fake_db(iocdb):
     count = 0
     for iocname in ['SIMPLE1', "SIMPLE2", "TESTIOC"]:
         # Populate iocs
-        row = (iocname, 'fake_dir', count, count, 'fake_exe', 'fake_cmd')
-        c.execute("INSERT INTO iocs VALUES (?,?,?,?,?,?)", row)
+        row = (iocname, 'fake_dir', count, count, 'fake_exe', 'fake_cmd', 'fake_description', 'fake_details')
+        c.execute("INSERT INTO iocs VALUES (?,?,?,?,?,?,?,?)", row)
         # Populate iocsrt
         # Columns = iocname, pid, starttime, stoptime, running, exe-path
         row = (iocname, count, 0, 0, 1, "fake exe path")
@@ -63,8 +75,8 @@ def generate_fake_db(iocdb):
             row = (pv, 'ai', "Fake procserv pv for testing", iocname)
             c.execute("INSERT INTO pvs VALUES (?,?,?,?)", row)
     # Add sample and beamline parameters
-    row = ("INSTETC", 'fake_dir', count, count, 'fake_exe', 'fake_cmd')
-    c.execute("INSERT INTO iocs VALUES (?,?,?,?,?,?)", row)
+    row = ("INSTETC", 'fake_dir', count, count, 'fake_exe', 'fake_cmd', 'fake_description', 'fake_details')
+    c.execute("INSERT INTO iocs VALUES (?,?,?,?,?,?,?,?)", row)
     pvnames = list(SAMPLE_PVS)
     pvnames.extend(BL_PVS)
     for pv in pvnames:
