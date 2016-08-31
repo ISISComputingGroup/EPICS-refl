@@ -36,6 +36,9 @@ class Server(Thread):
         server.serve_forever()
 
     def set_config(self, set_to):
+        """
+        :param set_to: The config to serve, converted to JSON.
+        """
         global _config
         _config = set_to
 
