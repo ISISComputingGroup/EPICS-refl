@@ -106,6 +106,16 @@ class ActiveConfigHolder(ConfigHolder):
         self.load_active(last_config)
         return last_config
 
+    def reload_current_config(self):
+        """ Reload the current configuration."""
+        current_config_name = self.get_config_name()
+        if current_config_name == "":
+            print_and_log("No current configuration defined. Nothing to reload.")
+            return
+
+        print_and_log("Trying to reload current configuration %s" % current_config_name)
+        self.load_active(current_config_name)
+
     def iocs_changed(self):
         """Checks to see if the IOCs have changed on saving."
 

@@ -10,7 +10,12 @@
         </documentation>
     </annotation>
 	
-    <element name="devices" type="scns:devices"></element>
+    <element name="devices" type="scns:devices">
+        <unique name="UniqueDeviceName">
+            <selector xpath="scns:device/scns:name" />
+            <field xpath="." />
+        </unique>
+    </element>
     
     <complexType name="devices">
         <sequence>
@@ -20,8 +25,7 @@
 
     <complexType name="device">
         <sequence>
-            <element name="name" type="string" maxOccurs="1"
-                minOccurs="1">
+            <element name="name" type="string" maxOccurs="1" minOccurs="1">
             </element>
             <element name="key" type="string" maxOccurs="1"
                 minOccurs="1">
@@ -32,6 +36,8 @@
             <element name="properties" type="scns:properties" maxOccurs="1" minOccurs="0"></element>
         </sequence>
     </complexType>
+
+
 
     <simpleType name="devicetype">
         <restriction base="string">

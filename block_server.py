@@ -93,6 +93,11 @@ PVDB = {
         'count': 100,
         'value': [0],
     },
+    BlockserverPVNames.RELOAD_CURRENT_CONFIG: {
+        'type': 'char',
+        'count': 100,
+        'value': [0],
+    },
     BlockserverPVNames.START_IOCS: {
         'type': 'char',
         'count': 16000,
@@ -341,6 +346,9 @@ class BlockServer(Driver):
             elif reason == BlockserverPVNames.CLEAR_CONFIG:
                 self._active_configserver.clear_config()
                 self._initialise_config()
+            elif reason == BlockserverPVNames.RELOAD_CURRENT_CONFIG:
+                with self.write_lock:
+                    self.write_queue.append((self.reload_current_config, (), "RELOAD_CURRENT_CONFIG"))
             elif reason == BlockserverPVNames.START_IOCS:
                 with self.write_lock:
                     self.write_queue.append((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
@@ -507,6 +515,16 @@ class BlockServer(Driver):
             else:
                 print_and_log("Loading configuration: %s" % config)
                 self._active_configserver.load_active(config)
+            # If we get this far then assume the config is okay
+            self._initialise_config(full_init=True)
+        except Exception as err:
+            print_and_log(str(err), "MAJOR")
+
+    def reload_current_config(self):
+        """Reload the current configuration."""
+        try:
+            print_and_log("Reloading current configuration")
+            self._active_configserver.reload_current_config()
             # If we get this far then assume the config is okay
             self._initialise_config(full_init=True)
         except Exception as err:
