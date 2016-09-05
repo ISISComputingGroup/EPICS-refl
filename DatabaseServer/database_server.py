@@ -206,7 +206,8 @@ class DatabaseServer(Driver):
                 self.setParam("PVS:INTEREST:HIGH", self.encode4return(self._get_interesting_pvs("HIGH")))
                 self.setParam("PVS:INTEREST:MEDIUM", self.encode4return(self._get_interesting_pvs("MEDIUM")))
                 self.setParam("PVS:INTEREST:FACILITY", self.encode4return(self._get_interesting_pvs("FACILITY")))
-                self._update_individual_interesting_pvs()
+                # Line below commented as quick fix to limit the number of connections to MySQL being generated
+                # self._update_individual_interesting_pvs()
                 # Update them
                 with self.monitor_lock:
                     self.updatePVs()

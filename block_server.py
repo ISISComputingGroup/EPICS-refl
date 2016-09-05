@@ -453,7 +453,7 @@ class BlockServer(Driver):
             h.initialise(full_init)
 
         # Update Web Server text
-        self.server.set_config(self._active_configserver.get_config_details())
+        self.server.set_config(convert_to_json(self._active_configserver.get_config_details()))
 
         # Restart the Blocks cache
         if self._block_cache is not None:
