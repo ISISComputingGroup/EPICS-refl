@@ -51,17 +51,13 @@ class SQLAbstraction(object):
                 self._conn, self._curs = self.__open_connection()
             except Exception as e:
                 raise Exception(e)
-        else:
-            try:
-                self._curs = self._conn.cursor()
-            except Exception as e:
-                raise Exception(e)
 
     def close_connection(self):
         if self._conn is not None:
+            self._curs.close()
             self._conn.close()
-        self._conn = None
         self._curs = None
+        self._conn = None
 
     def __open_connection(self):
         """Open a connection to the database
