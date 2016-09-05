@@ -327,4 +327,6 @@ if __name__ == '__main__':
         try:
             SERVER.process(0.1)
         except:
-            DRIVER.close()
+            break
+
+    DRIVER.close()

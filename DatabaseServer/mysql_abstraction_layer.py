@@ -33,6 +33,8 @@ class SQLAbstraction(object):
         self._user = user
         self._password = password
         self._host = host
+        self._conn = None
+        self._curs = None
 
     def check_db_okay(self):
         """Attempts to connect to the database and raises an error if not able to do so
@@ -43,24 +45,23 @@ class SQLAbstraction(object):
         except Exception as e:
             raise Exception(e)
 
-    def __get_cursor(self):
-        if self._conn is None:
-            try:
-                self.connect()
-                return self._conn.cursor()
-            except Exception as e:
-                raise Exception(e)
-
     def connect(self):
         if self._conn is None:
             try:
-                self._conn = self.__open_connection()
+                self._conn, self._curs = self.__open_connection()
+            except Exception as e:
+                raise Exception(e)
+        else:
+            try:
+                self._curs = self._conn.cursor()
             except Exception as e:
                 raise Exception(e)
 
     def close_connection(self):
         if self._conn is not None:
             self._conn.close()
+        self._conn = None
+        self._curs = None
 
     def __open_connection(self):
         """Open a connection to the database
@@ -76,7 +77,7 @@ class SQLAbstraction(object):
         if len(curs.fetchall()) == 0:
             # Database does not exist
             raise Exception("Requested Database %s does not exist" % self._dbid)
-        return conn
+        return conn, curs
 
     def execute_query(self, query):
         """Executes a query on the database, and returns all values
@@ -88,17 +89,17 @@ class SQLAbstraction(object):
             values (list): list of all rows returned
         """
         try:
-            c = self.__get_cursor()
-            c.execute(query)
-            values = c.fetchall()
+            self.connect()
+            self._curs.execute(query)
+            values = self._curs.fetchall()
             return values
         except Exception as err:
             raise Exception("error executing query: %s" % err)
 
     def commit(self, query):
         try:
-            c = self.__get_cursor()
-            c.execute(query)
+            self.connect()
+            self._curs.execute(query)
             self._conn.commit()
         except Exception as err:
             raise Exception("Error updating database: %s" % err)
