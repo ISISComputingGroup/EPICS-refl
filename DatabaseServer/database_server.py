@@ -148,6 +148,9 @@ class DatabaseServer(Driver):
             monitor_thread.daemon = True  # Daemonise thread
             monitor_thread.start()
 
+    def close(self):
+        self._db.close_connection()
+
     def read(self, reason):
         """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
 
@@ -206,8 +209,7 @@ class DatabaseServer(Driver):
                 self.setParam("PVS:INTEREST:HIGH", self.encode4return(self._get_interesting_pvs("HIGH")))
                 self.setParam("PVS:INTEREST:MEDIUM", self.encode4return(self._get_interesting_pvs("MEDIUM")))
                 self.setParam("PVS:INTEREST:FACILITY", self.encode4return(self._get_interesting_pvs("FACILITY")))
-                # Line below commented as quick fix to limit the number of connections to MySQL being generated
-                # self._update_individual_interesting_pvs()
+                self._update_individual_interesting_pvs()
                 # Update them
                 with self.monitor_lock:
                     self.updatePVs()
@@ -322,4 +324,7 @@ if __name__ == '__main__':
 
     # Process CA transactions
     while True:
-        SERVER.process(0.1)
+        try:
+            SERVER.process(0.1)
+        except:
+            DRIVER.close()

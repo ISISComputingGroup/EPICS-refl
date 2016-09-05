@@ -37,9 +37,30 @@ class SQLAbstraction(object):
     def check_db_okay(self):
         """Attempts to connect to the database and raises an error if not able to do so
         """
-        conn, curs = self.__open_connection()
-        if conn is not None:
-            conn.close()
+        try:
+            self.connect()
+            self.close_connection()
+        except Exception as e:
+            raise Exception(e)
+
+    def __get_cursor(self):
+        if self._conn is None:
+            try:
+                self.connect()
+                return self._conn.cursor()
+            except Exception as e:
+                raise Exception(e)
+
+    def connect(self):
+        if self._conn is None:
+            try:
+                self._conn = self.__open_connection()
+            except Exception as e:
+                raise Exception(e)
+
+    def close_connection(self):
+        if self._conn is not None:
+            self._conn.close()
 
     def __open_connection(self):
         """Open a connection to the database
@@ -55,7 +76,7 @@ class SQLAbstraction(object):
         if len(curs.fetchall()) == 0:
             # Database does not exist
             raise Exception("Requested Database %s does not exist" % self._dbid)
-        return conn, curs
+        return conn
 
     def execute_query(self, query):
         """Executes a query on the database, and returns all values
@@ -66,26 +87,18 @@ class SQLAbstraction(object):
         Returns:
             values (list): list of all rows returned
         """
-        conn = None
         try:
-            conn, c = self.__open_connection()
+            c = self.__get_cursor()
             c.execute(query)
             values = c.fetchall()
             return values
         except Exception as err:
             raise Exception("error executing query: %s" % err)
-        finally:
-            if conn is not None:
-                conn.close()
 
     def commit(self, query):
-        conn = None
         try:
-            conn, c = self.__open_connection()
+            c = self.__get_cursor()
             c.execute(query)
-            conn.commit()
+            self._conn.commit()
         except Exception as err:
             raise Exception("Error updating database: %s" % err)
-        finally:
-            if conn is not None:
-                conn.close()
