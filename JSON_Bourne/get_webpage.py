@@ -90,9 +90,9 @@ def get_instpvs(url):
 
 
 def scrape_webpage():
-    block_details = get_blocks('http://ndxdemo:4813/group?name=BLOCKS')
+    block_details = get_blocks('http://localhost:4813/group?name=BLOCKS')
 
-    page = requests.get('http://ndxdemo:8008/')
+    page = requests.get('http://localhost:8008/')
 
     corrected_page = page.content.replace("'", '"').replace("None", "null").replace("True", "true").replace("False", "false")
 
@@ -102,11 +102,14 @@ def scrape_webpage():
     for group in config["groups"]:
         blocks = dict()
         for block in group["blocks"]:
-            blocks[block] = block_details[block]
+            if block in block_details.keys():
+                blocks[block] = block_details[block]
+            else:
+                print block + ": no such (visible) block in archive engine."
         groups[group["name"]] = blocks
 
     output = dict()
     output["config_name"] = config["name"]
     output["groups"] = groups
-    output["inst_pvs"] = get_instpvs('http://ndxdemo:4812/group?name=INST')
+    output["inst_pvs"] = get_instpvs('http://localhost:4812/group?name=INST')
     return output
