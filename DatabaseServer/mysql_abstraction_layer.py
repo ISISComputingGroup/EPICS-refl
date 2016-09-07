@@ -46,6 +46,8 @@ class SQLAbstraction(object):
             raise Exception(err)
 
     def open_connection_if_closed(self):
+        """If the connection is open, does nothing. Otherwise, attempts to connect.
+        """
         if self._conn is None:
             try:
                 self._conn, self._curs = self.__open_connection()
@@ -53,6 +55,8 @@ class SQLAbstraction(object):
                 raise Exception(err)
 
     def reset_connection(self):
+        """Closes the connection and then attempts to reconnect
+        """
         try:
             self.close_connection()
             self.open_connection_if_closed()
@@ -60,6 +64,8 @@ class SQLAbstraction(object):
             raise Exception("Unable to reset database connection: %s" % err)
 
     def close_connection(self):
+        """Closes the connection and resets the local variables
+        """
         if self._conn is not None:
             self._curs.close()
             self._conn.close()
