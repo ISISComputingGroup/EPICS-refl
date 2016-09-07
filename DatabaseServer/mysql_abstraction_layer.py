@@ -15,6 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import mysql.connector
+from server_common.utilities import print_and_log
 
 
 class SQLAbstraction(object):
@@ -40,12 +41,12 @@ class SQLAbstraction(object):
         """Attempts to connect to the database and raises an error if not able to do so
         """
         try:
-            self.reconnect()
+            self.open_connection_if_closed()
             self.close_connection()
         except Exception as err:
             raise Exception(err)
 
-    def reconnect(self):
+    def open_connection_if_closed(self):
         if self._conn is None:
             try:
                 self._conn, self._curs = self.__open_connection()
@@ -55,7 +56,7 @@ class SQLAbstraction(object):
     def reset_connection(self):
         try:
             self.close_connection()
-            self.reconnect()
+            self.open_connection_if_closed()
         except Exception as err:
             raise Exception("Unable to reset database connection: %s" % err)
 
@@ -82,7 +83,7 @@ class SQLAbstraction(object):
             raise Exception("Requested Database %s does not exist" % self._dbid)
         return conn, curs
 
-    def execute_query(self, query):
+    def execute_query(self, query, retry=True):
         """Executes a query on the database, and returns all values
 
         Args:
@@ -93,20 +94,31 @@ class SQLAbstraction(object):
         """
 
         try:
-            self.reconnect()
+            self.open_connection_if_closed()
             self._curs.execute(query)
             values = self._curs.fetchall()
             return values
-        except Exception as original_err:
-            try:
-                self.reset_connection()
-            except Exception as reconnection_err:
-                raise Exception ("Error executing query, database connection has been lost: %s", reconnection_err)
-            raise Exception("Error executing query: %s" % original_err)
+        except Exception as err:
+            if retry:
+                print_and_log("Error executing query %s, attempting to reconnect: %s" % (query,err), "MINOR", "DBSVR")
+                try:
+                    self.reset_connection()
+                    self.execute_query(query=query,retry=False)
+                except Exception as reconnection_err:
+                    err = reconnection_err
+            raise Exception ("Error executing query: %s", err)
 
-    def commit(self, query):
+    def commit(self, query, retry=True):
         try:
-            self.execute_query(query)
+            self.open_connection_if_closed()
+            self._curs.execute(query)
             self._conn.commit()
         except Exception as err:
-            raise Exception("Error updating database: %s" % err)
+            if retry:
+                print_and_log("Error updating database %s, attempting to reconnect: %s" % (query,err), "MINOR", "DBSVR")
+                try:
+                    self.reset_connection()
+                    self.execute_query(query=query,retry=False)
+                except Exception as reconnection_err:
+                    err = reconnection_err
+            raise Exception ("Error updating database: %s", err)
