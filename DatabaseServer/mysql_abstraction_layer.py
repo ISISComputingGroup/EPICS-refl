@@ -100,7 +100,6 @@ class SQLAbstraction(object):
             return values
         except Exception as err:
             if retry:
-                print_and_log("Error executing query %s, attempting to reconnect: %s" % (query,err), "MINOR", "DBSVR")
                 try:
                     self.reset_connection()
                     self.execute_query(query=query,retry=False)
@@ -115,7 +114,6 @@ class SQLAbstraction(object):
             self._conn.commit()
         except Exception as err:
             if retry:
-                print_and_log("Error updating database %s, attempting to reconnect: %s" % (query,err), "MINOR", "DBSVR")
                 try:
                     self.reset_connection()
                     self.execute_query(query=query,retry=False)
