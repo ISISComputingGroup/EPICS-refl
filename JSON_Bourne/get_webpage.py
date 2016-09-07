@@ -6,6 +6,7 @@ import json
 def get_info(url):
     page = requests.get(url)
     tree = html.fromstring(page.content)
+    print url
 
     titles = tree.xpath("//tr/th/a")
     titles = [t.text for t in titles]
@@ -27,23 +28,27 @@ def get_info(url):
     alarms = list()
 
     for i in range(len(titles)):
+        block_data = info[i].text
+        value = ""
+        alarm = ""
         if "STARTTIME" in titles[i]:
             # Time is delimited by \t
-            if info[i].text == "null":
+            if block_data == "null":
                 values.append("null")
                 alarms.append("null")
             else:
-                single = info[i].text.split("\t", 2)
-                values.append(single[1])
-                alarms.append(single[2])
-        elif "TITLE" in titles[i] or "USERNAME" in titles[i]:
+                block = block_data.split("\t", 2)
+                values.append(block[1])
+                alarms.append(block[2])
+        elif "TITLE" in titles[i] or "USERNAME" in titles[i]:       # TODO shit rule
             # Title and user name are ascii codes spaced by ", "
-            if info[i].text == "null":
+            print "oi " +titles[i]
+            if block_data == "null":
                 values.append("null")
                 alarms.append("null")
             else:
-                single = info[i].text.split(None, 2)
-                ascii = single[2]
+                block = block_data.split(None, 2)
+                ascii = block[2]
                 ascii = ascii.split(", ")
                 s = ''
                 for c in ascii:
@@ -51,13 +56,13 @@ def get_info(url):
                 values.append(s)
                 alarms.append("null")
         else:
-            if info[i].text == "null":
+            if block_data == "null":
                 values.append("null")
                 alarms.append("null")
             else:
-                single = info[i].text.split(None, 3)
-                values.append(single[2])
-                alarms.append(single[3])
+                block = block_data.split(None, 3)
+                values.append(block[2])
+                alarms.append(block[3])
 
     blocks = zip(titles, status_text, values, alarms)
     return blocks
@@ -90,7 +95,9 @@ def get_instpvs(url):
 
 
 def scrape_webpage():
-    block_details = get_blocks('http://localhost:4813/group?name=BLOCKS')
+    #block_details = get_blocks('http://localhost:4813/group?name=BLOCKS')
+    block_details = get_blocks('http://localhost:4813/group?name=DATAWEB')
+    print block_details
 
     page = requests.get('http://localhost:8008/')
 

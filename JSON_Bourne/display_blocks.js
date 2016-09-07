@@ -1,9 +1,12 @@
+function showHidden(bool){
 $(document).ready(function() {
     $.getJSON("http://localhost:60000/", function(obj) {
 
+        console.log(document.location.href) // TODO for future use: detect inst from address
         document.getElementById("inst_name").appendChild(document.createTextNode("DEMO"))
         document.getElementById("config_name").appendChild(document.createTextNode("Configuration: " + obj.config_name))
 
+        // populate blocks list
         var group_titles = Object.keys(obj.groups)
         for (i = 0; i < group_titles.length; i++) {
             var title = group_titles[i]
@@ -57,6 +60,7 @@ $(document).ready(function() {
             }
         }
 
+        // populate run information
         var instpv_titles = Object.keys(obj.inst_pvs)
         var nodeInstPVs = document.getElementById("inst_pvs")
         var nodeInstPVList = document.createElement("UL")
@@ -98,5 +102,5 @@ $(document).ready(function() {
         nodeInstPVList.appendChild(nodePV)
         }
     })
-    console.log(document)
+    console.log(document) // TODO get rid of this
 })
