@@ -40,17 +40,24 @@ class SQLAbstraction(object):
         """Attempts to connect to the database and raises an error if not able to do so
         """
         try:
-            self.connect()
+            self.reconnect()
             self.close_connection()
-        except Exception as e:
-            raise Exception(e)
+        except Exception as err:
+            raise Exception(err)
 
-    def connect(self):
+    def reconnect(self):
         if self._conn is None:
             try:
                 self._conn, self._curs = self.__open_connection()
-            except Exception as e:
-                raise Exception(e)
+            except Exception as err:
+                raise Exception(err)
+
+    def reset_connection(self):
+        try:
+            self.close_connection()
+            self.reconnect()
+        except Exception as err:
+            raise Exception("Unable to reset database connection: %s" % err)
 
     def close_connection(self):
         if self._conn is not None:
@@ -84,18 +91,22 @@ class SQLAbstraction(object):
         Returns:
             values (list): list of all rows returned
         """
+
         try:
-            self.connect()
+            self.reconnect()
             self._curs.execute(query)
             values = self._curs.fetchall()
             return values
-        except Exception as err:
-            raise Exception("error executing query: %s" % err)
+        except Exception as original_err:
+            try:
+                self.reset_connection()
+            except Exception as reconnection_err:
+                raise Exception ("Error executing query, database connection has been lost: %s", reconnection_err)
+            raise Exception("Error executing query: %s" % original_err)
 
     def commit(self, query):
         try:
-            self.connect()
-            self._curs.execute(query)
+            self.execute_query(query)
             self._conn.commit()
         except Exception as err:
             raise Exception("Error updating database: %s" % err)
