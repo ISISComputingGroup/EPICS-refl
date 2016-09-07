@@ -15,7 +15,6 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import mysql.connector
-from server_common.utilities import print_and_log
 
 
 class SQLAbstraction(object):
