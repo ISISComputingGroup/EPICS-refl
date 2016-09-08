@@ -1,8 +1,6 @@
-function showHidden(bool){
 $(document).ready(function() {
     $.getJSON("http://localhost:60000/", function(obj) {
 
-        console.log(document.location.href) // TODO for future use: detect inst from address
         document.getElementById("inst_name").appendChild(document.createTextNode("DEMO"))
         document.getElementById("config_name").appendChild(document.createTextNode("Configuration: " + obj.config_name))
 
@@ -25,9 +23,9 @@ $(document).ready(function() {
             nodeBlockList.setAttributeNode(blockListStyle)
 
             for (j = 0; j < block_titles.length; j++) {
-                var block_values = obj.groups[title][block_titles[j]]["values"]
-                var status_text = obj.groups[title][block_titles[j]]["status_text"]
-                var alarms = obj.groups[title][block_titles[j]]["alarms"]
+                var block_value = obj.groups[title][block_titles[j]]["value"]
+                var status_text = obj.groups[title][block_titles[j]]["status"]
+                var alarm = obj.groups[title][block_titles[j]]["alarm"]
 
                 var nodeBlock = document.createElement("LI")
                 var attColour = document.createAttribute("color")
@@ -46,13 +44,13 @@ $(document).ready(function() {
                 }
                 // write value if connected
                 else {
-                    nodeBlockText.nodeValue += block_values + "\u00A0\u00A0"
+                    nodeBlockText.nodeValue += block_value + "\u00A0\u00A0"
                     // write alarm status if active
-                    if (!alarms.startsWith("null") && !alarms.startsWith("OK")) {
+                    if (!alarm.startsWith("null") && !alarm.startsWith("OK")) {
                         var nodeBlockAlarm = document.createElement("FONT")
                         attColour.value = "red"
                         nodeBlockAlarm.setAttributeNode(attColour)
-                        nodeBlockAlarm.appendChild(document.createTextNode("(" + alarms + ")"))
+                        nodeBlockAlarm.appendChild(document.createTextNode("(" + alarm + ")"))
                         nodeBlock.appendChild(nodeBlockAlarm)
                     }
                 }
@@ -68,9 +66,9 @@ $(document).ready(function() {
 
         for (i = 0; i < instpv_titles.length; i++) {
             var title = instpv_titles[i]
-            var value = obj.inst_pvs[title]["values"]
-            var status_text = obj.inst_pvs[title]["status_text"]
-            var alarms =  obj.inst_pvs[title]["alarms"]
+            var value = obj.inst_pvs[title]["value"]
+            var status_text = obj.inst_pvs[title]["status"]
+            var alarm =  obj.inst_pvs[title]["alarm"]
 
             var nodePV = document.createElement("LI")
             var nodePVText = document.createTextNode(title + "\u00A0\u00A0")
@@ -91,16 +89,16 @@ $(document).ready(function() {
             else {
                 nodePVText.nodeValue += value + "\u00A0\u00A0"
                 // write alarm status if active
-                if (!alarms.startsWith("null") && !alarms.startsWith("OK")) {
+                if (!alarm.startsWith("null") && !alarm.startsWith("OK")) {
                     var nodePVAlarm = document.createElement("FONT")
                     attColour.value = "red"
                     nodePVAlarm.setAttributeNode(attColour)
-                    nodePVAlarm.appendChild(document.createTextNode("(" + alarms + ")"))
+                    nodePVAlarm.appendChild(document.createTextNode("(" + alarm + ")"))
                     nodePV.appendChild(nodePVAlarm)
                 }
             }
         nodeInstPVList.appendChild(nodePV)
         }
     })
-    console.log(document) // TODO get rid of this
+    // console.log(document)
 })
