@@ -15,6 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import mysql.connector
+from server_common.utilities import print_and_log
 
 
 class SQLAbstraction(object):
@@ -66,11 +67,16 @@ class SQLAbstraction(object):
     def close_connection(self):
         """Closes the connection and resets the local variables
         """
-        if self._conn is not None:
-            self._curs.close()
-            self._conn.close()
-        self._curs = None
-        self._conn = None
+        try:
+            if self._conn is not None:
+                self._curs.close()
+                self._conn.close()
+        except Exception as ex:
+            print_and_log("Error closing connection {0}".format(ex))
+            # ignore error if it is a serious database error it will get caught when reopening db
+        finally:
+            self._curs = None
+            self._conn = None
 
     def __open_connection(self):
         """Open a connection to the database
@@ -110,7 +116,7 @@ class SQLAbstraction(object):
                     self.execute_query(query=query,retry=False)
                 except Exception as reconnection_err:
                     err = reconnection_err
-            raise Exception ("Error executing query: %s", err)
+            raise Exception("Error executing query: %s" % err)
 
     def commit(self, query, retry=True):
         try:
@@ -124,4 +130,4 @@ class SQLAbstraction(object):
                     self.execute_query(query=query,retry=False)
                 except Exception as reconnection_err:
                     err = reconnection_err
-            raise Exception ("Error updating database: %s", err)
+            raise Exception("Error updating database: %s" % err)

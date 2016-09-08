@@ -149,7 +149,14 @@ class DatabaseServer(Driver):
             monitor_thread.start()
 
     def close(self):
+        """
+        Close all open objects
+
+        Returns:
+
+        """
         self._db.close_connection()
+        self._ed.close_connection()
 
     def read(self, reason):
         """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.

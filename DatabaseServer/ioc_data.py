@@ -41,6 +41,11 @@ class IOCData(object):
         self._running_iocs_lock = RLock()
 
     def close_connection(self):
+        """
+        Close all connection
+        Returns:
+
+        """
         self._db.close_connection()
 
     def check_db_okay(self):
