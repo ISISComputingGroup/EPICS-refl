@@ -15,6 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import mysql.connector
+from server_common.utilities import print_and_log
 
 
 class SQLAbstraction(object):
@@ -33,13 +34,49 @@ class SQLAbstraction(object):
         self._user = user
         self._password = password
         self._host = host
+        self._conn = None
+        self._curs = None
 
     def check_db_okay(self):
         """Attempts to connect to the database and raises an error if not able to do so
         """
-        conn, curs = self.__open_connection()
-        if conn is not None:
-            conn.close()
+        try:
+            self.open_connection_if_closed()
+            self.close_connection()
+        except Exception as err:
+            raise Exception(err)
+
+    def open_connection_if_closed(self):
+        """If the connection is open, does nothing. Otherwise, attempts to connect.
+        """
+        if self._conn is None:
+            try:
+                self._conn, self._curs = self.__open_connection()
+            except Exception as err:
+                raise Exception(err)
+
+    def reset_connection(self):
+        """Closes the connection and then attempts to reconnect
+        """
+        try:
+            self.close_connection()
+            self.open_connection_if_closed()
+        except Exception as err:
+            raise Exception("Unable to reset database connection: %s" % err)
+
+    def close_connection(self):
+        """Closes the connection and resets the local variables
+        """
+        try:
+            if self._conn is not None:
+                self._curs.close()
+                self._conn.close()
+        except Exception as ex:
+            print_and_log("Error closing connection {0}".format(ex))
+            # ignore error if it is a serious database error it will get caught when reopening db
+        finally:
+            self._curs = None
+            self._conn = None
 
     def __open_connection(self):
         """Open a connection to the database
@@ -57,7 +94,7 @@ class SQLAbstraction(object):
             raise Exception("Requested Database %s does not exist" % self._dbid)
         return conn, curs
 
-    def execute_query(self, query):
+    def execute_query(self, query, retry=True):
         """Executes a query on the database, and returns all values
 
         Args:
@@ -66,26 +103,31 @@ class SQLAbstraction(object):
         Returns:
             values (list): list of all rows returned
         """
-        conn = None
+
         try:
-            conn, c = self.__open_connection()
-            c.execute(query)
-            values = c.fetchall()
+            self.open_connection_if_closed()
+            self._curs.execute(query)
+            values = self._curs.fetchall()
             return values
         except Exception as err:
-            raise Exception("error executing query: %s" % err)
-        finally:
-            if conn is not None:
-                conn.close()
+            if retry:
+                try:
+                    self.reset_connection()
+                    self.execute_query(query=query,retry=False)
+                except Exception as reconnection_err:
+                    err = reconnection_err
+            raise Exception("Error executing query: %s" % err)
 
-    def commit(self, query):
-        conn = None
+    def commit(self, query, retry=True):
         try:
-            conn, c = self.__open_connection()
-            c.execute(query)
-            conn.commit()
+            self.open_connection_if_closed()
+            self._curs.execute(query)
+            self._conn.commit()
         except Exception as err:
+            if retry:
+                try:
+                    self.reset_connection()
+                    self.execute_query(query=query,retry=False)
+                except Exception as reconnection_err:
+                    err = reconnection_err
             raise Exception("Error updating database: %s" % err)
-        finally:
-            if conn is not None:
-                conn.close()
