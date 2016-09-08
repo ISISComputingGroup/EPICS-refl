@@ -28,7 +28,6 @@ class TestDatabaseServer(unittest.TestCase):
     def setUp(self):
         self.ms = MockCAServer()
         self.db_server = DatabaseServer(self.ms, TEST_DB, os.path.abspath('./test_files'), True)
-        self.db_server._update_individual_interesting_pvs()
 
     def test_interest_high_pvs_correct(self):
         on_fly_pvs = self.ms.pv_list
