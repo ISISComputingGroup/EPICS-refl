@@ -1,5 +1,7 @@
+var port_json_bourne = 60000
+
 $(document).ready(function() {
-    $.getJSON("http://localhost:60000/", function(obj) {
+    $.getJSON("http://localhost:" + port_json_bourne + "/", function(obj) {
 
         document.getElementById("inst_name").appendChild(document.createTextNode("DEMO"))
         document.getElementById("config_name").appendChild(document.createTextNode("Configuration: " + obj.config_name))

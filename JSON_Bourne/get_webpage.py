@@ -4,6 +4,11 @@ import json
 from block import Block
 
 
+port_inst_pvs = 4812
+port_blocks = 4813
+port_config = 8008
+
+
 def shorten_title(title):
     number = title.rfind(':')
     return title[number + 1:]
@@ -40,29 +45,29 @@ def get_info(url):
     info = tree.xpath("//table[2]/tbody/tr/td[3]")
 
     for i in range(len(titles)):
-        block_data = info[i].text
-        if block_data == "null":
+        block_raw = info[i].text
+        if block_raw == "null":
                 value = "null"
                 alarm = "null"
         elif "DAE:STARTTIME.VAL" in titles[i]:
             value_index = 1
             alarm_index = 2
-            block = block_data.split("\t", 2)
-            value = block[value_index]
-            alarm = block[alarm_index]
+            block_split = block_raw.split("\t", 2)
+            value = block_split[value_index]
+            alarm = block_split[alarm_index]
         elif "DAE:TITLE.VAL" in titles[i] or "DAE:_USERNAME.VAL" in titles[i]:
             # Title and user name are ascii codes spaced by ", "
             value_index = 2
-            block = block_data.split(None, 2)
-            value_ascii = block[value_index].split(", ")
+            block_split = block_raw.split(None, 2)
+            value_ascii = block_split[value_index].split(", ")
             value = ascii_to_string(value_ascii)
             alarm = "null"
         else:
             value_index = 2
             alarm_index = 3
-            block = block_data.split(None, 3)
-            value = block[value_index]
-            alarm = block[alarm_index]
+            block_split = block_raw.split(None, 3)
+            value = block_split[value_index]
+            alarm = block_split[alarm_index]
 
         name = shorten_title(titles[i])
         status = status_text[i]
@@ -83,9 +88,6 @@ def get_blocks(url):
 
     """
     blocks = get_info(url)
-#    for key in blocks:
-#        name = blocks[key].get_name()
-#        blocks[key].set_name(name)
     return blocks
 
 
@@ -107,10 +109,10 @@ def get_instpvs(url):
 
 
 def scrape_webpage():
-    blocks_visible = get_blocks('http://localhost:4813/group?name=BLOCKS')
-    blocks_hidden = get_blocks('http://localhost:4813/group?name=DATAWEB')
+    blocks_visible = get_blocks('http://localhost:' + str(port_blocks) + '/group?name=BLOCKS')
+    # blocks_hidden = get_blocks('http://localhost:' + port_blocks + '/group?name=DATAWEB')
 
-    page = requests.get('http://localhost:8008/')
+    page = requests.get('http://localhost:' + str(port_config) + '/')
 
     corrected_page = page.content.replace("'", '"').replace("None", "null").replace("True", "true").replace("False", "false")
 
@@ -127,5 +129,5 @@ def scrape_webpage():
     output = dict()
     output["config_name"] = config["name"]
     output["groups"] = groups
-    output["inst_pvs"] = get_instpvs('http://localhost:4812/group?name=INST')
+    output["inst_pvs"] = get_instpvs('http://localhost:' + str(port_inst_pvs) + '/group?name=INST')
     return output
