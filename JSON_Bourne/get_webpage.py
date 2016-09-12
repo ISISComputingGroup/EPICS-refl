@@ -4,9 +4,9 @@ import json
 from block import Block
 
 
-port_inst_pvs = 4812
-port_blocks = 4813
-port_config = 8008
+PORT_INSTPV = 4812
+PORT_BLOCKS = 4813
+PORT_CONFIG = 8008
 
 
 def shorten_title(title):
@@ -109,10 +109,10 @@ def get_instpvs(url):
 
 
 def scrape_webpage():
-    blocks_visible = get_blocks('http://localhost:' + str(port_blocks) + '/group?name=BLOCKS')
+    blocks_visible = get_blocks('http://localhost:' + str(PORT_BLOCKS) + '/group?name=BLOCKS')
     # blocks_hidden = get_blocks('http://localhost:' + port_blocks + '/group?name=DATAWEB')
 
-    page = requests.get('http://localhost:' + str(port_config) + '/')
+    page = requests.get('http://localhost:' + str(PORT_CONFIG) + '/')
 
     corrected_page = page.content.replace("'", '"').replace("None", "null").replace("True", "true").replace("False", "false")
 
@@ -129,5 +129,5 @@ def scrape_webpage():
     output = dict()
     output["config_name"] = config["name"]
     output["groups"] = groups
-    output["inst_pvs"] = get_instpvs('http://localhost:' + str(port_inst_pvs) + '/group?name=INST')
+    output["inst_pvs"] = get_instpvs('http://localhost:' + str(PORT_INSTPV) + '/group?name=INST')
     return output
