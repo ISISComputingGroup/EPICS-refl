@@ -90,6 +90,9 @@ class Gateway(object):
         if pv.endswith(".VAL"):
             # Strip off the .VAL
             pv = pv.rstrip(".VAL")
+        # look for a field name in PV
+        m = re.match(r'.*(\.[A-Z0-9]+)$', pv)
+        pvsuffix = m.group(1)
         if pv.endswith(":SP"):
             # The block points at a setpoint
             lines.append("## The block points at a :SP, so it needs an optional group as genie_python will append an additional :SP, but ignore :RC:\n")
@@ -107,13 +110,13 @@ class Gateway(object):
                                                                                blockname, pv))
                 lines.append('%s%s%s\(:SP\)?:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
                 lines.append('%s%s%s\(:SP\)?    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
-        elif pv.endswith(".RBV"):
+        elif pvsuffix is not None:
             # The block points at a readback value (most likely for a motor)
             lines.append("## The block points at a .RBV, so it needs entries for both reading the RBV and for the rest, but ignore :RC:\n")
             if local:
                 # Pattern match is for picking up any extras like :RBV or .EGU
                 lines.append('%s%s%s\([.:].*\)    ALIAS    %s%s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
-                                                                         self._pv_prefix, pv.rstrip(".RBV")))
+                                                                         self._pv_prefix, pv.rstrip(pvsuffix)))
                 lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
                 lines.append('%s%s%s[.]VAL    ALIAS    %s%s\n' % (self._pv_prefix, self._block_prefix, blockname,
                                                                   self._pv_prefix, pv))
@@ -123,7 +126,7 @@ class Gateway(object):
                 # pv_prefix is hard-coded for non-local PVs
                 # Pattern match is for picking up any extras like :RBV or .EGU
                 lines.append('%s%s%s\([.:].*\)    ALIAS    %s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
-                                                                       pv.rstrip(".RBV")))
+                                                                       pv.rstrip(pvsuffix)))
                 lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
                 lines.append('%s%s%s[.]VAL    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
                 lines.append('%s%s%s    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
