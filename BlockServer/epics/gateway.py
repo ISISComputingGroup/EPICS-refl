@@ -15,6 +15,7 @@
 #http://opensource.org/licenses/eclipse-1.0.php
 
 import time
+import re
 from server_common.channel_access import ChannelAccess
 from server_common.utilities import print_and_log
 
@@ -92,7 +93,10 @@ class Gateway(object):
             pv = pv.rstrip(".VAL")
         # look for a field name in PV
         m = re.match(r'.*(\.[A-Z0-9]+)$', pv)
-        pvsuffix = m.group(1)
+        if m:
+            pvsuffix = m.group(1)
+        else:
+            pvsuffix = None
         if pv.endswith(":SP"):
             # The block points at a setpoint
             lines.append("## The block points at a :SP, so it needs an optional group as genie_python will append an additional :SP, but ignore :RC:\n")
@@ -112,7 +116,7 @@ class Gateway(object):
                 lines.append('%s%s%s\(:SP\)?    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
         elif pvsuffix is not None:
             # The block points at a readback value (most likely for a motor)
-            lines.append("## The block points at a .RBV, so it needs entries for both reading the RBV and for the rest, but ignore :RC:\n")
+            lines.append("## The block points at a %s field, so it needs entries for both reading the field and for the rest, but ignore :RC:\n" % (pvsuffix))
             if local:
                 # Pattern match is for picking up any extras like :RBV or .EGU
                 lines.append('%s%s%s\([.:].*\)    ALIAS    %s%s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
