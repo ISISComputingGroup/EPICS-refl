@@ -31,7 +31,7 @@ $(document).ready(function() {
 
                 var nodeBlock = document.createElement("LI")
                 var attColour = document.createAttribute("color")
-                var nodeBlockText = document.createTextNode(block_titles[j] + "\u00A0\u00A0")
+                var nodeBlockText = document.createTextNode(block_titles[j] + ":\u00A0\u00A0")
 
                 // write block name
                 nodeBlock.appendChild(nodeBlockText)
@@ -73,7 +73,7 @@ $(document).ready(function() {
             var alarm =  obj.inst_pvs[title]["alarm"]
 
             var nodePV = document.createElement("LI")
-            var nodePVText = document.createTextNode(title + "\u00A0\u00A0")
+            var nodePVText = document.createTextNode(title + ":\u00A0\u00A0")
             var attColour = document.createAttribute("color")
 
             // write pv name

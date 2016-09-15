@@ -77,25 +77,11 @@ def get_info(url):
     return blocks
 
 
-def get_blocks(url):
-    """
-    Gets block information for available blocks and shortens PVs to block names.
-
-    Args:
-        url: The url from where to retrieve block information.
-
-    Returns: The list of available blocks with shortened titles.
-
-    """
-    blocks = get_info(url)
-    return blocks
-
-
 def get_instpvs(url):
     wanted = dict()
-    ans = get_blocks(url)
+    ans = get_info(url)
 
-    required_pvs = ["RUNSTATE", "RUNNUMBER", "_RBNUMBER", "TITLE", "_USERNAME", "HIDE_TITLE", "STARTTIME",
+    required_pvs = ["RUNSTATE", "RUNNUMBER", "_RBNUMBER", "TITLE", "_USERNAME", "DISPLAY", "STARTTIME",
                     "RUNDURATION", "RUNDURATION_PD", "GOODFRAMES", "GOODFRAMES_PD", "RAWFRAMES", "RAWFRAMES_PD",
                     "PERIOD", "NUMPERIODS", "PERIODSEQ", "BEAMCURRENT", "TOTALUAMPS", "COUNTRATE", "DAEMEMORYUSED",
                     "TOTALCOUNTS", "DAETIMINGSOURCE", "MONITORCOUNTS", "MONITORSPECTRUM", "MONITORFROM", "MONITORTO",
@@ -109,8 +95,9 @@ def get_instpvs(url):
 
 
 def scrape_webpage():
-    blocks_visible = get_blocks('http://localhost:' + str(PORT_BLOCKS) + '/group?name=BLOCKS')
-    # blocks_hidden = get_blocks('http://localhost:' + port_blocks + '/group?name=DATAWEB')
+    blocks_visible = get_info('http://localhost:' + str(PORT_BLOCKS) + '/group?name=BLOCKS')
+    blocks_hidden = get_info('http://localhost:' + str(PORT_BLOCKS) + '/group?name=DATAWEB')
+    blocks_all = dict(blocks_visible.items() + blocks_hidden.items())
 
     page = requests.get('http://localhost:' + str(PORT_CONFIG) + '/')
 
@@ -122,8 +109,8 @@ def scrape_webpage():
     for group in config["groups"]:
         blocks = dict()
         for block in group["blocks"]:
-            if block in blocks_visible.keys():
-                blocks[block] = blocks_visible[block]
+            if block in blocks_all.keys():
+                blocks[block] = blocks_all[block]
         groups[group["name"]] = blocks
 
     output = dict()
