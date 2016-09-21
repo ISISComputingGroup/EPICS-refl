@@ -1,5 +1,20 @@
 var PORT = 60000
 
+var showPrivate = true
+var privateRunInfo = ["TITLE", "_USERNAME"]
+
+function isInArray(list, elem) {
+    return list.indexOf(elem) > -1;
+}
+
+function getBoolean(stringval) {
+    bool = true
+    if (stringval.toUpperCase() == "NO") {
+        bool = false
+    }
+    return bool
+}
+
 $(document).ready(function() {
     $.getJSON("http://localhost:" + PORT + "/", function(obj) {
 
@@ -66,6 +81,8 @@ $(document).ready(function() {
         var nodeInstPVList = document.createElement("UL")
         nodeInstPVs.appendChild(nodeInstPVList)
 
+        showPrivate = getBoolean(obj.inst_pvs["DISPLAY"]["value"])
+
         for (i = 0; i < instpv_titles.length; i++) {
             var title = instpv_titles[i]
             var value = obj.inst_pvs[title]["value"]
@@ -81,14 +98,17 @@ $(document).ready(function() {
 
             // write status if disconnected
             if (status_text == "Disconnected") {
-                    var nodePVStatus = document.createElement("FONT")
-                    attColour.value = "BlueViolet"
-                    nodePVStatus.setAttributeNode(attColour)
-                    nodePVStatus.appendChild(document.createTextNode(status_text.toUpperCase()))
-                    nodePV.appendChild(nodePVStatus)
-            }
+                var nodePVStatus = document.createElement("FONT")
+                attColour.value = "BlueViolet"
+                nodePVStatus.setAttributeNode(attColour)
+                nodePVStatus.appendChild(document.createTextNode(status_text.toUpperCase()))
+                nodePV.appendChild(nodePVStatus)
             // write value if connected
-            else {
+            } else if ((isInArray(privateRunInfo, instpv_titles[i])) && !showPrivate){
+                var nodePVStatus = document.createElement("I")
+                nodePVStatus.appendChild(document.createTextNode("Unavailable"))
+                nodePV.appendChild(nodePVStatus)
+            } else {
                 nodePVText.nodeValue += value + "\u00A0\u00A0"
                 // write alarm status if active
                 if (!alarm.startsWith("null") && !alarm.startsWith("OK")) {
