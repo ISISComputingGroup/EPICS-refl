@@ -93,12 +93,12 @@ def get_instpvs(url):
     return wanted
 
 
-def scrape_webpage():
-    blocks_visible = get_info('http://localhost:' + str(PORT_BLOCKS) + '/group?name=BLOCKS')
-    blocks_hidden = get_info('http://localhost:' + str(PORT_BLOCKS) + '/group?name=DATAWEB')
+def scrape_webpage(host="localhost"):
+    blocks_visible = get_info('http://%s:%s/group?name=BLOCKS' % (host, PORT_BLOCKS))
+    blocks_hidden = get_info('http://%s:%s/group?name=DATAWEB' % (host, PORT_BLOCKS))
     blocks_all = dict(blocks_visible.items() + blocks_hidden.items())
 
-    page = requests.get('http://localhost:' + str(PORT_CONFIG) + '/')
+    page = requests.get('http://%s:%s/' % (host, PORT_CONFIG))
 
     corrected_page = page.content.replace("'", '"').replace("None", "null").replace("True", "true").replace("False", "false")
     config = json.loads(corrected_page)
@@ -114,5 +114,7 @@ def scrape_webpage():
     output = dict()
     output["config_name"] = config["name"]
     output["groups"] = groups
-    output["inst_pvs"] = get_instpvs('http://localhost:' + str(PORT_INSTPV) + '/group?name=INST')
+    output["inst_pvs"] = get_instpvs('http://%s:%s/group?name=INST' % (host, PORT_INSTPV))
     return output
+
+# print scrape_webpage("ndxdemo")

@@ -16,7 +16,7 @@ function getBoolean(stringval) {
 }
 
 $(document).ready(function() {
-    $.getJSON("http://localhost:" + PORT + "/", function(obj) {
+    $.getJSON("http://ndxdemo:" + PORT + "/", function(obj) {
 
         document.getElementById("inst_name").appendChild(document.createTextNode("DEMO"))
         document.getElementById("config_name").appendChild(document.createTextNode("Configuration: " + obj.config_name))
@@ -30,7 +30,7 @@ $(document).ready(function() {
 
             var nodeTitle = document.createElement("H3")
             nodeGroups.appendChild(nodeTitle)
-            nodeTitle.appendChild(document.createTextNode(title))
+            nodeTitle.appendChild(document.createTextNode(checkTitle(title)))
 
             var nodeBlockList = document.createElement("UL")
             nodeGroups.appendChild(nodeBlockList)
@@ -125,3 +125,10 @@ $(document).ready(function() {
     })
     // console.log(document)
 })
+
+function checkTitle(title){
+    if (title === "NONE"){
+        title = "OTHER"
+    }
+    return title
+}

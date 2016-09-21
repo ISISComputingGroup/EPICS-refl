@@ -40,6 +40,14 @@ class IOCData(object):
         self._running_iocs = list()
         self._running_iocs_lock = RLock()
 
+    def close_connection(self):
+        """
+        Close all connection
+        Returns:
+
+        """
+        self._db.close_connection()
+
     def check_db_okay(self):
         """Attempts to connect to the database and raises an error if not able
         """
