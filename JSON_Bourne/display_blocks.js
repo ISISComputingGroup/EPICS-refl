@@ -1,5 +1,36 @@
 var PORT = 60000
 
+dictInstPV = {
+    RUNSTATE: 'Run Status',
+    RUNNUMBER: 'Run Number',
+    _RBNUMBER: 'RB Number',
+    _USERNAME: 'User(s)',
+    TITLE: 'Title',
+    TITLEDISP: 'Show Title',
+    STARTTIME: 'Start Time',
+    RUNDURATION: 'Total Run Time',
+    RUNDURATION_PD: 'Period Run Time',
+    GOODFRAMES: 'Good Frames (Total)',
+    GOODFRAMES_PD: 'Good Frames (Period)',
+    RAWFRAMES: 'Raw Frames (Total)',
+    RAWFRAMES_PD: 'Raw Frames (Period)',
+    PERIOD: 'Current Period',
+    NUMPERIODS: 'Number of Periods',
+    PERIODSEQ: 'Period Sequence',
+    BEAMCURRENT: 'Beam Current',
+    TOTALUAMPS: 'Total Uamps',
+    COUNTRATE: 'Count Rate',
+    DAEMEMORYUSED: 'DAE Memory Used',
+    TOTALCOUNTS: 'Total DAE Counts',
+    DAETIMINGSOURCE: 'DAE Timing Source',
+    MONITORCOUNTS: 'Monitor Counts',
+    MONITORSPECTRUM: 'Monitor Spectrum',
+    MONITORFROM: 'Monitor From',
+    MONITORTO: 'Monitor To',
+    NUMTIMECHANNELS: 'Number of Time Channels',
+    NUMSPECTRA: 'Number of Spectra'
+}
+
 $(document).ready(function() {
     $.getJSON("http://ndxdemo:" + PORT + "/", function(obj) {
 
@@ -73,7 +104,7 @@ $(document).ready(function() {
             var alarm =  obj.inst_pvs[title]["alarm"]
 
             var nodePV = document.createElement("LI")
-            var nodePVText = document.createTextNode(title + ":\u00A0\u00A0")
+            var nodePVText = document.createTextNode(dictInstPV[title] + ":\u00A0\u00A0")
             var attColour = document.createAttribute("color")
 
             // write pv name
