@@ -1,7 +1,7 @@
 var PORT = 60000
 
 $(document).ready(function() {
-    $.getJSON("http://localhost:" + PORT + "/", function(obj) {
+    $.getJSON("http://ndxdemo:" + PORT + "/", function(obj) {
 
         document.getElementById("inst_name").appendChild(document.createTextNode("DEMO"))
         document.getElementById("config_name").appendChild(document.createTextNode("Configuration: " + obj.config_name))
