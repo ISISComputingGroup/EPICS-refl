@@ -31,7 +31,6 @@ def get_info(url):
     titles = [t.text for t in titles]
 
     status = tree.xpath("//table[2]/tbody/tr/td[1]")
-    # status = [s.text for s in status]
     status_text = list()
     for s in status:
         if s.text is None:
@@ -81,7 +80,7 @@ def get_instpvs(url):
     wanted = dict()
     ans = get_info(url)
 
-    required_pvs = ["RUNSTATE", "RUNNUMBER", "_RBNUMBER", "TITLE", "_USERNAME", "DISPLAY", "STARTTIME",
+    required_pvs = ["RUNSTATE", "RUNNUMBER", "_RBNUMBER", "TITLE", "DISPLAY", "_USERNAME", "STARTTIME",
                     "RUNDURATION", "RUNDURATION_PD", "GOODFRAMES", "GOODFRAMES_PD", "RAWFRAMES", "RAWFRAMES_PD",
                     "PERIOD", "NUMPERIODS", "PERIODSEQ", "BEAMCURRENT", "TOTALUAMPS", "COUNTRATE", "DAEMEMORYUSED",
                     "TOTALCOUNTS", "DAETIMINGSOURCE", "MONITORCOUNTS", "MONITORSPECTRUM", "MONITORFROM", "MONITORTO",
@@ -102,7 +101,6 @@ def scrape_webpage(host="localhost"):
     page = requests.get('http://%s:%s/' % (host, PORT_CONFIG))
 
     corrected_page = page.content.replace("'", '"').replace("None", "null").replace("True", "true").replace("False", "false")
-
     config = json.loads(corrected_page)
 
     groups = dict()

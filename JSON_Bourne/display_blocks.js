@@ -31,6 +31,21 @@ dictInstPV = {
     NUMSPECTRA: 'Number of Spectra'
 }
 
+var showPrivate = true
+var privateRunInfo = ["TITLE", "_USERNAME"]
+
+function isInArray(list, elem) {
+    return list.indexOf(elem) > -1;
+}
+
+function getBoolean(stringval) {
+    bool = true
+    if (stringval.toUpperCase() == "NO") {
+        bool = false
+    }
+    return bool
+}
+
 $(document).ready(function() {
     $.getJSON("http://ndxdemo:" + PORT + "/", function(obj) {
 
@@ -92,6 +107,9 @@ $(document).ready(function() {
         }
 
         // populate run information
+        showPrivate = getBoolean(obj.inst_pvs["DISPLAY"]["value"])
+        delete obj.inst_pvs["DISPLAY"]
+
         var instpv_titles = Object.keys(obj.inst_pvs)
         var nodeInstPVs = document.getElementById("inst_pvs")
         var nodeInstPVList = document.createElement("UL")
@@ -112,14 +130,17 @@ $(document).ready(function() {
 
             // write status if disconnected
             if (status_text == "Disconnected") {
-                    var nodePVStatus = document.createElement("FONT")
-                    attColour.value = "BlueViolet"
-                    nodePVStatus.setAttributeNode(attColour)
-                    nodePVStatus.appendChild(document.createTextNode(status_text.toUpperCase()))
-                    nodePV.appendChild(nodePVStatus)
-            }
+                var nodePVStatus = document.createElement("FONT")
+                attColour.value = "BlueViolet"
+                nodePVStatus.setAttributeNode(attColour)
+                nodePVStatus.appendChild(document.createTextNode(status_text.toUpperCase()))
+                nodePV.appendChild(nodePVStatus)
             // write value if connected
-            else {
+            } else if ((isInArray(privateRunInfo, instpv_titles[i])) && !showPrivate){
+                var nodePVStatus = document.createElement("I")
+                nodePVStatus.appendChild(document.createTextNode("Unavailable"))
+                nodePV.appendChild(nodePVStatus)
+            } else {
                 nodePVText.nodeValue += value + "\u00A0\u00A0"
                 // write alarm status if active
                 if (!alarm.startsWith("null") && !alarm.startsWith("OK")) {
