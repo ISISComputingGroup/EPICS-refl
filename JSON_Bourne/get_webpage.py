@@ -95,8 +95,8 @@ def get_instpvs(url):
 
 
 def scrape_webpage():
-    blocks_visible = get_info('http://localhost:' + str(PORT_BLOCKS) + '/group?name=BLOCKS')
-    blocks_hidden = get_info('http://localhost:' + str(PORT_BLOCKS) + '/group?name=DATAWEB')
+    blocks_visible = get_info('http://localhost:%s/group?name=BLOCKS', str(PORT_BLOCKS))
+    blocks_hidden = get_info('http://localhost:%s/group?name=DATAWEB', str(PORT_BLOCKS))
     blocks_all = dict(blocks_visible.items() + blocks_hidden.items())
 
     page = requests.get('http://localhost:' + str(PORT_CONFIG) + '/')
@@ -116,5 +116,5 @@ def scrape_webpage():
     output = dict()
     output["config_name"] = config["name"]
     output["groups"] = groups
-    output["inst_pvs"] = get_instpvs('http://localhost:' + str(PORT_INSTPV) + '/group?name=INST')
+    output["inst_pvs"] = get_instpvs('http://localhost:%s/group?name=INST', str(PORT_INSTPV))
     return output
