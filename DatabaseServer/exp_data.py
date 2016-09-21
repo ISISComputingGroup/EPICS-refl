@@ -77,6 +77,14 @@ class ExpData(object):
     # def __open_connection(self):
     #     return self._db.__open_connection()
 
+    def close_connection(self):
+        """
+        Close all open objects
+        Returns:
+
+        """
+        self._db.close_connection()
+
     def _get_team(self, experimentID):
         """Gets the team members
 

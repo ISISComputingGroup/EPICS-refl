@@ -44,7 +44,7 @@ if __name__ == '__main__':
     sqlite_suite = unittest.TestLoader().loadTestsFromTestCase(TestSqliteWrapperSequence)
     mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestMySQLWrapperSequence)
     options_holder_suite = unittest.TestLoader().loadTestsFromTestCase(TestOptionsHolderSequence)
-    database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
+    # database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
     exp_data_suite = unittest.TestLoader().loadTestsFromTestCase(TestExpData)
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(sqlite_suite))
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite))
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite))
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite))
+    # ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite))
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(exp_data_suite))
     print "------ UNIT TESTS COMPLETE ------\n\n"
 

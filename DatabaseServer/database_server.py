@@ -148,6 +148,16 @@ class DatabaseServer(Driver):
             monitor_thread.daemon = True  # Daemonise thread
             monitor_thread.start()
 
+    def close(self):
+        """
+        Close all open objects
+
+        Returns:
+
+        """
+        self._db.close_connection()
+        self._ed.close_connection()
+
     def read(self, reason):
         """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
 
@@ -206,8 +216,6 @@ class DatabaseServer(Driver):
                 self.setParam("PVS:INTEREST:HIGH", self.encode4return(self._get_interesting_pvs("HIGH")))
                 self.setParam("PVS:INTEREST:MEDIUM", self.encode4return(self._get_interesting_pvs("MEDIUM")))
                 self.setParam("PVS:INTEREST:FACILITY", self.encode4return(self._get_interesting_pvs("FACILITY")))
-                # Line below commented as quick fix to limit the number of connections to MySQL being generated
-                # self._update_individual_interesting_pvs()
                 # Update them
                 with self.monitor_lock:
                     self.updatePVs()
@@ -243,12 +251,6 @@ class DatabaseServer(Driver):
             return self._db.get_active_pvs()
         else:
             return list()
-
-    def _update_individual_interesting_pvs(self):
-        for level in ["HIGH", "MEDIUM"]:
-            for iocname in self._db.get_iocs().keys():
-                pvs = self._get_interesting_pvs(level, iocname)
-                self._ca_server.updatePV("INTERESTING_PVS:" + iocname + ":" + level, self.encode4return(pvs))
 
     def get_sample_par_names(self):
         """Returns the sample parameters from the database, replacing the MYPVPREFIX macro
@@ -322,4 +324,9 @@ if __name__ == '__main__':
 
     # Process CA transactions
     while True:
-        SERVER.process(0.1)
+        try:
+            SERVER.process(0.1)
+        except:
+            break
+
+    DRIVER.close()
