@@ -76,12 +76,13 @@ $(document).ready(function() {
         }
 
         // populate run information
+        showPrivate = getBoolean(obj.inst_pvs["DISPLAY"]["value"])
+        delete obj.inst_pvs["DISPLAY"]
+
         var instpv_titles = Object.keys(obj.inst_pvs)
         var nodeInstPVs = document.getElementById("inst_pvs")
         var nodeInstPVList = document.createElement("UL")
         nodeInstPVs.appendChild(nodeInstPVList)
-
-        showPrivate = getBoolean(obj.inst_pvs["DISPLAY"]["value"])
 
         for (i = 0; i < instpv_titles.length; i++) {
             var title = instpv_titles[i]

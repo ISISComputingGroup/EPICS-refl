@@ -31,7 +31,6 @@ def get_info(url):
     titles = [t.text for t in titles]
 
     status = tree.xpath("//table[2]/tbody/tr/td[1]")
-    # status = [s.text for s in status]
     status_text = list()
     for s in status:
         if s.text is None:
