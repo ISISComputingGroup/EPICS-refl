@@ -47,7 +47,7 @@ function getBoolean(stringval) {
 }
 
 $(document).ready(function() {
-    $.getJSON("http://ndxdemo:" + PORT + "/", function(obj) {
+    $.getJSON("http://localhost:" + PORT + "/", function(obj) {
 
         document.getElementById("inst_name").appendChild(document.createTextNode("DEMO"))
         document.getElementById("config_name").appendChild(document.createTextNode("Configuration: " + obj.config_name))

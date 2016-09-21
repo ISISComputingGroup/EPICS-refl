@@ -116,5 +116,3 @@ def scrape_webpage(host="localhost"):
     output["groups"] = groups
     output["inst_pvs"] = get_instpvs('http://%s:%s/group?name=INST' % (host, PORT_INSTPV))
     return output
-
-# print scrape_webpage("ndxdemo")
