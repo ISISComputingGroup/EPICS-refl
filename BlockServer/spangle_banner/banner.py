@@ -45,7 +45,7 @@ class Banner:
 
     def add_bumpstrip(self):
         """ Temporary workaround for LARMOR until loading banner description from file is implemented."""
-        bumpstrip = BoolStr("Bump Strip", "DAE:TITLE:DISPLAY")
+        bumpstrip = BoolStr("Bump Strip", "MOT:BUMP_STOP")
         t_state = {"colour": "GREEN", "message": "not tripped"}
         f_state = {"colour": "RED", "message": "tripped"}
         u_state = {"colour": "RED", "message": "unknown"}
