@@ -48,9 +48,14 @@ function getBoolean(stringval) {
 
 $(document).ready(function() {
     $.getJSON("http://localhost:" + PORT + "/", function(obj) {
+        var nodeInstTitle = document.createElement("H2")
+        var nodeConfigTitle = document.createElement("H2")
 
-        document.getElementById("inst_name").appendChild(document.createTextNode("DEMO"))
-        document.getElementById("config_name").appendChild(document.createTextNode("Configuration: " + obj.config_name))
+        nodeInstTitle.appendChild(document.createTextNode("DEMO"))
+        nodeConfigTitle.appendChild(document.createTextNode("Configuration: " + obj.config_name))
+
+        document.getElementById("inst_name").appendChild(nodeInstTitle)
+        document.getElementById("config_name").appendChild(nodeConfigTitle)
 
         // populate blocks list
         var group_titles = Object.keys(obj.groups)
