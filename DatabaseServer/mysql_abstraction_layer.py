@@ -108,6 +108,9 @@ class SQLAbstraction(object):
             self.open_connection_if_closed()
             self._curs.execute(query)
             values = self._curs.fetchall()
+            # Commit as part of the query or results won't be updated between subsequent transactions. Can lead
+            # to values not auto-updating in the GUI.
+            self._conn.commit()
             return values
         except Exception as err:
             if retry:
