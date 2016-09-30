@@ -1,6 +1,6 @@
 from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
 from threading import Thread
-from time import sleep
+import re
 from get_webpage import scrape_webpage
 import json
 HOST, PORT = '', 60000
@@ -43,5 +43,5 @@ if __name__ == '__main__':
     try:
         server = Server()
         server.start()
-    except e as KeyboardInterrupt:
+    except KeyboardInterrupt as e:
         server.join()

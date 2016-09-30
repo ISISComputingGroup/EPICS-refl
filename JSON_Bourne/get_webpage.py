@@ -17,7 +17,8 @@ def shorten_title(title):
 def ascii_to_string(ascii):
     string = ''
     for char in ascii:
-        string += chr(int(char))
+        if char:
+            string += chr(int(char))
     return string
 
 
