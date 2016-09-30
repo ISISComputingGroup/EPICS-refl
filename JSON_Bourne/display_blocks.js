@@ -147,14 +147,15 @@ function parseObject(obj) {
             nodePVStatus.setAttributeNode(attColour)
             nodePVStatus.appendChild(document.createTextNode(status_text.toUpperCase()))
             nodePV.appendChild(nodePVStatus)
-                // write value if connected
-        } else if ((isInArray(privateRunInfo, instpv_titles[i])) && !showPrivate) {
+        }
+        // write value if connected
+        else if ((isInArray(privateRunInfo, instpv_titles[i])) && !showPrivate) {
             var nodePVStatus = document.createElement("I")
             nodePVStatus.appendChild(document.createTextNode("Unavailable"))
             nodePV.appendChild(nodePVStatus)
         } else {
             nodePVText.nodeValue += value + "\u00A0\u00A0"
-                // write alarm status if active
+            // write alarm status if active
             if (!alarm.startsWith("null") && !alarm.startsWith("OK")) {
                 var nodePVAlarm = document.createElement("FONT")
                 attColour.value = "red"
