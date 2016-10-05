@@ -130,7 +130,7 @@ class SQLAbstraction(object):
             if retry:
                 try:
                     self.reset_connection()
-                    self.execute_query(query=query,retry=False)
+                    self.commit(query=query,retry=False)
                 except Exception as reconnection_err:
                     err = reconnection_err
             raise Exception("Error updating database: %s" % err)
