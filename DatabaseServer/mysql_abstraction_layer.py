@@ -105,12 +105,14 @@ class SQLAbstraction(object):
         Returns:
             values (list): list of all rows returned
         """
-
         with self._sql_lock:
             try:
                 self.open_connection_if_closed()
                 self._curs.execute(query)
                 values = self._curs.fetchall()
+                # Commit as part of the query or results won't be updated between subsequent transactions. Can lead
+                # to values not auto-updating in the GUI.
+                self._conn.commit()
                 return values
             except Exception as err:
                 if retry:
@@ -131,7 +133,7 @@ class SQLAbstraction(object):
                 if retry:
                     try:
                         self.reset_connection()
-                        self.execute_query(query=query,retry=False)
+                        self.commit(query=query,retry=False)
                     except Exception as reconnection_err:
                         err = reconnection_err
                 raise Exception("Error updating database: %s" % err)
