@@ -42,7 +42,7 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC
         """
         print_and_log("Starting IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":START", 1)
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":START", 1, True)
 
     def stop_ioc(self, prefix, ioc):
         """Stops the specified IOC.
@@ -52,7 +52,7 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC
         """
         print_and_log("Stopping IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":STOP", 1)
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":STOP", 1, True)
 
     def restart_ioc(self, prefix, ioc):
         """Restarts the specified IOC.
@@ -62,7 +62,7 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC
         """
         print_and_log("Restarting IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1)
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1, True)
 
     def get_ioc_status(self, prefix, ioc):
         """Gets the status of the specified IOC.
@@ -88,7 +88,7 @@ class ProcServWrapper(object):
         """
         # Check IOC is running, otherwise command is ignored
         print_and_log("Toggling auto-restart for IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":TOGGLE", 1)
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":TOGGLE", 1, True)
 
     def get_autorestart(self, prefix, ioc):
         """Gets the current auto-restart setting of the specified IOC.
