@@ -1,10 +1,9 @@
 # Version Control class for dealing with git file operations
-import os
-import shutil
 import stat
+import socket
 from git import *
 from constants import GIT_REMOTE_LOCATION, PUSH_RETRY_INTERVAL, PUSH_BASE_INTERVAL
-from vc_exceptions import NotUnderVersionControl, GitPullFailed
+from vc_exceptions import NotUnderVersionControl, GitPullFailed, NotUnderAllowedBranch
 from threading import Thread, RLock
 from time import sleep
 
@@ -20,6 +19,9 @@ class GitVersionControl:
         except Exception as e:
             # Not a valid repository
             raise NotUnderVersionControl(self._wd)
+
+        if str(self.repo.active_branch) != socket.gethostname():
+            raise NotUnderAllowedBranch()
 
         self.remote = self.repo.remotes.origin
         config_writer = self.repo.config_writer()

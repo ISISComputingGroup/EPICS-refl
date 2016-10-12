@@ -9,3 +9,8 @@ class NotUnderVersionControl(Exception):
 class GitPullFailed(Exception):
     def __str__(self):
         return "Git pull command failed, remote server may be down"
+
+
+class NotUnderAllowedBranch(Exception):
+    def __str__(self):
+        return "Your configurations are pointing to the wrong git branch"
