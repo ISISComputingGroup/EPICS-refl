@@ -70,7 +70,7 @@ class SynopticFileEventHandler(FileSystemEventHandler):
 
                     # Inform user
                     print_and_log("The synoptic, %s, has been modified in the filesystem, ensure it is added to "
-                                  "version control" % name, "INFO", "FILEWTCHER")
+                                  "version control" % name, "INFO", "FILEWTCHR")
 
                 except NotConfigFileException as err:
                     print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
