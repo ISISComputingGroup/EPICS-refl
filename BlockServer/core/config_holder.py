@@ -498,7 +498,7 @@ class ConfigHolder(object):
         else:
             self._vc.add(FILEPATH_MANAGER.get_config_path(name))
 
-        self._vc.commit("%s modified by client" % name)
+        self._vc.update("%s modified by client" % name)
 
     def _set_as_component(self, value):
         if value is True:

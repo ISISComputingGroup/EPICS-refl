@@ -51,7 +51,7 @@ class GitVersionControl:
 
     def commit(self, working_directory, commit_comment):
         # commits changes to a file to the repository and pushes
-        self.repo.index.commit(commit_comment)
+        self.repo.index.update(commit_comment)
         with self._push_lock:
             self._push_required = True
 
