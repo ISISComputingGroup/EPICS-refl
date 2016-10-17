@@ -52,7 +52,7 @@ def generate_fake_db(iocdb):
     sql = testfile.read()
     for result in cursor.execute(sql,multi = True):
         pass
-    cnx.update()
+    cnx.commit()
     cursor.close()
     cnx.disconnect()
     #Move the connection to the appropriate database for ease of table creation
@@ -103,7 +103,7 @@ def generate_fake_db(iocdb):
         sql.append("""INSERT INTO `%s`.`pvinfo` (`pvname`, `infoname`, `value`) VALUES ('%s','%s','%s')""" % (iocdb, pv, 'INTEREST', 'FACILITY'))
     for line in sql:
         cursor.execute(line)
-    cnx.update()
+    cnx.commit()
     cursor.close()
     cnx.disconnect()
 
