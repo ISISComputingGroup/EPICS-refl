@@ -16,6 +16,7 @@
 
 import mysql.connector
 from server_common.utilities import print_and_log
+from threading import RLock
 
 
 class SQLAbstraction(object):
@@ -36,6 +37,7 @@ class SQLAbstraction(object):
         self._host = host
         self._conn = None
         self._curs = None
+        self._sql_lock = RLock()
 
     def check_db_okay(self):
         """Attempts to connect to the database and raises an error if not able to do so
@@ -103,31 +105,35 @@ class SQLAbstraction(object):
         Returns:
             values (list): list of all rows returned
         """
-
-        try:
-            self.open_connection_if_closed()
-            self._curs.execute(query)
-            values = self._curs.fetchall()
-            return values
-        except Exception as err:
-            if retry:
-                try:
-                    self.reset_connection()
-                    self.execute_query(query=query,retry=False)
-                except Exception as reconnection_err:
-                    err = reconnection_err
-            raise Exception("Error executing query: %s" % err)
+        with self._sql_lock:
+            try:
+                self.open_connection_if_closed()
+                self._curs.execute(query)
+                values = self._curs.fetchall()
+                # Commit as part of the query or results won't be updated between subsequent transactions. Can lead
+                # to values not auto-updating in the GUI.
+                self._conn.commit()
+                return values
+            except Exception as err:
+                if retry:
+                    try:
+                        self.reset_connection()
+                        self.execute_query(query=query,retry=False)
+                    except Exception as reconnection_err:
+                        err = reconnection_err
+                raise Exception("Error executing query: %s" % err)
 
     def commit(self, query, retry=True):
-        try:
-            self.open_connection_if_closed()
-            self._curs.execute(query)
-            self._conn.commit()
-        except Exception as err:
-            if retry:
-                try:
-                    self.reset_connection()
-                    self.execute_query(query=query,retry=False)
-                except Exception as reconnection_err:
-                    err = reconnection_err
-            raise Exception("Error updating database: %s" % err)
+        with self._sql_lock:
+            try:
+                self.open_connection_if_closed()
+                self._curs.execute(query)
+                self._conn.commit()
+            except Exception as err:
+                if retry:
+                    try:
+                        self.reset_connection()
+                        self.commit(query=query,retry=False)
+                    except Exception as reconnection_err:
+                        err = reconnection_err
+                raise Exception("Error updating database: %s" % err)
