@@ -28,10 +28,12 @@ class NotConfigFileException(Exception):
         super(Exception,self).__init__(message)
         self.message = message
 
+
 class ConfigurationIncompleteException(Exception):
     def __init__(self, message):
         super(Exception,self).__init__(message)
         self.message = message
+
 
 class ConfigurationInvalidUnderSchema(Exception):
     def __init__(self, message):
