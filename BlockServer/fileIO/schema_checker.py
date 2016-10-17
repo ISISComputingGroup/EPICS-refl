@@ -25,17 +25,26 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 class NotConfigFileException(Exception):
     def __init__(self, value):
-        super(Exception,self).__init__(value)
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
 
 
 class ConfigurationIncompleteException(Exception):
     def __init__(self, value):
-        super(Exception,self).__init__(value)
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
 
 
 class ConfigurationInvalidUnderSchema(Exception):
     def __init__(self, value):
-        super(Exception,self).__init__(value)
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
 
 
 class ConfigurationSchemaChecker(object):
