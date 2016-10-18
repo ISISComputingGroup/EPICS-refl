@@ -324,6 +324,9 @@ class BlockServer(Driver):
         """A method called by SimpleServer when a PV is written to the BlockServer over Channel Access. The write
             commands are queued as Channel Access is single-threaded.
 
+            Note that the filewatcher is disabled as part of the write queue so any operations that intend to modify
+            files should use the write queue. See tickets 1500 and 1518
+
         Args:
             reason (string): The PV that is being requested (without the PV prefix)
             value (string): The data being written to the 'reason' PV
@@ -656,9 +659,9 @@ class BlockServer(Driver):
             self.load_config, ("configname",), "LOADING_CONFIG")
         """
         while True:
-            self._filewatcher.pause()
-            while len(self.write_queue) > 0:
-                with self.write_lock:
+            with self.write_lock:
+                if self._filewatcher is not None: self._filewatcher.pause()
+                while len(self.write_queue) > 0:
                     cmd, arg, state = self.write_queue.pop(0)
                     self.update_server_status(state)
                     if arg is not None:
@@ -666,7 +669,7 @@ class BlockServer(Driver):
                     else:
                         cmd()
                     self.update_server_status("")
-            self._filewatcher.resume()
+                if self._filewatcher is not None: self._filewatcher.resume()
             sleep(1)
 
     def get_blank_config(self):
