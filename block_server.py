@@ -390,7 +390,11 @@ class BlockServer(Driver):
             if status:
                 value = compress_and_hex(convert_to_json("OK"))
         finally:
-            pass
+            queue_empty = False
+            while not queue_empty:
+                with self.write_lock:
+                    queue_empty = len(self.write_queue) == 0
+                sleep(1)
             self._filewatcher.resume()
 
         # store the values
