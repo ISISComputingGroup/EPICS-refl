@@ -94,7 +94,7 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         except Exception as err:
             print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
-        print_and_log("File Watcher: Recovered %s, please delete via client" % event.src_path, "MAJOR", "FILEWTCHR")
+        print_and_log("File Watcher: Repository reverted after %s deleted manually. Please delete files via client" % event.src_path, "MAJOR", "FILEWTCHR")
 
     def _check_config_valid(self, path):
         if self._check_file_at_root(path):
