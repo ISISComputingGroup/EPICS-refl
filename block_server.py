@@ -334,7 +334,6 @@ class BlockServer(Driver):
         """
         status = True
         try:
-            self._filewatcher.pause()
             data = dehex_and_decompress(value).strip('"')
             if reason == BlockserverPVNames.LOAD_CONFIG:
                 with self.write_lock:
@@ -389,13 +388,6 @@ class BlockServer(Driver):
         else:
             if status:
                 value = compress_and_hex(convert_to_json("OK"))
-        finally:
-            queue_empty = False
-            while not queue_empty:
-                with self.write_lock:
-                    queue_empty = len(self.write_queue) == 0
-                sleep(1)
-            self._filewatcher.resume()
 
         # store the values
         if status:
@@ -553,7 +545,6 @@ class BlockServer(Driver):
 
         config_name = inactive.get_config_name()
         self._check_config_inactive(config_name, as_comp)
-        self._filewatcher.pause()
         try:
             if not as_comp:
                 print_and_log("Saving configuration: %s" % config_name)
@@ -566,8 +557,6 @@ class BlockServer(Driver):
             print_and_log("Saved")
         except Exception as err:
             print_and_log("Problem occurred saving configuration: %s" % err)
-        finally:
-            self._filewatcher.resume()
 
         # Reload configuration if a component has changed
         if as_comp and new_details["name"] in self._active_configserver.get_component_names():
@@ -594,7 +583,6 @@ class BlockServer(Driver):
         Args:
             name (string): The name to save it under
         """
-        self._filewatcher.pause()
         try:
             print_and_log("Saving active configuration as: %s" % name)
             oldname = self._active_configserver.get_cached_name()
@@ -613,8 +601,6 @@ class BlockServer(Driver):
             self._config_list.update_a_config_in_list(self._active_configserver)
         except Exception as err:
             print_and_log("Problem occurred saving configuration: %s" % err)
-        finally:
-            self._filewatcher.resume()
 
     def update_blocks_monitors(self):
         """Updates the monitors for the blocks and groups, so the clients can see any changes.
@@ -670,6 +656,7 @@ class BlockServer(Driver):
             self.load_config, ("configname",), "LOADING_CONFIG")
         """
         while True:
+            self._filewatcher.pause()
             while len(self.write_queue) > 0:
                 with self.write_lock:
                     cmd, arg, state = self.write_queue.pop(0)
@@ -679,6 +666,7 @@ class BlockServer(Driver):
                     else:
                         cmd()
                     self.update_server_status("")
+            self._filewatcher.resume()
             sleep(1)
 
     def get_blank_config(self):
