@@ -97,6 +97,8 @@ class ConfigFileEventHandler(FileSystemEventHandler):
         print_and_log("File Watcher: Repository reverted after %s deleted manually. Please delete files via client" % event.src_path, "MAJOR", "FILEWTCHR")
 
     def _check_config_valid(self, path):
+        ic = None
+
         if self._check_file_at_root(path):
             raise NotConfigFileException("File in root directory")
 
