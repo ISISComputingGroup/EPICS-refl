@@ -13,3 +13,4 @@ runIOC.sh
 relPaths.sh
 *.py[oc]
 *.sq3
+/.idea
