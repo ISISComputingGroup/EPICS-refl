@@ -101,7 +101,7 @@ class ExpData(object):
             sqlquery += " AND user.userID = experimentteams.userID"
             sqlquery += " AND experimentteams.experimentID = %s" % experimentID
             sqlquery += " ORDER BY role.priority"
-            team = [list(element) for element in self._db.execute_query(sqlquery)]
+            team = [list(element) for element in self._db.query(sqlquery)]
             if len(team) == 0:
                 raise Exception("unable to find team details for experiment ID %s" % experimentID)
             else:
@@ -122,7 +122,7 @@ class ExpData(object):
             sqlquery = "SELECT experiment.experimentID"
             sqlquery += " FROM experiment "
             sqlquery += " WHERE experiment.experimentID = \"%s\"" % experimentID
-            id = self._db.execute_query(sqlquery)
+            id = self._db.query(sqlquery)
             if len(id) >= 1:
                 return True
             else:

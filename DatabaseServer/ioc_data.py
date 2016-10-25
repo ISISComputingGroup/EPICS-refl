@@ -61,7 +61,7 @@ class IOCData(object):
         """
         try:
             sqlquery = "SELECT iocname FROM iocs"
-            iocs = dict((element[0], dict()) for element in self._db.execute_query(sqlquery))
+            iocs = dict((element[0], dict()) for element in self._db.query(sqlquery))
         except Exception as err:
             print_and_log("could not get IOCS from database: %s" % err, "MAJOR", "DBSVR")
             iocs = dict()
@@ -96,7 +96,7 @@ class IOCData(object):
             sqlquery += " INNER JOIN pvs ON pvs.pvname = pvinfo.pvname"
             sqlquery += " WHERE (infoname='PVCATEGORY' AND value LIKE '%" + category + "%' AND pvinfo.pvname NOT LIKE '%:SP')"
             # Get as a plain list
-            values = [str(element[0]) for element in self._db.execute_query(sqlquery)]
+            values = [str(element[0]) for element in self._db.query(sqlquery)]
             # Convert any bytearrays
             for i, pv in enumerate(values):
                 for j, element in enumerate(pv):
@@ -141,7 +141,7 @@ class IOCData(object):
             try:
                 # Get all the iocnames and whether they are running, but ignore IOCs associated with PSCTRL
                 sqlquery = "SELECT iocname, running FROM iocrt WHERE (iocname NOT LIKE 'PSCTRL_%')"
-                rows = self._db.execute_query(sqlquery)
+                rows = self._db.query(sqlquery)
                 for row in rows:
                     # Check to see if running using CA and procserv
                     try:
@@ -149,10 +149,10 @@ class IOCData(object):
                             self._running_iocs.append(row[0])
                             if row[1] == 0:
                                 # This should only get called if the IOC failed to tell the DB it started
-                                self._db.commit("UPDATE iocrt SET running=1 WHERE iocname='%s'" % row[0])
+                                self._db.update("UPDATE iocrt SET running=1 WHERE iocname='%s'" % row[0])
                         else:
                             if row[1] == 1:
-                                self._db.commit("UPDATE iocrt SET running=0 WHERE iocname='%s'" % row[0])
+                                self._db.update("UPDATE iocrt SET running=0 WHERE iocname='%s'" % row[0])
                     except Exception as err:
                         # Fail but continue - probably couldn't find procserv for the ioc
                         print_and_log("issue with updating IOC status: %s" % err, "MAJOR", "DBSVR")
@@ -193,7 +193,7 @@ class IOCData(object):
                 pass
 
             # Get as a plain list of lists
-            values = [list(element) for element in self._db.execute_query(sqlquery)]
+            values = [list(element) for element in self._db.query(sqlquery)]
             # Convert any bytearrays
             for i, pv in enumerate(values):
                 for j, element in enumerate(pv):
@@ -218,7 +218,7 @@ class IOCData(object):
 
         try:
             # Get as a plain list of lists
-            values = [list(element) for element in self._db.execute_query(sqlquery)]
+            values = [list(element) for element in self._db.query(sqlquery)]
             # Convert any bytearrays
             for i, pv in enumerate(values):
                 for j, element in enumerate(pv):
