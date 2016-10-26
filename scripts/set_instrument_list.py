@@ -14,17 +14,7 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-"""
-NOTE: To run this Python script, it must be able to access the server_common module,
-which is not possible from this file's current location:
-
-...\EPICS\ISIS\inst_servers\master\scripts
-
-It has been placed here for tidiness. To run the script, move it to its parent directory:
-
-...\EPICS\ISIS\inst_servers\master\
-"""
-
+import json
 import zlib
 import sys
 import os
@@ -52,13 +42,23 @@ def set_env():
         os.environ[epics_ca_addr_list] = "127.255.255.255 130.246.51.255"
     print epics_ca_addr_list + " = " + str(os.environ.get(epics_ca_addr_list))
 
-
 if __name__ == "__main__":
     set_env()
 
-    pv_address = raw_input("Enter PV name: ")
-    new_value = raw_input("Enter new PV value: ")
-    
+    """ An example address and value. This sets the instrument list """
+    pv_address = "CS:INSTLIST"
+
+    instruments_list = [
+        {"name": "LARMOR", "hostName": "NDXLARMOR", "pvPrefix": "IN:LARMOR:"},
+        {"name": "ALF", "hostName": "NDXALF", "pvPrefix": "IN:ALF:"},
+        {"name": "DEMO", "hostName": "NDXDEMO", "pvPrefix": "IN:DEMO:"},
+        {"name": "IMAT", "hostName": "NDXIMAT", "pvPrefix": "IN:IMAT:"},
+        {"name": "MUONFE", "hostName": "NDEMUONFE", "pvPrefix": "IN:MUONFE:"},
+        {"name": "ZOOM", "hostName": "NDXZOOM", "pvPrefix": "IN:ZOOM:"},
+        {"name": "IRIS", "hostName": "NDXLARMOR", "pvPrefix": "IN:LARMOR:"},
+    ]
+
+    new_value = json.dumps(instruments_list)
     new_value_compressed = compress_and_hex(new_value)
 
     ca.caput(pv_address, str(new_value_compressed), True)
@@ -66,7 +66,10 @@ if __name__ == "__main__":
     result_compr = ca.caget(pv_address, True)
     result = dehex_and_decompress(result_compr)
 
-    if result!=new_value:
+    print result
+    exit()
+
+    if result != new_value:
         print "Warning! Entered value does not match new value."
         print "Entered value: " + new_value
         print "Actual value: " + result
