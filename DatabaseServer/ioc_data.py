@@ -23,7 +23,7 @@ from mysql_abstraction_layer import SQLAbstraction
 class IOCData(object):
     """A wrapper to connect to the IOC database via MySQL"""
 
-    def __init__(self, dbid, procserver, prefix):
+    def __init__(self, dbid, procserver, prefix, unique_pool=True):
         """Constructor
 
         Args:
@@ -33,25 +33,12 @@ class IOCData(object):
         """
 
         # Set up the database connection
-        self._db = SQLAbstraction(dbid, dbid, "$" + dbid)
+        self._db = SQLAbstraction(dbid, dbid, "$" + dbid, unique_pool=unique_pool)
 
         self._procserve = procserver
         self._prefix = prefix
         self._running_iocs = list()
         self._running_iocs_lock = RLock()
-
-    def close_connection(self):
-        """
-        Close all connection
-        Returns:
-
-        """
-        self._db.close_connection()
-
-    def check_db_okay(self):
-        """Attempts to connect to the database and raises an error if not able
-        """
-        self._db.check_db_okay()
 
     def get_iocs(self):
         """Gets a list of all the IOCs in the database and whether or not they are running
