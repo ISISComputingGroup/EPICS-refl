@@ -87,11 +87,6 @@ PVDB = {
         'count': 1000,
         'value': [0],
     },
-    BlockserverPVNames.CLEAR_CONFIG: {
-        'type': 'char',
-        'count': 100,
-        'value': [0],
-    },
     BlockserverPVNames.RELOAD_CURRENT_CONFIG: {
         'type': 'char',
         'count': 100,
@@ -375,7 +370,7 @@ class BlockServer(Driver):
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP:
                 self.bumpstrip = data
                 with self.write_lock:
-                    self.write_queue.append((self.update_bumpstrip_availability(), None, "UPDATE_BUMPSTRIP"))
+                    self.write_queue.append((self.update_bumpstrip_availability, None, "UPDATE_BUMPSTRIP"))
             else:
                 status = False
                 # Check to see if it is a on-the-fly PV
