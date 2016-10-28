@@ -657,16 +657,16 @@ class BlockServer(Driver):
             self.load_config, ("configname",), "LOADING_CONFIG")
         """
         while True:
-            with self.write_lock:
+            while len(self.write_queue) > 0:
                 if self._filewatcher is not None: self._filewatcher.pause()
-                while len(self.write_queue) > 0:
+                with self.write_lock:
                     cmd, arg, state = self.write_queue.pop(0)
-                    self.update_server_status(state)
-                    if arg is not None:
-                        cmd(*arg)
-                    else:
-                        cmd()
-                    self.update_server_status("")
+                self.update_server_status(state)
+                if arg is not None:
+                    cmd(*arg)
+                else:
+                    cmd()
+                self.update_server_status("")
                 if self._filewatcher is not None: self._filewatcher.resume()
             sleep(1)
 
