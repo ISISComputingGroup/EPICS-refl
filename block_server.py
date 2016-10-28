@@ -320,7 +320,7 @@ class BlockServer(Driver):
             commands are queued as Channel Access is single-threaded.
 
             Note that the filewatcher is disabled as part of the write queue so any operations that intend to modify
-            files should use the write queue. See tickets 1500 and 1518
+            files should use the write queue.
 
         Args:
             reason (string): The PV that is being requested (without the PV prefix)
