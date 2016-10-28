@@ -662,10 +662,13 @@ class BlockServer(Driver):
                 with self.write_lock:
                     cmd, arg, state = self.write_queue.pop(0)
                 self.update_server_status(state)
-                if arg is not None:
-                    cmd(*arg)
-                else:
-                    cmd()
+                try:
+                    if arg is not None:
+                        cmd(*arg)
+                    else:
+                        cmd()
+                except Exception as err:
+                    print_and_log("Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message), "MAJOR")
                 self.update_server_status("")
                 if self._filewatcher is not None: self._filewatcher.resume()
             sleep(1)
