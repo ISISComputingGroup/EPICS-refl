@@ -23,7 +23,7 @@ from mysql_abstraction_layer import SQLAbstraction
 class IOCData(object):
     """A wrapper to connect to the IOC database via MySQL"""
 
-    def __init__(self, dbid, procserver, prefix, unique_pool=True):
+    def __init__(self, dbid, procserver, prefix):
         """Constructor
 
         Args:
@@ -33,7 +33,7 @@ class IOCData(object):
         """
 
         # Set up the database connection
-        self._db = SQLAbstraction(dbid, dbid, "$" + dbid, unique_pool=unique_pool)
+        self._db = SQLAbstraction(dbid, dbid, "$" + dbid)
 
         self._procserve = procserver
         self._prefix = prefix

@@ -113,7 +113,7 @@ generate_fake_db(TEST_DB)
 class TestMySQLWrapperSequence(unittest.TestCase):
     def setUp(self):
         self.prefix = ""
-        self.wrapper = IOCData(TEST_DB, MockProcServWrapper(), self.prefix, unique_pool=False)
+        self.wrapper = IOCData(TEST_DB, MockProcServWrapper(), self.prefix)
 
     def test_get_iocs(self):
         iocs = self.wrapper.get_iocs()
