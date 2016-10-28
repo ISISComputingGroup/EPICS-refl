@@ -48,16 +48,15 @@ class ExpData(object):
         },
     }
 
-    def __init__(self, prefix, ca=ChannelAccess, unique_pool=True):
+    def __init__(self, prefix, ca=ChannelAccess):
         """Constructor
 
         Args:
             dbid (string): The id of the database that holds IOC information
             prefix (string): The pv prefix of the instrument the server is being run on
-            unique_pool (bool): Use a unique connection pool (used for testing)
         """
         # Set up the database connection
-        self._db = SQLAbstraction('exp_data', "exp_data", "$exp_data", unique_pool=unique_pool)
+        self._db = SQLAbstraction('exp_data', "exp_data", "$exp_data")
 
         # Build the PV names to be used
         self._simrbpv = prefix + "ED:SIM:RBNUMBER"

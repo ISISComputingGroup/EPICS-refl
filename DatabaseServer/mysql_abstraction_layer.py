@@ -17,15 +17,13 @@
 import mysql.connector
 from server_common.utilities import print_and_log
 
-
 class SQLAbstraction(object):
     """A wrapper to connect to MySQL databases"""
 
     # Number of available simultaneous connections to each connection pool
     POOL_SIZE = 16
 
-    def __init__(self, dbid, user, password, host="127.0.0.1",
-                 unique_pool=True):
+    def __init__(self, dbid, user, password, host="127.0.0.1"):
         """Constructor
 
         Args:
@@ -33,16 +31,12 @@ class SQLAbstraction(object):
             user (string): The username to use to connect to the database
             password (string): The password to use to connect to the database
             host (string): The host address to use, defaults to local host
-            unique_pool (bool): Use a unique name for the pool, used for testing
         """
         self._dbid = dbid
         self._user = user
         self._password = password
         self._host = host
-        if unique_pool:
-            self._pool_name = SQLAbstraction.generate_unique_pool_name()
-        else:
-            self._pool_name = "DBSVR_CONNECTION_POOL"
+        self._pool_name = self._generate_pool_name()
         self._start_connection_pool()
 
     @staticmethod
@@ -51,6 +45,13 @@ class SQLAbstraction(object):
         """
         import uuid
         return "DBSVR_CONNECTION_POOL_" + str(uuid.uuid4())
+
+    def _generate_pool_name(self):
+        """Generate a name for the connection pool based on host, user and database name
+           a connection in the pool is made with the frist set of credentials passed, so we
+           have to make sure a pool name is not used with different credentials
+        """
+        return "DBSVR_%s_%s_%s" % (self._host, self._dbid, self._user)
 
     def _start_connection_pool(self):
         """Initialises a connection pool
