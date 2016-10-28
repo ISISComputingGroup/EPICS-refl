@@ -23,7 +23,7 @@ from exp_data import ExpData
 class TestExpData(unittest.TestCase):
     def setUp(self):
         self.ca = MockChannelAccess()
-        self.exp_data = ExpData("TEST_PREFIX", self.ca)
+        self.exp_data = ExpData("TEST_PREFIX", self.ca, unique_pool=False)
 
     def decodepv(self, pv):
         return json.loads(dehex_and_decompress(self.ca.caget(pv)))

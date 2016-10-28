@@ -24,7 +24,8 @@ class SQLAbstraction(object):
     # Number of available simultaneous connections to each connection pool
     POOL_SIZE = 16
 
-    def __init__(self, dbid, user, password, host="127.0.0.1"):
+    def __init__(self, dbid, user, password, host="127.0.0.1",
+                 unique_pool=True):
         """Constructor
 
         Args:
@@ -32,12 +33,16 @@ class SQLAbstraction(object):
             user (string): The username to use to connect to the database
             password (string): The password to use to connect to the database
             host (string): The host address to use, defaults to local host
+            unique_pool (bool): Use a unique name for the pool, used for testing
         """
         self._dbid = dbid
         self._user = user
         self._password = password
         self._host = host
-        self._pool_name = SQLAbstraction.generate_unique_pool_name()
+        if unique_pool:
+            self._pool_name = SQLAbstraction.generate_unique_pool_name()
+        else:
+            self._pool_name = "DBSVR_CONNECTION_POOL"
         self._start_connection_pool()
 
     @staticmethod
@@ -46,15 +51,6 @@ class SQLAbstraction(object):
         """
         import uuid
         return "DBSVR_CONNECTION_POOL_" + str(uuid.uuid4())
-
-    def check_db_okay(self):
-        """Attempts to connect to the database and raises an error if not able to do so
-        """
-        try:
-            # Get a connection from the pool and immediately return it to the pool
-            self.get_connection().close()
-        except Exception as err:
-            raise Exception(err)
 
     def _start_connection_pool(self):
         """Initialises a connection pool
@@ -72,7 +68,7 @@ class SQLAbstraction(object):
         curs.close()
         conn.close()
 
-    def get_connection(self):
+    def _get_connection(self):
         try:
             return mysql.connector.connect(pool_name=self._pool_name)
         except Exception as err:
@@ -92,7 +88,7 @@ class SQLAbstraction(object):
         curs = None
         values = None
         try:
-            conn = self.get_connection()
+            conn = self._get_connection()
             curs = conn.cursor()
             curs.execute(command)
             if is_query:

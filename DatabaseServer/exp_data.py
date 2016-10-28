@@ -48,15 +48,16 @@ class ExpData(object):
         },
     }
 
-    def __init__(self, prefix, ca=ChannelAccess):
+    def __init__(self, prefix, ca=ChannelAccess, unique_pool=True):
         """Constructor
 
         Args:
             dbid (string): The id of the database that holds IOC information
             prefix (string): The pv prefix of the instrument the server is being run on
+            unique_pool (bool): Use a unique connection pool (used for testing)
         """
         # Set up the database connection
-        self._db = SQLAbstraction('exp_data', "exp_data", "$exp_data")
+        self._db = SQLAbstraction('exp_data', "exp_data", "$exp_data", unique_pool=unique_pool)
 
         # Build the PV names to be used
         self._simrbpv = prefix + "ED:SIM:RBNUMBER"
@@ -69,21 +70,8 @@ class ExpData(object):
         # Set the channel access server to use
         self.ca = ca
 
-    def check_db_okay(self):
-        """Attempts to connect to the database and raises an error if not able to do so
-        """
-        self._db.check_db_okay()
-
     # def __open_connection(self):
     #     return self._db.__open_connection()
-
-    def close_connection(self):
-        """
-        Close all open objects
-        Returns:
-
-        """
-        self._db.close_connection()
 
     def _get_team(self, experimentID):
         """Gets the team members
