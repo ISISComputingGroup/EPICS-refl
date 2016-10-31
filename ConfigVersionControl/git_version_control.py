@@ -40,11 +40,12 @@ class GitVersionControl:
         # Removes index.lock if it exists, and it's not being used
         lock_file_path = os.path.join(self.repo.git_dir,"index.lock")
         if os.path.exists(lock_file_path):
-            try:
-                os.remove(lock_file_path)
-            except Exception as err:
-                print_and_log("Unable to remove lock from version control repository %s: %s" %
-                              (lock_file_path,str(err)), "MINOR")
+            os.remove(lock_file_path)
+            if os.path.exists(lock_file_path):
+                print_and_log("Unable to remove lock from version control repository: %s" %
+                              lock_file_path, "MINOR")
+            else:
+                print_and_log("Lock removed from version control repository: %s" % lock_file_path, "INFO")
 
     # TODO: Waits with no timeout here!!
     def info(self, working_directory):
