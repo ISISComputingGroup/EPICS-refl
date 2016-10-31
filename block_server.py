@@ -212,7 +212,7 @@ class BlockServer(Driver):
             print_and_log("Warning: Configurations not under version control", "MINOR")
             self._vc = MockVersionControl()
         except Exception as err:
-            print_and_log("Unable to start version control. Modifications to the instrument setup will not be"
+            print_and_log("Unable to start version control. Modifications to the instrument setup will not be "
                           "tracked: " + str(err), "MINOR")
             self._vc = MockVersionControl()
 
