@@ -55,7 +55,7 @@ if __name__ == "__main__":
         {"name": "IMAT", "hostName": "NDXIMAT", "pvPrefix": "IN:IMAT:"},
         {"name": "MUONFE", "hostName": "NDEMUONFE", "pvPrefix": "IN:MUONFE:"},
         {"name": "ZOOM", "hostName": "NDXZOOM", "pvPrefix": "IN:ZOOM:"},
-        {"name": "IRIS", "hostName": "NDXLARMOR", "pvPrefix": "IN:LARMOR:"},
+        {"name": "IRIS", "hostName": "NDXIRIS", "pvPrefix": "IN:IRIS:"},
     ]
 
     new_value = json.dumps(instruments_list)
