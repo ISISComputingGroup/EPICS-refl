@@ -27,7 +27,7 @@ except ImportError:
 
 def compress_and_hex(value):
     compr = zlib.compress(value)
-    return compr.encode('hex');
+    return compr.encode('hex')
 
 
 def dehex_and_decompress(value):
