@@ -83,7 +83,7 @@ class SynopticManager(OnTheFlyPvInterface):
                 self.save_synoptic_xml(data)
                 self.update_monitors()
         except VersionControlException as err:
-            print_and_log(str(err),"MAJOR")
+            print_and_log(str(err),"MINOR")
         except Exception as err:
             print_and_log("Error writing to PV %s: %s" % (pv,str(err)),"MAJOR")
 
