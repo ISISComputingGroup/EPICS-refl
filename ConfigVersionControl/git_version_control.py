@@ -3,10 +3,11 @@ import os
 import shutil
 import stat
 from git import *
-from constants import GIT_REMOTE_LOCATION, PUSH_RETRY_INTERVAL, PUSH_BASE_INTERVAL
+from constants import PUSH_RETRY_INTERVAL, PUSH_BASE_INTERVAL
 from vc_exceptions import NotUnderVersionControl, GitPullFailed
 from threading import Thread, RLock
 from time import sleep
+from server_common.utilities import print_and_log
 
 
 class GitVersionControl:
@@ -21,6 +22,7 @@ class GitVersionControl:
             # Not a valid repository
             raise NotUnderVersionControl(self._wd)
 
+        self._unlock()
         self.remote = self.repo.remotes.origin
         config_writer = self.repo.config_writer()
         # Set git repository to ignore file permissions otherwise will reset to read only
@@ -33,6 +35,15 @@ class GitVersionControl:
         push_thread = Thread(target=self._push, args=())
         push_thread.daemon = True  # Daemonise thread
         push_thread.start()
+
+    def _unlock(self):
+        # Removes index.lock if it exists, and it's not being used
+        lock_file_path = os.path.join(self.repo.git_dir,"index.lock")
+        if os.path.exists(lock_file_path):
+            try:
+                os.remove(lock_file_path)
+            except Exception as err:
+                print_and_log("Unable to remove lock from git repo %s: %s" % (lock_file_path,str(err)), "MINOR")
 
     # TODO: Waits with no timeout here!!
     def info(self, working_directory):
