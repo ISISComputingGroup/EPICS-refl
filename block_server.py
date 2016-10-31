@@ -209,11 +209,11 @@ class BlockServer(Driver):
         try:
             self._vc = ConfigVersionControl(CONFIG_DIR)
         except NotUnderVersionControl as err:
-            print_and_log("Warning: Configurations not under version control", "MAJOR")
+            print_and_log("Warning: Configurations not under version control", "MINOR")
             self._vc = MockVersionControl()
         except Exception as err:
             print_and_log("Unable to start version control. Modifications to the instrument setup will not be"
-                          "tracked: " + str(err), "MAJOR")
+                          "tracked: " + str(err), "MINOR")
             self._vc = MockVersionControl()
 
         # Create banner object
@@ -225,7 +225,7 @@ class BlockServer(Driver):
         except Exception as err:
             print_and_log(
                 "Error creating inactive config list. Configuration list changes will not be stored " +
-                "in version control: %s " % str(err), "MAJOR")
+                "in version control: %s " % str(err), "MINOR")
             self._config_list = ConfigListManager(self, SCHEMA_DIR, MockVersionControl(), ConfigurationFileManager())
 
         # Start a background thread for handling write commands
