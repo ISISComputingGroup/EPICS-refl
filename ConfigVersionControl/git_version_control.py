@@ -43,7 +43,8 @@ class GitVersionControl:
             try:
                 os.remove(lock_file_path)
             except Exception as err:
-                print_and_log("Unable to remove lock from git repo %s: %s" % (lock_file_path,str(err)), "MINOR")
+                print_and_log("Unable to remove lock from version control repository %s: %s" %
+                              (lock_file_path,str(err)), "MINOR")
 
     # TODO: Waits with no timeout here!!
     def info(self, working_directory):
