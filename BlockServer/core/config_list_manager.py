@@ -25,7 +25,7 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.pv_names import BlockserverPVNames
-from config_list_manager_exceptions import InvalidDeleteException, RemoveFromVersionControlException
+from config_list_manager_exceptions import InvalidDeleteException
 
 
 class ConfigListManager(object):
@@ -282,6 +282,7 @@ class ConfigListManager(object):
             # TODO: clean this up?
             print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
             lower_delete_list = set([x.lower() for x in delete_list])
+            unable_to_remove_text = "Unable to remove %s from version control: %s"
             if not are_comps:
                 if self.active_config_name.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete currently active configuration")
@@ -294,7 +295,7 @@ class ConfigListManager(object):
                 try:
                     self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
                 except Exception as err:
-                    print_and_log(RemoveFromVersionControlException("configuration", err),"MINOR")
+                    print_and_log(unable_to_remove_text % ("configuration", str(err)),"MINOR")
             else:
                 if DEFAULT_COMPONENT.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete default component")
@@ -312,7 +313,7 @@ class ConfigListManager(object):
                 try:
                     self._update_version_control_post_delete(self._comp_path, delete_list)
                 except Exception as err:
-                    print_and_log(RemoveFromVersionControlException("component", err),"MINOR")
+                    print_and_log(unable_to_remove_text % ("component", str(err)),"MINOR")
 
             self.update_monitors()
 
