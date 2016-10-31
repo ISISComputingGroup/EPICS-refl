@@ -126,7 +126,10 @@ class ConfigListManager(object):
                 # load_config checks the schema
                 config = self.load_config(comp_name, True)
                 self.update_a_config_in_list(config, True)
-                self._vc.add(path)
+                try:
+                    self._vc.add(path)
+                except Exception as err:
+                    print_and_log("Unable to add component to version control: " + str(err), "MINOR")
             except Exception as err:
                 print_and_log("Error in loading component: " + str(err), "MINOR")
 
@@ -140,7 +143,10 @@ class ConfigListManager(object):
                 # load_config checks the schema
                 config = self.load_config(config_name)
                 self.update_a_config_in_list(config)
-                self._vc.add(path)
+                try:
+                    self._vc.add(path)
+                except Exception as err:
+                    print_and_log("Unable to add configuration to version control: " + str(err), "MINOR")
             except Exception as err:
                 print_and_log("Error in loading config: " + str(err), "MINOR")
 

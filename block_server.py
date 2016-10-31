@@ -209,20 +209,24 @@ class BlockServer(Driver):
         try:
             self._vc = ConfigVersionControl(CONFIG_DIR)
         except NotUnderVersionControl as err:
-            print_and_log("Warning: Configurations not under version control", "INFO")
+            print_and_log("Warning: Configurations not under version control", "MAJOR")
             self._vc = MockVersionControl()
         except Exception as err:
-            print_and_log("Version control failed: " + str(err), "INFO")
+            print_and_log("Unable to start version control. Modifications to the instrument setup will not be"
+                          "tracked: " + str(err), "MAJOR")
             self._vc = MockVersionControl()
 
         # Create banner object
         self.banner = Banner(MACROS["$(MYPVPREFIX)"])
-        
+
         # Import data about all configs
         try:
             self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc, ConfigurationFileManager())
         except Exception as err:
-            print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
+            print_and_log(
+                "Error creating inactive config list. Configuration list changes will not be stored " +
+                "in version control: %s " % str(err), "MAJOR")
+            self._config_list = ConfigListManager(self, SCHEMA_DIR, MockVersionControl(), ConfigurationFileManager())
 
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
@@ -639,13 +643,13 @@ class BlockServer(Driver):
             self.updatePVs()
 
     def update_bumpstrip_availability(self):
-            """Updates the monitor for the configurations, so the clients can see any changes.
+        """Updates the monitor for the configurations, so the clients can see any changes.
             """
-            with self.monitor_lock:
-                # set the available configs
-                self.setParam(BlockserverPVNames.BUMPSTRIP_AVAILABLE, compress_and_hex(self.bumpstrip))
-                # Update them
-                self.updatePVs()
+        with self.monitor_lock:
+            # set the available configs
+            self.setParam(BlockserverPVNames.BUMPSTRIP_AVAILABLE, compress_and_hex(self.bumpstrip))
+            # Update them
+            self.updatePVs()
 
     def consume_write_queue(self):
         """Actions any requests on the write queue.
@@ -668,7 +672,9 @@ class BlockServer(Driver):
                     else:
                         cmd()
                 except Exception as err:
-                    print_and_log("Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message), "MAJOR")
+                    print_and_log(
+                        "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
+                        "MAJOR")
                 self.update_server_status("")
                 if self._filewatcher is not None: self._filewatcher.resume()
             sleep(1)
@@ -763,6 +769,7 @@ if __name__ == '__main__':
     FACILITY = args.facility[0]
     if FACILITY == "ISIS":
         from server_common.loggers.isis_logger import IsisLogger
+
         set_logger(IsisLogger())
     print_and_log("FACILITY = %s" % FACILITY)
 
