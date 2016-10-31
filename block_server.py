@@ -319,6 +319,9 @@ class BlockServer(Driver):
         """A method called by SimpleServer when a PV is written to the BlockServer over Channel Access. The write
             commands are queued as Channel Access is single-threaded.
 
+            Note that the filewatcher is disabled as part of the write queue so any operations that intend to modify
+            files should use the write queue.
+
         Args:
             reason (string): The PV that is being requested (without the PV prefix)
             value (string): The data being written to the 'reason' PV
@@ -329,7 +332,6 @@ class BlockServer(Driver):
         """
         status = True
         try:
-            self._filewatcher.pause()
             data = dehex_and_decompress(value).strip('"')
             if reason == BlockserverPVNames.LOAD_CONFIG:
                 with self.write_lock:
@@ -387,9 +389,6 @@ class BlockServer(Driver):
         else:
             if status:
                 value = compress_and_hex(convert_to_json("OK"))
-        finally:
-            pass
-            self._filewatcher.resume()
 
         # store the values
         if status:
@@ -547,7 +546,6 @@ class BlockServer(Driver):
 
         config_name = inactive.get_config_name()
         self._check_config_inactive(config_name, as_comp)
-        self._filewatcher.pause()
         try:
             if not as_comp:
                 print_and_log("Saving configuration: %s" % config_name)
@@ -560,8 +558,6 @@ class BlockServer(Driver):
             print_and_log("Saved")
         except Exception as err:
             print_and_log("Problem occurred saving configuration: %s" % err)
-        finally:
-            self._filewatcher.resume()
 
         # Reload configuration if a component has changed
         if as_comp and new_details["name"] in self._active_configserver.get_component_names():
@@ -588,7 +584,6 @@ class BlockServer(Driver):
         Args:
             name (string): The name to save it under
         """
-        self._filewatcher.pause()
         try:
             print_and_log("Saving active configuration as: %s" % name)
             oldname = self._active_configserver.get_cached_name()
@@ -607,8 +602,6 @@ class BlockServer(Driver):
             self._config_list.update_a_config_in_list(self._active_configserver)
         except Exception as err:
             print_and_log("Problem occurred saving configuration: %s" % err)
-        finally:
-            self._filewatcher.resume()
 
     def update_blocks_monitors(self):
         """Updates the monitors for the blocks and groups, so the clients can see any changes.
@@ -665,14 +658,19 @@ class BlockServer(Driver):
         """
         while True:
             while len(self.write_queue) > 0:
+                if self._filewatcher is not None: self._filewatcher.pause()
                 with self.write_lock:
                     cmd, arg, state = self.write_queue.pop(0)
-                    self.update_server_status(state)
+                self.update_server_status(state)
+                try:
                     if arg is not None:
                         cmd(*arg)
                     else:
                         cmd()
-                    self.update_server_status("")
+                except Exception as err:
+                    print_and_log("Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message), "MAJOR")
+                self.update_server_status("")
+                if self._filewatcher is not None: self._filewatcher.resume()
             sleep(1)
 
     def get_blank_config(self):
