@@ -25,15 +25,7 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.pv_names import BlockserverPVNames
-
-
-class InvalidDeleteException(Exception):
-    def __init__(self, value):
-        super(InvalidDeleteException, self).__init__()
-        self._value = value
-
-    def __str__(self):
-        return self._value
+from config_list_manager_exceptions import InvalidDeleteException, RemoveFromVersionControlException
 
 
 class ConfigListManager(object):
@@ -299,7 +291,10 @@ class ConfigListManager(object):
                     self._delete_pv(BlockserverPVNames.get_config_details_pv(self._config_metas[config.lower()].pv))
                     del self._config_metas[config.lower()]
                     self._remove_config_from_dependencies(config)
-                self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
+                try:
+                    self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
+                except Exception as err:
+                    print_and_log(RemoveFromVersionControlException("configuration", err),"MINOR")
             else:
                 if DEFAULT_COMPONENT.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete default component")
@@ -314,7 +309,11 @@ class ConfigListManager(object):
                     self._delete_pv(BlockserverPVNames.get_component_details_pv(self._component_metas[comp].pv))
                     self._delete_pv(BlockserverPVNames.get_dependencies_pv(self._component_metas[comp].pv))
                     del self._component_metas[comp]
-                self._update_version_control_post_delete(self._comp_path, delete_list)
+                try:
+                    self._update_version_control_post_delete(self._comp_path, delete_list)
+                except Exception as err:
+                    print_and_log(RemoveFromVersionControlException("component", err),"MINOR")
+
             self.update_monitors()
 
     def get_dependencies(self, comp_name):
