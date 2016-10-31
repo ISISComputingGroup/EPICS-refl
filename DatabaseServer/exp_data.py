@@ -69,21 +69,8 @@ class ExpData(object):
         # Set the channel access server to use
         self.ca = ca
 
-    def check_db_okay(self):
-        """Attempts to connect to the database and raises an error if not able to do so
-        """
-        self._db.check_db_okay()
-
     # def __open_connection(self):
     #     return self._db.__open_connection()
-
-    def close_connection(self):
-        """
-        Close all open objects
-        Returns:
-
-        """
-        self._db.close_connection()
 
     def _get_team(self, experimentID):
         """Gets the team members

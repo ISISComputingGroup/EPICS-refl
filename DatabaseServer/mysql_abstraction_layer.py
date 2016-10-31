@@ -17,7 +17,6 @@
 import mysql.connector
 from server_common.utilities import print_and_log
 
-
 class SQLAbstraction(object):
     """A wrapper to connect to MySQL databases"""
 
@@ -37,7 +36,7 @@ class SQLAbstraction(object):
         self._user = user
         self._password = password
         self._host = host
-        self._pool_name = SQLAbstraction.generate_unique_pool_name()
+        self._pool_name = self._generate_pool_name()
         self._start_connection_pool()
 
     @staticmethod
@@ -47,14 +46,12 @@ class SQLAbstraction(object):
         import uuid
         return "DBSVR_CONNECTION_POOL_" + str(uuid.uuid4())
 
-    def check_db_okay(self):
-        """Attempts to connect to the database and raises an error if not able to do so
+    def _generate_pool_name(self):
+        """Generate a name for the connection pool based on host, user and database name
+           a connection in the pool is made with the frist set of credentials passed, so we
+           have to make sure a pool name is not used with different credentials
         """
-        try:
-            # Get a connection from the pool and immediately return it to the pool
-            self.get_connection().close()
-        except Exception as err:
-            raise Exception(err)
+        return "DBSVR_%s_%s_%s" % (self._host, self._dbid, self._user)
 
     def _start_connection_pool(self):
         """Initialises a connection pool
@@ -72,7 +69,7 @@ class SQLAbstraction(object):
         curs.close()
         conn.close()
 
-    def get_connection(self):
+    def _get_connection(self):
         try:
             return mysql.connector.connect(pool_name=self._pool_name)
         except Exception as err:
@@ -92,7 +89,7 @@ class SQLAbstraction(object):
         curs = None
         values = None
         try:
-            conn = self.get_connection()
+            conn = self._get_connection()
             curs = conn.cursor()
             curs.execute(command)
             if is_query:

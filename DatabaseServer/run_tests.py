@@ -24,7 +24,6 @@ import unittest
 import xmlrunner
 import argparse
 
-from test_modules.sqlite_wrapper_tests import TestSqliteWrapperSequence
 from test_modules.mysql_wrapper_tests import TestMySQLWrapperSequence
 from test_modules.options_holder_tests import TestOptionsHolderSequence
 from test_modules.database_server_test_mysql import TestDatabaseServer
@@ -41,7 +40,6 @@ if __name__ == '__main__':
     xml_dir = args.output_dir[0]
 
     # Load tests from test suites
-    sqlite_suite = unittest.TestLoader().loadTestsFromTestCase(TestSqliteWrapperSequence)
     mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestMySQLWrapperSequence)
     options_holder_suite = unittest.TestLoader().loadTestsFromTestCase(TestOptionsHolderSequence)
     # database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
@@ -49,7 +47,6 @@ if __name__ == '__main__':
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
     ret_vals = list()
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(sqlite_suite))
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite))
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite))
     # ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite))
