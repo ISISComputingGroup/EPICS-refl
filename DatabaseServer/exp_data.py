@@ -18,6 +18,7 @@ from mysql_abstraction_layer import SQLAbstraction
 from server_common.channel_access import ChannelAccess
 from server_common.utilities import compress_and_hex
 import json
+import unicodedata
 
 from server_common.utilities import compress_and_hex, print_and_log, convert_to_json
 
@@ -126,7 +127,7 @@ class ExpData(object):
         Returns:
             string : The encoded data
         """
-        return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
+        return compress_and_hex(json.dumps(data).encode('utf-8', 'replace'))
 
     def _get_surname_from_fullname(self, fullname):
         try:
@@ -166,9 +167,9 @@ class ExpData(object):
             if teammembers is not None:
                 # Generate the lists/similar for conversion to JSON
                 for member in teammembers:
-                    fullname = str(member[0])
-                    org = str(member[1])
-                    role = str(member[2])
+                    fullname = unicode(member[0])
+                    org = unicode(member[1])
+                    role = unicode(member[2])
                     if not role == "Contact":
                         surnames.append(self._get_surname_from_fullname(fullname))
                     orgs.append(org)
@@ -180,7 +181,7 @@ class ExpData(object):
             self.ca.caput(self._orgspv, self.encode4return(orgs))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
-            self.ca.caput(self._daenamespv, ",".join(surnames))
+            self.ca.caput(self._daenamespv, make_name_list_ascii(surnames))
 
     def updateUsername(self, users):
         """Updates the associated PVs when the User Names are altered
@@ -210,9 +211,9 @@ class ExpData(object):
             # Loop through the list of strings to generate the lists/similar for conversion to JSON
             for teammember in users:
                 member = json.loads(teammember)
-                fullname = str(member['name'])
-                org = str(member['institute'])
-                role = str(member['role'])
+                fullname = unicode(member['name'])
+                org = unicode(member['institute'])
+                role = unicode(member['role'])
                 if not role == "Contact":
                     surnames.append(self._get_surname_from_fullname(fullname))
                 orgs.append(org)
@@ -227,4 +228,14 @@ class ExpData(object):
         if not surnames:
             self.ca.caput(self._daenamespv, " ")
         else:
-            self.ca.caput(self._daenamespv, ",".join(surnames))
+            self.ca.caput(self._daenamespv, make_name_list_ascii(surnames))
+
+        @staticmethod
+        def make_name_list_ascii(names):
+            """Takes a utf-8 list of names and creates a best ascii comma separated list
+            
+            """
+            nlist = u",".join(names)
+            nlist_no_sc = str(''.join(c for c in unicodedata.normalize('NFD', nlist) 
+                                       if unicodedata.category(c) != 'Mn'))
+            return nlist_no_sc
