@@ -81,7 +81,7 @@ def convert_to_json(value):
     Returns:
         string : The JSON representation of the inputted object
     """
-    return json.dumps(value).encode('ascii', 'replace')
+    return json.dumps(value).encode('utf-8', 'replace')
 
 
 def convert_from_json(value):
