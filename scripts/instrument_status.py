@@ -41,13 +41,13 @@ class InstrumentStatus(object):
             self._prefix = os.getenv("MYPVPREFIX", "")
         else:
             self._prefix = pv_prefix
-        print "PVPREFIX: {0}".format(self._prefix)
+        LOG.info("PVPREFIX: {0}".format(self._prefix))
 
         # If we're not in an EPICS terminal, add the address list to the set of environment keys
         epics_ca_addr_list = "EPICS_CA_ADDR_LIST"
         if not epics_ca_addr_list in os.environ.keys():
             os.environ[epics_ca_addr_list] = "127.255.255.255 130.246.51.255"
-        print epics_ca_addr_list + " = " + str(os.environ.get(epics_ca_addr_list))
+        LOG.info(epics_ca_addr_list + " = " + str(os.environ.get(epics_ca_addr_list)))
 
     def check(self):
 
@@ -84,4 +84,5 @@ class InstrumentStatus(object):
 
 
 if __name__ == "__main__":
-    print InstrumentStatus("TE:NDW1407:").check()
+    status = InstrumentStatus("TE:NDW1407:").check()
+    LOG.info(status)
