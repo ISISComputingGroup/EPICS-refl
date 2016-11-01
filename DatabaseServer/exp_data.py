@@ -181,7 +181,7 @@ class ExpData(object):
             self.ca.caput(self._orgspv, self.encode4return(orgs))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
-            self.ca.caput(self._daenamespv, make_name_list_ascii(surnames))
+            self.ca.caput(self._daenamespv, ExpData.make_name_list_ascii(surnames))
 
     def updateUsername(self, users):
         """Updates the associated PVs when the User Names are altered
@@ -228,14 +228,20 @@ class ExpData(object):
         if not surnames:
             self.ca.caput(self._daenamespv, " ")
         else:
-            self.ca.caput(self._daenamespv, make_name_list_ascii(surnames))
+            self.ca.caput(self._daenamespv, ExpData.make_name_list_ascii(surnames))
 
-        @staticmethod
-        def make_name_list_ascii(names):
-            """Takes a utf-8 list of names and creates a best ascii comma separated list
+    @staticmethod
+    def make_name_list_ascii(names):
+        """Takes a utf-8 list of names and creates a best ascii comma separated list
+        
+            Args:
+                name(list): list of utf-8 names
             
-            """
-            nlist = u",".join(names)
-            nlist_no_sc = str(''.join(c for c in unicodedata.normalize('NFD', nlist) 
-                                       if unicodedata.category(c) != 'Mn'))
-            return nlist_no_sc
+            Returns:
+                comma separated ascii string of names with special characters adjusted
+            
+        """
+        nlist = u",".join(names)
+        nlist_no_sc = str(''.join(c for c in unicodedata.normalize('NFD', nlist) 
+                                   if unicodedata.category(c) != 'Mn'))
+        return nlist_no_sc
