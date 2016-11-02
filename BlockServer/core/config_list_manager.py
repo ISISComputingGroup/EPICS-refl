@@ -25,15 +25,7 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.pv_names import BlockserverPVNames
-
-
-class InvalidDeleteException(Exception):
-    def __init__(self, value):
-        super(InvalidDeleteException, self).__init__()
-        self._value = value
-
-    def __str__(self):
-        return self._value
+from config_list_manager_exceptions import InvalidDeleteException
 
 
 class ConfigListManager(object):
@@ -126,7 +118,10 @@ class ConfigListManager(object):
                 # load_config checks the schema
                 config = self.load_config(comp_name, True)
                 self.update_a_config_in_list(config, True)
-                self._vc.add(path)
+                try:
+                    self._vc.add(path)
+                except Exception as err:
+                    print_and_log("Unable to add component to version control: " + str(err), "MINOR")
             except Exception as err:
                 print_and_log("Error in loading component: " + str(err), "MINOR")
 
@@ -140,7 +135,10 @@ class ConfigListManager(object):
                 # load_config checks the schema
                 config = self.load_config(config_name)
                 self.update_a_config_in_list(config)
-                self._vc.add(path)
+                try:
+                    self._vc.add(path)
+                except Exception as err:
+                    print_and_log("Unable to add configuration to version control: " + str(err), "MINOR")
             except Exception as err:
                 print_and_log("Error in loading config: " + str(err), "MINOR")
 
@@ -284,6 +282,7 @@ class ConfigListManager(object):
             # TODO: clean this up?
             print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
             lower_delete_list = set([x.lower() for x in delete_list])
+            unable_to_remove_text = "Unable to remove %s from version control: %s"
             if not are_comps:
                 if self.active_config_name.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete currently active configuration")
@@ -293,7 +292,10 @@ class ConfigListManager(object):
                     self._delete_pv(BlockserverPVNames.get_config_details_pv(self._config_metas[config.lower()].pv))
                     del self._config_metas[config.lower()]
                     self._remove_config_from_dependencies(config)
-                self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
+                try:
+                    self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
+                except Exception as err:
+                    print_and_log(unable_to_remove_text % ("configuration", str(err)),"MINOR")
             else:
                 if DEFAULT_COMPONENT.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete default component")
@@ -308,7 +310,11 @@ class ConfigListManager(object):
                     self._delete_pv(BlockserverPVNames.get_component_details_pv(self._component_metas[comp].pv))
                     self._delete_pv(BlockserverPVNames.get_dependencies_pv(self._component_metas[comp].pv))
                     del self._component_metas[comp]
-                self._update_version_control_post_delete(self._comp_path, delete_list)
+                try:
+                    self._update_version_control_post_delete(self._comp_path, delete_list)
+                except Exception as err:
+                    print_and_log(unable_to_remove_text % ("component", str(err)),"MINOR")
+
             self.update_monitors()
 
     def get_dependencies(self, comp_name):
