@@ -153,6 +153,7 @@ class DevicesManager(OnTheFlyPvInterface):
             return
 
         # Update PVs
+        self._data = xml_data
         self.update_monitors()
 
         self._add_to_version_control("%s modified by client" % self._curr_config_name)
