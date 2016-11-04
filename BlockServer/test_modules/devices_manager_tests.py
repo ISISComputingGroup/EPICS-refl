@@ -171,15 +171,28 @@ class TestDevicesManagerSequence(unittest.TestCase):
         self.assertEquals(EXAMPLE_DEVICES, dehex_and_decompress(self.bs.pvs[GET_SCREENS]))
 
     def test_given_invalid_devices_data_when_device_xml_saved_then_not_saved(self):
+        # Arrange:
         self.ach.set_config_name(BASE_PATH)
         self.dm.initialise()
 
-        # Act: Save the new data to file
+        # Act: Save invalid new data to file
         self.dm.save_devices_xml(INVALID_DEVICES)
 
         # Assert
         # Should stay as blank (i.e. the previous value)
         self.assertEquals(self.dm.get_blank_devices(), dehex_and_decompress(self.bs.pvs[GET_SCREENS]))
+
+    def test_given_valid_devices_data_when_device_xml_saved_then_saved(self):
+        # Arrange:
+        self.ach.set_config_name(BASE_PATH)
+        self.dm.initialise()
+
+        # Act: Save the new data to file
+        self.dm.save_devices_xml(EXAMPLE_DEVICES)
+
+        # Assert:
+        # Device screens in blockserver should have been updated with value written to device manager
+        self.assertEquals(EXAMPLE_DEVICES, dehex_and_decompress(self.bs.pvs[GET_SCREENS]))
 
     def test_save_devices_xml_creates_get_screens_pv(self):
         self.ach.set_config_name(BASE_PATH)
