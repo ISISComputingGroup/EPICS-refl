@@ -81,7 +81,8 @@ def convert_to_json(value):
     Returns:
         string : The JSON representation of the inputted object
     """
-#    return json.dumps(value).encode('utf-8', 'replace')
+# TODO: we may want to use 'utf-8' here in future, not needed 
+#       this time as functionality previously duplicated in exp_data.py
     return json.dumps(value).encode('ascii', 'replace')
 
 
