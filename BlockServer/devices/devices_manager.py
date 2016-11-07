@@ -51,7 +51,6 @@ class DevicesManager(OnTheFlyPvInterface):
         self._vc = vc_manager
         self._bs = block_server
         self._activech = active_configholder
-        self._curr_config_name = ""
         self._data = ""
         self._create_standard_pvs()
 
@@ -84,18 +83,11 @@ class DevicesManager(OnTheFlyPvInterface):
             self._bs.updatePVs()
 
     def initialise(self, full_init=False):
-        # Get the config name
-        self._curr_config_name = self._activech.get_config_name()
         self._load_current()
         self.update_monitors()
 
     def _load_current(self):
-        """Gets the devices XML for the current configuration"""
-        if self._curr_config_name == "":
-            # If the current config is not set then set data to a blank devices file
-            self._data = self.get_blank_devices()
-            return
-
+        """Gets the devices XML for the current instrument"""
         # Read the data from file
         try:
             self._data = self._file_io.load_devices_file(self.get_devices_filename())
@@ -115,7 +107,7 @@ class DevicesManager(OnTheFlyPvInterface):
             return
 
         try:
-            self._add_to_version_control("New change found in devices file %s" % self._curr_config_name)
+            self._add_to_version_control("New change found in devices file")
         except Exception as err:
             print_and_log("Unable to add new data to version control. " + str(err), "MINOR")
 
@@ -127,10 +119,8 @@ class DevicesManager(OnTheFlyPvInterface):
         Returns:
             string : Current devices file name
         """
-        if self._curr_config_name == "":
-            raise IOError("configuration not set")
 
-        return os.path.join(FILEPATH_MANAGER.get_config_path(self._curr_config_name), SCREENS_FILE)
+        return os.path.join(FILEPATH_MANAGER.devices_dir, SCREENS_FILE)
 
     def save_devices_xml(self, xml_data):
         """Saves the xml in the current "screens.xml" config file.
@@ -146,6 +136,8 @@ class DevicesManager(OnTheFlyPvInterface):
             return
 
         try:
+            if not os.path.exists(FILEPATH_MANAGER.devices_dir):
+                os.makedirs(FILEPATH_MANAGER.devices_dir)
             self._file_io.save_devices_file(self.get_devices_filename(), xml_data)
         except IOError as err:
             print_and_log("Unable to save devices file. %s. The PV data will not be updated." % err,
@@ -155,8 +147,8 @@ class DevicesManager(OnTheFlyPvInterface):
         # Update PVs
         self.update_monitors()
 
-        self._add_to_version_control("%s modified by client" % self._curr_config_name)
-        print_and_log("Devices saved to %s" % self._curr_config_name)
+        self._add_to_version_control("Device screens modified by client")
+        print_and_log("Devices saved for current instrument.")
 
     def _add_to_version_control(self, commit_message=None):
         # Add to version control
