@@ -39,7 +39,6 @@ class GitVersionControl:
     def _unlock(self):
         # Removes index.lock if it exists, and it's not being used
         lock_file_path = os.path.join(self.repo.git_dir,"index.lock")
-        print_and_log("Attempting to remove: %s" % lock_file_path, "INFO")
         if os.path.exists(lock_file_path):
             try:
                 os.remove(lock_file_path)

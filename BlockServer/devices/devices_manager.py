@@ -145,6 +145,7 @@ class DevicesManager(OnTheFlyPvInterface):
             return
 
         # Update PVs
+        self._data = xml_data
         self.update_monitors()
 
         self._add_to_version_control("Device screens modified by client")
