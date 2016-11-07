@@ -328,5 +328,5 @@ if __name__ == '__main__':
         try:
             SERVER.process(0.1)
         except Exception as err:
-            print_and_log(str(err))
+            print_and_log(str(err), "MAJOR")
             break
