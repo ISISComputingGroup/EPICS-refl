@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 from pcaspy import SimpleServer, Driver
 from CaChannel import ca, CaChannel, CaChannelException
-from server_common.utilities import compress_and_hex, convert_to_json, waveform_to_string, dehex_and_decompress
+from server_common.utilities import compress_and_hex, convert_to_json, waveform_to_string, dehex_and_decompress,  print_and_log
 
 EXISTS_TIMEOUT = 3 
 PEND_EVENT_TIMEOUT = 0.1
@@ -325,4 +325,8 @@ if __name__ == '__main__':
 
     # Process CA transactions
     while True:
-        SERVER.process(0.1)
+        try:
+            SERVER.process(0.1)
+        except Exception as err:
+            print_and_log(str(err))
+            break
