@@ -64,6 +64,18 @@ class ProcServWrapper(object):
         print_and_log("Restarting IOC %s" % ioc)
         ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1)
 
+    def ioc_restart_pending(self, prefix, ioc):
+        """Tests to see if an IOC restart is pending
+
+        Args:
+            prefix (string): The prefix for the instrument
+            ioc (string): The name of the IOC
+
+        Returns:
+            bool: Whether a restart is pending
+        """
+        True if ChannelAccess.caget(self.generate_prefix(prefix, ioc) + ":RESTART", as_string=True) is "Busy" else False
+
     def get_ioc_status(self, prefix, ioc):
         """Gets the status of the specified IOC.
 

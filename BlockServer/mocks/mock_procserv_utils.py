@@ -35,6 +35,10 @@ class MockProcServWrapper(object):
         """Stops the specified IOC"""
         self.ps_status[ioc.lower()] = "SHUTDOWN"
 
+    def ioc_restart_pending(self, prefix, ioc):
+        """Currently mock restarts instantly"""
+        return False
+
     def restart_ioc(self, prefix, ioc):
         self.ps_status[ioc.lower()] = "RUNNING"
 
