@@ -80,3 +80,10 @@ class TestIocControlSequence(unittest.TestCase):
         self.assertEqual(ic.get_autorestart("TESTIOC"), True)
         ic.set_autorestart("TESTIOC", False)
         self.assertEqual(ic.get_autorestart("TESTIOC"), False)
+
+    def test_when_restart_requested_then_gets_proc_serv_restart_pending_value(self):
+        ic = IocControl("", MockProcServWrapper())
+        ic.start_ioc("TESTIOC")
+        self.assertFalse(ic.ioc_restart_pending("TESTIOC"))
+        ic.restart_ioc("TESTIOC")
+        self.assertTrue(ic.ioc_restart_pending("TESTIOC"))
