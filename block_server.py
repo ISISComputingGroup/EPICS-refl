@@ -199,7 +199,7 @@ class BlockServer(Driver):
         self._filewatcher = None
         self.on_the_fly_handlers = list()
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
-        self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
+        self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX + "BLOCKSERVER:")
         self.bumpstrip = "No"
         self.block_rules = BlockRules(self)
         self.group_rules = GroupRules(self)

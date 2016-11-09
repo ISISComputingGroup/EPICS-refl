@@ -232,6 +232,8 @@ class RunControlManager(OnTheFlyPvInterface):
                 print_and_log("Runcontrol IOC started")
                 break
             sleep(2)
+        # wait for other RC PVs to appear
+        sleep(5)
 
     def _start_ioc(self):
         """Start the IOC."""
