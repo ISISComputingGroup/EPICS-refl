@@ -21,7 +21,7 @@ class GitVersionControl:
             # Not a valid repository
             raise NotUnderVersionControl(self._wd)
 
-        if str(self.repo.active_branch) != socket.gethostname():
+        if not self._branch_allowed(str(self.repo.active_branch)):
             raise NotUnderAllowedBranch()
 
         self._unlock()
@@ -38,9 +38,28 @@ class GitVersionControl:
         push_thread.daemon = True  # Daemonise thread
         push_thread.start()
 
+    def _branch_allowed(self, branch_name):
+        """Checks that the branch is allowed to be pushed
+
+        Args:
+            branch_name (string): The name of the current branch
+        Returns:
+            bool : Whether the branch is allowed
+        """
+        branch_name = branch_name.lower()
+
+        if "master" in branch_name:
+            return False
+
+        if branch_name.startswith("nd") and branch_name != socket.gethostname().lower():
+            # You're trying to push to a different instrument
+            return False
+
+        return True
+
     def _unlock(self):
         # Removes index.lock if it exists, and it's not being used
-        lock_file_path = os.path.join(self.repo.git_dir,"index.lock")
+        lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
         if os.path.exists(lock_file_path):
             try:
                 os.remove(lock_file_path)
@@ -94,6 +113,7 @@ class GitVersionControl:
             self.remote.pull()
         except GitCommandError as e:
             # Most likely server issue
+            print_and_log("Unable to pull configurations from remote repo", "MINOR")
             raise GitPullFailed()
 
     def _set_permissions(self):
@@ -107,6 +127,7 @@ class GitVersionControl:
 
     def _push(self):
         push_interval = PUSH_BASE_INTERVAL
+        first_failure = True
 
         while 1:
             with self._push_lock:
@@ -115,9 +136,14 @@ class GitVersionControl:
                         self.remote.push()
                         self._push_required = False
                         push_interval = PUSH_BASE_INTERVAL
+                        first_failure = True
+
                     except GitCommandError as e:
-                        # Most likely issue connecting to server
-                        # Can't do much about throwing error as on another thread, just increase timeout and retry
+                        # Most likely issue connecting to server, increase timeout, notify if it's the first time
                         push_interval = PUSH_RETRY_INTERVAL
+                        if first_failure:
+                            print_and_log("Unable to push config changes, will retry in %i seconds"
+                                          % PUSH_RETRY_INTERVAL, "MINOR")
+                            first_failure = False
 
             sleep(push_interval)
