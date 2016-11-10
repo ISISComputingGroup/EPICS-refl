@@ -111,7 +111,7 @@ class DevicesManager(OnTheFlyPvInterface):
                                                                                   SCREENS_SCHEMA), self._data)
         except ConfigurationInvalidUnderSchema as err:
             self._data = self.get_blank_devices()
-            print_and_log(err)
+            print_and_log(err.message)
             return
 
         try:
@@ -142,7 +142,7 @@ class DevicesManager(OnTheFlyPvInterface):
             ConfigurationSchemaChecker.check_xml_data_matches_schema(os.path.join(self._schema_folder, SCREENS_SCHEMA),
                                                                      xml_data)
         except ConfigurationInvalidUnderSchema as err:
-            print_and_log(err)
+            print_and_log(err.message)
             return
 
         try:
@@ -153,6 +153,7 @@ class DevicesManager(OnTheFlyPvInterface):
             return
 
         # Update PVs
+        self._data = xml_data
         self.update_monitors()
 
         self._add_to_version_control("%s modified by client" % self._curr_config_name)

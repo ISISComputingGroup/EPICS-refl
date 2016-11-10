@@ -24,27 +24,21 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
 class NotConfigFileException(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+    def __init__(self, message):
+        super(Exception,self).__init__(message)
+        self.message = message
 
 
 class ConfigurationIncompleteException(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+    def __init__(self, message):
+        super(Exception,self).__init__(message)
+        self.message = message
 
 
 class ConfigurationInvalidUnderSchema(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+    def __init__(self, message):
+        super(Exception,self).__init__(message)
+        self.message = message
 
 
 class ConfigurationSchemaChecker(object):
@@ -68,7 +62,7 @@ class ConfigurationSchemaChecker(object):
         try:
             etree.fromstring(xml_data, xmlparser)
         except etree.XMLSyntaxError as err:
-            raise ConfigurationInvalidUnderSchema(str(err.message))
+            raise ConfigurationInvalidUnderSchema(err.message)
 
     @staticmethod
     def check_xml_matches_schema(schema_filepath, screen_xml_data, object_type):
@@ -76,7 +70,7 @@ class ConfigurationSchemaChecker(object):
             ConfigurationSchemaChecker.check_xml_data_matches_schema(schema_filepath, screen_xml_data)
         except ConfigurationInvalidUnderSchema as err:
             raise ConfigurationInvalidUnderSchema(
-                "{object_type} incorrectly formatted: {err}".format(object_type=object_type, err=str(err.value)))
+                "{object_type} incorrectly formatted: {err}".format(object_type=object_type, err=err.message))
 
     @staticmethod
     def _check_file_against_schema(xml_file, schema_folder, schema_file):

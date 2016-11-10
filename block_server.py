@@ -87,11 +87,6 @@ PVDB = {
         'count': 1000,
         'value': [0],
     },
-    BlockserverPVNames.CLEAR_CONFIG: {
-        'type': 'char',
-        'count': 100,
-        'value': [0],
-    },
     BlockserverPVNames.RELOAD_CURRENT_CONFIG: {
         'type': 'char',
         'count': 100,
@@ -204,7 +199,7 @@ class BlockServer(Driver):
         self._filewatcher = None
         self.on_the_fly_handlers = list()
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
-        self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
+        self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX + "BLOCKSERVER:")
         self.bumpstrip = "No"
         self.block_rules = BlockRules(self)
         self.group_rules = GroupRules(self)
@@ -214,20 +209,24 @@ class BlockServer(Driver):
         try:
             self._vc = ConfigVersionControl(CONFIG_DIR)
         except NotUnderVersionControl as err:
-            print_and_log("Warning: Configurations not under version control", "INFO")
+            print_and_log("Warning: Configurations not under version control", "MINOR")
             self._vc = MockVersionControl()
         except Exception as err:
-            print_and_log("Version control failed: " + str(err), "INFO")
+            print_and_log("Unable to start version control. Modifications to the instrument setup will not be "
+                          "tracked: " + str(err), "MINOR")
             self._vc = MockVersionControl()
 
         # Create banner object
         self.banner = Banner(MACROS["$(MYPVPREFIX)"])
-        
+
         # Import data about all configs
         try:
             self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc, ConfigurationFileManager())
         except Exception as err:
-            print_and_log("Error creating inactive config list: " + str(err), "MAJOR")
+            print_and_log(
+                "Error creating inactive config list. Configuration list changes will not be stored " +
+                "in version control: %s " % str(err), "MINOR")
+            self._config_list = ConfigListManager(self, SCHEMA_DIR, MockVersionControl(), ConfigurationFileManager())
 
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
@@ -324,6 +323,9 @@ class BlockServer(Driver):
         """A method called by SimpleServer when a PV is written to the BlockServer over Channel Access. The write
             commands are queued as Channel Access is single-threaded.
 
+            Note that the filewatcher is disabled as part of the write queue so any operations that intend to modify
+            files should use the write queue.
+
         Args:
             reason (string): The PV that is being requested (without the PV prefix)
             value (string): The data being written to the 'reason' PV
@@ -334,7 +336,6 @@ class BlockServer(Driver):
         """
         status = True
         try:
-            self._filewatcher.pause()
             data = dehex_and_decompress(value).strip('"')
             if reason == BlockserverPVNames.LOAD_CONFIG:
                 with self.write_lock:
@@ -342,9 +343,6 @@ class BlockServer(Driver):
             elif reason == BlockserverPVNames.SAVE_CONFIG:
                 with self.write_lock:
                     self.write_queue.append((self.save_active_config, (data,), "SAVING_CONFIG"))
-            elif reason == BlockserverPVNames.CLEAR_CONFIG:
-                self._active_configserver.clear_config()
-                self._initialise_config()
             elif reason == BlockserverPVNames.RELOAD_CURRENT_CONFIG:
                 with self.write_lock:
                     self.write_queue.append((self.reload_current_config, (), "RELOAD_CURRENT_CONFIG"))
@@ -352,7 +350,8 @@ class BlockServer(Driver):
                 with self.write_lock:
                     self.write_queue.append((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
             elif reason == BlockserverPVNames.STOP_IOCS:
-                self._ioc_control.stop_iocs(convert_from_json(data))
+                with self.write_lock:
+                    self.write_queue.append((self._ioc_control.stop_iocs, (convert_from_json(data),), "STOP_IOCS"))
             elif reason == BlockserverPVNames.RESTART_IOCS:
                 with self.write_lock:
                     self.write_queue.append((self._ioc_control.restart_iocs, (convert_from_json(data),),
@@ -367,12 +366,17 @@ class BlockServer(Driver):
                 with self.write_lock:
                     self.write_queue.append((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
             elif reason == BlockserverPVNames.DELETE_CONFIGS:
-                self._config_list.delete_configs(convert_from_json(data))
+                with self.write_lock:
+                    self.write_queue.append((self._config_list.delete_configs, (convert_from_json(data),),
+                                             "DELETE_CONFIGS"))
             elif reason == BlockserverPVNames.DELETE_COMPONENTS:
-                self._config_list.delete_configs(convert_from_json(data), True)
+                with self.write_lock:
+                    self.write_queue.append((self._config_list.delete_configs, (convert_from_json(data), True),
+                                             "DELETE_COMPONENTS"))
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP:
                 self.bumpstrip = data
-                self.update_bumpstrip_availability()
+                with self.write_lock:
+                    self.write_queue.append((self.update_bumpstrip_availability, None, "UPDATE_BUMPSTRIP"))
             else:
                 status = False
                 # Check to see if it is a on-the-fly PV
@@ -389,9 +393,6 @@ class BlockServer(Driver):
         else:
             if status:
                 value = compress_and_hex(convert_to_json("OK"))
-        finally:
-            pass
-            self._filewatcher.resume()
 
         # store the values
         if status:
@@ -549,7 +550,6 @@ class BlockServer(Driver):
 
         config_name = inactive.get_config_name()
         self._check_config_inactive(config_name, as_comp)
-        self._filewatcher.pause()
         try:
             if not as_comp:
                 print_and_log("Saving configuration: %s" % config_name)
@@ -562,8 +562,6 @@ class BlockServer(Driver):
             print_and_log("Saved")
         except Exception as err:
             print_and_log("Problem occurred saving configuration: %s" % err)
-        finally:
-            self._filewatcher.resume()
 
         # Reload configuration if a component has changed
         if as_comp and new_details["name"] in self._active_configserver.get_component_names():
@@ -590,7 +588,6 @@ class BlockServer(Driver):
         Args:
             name (string): The name to save it under
         """
-        self._filewatcher.pause()
         try:
             print_and_log("Saving active configuration as: %s" % name)
             oldname = self._active_configserver.get_cached_name()
@@ -609,8 +606,6 @@ class BlockServer(Driver):
             self._config_list.update_a_config_in_list(self._active_configserver)
         except Exception as err:
             print_and_log("Problem occurred saving configuration: %s" % err)
-        finally:
-            self._filewatcher.resume()
 
     def update_blocks_monitors(self):
         """Updates the monitors for the blocks and groups, so the clients can see any changes.
@@ -648,13 +643,13 @@ class BlockServer(Driver):
             self.updatePVs()
 
     def update_bumpstrip_availability(self):
-            """Updates the monitor for the configurations, so the clients can see any changes.
+        """Updates the monitor for the configurations, so the clients can see any changes.
             """
-            with self.monitor_lock:
-                # set the available configs
-                self.setParam(BlockserverPVNames.BUMPSTRIP_AVAILABLE, compress_and_hex(self.bumpstrip))
-                # Update them
-                self.updatePVs()
+        with self.monitor_lock:
+            # set the available configs
+            self.setParam(BlockserverPVNames.BUMPSTRIP_AVAILABLE, compress_and_hex(self.bumpstrip))
+            # Update them
+            self.updatePVs()
 
     def consume_write_queue(self):
         """Actions any requests on the write queue.
@@ -667,14 +662,21 @@ class BlockServer(Driver):
         """
         while True:
             while len(self.write_queue) > 0:
+                if self._filewatcher is not None: self._filewatcher.pause()
                 with self.write_lock:
                     cmd, arg, state = self.write_queue.pop(0)
-                    self.update_server_status(state)
+                self.update_server_status(state)
+                try:
                     if arg is not None:
                         cmd(*arg)
                     else:
                         cmd()
-                    self.update_server_status("")
+                except Exception as err:
+                    print_and_log(
+                        "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
+                        "MAJOR")
+                self.update_server_status("")
+                if self._filewatcher is not None: self._filewatcher.resume()
             sleep(1)
 
     def get_blank_config(self):
@@ -767,6 +769,7 @@ if __name__ == '__main__':
     FACILITY = args.facility[0]
     if FACILITY == "ISIS":
         from server_common.loggers.isis_logger import IsisLogger
+
         set_logger(IsisLogger())
     print_and_log("FACILITY = %s" % FACILITY)
 

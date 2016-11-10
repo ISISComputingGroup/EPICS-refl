@@ -126,7 +126,6 @@ class DatabaseServer(Driver):
         # Initialise database connection
         try:
             self._db = IOCData(dbid, ps, MACROS["$(MYPVPREFIX)"])
-            self._db.check_db_okay()
             print_and_log("Connected to database", "INFO", "DBSVR")
         except Exception as err:
             self._db = None
@@ -135,7 +134,6 @@ class DatabaseServer(Driver):
         # Initialise experimental database connection
         try:
             self._ed = ExpData(MACROS["$(MYPVPREFIX)"])
-            self._ed.check_db_okay()
             print_and_log("Connected to experimental details database", "INFO", "DBSVR")
         except Exception as err:
             self._ed = None
@@ -147,16 +145,6 @@ class DatabaseServer(Driver):
             monitor_thread = Thread(target=self.update_ioc_monitors, args=())
             monitor_thread.daemon = True  # Daemonise thread
             monitor_thread.start()
-
-    def close(self):
-        """
-        Close all open objects
-
-        Returns:
-
-        """
-        self._db.close_connection()
-        self._ed.close_connection()
 
     def read(self, reason):
         """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.

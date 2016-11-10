@@ -14,17 +14,7 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-"""
-NOTE: To run this Python script, it must be able to access the server_common module,
-which is not possible from this file's current location:
-
-...\EPICS\ISIS\inst_servers\master\scripts
-
-It has been placed here for tidiness. To run the script, move it to its parent directory:
-
-...\EPICS\ISIS\inst_servers\master\
-"""
-
+import json
 import zlib
 import sys
 import os
@@ -37,7 +27,7 @@ except ImportError:
 
 def compress_and_hex(value):
     compr = zlib.compress(value)
-    return compr.encode('hex');
+    return compr.encode('hex')
 
 
 def dehex_and_decompress(value):
@@ -53,12 +43,38 @@ def set_env():
     print epics_ca_addr_list + " = " + str(os.environ.get(epics_ca_addr_list))
 
 
+def inst_dictionary(instrument_name, hostname_prefix="NDX"):
+    """
+    Generate the instrument dictionary for the instrument list
+    Args:
+        instrument_name: instrument name
+        hostname_prefix: prefix for hostname (defaults to NDX)
+
+    Returns: dictionary for instrument
+
+    """
+    return {"name": instrument_name,
+            "hostName": hostname_prefix + instrument_name,
+            "pvPrefix": "IN:{0}:".format(instrument_name)}
+
 if __name__ == "__main__":
     set_env()
 
-    pv_address = raw_input("Enter PV name: ")
-    new_value = raw_input("Enter new PV value: ")
-    
+    # The PV address list
+    pv_address = "CS:INSTLIST"
+
+    # instrument list values to set (uses utility to return the dictionary but you can use a dictionary directly)
+    instruments_list = [
+        inst_dictionary("LARMOR"),
+        inst_dictionary("ALF"),
+        inst_dictionary("DEMO"),
+        inst_dictionary("IMAT"),
+        inst_dictionary("MUONFE", hostname_prefix="NDE"),
+        inst_dictionary("ZOOM"),
+        inst_dictionary("IRIS")
+    ]
+
+    new_value = json.dumps(instruments_list)
     new_value_compressed = compress_and_hex(new_value)
 
     ca.caput(pv_address, str(new_value_compressed), True)
@@ -66,9 +82,11 @@ if __name__ == "__main__":
     result_compr = ca.caget(pv_address, True)
     result = dehex_and_decompress(result_compr)
 
-    if result!=new_value:
+    print result
+
+    if result != new_value:
         print "Warning! Entered value does not match new value."
         print "Entered value: " + new_value
         print "Actual value: " + result
     else:
-        print "Success! The PV was updated to the new value."
+        print "Success! The PV now reads: {0}".format(result)
