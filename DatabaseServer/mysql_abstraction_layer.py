@@ -16,11 +16,13 @@
 
 import mysql.connector
 from server_common.utilities import print_and_log
-from threading import RLock
 
 
 class SQLAbstraction(object):
     """A wrapper to connect to MySQL databases"""
+
+    # Number of available simultaneous connections to each connection pool
+    POOL_SIZE = 16
 
     def __init__(self, dbid, user, password, host="127.0.0.1"):
         """Constructor
@@ -35,105 +37,93 @@ class SQLAbstraction(object):
         self._user = user
         self._password = password
         self._host = host
-        self._conn = None
-        self._curs = None
-        self._sql_lock = RLock()
+        self._pool_name = SQLAbstraction.generate_unique_pool_name()
+        self._start_connection_pool()
+
+    @staticmethod
+    def generate_unique_pool_name():
+        """Generate a unique name for the connection pool so each object has its own pool
+        """
+        import uuid
+        return "DBSVR_CONNECTION_POOL_" + str(uuid.uuid4())
 
     def check_db_okay(self):
         """Attempts to connect to the database and raises an error if not able to do so
         """
         try:
-            self.open_connection_if_closed()
-            self.close_connection()
+            # Get a connection from the pool and immediately return it to the pool
+            self.get_connection().close()
         except Exception as err:
             raise Exception(err)
 
-    def open_connection_if_closed(self):
-        """If the connection is open, does nothing. Otherwise, attempts to connect.
+    def _start_connection_pool(self):
+        """Initialises a connection pool
         """
-        if self._conn is None:
-            try:
-                self._conn, self._curs = self.__open_connection()
-            except Exception as err:
-                raise Exception(err)
-
-    def reset_connection(self):
-        """Closes the connection and then attempts to reconnect
-        """
-        try:
-            self.close_connection()
-            self.open_connection_if_closed()
-        except Exception as err:
-            raise Exception("Unable to reset database connection: %s" % err)
-
-    def close_connection(self):
-        """Closes the connection and resets the local variables
-        """
-        try:
-            if self._conn is not None:
-                self._curs.close()
-                self._conn.close()
-        except Exception as ex:
-            print_and_log("Error closing connection {0}".format(ex))
-            # ignore error if it is a serious database error it will get caught when reopening db
-        finally:
-            self._curs = None
-            self._conn = None
-
-    def __open_connection(self):
-        """Open a connection to the database
-
-        Returns:
-            conn (mysql connector): a connection to the database
-            curs (mysql cursor): a cursor to communicate with the database
-        """
-        conn = mysql.connector.connect(user=self._user, password=self._password, host=self._host, database=self._dbid)
+        print_and_log("Creating a new connection pool: " + self._pool_name)
+        conn = mysql.connector.connect(user=self._user, password=self._password, host=self._host, database=self._dbid,
+                                       pool_name=self._pool_name,
+                                       pool_size=SQLAbstraction.POOL_SIZE)
         curs = conn.cursor()
         # Check db exists
         curs.execute("SHOW TABLES")
         if len(curs.fetchall()) == 0:
             # Database does not exist
             raise Exception("Requested Database %s does not exist" % self._dbid)
-        return conn, curs
+        curs.close()
+        conn.close()
 
-    def execute_query(self, query, retry=True):
+    def get_connection(self):
+        try:
+            return mysql.connector.connect(pool_name=self._pool_name)
+        except Exception as err:
+            raise Exception("Unable to get connection from pool: %s" % err.message)
+
+    def execute_command(self, command, is_query):
+        """Executes a command on the database, and returns all values
+
+        Args:
+            command (string): the SQL command to run
+            is_query (boolean): is this a query (i.e. do we expect return values)
+
+        Returns:
+            values (list): list of all rows returned. None if not is_query
+        """
+        conn = None
+        curs = None
+        values = None
+        try:
+            conn = self.get_connection()
+            curs = conn.cursor()
+            curs.execute(command)
+            if is_query:
+                values = curs.fetchall()
+            # Commit as part of the query or results won't be updated between subsequent transactions. Can lead
+            # to values not auto-updating in the GUI.
+            conn.commit()
+        except Exception as err:
+            print_and_log("Error executing command on database: %s" % err.message, "MAJOR")
+        finally:
+            if curs is not None:
+                curs.close()
+            if conn is not None:
+                conn.close()
+        return values
+
+    def query(self, command):
         """Executes a query on the database, and returns all values
 
         Args:
-            query (string): the SQL command to run
+            command (string): the SQL command to run
 
         Returns:
             values (list): list of all rows returned
         """
-        with self._sql_lock:
-            try:
-                self.open_connection_if_closed()
-                self._curs.execute(query)
-                values = self._curs.fetchall()
-                # Commit as part of the query or results won't be updated between subsequent transactions. Can lead
-                # to values not auto-updating in the GUI.
-                self._conn.commit()
-                return values
-            except Exception as err:
-                if retry:
-                    try:
-                        self.reset_connection()
-                        self.execute_query(query=query,retry=False)
-                    except Exception as reconnection_err:
-                        err = reconnection_err
-                raise Exception("Error executing query: %s" % err)
+        return SQLAbstraction.execute_command(self, command, True)
 
-    def commit(self, query, retry=True):
-        with self._sql_lock:
-            try:
-                self.open_connection_if_closed()
-                self._curs.execute(query)
-                self._conn.commit()
-            except Exception as err:
-                if retry:
-                    try:
-                        self.reset_connection()
-                        self.commit(query=query,retry=False)
-                    except Exception as reconnection_err:
-                        err = reconnection_err
-                raise Exception("Error updating database: %s" % err)
+    def update(self, command):
+        """Executes an update on the database, and returns all values
+
+        Args:
+            command (string): the SQL command to run
+        """
+        SQLAbstraction.execute_command(self, command, False)
