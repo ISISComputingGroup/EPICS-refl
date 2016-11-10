@@ -109,6 +109,7 @@ def generate_fake_db(iocdb):
 
 generate_fake_db(TEST_DB)
 
+
 class TestMySQLWrapperSequence(unittest.TestCase):
     def setUp(self):
         self.prefix = ""
@@ -133,15 +134,9 @@ class TestMySQLWrapperSequence(unittest.TestCase):
         running = self.wrapper.update_iocs_status()
         self.assertEqual(len(running), 2)
 
-    def test_check_db_okay(self):
-        try:
-            self.wrapper.check_db_okay()
-        except:
-            self.fail("check_db_okay throw an exception")
-
-    def test_check_db_okay_fails(self):
-        self.wrapper = IOCData("not_a_db", MockProcServWrapper(), self.prefix)
-        self.assertRaises(Exception, self.wrapper.check_db_okay)
+    def test_connecting_to_a_bad_db_fails(self):
+        with self.assertRaises(Exception):
+            IOCData("not_a_db", MockProcServWrapper(), self.prefix)
 
     def test_get_interesting_pvs_all(self):
         # Get all PVs

@@ -25,6 +25,8 @@ from lxml import etree
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, \
     convert_to_json, convert_from_json
 from synoptic_file_io import SynopticFileIO
+from synoptic_exceptions import VersionControlException, AddToVersionControlException, \
+    CommitToVersionControlException, RemoveFromVersionControlException
 
 
 # Synoptics PVs are of the form IN:DEMO:SYNOPTICS:XXXXX (no BLOCKSERVER in the name)
@@ -73,12 +75,17 @@ class SynopticManager(OnTheFlyPvInterface):
         return pv in self._pvs_to_set
 
     def handle_pv_write(self, pv, data):
-        if pv == SYNOPTIC_PRE + SYNOPTIC_DELETE:
-            self.delete_synoptics(convert_from_json(data))
-            self.update_monitors()
-        elif pv == SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS:
-            self.save_synoptic_xml(data)
-            self.update_monitors()
+        try:
+            if pv == SYNOPTIC_PRE + SYNOPTIC_DELETE:
+                self.delete_synoptics(convert_from_json(data))
+                self.update_monitors()
+            elif pv == SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS:
+                self.save_synoptic_xml(data)
+                self.update_monitors()
+        except VersionControlException as err:
+            print_and_log(str(err),"MINOR")
+        except Exception as err:
+            print_and_log("Error writing to PV %s: %s" % (pv,str(err)),"MAJOR")
 
     def handle_pv_read(self, pv):
         # Nothing to do as it is all handled by monitors
@@ -123,10 +130,14 @@ class SynopticManager(OnTheFlyPvInterface):
                 self._create_pv(data)
 
                 self._add_to_version_control(f[0:-4])
+            except VersionControlException as err:
+                print_and_log(str(err), "MAJOR")
             except Exception as err:
                 print_and_log("Error creating synoptic PV: %s" % str(err), "MAJOR")
-
-        self._vc.commit("Blockserver started, synoptics updated")
+        try:
+            self._vc.commit("Blockserver started, synoptics updated")
+        except Exception as err:
+            print_and_log("Unable to update synoptics while starting the blockserver: %s" % str(err), "MAJOR")
 
     def _create_pv(self, data):
         """Creates a single PV based on a name and data. Adds this PV to the dictionary returned on get_synoptic_list
@@ -232,9 +243,16 @@ class SynopticManager(OnTheFlyPvInterface):
 
     def _add_to_version_control(self, synoptic_name, commit_message=None):
         # Add to version control
-        self._vc.add(FILEPATH_MANAGER.get_synoptic_path(synoptic_name))
+        try:
+            self._vc.add(FILEPATH_MANAGER.get_synoptic_path(synoptic_name))
+        except Exception as err:
+            raise AddToVersionControlException(err)
         if commit_message is not None:
-            self._vc.commit(commit_message)
+            try:
+                self._vc.commit(commit_message)
+            except Exception as err:
+                raise CommitToVersionControlException(err)
+
 
     def delete_synoptics(self, delete_list):
         """Takes a list of synoptics and removes them from the file system and any relevant PVs.
@@ -249,7 +267,10 @@ class SynopticManager(OnTheFlyPvInterface):
         for synoptic in delete_list:
             self._bs.delete_pv_from_db(SYNOPTIC_PRE + self._synoptic_pvs[synoptic] + SYNOPTIC_GET)
             del self._synoptic_pvs[synoptic]
-        self._update_version_control_post_delete(delete_list)  # Git is case sensitive
+        try:
+            self._update_version_control_post_delete(delete_list)  # Git is case sensitive
+        except Exception as err:
+            raise RemoveFromVersionControlException(err)
 
     def _update_version_control_post_delete(self, files):
         for synoptic in files:

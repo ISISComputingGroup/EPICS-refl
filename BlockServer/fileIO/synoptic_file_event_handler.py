@@ -70,7 +70,7 @@ class SynopticFileEventHandler(FileSystemEventHandler):
 
                     # Inform user
                     print_and_log("The synoptic, %s, has been modified in the filesystem, ensure it is added to "
-                                  "version control" % name, "INFO", "FILEWTCHER")
+                                  "version control" % name, "INFO", "FILEWTCHR")
 
                 except NotConfigFileException as err:
                     print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
@@ -92,7 +92,7 @@ class SynopticFileEventHandler(FileSystemEventHandler):
         except Exception as err:
             print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
-        print_and_log("File Watcher: Recovered %s, please delete via client" % event.src_path, "MAJOR", "FILEWTCHR")
+        print_and_log("File Watcher: Repository reverted after %s deleted manually. Please delete files via client" % event.src_path, "MAJOR", "FILEWTCHR")
 
     def _check_synoptic_valid(self, path):
         extension = path[-4:]

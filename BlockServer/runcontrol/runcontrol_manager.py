@@ -229,6 +229,8 @@ class RunControlManager(OnTheFlyPvInterface):
                 print_and_log("Runcontrol IOC started")
                 break
             sleep(2)
+        # wait for other RC PVs to appear
+        sleep(5)
 
     def _start_ioc(self):
         """Start the IOC."""
@@ -250,7 +252,7 @@ class RunControlManager(OnTheFlyPvInterface):
             print_and_log("Reusing the existing run-control autosave files")
 
         try:
-            self._ioc_control.restart_ioc(RUNCONTROL_IOC, force=True)
+            self._ioc_control.restart_ioc(RUNCONTROL_IOC, force=True, reapply_auto=False)
         except Exception as err:
             print_and_log("Problem with restarting the run-control IOC: %s" % str(err), "MAJOR")
 
