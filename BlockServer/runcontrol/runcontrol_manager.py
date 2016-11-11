@@ -27,7 +27,7 @@ from BlockServer.core.pv_names import BlockserverPVNames
 
 TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
 RC_IOC_PREFIX = "CS:PS:RUNCTRL_01"
-RC_RESET_PV = RC_IOC_PREFIX + ":DEVIOS:SysReset"
+RC_RESET_PV = "CS:IOC:RUNCTRL_01:DEVIOS:SysReset"
 RUNCONTROL_SETTINGS = "rc_settings.cmd"
 AUTOSAVE_DIR = "autosave"
 RUNCONTROL_IOC = "RUNCTRL_01"
@@ -222,7 +222,7 @@ class RunControlManager(OnTheFlyPvInterface):
             # See if the IOC has restarted by looking for a standard PV
             try:
                 running = True if self._channel_access.caget(self._prefix + RC_RESET_PV) is not None else False
-                restart_pending = ioc_restart_pending(RC_IOC_PREFIX, self._channel_access)
+                restart_pending = ioc_restart_pending(self._prefix + RC_IOC_PREFIX, self._channel_access)
                 started = running and not restart_pending
             except Exception as err:
                 # Probably has timed out

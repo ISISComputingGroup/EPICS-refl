@@ -74,7 +74,7 @@ class ProcServWrapper(object):
         Returns:
             bool: Whether a restart is pending
         """
-        return ioc_restart_pending(self.generate_prefix(prefix, ioc),ChannelAccess)
+        return ioc_restart_pending(self.generate_prefix(prefix, ioc), ChannelAccess)
 
     def get_ioc_status(self, prefix, ioc):
         """Gets the status of the specified IOC.
