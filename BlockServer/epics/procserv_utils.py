@@ -74,7 +74,7 @@ class ProcServWrapper(object):
         Returns:
             bool: Whether a restart is pending
         """
-        True if ChannelAccess.caget(self.generate_prefix(prefix, ioc) + ":RESTART", as_string=True) is "Busy" else False
+        return True if ChannelAccess.caget(self.generate_prefix(prefix, ioc) + ":RESTART", as_string=True) is "Busy" else False
 
     def get_ioc_status(self, prefix, ioc):
         """Gets the status of the specified IOC.
