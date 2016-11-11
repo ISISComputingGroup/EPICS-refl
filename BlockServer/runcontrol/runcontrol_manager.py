@@ -20,7 +20,7 @@ from time import sleep
 from BlockServer.core.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, \
-    convert_to_json, check_if_ioc_restarting
+    convert_to_json, ioc_restart_pending
 from server_common.channel_access import ChannelAccess
 from BlockServer.core.pv_names import BlockserverPVNames
 
@@ -222,7 +222,7 @@ class RunControlManager(OnTheFlyPvInterface):
             # See if the IOC has restarted by looking for a standard PV
             try:
                 running = True if self._channel_access.caget(self._prefix + RC_RESET_PV) is not None else False
-                restart_pending = check_if_ioc_restarting(RC_IOC_PREFIX,self._channel_access)
+                restart_pending = ioc_restart_pending(RC_IOC_PREFIX, self._channel_access)
                 started = running and not restart_pending
             except Exception as err:
                 # Probably has timed out

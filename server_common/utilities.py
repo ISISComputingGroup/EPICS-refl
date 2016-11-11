@@ -209,7 +209,7 @@ def waveform_to_string(data):
     return output
 
 
-def check_if_ioc_restarting(ioc_pv,channel_access):
+def ioc_restart_pending(ioc_pv, channel_access):
     """Check if a particular IOC is restarting. Assumes it has suitable restart PV
 
     Args:
