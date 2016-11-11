@@ -18,17 +18,16 @@ import os
 from time import sleep
 
 from BlockServer.core.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
-from server_common.utilities import print_and_log
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, \
-    convert_to_json, convert_from_json
+    convert_to_json, check_if_ioc_restarting
 from server_common.channel_access import ChannelAccess
 from BlockServer.core.pv_names import BlockserverPVNames
 
 
 TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
-RC_RESET_PV = "CS:IOC:RUNCTRL_01:DEVIOS:SysReset"
-RC_RESTART_PV = "CS:PS:RUNCTRL_01:RESTART"
+RC_IOC_PREFIX = "CS:PS:RUNCTRL_01"
+RC_RESET_PV = RC_IOC_PREFIX + ":DEVIOS:SysReset"
 RUNCONTROL_SETTINGS = "rc_settings.cmd"
 AUTOSAVE_DIR = "autosave"
 RUNCONTROL_IOC = "RUNCTRL_01"
@@ -223,7 +222,7 @@ class RunControlManager(OnTheFlyPvInterface):
             # See if the IOC has restarted by looking for a standard PV
             try:
                 running = True if self._channel_access.caget(self._prefix + RC_RESET_PV) is not None else False
-                restart_pending = True if self._channel_access.caget(self._prefix + RC_RESTART_PV) is "Busy" else False
+                restart_pending = check_if_ioc_restarting(RC_IOC_PREFIX,self._channel_access)
                 started = running and not restart_pending
             except Exception as err:
                 # Probably has timed out

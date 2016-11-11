@@ -15,7 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 from server_common.channel_access import ChannelAccess
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log, check_if_restarting
 
 
 class ProcServWrapper(object):
@@ -74,8 +74,7 @@ class ProcServWrapper(object):
         Returns:
             bool: Whether a restart is pending
         """
-        return True if ChannelAccess.caget(self.generate_prefix(prefix, ioc) + ":RESTART",
-                                           as_string=True) is "Busy" else False
+        return check_if_restarting(self.generate_prefix(prefix, ioc),ChannelAccess)
 
     def get_ioc_status(self, prefix, ioc):
         """Gets the status of the specified IOC.

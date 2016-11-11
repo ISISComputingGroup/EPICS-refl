@@ -208,3 +208,16 @@ def waveform_to_string(data):
         output += str(unichr(i))
     return output
 
+
+def check_if_ioc_restarting(ioc_pv,channel_access):
+    """Check if a particular IOC is restarting. Assumes it has suitable restart PV
+
+    Args:
+        ioc_pv: The base PV for the IOC with instrument PV prefix
+        channel_access: The channel access object to be used for accessing PVs
+
+    Return
+        bool: True if restarting, else False
+    """
+    return True if channel_access.caget(ioc_pv + ":RESTART", as_string=True) is "Busy" else False
+
