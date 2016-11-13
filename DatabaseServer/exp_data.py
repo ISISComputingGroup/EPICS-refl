@@ -19,6 +19,7 @@ from server_common.channel_access import ChannelAccess
 from server_common.utilities import compress_and_hex
 import json
 import unicodedata
+import string
 
 from server_common.utilities import compress_and_hex, print_and_log, convert_to_json
 
@@ -48,6 +49,18 @@ class ExpData(object):
             'value': [0],
         },
     }
+
+    def make_ascii_mappings():
+        """create mapping for characters not converted to 7 bit by NFKD"""
+        mappings_in = u'\xd0\xd7\xd8\xde\xdf\xf0\xf8\xfe'
+        mappings_out = u'DXOPBoop'
+        mappings_in = [ ord(char) for char in mappings_in ]
+        d = dict(zip(mappings_in, mappings_out))
+        d[ord(u'\xc6')] = u'AE'
+        d[ord(u'\xe6')] = u'ae'
+        return d
+
+    _toascii = make_ascii_mappings()
 
     def __init__(self, prefix, ca=ChannelAccess):
         """Constructor
@@ -167,9 +180,9 @@ class ExpData(object):
             if teammembers is not None:
                 # Generate the lists/similar for conversion to JSON
                 for member in teammembers:
-                    fullname = unicode(member[0])
-                    org = unicode(member[1])
-                    role = unicode(member[2])
+                    fullname = member[0].decode('utf-8')
+                    org = member[1].decode('utf-8')
+                    role = member[2].decode('utf-8')
                     if not role == "Contact":
                         surnames.append(self._get_surname_from_fullname(fullname))
                     orgs.append(org)
@@ -211,9 +224,9 @@ class ExpData(object):
             # Loop through the list of strings to generate the lists/similar for conversion to JSON
             for teammember in users:
                 member = json.loads(teammember)
-                fullname = unicode(member['name'])
-                org = unicode(member['institute'])
-                role = unicode(member['role'])
+                fullname = member['name'].decode('utf-8')
+                org = member['institute'].decode('utf-8')
+                role = member['role'].decode('utf-8')
                 if not role == "Contact":
                     surnames.append(self._get_surname_from_fullname(fullname))
                 orgs.append(org)
@@ -232,16 +245,17 @@ class ExpData(object):
 
     @staticmethod
     def make_name_list_ascii(names):
-        """Takes a utf-8 list of names and creates a best ascii comma separated list
+        """Takes a unicode list of names and creates a best ascii comma separated list
+            this implementation is a temporary fix until we install the PyPi unidecode module
         
             Args:
-                name(list): list of utf-8 names
+                name(list): list of unicode names
             
             Returns:
                 comma separated ascii string of names with special characters adjusted
-            
+                
         """
-        nlist = u",".join(names)
-        nlist_no_sc = str(''.join(c for c in unicodedata.normalize('NFD', nlist) 
-                                   if unicodedata.category(c) != 'Mn'))
-        return nlist_no_sc
+        nlist = u','.join(names)
+        nfkd_form = unicodedata.normalize('NFKD', nlist)
+        nlist_no_sc = u''.join([c for c in nfkd_form if not unicodedata.combining(c)])
+        return nlist_no_sc.translate(ExpData._toascii).encode('ascii','ignore')
