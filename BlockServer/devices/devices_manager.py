@@ -22,7 +22,6 @@ from BlockServer.core.constants import FILENAME_SCREENS as SCREENS_FILE
 from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from BlockServer.devices.devices_file_io import DevicesFileIO
-from xml.dom import minidom
 
 
 SCREENS_SCHEMA = "screens.xsd"
@@ -33,14 +32,13 @@ GET_SCHEMA = BlockserverPVNames.SCREENS_SCHEMA
 
 class DevicesManager(OnTheFlyPvInterface):
     """Class for managing the PVs associated with devices"""
-    def __init__(self, block_server, schema_folder, vc_manager, active_configholder, file_io=DevicesFileIO()):
+    def __init__(self, block_server, schema_folder, vc_manager, file_io=DevicesFileIO()):
         """Constructor.
 
         Args:
             block_server (BlockServer): A reference to the BlockServer instance
             schema_folder (string): The filepath for the devices schema
             vc_manager (ConfigVersionControl): The manager to allow version control modifications
-            active_configholder (ActiveConfigHolder): A reference to the active configuration
             file_io (DevicesFileIO): Object used for loading and saving files
         """
         self._file_io = file_io
@@ -50,7 +48,6 @@ class DevicesManager(OnTheFlyPvInterface):
         self._devices_pvs = dict()
         self._vc = vc_manager
         self._bs = block_server
-        self._activech = active_configholder
         self._data = ""
         self._create_standard_pvs()
 
@@ -90,6 +87,7 @@ class DevicesManager(OnTheFlyPvInterface):
         """Gets the devices XML for the current instrument"""
         # Read the data from file
         try:
+            print self.get_devices_filename()
             self._data = self._file_io.load_devices_file(self.get_devices_filename())
         except IOError as err:
             self._data = self.get_blank_devices()

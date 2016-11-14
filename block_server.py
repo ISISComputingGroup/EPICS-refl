@@ -264,7 +264,7 @@ class BlockServer(Driver):
         self.on_the_fly_handlers.append(self._syn)
 
         # Import all the devices data and create PVs
-        self._devices = DevicesManager(self, SCHEMA_DIR, self._vc, self._active_configserver)
+        self._devices = DevicesManager(self, SCHEMA_DIR, self._vc)
         self.on_the_fly_handlers.append(self._devices)
 
         # Start file watcher
