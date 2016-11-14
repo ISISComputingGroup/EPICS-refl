@@ -180,9 +180,9 @@ class ExpData(object):
             if teammembers is not None:
                 # Generate the lists/similar for conversion to JSON
                 for member in teammembers:
-                    fullname = member[0].decode('utf-8')
-                    org = member[1].decode('utf-8')
-                    role = member[2].decode('utf-8')
+                    fullname = unicode(member[0])
+                    org = unicode(member[1])
+                    role = unicode(member[2])
                     if not role == "Contact":
                         surnames.append(self._get_surname_from_fullname(fullname))
                     orgs.append(org)
@@ -224,9 +224,9 @@ class ExpData(object):
             # Loop through the list of strings to generate the lists/similar for conversion to JSON
             for teammember in users:
                 member = json.loads(teammember)
-                fullname = member['name'].decode('utf-8')
-                org = member['institute'].decode('utf-8')
-                role = member['role'].decode('utf-8')
+                fullname = unicode(member['name'])
+                org = unicode(member['institute'])
+                role = unicode(member['role'])
                 if not role == "Contact":
                     surnames.append(self._get_surname_from_fullname(fullname))
                 orgs.append(org)
