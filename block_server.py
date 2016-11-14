@@ -413,12 +413,14 @@ class BlockServer(Driver):
         self._initialise_config()
 
     def _set_curr_config(self, details):
-        """Sets the current configuration details to that defined in the XML, then initialises it.
+        """Sets the current configuration details to that defined in the XML, saves to disk, then initialises it.
 
         Args:
             details (string): the configuration XML
         """
         self._active_configserver.set_config_details(details)
+        # Need to save the config to file before we initialize or the changes won't be propagated to IOCS
+        self.save_active_config(self._active_configserver.get_config_name())
         self._initialise_config()
 
     def _initialise_config(self, init_gateway=True, full_init=False):
