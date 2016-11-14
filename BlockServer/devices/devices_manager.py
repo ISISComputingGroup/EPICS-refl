@@ -87,7 +87,6 @@ class DevicesManager(OnTheFlyPvInterface):
         """Gets the devices XML for the current instrument"""
         # Read the data from file
         try:
-            print self.get_devices_filename()
             self._data = self._file_io.load_devices_file(self.get_devices_filename())
         except IOError as err:
             self._data = self.get_blank_devices()
@@ -147,7 +146,7 @@ class DevicesManager(OnTheFlyPvInterface):
         self.update_monitors()
 
         self._add_to_version_control("Device screens modified by client")
-        print_and_log("Devices saved for current instrument.")
+        print_and_log("Devices saved to " + self.get_devices_filename())
 
     def _add_to_version_control(self, commit_message=None):
         # Add to version control
