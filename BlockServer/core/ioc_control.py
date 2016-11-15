@@ -94,6 +94,17 @@ class IocControl(object):
         """
         return self._proc.get_ioc_status(self._prefix, ioc)
 
+    def ioc_restart_pending(self, ioc):
+        """Tests if the IOC has a pending restart
+
+        Args:
+            ioc (string): The name of the IOC
+
+        Returns:
+            bool : Whether a restart is pending
+        """
+        return self._proc.ioc_restart_pending(self._prefix, ioc)
+
     def start_iocs(self, iocs):
         """ Start a number of IOCs.
 
@@ -180,7 +191,7 @@ class IocControl(object):
         """
         if self.ioc_exists(ioc):
             start = time()
-            while self.get_ioc_status(ioc) != "RUNNING":
+            while self.ioc_restart_pending(ioc) or self.get_ioc_status(ioc) != "RUNNING":
                 sleep(0.5)
                 if time() - start >= timeout:
                     print_and_log("Gave up waiting for IOC %s to be running" % ioc, "MAJOR")

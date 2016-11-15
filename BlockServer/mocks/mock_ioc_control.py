@@ -37,6 +37,9 @@ class MockIocControl(object):
     def get_ioc_status(self, ioc):
         return self._proc.get_ioc_status(self._prefix, ioc)
 
+    def ioc_restart_pending(self, ioc):
+        return self._proc.ioc_restart_pending(self._prefix, ioc)
+
     def start_iocs(self, iocs):
         for ioc in iocs:
             self._proc.start_ioc(self._prefix, ioc)
