@@ -24,10 +24,9 @@ from server_common.utilities import print_and_log, compress_and_hex, check_pv_na
 from server_common.channel_access import ChannelAccess
 from BlockServer.core.pv_names import BlockserverPVNames
 
-
 TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
 RC_IOC_PREFIX = "CS:PS:RUNCTRL_01"
-RC_RESET_PV = "CS:IOC:RUNCTRL_01:DEVIOS:SysReset"
+RC_START_PV = "CS:IOC:RUNCTRL_01:DEVIOS:STARTTOD"
 RUNCONTROL_SETTINGS = "rc_settings.cmd"
 AUTOSAVE_DIR = "autosave"
 RUNCONTROL_IOC = "RUNCTRL_01"
@@ -39,6 +38,7 @@ RUNCONTROL_GET_PV = BlockserverPVNames.prepend_blockserver('GET_RC_PARS')
 class RunControlManager(OnTheFlyPvInterface):
     """A class for taking care of setting up run-control.
     """
+
     def __init__(self, prefix, config_dir, var_dir, ioc_control, active_configholder, block_server,
                  channel_access=ChannelAccess()):
         """Constructor.
@@ -52,6 +52,7 @@ class RunControlManager(OnTheFlyPvInterface):
             block_server (BlockServer): A reference to the BlockServer instance
             channel_access (ChannelAccess): A reference to the ChannelAccess instance
         """
+        self._rc_ioc_start_time = ""
         self._prefix = prefix
         self._settings_file = os.path.join(config_dir, RUNCONTROL_SETTINGS)
         self._autosave_dir = os.path.join(var_dir, AUTOSAVE_DIR, RUNCONTROL_IOC)
@@ -219,18 +220,18 @@ class RunControlManager(OnTheFlyPvInterface):
         # TODO: Give up after a bit
         print_and_log("Waiting for runcontrol IOC to start")
         while True:
-            # See if the IOC has restarted by looking for a standard PV
+            # See if the IOC has restarted
             try:
-                running = True if self._channel_access.caget(self._prefix + RC_RESET_PV) is not None else False
-                restart_pending = ioc_restart_pending(self._prefix + RC_IOC_PREFIX, self._channel_access)
-                started = running and not restart_pending
-            except Exception as err:
-                # Probably has timed out
-                started = False
-            if started:
+                if ioc_restart_pending(self._prefix + RC_IOC_PREFIX, self._channel_access):
+                    raise Exception()
+                latest_ioc_start = self._channel_access.caget(self._prefix + RC_START_PV)
+                if latest_ioc_start is None or latest_ioc_start <= self._rc_ioc_start_time:
+                    raise Exception()
+                self._rc_ioc_start_time = latest_ioc_start
                 print_and_log("Runcontrol IOC started")
                 break
-            sleep(2)
+            except Exception as err:
+                sleep(2)
         # wait for other RC PVs to appear
         sleep(5)
 
