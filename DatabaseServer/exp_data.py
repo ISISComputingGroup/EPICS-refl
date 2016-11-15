@@ -52,9 +52,8 @@ class ExpData(object):
 
     def make_ascii_mappings():
         """create mapping for characters not converted to 7 bit by NFKD"""
-        mappings_in = u'\xd0\xd7\xd8\xde\xdf\xf0\xf8\xfe'
+        mappings_in = [ ord(char) for char in u'\xd0\xd7\xd8\xde\xdf\xf0\xf8\xfe' ]
         mappings_out = u'DXOPBoop'
-        mappings_in = [ ord(char) for char in mappings_in ]
         d = dict(zip(mappings_in, mappings_out))
         d[ord(u'\xc6')] = u'AE'
         d[ord(u'\xe6')] = u'ae'
