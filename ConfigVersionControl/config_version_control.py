@@ -3,7 +3,7 @@ import shutil
 from version_control_wrapper import VersionControlWrapper
 from constants import *
 
-+SYSTEM_TEST_PREFIX = "rcptt_"
+SYSTEM_TEST_PREFIX = "rcptt_"
 
 
 class ConfigVersionControl:
@@ -12,9 +12,11 @@ class ConfigVersionControl:
         self.working_directory = working_directory
         self.version_control = VersionControlWrapper(working_directory, GIT_TYPE)
 
-    #i.e. not automatically via the file observer firing an event, but after a new configuration is created
-    #or an existing one updated via the GUI.
     def add(self, file_path):
+        """ Add a file to the repository
+        Args:
+            path (str): the file to add
+        """
         if self._should_ignore(file_path):
             return
         self.version_control.add(file_path)
@@ -31,9 +33,11 @@ class ConfigVersionControl:
 
         self.version_control.remove(file_path)
 
-    #and supply a message for the commit (e.g. change to configuration)
-    #i.e. not automatically as explained above
     def commit(self, commit_comment):
+        """ Commit changes to a repository
+        Args:
+            commit_comment (str): comment to leave with the commit
+        """
         self.version_control.commit(commit_comment)
 
     def update(self, update_path=""):

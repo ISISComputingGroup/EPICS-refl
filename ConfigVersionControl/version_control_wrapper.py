@@ -14,16 +14,27 @@ class VersionControlWrapper:
             self.implements = GitVersionControl(working_directory)
 
     def info(self, path):
-        # return some information on the repository
+        """ Get some info on the repository
+        Args:
+            path (str): the path to the repository
+
+        Returns:
+            string: Info about the repository
+        """
         self.implements.info(path)
 
     def add(self, path):
-        # add file to repository
+        """ Add a file to the repository
+        Args:
+            path (str): the file to add
+        """
         self.implements.add(path)
 
     def commit(self, commit_comment="Default Comment - Changed File"):
-        # commit changes to repository
-        # SVN (and possibly GIT) requires a comment for each commit.
+        """ Commit changes to a repository
+        Args:
+            commit_comment (str): comment to leave with the commit
+        """
         self.implements.commit(self.working_directory, commit_comment)
 
     def update(self, update_path):

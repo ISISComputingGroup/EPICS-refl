@@ -58,7 +58,8 @@ class GitVersionControl:
         return True
 
     def _unlock(self):
-        # Removes index.lock if it exists, and it's not being used
+        """ Removes index.lock if it exists, and it's not being used
+        """
         lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
         if os.path.exists(lock_file_path):
             try:
@@ -71,12 +72,20 @@ class GitVersionControl:
 
     # TODO: Waits with no timeout here!!
     def info(self, working_directory):
-        # returns some information on the repository
+        """ Get some info on the repository
+        Args:
+            path (str): the path to the repository
+
+        Returns:
+            string: Info about the repository
+        """
         print self.repo.git.status()
 
     def add(self, path):
-        # adds a file to the repository
-        # Add needs write capability on .git folder
+        """ Add a file to the repository
+        Args:
+            path (str): the file to add
+        """
         try:
             self.repo.index.add([path])
         except WindowsError as e:
@@ -85,18 +94,26 @@ class GitVersionControl:
             self.repo.index.add([path])
 
     def commit(self, working_directory, commit_comment):
-        # commits changes to a file to the repository and pushes
+        """ Commit changes to a repository
+        Args:
+            commit_comment (str): comment to leave with the commit
+        """
         self.repo.index.commit(commit_comment)
         with self._push_lock:
             self._push_required = True
 
     def update(self, update_path):
-        # reverts folder to the remote repository
+        """ reverts folder to the remote repository
+        """
         self._pull()
         if self.repo.is_dirty():
             self.repo.index.checkout()
 
     def remove(self, path):
+        """ Deletes file from the filesystem as well as removing from the repo
+        Args:
+            path (str): pat
+        """
         delete_list = []
         if os.path.isdir(path):
             for root, dirs, files in os.walk(path, topdown=False):
