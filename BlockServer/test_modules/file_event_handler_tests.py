@@ -50,11 +50,5 @@ class TestFileEventHandler(unittest.TestCase):
 
         self.assertEqual(name, config_folder)
 
-    def test_get_config_name_valid_nested_structure(self):
-        config_folder = 'TEST_CONFIG'
-        name = self.eh._get_config_name(os.path.join(FILEPATH_MANAGER.config_dir, config_folder, 'TEST_FILE.xml'))
-
-        self.assertEqual(name, config_folder)
-
     def test_file_not_in_correct_place(self):
         self.assertFalse(self.eh._check_file_at_root(os.path.join(FILEPATH_MANAGER.config_root_dir, 'TEST_FILE.xml')))

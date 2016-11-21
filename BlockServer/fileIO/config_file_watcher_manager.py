@@ -20,6 +20,7 @@ import os
 from watchdog.observers import Observer
 
 from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
+from BlockServer.fileIO.devices_file_event_handler import DevicesFileEventHandler
 from BlockServer.fileIO.synoptic_file_event_handler import SynopticFileEventHandler
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
@@ -31,18 +32,20 @@ class ConfigFileWatcherManager(object):
 
     Registers and communicates with the event handlers for configuration and synoptic filewatchers.
     """
-    def __init__(self, schema_folder, config_list_manager, synoptic_manager):
+    def __init__(self, schema_folder, config_list_manager, synoptic_manager, devices_manager):
         """Constructor.
 
         Args:
             schema_folder (string): The folder where the schemas are kept.
             config_list_manager (ConfigListManager): The ConfigListManager instance.
             synoptic_manager (SynopticManager): The SynopticManager instance.
+            devices_manager (DevicesManager): The DevicesManager instance.
         """
         schema_lock = RLock()
         self._config_dir = FILEPATH_MANAGER.config_dir
         self._comp_dir = FILEPATH_MANAGER.component_dir
         self._syn_dir = FILEPATH_MANAGER.synoptic_dir
+        self._dev_dir = FILEPATH_MANAGER.devices_dir
         self._observers = []
 
         # Create config watcher
@@ -63,6 +66,12 @@ class ConfigFileWatcherManager(object):
 
         self._syn_observer = self._create_observer(self._synoptic_event_handler, self._syn_dir)
 
+        # Create device screens watcher
+        self._devices_event_handler = DevicesFileEventHandler(schema_folder, schema_lock,
+                                                              devices_manager)
+
+        self._dev_observer = self._create_observer(self._devices_event_handler, self._dev_dir)
+
     def _create_observer(self, event_handler, directory):
         obs = Observer()
         obs.schedule(event_handler, directory, True)
@@ -74,6 +83,7 @@ class ConfigFileWatcherManager(object):
         self._component_observer.unschedule_all()
         self._config_observer.unschedule_all()
         self._syn_observer.unschedule_all()
+        self._dev_observer.unschedule_all()
 
     def resume(self):
         """Restart the filewatcher after a pause."""
@@ -81,3 +91,4 @@ class ConfigFileWatcherManager(object):
         self._config_observer.schedule(self._config_event_handler, self._config_dir, recursive=True)
         self._component_observer.schedule(self._component_event_handler, self._comp_dir, recursive=True)
         self._syn_observer.schedule(self._synoptic_event_handler, self._syn_dir, recursive=True)
+        self._dev_observer.schedule(self._devices_event_handler, self._dev_dir, recursive=True)

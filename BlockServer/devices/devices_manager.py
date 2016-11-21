@@ -17,7 +17,8 @@
 import os
 from server_common.utilities import print_and_log, compress_and_hex
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema, \
+    NotConfigFileException
 from BlockServer.core.constants import FILENAME_SCREENS as SCREENS_FILE
 from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
@@ -31,9 +32,9 @@ GET_SCHEMA = BlockserverPVNames.SCREENS_SCHEMA
 
 
 class DevicesManager(OnTheFlyPvInterface):
-    """Class for managing the PVs associated with devices"""
+    """ Class for managing the PVs associated with devices"""
     def __init__(self, block_server, schema_folder, vc_manager, file_io=DevicesFileIO()):
-        """Constructor.
+        """ Constructor.
 
         Args:
             block_server (BlockServer): A reference to the BlockServer instance
@@ -52,6 +53,7 @@ class DevicesManager(OnTheFlyPvInterface):
         self._create_standard_pvs()
 
     def _create_standard_pvs(self):
+        """ Creates new PVs holding information relevant to the device screens. """
         self._bs.add_string_pv_to_db(GET_SCREENS, 16000)
         self._bs.add_string_pv_to_db(SET_SCREENS, 16000)
         self._bs.add_string_pv_to_db(GET_SCHEMA, 16000)
@@ -73,6 +75,7 @@ class DevicesManager(OnTheFlyPvInterface):
         pass
 
     def update_monitors(self):
+        """ Writes new device screens data to PVs """
         with self._bs.monitor_lock:
             print "UPDATING DEVICES MONITORS"
             self._bs.setParam(GET_SCHEMA, compress_and_hex(self.get_devices_schema()))
@@ -80,11 +83,12 @@ class DevicesManager(OnTheFlyPvInterface):
             self._bs.updatePVs()
 
     def initialise(self, full_init=False):
+        """ Initialises the device manager by loading the current device screen configuration. """
         self._load_current()
         self.update_monitors()
 
     def _load_current(self):
-        """Gets the devices XML for the current instrument"""
+        """ Gets the devices XML for the current instrument"""
         # Read the data from file
         try:
             self._data = self._file_io.load_devices_file(self.get_devices_filename())
@@ -111,7 +115,7 @@ class DevicesManager(OnTheFlyPvInterface):
         self._vc.commit("Blockserver started, devices updated")
 
     def get_devices_filename(self):
-        """Gets the names of the devices files in the devices directory.
+        """ Gets the names of the devices files in the devices directory.
 
         Returns:
             string : Current devices file name
@@ -119,8 +123,22 @@ class DevicesManager(OnTheFlyPvInterface):
 
         return os.path.join(FILEPATH_MANAGER.devices_dir, SCREENS_FILE)
 
+    def update(self, xml_data, message=None):
+        """ Updates the current device screens with new data.
+
+        Args:
+            xml_data: The updated device screens data
+            message: The commit message
+
+        Returns:
+
+        """
+        self._data = xml_data
+        self.update_monitors()
+        self._add_to_version_control(message)
+
     def save_devices_xml(self, xml_data):
-        """Saves the xml in the current "screens.xml" config file.
+        """ Saves the xml in the current "screens.xml" config file.
 
         Args:
             xml_data (string): The XML to be saved
@@ -142,20 +160,23 @@ class DevicesManager(OnTheFlyPvInterface):
             return
 
         # Update PVs
-        self._data = xml_data
-        self.update_monitors()
-
-        self._add_to_version_control("Device screens modified by client")
+        self.update(xml_data, "Device screens modified by client")
         print_and_log("Devices saved to " + self.get_devices_filename())
 
     def _add_to_version_control(self, commit_message=None):
-        # Add to version control
+        """ Adds the current device screens file to version control.
+        Args:
+            commit_message (string): The commit message.
+
+        Returns:
+
+        """
         self._vc.add(self.get_devices_filename())
         if commit_message is not None:
             self._vc.commit(commit_message)
 
     def get_devices_schema(self):
-        """Gets the XSD data for the devices screens.
+        """ Gets the XSD data for the devices screens.
 
         Note: Only reads file once, if the file changes then the BlockServer will need to be restarted
 
@@ -169,7 +190,7 @@ class DevicesManager(OnTheFlyPvInterface):
         return self._schema
 
     def get_blank_devices(self):
-        """Gets a blank devices xml
+        """ Gets a blank devices xml
 
         Returns:
             string : The XML for the blank devices set
@@ -177,3 +198,7 @@ class DevicesManager(OnTheFlyPvInterface):
         return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                 <devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
                 </devices>"""
+
+    def recover_from_version_control(self):
+        """ A method to revert the configurations directory back to the state held in version control."""
+        self._vc.update()

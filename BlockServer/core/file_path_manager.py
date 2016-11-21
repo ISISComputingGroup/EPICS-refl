@@ -19,7 +19,7 @@ import os
 CONFIG_DIRECTORY = "configurations"
 COMPONENT_DIRECTORY = "components"
 SYNOPTIC_DIRECTORY = "synoptics"
-DEVICES_DIRECTORY = "device_screens"
+DEVICES_DIRECTORY = "devices"
 
 
 # Do not create an instance of this class, instead use FILEPATH_MANAGER as a singleton
@@ -43,7 +43,7 @@ class FilePathManager(object):
 
     def _create_default_folders(self):
         # Create default folders
-        paths = [self.config_root_dir, self.config_dir, self.component_dir, self.synoptic_dir]
+        paths = [self.config_root_dir, self.config_dir, self.component_dir, self.synoptic_dir, self.devices_dir]
         for p in paths:
             if not os.path.isdir(p):
                 # Create it then

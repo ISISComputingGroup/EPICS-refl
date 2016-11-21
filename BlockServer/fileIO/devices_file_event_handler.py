@@ -19,33 +19,30 @@ import os
 
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
-from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import *
-from BlockServer.core.macros import MACROS
 from server_common.utilities import print_and_log
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
-from BlockServer.fileIO.file_manager import ConfigurationFileManager
-from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA_FILE
+from BlockServer.devices.devices_manager import SCREENS_SCHEMA
 
 
-class SynopticFileEventHandler(FileSystemEventHandler):
-    """ The SynopticFileEventHandler class
+class DevicesFileEventHandler(FileSystemEventHandler):
+    """ The DevicesFileEventHandler class
 
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and
-    creates/removes available synoptics as necessary.
+    creates/removes available device screens as necessary.
     """
-    def __init__(self, schema_folder, schema_lock, synoptic_list_manager):
+    def __init__(self, schema_folder, schema_lock, devices_manager):
         """Constructor.
 
         Args:
             schema_folder (string): The location of the schemas
             schema_lock (string): The reentrant lock for the schema
-            synoptic_list_manager (SynopticListManager): The SynopticListManager
+            devices_manager (DevicesManager): The DevicesManager
         """
-        self._schema_filepath = os.path.join(schema_folder, SYNOPTIC_SCHEMA_FILE)
+        self._schema_filepath = os.path.join(schema_folder, SCREENS_SCHEMA)
         self._schema_lock = schema_lock
-        self._synoptic_list = synoptic_list_manager
+        self._devices_manager = devices_manager
 
     def on_any_event(self, event):
         """Catch-all event handler.
@@ -56,28 +53,26 @@ class SynopticFileEventHandler(FileSystemEventHandler):
         if not event.is_directory:
             if type(event) is not FileDeletedEvent:
                 try:
-                    name = self._get_synoptic_name(event.src_path)
                     if type(event) is FileMovedEvent:
                         modified_path = event.dest_path
-                        self._synoptic_list.delete_synoptics([name])
                     else:
                         modified_path = event.src_path
 
-                    syn = self._check_synoptic_valid(modified_path)
+                    devices = self._check_devices_valid(modified_path)
 
-                    # Update PVs
-                    self._synoptic_list.update_from_filewatcher(name, syn)
+                    # Update
+                    self._devices_manager.update(devices, "Device screens modified on filesystem")
 
                     # Inform user
-                    print_and_log("The synoptic, %s, has been modified in the filesystem, ensure it is added to "
-                                  "version control" % name, "INFO", "FILEWTCHR")
+                    print_and_log("The device screens list has been modified in the filesystem, ensure it is added to "
+                                  "version control", "INFO", "FILEWTCHR")
 
                 except NotConfigFileException as err:
-                    print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
+                    print_and_log("File Watcher1: " + repr(err), src="FILEWTCHR")
                 except ConfigurationIncompleteException as err:
-                    print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
+                    print_and_log("File Watcher2: " + repr(err), src="FILEWTCHR")
                 except Exception as err:
-                    print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
+                    print_and_log("File Watcher3: " + repr(err), "MAJOR", "FILEWTCHR")
 
     def on_deleted(self, event):
         """"Called when a file or directory is deleted.
@@ -88,13 +83,13 @@ class SynopticFileEventHandler(FileSystemEventHandler):
         # Recover and return error
         try:
             # Recover deleted file from vc so it can be deleted properly
-            self._synoptic_list.recover_from_version_control()
+            self._devices_manager.recover_from_version_control()
         except Exception as err:
-            print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
+            print_and_log("File Watcher: " + repr(err), "MAJOR", "FILEWTCHR")
 
         print_and_log("File Watcher: Repository reverted after %s deleted manually. Please delete files via client" % event.src_path, "MAJOR", "FILEWTCHR")
 
-    def _check_synoptic_valid(self, path):
+    def _check_devices_valid(self, path):
         extension = path[-4:]
         if extension != ".xml":
             raise NotConfigFileException("File not xml")
@@ -106,6 +101,3 @@ class SynopticFileEventHandler(FileSystemEventHandler):
             ConfigurationSchemaChecker.check_xml_data_matches_schema(self._schema_filepath, xml_data)
 
         return xml_data
-
-    def _get_synoptic_name(self, path):
-        return os.path.basename(path)[:-4]

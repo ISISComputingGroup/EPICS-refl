@@ -160,6 +160,12 @@ class SynopticManager(OnTheFlyPvInterface):
         self.update_pv_value(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(data))
 
     def update_pv_value(self, name, data):
+        """ Updates value of a PV holding synoptic information with new data
+
+        Args:
+            name (string): The name of the edited synoptic
+            data (string): The new synoptic data
+        """
         self._bs.setParam(name, data)
         self._bs.updatePVs()
 
