@@ -81,6 +81,8 @@ def convert_to_json(value):
     Returns:
         string : The JSON representation of the inputted object
     """
+# TODO: we may want to use 'utf-8' here in future, not needed 
+#       this time as functionality previously duplicated in exp_data.py
     return json.dumps(value).encode('ascii', 'replace')
 
 
@@ -207,4 +209,17 @@ def waveform_to_string(data):
             break
         output += str(unichr(i))
     return output
+
+
+def ioc_restart_pending(ioc_pv, channel_access):
+    """Check if a particular IOC is restarting. Assumes it has suitable restart PV
+
+    Args:
+        ioc_pv: The base PV for the IOC with instrument PV prefix
+        channel_access: The channel access object to be used for accessing PVs
+
+    Return
+        bool: True if restarting, else False
+    """
+    return True if channel_access.caget(ioc_pv + ":RESTART", as_string=True) is "Busy" else False
 

@@ -314,7 +314,8 @@ if __name__ == '__main__':
     while True:
         try:
             SERVER.process(0.1)
-        except:
+        except Exception as err:
+            print_and_log(err,"MAJOR")
             break
 
     DRIVER.close()

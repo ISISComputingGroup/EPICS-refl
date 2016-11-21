@@ -109,3 +109,16 @@ class TestExpData(unittest.TestCase):
         self.assertEqual(len(simnames), 0)
         self.assertEqual(len(surnames), 0)
         self.assertEqual(len(orgs), 0)
+
+    def test_remove_accents_from_name(self):
+        # Arrange
+        # list of names in unicode code points, which is the same as ISO-8859-1 encoding 
+        names_uni = [ u'Somebody', u'S\xf8rina', u'\xe9\xe5\xf5\xf6\xc6' ]
+        # best ascii equivalents of names 
+        names_ascii = [ 'Somebody', 'Sorina', 'eaooAE' ]
+
+        # Act
+        conv_names = ExpData.make_name_list_ascii(names_uni).split(',')
+
+        # Assert
+        self.assertTrue(conv_names == names_ascii)

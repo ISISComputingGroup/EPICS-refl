@@ -18,10 +18,10 @@ import os
 # Set MYPVPREFIX env var
 os.environ['MYPVPREFIX'] = ""
 
-from BlockServer.runcontrol.runcontrol_manager import RunControlManager
+from BlockServer.runcontrol.runcontrol_manager import RunControlManager, RC_START_PV
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.mocks.mock_ioc_control import MockIocControl
-from BlockServer.mocks.mock_channel_access import MockChannelAccess
+from BlockServer.mocks.mock_channel_access import MockChannelAccess, PVS
 from BlockServer.mocks.mock_active_config_holder import MockActiveConfigHolder
 from BlockServer.config.configuration import Configuration
 from BlockServer.mocks.mock_version_control import MockVersionControl
@@ -52,19 +52,26 @@ class TestRunControlSequence(unittest.TestCase):
     def setUp(self):
         self.activech = MockActiveConfigHolder(MACROS)
         self.cs = MockChannelAccess()
+        self.set_start_time_of_run_control(1)
         self.rcm = RunControlManager("", "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs)
 
+    def set_start_time_of_run_control(self, start_time=2):
+        PVS[MACROS["$(MYPVPREFIX)"] + RC_START_PV] = start_time
+
     def test_get_runcontrol_settings_empty(self):
-        self.rcm.create_runcontrol_pvs(False)
+        self.set_start_time_of_run_control()
+        self.rcm.create_runcontrol_pvs(False, 0)
         ans = self.rcm.get_current_settings()
         self.assertTrue(len(ans) == 0)
+
 
     def test_get_runcontrol_settings_blocks(self):
         add_block(self.activech, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
         add_block(self.activech, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
         add_block(self.activech, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
         add_block(self.activech, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
-        self.rcm.create_runcontrol_pvs(False)
+        self.set_start_time_of_run_control()
+        self.rcm.create_runcontrol_pvs(False, 0)
         ans = self.rcm.get_current_settings()
         self.assertTrue(len(ans) == 4)
         self.assertTrue("HIGH" in ans["TESTBLOCK1"])
@@ -83,7 +90,8 @@ class TestRunControlSequence(unittest.TestCase):
     def test_get_runcontrol_settings_blocks_limits(self):
         data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
         add_block(self.activech, data)
-        self.rcm.create_runcontrol_pvs(False)
+        self.set_start_time_of_run_control()
+        self.rcm.create_runcontrol_pvs(False, 0)
         ans = self.rcm.get_current_settings()
         self.assertTrue(len(ans) == 1)
         self.assertTrue(ans["TESTBLOCK1"]["HIGH"] == 5)
@@ -92,7 +100,8 @@ class TestRunControlSequence(unittest.TestCase):
     def test_set_runcontrol_settings_limits(self):
         data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
         add_block(self.activech, data)
-        self.rcm.create_runcontrol_pvs(False)
+        self.set_start_time_of_run_control()
+        self.rcm.create_runcontrol_pvs(False, 0)
         ans = self.rcm.get_current_settings()
         ans["TESTBLOCK1"]["LOW"] = 0
         ans["TESTBLOCK1"]["HIGH"] = 10
@@ -101,3 +110,8 @@ class TestRunControlSequence(unittest.TestCase):
         ans = self.rcm.get_current_settings()
         self.assertEqual(ans["TESTBLOCK1"]["HIGH"], 10)
         self.assertEqual(ans["TESTBLOCK1"]["LOW"], 0)
+
+    def test_GIVEN_non_restarting_runcontrol_WHEN_create_PVs_THAT_code_is_not_stuck_in_loop(self):
+
+        self.rcm.create_runcontrol_pvs(False, 0)
+
