@@ -81,16 +81,23 @@ class TestIocControlSequence(unittest.TestCase):
         ic.set_autorestart("TESTIOC", False)
         self.assertEqual(ic.get_autorestart("TESTIOC"), False)
 
-    def test_GIVEN_reapply_auto_default_WHEN_ioc_restart_requested_THEN_ioc_control_waits_for_restart_complete(self):
+    def test_WHEN_ioc_restart_requested_THEN_ioc_control_may_return_before_restart_complete(self):
         ic = IocControl("", MockProcServWrapper())
         ic.start_ioc("TESTIOC")
         self.assertFalse(ic.ioc_restart_pending("TESTIOC"))
         ic.restart_ioc("TESTIOC")
-        self.assertFalse(ic.ioc_restart_pending("TESTIOC"))
+        self.assertTrue(ic.ioc_restart_pending("TESTIOC"))
 
-    def test_GIVEN_reapply_auto_False_WHEN_ioc_restart_requested_THEN_ioc_control_may_return_before_restart_complete(self):
+    def test_GIVEN_reapply_auto_default_WHEN_ioc_restarts_requested_THEN_ioc_control_may_return_before_restart_complete(self):
         ic = IocControl("", MockProcServWrapper())
         ic.start_ioc("TESTIOC")
         self.assertFalse(ic.ioc_restart_pending("TESTIOC"))
-        ic.restart_ioc("TESTIOC",reapply_auto=False)
+        ic.restart_iocs(["TESTIOC"])
         self.assertTrue(ic.ioc_restart_pending("TESTIOC"))
+
+    def test_GIVEN_reapply_auto_true_WHEN_multiple_ioc_restarts_requested_THEN_ioc_control_waits_for_restart_complete(self):
+        ic = IocControl("", MockProcServWrapper())
+        ic.start_ioc("TESTIOC")
+        self.assertFalse(ic.ioc_restart_pending("TESTIOC"))
+        ic.restart_iocs(["TESTIOC"],reapply_auto=True)
+        self.assertFalse(ic.ioc_restart_pending("TESTIOC"))
