@@ -1,4 +1,5 @@
 # Version Control class for dealing with git file operations
+import os
 import stat
 import socket
 from git import *
@@ -11,17 +12,20 @@ from server_common.utilities import print_and_log
 
 class GitVersionControl:
 
-    def __init__(self, working_directory):
+    def __init__(self, working_directory, repo=None):
         self._wd = working_directory
 
         # Check repo
         try:
-            self.repo = Repo(self._wd, search_parent_directories=True)
+            if repo is None:
+                self.repo = Repo(self._wd, search_parent_directories=True)
+            else:
+                self.repo = repo
         except Exception as e:
             # Not a valid repository
             raise NotUnderVersionControl(self._wd)
 
-        if not self._branch_allowed(str(self.repo.active_branch)):
+        if not self.branch_allowed(str(self.repo.active_branch)):
             raise NotUnderAllowedBranch()
 
         self._unlock()
@@ -38,7 +42,8 @@ class GitVersionControl:
         push_thread.daemon = True  # Daemonise thread
         push_thread.start()
 
-    def _branch_allowed(self, branch_name):
+    @staticmethod
+    def branch_allowed(branch_name):
         """Checks that the branch is allowed to be pushed
 
         Args:

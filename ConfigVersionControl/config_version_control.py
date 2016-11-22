@@ -8,9 +8,12 @@ SYSTEM_TEST_PREFIX = "rcptt_"
 
 class ConfigVersionControl:
 
-    def __init__(self, working_directory):
+    def __init__(self, working_directory, version_control=None):
         self.working_directory = working_directory
-        self.version_control = VersionControlWrapper(working_directory, GIT_TYPE)
+        if version_control is None:
+            self.version_control = VersionControlWrapper(working_directory, GIT_TYPE)
+        else:
+            self.version_control = version_control
 
     def add(self, file_path):
         """ Add a file to the repository
