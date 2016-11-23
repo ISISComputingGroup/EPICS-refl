@@ -1,7 +1,7 @@
 import os
 import shutil
-from version_control_wrapper import VersionControlWrapper
 from constants import *
+from git_version_control import GitVersionControl
 
 SYSTEM_TEST_PREFIX = "rcptt_"
 
@@ -11,7 +11,7 @@ class ConfigVersionControl:
     def __init__(self, working_directory, version_control=None):
         self.working_directory = working_directory
         if version_control is None:
-            self.version_control = VersionControlWrapper(working_directory, GIT_TYPE)
+            self.version_control = GitVersionControl(working_directory)
         else:
             self.version_control = version_control
 
@@ -43,10 +43,8 @@ class ConfigVersionControl:
         """
         self.version_control.commit(commit_comment)
 
-    def update(self, update_path=""):
-        if update_path == "":
-            update_path = self.working_directory
-        self.version_control.update(update_path)
+    def update(self):
+        self.version_control.update()
 
     def _should_ignore(self, file_path):
         # Ignore anything that starts with the system tests prefix

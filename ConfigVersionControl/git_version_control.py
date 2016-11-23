@@ -98,7 +98,7 @@ class GitVersionControl:
             self._set_permissions()
             self.repo.index.add([path])
 
-    def commit(self, working_directory, commit_comment):
+    def commit(self, commit_comment):
         """ Commit changes to a repository
         Args:
             commit_comment (str): comment to leave with the commit
@@ -107,7 +107,7 @@ class GitVersionControl:
         with self._push_lock:
             self._push_required = True
 
-    def update(self, update_path):
+    def update(self):
         """ reverts folder to the remote repository
         """
         self._pull()

@@ -21,7 +21,7 @@ from vc_exceptions import NotUnderAllowedBranch
 import socket
 
 
-class MockVersionControlWrapper():
+class MockVersionControl():
     def __init__(self):
         self._files = list()
 
@@ -29,26 +29,21 @@ class MockVersionControlWrapper():
         self._files.append(file_path)
 
 
-class MockRepo():
-    def __init__(self, active_branch):
-        self.active_branch = active_branch
-
-
 class TestVersionControl(unittest.TestCase):
     def test_WHEN_config_name_contains_rcptt_THEN_do_not_add(self):
-        mock_wrapper = MockVersionControlWrapper()
-        cfg = ConfigVersionControl("", mock_wrapper)
+        mock_vc = MockVersionControl()
+        cfg = ConfigVersionControl(None, mock_vc)
         cfg.add(SYSTEM_TEST_PREFIX + "test")
 
-        self.assertEqual(len(mock_wrapper._files), 0)
+        self.assertEqual(len(mock_vc._files), 0)
 
     def test_WHEN_config_name_does_not_contain_rcptt_THEN_add(self):
-        mock_wrapper = MockVersionControlWrapper()
-        cfg = ConfigVersionControl("", mock_wrapper)
+        mock_vc = MockVersionControl()
+        cfg = ConfigVersionControl(None, mock_vc)
         cfg.add("test")
 
-        self.assertEqual(len(mock_wrapper._files), 1)
-        self.assertTrue("test" in mock_wrapper._files)
+        self.assertEqual(len(mock_vc._files), 1)
+        self.assertTrue("test" in mock_vc._files)
 
     def test_WHEN_banch_is_master_THEN_branch_not_allowed(self):
         self.assertFalse(GitVersionControl.branch_allowed("master"))
