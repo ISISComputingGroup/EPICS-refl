@@ -20,6 +20,7 @@ import os
 import shutil
 
 from BlockServer.core.config_list_manager import ConfigListManager
+from BlockServer.fileIO.BaseFileEventHandler import BaseFileEventHandler
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
 from BlockServer.mocks.mock_version_control import MockVersionControl
@@ -32,13 +33,13 @@ TEST_DIRECTORY = os.path.abspath("test_configs")
 SCHEMA_DIR = os.path.abspath(os.path.join("..","..","..","..","schema","configurations"))
 
 
-class TestFileEventHandler(unittest.TestCase):
+class TestBaseFileEventHandler(unittest.TestCase):
 
     def setUp(self):
         FILEPATH_MANAGER.initialise(TEST_DIRECTORY, SCHEMA_DIR)
         self.file_manager = MockConfigurationFileManager()
         self.config_list = ConfigListManager(MockBlockServer(), SCHEMA_DIR, MockVersionControl(), self.file_manager)
-        self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list, False)
+        self.eh = BaseFileEventHandler(SCHEMA_DIR, RLock(), self.config_list, False)
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + os.sep):
@@ -52,3 +53,5 @@ class TestFileEventHandler(unittest.TestCase):
 
     def test_file_not_in_correct_place(self):
         self.assertFalse(self.eh._check_file_at_root(os.path.join(FILEPATH_MANAGER.config_root_dir, 'TEST_FILE.xml')))
+
+

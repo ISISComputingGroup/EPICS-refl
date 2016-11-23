@@ -16,33 +16,38 @@
 
 import string
 import os
+from abc import abstractmethod
 
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
+from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import *
+from BlockServer.core.macros import MACROS
 from server_common.utilities import print_and_log
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
-from BlockServer.devices.devices_manager import SCREENS_SCHEMA
+from BlockServer.fileIO.file_manager import ConfigurationFileManager
+from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA_FILE
 
 
-class DevicesFileEventHandler(FileSystemEventHandler):
-    """ The DevicesFileEventHandler class
+class BaseFileEventHandler(FileSystemEventHandler):
+    """ The SomeFileEventHandler class
 
-    Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and
-    creates/removes available device screens as necessary.
+    Subclasses the FileSystemEventHandler class from the watchdog module.
+    Superclass for individual file event handler classes for different kinds of configuration files.
     """
-    def __init__(self, schema_folder, schema_lock, devices_manager):
+
+    def __init__(self, schema_folder, schema_lock, manager):
         """Constructor.
 
         Args:
             schema_folder (string): The location of the schemas
             schema_lock (string): The reentrant lock for the schema
-            devices_manager (DevicesManager): The DevicesManager
+            manager : The File Manager # TODO needed methods
         """
-        self._schema_filepath = os.path.join(schema_folder, SCREENS_SCHEMA)
+        self._schema_filepath = os.path.join(schema_folder, SYNOPTIC_SCHEMA_FILE)
         self._schema_lock = schema_lock
-        self._devices_manager = devices_manager
+        self._manager = manager
 
     def on_any_event(self, event):
         """Catch-all event handler.
@@ -53,36 +58,42 @@ class DevicesFileEventHandler(FileSystemEventHandler):
         if not event.is_directory:
             if type(event) is not FileDeletedEvent:
                 try:
+                    name = self._get_name(event.src_path)
                     if type(event) is FileMovedEvent:
                         modified_path = event.dest_path
+                        self._manager.delete(name)
                     else:
                         modified_path = event.src_path
 
-                    devices = self._check_devices_valid(modified_path)
+                    data = self._check_valid(modified_path)
 
-                    # Update
-                    self._devices_manager.update(devices, "Device screens modified on filesystem")
+                    # Update PVs
+                    self._update(name, data)
 
                     # Inform user
-                    print_and_log("The device screens list has been modified in the filesystem, ensure it is added to "
-                                  "version control", "INFO", "FILEWTCHR")
+                    print_and_log("The synoptic, %s, has been modified in the filesystem, ensure it is added to "
+                                  "version control" % name, "INFO", "FILEWTCHR")
 
                 except NotConfigFileException as err:
-                    print_and_log("File Watcher1: " + repr(err), src="FILEWTCHR")
+                    print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
                 except ConfigurationIncompleteException as err:
-                    print_and_log("File Watcher2: " + repr(err), src="FILEWTCHR")
+                    print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
                 except Exception as err:
-                    print_and_log("File Watcher3: " + repr(err), "MAJOR", "FILEWTCHR")
+                    print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
-    def _check_devices_valid(self, path):
-        extension = path[-4:]
-        if extension != ".xml":
-            raise NotConfigFileException("File not xml")
+    def on_deleted(self, event):
+        """"Called when a file or directory is deleted.
 
-        with open(path, 'r') as synfile:
-            xml_data = synfile.read()
+        Args:
+            event (DirDeletedEvent): Event representing directory deletion.
+        """
+        # Recover and return error
+        try:
+            # Recover deleted file from vc so it can be deleted properly
+            self._manager.recover_from_version_control()
+        except Exception as err:
+            print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
-        with self._schema_lock:
-            ConfigurationSchemaChecker.check_xml_data_matches_schema(self._schema_filepath, xml_data)
+        print_and_log("File Watcher: Repository reverted after %s deleted manually. Please delete files via client" % event.src_path, "MAJOR", "FILEWTCHR")
 
-        return xml_data
+

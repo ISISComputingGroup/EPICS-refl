@@ -179,7 +179,7 @@ class ConfigListManager(object):
         pv_name = BlockserverPVNames.get_component_details_pv(self._component_metas[name].pv)
         self._update_pv_value(pv_name, compress_and_hex(json.dumps(data)))
 
-    def update_a_config_in_list_filewatcher(self, config, is_component=False):
+    def update(self, config, is_component=False):
         """Updates the PVs associated with a configuration
 
         Args:
@@ -271,7 +271,7 @@ class ConfigListManager(object):
             self._vc.remove(os.path.join(folder, config))
         self._vc.commit("Deleted %s" % ', '.join(list(files)))
 
-    def delete_configs(self, delete_list, are_comps=False):
+    def delete(self, delete_list, are_comps=False):
         """Takes a list of configurations and removes them from the file system and any relevant PVs.
 
         Args:

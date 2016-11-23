@@ -367,11 +367,11 @@ class BlockServer(Driver):
                     self.write_queue.append((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
             elif reason == BlockserverPVNames.DELETE_CONFIGS:
                 with self.write_lock:
-                    self.write_queue.append((self._config_list.delete_configs, (convert_from_json(data),),
+                    self.write_queue.append((self._config_list.delete, (convert_from_json(data),),
                                              "DELETE_CONFIGS"))
             elif reason == BlockserverPVNames.DELETE_COMPONENTS:
                 with self.write_lock:
-                    self.write_queue.append((self._config_list.delete_configs, (convert_from_json(data), True),
+                    self.write_queue.append((self._config_list.delete, (convert_from_json(data), True),
                                              "DELETE_COMPONENTS"))
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP:
                 self.bumpstrip = data

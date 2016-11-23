@@ -59,7 +59,7 @@ class SynopticFileEventHandler(FileSystemEventHandler):
                     name = self._get_synoptic_name(event.src_path)
                     if type(event) is FileMovedEvent:
                         modified_path = event.dest_path
-                        self._synoptic_list.delete_synoptics([name])
+                        self._synoptic_list.delete([name])
                     else:
                         modified_path = event.src_path
 
@@ -79,21 +79,6 @@ class SynopticFileEventHandler(FileSystemEventHandler):
                 except Exception as err:
                     print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
-    def on_deleted(self, event):
-        """"Called when a file or directory is deleted.
-
-        Args:
-            event (DirDeletedEvent): Event representing directory deletion.
-        """
-        # Recover and return error
-        try:
-            # Recover deleted file from vc so it can be deleted properly
-            self._synoptic_list.recover_from_version_control()
-        except Exception as err:
-            print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
-
-        print_and_log("File Watcher: Repository reverted after %s deleted manually. Please delete files via client" % event.src_path, "MAJOR", "FILEWTCHR")
-
     def _check_synoptic_valid(self, path):
         extension = path[-4:]
         if extension != ".xml":
@@ -107,5 +92,5 @@ class SynopticFileEventHandler(FileSystemEventHandler):
 
         return xml_data
 
-    def _get_synoptic_name(self, path):
+    def _get_name(self, path):
         return os.path.basename(path)[:-4]

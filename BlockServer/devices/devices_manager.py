@@ -17,8 +17,7 @@
 import os
 from server_common.utilities import print_and_log, compress_and_hex
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema, \
-    NotConfigFileException
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema
 from BlockServer.core.constants import FILENAME_SCREENS as SCREENS_FILE
 from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface

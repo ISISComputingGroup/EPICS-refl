@@ -77,7 +77,7 @@ class SynopticManager(OnTheFlyPvInterface):
     def handle_pv_write(self, pv, data):
         try:
             if pv == SYNOPTIC_PRE + SYNOPTIC_DELETE:
-                self.delete_synoptics(convert_from_json(data))
+                self.delete(convert_from_json(data))
                 self.update_monitors()
             elif pv == SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS:
                 self.save_synoptic_xml(data)
@@ -260,7 +260,7 @@ class SynopticManager(OnTheFlyPvInterface):
                 raise CommitToVersionControlException(err)
 
 
-    def delete_synoptics(self, delete_list):
+    def delete(self, delete_list):
         """Takes a list of synoptics and removes them from the file system and any relevant PVs.
 
         Args:
