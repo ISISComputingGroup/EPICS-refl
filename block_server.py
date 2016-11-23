@@ -413,12 +413,14 @@ class BlockServer(Driver):
         self._initialise_config()
 
     def _set_curr_config(self, details):
-        """Sets the current configuration details to that defined in the XML, then initialises it.
+        """Sets the current configuration details to that defined in the XML, saves to disk, then initialises it.
 
         Args:
             details (string): the configuration XML
         """
         self._active_configserver.set_config_details(details)
+        # Need to save the config to file before we initialize or the changes won't be propagated to IOCS
+        self.save_active_config(self._active_configserver.get_config_name())
         self._initialise_config()
 
     def _initialise_config(self, init_gateway=True, full_init=False):
@@ -726,17 +728,20 @@ class BlockServer(Driver):
     def add_string_pv_to_db(self, name, count=1000):
         # Check name not already in PVDB and that a PV does not already exist
         if name not in PVDB and name not in manager.pvs[self.port]:
-            print_and_log("Adding PV %s" % name)
-            PVDB[name] = {
-                'type': 'char',
-                'count': count,
-                'value': [0],
-            }
-            self._cas.createPV(BLOCKSERVER_PREFIX, PVDB)
-            # self.configure_pv_db()
-            data = Data()
-            data.value = manager.pvs[self.port][name].info.value
-            self.pvDB[name] = data
+            try:
+                print_and_log("Adding PV %s" % name)
+                PVDB[name] = {
+                    'type': 'char',
+                    'count': count,
+                    'value': [0],
+                }
+                self._cas.createPV(BLOCKSERVER_PREFIX, PVDB)
+                # self.configure_pv_db()
+                data = Data()
+                data.value = manager.pvs[self.port][name].info.value
+                self.pvDB[name] = data
+            except Exception as err:
+                print_and_log("Unable to add PV %S" % name,"MAJOR")
 
 
 if __name__ == '__main__':
@@ -800,4 +805,9 @@ if __name__ == '__main__':
 
     # Process CA transactions
     while True:
-        SERVER.process(0.1)
+        try:
+            SERVER.process(0.1)
+        except Exception as err:
+            print_and_log(err,"MAJOR")
+            break
+

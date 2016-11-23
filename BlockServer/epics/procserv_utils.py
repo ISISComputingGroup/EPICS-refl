@@ -15,7 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 from server_common.channel_access import ChannelAccess
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log, ioc_restart_pending
 
 
 class ProcServWrapper(object):
@@ -63,6 +63,18 @@ class ProcServWrapper(object):
         """
         print_and_log("Restarting IOC %s" % ioc)
         ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1)
+
+    def ioc_restart_pending(self, prefix, ioc):
+        """Tests to see if an IOC restart is pending
+
+        Args:
+            prefix (string): The prefix for the instrument
+            ioc (string): The name of the IOC
+
+        Returns:
+            bool: Whether a restart is pending
+        """
+        return ioc_restart_pending(self.generate_prefix(prefix, ioc), ChannelAccess)
 
     def get_ioc_status(self, prefix, ioc):
         """Gets the status of the specified IOC.
