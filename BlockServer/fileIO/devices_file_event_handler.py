@@ -40,41 +40,12 @@ class DevicesFileEventHandler(FileSystemEventHandler):
             schema_lock (string): The reentrant lock for the schema
             devices_manager (DevicesManager): The DevicesManager
         """
-        self._schema_filepath = os.path.join(schema_folder, SCREENS_SCHEMA)
-        self._schema_lock = schema_lock
-        self._devices_manager = devices_manager
+        super(DevicesFileEventHandler, self).__init__(schema_folder, schema_lock, devices_manager)
 
-    def on_any_event(self, event):
-        """Catch-all event handler.
+    def _update(self, data):
+        self._manager.update(data)
 
-        Args:
-            event (FileSystemEvent): The event object representing the file system event
-        """
-        if not event.is_directory:
-            if type(event) is not FileDeletedEvent:
-                try:
-                    if type(event) is FileMovedEvent:
-                        modified_path = event.dest_path
-                    else:
-                        modified_path = event.src_path
-
-                    devices = self._check_devices_valid(modified_path)
-
-                    # Update
-                    self._devices_manager.update(devices, "Device screens modified on filesystem")
-
-                    # Inform user
-                    print_and_log("The device screens list has been modified in the filesystem, ensure it is added to "
-                                  "version control", "INFO", "FILEWTCHR")
-
-                except NotConfigFileException as err:
-                    print_and_log("File Watcher1: " + repr(err), src="FILEWTCHR")
-                except ConfigurationIncompleteException as err:
-                    print_and_log("File Watcher2: " + repr(err), src="FILEWTCHR")
-                except Exception as err:
-                    print_and_log("File Watcher3: " + repr(err), "MAJOR", "FILEWTCHR")
-
-    def _check_devices_valid(self, path):
+    def _check_valid(self, path):
         extension = path[-4:]
         if extension != ".xml":
             raise NotConfigFileException("File not xml")
@@ -86,3 +57,6 @@ class DevicesFileEventHandler(FileSystemEventHandler):
             ConfigurationSchemaChecker.check_xml_data_matches_schema(self._schema_filepath, xml_data)
 
         return xml_data
+
+    def _get_name(self, path):
+        return

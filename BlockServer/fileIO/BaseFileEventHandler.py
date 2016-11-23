@@ -90,7 +90,7 @@ class BaseFileEventHandler(FileSystemEventHandler):
         # Recover and return error
         try:
             # Recover deleted file from vc so it can be deleted properly
-            self._manager.recover_from_version_control()
+            self._manager.recover()
         except Exception as err:
             print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 

@@ -26,7 +26,7 @@ from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
-from mock import patch
+from mock import MagicMock
 
 TEST_DIRECTORY = os.path.abspath("test_configs")
 SCHEMA_DIR = os.path.abspath(os.path.join("..", "..", "..", "..", "schema", "configurations"))
@@ -36,8 +36,7 @@ class TestConfigFileEventHandler(unittest.TestCase):
     def setUp(self):
         FILEPATH_MANAGER.initialise(TEST_DIRECTORY, SCHEMA_DIR)
         self.file_manager = MockConfigurationFileManager()
-        self.config_list_manager = ConfigListManager(MockBlockServer(), SCHEMA_DIR, MockVersionControl(),
-                                                     self.file_manager)
+        self.config_list_manager = MagicMock()
         self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list_manager, False)
         print TEST_DIRECTORY
 
@@ -59,26 +58,31 @@ class TestConfigFileEventHandler(unittest.TestCase):
 
         self.assertTrue(self.eh._is_comp)
 
-    def test_when_deleted_event_then_recover(self):
-        with patch.object(self.config_list_manager, "recover_from_version_control") as mock:
-            self.eh.on_deleted(DirDeletedEvent)
+    def test_when_deleted_event_then_recover_called(self):
+        config_folder = 'TEST_CONFIG'
+        path = os.path.join(FILEPATH_MANAGER.config_dir, config_folder, 'TEST_FILE.xml')
 
-        self.assertTrue(mock.called)
+        self.eh.on_deleted(DirDeletedEvent(path))
 
-    def test_when_file_moved_event_then_(self):
-        print self.file_manager
-        with patch.object(self.config_list_manager, "recover_from_version_control") as mock:
-            self.eh.on_deleted(DirDeletedEvent)
-
-        self.assertTrue(mock.called)
+        self.config_list_manager.recover.assert_called()
 
     def test_when_file_modified_event_then_updated(self):
         config_folder = 'TEST_CONFIG'
         path = os.path.join(FILEPATH_MANAGER.config_dir, config_folder, 'TEST_FILE.xml')
+        name = self.eh._get_name(os.path.join(FILEPATH_MANAGER.config_dir, config_folder, 'TEST_FILE.xml'))
         e = FileModifiedEvent(path)
 
-        with patch.object(self.config_list_manager, "update") as mock:
-            self.eh.on_any_event(e)
+        self.eh.on_any_event(e)
 
-        self.assertTrue(mock.called)
+        self.config_list_manager.update.assert_called()
 
+    def test_when_file_moved_event_then_deleted_old(self):
+        config_folder_src = 'TEST_CONFIG'
+        config_folder_dest = "TEST_CONFIG2"
+        src_path = os.path.join(FILEPATH_MANAGER.config_dir, config_folder_src, 'TEST_FILE.xml')
+        dest_path = os.path.join(FILEPATH_MANAGER.config_dir, config_folder_dest, 'TEST_FILE.xml')
+        e = FileMovedEvent(src_path, dest_path)
+
+        self.eh.on_any_event(e)
+
+        self.config_list_manager.update.assert_called()

@@ -259,7 +259,6 @@ class SynopticManager(OnTheFlyPvInterface):
             except Exception as err:
                 raise CommitToVersionControlException(err)
 
-
     def delete(self, delete_list):
         """Takes a list of synoptics and removes them from the file system and any relevant PVs.
 
@@ -287,7 +286,7 @@ class SynopticManager(OnTheFlyPvInterface):
         """A method to revert the configurations directory back to the state held in version control."""
         self._vc.update()
 
-    def update_from_filewatcher(self, name, xml_data):
+    def update(self, name, xml_data):
         """Updates the synoptic list when modifications are made via the filesystem.
 
         Args:

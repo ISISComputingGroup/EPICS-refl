@@ -43,43 +43,12 @@ class SynopticFileEventHandler(FileSystemEventHandler):
             schema_lock (string): The reentrant lock for the schema
             synoptic_list_manager (SynopticListManager): The SynopticListManager
         """
-        self._schema_filepath = os.path.join(schema_folder, SYNOPTIC_SCHEMA_FILE)
-        self._schema_lock = schema_lock
-        self._synoptic_list = synoptic_list_manager
+        super(SynopticFileEventHandler, self).__init__(schema_folder, schema_lock, synoptic_list_manager)
 
-    def on_any_event(self, event):
-        """Catch-all event handler.
+    def _update(self, name, data):
+        self._manager.update(name, data)
 
-        Args:
-            event (FileSystemEvent): The event object representing the file system event
-        """
-        if not event.is_directory:
-            if type(event) is not FileDeletedEvent:
-                try:
-                    name = self._get_synoptic_name(event.src_path)
-                    if type(event) is FileMovedEvent:
-                        modified_path = event.dest_path
-                        self._synoptic_list.delete([name])
-                    else:
-                        modified_path = event.src_path
-
-                    syn = self._check_synoptic_valid(modified_path)
-
-                    # Update PVs
-                    self._synoptic_list.update_from_filewatcher(name, syn)
-
-                    # Inform user
-                    print_and_log("The synoptic, %s, has been modified in the filesystem, ensure it is added to "
-                                  "version control" % name, "INFO", "FILEWTCHR")
-
-                except NotConfigFileException as err:
-                    print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
-                except ConfigurationIncompleteException as err:
-                    print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
-                except Exception as err:
-                    print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
-
-    def _check_synoptic_valid(self, path):
+    def _check_valid(self, path):
         extension = path[-4:]
         if extension != ".xml":
             raise NotConfigFileException("File not xml")
