@@ -15,35 +15,28 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import unittest
-from config_version_control import ConfigVersionControl, SYSTEM_TEST_PREFIX
-from git_version_control import GitVersionControl
-from vc_exceptions import NotUnderAllowedBranch
+from mock import Mock
+from git_version_control import GitVersionControl, SYSTEM_TEST_PREFIX
 import socket
-
-
-class MockVersionControl():
-    def __init__(self):
-        self._files = list()
-
-    def add(self, file_path):
-        self._files.append(file_path)
 
 
 class TestVersionControl(unittest.TestCase):
     def test_WHEN_config_name_contains_rcptt_THEN_do_not_add(self):
-        mock_vc = MockVersionControl()
-        cfg = ConfigVersionControl(None, mock_vc)
+        mock_vc = Mock()
+        cfg = GitVersionControl(None, mock_vc)
         cfg.add(SYSTEM_TEST_PREFIX + "test")
 
-        self.assertEqual(len(mock_vc._files), 0)
+        self.assertEqual(len(mock_vc.method_calls), 0)
 
     def test_WHEN_config_name_does_not_contain_rcptt_THEN_add(self):
-        mock_vc = MockVersionControl()
-        cfg = ConfigVersionControl(None, mock_vc)
+        mock_vc = Mock()
+        cfg = GitVersionControl(None, mock_vc)
         cfg.add("test")
 
-        self.assertEqual(len(mock_vc._files), 1)
-        self.assertTrue("test" in mock_vc._files)
+        calls = mock_vc.method_calls
+
+        self.assertEqual(len(calls), 1)
+        self.assertTrue("test" == calls[0][1][0][0])
 
     def test_WHEN_banch_is_master_THEN_branch_not_allowed(self):
         self.assertFalse(GitVersionControl.branch_allowed("master"))
