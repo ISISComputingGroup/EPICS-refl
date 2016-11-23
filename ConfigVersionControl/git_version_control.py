@@ -1,10 +1,10 @@
 # Version Control class for dealing with git file operations
 import os
-import shutil
 import stat
+import socket
 from git import *
 from constants import PUSH_RETRY_INTERVAL, PUSH_BASE_INTERVAL
-from vc_exceptions import NotUnderVersionControl, GitPullFailed
+from vc_exceptions import NotUnderVersionControl, GitPullFailed, NotUnderAllowedBranch
 from threading import Thread, RLock
 from time import sleep
 from server_common.utilities import print_and_log
@@ -12,15 +12,21 @@ from server_common.utilities import print_and_log
 
 class GitVersionControl:
 
-    def __init__(self, working_directory):
+    def __init__(self, working_directory, repo=None):
         self._wd = working_directory
 
         # Check repo
         try:
-            self.repo = Repo(self._wd, search_parent_directories=True)
+            if repo is None:
+                self.repo = Repo(self._wd, search_parent_directories=True)
+            else:
+                self.repo = repo
         except Exception as e:
             # Not a valid repository
             raise NotUnderVersionControl(self._wd)
+
+        if not self.branch_allowed(str(self.repo.active_branch)):
+            raise NotUnderAllowedBranch()
 
         self._unlock()
         self.remote = self.repo.remotes.origin
@@ -36,9 +42,30 @@ class GitVersionControl:
         push_thread.daemon = True  # Daemonise thread
         push_thread.start()
 
+    @staticmethod
+    def branch_allowed(branch_name):
+        """Checks that the branch is allowed to be pushed
+
+        Args:
+            branch_name (string): The name of the current branch
+        Returns:
+            bool : Whether the branch is allowed
+        """
+        branch_name = branch_name.lower()
+
+        if "master" in branch_name:
+            return False
+
+        if branch_name.startswith("nd") and branch_name != socket.gethostname().lower():
+            # You're trying to push to a different instrument
+            return False
+
+        return True
+
     def _unlock(self):
-        # Removes index.lock if it exists, and it's not being used
-        lock_file_path = os.path.join(self.repo.git_dir,"index.lock")
+        """ Removes index.lock if it exists, and it's not being used
+        """
+        lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
         if os.path.exists(lock_file_path):
             try:
                 os.remove(lock_file_path)
@@ -50,12 +77,20 @@ class GitVersionControl:
 
     # TODO: Waits with no timeout here!!
     def info(self, working_directory):
-        # returns some information on the repository
+        """ Get some info on the repository
+        Args:
+            path (str): the path to the repository
+
+        Returns:
+            string: Info about the repository
+        """
         print self.repo.git.status()
 
     def add(self, path):
-        # adds a file to the repository
-        # Add needs write capability on .git folder
+        """ Add a file to the repository
+        Args:
+            path (str): the file to add
+        """
         try:
             self.repo.index.add([path])
         except WindowsError as e:
@@ -64,18 +99,26 @@ class GitVersionControl:
             self.repo.index.add([path])
 
     def commit(self, working_directory, commit_comment):
-        # commits changes to a file to the repository and pushes
+        """ Commit changes to a repository
+        Args:
+            commit_comment (str): comment to leave with the commit
+        """
         self.repo.index.commit(commit_comment)
         with self._push_lock:
             self._push_required = True
 
     def update(self, update_path):
-        # reverts folder to the remote repository
+        """ reverts folder to the remote repository
+        """
         self._pull()
         if self.repo.is_dirty():
             self.repo.index.checkout()
 
     def remove(self, path):
+        """ Deletes file from the filesystem as well as removing from the repo
+        Args:
+            path (str): pat
+        """
         delete_list = []
         if os.path.isdir(path):
             for root, dirs, files in os.walk(path, topdown=False):
@@ -92,6 +135,7 @@ class GitVersionControl:
             self.remote.pull()
         except GitCommandError as e:
             # Most likely server issue
+            print_and_log("Unable to pull configurations from remote repo", "MINOR")
             raise GitPullFailed()
 
     def _set_permissions(self):
@@ -105,6 +149,7 @@ class GitVersionControl:
 
     def _push(self):
         push_interval = PUSH_BASE_INTERVAL
+        first_failure = True
 
         while 1:
             with self._push_lock:
@@ -113,9 +158,14 @@ class GitVersionControl:
                         self.remote.push()
                         self._push_required = False
                         push_interval = PUSH_BASE_INTERVAL
+                        first_failure = True
+
                     except GitCommandError as e:
-                        # Most likely issue connecting to server
-                        # Can't do much about throwing error as on another thread, just increase timeout and retry
+                        # Most likely issue connecting to server, increase timeout, notify if it's the first time
                         push_interval = PUSH_RETRY_INTERVAL
+                        if first_failure:
+                            print_and_log("Unable to push config changes, will retry in %i seconds"
+                                          % PUSH_RETRY_INTERVAL, "MINOR")
+                            first_failure = False
 
             sleep(push_interval)
