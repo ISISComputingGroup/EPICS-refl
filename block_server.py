@@ -355,7 +355,7 @@ class BlockServer(Driver):
                     self.write_queue.append((self._ioc_control.stop_iocs, (convert_from_json(data),), "STOP_IOCS"))
             elif reason == BlockserverPVNames.RESTART_IOCS:
                 with self.write_lock:
-                    self.write_queue.append((self._ioc_control.restart_iocs, (convert_from_json(data),),
+                    self.write_queue.append((self._ioc_control.restart_iocs, (convert_from_json(data), True),
                                              "RESTART_IOCS"))
             elif reason == BlockserverPVNames.SET_CURR_CONFIG_DETAILS:
                 with self.write_lock:
@@ -483,18 +483,20 @@ class BlockServer(Driver):
                     running = self._ioc_control.get_ioc_status(n)
                     if running == "RUNNING":
                         # Restart it
-                        self._ioc_control.restart_ioc(n, reapply_auto=False)
+                        self._ioc_control.restart_ioc(n)
                     else:
                         # Start it
                         self._ioc_control.start_ioc(n)
-
-                    # Give it time to start as IOC has to be running to be able to set restart property
-                    sleep(2)
-                    # Set the restart property
-                    print_and_log("Setting IOC %s's auto-restart to %s" % (n, ioc.restart))
-                    self._ioc_control.set_autorestart(n, ioc.restart)
             except Exception as err:
                 print_and_log("Could not (re)start IOC %s: %s" % (n, str(err)), "MAJOR")
+
+        # Give it time to start as IOC has to be running to be able to set restart property
+        sleep(2)
+        for n, ioc in self._active_configserver.get_all_ioc_details().iteritems():
+            if ioc.autostart:
+                # Set the restart property
+                print_and_log("Setting IOC %s's auto-restart to %s" % (n, ioc.restart))
+                self._ioc_control.set_autorestart(n, ioc.restart)
 
     def _get_iocs(self, include_running=False):
         # Get IOCs from DatabaseServer
@@ -704,9 +706,13 @@ class BlockServer(Driver):
         # reapply the auto-restart setting after starting.
         # This is because stopping an IOC via procServ turns auto-restart off.
         conf_iocs = self._active_configserver.get_all_ioc_details()
+
+        # Request IOCs to start
         for i in iocs:
             self._ioc_control.start_ioc(i)
-            # Is IOC in config?
+
+        # Once all IOC start requests issued, wait for running and apply auto restart as needed
+        for i in iocs:
             if i in conf_iocs and conf_iocs[i].restart:
                 # Give it time to start as IOC has to be running to be able to set restart property
                 print "Re-applying auto-restart setting to %s" % i
