@@ -201,3 +201,9 @@ class DevicesManager(OnTheFlyPvInterface):
     def recover_from_version_control(self):
         """ A method to revert the configurations directory back to the state held in version control."""
         self._vc.update()
+
+    def load_devices(self, path):
+        with open(path, 'r') as synfile:
+            xml_data = synfile.read()
+
+        return xml_data
