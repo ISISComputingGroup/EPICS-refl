@@ -20,17 +20,13 @@ import os
 import shutil
 
 from watchdog.events import *
-from BlockServer.core.config_list_manager import ConfigListManager
-from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
-from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 from mock import MagicMock
 
 TEST_DIRECTORY = os.path.abspath("test_configs")
-SCHEMA_DIR = os.path.abspath(os.path.join("..", "..", "..", "..", "schema", "configurations"))
-SAMPLE_CONFIG = ""
+SCHEMA_DIR = os.path.abspath(os.path.join("..", "..", "schema", "configurations"))
 
 
 class TestConfigFileEventHandler(unittest.TestCase):

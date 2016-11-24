@@ -54,8 +54,7 @@ class SynopticFileEventHandler(BaseFileEventHandler):
         if extension != ".xml":
             raise NotConfigFileException("File not xml")
 
-        with open(path, 'r') as synfile:
-            xml_data = synfile.read()
+        xml_data = self._manager.load_synoptic(path)
 
         with self._schema_lock:
             ConfigurationSchemaChecker.check_xml_data_matches_schema(self._schema_filepath, xml_data)

@@ -324,3 +324,8 @@ class SynopticManager(OnTheFlyPvInterface):
         return """<?xml version="1.0" ?><instrument xmlns="http://www.isis.stfc.ac.uk//instrument">
                <name>-- NONE --</name><components/></instrument>"""
 
+    def load_synoptic(self, path):
+        with open(path, 'r') as synfile:
+            xml_data = synfile.read()
+
+        return xml_data
