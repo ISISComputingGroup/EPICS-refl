@@ -30,6 +30,7 @@ from mock import MagicMock
 
 TEST_DIRECTORY = os.path.abspath("test_configs")
 SCHEMA_DIR = os.path.abspath(os.path.join("..", "..", "..", "..", "schema", "configurations"))
+SAMPLE_CONFIG = ""
 
 
 class TestConfigFileEventHandler(unittest.TestCase):
@@ -37,52 +38,64 @@ class TestConfigFileEventHandler(unittest.TestCase):
         FILEPATH_MANAGER.initialise(TEST_DIRECTORY, SCHEMA_DIR)
         self.file_manager = MockConfigurationFileManager()
         self.config_list_manager = MagicMock()
-        self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list_manager, False)
-        print TEST_DIRECTORY
+        self.is_component = False
+        self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list_manager, self.is_component)
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + os.sep):
             shutil.rmtree(os.path.abspath(TEST_DIRECTORY + os.sep))
 
-    def test_get_config_name_valid_structure(self):
+    def test_when_getting_name_from_path_correct_config_name_is_returned(self):
+        # Arrange
         config_folder = 'TEST_CONFIG'
-        name = self.eh._get_name(os.path.join(FILEPATH_MANAGER.config_dir, config_folder, 'TEST_FILE.xml'))
+        path = os.path.join(FILEPATH_MANAGER.config_dir, config_folder, 'TEST_FILE.xml')
 
+        # Act
+        name = self.eh._get_name(path)
+
+        # Assert
         self.assertEqual(name, config_folder)
 
     def test_file_not_in_correct_place(self):
-        self.assertFalse(self.eh._check_file_at_root(os.path.join(FILEPATH_MANAGER.config_root_dir, 'TEST_FILE.xml')))
+        # Arrange
+        path = os.path.join(FILEPATH_MANAGER.config_root_dir, 'TEST_FILE.xml')
+
+        # Assert
+        self.assertFalse(self.eh._check_file_at_root(path))
 
     def test_when_initialised_as_component_then_saved_as_component(self):
-        self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list_manager, True)
+        # Arrange
+        self.is_component = True
 
+        # Act
+        self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list_manager, self.is_component)
+
+        # Assert
         self.assertTrue(self.eh._is_comp)
 
     def test_when_deleted_event_then_recover_called(self):
+        # Arrange
         config_folder = 'TEST_CONFIG'
         path = os.path.join(FILEPATH_MANAGER.config_dir, config_folder, 'TEST_FILE.xml')
 
+        # Act
         self.eh.on_deleted(DirDeletedEvent(path))
 
-        self.config_list_manager.recover.assert_called()
+        # Assert
+        self.config_list_manager.recover_from_version_control.assert_called()
 
-    def test_when_file_modified_event_then_updated(self):
+    def test_when_file_modified_event_then_reload_and_update(self):
+        # Arrange
         config_folder = 'TEST_CONFIG'
         path = os.path.join(FILEPATH_MANAGER.config_dir, config_folder, 'TEST_FILE.xml')
-        name = self.eh._get_name(os.path.join(FILEPATH_MANAGER.config_dir, config_folder, 'TEST_FILE.xml'))
         e = FileModifiedEvent(path)
 
+        active_config = MagicMock()
+        self.config_list_manager.load_config.return_value = active_config
+
+        # Act
         self.eh.on_any_event(e)
 
-        self.config_list_manager.update.assert_called()
-
-    def test_when_file_moved_event_then_deleted_old(self):
-        config_folder_src = 'TEST_CONFIG'
-        config_folder_dest = "TEST_CONFIG2"
-        src_path = os.path.join(FILEPATH_MANAGER.config_dir, config_folder_src, 'TEST_FILE.xml')
-        dest_path = os.path.join(FILEPATH_MANAGER.config_dir, config_folder_dest, 'TEST_FILE.xml')
-        e = FileMovedEvent(src_path, dest_path)
-
-        self.eh.on_any_event(e)
-
-        self.config_list_manager.update.assert_called()
+        # Assert
+        self.config_list_manager.load_config.assert_called_with(config_folder, self.is_component)
+        self.config_list_manager.update.assert_called_with(active_config, self.is_component)

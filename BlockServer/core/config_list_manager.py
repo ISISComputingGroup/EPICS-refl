@@ -333,7 +333,7 @@ class ConfigListManager(object):
             else:
                 return dependencies
 
-    def recover(self):
+    def recover_from_version_control(self):
         """A method to revert the configurations directory back to the state held in version control."""
         self._vc.update()
 

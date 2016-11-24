@@ -22,6 +22,7 @@ from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedE
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import *
 from BlockServer.core.macros import MACROS
+from BlockServer.fileIO.base_file_event_handler import BaseFileEventHandler
 from server_common.utilities import print_and_log
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
@@ -29,7 +30,7 @@ from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA_FILE
 
 
-class SynopticFileEventHandler(FileSystemEventHandler):
+class SynopticFileEventHandler(BaseFileEventHandler):
     """ The SynopticFileEventHandler class
 
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and

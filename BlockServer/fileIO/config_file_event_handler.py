@@ -20,7 +20,7 @@ import string
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from BlockServer.fileIO.BaseFileEventHandler import BaseFileEventHandler
+from BlockServer.fileIO.base_file_event_handler import BaseFileEventHandler
 from server_common.utilities import print_and_log
 from schema_checker import ConfigurationSchemaChecker
 from schema_checker import ConfigurationIncompleteException, NotConfigFileException
@@ -61,10 +61,9 @@ class ConfigFileEventHandler(BaseFileEventHandler):
         with self._schema_lock:
             # Check can load into config - schema is checked on load
             try:
-                ic = self._manager.load_config(self._get_config_name(path), self._is_comp)
+                ic = self._manager.load_config(self._get_name(path), self._is_comp)
             except Exception as err:
                 print_and_log("File Watcher, loading config: " + str(err), "INFO", "FILEWTCHR")
-
         return ic
 
     def _check_file_at_root(self, path):

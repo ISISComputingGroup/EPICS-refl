@@ -20,7 +20,7 @@ import os
 import shutil
 
 from BlockServer.core.config_list_manager import ConfigListManager
-from BlockServer.fileIO.BaseFileEventHandler import BaseFileEventHandler
+from BlockServer.fileIO.base_file_event_handler import BaseFileEventHandler
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
 from BlockServer.mocks.mock_version_control import MockVersionControl
