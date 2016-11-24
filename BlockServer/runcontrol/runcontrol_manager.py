@@ -234,7 +234,8 @@ class RunControlManager(OnTheFlyPvInterface):
                 if ioc_restart_pending(self._prefix + RC_IOC_PREFIX, self._channel_access):
                     raise Exception()
                 latest_ioc_start = self._channel_access.caget(self._prefix + RC_START_PV)
-                if latest_ioc_start is None or (self._rc_ioc_start_time != "" and latest_ioc_start <= self._rc_ioc_start_time):
+                if latest_ioc_start is None or (self._rc_ioc_start_time != "" and
+                                                        latest_ioc_start <= self._rc_ioc_start_time):
                     raise Exception()
                 self._rc_ioc_start_time = latest_ioc_start
                 started = True
@@ -267,7 +268,7 @@ class RunControlManager(OnTheFlyPvInterface):
             print_and_log("Reusing the existing run-control autosave files")
 
         try:
-            self._ioc_control.restart_ioc(RUNCONTROL_IOC, force=True, reapply_auto=False)
+            self._ioc_control.restart_ioc(RUNCONTROL_IOC, force=True)
         except Exception as err:
             print_and_log("Problem with restarting the run-control IOC: %s" % str(err), "MAJOR")
 
