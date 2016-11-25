@@ -46,15 +46,14 @@ class SynopticFileEventHandler(BaseFileEventHandler):
         """
         super(SynopticFileEventHandler, self).__init__(schema_folder, schema_lock, synoptic_list_manager)
 
-    def _update(self, name, data):
+    def _update(self, data):
         """
         Updates the specified synoptic with new data.
 
         Args:
-            name (string): The name of the synoptic
             data (string): The new data as a string of xml
         """
-        self._manager.update(name, data)
+        self._manager.update(data)
 
     def _check_valid(self, path):
         """
@@ -88,3 +87,16 @@ class SynopticFileEventHandler(BaseFileEventHandler):
 
         """
         return os.path.basename(path)[:-4]
+
+    def get_modified_message(self, name):
+        """
+        Returns the log message for a file event.
+
+        Args:
+            name (string): The name of the modified synoptic
+
+        Returns (string): The message
+
+        """
+        message = "The synoptic, %s, has been modified in the filesystem, ensure it is added to version control" % name
+        return message

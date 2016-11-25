@@ -286,11 +286,10 @@ class SynopticManager(OnTheFlyPvInterface):
         """A method to revert the configurations directory back to the state held in version control."""
         self._vc.update()
 
-    def update(self, name, xml_data):
+    def update(self, xml_data):
         """Updates the synoptic list when modifications are made via the filesystem.
 
         Args:
-            name (string):  The name of the synoptic
             xml_data (string): The xml data to update the PV with
 
         """

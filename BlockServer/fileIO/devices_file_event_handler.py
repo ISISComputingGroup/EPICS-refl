@@ -43,7 +43,7 @@ class DevicesFileEventHandler(BaseFileEventHandler):
         """
         super(DevicesFileEventHandler, self).__init__(schema_folder, schema_lock, devices_manager)
 
-    def _update(self, name, data):
+    def _update(self, data):
         """
         Updates the device screens with new data.
 
@@ -76,3 +76,17 @@ class DevicesFileEventHandler(BaseFileEventHandler):
     def _get_name(self, path):
         """ Not needed for devices. Stub for superclass call """
         return
+
+
+    def get_modified_message(self, name):
+        """
+        Returns the log message for a file event.
+
+        Args:
+            name (string): Not used for device screens, from superclass call.
+
+        Returns (string): The message
+
+        """
+        message = "The device screens file has been modified in the filesystem, ensure it is added to version control"
+        return message

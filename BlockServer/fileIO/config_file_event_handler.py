@@ -49,12 +49,11 @@ class ConfigFileEventHandler(BaseFileEventHandler):
         else:
             self._watching_path = FILEPATH_MANAGER.config_dir
 
-    def _update(self, name, data):
+    def _update(self, data):
         """
         Updates the specified configuration with new data.
 
         Args:
-            name (string): The name of the configuration
             data (string): The new data as a string of xml
         """
         self._manager.update(data, self._is_comp)
@@ -121,3 +120,16 @@ class ConfigFileEventHandler(BaseFileEventHandler):
 
         folders = string.split(rel_path, os.sep)
         return folders
+
+    def get_modified_message(self, name):
+        """
+        Returns the log message for a file event.
+
+        Args:
+            name (string): The name of the modified configuration
+
+        Returns (string): The message
+
+        """
+        message = "The configuration, %s, has been modified in the filesystem, ensure it is added to version control" % name
+        return message

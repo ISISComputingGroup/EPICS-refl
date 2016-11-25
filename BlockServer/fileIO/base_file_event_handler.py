@@ -68,11 +68,10 @@ class BaseFileEventHandler(FileSystemEventHandler):
                     data = self._check_valid(modified_path)
 
                     # Update PVs
-                    self._update(name, data)
+                    self._update(data)
 
                     # Inform user
-                    print_and_log("The synoptic, %s, has been modified in the filesystem, ensure it is added to "
-                                  "version control" % name, "INFO", "FILEWTCHR")
+                    print_and_log(self.get_modified_message(name), "INFO", "FILEWTCHR")
 
                 except NotConfigFileException as err:
                     print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
