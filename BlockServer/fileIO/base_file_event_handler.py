@@ -71,7 +71,7 @@ class BaseFileEventHandler(FileSystemEventHandler):
                     self._update(data)
 
                     # Inform user
-                    print_and_log(self.get_modified_message(name), "INFO", "FILEWTCHR")
+                    print_and_log(self._get_modified_message(name), "INFO", "FILEWTCHR")
 
                 except NotConfigFileException as err:
                     print_and_log("File Watcher: " + str(err), src="FILEWTCHR")

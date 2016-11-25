@@ -81,13 +81,6 @@ class ConfigFileEventHandler(BaseFileEventHandler):
                 print_and_log("File Watcher, loading config: " + str(err), "INFO", "FILEWTCHR")
         return ic
 
-    def _check_file_at_root(self, path):
-        folders = self._split_config_path(path)
-        if len(folders) < 2:
-            return True
-        else:
-            return False
-
     def _get_name(self, path):
         """
         Returns the name of the configuration based on the file path.
@@ -99,6 +92,26 @@ class ConfigFileEventHandler(BaseFileEventHandler):
 
         """
         return self._split_config_path(path)[0]
+
+    def _get_modified_message(self, name):
+        """
+        Returns the log message for a file event.
+
+        Args:
+            name (string): The name of the modified configuration
+
+        Returns (string): The message
+
+        """
+        message = "The configuration, %s, has been modified in the filesystem, ensure it is added to version control" % name
+        return message
+
+    def _check_file_at_root(self, path):
+        folders = self._split_config_path(path)
+        if len(folders) < 2:
+            return True
+        else:
+            return False
 
     def _split_config_path(self, path):
         """Splits the given path into its components after removing the root path.
@@ -120,16 +133,3 @@ class ConfigFileEventHandler(BaseFileEventHandler):
 
         folders = string.split(rel_path, os.sep)
         return folders
-
-    def get_modified_message(self, name):
-        """
-        Returns the log message for a file event.
-
-        Args:
-            name (string): The name of the modified configuration
-
-        Returns (string): The message
-
-        """
-        message = "The configuration, %s, has been modified in the filesystem, ensure it is added to version control" % name
-        return message

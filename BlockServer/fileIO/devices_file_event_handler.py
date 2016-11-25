@@ -79,7 +79,7 @@ class DevicesFileEventHandler(BaseFileEventHandler):
         return
 
 
-    def get_modified_message(self, name):
+    def _get_modified_message(self, name):
         """
         Returns the log message for a file event.
 

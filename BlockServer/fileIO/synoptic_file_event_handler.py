@@ -89,7 +89,7 @@ class SynopticFileEventHandler(BaseFileEventHandler):
         """
         return os.path.basename(path)[:-4]
 
-    def get_modified_message(self, name):
+    def _get_modified_message(self, name):
         """
         Returns the log message for a file event.
 
