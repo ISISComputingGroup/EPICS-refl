@@ -31,26 +31,26 @@ from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA_FILE
 
 
 class BaseFileEventHandler(FileSystemEventHandler):
-    """ The SomeFileEventHandler class
+    """ The BaseFileEventHandler class
 
     Subclasses the FileSystemEventHandler class from the watchdog module.
     Superclass for individual file event handler classes for different kinds of configuration files.
     """
 
     def __init__(self, schema_folder, schema_lock, manager):
-        """Constructor.
+        """ Constructor.
 
         Args:
             schema_folder (string): The location of the schemas
             schema_lock (string): The reentrant lock for the schema
             manager : The File Manager # TODO needed methods
         """
-        self._schema_filepath = os.path.join(schema_folder, SYNOPTIC_SCHEMA_FILE)
+        self._schema_folder = schema_folder
         self._schema_lock = schema_lock
         self._manager = manager
 
     def on_any_event(self, event):
-        """Catch-all event handler.
+        """ Catch-all event handler.
 
         Args:
             event (FileSystemEvent): The event object representing the file system event
@@ -81,7 +81,7 @@ class BaseFileEventHandler(FileSystemEventHandler):
                     print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
     def on_deleted(self, event):
-        """"Called when a file or directory is deleted.
+        """" Called when a file or directory is deleted.
 
         Args:
             event (DirDeletedEvent): Event representing directory deletion.

@@ -34,7 +34,7 @@ class DevicesFileEventHandler(BaseFileEventHandler):
     creates/removes available device screens as necessary.
     """
     def __init__(self, schema_folder, schema_lock, devices_manager):
-        """Constructor.
+        """ Constructor.
 
         Args:
             schema_folder (string): The location of the schemas
@@ -42,6 +42,7 @@ class DevicesFileEventHandler(BaseFileEventHandler):
             devices_manager (DevicesManager): The DevicesManager
         """
         super(DevicesFileEventHandler, self).__init__(schema_folder, schema_lock, devices_manager)
+        self._schema_filepath = os.path.join(schema_folder, SCREENS_SCHEMA)
 
     def _update(self, data):
         """

@@ -54,7 +54,7 @@ class ConfigurationSchemaChecker(object):
 
         Args:
             schema_filepath (string): The location of the schema file
-            synoptic_xml_data (string): The XML for the screens
+            xml_data (string): The XML for the screens
         """
         folder, file_name = string.rsplit(schema_filepath, os.sep, 1)
         xmlparser = ConfigurationSchemaChecker._import_schema(folder, file_name)
