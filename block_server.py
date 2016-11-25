@@ -40,7 +40,7 @@ from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherMana
 from BlockServer.synoptic.synoptic_manager import SynopticManager
 from BlockServer.devices.devices_manager import DevicesManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
-from ConfigVersionControl.config_version_control import ConfigVersionControl
+from ConfigVersionControl.git_version_control import GitVersionControl, RepoFactory
 from ConfigVersionControl.vc_exceptions import NotUnderVersionControl
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.ioc_control import IocControl
@@ -207,7 +207,8 @@ class BlockServer(Driver):
 
         # Connect to version control
         try:
-            self._vc = ConfigVersionControl(CONFIG_DIR)
+            self._vc = GitVersionControl(CONFIG_DIR, RepoFactory.get_repo(CONFIG_DIR))
+            self._vc.setup()
         except NotUnderVersionControl as err:
             print_and_log("Warning: Configurations not under version control", "MINOR")
             self._vc = MockVersionControl()

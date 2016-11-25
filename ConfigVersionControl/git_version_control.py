@@ -1,43 +1,55 @@
 # Version Control class for dealing with git file operations
 import os
+import shutil
 import stat
 import socket
 from git import *
-from constants import PUSH_RETRY_INTERVAL, PUSH_BASE_INTERVAL
 from vc_exceptions import NotUnderVersionControl, GitPullFailed, NotUnderAllowedBranch
 from threading import Thread, RLock
 from time import sleep
 from server_common.utilities import print_and_log
 
+SYSTEM_TEST_PREFIX = "rcptt_"
+GIT_REMOTE_LOCATION = 'http://control-svcs.isis.cclrc.ac.uk/gitroot/instconfigs/test.git'
+PUSH_BASE_INTERVAL = 10
+PUSH_RETRY_INTERVAL = 30
 
-class GitVersionControl:
 
-    def __init__(self, working_directory, repo=None):
-        self._wd = working_directory
-
+class RepoFactory:
+    @staticmethod
+    def get_repo(working_directory):
         # Check repo
         try:
-            if repo is None:
-                self.repo = Repo(self._wd, search_parent_directories=True)
-            else:
-                self.repo = repo
+            return Repo(working_directory, search_parent_directories=True)
         except Exception as e:
             # Not a valid repository
-            raise NotUnderVersionControl(self._wd)
+            raise NotUnderVersionControl(working_directory)
 
+
+class GitVersionControl:
+    def __init__(self, working_directory, repo):
+        self._wd = working_directory
+        self.repo = repo
+        self.remote = self.repo.remotes.origin
+
+        self._push_required = False
+        self._push_lock = RLock()
+
+    def setup(self):
+        """ Call when first starting the version control.
+        Do startup actions here rather than in constructor to allow for easier testing
+        """
         if not self.branch_allowed(str(self.repo.active_branch)):
             raise NotUnderAllowedBranch()
 
         self._unlock()
-        self.remote = self.repo.remotes.origin
+
         config_writer = self.repo.config_writer()
         # Set git repository to ignore file permissions otherwise will reset to read only
         config_writer.set_value("core", "filemode", False)
         self._pull()
 
         # Start a background thread for pushing
-        self._push_required = False
-        self._push_lock = RLock()
         push_thread = Thread(target=self._push, args=())
         push_thread.daemon = True  # Daemonise thread
         push_thread.start()
@@ -91,6 +103,8 @@ class GitVersionControl:
         Args:
             path (str): the file to add
         """
+        if self._should_ignore(path):
+            return
         try:
             self.repo.index.add([path])
         except WindowsError as e:
@@ -98,7 +112,7 @@ class GitVersionControl:
             self._set_permissions()
             self.repo.index.add([path])
 
-    def commit(self, working_directory, commit_comment):
+    def commit(self, commit_comment):
         """ Commit changes to a repository
         Args:
             commit_comment (str): comment to leave with the commit
@@ -107,7 +121,7 @@ class GitVersionControl:
         with self._push_lock:
             self._push_required = True
 
-    def update(self, update_path):
+    def update(self):
         """ reverts folder to the remote repository
         """
         self._pull()
@@ -119,6 +133,15 @@ class GitVersionControl:
         Args:
             path (str): pat
         """
+        if self._should_ignore(path) and os.path.exists(path):
+            # the git library throws if we try to delete something that wasn't added
+            # but we still have to delete the file from file system
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+            return
+
         delete_list = []
         if os.path.isdir(path):
             for root, dirs, files in os.walk(path, topdown=False):
@@ -169,3 +192,9 @@ class GitVersionControl:
                             first_failure = False
 
             sleep(push_interval)
+
+    def _should_ignore(self, file_path):
+        # Ignore anything that starts with the system tests prefix
+        # (unfortunately putting the system test prefix in the .gitignore doesn't work
+        # because the git library always forces an add - it has a force flag, but it's not used)
+        return SYSTEM_TEST_PREFIX in file_path
