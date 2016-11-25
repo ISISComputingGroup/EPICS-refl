@@ -50,9 +50,25 @@ class ConfigFileEventHandler(BaseFileEventHandler):
             self._watching_path = FILEPATH_MANAGER.config_dir
 
     def _update(self, name, data):
+        """
+        Updates the specified configuration with new data.
+
+        Args:
+            name (string): The name of the configuration
+            data (string): The new data as a string of xml
+        """
         self._manager.update(data, self._is_comp)
 
     def _check_valid(self, path):
+        """
+        Check the validity of a given configuration and return the relevant configholder if valid
+
+        Args:
+            path (string): The location of the file
+
+        Returns: The configholder for the current configuration
+
+        """
         ic = None
 
         if self._check_file_at_root(path):
@@ -74,6 +90,15 @@ class ConfigFileEventHandler(BaseFileEventHandler):
             return False
 
     def _get_name(self, path):
+        """
+        Returns the name of the configuration based on the file path.
+
+        Args:
+            path: The path to the configuration folder
+
+        Returns: The name of the configuration
+
+        """
         return self._split_config_path(path)[0]
 
     def _split_config_path(self, path):

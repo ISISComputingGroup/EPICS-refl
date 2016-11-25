@@ -294,6 +294,7 @@ class SynopticManager(OnTheFlyPvInterface):
             xml_data (string): The xml data to update the PV with
 
         """
+        name = self._get_synoptic_name_from_xml(xml_data)
         self._add_to_version_control(name, "%s modified on filesystem" % name)
 
         names = self._synoptic_pvs.keys()

@@ -47,9 +47,25 @@ class SynopticFileEventHandler(BaseFileEventHandler):
         super(SynopticFileEventHandler, self).__init__(schema_folder, schema_lock, synoptic_list_manager)
 
     def _update(self, name, data):
+        """
+        Updates the specified synoptic with new data.
+
+        Args:
+            name (string): The name of the synoptic
+            data (string): The new data as a string of xml
+        """
         self._manager.update(name, data)
 
     def _check_valid(self, path):
+        """
+        Check the validity of a given synoptic file and return the xml data contained within if valid
+
+        Args:
+            path (string): The location of the file
+
+        Returns: The synoptic's data as a string of xml
+
+        """
         extension = path[-4:]
         if extension != ".xml":
             raise NotConfigFileException("File not xml")
@@ -62,4 +78,13 @@ class SynopticFileEventHandler(BaseFileEventHandler):
         return xml_data
 
     def _get_name(self, path):
+        """
+        Returns the name of the synoptic based on the file path.
+
+        Args:
+            path: The path to the synoptic file
+
+        Returns: The name of the synoptic
+
+        """
         return os.path.basename(path)[:-4]

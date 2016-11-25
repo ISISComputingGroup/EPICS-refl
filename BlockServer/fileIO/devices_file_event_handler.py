@@ -44,9 +44,24 @@ class DevicesFileEventHandler(BaseFileEventHandler):
         super(DevicesFileEventHandler, self).__init__(schema_folder, schema_lock, devices_manager)
 
     def _update(self, name, data):
+        """
+        Updates the device screens with new data.
+
+        Args:
+            data (string): The new data as a string of xml
+        """
         self._manager.update(data)
 
     def _check_valid(self, path):
+        """
+        Check the validity of the device screens file and return the xml data contained within if valid
+
+        Args:
+            path (string): The location of the file
+
+        Returns: The device screens data as a string of xml
+
+        """
         extension = path[-4:]
         if extension != ".xml":
             raise NotConfigFileException("File not xml")
@@ -59,4 +74,5 @@ class DevicesFileEventHandler(BaseFileEventHandler):
         return xml_data
 
     def _get_name(self, path):
+        """ Not needed for devices. Stub for superclass call """
         return

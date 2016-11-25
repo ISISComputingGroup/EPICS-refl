@@ -203,6 +203,15 @@ class DevicesManager(OnTheFlyPvInterface):
         self._vc.update()
 
     def load_devices(self, path):
+        """
+        Reads device screens data from an xml file at a specified location
+
+        Args:
+            path (string): The location of the xml devices file
+
+        Returns: the xml data
+
+        """
         with open(path, 'r') as synfile:
             xml_data = synfile.read()
 
