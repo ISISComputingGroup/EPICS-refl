@@ -15,7 +15,6 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 from threading import RLock
-import os
 
 from watchdog.observers import Observer
 
@@ -23,8 +22,6 @@ from BlockServer.fileIO.config_file_event_handler import ConfigFileEventHandler
 from BlockServer.fileIO.devices_file_event_handler import DevicesFileEventHandler
 from BlockServer.fileIO.synoptic_file_event_handler import SynopticFileEventHandler
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-
-import os
 
 
 class ConfigFileWatcherManager(object):
@@ -49,27 +46,19 @@ class ConfigFileWatcherManager(object):
         self._observers = []
 
         # Create config watcher
-        self._config_event_handler = ConfigFileEventHandler(schema_folder, schema_lock,
-                                                            config_list_manager)
-
+        self._config_event_handler = ConfigFileEventHandler(schema_lock, config_list_manager)
         self._config_observer = self._create_observer(self._config_event_handler, self._config_dir)
 
         # Create component watcher
-        self._component_event_handler = ConfigFileEventHandler(schema_folder, schema_lock,
-                                                               config_list_manager, True)
-
+        self._component_event_handler = ConfigFileEventHandler(schema_lock, config_list_manager, True)
         self._component_observer = self._create_observer(self._component_event_handler, self._comp_dir)
 
         # Create synoptic watcher
-        self._synoptic_event_handler = SynopticFileEventHandler(schema_folder, schema_lock,
-                                                                synoptic_manager)
-
+        self._synoptic_event_handler = SynopticFileEventHandler(schema_folder, schema_lock, synoptic_manager)
         self._syn_observer = self._create_observer(self._synoptic_event_handler, self._syn_dir)
 
         # Create device screens watcher
-        self._devices_event_handler = DevicesFileEventHandler(schema_folder, schema_lock,
-                                                              devices_manager)
-
+        self._devices_event_handler = DevicesFileEventHandler(schema_folder, schema_lock, devices_manager)
         self._dev_observer = self._create_observer(self._devices_event_handler, self._dev_dir)
 
     def _create_observer(self, event_handler, directory):

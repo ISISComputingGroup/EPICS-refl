@@ -27,31 +27,18 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 from mock import MagicMock
 
-TEST_DIRECTORY = os.path.abspath("test_configs")
+TEST_DIRECTORY = os.path.abspath(os.path.join(__file__, "..", "test_configs"))
 SCHEMA_DIR = os.path.abspath(os.path.join("..", "..", "schema"))
 DEVICES_FILE = "screens.xml"
 VALID_DEVICES_DATA = u"""<?xml version="1.0" ?>
-<instrument xmlns="http://www.isis.stfc.ac.uk//instrument">
-    <name>test1</name>
-    <components>
-        <component>
-            <name>DF</name>
-            <type>DANFYSIK</type>
-            <target>
-                <name>Danfysik</name>
-                <type>OPI</type>
-                <properties>
-                    <property>
-                        <key>DFKPS</key>
-                        <value>DFKPS_01</value>
-                    </property>
-                </properties>
-            </target>
-            <pvs/>
-            <components/>
-        </component>
-    </components>
-</instrument>
+<devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
+    <device>
+        <name>TEST_DEVICE</name>
+        <key>Eurotherm</key>
+        <type>OPI</type>
+        <properties/>
+    </device>
+</devices>
 """
 
 

@@ -41,7 +41,8 @@ class DevicesFileEventHandler(BaseFileEventHandler):
             schema_lock (string): The reentrant lock for the schema
             devices_manager (DevicesManager): The DevicesManager
         """
-        super(DevicesFileEventHandler, self).__init__(schema_folder, schema_lock, devices_manager)
+        super(DevicesFileEventHandler, self).__init__(devices_manager)
+        self._schema_lock = schema_lock
         self._schema_filepath = os.path.join(schema_folder, SCREENS_SCHEMA)
 
     def _update(self, data):
@@ -77,7 +78,6 @@ class DevicesFileEventHandler(BaseFileEventHandler):
     def _get_name(self, path):
         """ Not needed for devices. Stub for superclass call """
         return
-
 
     def _get_modified_message(self, name):
         """

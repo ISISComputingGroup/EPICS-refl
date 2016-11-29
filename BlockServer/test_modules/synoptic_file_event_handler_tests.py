@@ -27,7 +27,7 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 from mock import MagicMock
 
-TEST_DIRECTORY = os.path.abspath("test_configs")
+TEST_DIRECTORY = os.path.abspath(os.path.join(__file__, "..", "test_configs"))
 SCHEMA_DIR = os.path.abspath(os.path.join("..", "..", "schema"))
 SAMPLE_SYNOPTIC = u"""<?xml version="1.0" ?>
 <instrument xmlns="http://www.isis.stfc.ac.uk//instrument">
@@ -129,4 +129,4 @@ class TestConfigFileEventHandler(unittest.TestCase):
 
         # Assert
         self.synoptic_manager.load_synoptic.assert_called_with(path)
-        self.synoptic_manager.update.assert_called_with(synoptic_name, SAMPLE_SYNOPTIC)
+        self.synoptic_manager.update.assert_called_with(SAMPLE_SYNOPTIC)

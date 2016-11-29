@@ -25,7 +25,7 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 from mock import MagicMock
 
-TEST_DIRECTORY = os.path.abspath("test_configs")
+TEST_DIRECTORY = os.path.abspath(os.path.join(__file__, "..", "test_configs"))
 SCHEMA_DIR = os.path.abspath(os.path.join("..", "..", "schema", "configurations"))
 
 
@@ -35,7 +35,7 @@ class TestConfigFileEventHandler(unittest.TestCase):
         self.file_manager = MockConfigurationFileManager()
         self.config_list_manager = MagicMock()
         self.is_component = False
-        self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list_manager, self.is_component)
+        self.eh = ConfigFileEventHandler(RLock(), self.config_list_manager, self.is_component)
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + os.sep):
@@ -64,7 +64,7 @@ class TestConfigFileEventHandler(unittest.TestCase):
         self.is_component = True
 
         # Act
-        self.eh = ConfigFileEventHandler(SCHEMA_DIR, RLock(), self.config_list_manager, self.is_component)
+        self.eh = ConfigFileEventHandler(RLock(), self.config_list_manager, self.is_component)
 
         # Assert
         self.assertTrue(self.eh._is_comp)

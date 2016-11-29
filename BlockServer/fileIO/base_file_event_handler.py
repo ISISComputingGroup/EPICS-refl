@@ -14,39 +14,31 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-import string
-import os
-from abc import abstractmethod
-
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
-from BlockServer.core.inactive_config_holder import InactiveConfigHolder
-from BlockServer.core.constants import *
-from BlockServer.core.macros import MACROS
 from server_common.utilities import print_and_log
-from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
-from BlockServer.fileIO.file_manager import ConfigurationFileManager
-from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA_FILE
 
 
 class BaseFileEventHandler(FileSystemEventHandler):
     """ The BaseFileEventHandler class
+        Inherit from this class to provide event handling for different kinds of configuration files.
+        Subclass must implement :
+            _get_name: returns the name of the configuration, extracted from the event source path.
+            _check_valid: checks whether the configuration file is valid and returns the content if so.
+            _update: updates the configuration with new data read from the modified file.
+            _get_modified_message: returns the string message to be logged when file is modified.
 
-    Subclasses the FileSystemEventHandler class from the watchdog module.
-    Superclass for individual file event handler classes for different kinds of configuration files.
     """
 
-    def __init__(self, schema_folder, schema_lock, manager):
+    def __init__(self, manager):
         """ Constructor.
 
         Args:
-            schema_folder (string): The location of the schemas
-            schema_lock (string): The reentrant lock for the schema
-            manager : The File Manager # TODO needed methods
+            manager : The File Manager. Must implement the following methods:
+                delete: deletes a specific configuration
+                recover_from_version_control:
         """
-        self._schema_folder = schema_folder
-        self._schema_lock = schema_lock
         self._manager = manager
 
     def on_any_event(self, event):

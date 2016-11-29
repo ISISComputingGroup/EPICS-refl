@@ -17,13 +17,10 @@
 import os
 import string
 
-from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
-
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.base_file_event_handler import BaseFileEventHandler
 from server_common.utilities import print_and_log
-from schema_checker import ConfigurationSchemaChecker
-from schema_checker import ConfigurationIncompleteException, NotConfigFileException
+from schema_checker import NotConfigFileException
 
 
 class ConfigFileEventHandler(BaseFileEventHandler):
@@ -33,7 +30,7 @@ class ConfigFileEventHandler(BaseFileEventHandler):
     creates/removes available configurations as necessary.
     """
 
-    def __init__(self, schema_folder, schema_lock, config_list_manager, is_component=False):
+    def __init__(self, schema_lock, config_list_manager, is_component=False):
         """Constructor.
 
         Args:
@@ -41,7 +38,8 @@ class ConfigFileEventHandler(BaseFileEventHandler):
             config_list_manager (ConfigListManager): The ConfigListManager
             is_component (bool): Whether it is a component or not
         """
-        super(ConfigFileEventHandler, self).__init__(schema_folder, schema_lock, config_list_manager)
+        super(ConfigFileEventHandler, self).__init__(config_list_manager)
+        self._schema_lock = schema_lock
         self._is_comp = is_component
 
         if self._is_comp:

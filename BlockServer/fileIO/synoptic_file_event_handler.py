@@ -44,7 +44,8 @@ class SynopticFileEventHandler(BaseFileEventHandler):
             schema_lock (string): The reentrant lock for the schema
             synoptic_list_manager (SynopticListManager): The SynopticListManager
         """
-        super(SynopticFileEventHandler, self).__init__(schema_folder, schema_lock, synoptic_list_manager)
+        super(SynopticFileEventHandler, self).__init__(synoptic_list_manager)
+        self._schema_lock = schema_lock
         self._schema_filepath = os.path.join(schema_folder, SYNOPTIC_SCHEMA_FILE)
 
     def _update(self, data):
