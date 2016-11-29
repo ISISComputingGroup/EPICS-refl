@@ -15,12 +15,10 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import os
-from xml.dom import minidom
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
-from xml.dom import minidom
 from lxml import etree
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, \
     convert_to_json, convert_from_json

@@ -16,7 +16,6 @@
 
 import unittest
 import os
-import shutil
 
 from server_common.utilities import compress_and_hex, dehex_and_decompress
 from BlockServer.devices.devices_manager import DevicesManager, GET_SCREENS

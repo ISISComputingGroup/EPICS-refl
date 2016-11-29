@@ -21,7 +21,7 @@ import shutil
 
 from watchdog.events import *
 
-from BlockServer.fileIO.schema_checker import NotConfigFileException, ConfigurationInvalidUnderSchema
+from BlockServer.fileIO.schema_checker import NotConfigFileException
 from BlockServer.fileIO.synoptic_file_event_handler import SynopticFileEventHandler
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager

@@ -52,6 +52,7 @@ class BaseFileEventHandler(FileSystemEventHandler):
                 try:
                     name = self._get_name(event.src_path)
                     if type(event) is FileMovedEvent:
+                        # Renaming a file triggers this
                         modified_path = event.dest_path
                         self._manager.delete(name)
                     else:

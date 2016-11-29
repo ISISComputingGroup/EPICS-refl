@@ -14,19 +14,11 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-import string
-import os
 
-from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
-
-from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import *
-from BlockServer.core.macros import MACROS
 from BlockServer.fileIO.base_file_event_handler import BaseFileEventHandler
-from server_common.utilities import print_and_log
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
-from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
-from BlockServer.fileIO.file_manager import ConfigurationFileManager
+from BlockServer.fileIO.schema_checker import NotConfigFileException
 from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA_FILE
 
 

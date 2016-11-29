@@ -216,3 +216,7 @@ class DevicesManager(OnTheFlyPvInterface):
             xml_data = synfile.read()
 
         return xml_data
+
+    def delete(self, name):
+        """ Not needed for devices. Stub for superclass call """
+        pass

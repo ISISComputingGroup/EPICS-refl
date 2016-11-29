@@ -22,7 +22,6 @@ from BlockServer.synoptic.synoptic_manager import SynopticManager, SYNOPTIC_PRE,
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_block_server import MockBlockServer
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.synoptic.synoptic_file_io import SynopticFileIO
 
 TEST_DIR = os.path.abspath(".")

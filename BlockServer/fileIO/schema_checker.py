@@ -19,9 +19,6 @@ import string
 
 from lxml import etree
 
-from BlockServer.core.constants import SCHEMA_FOR, FILENAME_COMPONENTS
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-
 
 class NotConfigFileException(Exception):
     def __init__(self, message):
@@ -41,6 +38,12 @@ class ConfigurationInvalidUnderSchema(Exception):
         self.message = message
 
 
+class ConfigurationFileBlank(Exception):
+    def __init__(self, message):
+        super(Exception,self).__init__(message)
+        self.message = message
+
+
 class ConfigurationSchemaChecker(object):
     """ The ConfigurationSchemaChecker class
 
@@ -54,8 +57,11 @@ class ConfigurationSchemaChecker(object):
 
         Args:
             schema_filepath (string): The location of the schema file
-            xml_data (string): The XML for the screens
+            xml_data (string): The XML data of the configuration
         """
+        if len(xml_data) == 0:
+            raise ConfigurationFileBlank("Invalid XML: File is blank.")
+
         folder, file_name = string.rsplit(schema_filepath, os.sep, 1)
         xmlparser = ConfigurationSchemaChecker._import_schema(folder, file_name)
 
