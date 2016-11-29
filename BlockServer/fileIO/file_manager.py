@@ -23,8 +23,6 @@ from server_common.utilities import print_and_log
 from BlockServer.config.group import Group
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.configuration import Configuration, MetaData
-from ConfigVersionControl.git_version_control import GitVersionControl, RepoFactory
-from ConfigVersionControl.vc_exceptions import NotUnderVersionControl
 from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_COMPONENTS, FILENAME_META
 from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
@@ -34,7 +32,7 @@ from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, Config
 class ConfigurationFileManager(object):
     """ The ConfigurationFileManager class.
 
-    Contains utilities to save and load configurations and to communicate with the version control system.
+    Contains utilities to save and load configurations.
     """
 
     def find_ci(self, root_path, name):
