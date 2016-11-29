@@ -23,7 +23,7 @@ from server_common.utilities import print_and_log
 from BlockServer.config.group import Group
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.configuration import Configuration, MetaData
-from ConfigVersionControl.config_version_control import ConfigVersionControl
+from ConfigVersionControl.git_version_control import GitVersionControl, RepoFactory
 from ConfigVersionControl.vc_exceptions import NotUnderVersionControl
 from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_COMPONENTS, FILENAME_META
 from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
