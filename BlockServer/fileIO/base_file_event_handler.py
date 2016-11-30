@@ -27,7 +27,7 @@ class BaseFileEventHandler(FileSystemEventHandler):
             _get_name: returns the name of the configuration, extracted from the event source path.
             _check_valid: checks whether the configuration file is valid and returns the content if so.
             _update: updates the configuration with new data read from the modified file.
-            _get_modified_message: returns the string message to be logged when file is modified.
+            _get_modified_message: Returns the string message to be logged when file is modified.
 
     """
 
@@ -36,8 +36,8 @@ class BaseFileEventHandler(FileSystemEventHandler):
 
         Args:
             manager : The File Manager. Must implement the following methods:
-                delete: deletes a specific configuration
-                recover_from_version_control:
+                delete: Deletes a specific configuration from the internal list of available ones.
+                recover_from_version_control: Reverts the config directory back to the state held in version control.
         """
         self._manager = manager
 
