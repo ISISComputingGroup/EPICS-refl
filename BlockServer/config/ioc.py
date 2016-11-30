@@ -22,8 +22,8 @@ class IOC(object):
 
     Attributes:
         name (string): The name of the IOC
-        autostart (bool): Whether the IOC should automatically start
-        restart (bool): Whether the IOC should automatically restart
+        autostart (bool): Whether the IOC should automatically start/restart when the configuration is loaded/changed
+        restart (bool): If auto start is true, then proc serv will restart the IOC if it terminates unexpectedly
         component (string): The component the IOC belongs to
         macros (dict): The IOC's macros
         pvs (dict): The IOC's PVs
@@ -36,8 +36,9 @@ class IOC(object):
 
         Args:
             name (string): The name of the IOC
-            autostart (bool): Whether the IOC should automatically start
-            restart (bool): Whether the IOC should automatically restart
+            autostart (bool): Whether the IOC should automatically start/restart when the configuration is
+            loaded/changed
+            restart (bool): If auto start is true, then proc serv will restart the IOC if it terminates unexpectedly
             component (string): The component the IOC belongs to
             macros (dict): The IOC's macros
             pvs (dict): The IOC's PVs
