@@ -22,7 +22,6 @@ from BlockServer.synoptic.synoptic_manager import SynopticManager, SYNOPTIC_PRE,
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_block_server import MockBlockServer
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.synoptic.synoptic_file_io import SynopticFileIO
 
 TEST_DIR = os.path.abspath(".")
@@ -137,7 +136,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self._create_a_synoptic(SYNOPTIC_2)
         initial_len = len(self.sm.get_synoptic_list())
         # Act
-        self.sm.delete_synoptics([])
+        self.sm.delete([])
 
         # Assert
         synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
@@ -154,7 +153,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         initial_len = len(self.sm.get_synoptic_list())
 
         # Act
-        self.sm.delete_synoptics([SYNOPTIC_1])
+        self.sm.delete([SYNOPTIC_1])
 
         # Assert
         synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
@@ -170,7 +169,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self._create_a_synoptic(SYNOPTIC_2)
         initial_len = len(self.sm.get_synoptic_list())
         # Act
-        self.sm.delete_synoptics([SYNOPTIC_1, SYNOPTIC_2])
+        self.sm.delete([SYNOPTIC_1, SYNOPTIC_2])
 
         # Assert
         synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]
@@ -186,7 +185,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self._create_a_synoptic(SYNOPTIC_2)
         initial_len = len(self.sm.get_synoptic_list())
         # Act
-        self.assertRaises(InvalidDeleteException, self.sm.delete_synoptics, ["invalid"])
+        self.assertRaises(InvalidDeleteException, self.sm.delete, ["invalid"])
 
         # Assert
         synoptic_names = [c["name"] for c in self.sm.get_synoptic_list()]

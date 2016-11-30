@@ -15,12 +15,10 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import os
-from xml.dom import minidom
 from BlockServer.core.config_list_manager import InvalidDeleteException
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
-from xml.dom import minidom
 from lxml import etree
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, \
     convert_to_json, convert_from_json
@@ -77,7 +75,7 @@ class SynopticManager(OnTheFlyPvInterface):
     def handle_pv_write(self, pv, data):
         try:
             if pv == SYNOPTIC_PRE + SYNOPTIC_DELETE:
-                self.delete_synoptics(convert_from_json(data))
+                self.delete(convert_from_json(data))
                 self.update_monitors()
             elif pv == SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS:
                 self.save_synoptic_xml(data)
@@ -160,6 +158,12 @@ class SynopticManager(OnTheFlyPvInterface):
         self.update_pv_value(SYNOPTIC_PRE + self._synoptic_pvs[name] + SYNOPTIC_GET, compress_and_hex(data))
 
     def update_pv_value(self, name, data):
+        """ Updates value of a PV holding synoptic information with new data
+
+        Args:
+            name (string): The name of the edited synoptic
+            data (string): The new synoptic data
+        """
         self._bs.setParam(name, data)
         self._bs.updatePVs()
 
@@ -253,8 +257,7 @@ class SynopticManager(OnTheFlyPvInterface):
             except Exception as err:
                 raise CommitToVersionControlException(err)
 
-
-    def delete_synoptics(self, delete_list):
+    def delete(self, delete_list):
         """Takes a list of synoptics and removes them from the file system and any relevant PVs.
 
         Args:
@@ -281,14 +284,14 @@ class SynopticManager(OnTheFlyPvInterface):
         """A method to revert the configurations directory back to the state held in version control."""
         self._vc.update()
 
-    def update_from_filewatcher(self, name, xml_data):
+    def update(self, xml_data):
         """Updates the synoptic list when modifications are made via the filesystem.
 
         Args:
-            name (string):  The name of the synoptic
             xml_data (string): The xml data to update the PV with
 
         """
+        name = self._get_synoptic_name_from_xml(xml_data)
         self._add_to_version_control(name, "%s modified on filesystem" % name)
 
         names = self._synoptic_pvs.keys()
@@ -319,3 +322,8 @@ class SynopticManager(OnTheFlyPvInterface):
         return """<?xml version="1.0" ?><instrument xmlns="http://www.isis.stfc.ac.uk//instrument">
                <name>-- NONE --</name><components/></instrument>"""
 
+    def load_synoptic(self, path):
+        with open(path, 'r') as synfile:
+            xml_data = synfile.read()
+
+        return xml_data

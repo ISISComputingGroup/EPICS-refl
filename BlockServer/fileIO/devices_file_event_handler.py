@@ -14,35 +14,40 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
+import string
+import os
+
+from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
 from BlockServer.core.constants import *
 from BlockServer.fileIO.base_file_event_handler import BaseFileEventHandler
+from server_common.utilities import print_and_log
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
-from BlockServer.fileIO.schema_checker import NotConfigFileException
-from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA_FILE
+from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
+from BlockServer.devices.devices_manager import SCREENS_SCHEMA
 
 
-class SynopticFileEventHandler(BaseFileEventHandler):
-    """ The SynopticFileEventHandler class
+class DevicesFileEventHandler(BaseFileEventHandler):
+    """ The DevicesFileEventHandler class
 
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and
-    creates/removes available synoptics as necessary.
+    creates/removes available device screens as necessary.
     """
-    def __init__(self, schema_folder, schema_lock, synoptic_list_manager):
-        """Constructor.
+    def __init__(self, schema_folder, schema_lock, devices_manager):
+        """ Constructor.
 
         Args:
             schema_folder (string): The location of the schemas
             schema_lock (string): The reentrant lock for the schema
-            synoptic_list_manager (SynopticListManager): The SynopticListManager
+            devices_manager (DevicesManager): The DevicesManager
         """
-        super(SynopticFileEventHandler, self).__init__(synoptic_list_manager)
+        super(DevicesFileEventHandler, self).__init__(devices_manager)
         self._schema_lock = schema_lock
-        self._schema_filepath = os.path.join(schema_folder, SYNOPTIC_SCHEMA_FILE)
+        self._schema_filepath = os.path.join(schema_folder, SCREENS_SCHEMA)
 
     def _update(self, data):
         """
-        Updates the specified synoptic with new data.
+        Updates the device screens with new data.
 
         Args:
             data (string): The new data as a string of xml
@@ -51,19 +56,19 @@ class SynopticFileEventHandler(BaseFileEventHandler):
 
     def _check_valid(self, path):
         """
-        Check the validity of a given synoptic file and return the xml data contained within if valid
+        Check the validity of the device screens file and return the xml data contained within if valid
 
         Args:
             path (string): The location of the file
 
-        Returns: The synoptic's data as a string of xml
+        Returns: The device screens data as a string of xml
 
         """
         extension = path[-4:]
         if extension != ".xml":
             raise NotConfigFileException("File not xml")
 
-        xml_data = self._manager.load_synoptic(path)
+        xml_data = self._manager.load_devices(path)
 
         with self._schema_lock:
             ConfigurationSchemaChecker.check_xml_data_matches_schema(self._schema_filepath, xml_data)
@@ -71,26 +76,18 @@ class SynopticFileEventHandler(BaseFileEventHandler):
         return xml_data
 
     def _get_name(self, path):
-        """
-        Returns the name of the synoptic based on the file path.
-
-        Args:
-            path: The path to the synoptic file
-
-        Returns: The name of the synoptic
-
-        """
-        return os.path.basename(path)[:-4]
+        """ Not needed for devices. Stub for superclass call """
+        return
 
     def _get_modified_message(self, name):
         """
         Returns the log message for a file event.
 
         Args:
-            name (string): The name of the modified synoptic
+            name (string): Not used for device screens, from superclass call.
 
         Returns (string): The message
 
         """
-        message = "The synoptic, %s, has been modified in the filesystem, ensure it is added to version control" % name
+        message = "The device screens file has been modified in the filesystem, ensure it is added to version control"
         return message

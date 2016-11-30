@@ -225,7 +225,7 @@ class DatabaseServer(Driver):
         options = self._options_holder.get_config_options()
         for iocname in iocs.keys():
             if iocname in options:
-                iocs[iocname].update(options[iocname])
+                iocs[iocname].update_pv_value(options[iocname])
         return iocs
 
     def _get_interesting_pvs(self, level, ioc=None):

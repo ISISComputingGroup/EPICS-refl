@@ -19,7 +19,6 @@ import shutil
 from collections import OrderedDict
 from xml.etree import ElementTree
 
-from server_common.utilities import print_and_log
 from BlockServer.config.group import Group
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.configuration import Configuration, MetaData
