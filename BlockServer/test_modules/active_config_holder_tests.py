@@ -378,6 +378,20 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(start), 0)
         self.assertEqual(len(restart), 1)
 
+    def test_iocs_changed_simlevel_changed(self):
+        # Arrange
+        ch = self.create_ach()
+        details = ch.get_config_details()
+        details['iocs'].append(MockIoc())
+        ch.set_config_details(details)
+        # Act
+        details['iocs'][0] = MockIoc(simlevel='RecSim')
+        ch.set_config_details(details)
+        # Assert
+        start, restart = ch.iocs_changed()
+        self.assertEqual(len(start), 0)
+        self.assertEqual(len(restart), 1)
+
 if __name__ == '__main__':
     # Run tests
     unittest.main()
