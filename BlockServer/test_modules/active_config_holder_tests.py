@@ -15,20 +15,16 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import unittest
-import os
-import shutil
 import json
 
-from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.active_config_holder import ActiveConfigHolder
-from BlockServer.config.configuration import Configuration
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
+from BlockServer.mocks.mock_ioc import MockIoc
 
 
 CONFIG_PATH = "./test_configs/"
@@ -221,11 +217,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         ch = self.create_ach()
         details = ch.get_config_details()
         # Act
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc())
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -236,11 +228,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc())
         ch.set_config_details(details)
         # Act
         details['iocs'].pop(0)
@@ -254,18 +242,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc())
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
+        details['iocs'][0] = MockIoc(macros=[{"name": "TESTMACRO1", "value": "TEST"}])
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -276,18 +256,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc(macros=[{"name": "TESTMACRO1", "value": "TEST"}]))
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
+        details['iocs'][0] = MockIoc()
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -298,18 +270,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc(macros=[{"name": "TESTMACRO1", "value": "TEST"}]))
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [{"name": "TESTMACRO1", "value": "TEST_NEW"}],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
+        details['iocs'][0] = MockIoc(macros=[{"name": "TESTMACRO1", "value": "TEST_NEW"}])
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -320,18 +284,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc(macros=[{"name": "TESTMACRO1", "value": "TEST"}]))
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
+        details['iocs'][0] = MockIoc(macros=[{"name": "TESTMACRO1", "value": "TEST"}])
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -342,18 +298,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc())
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [{"name": "TESTPV1", "value": 123}],
-                              "pvsets": [],
-                              "component": None}
+        details['iocs'][0] = MockIoc(pvs=[{"name": "TESTPV1", "value": 123}])
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -364,18 +312,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [{"name": "TESTPV1", "value": 123}],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc(pvs=[{"name": "TESTPV1", "value": 123}]))
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
+        details['iocs'][0] = MockIoc()
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -386,18 +326,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [{"name": "TESTPV1", "value": 123}],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc(pvs=[{"name": "TESTPV1", "value": 123}]))
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [{"name": "TESTPV1", "value": 456}],
-                              "pvsets": [],
-                              "component": None}
+        details['iocs'][0] = MockIoc(pvs=[{"name": "TESTPV1", "value": 456}])
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -408,18 +340,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc())
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [],
-                              "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
-                              "component": None}
+        details['iocs'][0] = MockIoc(pvsets=[{"name": "TESTPVSET1", "enabled": True}])
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -430,18 +354,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
-                                "component": None})
+        details['iocs'].append(MockIoc(pvsets=[{"name": "TESTPVSET1", "enabled": True}]))
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
+        details['iocs'][0] = MockIoc()
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -452,18 +368,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
-                                "component": None})
+        details['iocs'].append(MockIoc(pvsets=[{"name": "TESTPVSET1", "enabled": True}]))
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [],
-                              "pvsets": [{"name": "TESTPVSET1", "enabled": False}],
-                              "component": None}
+        details['iocs'][0] = MockIoc(pvsets=[{"name": "TESTPVSET1", "enabled": False}])
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
