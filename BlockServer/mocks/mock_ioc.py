@@ -26,3 +26,9 @@ class MockIoc(object):
         self.pvsets = pvsets
         self.component = component
         self.simlevel = simlevel
+
+    def get(self,name):
+        return self.__getattribute__(name)
+
+    def __getitem__(self, name):
+        return self.__getattribute__(name)
