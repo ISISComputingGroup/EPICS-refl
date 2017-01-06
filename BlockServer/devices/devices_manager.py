@@ -173,9 +173,12 @@ class DevicesManager(OnTheFlyPvInterface):
         Returns:
 
         """
-        self._vc.add(self.get_devices_filename())
-        if commit_message is not None:
-            self._vc.commit(commit_message)
+        try:
+            self._vc.add(self.get_devices_filename())
+            if commit_message is not None:
+                self._vc.commit(commit_message)
+        except Exception as err:
+            print_and_log("Unable to add screens to version control. " + str(err), "MINOR")
 
     def get_devices_schema(self):
         """ Gets the XSD data for the devices screens.
@@ -203,7 +206,10 @@ class DevicesManager(OnTheFlyPvInterface):
 
     def recover_from_version_control(self):
         """ A method to revert the configurations directory back to the state held in version control."""
-        self._vc.update()
+        try:
+            self._vc.update()
+        except Exception as err:
+            print_and_log("Unable to recover screens to version control. " + str(err), "MINOR")
 
     def load_devices(self, path):
         """
