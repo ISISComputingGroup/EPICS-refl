@@ -111,7 +111,10 @@ class DevicesManager(OnTheFlyPvInterface):
         except Exception as err:
             print_and_log("Unable to add new data to version control. " + str(err), "MINOR")
 
-        self._vc.commit("Blockserver started, devices updated")
+        try:
+            self._vc.commit("Blockserver started, devices updated")
+        except Exception as err:
+            print_and_log("Unable to commit screens to version control. " + str(err), "MINOR")
 
     def get_devices_filename(self):
         """ Gets the names of the devices files in the devices directory.
