@@ -100,6 +100,7 @@ class ExpData(object):
             sqlquery += " WHERE role.roleID = experimentteams.roleID"
             sqlquery += " AND user.userID = experimentteams.userID"
             sqlquery += " AND experimentteams.experimentID = %s" % experimentID
+            sqlquery += " GROUP BY user.userID"
             sqlquery += " ORDER BY role.priority"
             team = [list(element) for element in self._db.query(sqlquery)]
             if len(team) == 0:
