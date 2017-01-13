@@ -41,7 +41,7 @@ from BlockServer.synoptic.synoptic_manager import SynopticManager
 from BlockServer.devices.devices_manager import DevicesManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from ConfigVersionControl.git_version_control import GitVersionControl, RepoFactory
-from ConfigVersionControl.vc_exceptions import NotUnderVersionControl
+from ConfigVersionControl.version_control_exceptions import NotUnderVersionControl, UnlockVersionControlException
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.ioc_control import IocControl
 from BlockServer.core.database_server_client import DatabaseServerClient
@@ -210,11 +210,15 @@ class BlockServer(Driver):
             self._vc = GitVersionControl(CONFIG_DIR, RepoFactory.get_repo(CONFIG_DIR))
             self._vc.setup()
         except NotUnderVersionControl as err:
-            print_and_log("Warning: Configurations not under version control", "MINOR")
+            print_and_log("Configurations not under version control: %s" % err, "MINOR")
+            self._vc = MockVersionControl()
+        except UnlockVersionControlException as err:
+            print_and_log("Cannot use version control as unable to remove lock from version control repository: %s" %
+                          err, "MINOR")
             self._vc = MockVersionControl()
         except Exception as err:
             print_and_log("Unable to start version control. Modifications to the instrument setup will not be "
-                          "tracked: " + str(err), "MINOR")
+                          "tracked: %s" % err, "MINOR")
             self._vc = MockVersionControl()
 
         # Create banner object

@@ -3,7 +3,7 @@ REM @echo off
 set MYDIRBLOCK=%~dp0
 call %MYDIRBLOCK%..\..\..\config_env_base.bat
 
-%HIDEWINDOW% h
+REM %HIDEWINDOW% h
 
 set EPICS_CAS_INTF_ADDR_LIST=127.0.0.1
 set EPICS_CAS_BEACON_ADDR_LIST=127.255.255.255
@@ -17,4 +17,4 @@ if exist "%ICPSETTINGSDIR%/gwblock.pvlist" (
     set GWBLOCK_PVLIST=%MYDIRGATE%\gwblock_dummy.pvlist
 )
 
-%PYTHONW% %MYDIRBLOCK%\block_server.py -od %MYDIRBLOCK%..\..\..\iocstartup -sd %MYDIRBLOCK%\schema\ -cd %ICPCONFIGROOT% -pv %GWBLOCK_PVLIST% -f ISIS
+%PYTHON% %MYDIRBLOCK%\block_server.py -od %MYDIRBLOCK%..\..\..\iocstartup -sd %MYDIRBLOCK%\schema\ -cd %ICPCONFIGROOT% -pv %GWBLOCK_PVLIST% -f ISIS

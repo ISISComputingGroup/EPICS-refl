@@ -20,9 +20,10 @@ import os
 
 from BlockServer.synoptic.synoptic_manager import SynopticManager, SYNOPTIC_PRE, SYNOPTIC_GET
 from BlockServer.core.config_list_manager import InvalidDeleteException
-from BlockServer.mocks.mock_version_control import MockVersionControl
+from BlockServer.mocks.mock_version_control import *
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.synoptic.synoptic_file_io import SynopticFileIO
+from ConfigVersionControl.version_control_exceptions import *
 
 TEST_DIR = os.path.abspath(".")
 
@@ -63,20 +64,22 @@ class TestSynopticManagerSequence(unittest.TestCase):
         while SCHEMA_FOLDER not in os.listdir(dir):
             dir = os.path.join(dir, "..")
 
+        self.dir = dir
+
         self.fileIO = MockSynopticFileIO()
         self.bs = MockBlockServer()
-        self.sm = SynopticManager(self.bs, os.path.join(dir, SCHEMA_FOLDER), MockVersionControl(), None, self.fileIO)
+        self.sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), MockVersionControl(), None, self.fileIO)
 
     def tearDown(self):
         pass
 
-    def _create_a_synoptic(self, name):
-        self.sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % name)
+    def _create_a_synoptic(self, name, sm):
+        sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % name)
 
     def test_get_synoptic_names_returns_names_alphabetically(self):
         # Arrange
-        self._create_a_synoptic(SYNOPTIC_1)
-        self._create_a_synoptic(SYNOPTIC_2)
+        self._create_a_synoptic(SYNOPTIC_1, self.sm)
+        self._create_a_synoptic(SYNOPTIC_2, self.sm)
 
         # Act
         s = self.sm.get_synoptic_list()
@@ -91,7 +94,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_create_pvs_is_okay(self):
         # Arrange
-        self._create_a_synoptic(SYNOPTIC_1)
+        self._create_a_synoptic(SYNOPTIC_1, self.sm)
         # Act
         self.sm._load_initial()
 
@@ -108,7 +111,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_set_default_synoptic_xml_sets_something(self):
         # Arrange
-        self._create_a_synoptic(SYNOPTIC_1)
+        self._create_a_synoptic(SYNOPTIC_1, self.sm)
         # Act
         self.sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % "synoptic0")
         self.sm.set_default_synoptic("synoptic0")
@@ -132,8 +135,8 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_delete_synoptics_empty(self):
         # Arrange
-        self._create_a_synoptic(SYNOPTIC_1)
-        self._create_a_synoptic(SYNOPTIC_2)
+        self._create_a_synoptic(SYNOPTIC_1, self.sm)
+        self._create_a_synoptic(SYNOPTIC_2, self.sm)
         initial_len = len(self.sm.get_synoptic_list())
         # Act
         self.sm.delete([])
@@ -148,8 +151,8 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_delete_one_synoptic(self):
         # Arrange
-        self._create_a_synoptic(SYNOPTIC_1)
-        self._create_a_synoptic(SYNOPTIC_2)
+        self._create_a_synoptic(SYNOPTIC_1, self.sm)
+        self._create_a_synoptic(SYNOPTIC_2, self.sm)
         initial_len = len(self.sm.get_synoptic_list())
 
         # Act
@@ -165,8 +168,8 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_delete_many_synoptics(self):
         # Arrange
-        self._create_a_synoptic(SYNOPTIC_1)
-        self._create_a_synoptic(SYNOPTIC_2)
+        self._create_a_synoptic(SYNOPTIC_1, self.sm)
+        self._create_a_synoptic(SYNOPTIC_2, self.sm)
         initial_len = len(self.sm.get_synoptic_list())
         # Act
         self.sm.delete([SYNOPTIC_1, SYNOPTIC_2])
@@ -181,8 +184,8 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
     def test_cannot_delete_non_existent_synoptic(self):
         # Arrange
-        self._create_a_synoptic(SYNOPTIC_1)
-        self._create_a_synoptic(SYNOPTIC_2)
+        self._create_a_synoptic(SYNOPTIC_1, self.sm)
+        self._create_a_synoptic(SYNOPTIC_2, self.sm)
         initial_len = len(self.sm.get_synoptic_list())
         # Act
         self.assertRaises(InvalidDeleteException, self.sm.delete, ["invalid"])
@@ -192,3 +195,51 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.assertEqual(len(synoptic_names), initial_len)
         self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_1.upper())))
         self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_2.upper())))
+
+    def test_on_creating_cannot_add_to_version_control_does_not_raise_specified_exception(self):
+        # Arrange
+        sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), FailOnAddMockVersionControl(), None,
+                             self.fileIO)
+        try:
+            self._create_a_synoptic(SYNOPTIC_1, sm)
+        except AddToVersionControlException as err:
+            self.fail("Oops add raised")
+
+    def test_on_creating_cannot_commit_to_version_control_does_not_raise_specified_exception(self):
+        sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), FailOnCommitMockVersionControl(), None,
+                             self.fileIO)
+
+        try:
+            self._create_a_synoptic(SYNOPTIC_1, sm)
+        except CommitToVersionControlException as err:
+            self.fail("Oops commmit raised")
+
+    def test_on_delete_cannot_commit_to_version_control_does_not_raise_specified_exception(self):
+        sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), FailOnCommitMockVersionControl(), None,
+                             self.fileIO)
+
+        self._create_a_synoptic(SYNOPTIC_1, sm)
+
+        try:
+            sm.delete([SYNOPTIC_1])
+        except CommitToVersionControlException as err:
+            self.fail("Oops commit raised")
+
+    def test_on_delete_cannot_remove_from_version_control_does_not_raise_specified_exception(self):
+        sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), FailOnRemoveMockVersionControl(), None,
+                             self.fileIO)
+
+        self._create_a_synoptic(SYNOPTIC_1, sm)
+
+        try:
+            sm.delete([SYNOPTIC_1])
+        except RemoveFromVersionControlException as err:
+            self.fail("Oops remove raised")
+
+    def test_on_recover_from_version_control_does_not_raise_specified_exception(self):
+        sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), FailOnUpdateMockVersionControl(), None,
+                             self.fileIO)
+        try:
+            sm.recover_from_version_control()
+        except UpdateFromVersionControlException as err:
+            self.fail("Oops update raised")

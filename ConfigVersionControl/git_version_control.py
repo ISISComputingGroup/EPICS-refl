@@ -1,10 +1,25 @@
-# Version Control class for dealing with git file operations
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# All rights reserved.
+#
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+#
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
+
 import os
 import shutil
 import stat
 import socket
 from git import *
-from vc_exceptions import NotUnderVersionControl, GitPullFailed, NotUnderAllowedBranch
+from version_control_exceptions import *
 from threading import Thread, RLock
 from time import sleep
 from server_common.utilities import print_and_log
@@ -27,6 +42,7 @@ class RepoFactory:
 
 
 class GitVersionControl:
+    """Version Control class for dealing with git file operations"""
     def __init__(self, working_directory, repo):
         self._wd = working_directory
         self.repo = repo
@@ -40,9 +56,12 @@ class GitVersionControl:
         Do startup actions here rather than in constructor to allow for easier testing
         """
         if not self.branch_allowed(str(self.repo.active_branch)):
-            raise NotUnderAllowedBranch()
+            raise NotUnderAllowedBranchException("Access to branch %s not allowed" % self.repo.active_branch)
 
-        self._unlock()
+        try:
+            self._unlock()
+        except UnlockVersionControlException as err:
+            raise
 
         config_writer = self.repo.config_writer()
         # Set git repository to ignore file permissions otherwise will reset to read only
@@ -77,89 +96,92 @@ class GitVersionControl:
     def _unlock(self):
         """ Removes index.lock if it exists, and it's not being used
         """
-        lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
-        if os.path.exists(lock_file_path):
-            try:
+        try:
+            lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
+            if os.path.exists(lock_file_path):
+                print_and_log("Found lock for version control repository, trying to remove: %s" % lock_file_path,
+                              "INFO")
                 os.remove(lock_file_path)
-            except Exception as err:
-                print_and_log("Unable to remove lock from version control repository: %s" %
-                              lock_file_path, "MINOR")
-            else:
-                print_and_log("Lock removed from version control repository: %s" % lock_file_path, "INFO")
-
-    # TODO: Waits with no timeout here!!
-    def info(self, working_directory):
-        """ Get some info on the repository
-        Args:
-            path (str): the path to the repository
-
-        Returns:
-            string: Info about the repository
-        """
-        print self.repo.git.status()
+                print_and_log("Lock removed from version control repository", "INFO")
+        except Exception as err:
+            raise UnlockVersionControlException(err)
 
     def add(self, path):
         """ Add a file to the repository
         Args:
             path (str): the file to add
         """
-        if self._should_ignore(path):
-            return
         try:
+            if self._should_ignore(path):
+                return
             self.repo.index.add([path])
-        except WindowsError as e:
-            # Most Likely Access Denied
-            self._set_permissions()
-            self.repo.index.add([path])
+        except WindowsError as err:
+            # Most likely access denied, so try changing permissions then retry once
+            try:
+                self._set_permissions()
+                self.repo.index.add([path])
+            except Exception as err:
+                raise AddToVersionControlException(err.message)
+        except Exception as err:
+            raise AddToVersionControlException(err.message)
 
     def commit(self, commit_comment):
         """ Commit changes to a repository
         Args:
             commit_comment (str): comment to leave with the commit
         """
-        self.repo.index.commit(commit_comment)
+        try:
+            self.repo.index.commit(commit_comment)
+        except Exception as err:
+            raise CommitToVersionControlException(err.message)
         with self._push_lock:
             self._push_required = True
 
     def update(self):
         """ reverts folder to the remote repository
         """
-        self._pull()
-        if self.repo.is_dirty():
-            self.repo.index.checkout()
+        try:
+            self._pull()
+            if self.repo.is_dirty():
+                self.repo.index.checkout()
+        except Exception as err:
+            raise UpdateFromVersionControlException(err.message)
 
     def remove(self, path):
         """ Deletes file from the filesystem as well as removing from the repo
         Args:
             path (str): pat
         """
-        if self._should_ignore(path) and os.path.exists(path):
-            # the git library throws if we try to delete something that wasn't added
-            # but we still have to delete the file from file system
-            if os.path.isdir(path):
-                shutil.rmtree(path)
-            else:
-                os.remove(path)
-            return
+        try:
+            if self._should_ignore(path) and os.path.exists(path):
+                # the git library throws if we try to delete something that wasn't added
+                # but we still have to delete the file from file system
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
+                return
 
-        delete_list = []
-        if os.path.isdir(path):
-            for root, dirs, files in os.walk(path, topdown=False):
-                for f in files:
-                    delete_list.append(os.path.abspath(os.path.join(root, f)))
-                for d in dirs:
-                    delete_list.append(os.path.abspath(os.path.join(root, d)))
-        else:
-            delete_list.append(path)
-        self.repo.index.remove(delete_list, True)
+            delete_list = []
+            if os.path.isdir(path):
+                for root, dirs, files in os.walk(path, topdown=False):
+                    for f in files:
+                        delete_list.append(os.path.abspath(os.path.join(root, f)))
+                    for d in dirs:
+                        delete_list.append(os.path.abspath(os.path.join(root, d)))
+            else:
+                delete_list.append(path)
+            self.repo.index.remove(delete_list, True)
+        except Exception as err:
+            raise RemoveFromVersionControlException(err.message)
 
     def _pull(self):
         try:
             self.remote.pull()
-        except GitCommandError as e:
+        except GitCommandError as err:
             # Most likely server issue
             print_and_log("Unable to pull configurations from remote repo", "MINOR")
-            raise GitPullFailed()
+            raise PullFromVersionControlException(err.message)
 
     def _set_permissions(self):
         git_path = self.repo.git_dir

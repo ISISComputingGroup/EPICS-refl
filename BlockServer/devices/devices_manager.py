@@ -22,6 +22,8 @@ from BlockServer.core.constants import FILENAME_SCREENS as SCREENS_FILE
 from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from BlockServer.devices.devices_file_io import DevicesFileIO
+from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
+    CommitToVersionControlException, UpdateFromVersionControlException
 
 
 SCREENS_SCHEMA = "screens.xsd"
@@ -106,15 +108,7 @@ class DevicesManager(OnTheFlyPvInterface):
             print_and_log(err.message)
             return
 
-        try:
-            self._add_to_version_control("New change found in devices file")
-        except Exception as err:
-            print_and_log("Unable to add new data to version control. " + str(err), "MINOR")
-
-        try:
-            self._vc.commit("Blockserver started, devices updated")
-        except Exception as err:
-            print_and_log("Unable to commit screens to version control. " + str(err), "MINOR")
+        self._add_to_version_control("New change found in devices file")
 
     def get_devices_filename(self):
         """ Gets the names of the devices files in the devices directory.
@@ -177,8 +171,12 @@ class DevicesManager(OnTheFlyPvInterface):
             self._vc.add(self.get_devices_filename())
             if commit_message is not None:
                 self._vc.commit(commit_message)
-        except Exception as err:
-            print_and_log("Unable to add screens to version control. " + str(err), "MINOR")
+        except AddToVersionControlException as err:
+            # Logging is fine, no need to raise further
+            print_and_log("Unable to add screens to version control: (%s)" % err, "MINOR")
+        except CommitToVersionControlException as err:
+            # Logging is fine, no need to raise further
+            print_and_log("Unable to commit screens to version control: (%s)" % err, "MINOR")
 
     def get_devices_schema(self):
         """ Gets the XSD data for the devices screens.
@@ -208,8 +206,8 @@ class DevicesManager(OnTheFlyPvInterface):
         """ A method to revert the configurations directory back to the state held in version control."""
         try:
             self._vc.update()
-        except Exception as err:
-            print_and_log("Unable to recover screens to version control. " + str(err), "MINOR")
+        except UpdateFromVersionControlException as err:
+            print_and_log("Unable to recover screens to version control: %s" % err, "MINOR")
 
     def load_devices(self, path):
         """

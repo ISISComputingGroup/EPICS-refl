@@ -23,8 +23,8 @@ from lxml import etree
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, \
     convert_to_json, convert_from_json
 from synoptic_file_io import SynopticFileIO
-from synoptic_exceptions import VersionControlException, AddToVersionControlException, \
-    CommitToVersionControlException, RemoveFromVersionControlException
+from ConfigVersionControl.version_control_exceptions import VersionControlException, AddToVersionControlException, \
+    CommitToVersionControlException, RemoveFromVersionControlException, UpdateFromVersionControlException
 
 
 # Synoptics PVs are of the form IN:DEMO:SYNOPTICS:XXXXX (no BLOCKSERVER in the name)
@@ -126,16 +126,15 @@ class SynopticManager(OnTheFlyPvInterface):
                                                                                  SYNOPTIC_SCHEMA_FILE), data, "Synoptic")
                 # Get the synoptic name
                 self._create_pv(data)
-
-                self._add_to_version_control(f[0:-4])
-            except VersionControlException as err:
+                self._vc.add(FILEPATH_MANAGER.get_synoptic_path(f[0:-4]))
+            except AddToVersionControlException as err:
                 print_and_log(str(err), "MAJOR")
             except Exception as err:
                 print_and_log("Error creating synoptic PV: %s" % str(err), "MAJOR")
         try:
             self._vc.commit("Blockserver started, synoptics updated")
-        except Exception as err:
-            print_and_log("Unable to update synoptics while starting the blockserver: %s" % str(err), "MAJOR")
+        except CommitToVersionControlException as err:
+            print_and_log("Could not commit changes to version control: %s" % err, "MAJOR")
 
     def _create_pv(self, data):
         """Creates a single PV based on a name and data. Adds this PV to the dictionary returned on get_synoptic_list
@@ -232,30 +231,24 @@ class SynopticManager(OnTheFlyPvInterface):
                                                                 xml_data, "Synoptic")
             # Update PVs
             self._create_pv(xml_data)
-
         except Exception as err:
             print_and_log(err)
             raise
 
         name = self._get_synoptic_name_from_xml(xml_data)
-
         save_path = FILEPATH_MANAGER.get_synoptic_path(name)
-
         self._file_io.write_synoptic_file(name, save_path, xml_data)
-        self._add_to_version_control(name, "%s modified by client" % name)
+        self._add_and_commit_to_version_control(name, "client")
         print_and_log("Synoptic saved: " + name)
 
-    def _add_to_version_control(self, synoptic_name, commit_message=None):
-        # Add to version control
+    def _add_and_commit_to_version_control(self, name, modifier):
         try:
-            self._vc.add(FILEPATH_MANAGER.get_synoptic_path(synoptic_name))
-        except Exception as err:
-            raise AddToVersionControlException(err)
-        if commit_message is not None:
-            try:
-                self._vc.commit(commit_message)
-            except Exception as err:
-                raise CommitToVersionControlException(err)
+            self._vc.add(FILEPATH_MANAGER.get_synoptic_path(name))
+            self._vc.commit("%s modified by %s" % (name, modifier))
+        except AddToVersionControlException as err:
+            print_and_log("Could not add %s to version control: %s" % (name, err), "MAJOR")
+        except CommitToVersionControlException as err:
+            print_and_log("Could not commit changes to %s to version control: %s" % (name, err), "MAJOR")
 
     def delete(self, delete_list):
         """Takes a list of synoptics and removes them from the file system and any relevant PVs.
@@ -277,12 +270,22 @@ class SynopticManager(OnTheFlyPvInterface):
 
     def _update_version_control_post_delete(self, files):
         for synoptic in files:
-            self._vc.remove(FILEPATH_MANAGER.get_synoptic_path(synoptic))
-        self._vc.commit("Deleted %s" % ', '.join(list(files)))
+            try:
+                self._vc.remove(FILEPATH_MANAGER.get_synoptic_path(synoptic))
+            except RemoveFromVersionControlException as err:
+                print_and_log("Could not remove %s from version control: %s" % (synoptic, err), "MAJOR")
+
+        try:
+            self._vc.commit("Deleted %s" % ', '.join(list(files)))
+        except CommitToVersionControlException as err:
+            print_and_log("Could not commit changes to version control: %s" % err, "MAJOR")
 
     def recover_from_version_control(self):
         """A method to revert the configurations directory back to the state held in version control."""
-        self._vc.update()
+        try:
+            self._vc.update()
+        except UpdateFromVersionControlException as err:
+            print_and_log("Could not update from version control: %s" % err, "MAJOR")
 
     def update(self, xml_data):
         """Updates the synoptic list when modifications are made via the filesystem.
@@ -292,7 +295,8 @@ class SynopticManager(OnTheFlyPvInterface):
 
         """
         name = self._get_synoptic_name_from_xml(xml_data)
-        self._add_to_version_control(name, "%s modified on filesystem" % name)
+
+        self._add_and_commit_to_version_control(name, "filesystem")
 
         names = self._synoptic_pvs.keys()
         if name in names:
