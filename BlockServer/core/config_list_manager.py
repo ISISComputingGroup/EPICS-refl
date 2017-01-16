@@ -276,7 +276,7 @@ class ConfigListManager(object):
             try:
                 self._vc.remove(os.path.join(folder, config))
             except RemoveFromVersionControlException as err:
-                print_and_log("Could not remove %s from version control: %s" % (config, str(err)), "MAJOR")
+                print_and_log("Could not remove %s from version control: %s" % (config, err), "MAJOR")
 
         try:
             self._vc.commit("Deleted %s" % ', '.join(list(files)))
