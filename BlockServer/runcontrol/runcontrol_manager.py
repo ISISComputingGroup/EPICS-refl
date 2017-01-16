@@ -37,6 +37,7 @@ RUNCONTROL_GET_PV = BlockserverPVNames.prepend_blockserver('GET_RC_PARS')
 # number of loops to wait for assuming the run control is not going to start
 MAX_LOOPS_TO_WAIT_FOR_START = 60  # roughly 2 minutes at standard time
 
+
 class RunControlManager(OnTheFlyPvInterface):
     """A class for taking care of setting up run-control.
     """
@@ -221,8 +222,9 @@ class RunControlManager(OnTheFlyPvInterface):
     def wait_for_ioc_start(self, time_between_tries=2):
         """
         Waits for the run-control IOC to start.
-        :param time_between_tries: time to wait before checking if run control has started
-        :return:
+
+        Args:
+            time_between_tries (int): time to wait before checking if run control has started
         """
         print_and_log("Waiting for runcontrol IOC to start ...")
         started = False
