@@ -66,7 +66,11 @@ class GitVersionControl:
         config_writer = self.repo.config_writer()
         # Set git repository to ignore file permissions otherwise will reset to read only
         config_writer.set_value("core", "filemode", False)
-        self._pull()
+
+        try:
+            self._pull()
+        except PullFromVersionControlException as err:
+            raise
 
         # Start a background thread for pushing
         push_thread = Thread(target=self._push, args=())
@@ -104,7 +108,8 @@ class GitVersionControl:
                 os.remove(lock_file_path)
                 print_and_log("Lock removed from version control repository", "INFO")
         except Exception as err:
-            raise UnlockVersionControlException(err)
+            raise UnlockVersionControlException("Unable to remove lock from version control repository: %s " %
+                                                err.message)
 
     def add(self, path):
         """ Add a file to the repository
@@ -178,10 +183,9 @@ class GitVersionControl:
     def _pull(self):
         try:
             self.remote.pull()
-        except GitCommandError as err:
+        except Exception as err:
             # Most likely server issue
-            print_and_log("Unable to pull configurations from remote repo", "MINOR")
-            raise PullFromVersionControlException(err.message)
+            raise PullFromVersionControlException("Unable to pull configurations from remote repo: %s" % err.message)
 
     def _set_permissions(self):
         git_path = self.repo.git_dir
