@@ -21,11 +21,14 @@ import datetime
 from collections import OrderedDict
 import re
 
+from server_common.utilities import print_and_log
 from BlockServer.config.configuration import Configuration
 from BlockServer.core.constants import DEFAULT_COMPONENT, GRP_NONE
 from BlockServer.config.group import Group
 from BlockServer.core.macros import PVPREFIX_MACRO
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
+    CommitToVersionControlException
 
 
 class ConfigHolder(object):
@@ -494,11 +497,17 @@ class ConfigHolder(object):
 
     def _update_version_control(self, name):
         if self._is_component:
-            self._vc.add(FILEPATH_MANAGER.get_component_path(name))
+            path = FILEPATH_MANAGER.get_component_path(name)
         else:
-            self._vc.add(FILEPATH_MANAGER.get_config_path(name))
+            path = FILEPATH_MANAGER.get_config_path(name)
 
-        self._vc.commit("%s modified by client" % name)
+        try:
+            self._vc.add(path)
+            self._vc.commit("%s modified by client" % name)
+        except AddToVersionControlException as err:
+            print_and_log("Could not add %s to version control: %s" % (name, err), "MAJOR")
+        except CommitToVersionControlException as err:
+            print_and_log("Could not commit changes to %s to version control: %s" % (name, err), "MAJOR")
 
     def _set_as_component(self, value):
         if value is True:

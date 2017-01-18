@@ -26,6 +26,8 @@ from server_common.utilities import print_and_log, compress_and_hex, create_pv_n
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.pv_names import BlockserverPVNames
 from config_list_manager_exceptions import InvalidDeleteException
+from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
+    CommitToVersionControlException, UpdateFromVersionControlException, RemoveFromVersionControlException
 
 
 class ConfigListManager(object):
@@ -120,10 +122,10 @@ class ConfigListManager(object):
                 self.update_a_config_in_list(config, True)
                 try:
                     self._vc.add(path)
-                except Exception as err:
-                    print_and_log("Unable to add component to version control: " + str(err), "MINOR")
+                except AddToVersionControlException as err:
+                    print_and_log("Unable to add component to version control: %s" % err, "MINOR")
             except Exception as err:
-                print_and_log("Error in loading component: " + str(err), "MINOR")
+                print_and_log("Error in loading component: %s" % err, "MINOR")
 
         # Create default if it does not exist
         if DEFAULT_COMPONENT.lower() not in comp_list:
@@ -137,13 +139,16 @@ class ConfigListManager(object):
                 self.update_a_config_in_list(config)
                 try:
                     self._vc.add(path)
-                except Exception as err:
-                    print_and_log("Unable to add configuration to version control: " + str(err), "MINOR")
+                except AddToVersionControlException as err:
+                    print_and_log("Unable to add configuration to version control: %s" % err, "MINOR")
             except Exception as err:
-                print_and_log("Error in loading config: " + str(err), "MINOR")
+                print_and_log("Error in loading config: %s" % err, "MINOR")
 
-        # Add files to version control
-        self._vc.commit("Blockserver started, configs updated")
+        # Commit files to version control
+        try:
+            self._vc.commit("Blockserver started, configs updated")
+        except CommitToVersionControlException as err:
+            print_and_log("Unable to commit configurations to version control: %s" % err, "MINOR")
 
     def load_config(self, name, is_component=False):
         """Loads an inactive configuration or component.
@@ -268,8 +273,15 @@ class ConfigListManager(object):
 
     def _update_version_control_post_delete(self, folder, files):
         for config in files:
-            self._vc.remove(os.path.join(folder, config))
-        self._vc.commit("Deleted %s" % ', '.join(list(files)))
+            try:
+                self._vc.remove(os.path.join(folder, config))
+            except RemoveFromVersionControlException as err:
+                print_and_log("Could not remove %s from version control: %s" % (config, err), "MAJOR")
+
+        try:
+            self._vc.commit("Deleted %s" % ', '.join(list(files)))
+        except CommitToVersionControlException as err:
+            print_and_log("Unable to update configurations in version control after deletion: %s" % err, "MINOR")
 
     def delete(self, delete_list, are_comps=False):
         """Takes a list of configurations and removes them from the file system and any relevant PVs.
@@ -292,10 +304,7 @@ class ConfigListManager(object):
                     self._delete_pv(BlockserverPVNames.get_config_details_pv(self._config_metas[config.lower()].pv))
                     del self._config_metas[config.lower()]
                     self._remove_config_from_dependencies(config)
-                try:
-                    self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
-                except Exception as err:
-                    print_and_log(unable_to_remove_text % ("configuration", str(err)),"MINOR")
+                self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
             else:
                 if DEFAULT_COMPONENT.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete default component")
@@ -310,10 +319,7 @@ class ConfigListManager(object):
                     self._delete_pv(BlockserverPVNames.get_component_details_pv(self._component_metas[comp].pv))
                     self._delete_pv(BlockserverPVNames.get_dependencies_pv(self._component_metas[comp].pv))
                     del self._component_metas[comp]
-                try:
-                    self._update_version_control_post_delete(self._comp_path, delete_list)
-                except Exception as err:
-                    print_and_log(unable_to_remove_text % ("component", str(err)),"MINOR")
+                self._update_version_control_post_delete(self._comp_path, delete_list)
 
             self.update_monitors()
 
@@ -335,7 +341,10 @@ class ConfigListManager(object):
 
     def recover_from_version_control(self):
         """A method to revert the configurations directory back to the state held in version control."""
-        self._vc.update()
+        try:
+            self._vc.update()
+        except UpdateFromVersionControlException as err:
+            print_and_log("Unable to recover configurations from version control: %s" % err, "MINOR")
 
     def update_monitors(self):
         with self._bs.monitor_lock:

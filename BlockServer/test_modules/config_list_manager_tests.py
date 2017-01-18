@@ -23,13 +23,14 @@ from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.config.configuration import Configuration
-from BlockServer.mocks.mock_version_control import MockVersionControl
+from BlockServer.mocks.mock_version_control import *
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 from server_common.utilities import create_pv_name
+from ConfigVersionControl.version_control_exceptions import *
 
 CONFIG_PATH = "./test_configs/"
 SCHEMA_PATH = "./../../../../schema"
@@ -105,13 +106,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def _correct_pv_name(self, name):
         return BlockserverPVNames.prepend_blockserver(name)
 
-    def _create_configs(self, names):
+    def _create_configs(self, names, clm):
         configserver = self._create_inactive_config_holder()
         for name in names:
             conf = create_dummy_config(name)
             configserver.set_config(conf)
             configserver.save_inactive(name)
-            self.clm.update_a_config_in_list(configserver)
+            clm.update_a_config_in_list(configserver)
 
     def _create_components(self, names):
         configserver = self._create_inactive_config_holder()
@@ -144,7 +145,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
             self.assertTrue("TEST_ACTIVE" in config_names)
 
     def _check_pv_changed_but_not_name(self, config_name, expected_pv_name):
-        self._create_configs([config_name])
+        self._create_configs([config_name], self.clm)
         confs = self.clm.get_configs()
 
         self.assertEqual(len(confs), 1)
@@ -162,7 +163,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertEqual(len(comps), 0)
 
     def test_initialisation_with_configs(self):
-        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
+        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"], self.clm)
         confs = self.clm.get_configs()
         self.assertEqual(len(confs), 2)
         self.assertTrue("TEST_CONFIG1" in [c["name"] for c in confs])
@@ -176,7 +177,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_COMPONENT2" in [c["name"] for c in confs])
 
     def test_initialisation_with_configs_creates_pvs(self):
-        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
+        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"], self.clm)
 
         pvs = self._create_pvs(["TEST_CONFIG1", "TEST_CONFIG2"], GET_CONFIG_PV)
         pvs += self._create_pvs(["TEST_CONFIG1", "TEST_CONFIG2"], GET_COMPONENT_PV)
@@ -247,7 +248,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self._check_pv_changed_but_not_name(config_name, create_pv_name(config_name, [], ""))
 
     def test_config_and_component_allowed_same_pv(self):
-        self._create_configs(["TEST_CONFIG_AND_COMPONENT1", "TEST_CONFIG_AND_COMPONENT2"])
+        self._create_configs(["TEST_CONFIG_AND_COMPONENT1", "TEST_CONFIG_AND_COMPONENT2"], self.clm)
         self._create_components(["TEST_CONFIG_AND_COMPONENT1", "TEST_CONFIG_AND_COMPONENT2"])
 
         confs = self.clm.get_configs()
@@ -265,7 +266,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue(pvs[1] in [m["pv"] for m in comps])
 
     def test_delete_configs_with_empty_list_does_nothing(self):
-        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
+        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"], self.clm)
 
         self.clm.active_config_name = "TEST_ACTIVE"
         self.clm.delete([])
@@ -294,7 +295,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
             self.assertTrue(self._does_pv_exist(pv))
 
     def test_delete_active_config_throws(self):
-        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
+        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"], self.clm)
         active = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
                                     MockVersionControl(), self.file_manager, MockIocControl(""))
         active.save_active("TEST_ACTIVE")
@@ -346,7 +347,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self._check_no_configs_deleted(True)
 
     def test_delete_one_inactive_config_works(self):
-        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"])
+        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"], self.clm)
 
         self.clm.delete(["TEST_CONFIG1"])
         self.clm.active_config_name = "TEST_ACTIVE"
@@ -376,7 +377,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue(self._does_pv_exist(pvs[3]))
 
     def test_delete_many_inactive_configs_works(self):
-        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2", "TEST_CONFIG3"])
+        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2", "TEST_CONFIG3"], self.clm)
         self.clm.active_config_name = "TEST_ACTIVE"
 
         config_names = [c["name"] for c in self.clm.get_configs()]
@@ -557,3 +558,29 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         comps = self.clm.get_components()
         self.assertTrue(DEFAULT_COMPONENT not in comps)
 
+    def test_on_deleting_cannot_remove_from_version_control_does_not_raise_specified_exception(self):
+        clm = ConfigListManager(self.bs, SCHEMA_PATH, FailOnRemoveMockVersionControl(), self.file_manager)
+
+        self._create_configs(["testconfig"], clm)
+
+        try:
+            clm.delete(["testconfig"])
+        except RemoveFromVersionControlException as err:
+            self.fail("Oops raised on remove")
+
+    def test_on_deleting_cannot_commit_from_version_control_does_not_raise_specified_exception(self):
+        clm = ConfigListManager(self.bs, SCHEMA_PATH, FailOnCommitMockVersionControl(), self.file_manager)
+
+        self._create_configs(["testconfig"], clm)
+
+        try:
+            clm.delete(["testconfig"])
+        except CommitToVersionControlException as err:
+            self.fail("Oops raised on commit")
+
+    def test_on_recover_from_version_control_does_not_raise_specified_exception(self):
+        clm = ConfigListManager(self.bs, SCHEMA_PATH, FailOnUpdateMockVersionControl(), self.file_manager)
+        try:
+            clm.recover_from_version_control()
+        except UpdateFromVersionControlException as err:
+            self.fail("Oops update raised")

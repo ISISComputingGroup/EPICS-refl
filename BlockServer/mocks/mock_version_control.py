@@ -17,6 +17,9 @@
 import os
 import shutil
 
+from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
+    CommitToVersionControlException, RemoveFromVersionControlException, UpdateFromVersionControlException
+
 
 class MockVersionControl(object):
 
@@ -34,3 +37,23 @@ class MockVersionControl(object):
 
     def update(self, update_path=""):
         pass
+
+
+class FailOnAddMockVersionControl(MockVersionControl):
+    def add(self, file_path):
+        raise AddToVersionControlException("Oops cannot add")
+
+
+class FailOnCommitMockVersionControl(MockVersionControl):
+    def commit(self, commit_comment):
+        raise CommitToVersionControlException("Oops cannot commit")
+
+
+class FailOnRemoveMockVersionControl(MockVersionControl):
+    def remove(self, file_path):
+        raise RemoveFromVersionControlException("Oops cannot remove")
+
+
+class FailOnUpdateMockVersionControl(MockVersionControl):
+    def update(self, update_path=""):
+        raise UpdateFromVersionControlException("Oops cannot update")
