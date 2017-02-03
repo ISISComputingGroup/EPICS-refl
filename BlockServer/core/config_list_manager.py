@@ -186,7 +186,7 @@ class ConfigListManager(object):
         self._update_pv_value(pv_name, compress_and_hex(json.dumps(data)))
 
     def _update_all_components(self):
-        self._update_pv_value(BlockserverPVNames.ALL_COMPONENT_DETAILS, compress_and_hex(json.dumps(self._components)))
+        self._update_pv_value(BlockserverPVNames.ALL_COMPONENT_DETAILS, compress_and_hex(json.dumps(self._components.values())))
 
     def update(self, config, is_component=False):
         """Updates the PVs associated with a configuration
