@@ -159,102 +159,110 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
     # Get the indices of the axes currently moving
     moving = [i for i, m in enumerate(is_moving) if m == 1]
 
+    msg = "No collisions predicted in the next %fs" % max_time
+    safe_time = max_time
+    safe = True
+
     # Only worth calculating if more than one axis is moving
-    if not len(moving) > 1:
-        return
+    if len(moving) > 1:
 
-    set_points = [None] * len(pvs)
-    speeds = [None] * len(pvs)
-    directions = [None] * len(pvs)
+        set_points = [None] * len(pvs)
+        speeds = [None] * len(pvs)
+        directions = [None] * len(pvs)
 
-    # Assume everything has finished moving
-    move_complete = [True] * len(pvs)
+        # Assume everything has finished moving
+        move_complete = [True] * len(pvs)
 
-    # Get some settings:
-    for i in moving:
-        pv = pvs[i]
-
-        set_point = get_pv(pv)
-        speed = get_pv(pv + '.VELO')
-
-        direction = 0.
-        move = set_point - start_values[i]
-        if move > 0:
-            direction = 1.
-        if move < 0:
-            direction = -1.
-
-        set_points[i] = set_point
-        speeds[i] = speed
-        directions[i] = direction
-
-        # This axis has not finished moving!
-        move_complete[i] = False
-
-    # print "Start points:   %s" % start_values
-    # print "Got set points: %s" % set_points
-    # print "Got speeds:     %s" % speeds
-    # print "Got directions: %s" % directions
-
-
-    current_time = 0.
-    values = start_values[:]
-    old_points = None
-    step_checked = False
-    last_time = None
-
-    while current_time < max_time:
-        if last_time is None:
-            values = start_values[:]
-            current_time = 0.
-            old_points = None
-        else:
-            current_time += time_step
-
-        # print "Looking %fs into the future!" % current_time
-
+        # Get some settings:
         for i in moving:
-            if move_complete[i] is False:
-                values[i] = start_values[i] + (directions[i] * speeds[i] * current_time)
-                comp = compare(directions[i])(values[i], set_points[i])
-                # print "Axis %d is at set point? %s" % (i, comp)
-                if comp:
-                    values[i] = set_points[i]
-                    # move_complete[i] = True
+            pv = pvs[i]
 
-        # Move the bodies
-        move_all(geometries, moves, values=values)
+            set_point = get_pv(pv)
+            speed = get_pv(pv + '.VELO')
 
-        if step_checked is False:
-            new_points = [g.get_vertices() for g in geometries]
-            if old_points is not None:
-                delta = max_delta(geometries, new_points, old_points)
+            direction = 0.
+            move = set_point - start_values[i]
+            if move > 0:
+                direction = 1.
+            if move < 0:
+                direction = -1.
 
-                if delta > max_movement:
-                    # Reduce the size of the time step
-                    time_step *= max_movement/delta
-                    # print "Bodies moved %fmm" % delta
-                    # print "Using a new step of %fs" % time_step
-                    # Reset to starting point
-                    last_time = None
-                    old_points = None
-                    continue
+            set_points[i] = set_point
+            speeds[i] = speed
+            directions[i] = direction
 
-                step_checked = True
+            # This axis has not finished moving!
+            move_complete[i] = False
 
-        # Check for collisions
-        collisions = collide(geometries, ignore)
-        # print "Collisions: %s" % collisions
+        # print "Start points:   %s" % start_values
+        # print "Got set points: %s" % set_points
+        # print "Got speeds:     %s" % speeds
+        # print "Got directions: %s" % directions
 
-        if any(collisions):
-            if last_time == None:
-                print "There is already a collision"
+
+        current_time = 0.
+        values = start_values[:]
+        old_points = None
+        step_checked = False
+        last_time = None
+
+        while current_time < max_time:
+            if last_time is None:
+                values = start_values[:]
+                current_time = 0.
+                old_points = None
             else:
-                print "Collision expected in %fs - %fs" % (last_time, current_time)
-            break
+                current_time += time_step
 
-        old_points = new_points[:]
-        last_time = current_time
+            # print "Looking %fs into the future!" % current_time
+
+            for i in moving:
+                if move_complete[i] is False:
+                    values[i] = start_values[i] + (directions[i] * speeds[i] * current_time)
+                    comp = compare(directions[i])(values[i], set_points[i])
+                    # print "Axis %d is at set point? %s" % (i, comp)
+                    if comp:
+                        values[i] = set_points[i]
+                        # move_complete[i] = True
+
+            # Move the bodies
+            move_all(geometries, moves, values=values)
+
+            if step_checked is False:
+                new_points = [g.get_vertices() for g in geometries]
+                if old_points is not None:
+                    delta = max_delta(geometries, new_points, old_points)
+
+                    if delta > max_movement:
+                        # Reduce the size of the time step
+                        time_step *= max_movement/delta
+                        # print "Bodies moved %fmm" % delta
+                        # print "Using a new step of %fs" % time_step
+                        # Reset to starting point
+                        last_time = None
+                        old_points = None
+                        continue
+
+                    step_checked = True
+
+            # Check for collisions
+            collisions = collide(geometries, ignore)
+            # print "Collisions: %s" % collisions
+
+            if any(collisions):
+                if last_time is None:
+                    msg = "There is already a collision"
+                    safe_time = 0.
+                else:
+                    msg = "Collision expected in %.1fs - %.1fs" % (last_time, current_time)
+                    safe_time = last_time
+                safe = False
+                break
+
+            old_points = new_points[:]
+            last_time = current_time
+
+    return msg, safe_time, safe
 
 
 # Set the high and low dial limits for each motor
@@ -356,11 +364,8 @@ def main():
     # Create a shared operating mode object to control the main thread
     op_mode = OperatingMode()
     # Set the default behaviour to set_limits as calculated, and auto_stop on collision
-    # TODO change these back
-    op_mode.set_limits.clear()
-    op_mode.auto_stop.clear()
-    # op_mode.set_limits.set()
-    # op_mode.auto_stop.set()
+    op_mode.set_limits.set()
+    op_mode.auto_stop.set()
 
     # Start a logger
     logger = IsisLogger()
@@ -431,8 +436,18 @@ def main():
 
         if fresh or any_moving or op_mode.calc_limits.isSet():
 
-            # Todo - look into why the indices are not being pulled out...
-            look_ahead(frozen, config.pvs, moving, geometries, moves, ignore, max_movement=driver.getParam('COARSE'))
+            # Look ahead some time to see if any collisions are going to happen in the future
+            msg, safe_time, safe = look_ahead(frozen, config.pvs, moving, geometries, moves, ignore, max_movement=driver.getParam('COARSE'))
+
+            # TODO - work out what to do once we know there is a crash coming up
+
+            if not safe and not any(collisions):
+                logger.write_to_log(msg, "MAJOR", "COLLIDE")
+                driver.setParam('MSG', msg)
+            else:
+                driver.setParam('MSG', collision_detector.message)
+
+            logging.info(msg)
 
             # Start timing for diagnostics
             time_passed = time()
@@ -443,10 +458,9 @@ def main():
 
             # Calculate and log the time taken to calculate
             time_passed = (time() - time_passed) * 1000
-            logging.debug("Calculated limits in %d", time_passed)
 
             # Log the new limits
-            logging.info("New limits are " + str(dynamic_limits))
+            logging.info("New limits calculated in %dms, are %s" % (time_passed, dynamic_limits))
 
             # Set the limits according to the set_limits operating mode
             if op_mode.set_limits.is_set():

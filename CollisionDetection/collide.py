@@ -37,7 +37,7 @@ def detect_collisions(collision_reported, driver, geometries, ignore, is_moving,
 
         # Log the collisions
         logging.debug("Collisions on %s", [i for i in np.where(collisions)[0]])
-        driver.setParam('MSG', msg)
+        # driver.setParam('MSG', msg)
         driver.setParam('SAFE', 0)
 
         # Log to the IOC log
@@ -52,11 +52,12 @@ def detect_collisions(collision_reported, driver, geometries, ignore, is_moving,
                 if moving.value():
                     set_pv(pv + '.STOP', 1)
     else:
-        driver.setParam('MSG', "No collisions detected.")
+        # driver.setParam('MSG', "No collisions detected.")
+        msg = "No collisions detected."
         driver.setParam('SAFE', 1)
         collision_reported = None
 
-    return collisions, collision_reported
+    return collisions, collision_reported, msg
 
 
 class CollisionDetector(threading.Thread):
@@ -73,7 +74,9 @@ class CollisionDetector(threading.Thread):
         self.op_mode = op_mode
         self.pvs = pvs
 
-        self._lock = threading.Lock()
+        self._lock_message = threading.Lock()
+        self._message = "Nothing to report!"
+        self._lock_collisions = threading.Lock()
         self._collisions = [0] * len(geometries)
 
         self.setDaemon(True)
@@ -82,19 +85,30 @@ class CollisionDetector(threading.Thread):
         collision_reported = None
         while True:
             move_all(self.geometries, self.moves, monitors=self.monitors)
-            collisions, collision_reported = \
+            collisions, collision_reported, message = \
                 detect_collisions(collision_reported, self.driver, self.geometries, self.ignore, self.is_moving,
                                   self.logger, self.op_mode, self.pvs)
             self.collisions = collisions
+            self.message = message
             sleep(0.05)
 
     @property
     def collisions(self):
-        with self._lock:
+        with self._lock_collisions:
             return self._collisions[:]
 
     @collisions.setter
     def collisions(self, collisions):
-        with self._lock:
-            self._collisions = collisions
+        with self._lock_collisions:
+            self._collisions = collisions\
+
+    @property
+    def message(self):
+        with self._lock_message:
+            return self._message[:]
+
+    @message.setter
+    def message(self, msg):
+        with self._lock_message:
+            self._message = msg
 
