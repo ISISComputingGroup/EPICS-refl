@@ -49,6 +49,7 @@ class ConfigListManager(object):
         self._config_metas = dict()
         self._component_metas = dict()
         self._comp_dependencies = dict()
+        self._components = dict()
         self._bs = block_server
         self.active_config_name = ""
         self.active_components = []
@@ -184,6 +185,9 @@ class ConfigListManager(object):
         pv_name = BlockserverPVNames.get_component_details_pv(self._component_metas[name].pv)
         self._update_pv_value(pv_name, compress_and_hex(json.dumps(data)))
 
+    def _update_all_components(self):
+        self._update_pv_value(BlockserverPVNames.ALL_COMPONENT_DETAILS, compress_and_hex(json.dumps(self._components)))
+
     def update(self, config, is_component=False):
         """Updates the PVs associated with a configuration
 
@@ -230,6 +234,8 @@ class ConfigListManager(object):
                 self._component_metas[name_lower] = meta
                 self._update_component_pv(name_lower, config.get_config_details())
                 self._update_component_dependencies_pv(name_lower.lower())
+                self._components[name_lower] = config.get_config_details()
+                self._update_all_components()
         else:
             if name_lower in self._config_metas.keys():
                 # Config already exists
@@ -319,7 +325,9 @@ class ConfigListManager(object):
                     self._delete_pv(BlockserverPVNames.get_component_details_pv(self._component_metas[comp].pv))
                     self._delete_pv(BlockserverPVNames.get_dependencies_pv(self._component_metas[comp].pv))
                     del self._component_metas[comp]
+                    del self._components[comp]
                 self._update_version_control_post_delete(self._comp_path, delete_list)
+                self._update_all_components()
 
             self.update_monitors()
 

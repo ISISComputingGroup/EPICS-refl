@@ -50,6 +50,7 @@ class BlockserverPVNames:
     DELETE_CONFIGS = prepend_blockserver.__func__('DELETE_CONFIGS')
     DELETE_COMPONENTS = prepend_blockserver.__func__('DELETE_COMPONENTS')
     BLANK_CONFIG = prepend_blockserver.__func__('BLANK_CONFIG')
+    ALL_COMPONENT_DETAILS = prepend_blockserver.__func__('ALL_COMPONENT_DETAILS')
     GET_SCREENS = prepend_blockserver.__func__('GET_SCREENS')
     SET_SCREENS = prepend_blockserver.__func__('SET_SCREENS')
     BANNER_DESCRIPTION = prepend_blockserver.__func__('BANNER_DESCRIPTION')

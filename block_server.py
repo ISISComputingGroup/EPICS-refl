@@ -152,6 +152,11 @@ PVDB = {
         'count': 64000,
         'value': [0],
     },
+    BlockserverPVNames.ALL_COMPONENT_DETAILS: {
+        'type': 'char',
+        'count': 64000,
+        'value': [0],
+    },
     BlockserverPVNames.BUMPSTRIP_AVAILABLE: {
         'type': 'char',
         'count': 16000,
