@@ -133,6 +133,13 @@ def max_delta(geometries, new_points, old_points):
     return delta
 
 
+def compare(sign):
+    if sign > 0:
+        return lambda a, b: a > b
+    else:
+        return lambda a, b: a < b
+
+
 def auto_seek_limits(geometries, ignore, moves, values, limits, coarse=1.0, fine=0.1):
     dynamic_limits = []
     for i in range(len(values)):
@@ -148,45 +155,47 @@ def auto_seek_limits(geometries, ignore, moves, values, limits, coarse=1.0, fine
     return dynamic_limits
 
 
-def seek_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_time=10., max_movement=1.0, time_step=0.1):
-    print is_moving
-    moving = np.where(is_moving == 1)
-    print moving
+def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_movement=1.0, max_time=10., time_step=0.1):
+    # Get the indices of the axes currently moving
+    moving = [i for i, m in enumerate(is_moving) if m == 1]
 
-    if len(moving) < 2:
-        print "Only %d axes moving" % len(moving)
+    # Only worth calculating if more than one axis is moving
+    if not len(moving) > 1:
         return
 
     set_points = [None] * len(pvs)
     speeds = [None] * len(pvs)
     directions = [None] * len(pvs)
 
-    print moving
+    # Assume everything has finished moving
+    move_complete = [True] * len(pvs)
 
     # Get some settings:
     for i in moving:
         pv = pvs[i]
-        print pv
+
         set_point = get_pv(pv)
         speed = get_pv(pv + '.VELO')
 
         direction = 0.
-        if set_points[i] > start_values[i]:
-            direction = -1.
-        if set_points[i] < start_values[i]:
+        move = set_point - start_values[i]
+        if move > 0:
             direction = 1.
-
-        print(set_point)
-        print(speed)
-        print(direction)
+        if move < 0:
+            direction = -1.
 
         set_points[i] = set_point
         speeds[i] = speed
         directions[i] = direction
 
-    print "Got set points: %s" % set_points
-    print "Got speeds:     %s" % speeds
-    print "Got directions: %s" % directions
+        # This axis has not finished moving!
+        move_complete[i] = False
+
+    # print "Start points:   %s" % start_values
+    # print "Got set points: %s" % set_points
+    # print "Got speeds:     %s" % speeds
+    # print "Got directions: %s" % directions
+
 
     current_time = 0.
     values = start_values[:]
@@ -195,16 +204,23 @@ def seek_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_time
     last_time = None
 
     while current_time < max_time:
-        if last_time is not None:
+        if last_time is None:
             values = start_values[:]
             current_time = 0.
+            old_points = None
         else:
             current_time += time_step
 
-            for i in moving:
-                values[i] = start_values[i] + directions[i] * speeds[i] * current_time
+        # print "Looking %fs into the future!" % current_time
 
-        print "Looking %fs into the future!" % current_time
+        for i in moving:
+            if move_complete[i] is False:
+                values[i] = start_values[i] + (directions[i] * speeds[i] * current_time)
+                comp = compare(directions[i])(values[i], set_points[i])
+                # print "Axis %d is at set point? %s" % (i, comp)
+                if comp:
+                    values[i] = set_points[i]
+                    # move_complete[i] = True
 
         # Move the bodies
         move_all(geometries, moves, values=values)
@@ -217,20 +233,24 @@ def seek_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_time
                 if delta > max_movement:
                     # Reduce the size of the time step
                     time_step *= max_movement/delta
+                    # print "Bodies moved %fmm" % delta
+                    # print "Using a new step of %fs" % time_step
                     # Reset to starting point
                     last_time = None
+                    old_points = None
                     continue
 
                 step_checked = True
 
         # Check for collisions
         collisions = collide(geometries, ignore)
+        # print "Collisions: %s" % collisions
 
         if any(collisions):
-            if current_time == 0.:
-                print "There was already a collision"
+            if last_time == None:
+                print "There is already a collision"
             else:
-                print "Collision expected in %f" % last_time
+                print "Collision expected in %fs - %fs" % (last_time, current_time)
             break
 
         old_points = new_points[:]
@@ -336,8 +356,11 @@ def main():
     # Create a shared operating mode object to control the main thread
     op_mode = OperatingMode()
     # Set the default behaviour to set_limits as calculated, and auto_stop on collision
-    op_mode.set_limits.set()
-    op_mode.auto_stop.set()
+    # TODO change these back
+    op_mode.set_limits.clear()
+    op_mode.auto_stop.clear()
+    # op_mode.set_limits.set()
+    # op_mode.auto_stop.set()
 
     # Start a logger
     logger = IsisLogger()
@@ -409,9 +432,7 @@ def main():
         if fresh or any_moving or op_mode.calc_limits.isSet():
 
             # Todo - look into why the indices are not being pulled out...
-            # print "Looking ahead!"
-            # seek_ahead(frozen, config.pvs, moving, geometries, moves, ignore)
-            # print "Finished looking ahead!"
+            look_ahead(frozen, config.pvs, moving, geometries, moves, ignore, max_movement=driver.getParam('COARSE'))
 
             # Start timing for diagnostics
             time_passed = time()
