@@ -230,7 +230,7 @@ class ConfigListManager(object):
 
         # Add metas and update pvs appropriately
         if is_component:
-            if name_lower is not DEFAULT_COMPONENT.lower():
+            if name_lower != DEFAULT_COMPONENT.lower():
                 self._component_metas[name_lower] = meta
                 self._update_component_pv(name_lower, config.get_config_details())
                 self._update_component_dependencies_pv(name_lower.lower())
