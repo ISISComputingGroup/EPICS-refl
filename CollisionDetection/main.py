@@ -9,8 +9,6 @@ import ode
 from genie_python.genie_startup import *
 import numpy as np
 
-sys.path.insert(0, os.path.abspath(os.environ["MYDIRCD"]))
-
 import config
 import pv_server
 import render
@@ -21,6 +19,8 @@ from server_common.loggers.isis_logger import IsisLogger
 
 from monitor import Monitor
 from move import move_all
+
+sys.path.insert(0, os.path.abspath(os.environ["MYDIRCD"]))
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s (%(threadName)-2s) %(message)s',
@@ -45,18 +45,18 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
 
     if current_value < end_value:
         # Going up
-        def compare(a, b):
+        def comp(a, b):
             return a < b
 
         step_size = abs(start_step_size)
     else:
         # Going down
-        def compare(a, b):
+        def comp(a, b):
             return a > b
 
         step_size = -abs(start_step_size)
 
-    while last_value is None or compare(last_value, end_value):
+    while last_value is None or comp(last_value, end_value):
         # Move if we need to
         if last_value is not None:
             current_value += step_size
@@ -64,7 +64,7 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
         else:
             current_value = start_values[axis_index]
 
-        if not compare(current_value, end_value):
+        if not comp(current_value, end_value):
             current_value = end_value
 
         # print "Moving axis %d to %f" % (axis_index, current_value)
@@ -177,7 +177,7 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
         for i in moving:
             pv = pvs[i]
 
-            set_point = get_pv(pv)
+            set_point = get_pv(pv + '.DVAL')
             speed = get_pv(pv + '.VELO')
 
             direction = 0.
@@ -198,7 +198,6 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
         # print "Got set points: %s" % set_points
         # print "Got speeds:     %s" % speeds
         # print "Got directions: %s" % directions
-
 
         current_time = 0.
         values = start_values[:]
@@ -424,7 +423,8 @@ def main():
         if driver.getParam("CALC") != 0:
             op_mode.calc_limits.set()
 
-        collisions = collision_detector.collisions
+        collisions = collision_detector.collisions[:]
+        collision_message = collision_detector.message[:]
 
         # Check if there have been any changes to the .MOVN monitors
         fresh = any([m.fresh() for m in is_moving])
@@ -437,15 +437,14 @@ def main():
         if fresh or any_moving or op_mode.calc_limits.isSet():
 
             # Look ahead some time to see if any collisions are going to happen in the future
-            msg, safe_time, safe = look_ahead(frozen, config.pvs, moving, geometries, moves, ignore, max_movement=driver.getParam('COARSE'))
-
-            # TODO - work out what to do once we know there is a crash coming up
+            msg, safe_time, safe = look_ahead(frozen, config.pvs, moving, geometries, moves, ignore,
+                                              max_movement=driver.getParam('COARSE'))
 
             if not safe and not any(collisions):
                 logger.write_to_log(msg, "MAJOR", "COLLIDE")
                 driver.setParam('MSG', msg)
             else:
-                driver.setParam('MSG', collision_detector.message)
+                driver.setParam('MSG', collision_message)
 
             logging.info(msg)
 
