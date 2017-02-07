@@ -23,6 +23,7 @@ class MockProcServWrapper(object):
         self.ps_status["simple2"] = "SHUTDOWN"
         self.ps_status["testioc"] = "SHUTDOWN"
         self.autorestart = False
+        self.restarting = False
 
     @staticmethod
     def generate_prefix(prefix, ioc):
@@ -35,7 +36,14 @@ class MockProcServWrapper(object):
         """Stops the specified IOC"""
         self.ps_status[ioc.lower()] = "SHUTDOWN"
 
+    def ioc_restart_pending(self, prefix, ioc):
+        """Return the currently restarting state then complete the pending restart"""
+        restarting = self.restarting
+        self.restarting = False
+        return restarting
+
     def restart_ioc(self, prefix, ioc):
+        self.restarting = True
         self.ps_status[ioc.lower()] = "RUNNING"
 
     def get_ioc_status(self, prefix, ioc):

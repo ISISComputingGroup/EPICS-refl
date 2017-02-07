@@ -40,8 +40,8 @@ from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherMana
 from BlockServer.synoptic.synoptic_manager import SynopticManager
 from BlockServer.devices.devices_manager import DevicesManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
-from ConfigVersionControl.config_version_control import ConfigVersionControl
-from ConfigVersionControl.vc_exceptions import NotUnderVersionControl
+from ConfigVersionControl.git_version_control import GitVersionControl, RepoFactory
+from ConfigVersionControl.version_control_exceptions import NotUnderVersionControl, VersionControlException
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.ioc_control import IocControl
 from BlockServer.core.database_server_client import DatabaseServerClient
@@ -199,7 +199,7 @@ class BlockServer(Driver):
         self._filewatcher = None
         self.on_the_fly_handlers = list()
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
-        self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX)
+        self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX + "BLOCKSERVER:")
         self.bumpstrip = "No"
         self.block_rules = BlockRules(self)
         self.group_rules = GroupRules(self)
@@ -207,13 +207,17 @@ class BlockServer(Driver):
 
         # Connect to version control
         try:
-            self._vc = ConfigVersionControl(CONFIG_DIR)
+            self._vc = GitVersionControl(CONFIG_DIR, RepoFactory.get_repo(CONFIG_DIR))
+            self._vc.setup()
+            print_and_log("Version control initialised correctly", "INFO")
         except NotUnderVersionControl as err:
-            print_and_log("Warning: Configurations not under version control", "MINOR")
+            print_and_log("Configurations not under version control: %s" % err, "MINOR")
+            self._vc = MockVersionControl()
+        except VersionControlException as err:
+            print_and_log("Unable to initialise version control: %s" % err, "MINOR")
             self._vc = MockVersionControl()
         except Exception as err:
-            print_and_log("Unable to start version control. Modifications to the instrument setup will not be "
-                          "tracked: " + str(err), "MINOR")
+            print_and_log("Unable to initialise version control: %s" % err, "MINOR")
             self._vc = MockVersionControl()
 
         # Create banner object
@@ -264,11 +268,11 @@ class BlockServer(Driver):
         self.on_the_fly_handlers.append(self._syn)
 
         # Import all the devices data and create PVs
-        self._devices = DevicesManager(self, SCHEMA_DIR, self._vc, self._active_configserver)
+        self._devices = DevicesManager(self, SCHEMA_DIR, self._vc)
         self.on_the_fly_handlers.append(self._devices)
 
         # Start file watcher
-        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn)
+        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn, self._devices)
 
         try:
             if self._gateway.exists():
@@ -354,7 +358,7 @@ class BlockServer(Driver):
                     self.write_queue.append((self._ioc_control.stop_iocs, (convert_from_json(data),), "STOP_IOCS"))
             elif reason == BlockserverPVNames.RESTART_IOCS:
                 with self.write_lock:
-                    self.write_queue.append((self._ioc_control.restart_iocs, (convert_from_json(data),),
+                    self.write_queue.append((self._ioc_control.restart_iocs, (convert_from_json(data), True),
                                              "RESTART_IOCS"))
             elif reason == BlockserverPVNames.SET_CURR_CONFIG_DETAILS:
                 with self.write_lock:
@@ -367,11 +371,11 @@ class BlockServer(Driver):
                     self.write_queue.append((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
             elif reason == BlockserverPVNames.DELETE_CONFIGS:
                 with self.write_lock:
-                    self.write_queue.append((self._config_list.delete_configs, (convert_from_json(data),),
+                    self.write_queue.append((self._config_list.delete, (convert_from_json(data),),
                                              "DELETE_CONFIGS"))
             elif reason == BlockserverPVNames.DELETE_COMPONENTS:
                 with self.write_lock:
-                    self.write_queue.append((self._config_list.delete_configs, (convert_from_json(data), True),
+                    self.write_queue.append((self._config_list.delete, (convert_from_json(data), True),
                                              "DELETE_COMPONENTS"))
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP:
                 self.bumpstrip = data
@@ -413,12 +417,14 @@ class BlockServer(Driver):
         self._initialise_config()
 
     def _set_curr_config(self, details):
-        """Sets the current configuration details to that defined in the XML, then initialises it.
+        """Sets the current configuration details to that defined in the XML, saves to disk, then initialises it.
 
         Args:
             details (string): the configuration XML
         """
         self._active_configserver.set_config_details(details)
+        # Need to save the config to file before we initialize or the changes won't be propagated to IOCS
+        self.save_active_config(self._active_configserver.get_config_name())
         self._initialise_config()
 
     def _initialise_config(self, init_gateway=True, full_init=False):
@@ -474,24 +480,27 @@ class BlockServer(Driver):
         # restart means the IOC should automatically restart if it stops for some reason (e.g. it crashes)
         for n, ioc in self._active_configserver.get_all_ioc_details().iteritems():
             try:
-                # If autostart is not set to True then the IOC is not part of the configuration
+                # IOCs are restarted if and only if auto start is True. Note that auto restart instructs proc serv to
+                # restart an IOC if it terminates unexpectedly and does not apply here.
                 if ioc.autostart:
                     # Throws if IOC does not exist
                     running = self._ioc_control.get_ioc_status(n)
                     if running == "RUNNING":
                         # Restart it
-                        self._ioc_control.restart_ioc(n, reapply_auto=False)
+                        self._ioc_control.restart_ioc(n)
                     else:
                         # Start it
                         self._ioc_control.start_ioc(n)
-
-                    # Give it time to start as IOC has to be running to be able to set restart property
-                    sleep(2)
-                    # Set the restart property
-                    print_and_log("Setting IOC %s's auto-restart to %s" % (n, ioc.restart))
-                    self._ioc_control.set_autorestart(n, ioc.restart)
             except Exception as err:
                 print_and_log("Could not (re)start IOC %s: %s" % (n, str(err)), "MAJOR")
+
+        # Give it time to start as IOC has to be running to be able to set restart property
+        sleep(2)
+        for n, ioc in self._active_configserver.get_all_ioc_details().iteritems():
+            if ioc.autostart:
+                # Set the restart property
+                print_and_log("Setting IOC %s's auto-restart to %s" % (n, ioc.restart))
+                self._ioc_control.set_autorestart(n, ioc.restart)
 
     def _get_iocs(self, include_running=False):
         # Get IOCs from DatabaseServer
@@ -701,9 +710,13 @@ class BlockServer(Driver):
         # reapply the auto-restart setting after starting.
         # This is because stopping an IOC via procServ turns auto-restart off.
         conf_iocs = self._active_configserver.get_all_ioc_details()
+
+        # Request IOCs to start
         for i in iocs:
             self._ioc_control.start_ioc(i)
-            # Is IOC in config?
+
+        # Once all IOC start requests issued, wait for running and apply auto restart as needed
+        for i in iocs:
             if i in conf_iocs and conf_iocs[i].restart:
                 # Give it time to start as IOC has to be running to be able to set restart property
                 print "Re-applying auto-restart setting to %s" % i
@@ -726,17 +739,20 @@ class BlockServer(Driver):
     def add_string_pv_to_db(self, name, count=1000):
         # Check name not already in PVDB and that a PV does not already exist
         if name not in PVDB and name not in manager.pvs[self.port]:
-            print_and_log("Adding PV %s" % name)
-            PVDB[name] = {
-                'type': 'char',
-                'count': count,
-                'value': [0],
-            }
-            self._cas.createPV(BLOCKSERVER_PREFIX, PVDB)
-            # self.configure_pv_db()
-            data = Data()
-            data.value = manager.pvs[self.port][name].info.value
-            self.pvDB[name] = data
+            try:
+                print_and_log("Adding PV %s" % name)
+                PVDB[name] = {
+                    'type': 'char',
+                    'count': count,
+                    'value': [0],
+                }
+                self._cas.createPV(BLOCKSERVER_PREFIX, PVDB)
+                # self.configure_pv_db()
+                data = Data()
+                data.value = manager.pvs[self.port][name].info.value
+                self.pvDB[name] = data
+            except Exception as err:
+                print_and_log("Unable to add PV %S" % name,"MAJOR")
 
 
 if __name__ == '__main__':
@@ -800,4 +816,9 @@ if __name__ == '__main__':
 
     # Process CA transactions
     while True:
-        SERVER.process(0.1)
+        try:
+            SERVER.process(0.1)
+        except Exception as err:
+            print_and_log(err,"MAJOR")
+            break
+

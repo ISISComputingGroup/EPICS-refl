@@ -13,3 +13,22 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+
+class MockIoc(object):
+
+    def __init__(self, name="NEWIOC", autostart=True, restart=True, macros=[], pvs=[], pvsets=[], component=None,
+                 simlevel='none'):
+        self.name = name
+        self.autostart = autostart
+        self.restart = restart
+        self.macros = macros
+        self.pvs = pvs
+        self.pvsets = pvsets
+        self.component = component
+        self.simlevel = simlevel
+
+    def get(self,name):
+        return self.__getattribute__(name)
+
+    def __getitem__(self, name):
+        return self.__getattribute__(name)

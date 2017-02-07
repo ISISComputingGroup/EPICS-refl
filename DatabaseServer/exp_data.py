@@ -18,6 +18,8 @@ from mysql_abstraction_layer import SQLAbstraction
 from server_common.channel_access import ChannelAccess
 from server_common.utilities import compress_and_hex
 import json
+import unicodedata
+import string
 
 from server_common.utilities import compress_and_hex, print_and_log, convert_to_json
 
@@ -47,6 +49,17 @@ class ExpData(object):
             'value': [0],
         },
     }
+
+    def make_ascii_mappings():
+        """create mapping for characters not converted to 7 bit by NFKD"""
+        mappings_in = [ ord(char) for char in u'\xd0\xd7\xd8\xde\xdf\xf0\xf8\xfe' ]
+        mappings_out = u'DXOPBoop'
+        d = dict(zip(mappings_in, mappings_out))
+        d[ord(u'\xc6')] = u'AE'
+        d[ord(u'\xe6')] = u'ae'
+        return d
+
+    _toascii = make_ascii_mappings()
 
     def __init__(self, prefix, ca=ChannelAccess):
         """Constructor
@@ -87,6 +100,7 @@ class ExpData(object):
             sqlquery += " WHERE role.roleID = experimentteams.roleID"
             sqlquery += " AND user.userID = experimentteams.userID"
             sqlquery += " AND experimentteams.experimentID = %s" % experimentID
+            sqlquery += " GROUP BY user.userID"
             sqlquery += " ORDER BY role.priority"
             team = [list(element) for element in self._db.query(sqlquery)]
             if len(team) == 0:
@@ -126,7 +140,7 @@ class ExpData(object):
         Returns:
             string : The encoded data
         """
-        return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
+        return compress_and_hex(json.dumps(data).encode('utf-8', 'replace'))
 
     def _get_surname_from_fullname(self, fullname):
         try:
@@ -166,9 +180,9 @@ class ExpData(object):
             if teammembers is not None:
                 # Generate the lists/similar for conversion to JSON
                 for member in teammembers:
-                    fullname = str(member[0])
-                    org = str(member[1])
-                    role = str(member[2])
+                    fullname = unicode(member[0])
+                    org = unicode(member[1])
+                    role = unicode(member[2])
                     if not role == "Contact":
                         surnames.append(self._get_surname_from_fullname(fullname))
                     orgs.append(org)
@@ -180,7 +194,7 @@ class ExpData(object):
             self.ca.caput(self._orgspv, self.encode4return(orgs))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
-            self.ca.caput(self._daenamespv, ",".join(surnames))
+            self.ca.caput(self._daenamespv, ExpData.make_name_list_ascii(surnames))
 
     def updateUsername(self, users):
         """Updates the associated PVs when the User Names are altered
@@ -210,9 +224,9 @@ class ExpData(object):
             # Loop through the list of strings to generate the lists/similar for conversion to JSON
             for teammember in users:
                 member = json.loads(teammember)
-                fullname = str(member['name'])
-                org = str(member['institute'])
-                role = str(member['role'])
+                fullname = unicode(member['name'])
+                org = unicode(member['institute'])
+                role = unicode(member['role'])
                 if not role == "Contact":
                     surnames.append(self._get_surname_from_fullname(fullname))
                 orgs.append(org)
@@ -227,4 +241,21 @@ class ExpData(object):
         if not surnames:
             self.ca.caput(self._daenamespv, " ")
         else:
-            self.ca.caput(self._daenamespv, ",".join(surnames))
+            self.ca.caput(self._daenamespv, ExpData.make_name_list_ascii(surnames))
+
+    @staticmethod
+    def make_name_list_ascii(names):
+        """Takes a unicode list of names and creates a best ascii comma separated list
+            this implementation is a temporary fix until we install the PyPi unidecode module
+        
+            Args:
+                name(list): list of unicode names
+            
+            Returns:
+                comma separated ascii string of names with special characters adjusted
+                
+        """
+        nlist = u','.join(names)
+        nfkd_form = unicodedata.normalize('NFKD', nlist)
+        nlist_no_sc = u''.join([c for c in nfkd_form if not unicodedata.combining(c)])
+        return nlist_no_sc.translate(ExpData._toascii).encode('ascii','ignore')

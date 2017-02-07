@@ -15,20 +15,16 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import unittest
-import os
-import shutil
 import json
 
-from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.active_config_holder import ActiveConfigHolder
-from BlockServer.config.configuration import Configuration
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
+from BlockServer.mocks.mock_ioc import MockIoc
 
 
 CONFIG_PATH = "./test_configs/"
@@ -221,11 +217,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         ch = self.create_ach()
         details = ch.get_config_details()
         # Act
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc())
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
@@ -236,11 +228,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+        details['iocs'].append(MockIoc())
         ch.set_config_details(details)
         # Act
         details['iocs'].pop(0)
@@ -250,225 +238,90 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(start), 0)
         self.assertEqual(len(restart), 0)
 
-    def test_iocs_changed_macro_added(self):
+    def _test_attribute_changes(self, initial_attrs={}, final_attrs={}, has_changed=True):
+        # Take a dict of initial attributes and final attributes and
+        # check for the correct change response.
+
         # Arrange
         ch = self.create_ach()
         details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
+
+        initial_ioc = MockIoc()
+        for key, value in initial_attrs.iteritems():
+            setattr(initial_ioc, key, value)
+        final_ioc = MockIoc()
+        for key, value in final_attrs.iteritems():
+            setattr(final_ioc, key, value)
+
+        details['iocs'].append(initial_ioc)
         ch.set_config_details(details)
         # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
+        details['iocs'][0] = final_ioc
         ch.set_config_details(details)
         # Assert
         start, restart = ch.iocs_changed()
         self.assertEqual(len(start), 0)
-        self.assertEqual(len(restart), 1)
+        self.assertEqual(len(restart), 1 if has_changed else 0)
+
+    def test_iocs_changed_macro_added(self):
+        self._test_attribute_changes(final_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]})
 
     def test_iocs_changed_macro_removed(self):
-        # Arrange
-        ch = self.create_ach()
-        details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
-        ch.set_config_details(details)
-        # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
-        ch.set_config_details(details)
-        # Assert
-        start, restart = ch.iocs_changed()
-        self.assertEqual(len(start), 0)
-        self.assertEqual(len(restart), 1)
+        self._test_attribute_changes(initial_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]})
 
     def test_iocs_changed_macro_changed(self):
-        # Arrange
-        ch = self.create_ach()
-        details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
-        ch.set_config_details(details)
-        # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [{"name": "TESTMACRO1", "value": "TEST_NEW"}],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
-        ch.set_config_details(details)
-        # Assert
-        start, restart = ch.iocs_changed()
-        self.assertEqual(len(start), 0)
-        self.assertEqual(len(restart), 1)
+        self._test_attribute_changes(initial_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]},
+                                     final_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST_NEW"}]})
 
     def test_iocs_changed_macro_not_changed(self):
-        # Arrange
-        ch = self.create_ach()
-        details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
-        ch.set_config_details(details)
-        # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [{"name": "TESTMACRO1", "value": "TEST"}],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
-        ch.set_config_details(details)
-        # Assert
-        start, restart = ch.iocs_changed()
-        self.assertEqual(len(start), 0)
-        self.assertEqual(len(restart), 0)
+        self._test_attribute_changes(initial_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]},
+                                     final_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]},
+                                     has_changed=False)
 
     def test_iocs_changed_pvs_added(self):
-        # Arrange
-        ch = self.create_ach()
-        details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
-        ch.set_config_details(details)
-        # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [{"name": "TESTPV1", "value": 123}],
-                              "pvsets": [],
-                              "component": None}
-        ch.set_config_details(details)
-        # Assert
-        start, restart = ch.iocs_changed()
-        self.assertEqual(len(start), 0)
-        self.assertEqual(len(restart), 1)
+        self._test_attribute_changes(final_attrs={'pvs':[{"name": "TESTPV1", "value": 123}]})
 
     def test_iocs_changed_pvs_removed(self):
-        # Arrange
-        ch = self.create_ach()
-        details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [{"name": "TESTPV1", "value": 123}],
-                                "pvsets": [],
-                                "component": None})
-        ch.set_config_details(details)
-        # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
-        ch.set_config_details(details)
-        # Assert
-        start, restart = ch.iocs_changed()
-        self.assertEqual(len(start), 0)
-        self.assertEqual(len(restart), 1)
+        self._test_attribute_changes(initial_attrs={'pvs':[{"name": "TESTPV1", "value": 123}]})
 
     def test_iocs_changed_pvs_changed(self):
-        # Arrange
-        ch = self.create_ach()
-        details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [{"name": "TESTPV1", "value": 123}],
-                                "pvsets": [],
-                                "component": None})
-        ch.set_config_details(details)
-        # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [{"name": "TESTPV1", "value": 456}],
-                              "pvsets": [],
-                              "component": None}
-        ch.set_config_details(details)
-        # Assert
-        start, restart = ch.iocs_changed()
-        self.assertEqual(len(start), 0)
-        self.assertEqual(len(restart), 1)
+        self._test_attribute_changes(initial_attrs={'pvs':[{"name": "TESTPV1", "value": 123}]},
+                                     final_attrs={'pvs': [{"name": "TESTPV1", "value": 456}]})
+
+    def test_iocs_not_changed_pvs_not_changed(self):
+        self._test_attribute_changes(initial_attrs={'pvs':[{"name": "TESTPV1", "value": 123}]},
+                                     final_attrs={'pvs': [{"name": "TESTPV1", "value": 123}]},
+                                     has_changed=False)
 
     def test_iocs_changed_pvsets_added(self):
-        # Arrange
-        ch = self.create_ach()
-        details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [],
-                                "component": None})
-        ch.set_config_details(details)
-        # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [],
-                              "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
-                              "component": None}
-        ch.set_config_details(details)
-        # Assert
-        start, restart = ch.iocs_changed()
-        self.assertEqual(len(start), 0)
-        self.assertEqual(len(restart), 1)
+        self._test_attribute_changes(final_attrs={'pvsets':[{"name": "TESTPVSET1", "enabled": True}]})
 
     def test_iocs_changed_pvsets_removed(self):
-        # Arrange
-        ch = self.create_ach()
-        details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
-                                "component": None})
-        ch.set_config_details(details)
-        # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [],
-                              "pvsets": [],
-                              "component": None}
-        ch.set_config_details(details)
-        # Assert
-        start, restart = ch.iocs_changed()
-        self.assertEqual(len(start), 0)
-        self.assertEqual(len(restart), 1)
+        self._test_attribute_changes(initial_attrs={'pvsets':[{"name": "TESTPVSET1", "enabled": True}]})
 
     def test_iocs_changed_pvsets_changed(self):
-        # Arrange
-        ch = self.create_ach()
-        details = ch.get_config_details()
-        details['iocs'].append({"name": "NEWIOC", "autostart": True, "restart": True,
-                                "macros": [],
-                                "pvs": [],
-                                "pvsets": [{"name": "TESTPVSET1", "enabled": True}],
-                                "component": None})
-        ch.set_config_details(details)
-        # Act
-        details['iocs'][0] = {"name": "NEWIOC", "autostart": True, "restart": True,
-                              "macros": [],
-                              "pvs": [],
-                              "pvsets": [{"name": "TESTPVSET1", "enabled": False}],
-                              "component": None}
-        ch.set_config_details(details)
-        # Assert
-        start, restart = ch.iocs_changed()
-        self.assertEqual(len(start), 0)
-        self.assertEqual(len(restart), 1)
+        self._test_attribute_changes(initial_attrs={'pvsets':[{"name": "TESTPVSET1", "enabled": True}]},
+                                     final_attrs={'pvsets': [{"name": "TESTPVSET1", "enabled": False}]})
+
+    def test_iocs_not_changed_pvsets_not_changed(self):
+        self._test_attribute_changes(initial_attrs={'pvsets':[{"name": "TESTPVSET1", "enabled": True}]},
+                                     final_attrs={'pvsets': [{"name": "TESTPVSET1", "enabled": True}]},
+                                     has_changed=False)
+
+    def test_iocs_changed_simlevel_added(self):
+        self._test_attribute_changes(final_attrs={'simlevel':'recsim'})
+
+    def test_iocs_changed_simlevel_removed(self):
+        self._test_attribute_changes(initial_attrs={'simlevel': 'recsim'})
+
+    def test_iocs_changed_simlevel_changed(self):
+        self._test_attribute_changes(initial_attrs={'simlevel': 'recsim'},
+                                     final_attrs={'simlevel': 'devsim'})
+
+    def test_iocs_not_changed_simlevel_unchanged(self):
+        self._test_attribute_changes(initial_attrs={'simlevel': 'recsim'},
+                                     final_attrs={'simlevel': 'recsim'},
+                                     has_changed=False)
 
 if __name__ == '__main__':
     # Run tests

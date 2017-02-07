@@ -44,7 +44,7 @@ class IocControl(object):
         except Exception as err:
             print_and_log("Could not start IOC %s: %s" % (ioc, str(err)), "MAJOR")
 
-    def restart_ioc(self, ioc, force=False, reapply_auto=True):
+    def restart_ioc(self, ioc, force=False):
         """Restart an IOC.
 
         Note: restarting an IOC automatically sets the IOC to auto-restart, so it is neccessary to reapply the
@@ -53,7 +53,6 @@ class IocControl(object):
         Args:
             ioc (string): The name of the IOC
             force (bool): Force it to restart even if it is an IOC not to stop
-            reapply_auto (bool): Whether to reapply the current auto-restart setting
         """
         # Check it is okay to stop it
         if not force and ioc.startswith(IOCS_NOT_TO_STOP):
@@ -61,10 +60,6 @@ class IocControl(object):
         try:
             auto = self._proc.get_autorestart(self._prefix, ioc)
             self._proc.restart_ioc(self._prefix, ioc)
-            if reapply_auto:
-                # Need the IOC to restart before reapplying the auto-restart
-                self.waitfor_running(ioc)
-                self.set_autorestart(ioc, auto)
         except Exception as err:
             print_and_log("Could not restart IOC %s: %s" % (ioc, str(err)), "MAJOR")
 
@@ -94,6 +89,17 @@ class IocControl(object):
         """
         return self._proc.get_ioc_status(self._prefix, ioc)
 
+    def ioc_restart_pending(self, ioc):
+        """Tests if the IOC has a pending restart
+
+        Args:
+            ioc (string): The name of the IOC
+
+        Returns:
+            bool : Whether a restart is pending
+        """
+        return self._proc.ioc_restart_pending(self._prefix, ioc)
+
     def start_iocs(self, iocs):
         """ Start a number of IOCs.
 
@@ -103,14 +109,23 @@ class IocControl(object):
         for ioc in iocs:
             self.start_ioc(ioc)
 
-    def restart_iocs(self, iocs):
+    def restart_iocs(self, iocs, reapply_auto=False):
         """ Restart a number of IOCs.
 
         Args:
             iocs (list): The IOCs to restart
+            reapply_auto (bool): Whether to reapply auto restart settings automatically
         """
+        auto = dict()
         for ioc in iocs:
+            auto[ioc] = self.get_autorestart(ioc)
             self.restart_ioc(ioc)
+
+        # Reapply auto-restart settings
+        if reapply_auto:
+            for ioc in iocs:
+                self.waitfor_running(ioc)
+                self.set_autorestart(ioc, auto[ioc])
 
     def stop_iocs(self, iocs):
         """ Stop a number of IOCs.
@@ -180,7 +195,7 @@ class IocControl(object):
         """
         if self.ioc_exists(ioc):
             start = time()
-            while self.get_ioc_status(ioc) != "RUNNING":
+            while self.ioc_restart_pending(ioc) or self.get_ioc_status(ioc) != "RUNNING":
                 sleep(0.5)
                 if time() - start >= timeout:
                     print_and_log("Gave up waiting for IOC %s to be running" % ioc, "MAJOR")

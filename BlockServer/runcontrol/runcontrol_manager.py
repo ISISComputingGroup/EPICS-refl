@@ -18,16 +18,15 @@ import os
 from time import sleep
 
 from BlockServer.core.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
-from server_common.utilities import print_and_log
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from server_common.utilities import print_and_log, compress_and_hex, check_pv_name_valid, create_pv_name, \
-    convert_to_json, convert_from_json
+    convert_to_json, ioc_restart_pending
 from server_common.channel_access import ChannelAccess
 from BlockServer.core.pv_names import BlockserverPVNames
 
-
 TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
-RC_PV = "CS:IOC:RUNCTRL_01:DEVIOS:SysReset"
+RC_IOC_PREFIX = "CS:PS:RUNCTRL_01"
+RC_START_PV = "CS:IOC:RUNCTRL_01:DEVIOS:STARTTOD"
 RUNCONTROL_SETTINGS = "rc_settings.cmd"
 AUTOSAVE_DIR = "autosave"
 RUNCONTROL_IOC = "RUNCTRL_01"
@@ -35,10 +34,14 @@ RUNCONTROL_IOC = "RUNCTRL_01"
 RUNCONTROL_OUT_PV = BlockserverPVNames.prepend_blockserver('GET_RC_OUT')
 RUNCONTROL_GET_PV = BlockserverPVNames.prepend_blockserver('GET_RC_PARS')
 
+# number of loops to wait for assuming the run control is not going to start
+MAX_LOOPS_TO_WAIT_FOR_START = 60  # roughly 2 minutes at standard time
+
 
 class RunControlManager(OnTheFlyPvInterface):
     """A class for taking care of setting up run-control.
     """
+
     def __init__(self, prefix, config_dir, var_dir, ioc_control, active_configholder, block_server,
                  channel_access=ChannelAccess()):
         """Constructor.
@@ -52,6 +55,7 @@ class RunControlManager(OnTheFlyPvInterface):
             block_server (BlockServer): A reference to the BlockServer instance
             channel_access (ChannelAccess): A reference to the ChannelAccess instance
         """
+        self._rc_ioc_start_time = ""
         self._prefix = prefix
         self._settings_file = os.path.join(config_dir, RUNCONTROL_SETTINGS)
         self._autosave_dir = os.path.join(var_dir, AUTOSAVE_DIR, RUNCONTROL_IOC)
@@ -106,18 +110,19 @@ class RunControlManager(OnTheFlyPvInterface):
         self.wait_for_ioc_start()
         print_and_log("Runcontrol IOC started")
 
-    def create_runcontrol_pvs(self, clear_autosave):
+    def create_runcontrol_pvs(self, clear_autosave, time_between_tries=2):
         """ Create the PVs for run-control.
 
         Configures the run-control IOC to have PVs for the current configuration.
 
         Args:
             clear_autosave: Whether to remove any values stored by autosave
+            time_between_tries: Time to wait between checking run control has started
         """
         self.update_runcontrol_blocks(self._active_configholder.get_block_details())
         self.restart_ioc(clear_autosave)
         # Need to wait for RUNCONTROL_IOC to restart
-        self.wait_for_ioc_start()
+        self.wait_for_ioc_start(time_between_tries)
         self.restore_config_settings(self._active_configholder.get_block_details())
 
     def update_runcontrol_blocks(self, blocks):
@@ -214,21 +219,36 @@ class RunControlManager(OnTheFlyPvInterface):
                 except Exception as err:
                     print_and_log("Problem with setting runcontrol for %s: %s" % (bn, err))
 
-    def wait_for_ioc_start(self):
-        """Waits for the run-control IOC to start."""
-        # TODO: Give up after a bit
-        print_and_log("Waiting for runcontrol IOC to start")
-        while True:
-            # See if the IOC has restarted by looking for a standard PV
+    def wait_for_ioc_start(self, time_between_tries=2):
+        """
+        Waits for the run-control IOC to start.
+
+        Args:
+            time_between_tries (int): time to wait before checking if run control has started
+        """
+        print_and_log("Waiting for runcontrol IOC to start ...")
+        started = False
+        loop_count = 0
+        while not started and loop_count < MAX_LOOPS_TO_WAIT_FOR_START:
+            loop_count += 1
+            # See if the IOC has restarted
             try:
-                ans = self._channel_access.caget(self._prefix + RC_PV)
+                if ioc_restart_pending(self._prefix + RC_IOC_PREFIX, self._channel_access):
+                    raise Exception()
+                latest_ioc_start = self._channel_access.caget(self._prefix + RC_START_PV)
+                if latest_ioc_start is None or (self._rc_ioc_start_time != "" and
+                                                        latest_ioc_start <= self._rc_ioc_start_time):
+                    raise Exception()
+                self._rc_ioc_start_time = latest_ioc_start
+                started = True
+                print_and_log("... Runcontrol IOC started")
             except Exception as err:
-                # Probably has timed out
-                ans = None
-            if ans is not None:
-                print_and_log("Runcontrol IOC started")
-                break
-            sleep(2)
+                sleep(time_between_tries)
+        if not started:
+            print_and_log("Runcontrol appears not to have started", "MAJOR")
+        else:
+            # wait for other RC PVs to appear
+            sleep(time_between_tries * 3)
 
     def _start_ioc(self):
         """Start the IOC."""
@@ -250,7 +270,7 @@ class RunControlManager(OnTheFlyPvInterface):
             print_and_log("Reusing the existing run-control autosave files")
 
         try:
-            self._ioc_control.restart_ioc(RUNCONTROL_IOC, force=True, reapply_auto=False)
+            self._ioc_control.restart_ioc(RUNCONTROL_IOC, force=True)
         except Exception as err:
             print_and_log("Problem with restarting the run-control IOC: %s" % str(err), "MAJOR")
 

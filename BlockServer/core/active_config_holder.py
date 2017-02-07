@@ -124,44 +124,28 @@ class ActiveConfigHolder(ConfigHolder):
         Returns:
             set, set : IOCs to start and IOCs to restart
         """
-        iocs_to_start = list()
-        iocs_to_restart = list()
+        iocs_to_start = set()
+        iocs_to_restart = set()
 
         # Check to see if any macros, pvs, pvsets etc. have changed
         for n in self._config.iocs.keys():
             if n not in self._cached_config.iocs.keys():
                 # If not in previously then add it to start
-                iocs_to_start.append(n)
+                iocs_to_start.add(n)
                 continue
-            # Macros
-            old_macros = self._cached_config.iocs[n].macros
-            new_macros = self._config.iocs[n].macros
-            if cmp(old_macros, new_macros) != 0:
-                if n not in iocs_to_restart:
-                    iocs_to_restart.append(n)
-            # PVs
-            old_pvs = self._cached_config.iocs[n].pvs
-            new_pvs = self._config.iocs[n].pvs
-            if cmp(old_pvs, new_pvs) != 0:
-                if n not in iocs_to_restart:
-                    iocs_to_restart.append(n)
-            # Pvsets
-            old_pvsets = self._cached_config.iocs[n].pvsets
-            new_pvsets = self._config.iocs[n].pvsets
-            if cmp(old_pvsets, new_pvsets) != 0:
-                if n not in iocs_to_restart:
-                    iocs_to_restart.append(n)
-            # Auto-restart changed
-            if n in self._cached_config.iocs.keys() and \
-                            self._config.iocs[n].restart != self._cached_config.iocs[n].restart:
-                # If not in previously then add it to start
-                iocs_to_restart.append(n)
-                continue
+
+            cached_ioc = self._cached_config.iocs[n]
+            current_ioc = self._config.iocs[n]
+            if n in self._cached_config.iocs.keys():
+                for attr in {'macros', 'pvs', 'pvsets', 'simlevel', 'restart'}:
+                    if cmp(getattr(cached_ioc, attr),getattr(current_ioc, attr)) != 0:
+                        iocs_to_restart.add(n)
+                        break
 
         # Look for any new components
         for cn, cv in self._components.iteritems():
             if cn not in self._cached_components:
                 for n in cv.iocs.keys():
-                    iocs_to_start.append(n)
+                    iocs_to_start.add(n)
 
-        return set(iocs_to_start), set(iocs_to_restart)
+        return iocs_to_start, iocs_to_restart
