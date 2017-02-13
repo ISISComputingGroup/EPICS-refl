@@ -152,6 +152,11 @@ PVDB = {
         'count': 64000,
         'value': [0],
     },
+    BlockserverPVNames.ALL_COMPONENT_DETAILS: {
+        'type': 'char',
+        'count': 64000,
+        'value': [0],
+    },
     BlockserverPVNames.BUMPSTRIP_AVAILABLE: {
         'type': 'char',
         'count': 16000,
@@ -311,6 +316,8 @@ class BlockServer(Driver):
                 value = compress_and_hex(self.bumpstrip)
             elif reason == BlockserverPVNames.BANNER_DESCRIPTION:
                 value = compress_and_hex(self.banner.get_description())
+            elif reason == BlockserverPVNames.ALL_COMPONENT_DETAILS:
+                value = compress_and_hex(convert_to_json(self._config_list.all_components.values()))
             else:
                 # Check to see if it is a on-the-fly PV
                 for handler in self.on_the_fly_handlers:
