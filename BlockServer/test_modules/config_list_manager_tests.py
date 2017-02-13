@@ -471,6 +471,19 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.clm.update_a_config_in_list(inactive)
         self.assertTrue("TEST_INACTIVE" in self.clm.get_dependencies("TEST_COMPONENT1"))
 
+    def test_dependencies_updates_when_component_added_to_multiple_configs(self):
+        self._create_components(["TEST_COMPONENT1"])
+        config1 = self._create_inactive_config_holder()
+        config1.add_component("TEST_COMPONENT1", Configuration(MACROS))
+        config1.save_inactive("TEST_CONFIG1")
+        config2 = self._create_inactive_config_holder()
+        config2.add_component("TEST_COMPONENT1", Configuration(MACROS))
+        config2.save_inactive("TEST_CONFIG2")
+        self.clm.update_a_config_in_list(config1)
+        self.clm.update_a_config_in_list(config2)
+        self.assertTrue("TEST_CONFIG1" in self.clm.get_dependencies("TEST_COMPONENT1"))
+        self.assertTrue("TEST_CONFIG2" in self.clm.get_dependencies("TEST_COMPONENT1"))
+
     def test_dependencies_updates_remove(self):
         self._create_components(["TEST_COMPONENT1"])
 

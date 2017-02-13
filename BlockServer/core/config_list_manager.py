@@ -230,7 +230,7 @@ class ConfigListManager(object):
             if name_lower != DEFAULT_COMPONENT.lower():
                 self._component_metas[name_lower] = meta
                 self._update_component_pv(name_lower, config.get_config_details())
-                self._update_component_dependencies_pv(name_lower.lower())
+                self._update_component_dependencies_pv(name_lower)
                 self.all_components[name_lower] = config.get_config_details()
         else:
             if name_lower in self._config_metas.keys():
@@ -243,7 +243,7 @@ class ConfigListManager(object):
             # Update component dependencies
             comps = config.get_component_names()
             for comp in comps:
-                if comp in self._comp_dependencies:
+                if comp.lower() in self._comp_dependencies:
                     self._comp_dependencies[comp.lower()].append(config.get_config_name())
                 else:
                     self._comp_dependencies[comp.lower()] = [config.get_config_name()]
