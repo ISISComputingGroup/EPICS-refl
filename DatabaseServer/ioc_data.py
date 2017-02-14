@@ -47,8 +47,8 @@ class IOCData(object):
             dict : IOCs and their running status
         """
         try:
-            sqlquery = "SELECT iocname FROM iocs"
-            iocs = dict((element[0], dict()) for element in self._db.query(sqlquery))
+            sqlquery = "SELECT iocname, descr FROM iocs"
+            iocs = dict((element[0], dict(description=element[1])) for element in self._db.query(sqlquery))
         except Exception as err:
             print_and_log("could not get IOCS from database: %s" % err, "MAJOR", "DBSVR")
             iocs = dict()
