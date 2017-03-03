@@ -18,7 +18,7 @@ IOCLOGROOT="$ICPVARDIR/logs/ioc"
 
 DBSERVER_CONSOLEPORT="9009"
 
-echo "Starting blockserver (console port $DBSERVER_CONSOLEPORT)"
+echo "Starting dbserver (console port $DBSERVER_CONSOLEPORT)"
 DBSERVER_CMD="/bin/bash -i -O huponexit $MYDIRBLOCK/start_database_server_cmd.sh"
 
 # Unlike IOC we are not using "--noautorestart --wait" so gateway will start immediately and also automatically restart on exit
