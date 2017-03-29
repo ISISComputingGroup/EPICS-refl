@@ -28,6 +28,7 @@ from BlockServer.core.pv_names import BlockserverPVNames
 from config_list_manager_exceptions import InvalidDeleteException
 from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
     CommitToVersionControlException, UpdateFromVersionControlException, RemoveFromVersionControlException
+from BlockServer.alarm.load_alarm_config import AlarmConfigLoader
 
 
 class ConfigListManager(object):
@@ -350,6 +351,7 @@ class ConfigListManager(object):
             print_and_log("Unable to recover configurations from version control: %s" % err, "MINOR")
 
     def update_monitors(self):
+
         with self._bs.monitor_lock:
             print "UPDATING CONFIG LIST MONITORS"
             # Set the available configs
@@ -358,3 +360,7 @@ class ConfigListManager(object):
             self._bs.setParam(BlockserverPVNames.COMPS, compress_and_hex(convert_to_json(self.get_components())))
             # Update them
             self._bs.updatePVs()
+
+
+        print "RELOADING ALARM CONFIG"
+        AlarmConfigLoader.get_instance().load_in_new_thread()
