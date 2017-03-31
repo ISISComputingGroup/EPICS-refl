@@ -361,6 +361,4 @@ class ConfigListManager(object):
             # Update them
             self._bs.updatePVs()
 
-
-        print "RELOADING ALARM CONFIG"
         AlarmConfigLoader.get_instance().load_in_new_thread()

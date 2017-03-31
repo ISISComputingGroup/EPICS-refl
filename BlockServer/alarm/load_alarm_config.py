@@ -10,6 +10,9 @@ class AlarmConfigLoader(object):
     instance = None
     # The subprocess that the alarm server reloads itself in
     process = None
+    # Number of seconds to delay the reload by
+    # (the blockserver must have finished loading the configuration before the alarm server can be restarted)
+    delay = 20
 
     @staticmethod
     def get_instance():
@@ -29,8 +32,8 @@ class AlarmConfigLoader(object):
         if self.process is not None:
             self.process.kill()
 
-        print "Alarm server will update in 20 seconds\n"
-        time.sleep(20)
+        print "Alarm server will update in " + self.delay + " seconds\n"
+        time.sleep(self.delay)
         print "Alarm server updating...\n"
 
         filepath = os.path.join('C:\\', 'Instrument', 'Apps', 'EPICS', 'CSS', 'master', 'AlarmServer', 'run_alarm_server.bat')
@@ -49,6 +52,7 @@ class AlarmConfigLoader(object):
         thread = threading.Thread(target=self._load)
         thread.start()
 
+# Only used if you want to run this file on it's own
+# e.g. for testing that the alarm server reload is working correctly.
 if __name__ == "__main__":
     AlarmConfigLoader.get_instance().load_in_new_thread()
-    print "finished\n"
