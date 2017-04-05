@@ -356,5 +356,8 @@ class ConfigListManager(object):
             self._bs.setParam(BlockserverPVNames.CONFIGS, compress_and_hex(convert_to_json(self.get_configs())))
             # Set the available comps
             self._bs.setParam(BlockserverPVNames.COMPS, compress_and_hex(convert_to_json(self.get_components())))
+            # Set the available component details
+            self._bs.setParam(BlockserverPVNames.ALL_COMPONENT_DETAILS,
+                              compress_and_hex(convert_to_json(self.all_components.values())))
             # Update them
             self._bs.updatePVs()
