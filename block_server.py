@@ -39,6 +39,7 @@ from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.synoptic.synoptic_manager import SynopticManager
 from BlockServer.devices.devices_manager import DevicesManager
+from BlockServer.fileIO.unclassified_file_manager import UnclassifiedFileManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from ConfigVersionControl.git_version_control import GitVersionControl, RepoFactory
 from ConfigVersionControl.version_control_exceptions import NotUnderVersionControl, VersionControlException
@@ -276,8 +277,13 @@ class BlockServer(Driver):
         self._devices = DevicesManager(self, SCHEMA_DIR, self._vc)
         self.on_the_fly_handlers.append(self._devices)
 
+        # A file manager for any other files
+        self._other_files = UnclassifiedFileManager(self, self._vc)
+        self.on_the_fly_handlers.append(self._other_files)
+
         # Start file watcher
-        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn, self._devices)
+        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn, self._devices,
+                                                     self._other_files)
 
         try:
             if self._gateway.exists():
