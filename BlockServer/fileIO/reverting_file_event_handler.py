@@ -23,7 +23,7 @@ from base_file_event_handler import BaseFileEventHandler
 
 class RevertingFileEventHandler(BaseFileEventHandler):
     """ The BaseFileEventHandler class
-        Inherit from this class to provide event handling for different kinds of configuration files.
+        Inherit from this class to provide event handling for configuration files which should be reverted on change.
         Subclass must implement :
             _get_name: returns the name of the configuration, extracted from the event source path.
             _check_valid: checks whether the configuration file is valid and returns the content if so.
@@ -32,8 +32,8 @@ class RevertingFileEventHandler(BaseFileEventHandler):
 
     """
 
-    def filesystem_modified(self, event):
-        """ Catch-all event handler.
+    def _file_modified(self, event):
+        """ Called when a file was modified.
 
         Args:
             event (FileSystemEvent): The event object representing the file system event
@@ -43,17 +43,12 @@ class RevertingFileEventHandler(BaseFileEventHandler):
 
         try:
             name = self._get_name(event.src_path)
-            if type(event) is FileMovedEvent:
-                # Renaming a file triggers this
-                modified_path = event.dest_path
-                self._manager.delete(name)
-            else:
-                modified_path = event.src_path
+            modified_path = event.src_path
 
             data = self._check_valid(modified_path)
 
-            self.update_pvs(data)
-            self.inform_user(name)
+            self._update_pvs(data)
+            self._inform_user(name)
 
         except NotConfigFileException as err:
             print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
@@ -62,20 +57,75 @@ class RevertingFileEventHandler(BaseFileEventHandler):
         except Exception as err:
             print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
+    def _directory_modified(self, event):
+        """ Called when a directory was modified.
+
+            Args:
+                event (FileSystemEvent): The event object representing the file system event
+        """
+
+        # No default behaviour.
+        pass
+
+    def _filesystem_modified(self, event):
+        """ Called when a file or directory was modified.
+
+            Args:
+                event (FileSystemEvent): The event object representing the file system event
+        """
+        if event.is_directory:
+            self._directory_modified(event)
+        else:
+            self._file_modified(event)
+
     def on_created(self, event):
-        self.filesystem_modified(event)
+        """ Called when a file was created. Overrides method from BaseFileEventHandler
+
+            Args:
+                event (FileSystemEvent): The event object representing the file system event
+        """
+        self._filesystem_modified(event)
 
     def on_modified(self, event):
-        self.filesystem_modified(event)
+        """ Called when a file was modified. Overrides method from BaseFileEventHandler
+
+            Args:
+                event (FileSystemEvent): The event object representing the file system event
+        """
+        self._filesystem_modified(event)
 
     def on_moved(self, event):
-        self.filesystem_modified(event)
-
-    def on_deleted(self, event):
-        """" Called when a file or directory is deleted.
+        """ Called when a file was modified.
 
         Args:
-            event (DirDeletedEvent): Event representing directory deletion.
+            event (FileSystemEvent): The event object representing the file system event
+        """
+        if event.is_directory:
+            return
+
+        try:
+            name = self._get_name(event.src_path)
+            # Renaming a file triggers this
+            modified_path = event.dest_path
+            self._manager.delete(name)
+
+            data = self._check_valid(modified_path)
+
+            self._update_pvs(data)
+            self._inform_user(name)
+
+        except NotConfigFileException as err:
+            print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
+        except ConfigurationIncompleteException as err:
+            print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
+        except Exception as err:
+            print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
+
+    def on_deleted(self, event):
+        """ Called when a file was deleted. Overrides method from BaseFileEventHandler
+
+            Args:
+                event (FileSystemEvent): The event object representing the file system event
         """
         # Recover and return error
         try:
@@ -84,12 +134,13 @@ class RevertingFileEventHandler(BaseFileEventHandler):
         except Exception as err:
             print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
-        print_and_log("File Watcher: Repository reverted after %s deleted manually. Please delete files via client" % event.src_path, "MAJOR", "FILEWTCHR")
+        print_and_log("File Watcher: Repository reverted after %s deleted manually. "
+                      "Please delete files via client" % event.src_path, "MAJOR", "FILEWTCHR")
 
-    def update_pvs(self, data):
+    def _update_pvs(self, data):
         self._update(data)
 
-    def inform_user(self, name):
+    def _inform_user(self, name):
         print_and_log(self._get_modified_message(name), "INFO", "FILEWTCHR")
 
 

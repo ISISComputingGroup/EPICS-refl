@@ -73,7 +73,7 @@ class UnclassifiedFileEventHandler(RevertingFileEventHandler):
         message = "The device screens file has been modified in the filesystem, ensure it is added to version control"
         return message
 
-    def filesystem_modified(self, event):
+    def file_modified(self, event):
         """
         Catch-all event handler.
 
