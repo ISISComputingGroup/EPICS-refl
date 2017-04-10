@@ -364,3 +364,6 @@ class ConfigListManager(object):
 
     def commit(self, message):
         self._vc.commit(message)
+
+    def add(self, foo):
+        self._vc.add(foo)

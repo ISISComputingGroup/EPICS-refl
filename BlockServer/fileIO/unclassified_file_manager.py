@@ -30,11 +30,7 @@ class UnclassifiedFileManager(object):
         self._vc = vc_manager
 
     def recover_from_version_control(self):
-        """ A method to revert the configurations directory back to the state held in version control."""
-        try:
-            self._vc.update()
-        except UpdateFromVersionControlException as err:
-            print_and_log("Unable to recover file from version control: %s" % err, "MINOR")
+        pass
 
     def delete(self, name):
         pass
@@ -43,4 +39,27 @@ class UnclassifiedFileManager(object):
         pass
 
     def commit(self, message):
+        self._add_and_commit_to_version_control(message)
+
+    def _add_and_commit_to_version_control(self, message):
+        print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        self._vc.add("*")
         self._vc.commit(message)
+
+    def initialise(self, full_init=False):
+        pass
+
+    def read_pv_exists(self, pv):
+        return False
+
+    def write_pv_exists(self, pv):
+        return False
+
+    def handle_pv_write(self, pv, data):
+        pass
+
+    def handle_pv_read(self, pv):
+        pass
+
+    def update_monitors(self):
+        pass
