@@ -18,9 +18,10 @@
 from watchdog.events import FileSystemEventHandler
 
 from BlockServer.core.constants import *
+from reverting_file_event_handler import RevertingFileEventHandler
 
 
-class UnclassifiedFileEventHandler(FileSystemEventHandler):
+class UnclassifiedFileEventHandler(RevertingFileEventHandler):
     """ The DevicesFileEventHandler class
 
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and
@@ -72,7 +73,7 @@ class UnclassifiedFileEventHandler(FileSystemEventHandler):
         message = "The device screens file has been modified in the filesystem, ensure it is added to version control"
         return message
 
-    def on_any_event(self, event):
+    def filesystem_modified(self, event):
         """
         Catch-all event handler.
 

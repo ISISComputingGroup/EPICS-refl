@@ -18,12 +18,12 @@ import os
 import string
 
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from BlockServer.fileIO.base_file_event_handler import BaseFileEventHandler
+from BlockServer.fileIO.reverting_file_event_handler import RevertingFileEventHandler
 from server_common.utilities import print_and_log
 from schema_checker import NotConfigFileException
 
 
-class ConfigFileEventHandler(BaseFileEventHandler):
+class ConfigFileEventHandler(RevertingFileEventHandler):
     """ The ConfigFileEventHandler class
 
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and

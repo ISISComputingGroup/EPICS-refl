@@ -16,13 +16,13 @@
 
 
 from BlockServer.core.constants import *
-from BlockServer.fileIO.base_file_event_handler import BaseFileEventHandler
+from BlockServer.fileIO.reverting_file_event_handler import RevertingFileEventHandler
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from BlockServer.fileIO.schema_checker import NotConfigFileException
 from BlockServer.synoptic.synoptic_manager import SYNOPTIC_SCHEMA_FILE
 
 
-class SynopticFileEventHandler(BaseFileEventHandler):
+class SynopticFileEventHandler(RevertingFileEventHandler):
     """ The SynopticFileEventHandler class
 
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and

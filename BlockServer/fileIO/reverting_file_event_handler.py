@@ -14,13 +14,14 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
+from watchdog.events import FileDeletedEvent, FileMovedEvent
 
 from server_common.utilities import print_and_log
 from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
+from base_file_event_handler import BaseFileEventHandler
 
 
-class BaseFileEventHandler(FileSystemEventHandler):
+class RevertingFileEventHandler(BaseFileEventHandler):
     """ The BaseFileEventHandler class
         Inherit from this class to provide event handling for different kinds of configuration files.
         Subclass must implement :
@@ -31,47 +32,44 @@ class BaseFileEventHandler(FileSystemEventHandler):
 
     """
 
-    def __init__(self, manager):
-        """ Constructor.
-
-        Args:
-            manager : The File Manager. Must implement the following methods:
-                delete: Deletes a specific configuration from the internal list of available ones.
-                recover_from_version_control: Reverts the config directory back to the state held in version control.
-        """
-        self._manager = manager
-
-    def on_any_event(self, event):
+    def filesystem_modified(self, event):
         """ Catch-all event handler.
 
         Args:
             event (FileSystemEvent): The event object representing the file system event
         """
-        if not event.is_directory:
-            if type(event) is not FileDeletedEvent:
-                try:
-                    name = self._get_name(event.src_path)
-                    if type(event) is FileMovedEvent:
-                        # Renaming a file triggers this
-                        modified_path = event.dest_path
-                        self._manager.delete(name)
-                    else:
-                        modified_path = event.src_path
+        if event.is_directory:
+            return
 
-                    data = self._check_valid(modified_path)
+        try:
+            name = self._get_name(event.src_path)
+            if type(event) is FileMovedEvent:
+                # Renaming a file triggers this
+                modified_path = event.dest_path
+                self._manager.delete(name)
+            else:
+                modified_path = event.src_path
 
-                    # Update PVs
-                    self._update(data)
+            data = self._check_valid(modified_path)
 
-                    # Inform user
-                    print_and_log(self._get_modified_message(name), "INFO", "FILEWTCHR")
+            self.update_pvs(data)
+            self.inform_user(name)
 
-                except NotConfigFileException as err:
-                    print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
-                except ConfigurationIncompleteException as err:
-                    print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
-                except Exception as err:
-                    print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
+        except NotConfigFileException as err:
+            print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
+        except ConfigurationIncompleteException as err:
+            print_and_log("File Watcher: " + str(err), src="FILEWTCHR")
+        except Exception as err:
+            print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
+
+    def on_created(self, event):
+        self.filesystem_modified(event)
+
+    def on_modified(self, event):
+        self.filesystem_modified(event)
+
+    def on_moved(self, event):
+        self.filesystem_modified(event)
 
     def on_deleted(self, event):
         """" Called when a file or directory is deleted.
@@ -87,5 +85,11 @@ class BaseFileEventHandler(FileSystemEventHandler):
             print_and_log("File Watcher: " + str(err), "MAJOR", "FILEWTCHR")
 
         print_and_log("File Watcher: Repository reverted after %s deleted manually. Please delete files via client" % event.src_path, "MAJOR", "FILEWTCHR")
+
+    def update_pvs(self, data):
+        self._update(data)
+
+    def inform_user(self, name):
+        print_and_log(self._get_modified_message(name), "INFO", "FILEWTCHR")
 
 

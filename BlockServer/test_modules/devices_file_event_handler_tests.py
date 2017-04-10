@@ -87,7 +87,7 @@ class TestConfigFileEventHandler(unittest.TestCase):
         self.devices_manager.load_devices.return_value = VALID_DEVICES_DATA
 
         # Act
-        self.eh.on_any_event(e)
+        self.eh.filesystem_modified(e)
 
         # Assert
         self.devices_manager.load_devices.assert_called_with(self.path)

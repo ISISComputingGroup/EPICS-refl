@@ -23,6 +23,7 @@ from BlockServer.fileIO.devices_file_event_handler import DevicesFileEventHandle
 from BlockServer.fileIO.synoptic_file_event_handler import SynopticFileEventHandler
 from BlockServer.fileIO.unclassified_file_event_handler import UnclassifiedFileEventHandler
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from BlockServer.fileIO.unclassified_file_manager import UnclassifiedFileManager
 
 
 class ConfigFileWatcherManager(object):

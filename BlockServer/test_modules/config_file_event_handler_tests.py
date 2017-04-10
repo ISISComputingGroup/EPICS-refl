@@ -90,7 +90,7 @@ class TestConfigFileEventHandler(unittest.TestCase):
         self.config_list_manager.load_config.return_value = active_config
 
         # Act
-        self.eh.on_any_event(e)
+        self.eh.filesystem_modified(e)
 
         # Assert
         self.config_list_manager.load_config.assert_called_with(config_folder, self.is_component)
