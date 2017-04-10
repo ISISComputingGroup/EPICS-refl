@@ -21,9 +21,8 @@ from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedE
 
 from BlockServer.core.constants import *
 from BlockServer.fileIO.reverting_file_event_handler import RevertingFileEventHandler
-from server_common.utilities import print_and_log
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
-from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
+from BlockServer.fileIO.schema_checker import NotConfigFileException
 from BlockServer.devices.devices_manager import SCREENS_SCHEMA
 
 

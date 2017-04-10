@@ -31,7 +31,7 @@ class ConfigFileWatcherManager(object):
 
     Registers and communicates with the event handlers for configuration and synoptic filewatchers.
     """
-    def __init__(self, schema_folder, config_list_manager, synoptic_manager, devices_manager):
+    def __init__(self, schema_folder, config_list_manager, synoptic_manager, devices_manager, other_manager):
         """Constructor.
 
         Args:
@@ -64,7 +64,7 @@ class ConfigFileWatcherManager(object):
         self._dev_observer = self._create_observer(self._devices_event_handler, self._dev_dir)
 
         # Create everything else watcher
-        self._unclassified_file_event_handler = UnclassifiedFileEventHandler(UnclassifiedFileManager())
+        self._unclassified_file_event_handler = UnclassifiedFileEventHandler(UnclassifiedFileManager(config_list_manager))
         self._other_observer = self._create_observer(self._unclassified_file_event_handler, self._config_root)
 
     def _create_observer(self, event_handler, directory):
@@ -86,4 +86,4 @@ class ConfigFileWatcherManager(object):
         self._component_observer.schedule(self._component_event_handler, self._comp_dir, recursive=True)
         self._syn_observer.schedule(self._synoptic_event_handler, self._syn_dir, recursive=True)
         self._dev_observer.schedule(self._devices_event_handler, self._dev_dir, recursive=True)
-        self._other_observer(self._unclassified_file_event_handler, self._config_root, recursive=True)
+        self._other_observer.schedule(self._unclassified_file_event_handler, self._config_root, recursive=True)

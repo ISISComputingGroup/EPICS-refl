@@ -41,3 +41,6 @@ class UnclassifiedFileManager(object):
 
     def update(self):
         pass
+
+    def commit(self, message):
+        self._vc.commit(message)

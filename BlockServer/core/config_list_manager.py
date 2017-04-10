@@ -361,3 +361,6 @@ class ConfigListManager(object):
                               compress_and_hex(convert_to_json(self.all_components.values())))
             # Update them
             self._bs.updatePVs()
+
+    def commit(self, message):
+        self._vc.commit(message)

@@ -278,7 +278,7 @@ class BlockServer(Driver):
         self.on_the_fly_handlers.append(self._devices)
 
         # A file manager for any other files
-        self._other_files = UnclassifiedFileManager(self, self._vc)
+        self._other_files = UnclassifiedFileManager(self)
         self.on_the_fly_handlers.append(self._other_files)
 
         # Start file watcher
