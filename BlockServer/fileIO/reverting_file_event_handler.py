@@ -95,7 +95,7 @@ class RevertingFileEventHandler(BaseFileEventHandler):
         self._filesystem_modified(event)
 
     def on_moved(self, event):
-        """ Called when a file was modified.
+        """ Called when a file was modified. Overrides method from BaseFileEventHandler
 
         Args:
             event (FileSystemEvent): The event object representing the file system event
