@@ -28,6 +28,8 @@ SYSTEM_TEST_PREFIX = "rcptt_"
 GIT_REMOTE_LOCATION = 'http://control-svcs.isis.cclrc.ac.uk/gitroot/instconfigs/test.git'
 PUSH_BASE_INTERVAL = 10
 PUSH_RETRY_INTERVAL = 30
+RETRY_INTERVAL = 0.1
+RETRY_MAX_ATTEMPTS = 100
 
 
 class RepoFactory:
@@ -100,47 +102,69 @@ class GitVersionControl:
     def _unlock(self):
         """ Removes index.lock if it exists, and it's not being used
         """
-        try:
-            lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
-            if os.path.exists(lock_file_path):
-                print_and_log("Found lock for version control repository, trying to remove: %s" % lock_file_path,
-                              "INFO")
-                os.remove(lock_file_path)
-                print_and_log("Lock removed from version control repository", "INFO")
-        except Exception as err:
-            raise UnlockVersionControlException("Unable to remove lock from version control repository: %s " %
-                                                err.message)
+        attempts = 0
+        while attempts < RETRY_MAX_ATTEMPTS:
+            try:
+                lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
+                if os.path.exists(lock_file_path):
+                    print_and_log("Found lock for version control repository, trying to remove: %s" % lock_file_path,
+                                  "INFO")
+                    os.remove(lock_file_path)
+                    print_and_log("Lock removed from version control repository", "INFO")
+                    return
+            except:
+                # Exception will be thrown below if the function doesn't return.
+                sleep(RETRY_INTERVAL)
+
+            attempts += 1
+
+        raise UnlockVersionControlException("Unable to remove lock from version control repository.")
 
     def add(self, path):
         """ Add a file to the repository
         Args:
             path (str): the file to add
         """
-        try:
-            if self._should_ignore(path):
-                return
-            self.repo.index.add([path])
-        except WindowsError as err:
-            # Most likely access denied, so try changing permissions then retry once
+        attempts = 0
+        while attempts < RETRY_MAX_ATTEMPTS:
             try:
-                self._set_permissions()
+                if self._should_ignore(path):
+                    return
                 self.repo.index.add([path])
+                return
+            except WindowsError as err:
+                # Most likely access denied, so try changing permissions then retry once
+                try:
+                    self._set_permissions()
+                    self.repo.index.add([path])
+                    return
+                except Exception as err:
+                    sleep(RETRY_INTERVAL)
             except Exception as err:
-                raise AddToVersionControlException(err.message)
-        except Exception as err:
-            raise AddToVersionControlException(err.message)
+                sleep(RETRY_INTERVAL)
+
+            attempts += 1
+
+            raise AddToVersionControlException("Couldn't add to version control")
 
     def commit(self, commit_comment):
         """ Commit changes to a repository
         Args:
             commit_comment (str): comment to leave with the commit
         """
-        try:
-            self.repo.index.commit(commit_comment)
-        except Exception as err:
-            raise CommitToVersionControlException(err.message)
-        with self._push_lock:
-            self._push_required = True
+        attempts = 0
+        while attempts < RETRY_MAX_ATTEMPTS:
+            try:
+                self.repo.index.commit(commit_comment)
+                with self._push_lock:
+                    self._push_required = True
+                return
+            except Exception as err:
+                sleep(RETRY_INTERVAL)
+
+            attempts += 1
+
+        raise CommitToVersionControlException("Couldn't commit to version control")
 
     def update(self):
         """ reverts folder to the remote repository
