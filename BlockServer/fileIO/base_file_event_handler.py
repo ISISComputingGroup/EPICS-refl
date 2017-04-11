@@ -19,22 +19,14 @@ from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedE
 
 class BaseFileEventHandler(FileSystemEventHandler):
     """ The BaseFileEventHandler class
-        Inherit from this class to provide event handling for configuration files which should be reverted on change.
-        Subclass must implement :
-            _get_name: returns the name of the configuration, extracted from the event source path.
-            _check_valid: checks whether the configuration file is valid and returns the content if so.
-            _update: updates the configuration with new data read from the modified file.
-            _get_modified_message: Returns the string message to be logged when file is modified.
-
+        Inherit from this class to provide event handling for different kinds of configuration files.
     """
 
     def __init__(self, manager):
         """ Constructor.
 
         Args:
-        manager : The File Manager. Must implement the following methods:
-        delete: Deletes a specific configuration from the internal list of available ones.
-        recover_from_version_control: Reverts the config directory back to the state held in version control.
+        manager : The File Manager.
         """
 
         self._manager = manager
