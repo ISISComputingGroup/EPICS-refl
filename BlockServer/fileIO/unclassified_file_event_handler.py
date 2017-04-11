@@ -14,11 +14,8 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-
-from watchdog.events import FileSystemEventHandler
-
-from BlockServer.core.constants import *
 from base_file_event_handler import BaseFileEventHandler
+from server_common.utilities import print_and_log
 
 
 class UnclassifiedFileEventHandler(BaseFileEventHandler):
@@ -39,25 +36,25 @@ class UnclassifiedFileEventHandler(BaseFileEventHandler):
     def on_created(self, event):
         if not event.is_directory and not any(s in event.src_path for s in self._ignore_directories):
             message = "Created a new file at {0}".format(event.src_path)
-            print message
+            print_and_log(message)
             self._manager.add_and_commit(message, event.src_path)
 
     def on_deleted(self, event):
         if not event.is_directory and not any(s in event.src_path for s in self._ignore_directories):
             message = "Deleted a file at {0}".format(event.src_path)
-            print message
+            print_and_log(message)
             self._manager.add_and_commit(message)
 
     def on_modified(self, event):
         if not event.is_directory and not any(s in event.src_path for s in self._ignore_directories):
             message = "Modified the file at {0}".format(event.src_path)
-            print message
+            print_and_log(message)
             self._manager.add_and_commit(message, event.src_path)
 
     def on_moved(self, event):
         if not event.is_directory and not any(s in event.src_path for s in self._ignore_directories):
             message = "Moved a file from {0} to {1}".format(event.src_path, event.dest_path)
-            print message
+            print_and_log(message)
             self._manager.add_and_commit(message)
             self._manager.add_and_commit(message, event.dest_path)
 
