@@ -111,7 +111,8 @@ class GitVersionControl:
                                   "INFO")
                     os.remove(lock_file_path)
                     print_and_log("Lock removed from version control repository", "INFO")
-                    return
+                    
+                return
             except:
                 # Exception will be thrown below if the function doesn't return.
                 sleep(RETRY_INTERVAL)
