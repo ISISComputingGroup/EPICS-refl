@@ -36,14 +36,27 @@ class UnclassifiedFileEventHandler(BaseFileEventHandler):
         super(UnclassifiedFileEventHandler, self).__init__(file_manager)
 
     def on_created(self, event):
-        self._manager.commit("Created a new file.")
+        if not event.is_directory:
+            message = "Created a new file at {0}".format(event.src_path)
+            print message
+            self._manager.add_and_commit(message, event.src_path)
 
     def on_deleted(self, event):
-        self._manager.commit("Deleted a file.")
+        if not event.is_directory:
+            message = "Deleted a file at {0}".format(event.src_path)
+            print message
+            self._manager.add_and_commit(message)
 
     def on_modified(self, event):
-        self._manager.commit("Modified a file.")
+        if not event.is_directory:
+            message = "Modified the file at {0}".format(event.src_path)
+            print message
+            self._manager.add_and_commit(message, event.src_path)
 
     def on_moved(self, event):
-        self._manager.commit("Moved a file.")
+        if not event.is_directory:
+            message = "Moved a file from {0} to {1}".format(event.src_path, event.dest_path)
+            print message
+            self._manager.add_and_commit(message)
+            self._manager.add_and_commit(message, event.dest_path)
 

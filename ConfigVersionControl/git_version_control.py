@@ -224,3 +224,6 @@ class GitVersionControl:
         # (unfortunately putting the system test prefix in the .gitignore doesn't work
         # because the git library always forces an add - it has a force flag, but it's not used)
         return SYSTEM_TEST_PREFIX in file_path
+
+    def add_u(self):
+        self.repo.git.add(u=True)

@@ -363,7 +363,20 @@ class ConfigListManager(object):
             self._bs.updatePVs()
 
     def commit(self, message):
+        """
+        Commits changes to git.
+
+        :param message: the commit message
+        """
         self._vc.commit(message)
 
-    def add(self, foo):
-        self._vc.add(foo)
+    def add(self, path=None):
+        """
+        Adds a specified file to git.
+
+        :param path: the path to add
+        """
+        if path is not None:
+            self._vc.add(path)
+        else:
+            self._vc.add_u()

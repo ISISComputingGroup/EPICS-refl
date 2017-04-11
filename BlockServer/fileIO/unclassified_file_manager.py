@@ -38,12 +38,8 @@ class UnclassifiedFileManager(object):
     def update(self):
         pass
 
-    def commit(self, message):
-        self._add_and_commit_to_version_control(message)
-
-    def _add_and_commit_to_version_control(self, message):
-        print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-        self._vc.add("*")
+    def add_and_commit(self, message, path=None):
+        self._vc.add(path)
         self._vc.commit(message)
 
     def initialise(self, full_init=False):
