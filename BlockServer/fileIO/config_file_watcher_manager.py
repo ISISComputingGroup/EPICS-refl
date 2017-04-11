@@ -64,7 +64,8 @@ class ConfigFileWatcherManager(object):
         self._dev_observer = self._create_observer(self._devices_event_handler, self._dev_dir)
 
         # Create everything else watcher
-        self._unclassified_file_event_handler = UnclassifiedFileEventHandler(UnclassifiedFileManager(config_list_manager))
+        ignore_directories = [self._config_dir, self._comp_dir, self._syn_dir, self._dev_dir]
+        self._unclassified_file_event_handler = UnclassifiedFileEventHandler(UnclassifiedFileManager(config_list_manager), ignore_directories)
         self._other_observer = self._create_observer(self._unclassified_file_event_handler, self._config_root)
 
     def _create_observer(self, event_handler, directory):
