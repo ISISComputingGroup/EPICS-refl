@@ -22,7 +22,7 @@ from base_file_event_handler import BaseFileEventHandler
 
 
 class RevertingFileEventHandler(BaseFileEventHandler):
-    """ The BaseFileEventHandler class
+    """ The RevertingFileEventHandler class
         Inherit from this class to provide event handling for configuration files which should be reverted on change.
         Subclass must implement :
             _get_name: returns the name of the configuration, extracted from the event source path.
@@ -95,7 +95,7 @@ class RevertingFileEventHandler(BaseFileEventHandler):
         self._filesystem_modified(event)
 
     def on_moved(self, event):
-        """ Called when a file was modified. Overrides method from BaseFileEventHandler
+        """ Called when a file was moved. Overrides method from BaseFileEventHandler
 
         Args:
             event (FileSystemEvent): The event object representing the file system event

@@ -31,7 +31,7 @@ class ConfigFileWatcherManager(object):
 
     Registers and communicates with the event handlers for configuration and synoptic filewatchers.
     """
-    def __init__(self, schema_folder, config_list_manager, synoptic_manager, devices_manager, other_manager):
+    def __init__(self, schema_folder, config_list_manager, synoptic_manager, devices_manager):
         """Constructor.
 
         Args:

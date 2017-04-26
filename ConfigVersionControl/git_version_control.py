@@ -146,7 +146,7 @@ class GitVersionControl:
 
             attempts += 1
 
-            raise AddToVersionControlException("Couldn't add to version control")
+        raise AddToVersionControlException("Couldn't add to version control")
 
     def commit(self, commit_comment):
         """ Commit changes to a repository

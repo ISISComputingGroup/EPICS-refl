@@ -282,8 +282,7 @@ class BlockServer(Driver):
         self.on_the_fly_handlers.append(self._other_files)
 
         # Start file watcher
-        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn, self._devices,
-                                                     self._other_files)
+        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn, self._devices)
 
         try:
             if self._gateway.exists():

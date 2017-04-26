@@ -19,7 +19,7 @@ from ConfigVersionControl.version_control_exceptions import UpdateFromVersionCon
 
 
 class UnclassifiedFileManager(object):
-    """ Class for managing the PVs associated with devices"""
+    """ Class for managing miscellaneous config files"""
 
     def __init__(self, vc_manager):
         """ Constructor.
