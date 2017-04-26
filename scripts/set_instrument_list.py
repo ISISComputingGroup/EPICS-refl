@@ -71,7 +71,8 @@ if __name__ == "__main__":
         inst_dictionary("IMAT"),
         inst_dictionary("MUONFE", hostname_prefix="NDE"),
         inst_dictionary("ZOOM"),
-        inst_dictionary("IRIS")
+        inst_dictionary("IRIS"),
+        inst_dictionary("POLARIS")
     ]
 
     new_value = json.dumps(instruments_list)
