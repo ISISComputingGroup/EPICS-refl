@@ -73,6 +73,8 @@ if __name__ == "__main__":
         inst_dictionary("ZOOM"),
         inst_dictionary("IRIS"),
         inst_dictionary("HRPD"),
+        inst_dictionary("POLARIS"),
+        inst_dictionary("VESUVIO"),
     ]
 
     new_value = json.dumps(instruments_list)
