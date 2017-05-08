@@ -29,19 +29,20 @@ class AlarmConfigLoader(object):
 
         # Terminate the last batch job if it is still running
         # (prevents two instances from running concurrently which might cause problems).
-        if self.process is not None:
-            self.process.kill()
+        if AlarmConfigLoader.process is not None:
+            AlarmConfigLoader.process.kill()
 
         print "Alarm server will update in " + str(self.delay) + " seconds\n"
-        time.sleep(self.delay)
+        time.sleep(AlarmConfigLoader.delay)
         print "Alarm server updating...\n"
 
         filepath = os.path.join('C:\\', 'Instrument', 'Apps', 'EPICS', 'CSS', 'master', 'AlarmServer', 'run_alarm_server.bat')
 
         try:
             with open(filepath, 'r') and open(os.devnull) as devnull:
-                self.process = subprocess.Popen(filepath, stderr=devnull)
-                self.process.communicate(input=None)
+                AlarmConfigLoader.process = subprocess.Popen(filepath, stderr=devnull)
+                # Use communicate rather than call because of potential deadlocks based on output volume
+                AlarmConfigLoader.process.communicate(input=None)
         except Exception as e:
             print "Error while reloading alarm server."
             print e
