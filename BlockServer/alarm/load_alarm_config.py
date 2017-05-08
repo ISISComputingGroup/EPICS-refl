@@ -32,7 +32,7 @@ class AlarmConfigLoader(object):
         if self.process is not None:
             self.process.kill()
 
-        print "Alarm server will update in " + self.delay + " seconds\n"
+        print "Alarm server will update in " + str(self.delay) + " seconds\n"
         time.sleep(self.delay)
         print "Alarm server updating...\n"
 
