@@ -222,7 +222,7 @@ class DatabaseServer(Driver):
     @staticmethod
     def _check_pv_capacity(pv, size, prefix):
         """
-        Increases the capacity of a PV if necessary. Leave unchanged if already sufficient
+        Check the capacity of a PV and write to the log if it is too small
         :param pv: The PV to update
         :param size: The required size
         :param prefix: The PV prefix
