@@ -44,29 +44,31 @@ MACROS = {
     "$(ICPCONFIGROOT)": os.environ['ICPCONFIGROOT']
 }
 
+PV_SIZE = {"default": 64000, "pars": 10000}
+
 PVDB = {
     'IOCS': {
         # Handled by the monitor thread
         'type': 'char',
-        'count': 16000,
+        'count': PV_SIZE["default"],
         'value': [0],
     },
     'PVS:INTEREST:HIGH': {
         # Handled by the monitor thread
         'type': 'char',
-        'count': 64000,
+        'count': PV_SIZE["default"],
         'value': [0],
     },
     'PVS:INTEREST:MEDIUM': {
         # Handled by the monitor thread
         'type': 'char',
-        'count': 64000,
+        'count': PV_SIZE["default"],
         'value': [0],
     },
     'PVS:INTEREST:FACILITY': {
         # Handled by the monitor thread
         'type': 'char',
-        'count': 64000,
+        'count': PV_SIZE["default"],
         'value': [0],
     },
     'PVS:ACTIVE': {
@@ -78,27 +80,27 @@ PVDB = {
     'PVS:ALL': {
         # Handled by the monitor thread
         'type': 'char',
-        'count': 64000,
+        'count': PV_SIZE["default"],
         'value': [0],
     },
     'SAMPLE_PARS': {
         'type': 'char',
-        'count': 10000,
+        'count': PV_SIZE["pars"],
         'value': [0],
     },
     'BEAMLINE_PARS': {
         'type': 'char',
-        'count': 10000,
+        'count': PV_SIZE["pars"],
         'value': [0],
     },
     'USER_PARS': {
         'type': 'char',
-        'count': 10000,
+        'count': PV_SIZE["pars"],
         'value': [0],
     },
     'IOCS_NOT_TO_STOP': {
         'type': 'char',
-        'count': 16000,
+        'count': PV_SIZE["default"],
         'value': [0],
     },
 }
@@ -155,14 +157,15 @@ class DatabaseServer(Driver):
         Returns:
             string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
+        max_size = PVDB[reason]['count']
         if reason == 'SAMPLE_PARS':
-            value = self.encode4return(self.get_sample_par_names())
+            value = self.encode4return(self.get_sample_par_names(), max_size)
         elif reason == 'BEAMLINE_PARS':
-            value = self.encode4return(self.get_beamline_par_names())
+            value = self.encode4return(self.get_beamline_par_names(), max_size)
         elif reason == 'USER_PARS':
-            value = self.encode4return(self.get_user_par_names())
+            value = self.encode4return(self.get_user_par_names(), max_size)
         elif reason == "IOCS_NOT_TO_STOP":
-            value = self.encode4return(IOCS_NOT_TO_STOP)
+            value = self.encode4return(IOCS_NOT_TO_STOP, max_size)
         else:
             value = self.getParam(reason)
         return value
@@ -198,27 +201,39 @@ class DatabaseServer(Driver):
         while True:
             if self._db is not None:
                 self._db.update_iocs_status()
-                self.setParam("IOCS", self.encode4return(self._get_iocs_info()))
-                self.setParam("PVS:ALL", self.encode4return(self._get_interesting_pvs("")))
-                self.setParam("PVS:ACTIVE", self.encode4return(self._get_active_pvs()))
-                self.setParam("PVS:INTEREST:HIGH", self.encode4return(self._get_interesting_pvs("HIGH")))
-                self.setParam("PVS:INTEREST:MEDIUM", self.encode4return(self._get_interesting_pvs("MEDIUM")))
-                self.setParam("PVS:INTEREST:FACILITY", self.encode4return(self._get_interesting_pvs("FACILITY")))
+                param_requests = [
+                    ("IOCS", self._get_iocs_info, None),
+                    ("PVS:ALL", self._get_interesting_pvs, ""),
+                    ("PVS:ACTIVE", self._get_active_pvs, None),
+                    ("PVS:INTEREST:HIGH", self._get_interesting_pvs, "HIGH"),
+                    ("PVS:INTEREST:MEDIUM", self._get_interesting_pvs, "MEDIUM"),
+                    ("PVS:INTEREST:FACILITY", self._get_interesting_pvs, "FACILITY")
+                ]
+                for pv, function, arg in param_requests:
+                    try:
+                        data = function(arg) if arg is not None else function()
+                        self.setParam(pv, self.encode4return(data, PVDB[pv]['count']))
+                    except ValueError:
+                        print_and_log("Too much data to encode PV " + pv, "MAJOR", "DBSVR")
                 # Update them
                 with self.monitor_lock:
                     self.updatePVs()
             sleep(1)
 
-    def encode4return(self, data):
+    def encode4return(self, data, max_size=None):
         """Converts data to JSON, compresses it and converts it to hex.
 
         Args:
             data (string): The data to encode
+            max_size (int): The maximum length of encoded value permitted
 
         Returns:
             string : The encoded data
         """
-        return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
+        encoded_data = compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
+        if max_size is not None and len(encoded_data) > max_size:
+            raise ValueError("Unable to compress and hex data into packet of requested size")
+        return encoded_data
 
     def _get_iocs_info(self):
         iocs = self._db.get_iocs()
