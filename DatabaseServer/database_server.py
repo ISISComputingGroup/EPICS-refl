@@ -157,18 +157,19 @@ class DatabaseServer(Driver):
         Returns:
             string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
-        max_size = PVDB[reason]['count']
         if reason == 'SAMPLE_PARS':
-            value = self.encode4return(self.get_sample_par_names(), max_size)
+            data = self.get_sample_par_names()
         elif reason == 'BEAMLINE_PARS':
-            value = self.encode4return(self.get_beamline_par_names(), max_size)
+            data = self.get_beamline_par_names()
         elif reason == 'USER_PARS':
-            value = self.encode4return(self.get_user_par_names(), max_size)
+            data = self.get_user_par_names()
         elif reason == "IOCS_NOT_TO_STOP":
-            value = self.encode4return(IOCS_NOT_TO_STOP, max_size)
+            data = IOCS_NOT_TO_STOP
         else:
-            value = self.getParam(reason)
-        return value
+            return self.getParam(reason)
+        encoded_data = self.encode4return(data)
+        DatabaseServer._check_pv_capacity(reason, len(encoded_data), BLOCKSERVER_PREFIX)
+        return encoded_data
 
     def write(self, reason, value):
         """A method called by SimpleServer when a PV is written to the DatabaseServer over Channel Access.
@@ -210,30 +211,37 @@ class DatabaseServer(Driver):
                     ("PVS:INTEREST:FACILITY", self._get_interesting_pvs, "FACILITY")
                 ]
                 for pv, function, arg in param_requests:
-                    try:
-                        data = function(arg) if arg is not None else function()
-                        self.setParam(pv, self.encode4return(data, PVDB[pv]['count']))
-                    except ValueError:
-                        print_and_log("Too much data to encode PV " + pv, "MAJOR", "DBSVR")
+                    encoded_data = self.encode4return(function(arg) if arg is not None else function())
+                    DatabaseServer._check_pv_capacity(pv, len(encoded_data), BLOCKSERVER_PREFIX)
+                    self.setParam(pv, encoded_data)
                 # Update them
                 with self.monitor_lock:
                     self.updatePVs()
             sleep(1)
 
-    def encode4return(self, data, max_size=None):
+    @staticmethod
+    def _check_pv_capacity(pv, size, prefix):
+        """
+        Increases the capacity of a PV if necessary. Leave unchanged if already sufficient
+        :param pv: The PV to update
+        :param size: The required size
+        :param prefix: The PV prefix
+        """
+        if size > PVDB[pv]['count']:
+            print_and_log("Too much data to encode PV {0}. Current size is {1} characters but {2} are required"
+                          .format(prefix + pv, PVDB[pv]['count'], size),
+                          "MAJOR", "DBSVR")
+
+    def encode4return(self, data):
         """Converts data to JSON, compresses it and converts it to hex.
 
         Args:
             data (string): The data to encode
-            max_size (int): The maximum length of encoded value permitted
 
         Returns:
             string : The encoded data
         """
-        encoded_data = compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
-        if max_size is not None and len(encoded_data) > max_size:
-            raise ValueError("Unable to compress and hex data into packet of requested size")
-        return encoded_data
+        return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
 
     def _get_iocs_info(self):
         iocs = self._db.get_iocs()
