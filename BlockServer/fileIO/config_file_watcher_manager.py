@@ -46,6 +46,7 @@ class ConfigFileWatcherManager(object):
         self._syn_dir = FILEPATH_MANAGER.synoptic_dir
         self._dev_dir = FILEPATH_MANAGER.devices_dir
         self._config_root = FILEPATH_MANAGER.config_root_dir
+        self._scripts_dir = FILEPATH_MANAGER.scripts_dir
 
         # Create config watcher
         self._config_event_handler = ConfigFileEventHandler(schema_lock, config_list_manager)
@@ -67,6 +68,10 @@ class ConfigFileWatcherManager(object):
         ignore_directories = [self._config_dir, self._comp_dir, self._syn_dir, self._dev_dir]
         self._unclassified_file_event_handler = UnclassifiedFileEventHandler(UnclassifiedFileManager(config_list_manager), ignore_directories)
         self._other_observer = self._create_observer(self._unclassified_file_event_handler, self._config_root)
+
+        # Create script watcher
+        self._script_event_handler = UnclassifiedFileEventHandler(UnclassifiedFileManager(config_list_manager), [])
+        self._script_observer = self._create_observer(self._script_event_handler, self._scripts_dir)
 
     def _create_observer(self, event_handler, directory):
         obs = Observer()

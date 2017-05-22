@@ -31,14 +31,16 @@ class FilePathManager(object):
         self.synoptic_dir = ""
         self.schema_dir = ""
         self.devices_dir = ""
+        self.scripts_dir = ""
 
-    def initialise(self, config_root, schema_folder):
+    def initialise(self, config_root, scripts_root, schema_folder):
         self.config_root_dir = config_root
         self.schema_dir = os.path.abspath(schema_folder)
         self.config_dir = os.path.join(config_root, CONFIG_DIRECTORY)
         self.component_dir = os.path.join(config_root, COMPONENT_DIRECTORY)
         self.synoptic_dir = os.path.join(config_root, SYNOPTIC_DIRECTORY)
         self.devices_dir = os.path.join(config_root, DEVICES_DIRECTORY)
+        self.scripts_dir = scripts_root
         self._create_default_folders()
 
     def _create_default_folders(self):
