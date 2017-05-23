@@ -288,10 +288,6 @@ class DatabaseServer(Driver):
         """
         return 'INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL'
 
-    def close(self):
-        # Nothing needs activtely closing
-        pass
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -338,4 +334,3 @@ if __name__ == '__main__':
             print_and_log(err, MAJOR_MSG)
             break
 
-    DRIVER.close()
