@@ -36,37 +36,11 @@ from options_loader import OptionsLoader
 from mocks.mock_procserv_utils import MockProcServWrapper
 
 IOCDB = 'iocdb'
-IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
 
 MACROS = {
     "$(MYPVPREFIX)": os.environ['MYPVPREFIX'],
     "$(EPICS_KIT_ROOT)": os.environ['EPICS_KIT_ROOT'],
     "$(ICPCONFIGROOT)": os.environ['ICPCONFIGROOT']
-}
-
-PV_SIZE_64K = 64000
-PV_SIZE_10K = 10000
-
-def create_pvdb_entry(count):
-    return {
-        'type': 'char',
-        'count' : count,
-        'value' : [0]
-    }
-
-PV_SIZE = {"default": 64000, "pars": 10000}
-
-PVDB = {
-    'IOCS': create_pvdb_entry(PV_SIZE_64K),
-    'PVS:INTEREST:HIGH': create_pvdb_entry(PV_SIZE_64K),
-    'PVS:INTEREST:MEDIUM': create_pvdb_entry(PV_SIZE_64K),
-    'PVS:INTEREST:FACILITY': create_pvdb_entry(PV_SIZE_64K),
-    'PVS:ACTIVE': create_pvdb_entry(PV_SIZE_64K),
-    'PVS:ALL': create_pvdb_entry(PV_SIZE_64K),
-    'SAMPLE_PARS': create_pvdb_entry(PV_SIZE_10K),
-    'BEAMLINE_PARS': create_pvdb_entry(PV_SIZE_10K),
-    'USER_PARS': create_pvdb_entry(PV_SIZE_10K),
-    'IOCS_NOT_TO_STOP': create_pvdb_entry(PV_SIZE_64K),
 }
 
 class DatabaseServer(Driver):
@@ -87,6 +61,8 @@ class DatabaseServer(Driver):
             ps = ProcServWrapper()
         self._ca_server = ca_server
         self._options_holder = OptionsHolder(options_folder, OptionsLoader())
+
+        self._pvdb = self._create_pv_database()
 
         # Initialise database connection
         try:
@@ -111,6 +87,51 @@ class DatabaseServer(Driver):
             monitor_thread.daemon = True  # Daemonise thread
             monitor_thread.start()
 
+    def _create_pv_database(self):
+        pv_size_64k = 64000
+        pv_size_10k = 10000
+
+        # Helper to consistently create pvs
+        def create_pvdb_entry(count, get_function):
+            return {
+                'type': 'char',
+                'count' : count,
+                'value' : [0],
+                'get' : get_function
+        }
+
+        return {
+            'IOCS': create_pvdb_entry(pv_size_64k, self._get_iocs_info),
+            'PVS:INTEREST:HIGH': create_pvdb_entry(pv_size_64k, self._get_high_interest_pvs),
+            'PVS:INTEREST:MEDIUM': create_pvdb_entry(pv_size_64k, self._get_medium_interest_pvs),
+            'PVS:INTEREST:FACILITY': create_pvdb_entry(pv_size_64k, self._get_facility_pvs),
+            'PVS:ACTIVE': create_pvdb_entry(pv_size_64k, self._get_active_pvs),
+            'PVS:ALL': create_pvdb_entry(pv_size_64k, self._get_all_pvs),
+            'SAMPLE_PARS': create_pvdb_entry(pv_size_10k, self.get_sample_par_names),
+            'BEAMLINE_PARS': create_pvdb_entry(pv_size_10k, self.get_beamline_par_names),
+            'USER_PARS': create_pvdb_entry(pv_size_10k, self.get_user_par_names),
+            'IOCS_NOT_TO_STOP': create_pvdb_entry(pv_size_64k, DatabaseServer.get_iocs_not_to_stop),
+        }
+
+    def process(self, interval):
+        """
+        Tell the CA server to process requests
+        
+        Args:
+            interval (float): How long the processing loop will take in seconds
+        """
+        self._ca_server.process(interval)
+
+    def create_server_pv(self, prefix, pvs=self._pvdb):
+        """
+        Instruct the CA server to create a set of PVs
+        
+        Args:
+            prefix (string): The PV prefix to prepend to the PVs
+            pvs (dict): A dictionary of PVs and associated metadata used to create PVs
+        """
+        self._ca_server.createPV(prefix, pvs)
+
     def read(self, reason):
         """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
 
@@ -120,18 +141,11 @@ class DatabaseServer(Driver):
         Returns:
             string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
-        if reason == 'SAMPLE_PARS':
-            data = self.get_sample_par_names()
-        elif reason == 'BEAMLINE_PARS':
-            data = self.get_beamline_par_names()
-        elif reason == 'USER_PARS':
-            data = self.get_user_par_names()
-        elif reason == "IOCS_NOT_TO_STOP":
-            data = IOCS_NOT_TO_STOP
+        if reason in self._pvdb.keys():
+            data = self.encode4return(self._pvdb[reason]['get']())
+            DatabaseServer._check_pv_capacity(reason, len(encoded_data), BLOCKSERVER_PREFIX)
         else:
-            return self.getParam(reason)
-        encoded_data = self.encode4return(data)
-        DatabaseServer._check_pv_capacity(reason, len(encoded_data), BLOCKSERVER_PREFIX)
+            data = self.getParam(reason)
         return encoded_data
 
     def write(self, reason, value):
@@ -165,16 +179,9 @@ class DatabaseServer(Driver):
         while True:
             if self._db is not None:
                 self._db.update_iocs_status()
-                param_requests = [
-                    ("IOCS", self._get_iocs_info, None),
-                    ("PVS:ALL", self._get_interesting_pvs, ""),
-                    ("PVS:ACTIVE", self._get_active_pvs, None),
-                    ("PVS:INTEREST:HIGH", self._get_interesting_pvs, "HIGH"),
-                    ("PVS:INTEREST:MEDIUM", self._get_interesting_pvs, "MEDIUM"),
-                    ("PVS:INTEREST:FACILITY", self._get_interesting_pvs, "FACILITY")
-                ]
-                for pv, function, arg in param_requests:
-                    encoded_data = self.encode4return(function(arg) if arg is not None else function())
+                for pv in ["IOCS", "PVS:ALL", "PVS:ACTIVE", "PVS:INTEREST:HIGH", "PVS:INTEREST:MEDIUM",
+                           "PVS:INTEREST:FACILITY"]:
+                    encoded_data = self.encode4return(self._pvdb[pv]['get']())
                     DatabaseServer._check_pv_capacity(pv, len(encoded_data), BLOCKSERVER_PREFIX)
                     self.setParam(pv, encoded_data)
                 # Update them
@@ -186,13 +193,15 @@ class DatabaseServer(Driver):
     def _check_pv_capacity(pv, size, prefix):
         """
         Check the capacity of a PV and write to the log if it is too small
-        :param pv: The PV to update
-        :param size: The required size
-        :param prefix: The PV prefix
+        
+        Args:
+            pv (string): The PV that is being requested (without the PV prefix)
+            size (int): The required size
+            prefix (string): The PV prefix
         """
-        if size > PVDB[pv]['count']:
+        if size > self._pvdb[pv]['count']:
             print_and_log("Too much data to encode PV {0}. Current size is {1} characters but {2} are required"
-                          .format(prefix + pv, PVDB[pv]['count'], size),
+                          .format(prefix + pv, self._pvdb[pv]['count'], size),
                           "MAJOR", "DBSVR")
 
     def encode4return(self, data):
@@ -214,6 +223,18 @@ class DatabaseServer(Driver):
                 iocs[iocname].update(options[iocname])
         return iocs
 
+    def _get_high_interest_pvs(self, ioc=None):
+        return self._get_interesting_pvs("HIGH", ioc)
+
+    def _get_high_interest_pvs(self, ioc=None):
+        return self._get_interesting_pvs("MEDIUM", ioc)
+
+    def _get_high_interest_pvs(self, ioc=None):
+        return self._get_interesting_pvs("FACILITY", ioc)
+
+    def _get_all_pvs(self, ioc=None):
+        return self._get_interesting_pvs("", ioc)
+
     def _get_interesting_pvs(self, level, ioc=None):
         if self._db is not None:
             return self._db.get_interesting_pvs(level, ioc)
@@ -225,6 +246,14 @@ class DatabaseServer(Driver):
             return self._db.get_active_pvs()
         else:
             return list()
+
+    @staticmethod
+    def get_iocs_not_to_stop():
+        """
+        Returns: 
+            list: A list of IOCs not to stop
+        """
+        return ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
 
     def get_sample_par_names(self):
         """Returns the sample parameters from the database, replacing the MYPVPREFIX macro
@@ -291,15 +320,14 @@ if __name__ == '__main__':
         # Create it then
         os.makedirs(os.path.abspath(OPTIONS_DIR))
 
-    SERVER = CAServer(BLOCKSERVER_PREFIX)
-    SERVER.createPV(BLOCKSERVER_PREFIX, PVDB)
-    SERVER.createPV(MACROS["$(MYPVPREFIX)"], ExpData.EDPV)
-    DRIVER = DatabaseServer(SERVER, IOCDB, OPTIONS_DIR)
+    DRIVER = DatabaseServer(CAServer(BLOCKSERVER_PREFIX), IOCDB, OPTIONS_DIR)
+    DRIVER.create_server_pv(BLOCKSERVER_PREFIX)
+    DRIVER.create_server_pv(MACROS["$(MYPVPREFIX)"], ExpData.EDPV)
 
     # Process CA transactions
     while True:
         try:
-            SERVER.process(0.1)
+            DRIVER.process(0.1)
         except Exception as err:
             print_and_log(err,"MAJOR")
             break
