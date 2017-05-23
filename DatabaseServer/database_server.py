@@ -56,6 +56,7 @@ class DatabaseServer(Driver):
             dbid (string): The id of the database that holds IOC information.
             options_folder (string): The location of the folder containing the config.xml file that holds IOC options
         """
+        pass
         if test_mode:
             ps = MockProcServWrapper()
         else:
@@ -85,7 +86,7 @@ class DatabaseServer(Driver):
         if self._db is not None and not test_mode:
             # Start a background thread for keeping track of running IOCs
             self.monitor_lock = RLock()
-            monitor_thread = Thread(target=self.update_ioc_monitors, args=())
+            monitor_thread = Thread(target=self._update_ioc_monitors, args=())
             monitor_thread.daemon = True  # Daemonise thread
             monitor_thread.start()
 
@@ -110,9 +111,9 @@ class DatabaseServer(Driver):
             'PVS:ACTIVE': create_pvdb_entry(pv_size_64k, self._get_active_pvs),
             'PVS:ALL': create_pvdb_entry(pv_size_64k, self._get_all_pvs),
             'SAMPLE_PARS': create_pvdb_entry(pv_size_10k, self.get_sample_par_names),
-            'BEAMLINE_PARS': create_pvdb_entry(pv_size_10k, self.get_beamline_par_names),
-            'USER_PARS': create_pvdb_entry(pv_size_10k, self.get_user_par_names),
-            'IOCS_NOT_TO_STOP': create_pvdb_entry(pv_size_64k, DatabaseServer.get_iocs_not_to_stop),
+            'BEAMLINE_PARS': create_pvdb_entry(pv_size_10k, self._get_beamline_par_names),
+            'USER_PARS': create_pvdb_entry(pv_size_10k, self._get_user_par_names),
+            'IOCS_NOT_TO_STOP': create_pvdb_entry(pv_size_64k, DatabaseServer._get_iocs_not_to_stop),
         }
 
     def process(self, interval):
@@ -124,7 +125,7 @@ class DatabaseServer(Driver):
         """
         self._ca_server.process(interval)
 
-    def create_server_pv(self, prefix, pvs=self._pvdb):
+    def create_server_pv(self, prefix, pvs=None):
         """
         Instruct the CA server to create a set of PVs
         
@@ -132,7 +133,7 @@ class DatabaseServer(Driver):
             prefix (string): The PV prefix to prepend to the PVs
             pvs (dict): A dictionary of PVs and associated metadata used to create PVs
         """
-        self._ca_server.createPV(prefix, pvs)
+        self._ca_server.createPV(prefix, pvs if pvs is not None else self._pvdb)
 
     def read(self, reason):
         """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
@@ -144,10 +145,10 @@ class DatabaseServer(Driver):
             string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
         if reason in self._pvdb.keys():
-            data = self.encode4return(self._pvdb[reason]['get']())
-            DatabaseServer._check_pv_capacity(reason, len(encoded_data), BLOCKSERVER_PREFIX)
+            encoded_data = self._encode_for_return(self._pvdb[reason]['get']())
+            self._check_pv_capacity(reason, len(encoded_data), BLOCKSERVER_PREFIX)
         else:
-            data = self.getParam(reason)
+            encoded_data = self.getParam(reason)
         return encoded_data
 
     def write(self, reason, value):
@@ -175,7 +176,7 @@ class DatabaseServer(Driver):
             self.setParam(reason, value)
         return status
 
-    def update_ioc_monitors(self):
+    def _update_ioc_monitors(self):
         """Updates all the PVs that hold information on the IOCS and their associated PVs
         """
         while True:
@@ -183,7 +184,7 @@ class DatabaseServer(Driver):
                 self._db.update_iocs_status()
                 for pv in ["IOCS", "PVS:ALL", "PVS:ACTIVE", "PVS:INTEREST:HIGH", "PVS:INTEREST:MEDIUM",
                            "PVS:INTEREST:FACILITY"]:
-                    encoded_data = self.encode4return(self._pvdb[pv]['get']())
+                    encoded_data = self._encode_for_return(self._pvdb[pv]['get']())
                     DatabaseServer._check_pv_capacity(pv, len(encoded_data), BLOCKSERVER_PREFIX)
                     self.setParam(pv, encoded_data)
                 # Update them
@@ -191,8 +192,7 @@ class DatabaseServer(Driver):
                     self.updatePVs()
             sleep(1)
 
-    @staticmethod
-    def _check_pv_capacity(pv, size, prefix):
+    def _check_pv_capacity(self, pv, size, prefix):
         """
         Check the capacity of a PV and write to the log if it is too small
         
@@ -206,7 +206,7 @@ class DatabaseServer(Driver):
                           .format(prefix + pv, self._pvdb[pv]['count'], size),
                           MAJOR_MSG, LOG_TARGET)
 
-    def encode4return(self, data):
+    def _encode_for_return(self, data):
         """Converts data to JSON, compresses it and converts it to hex.
 
         Args:
@@ -244,10 +244,10 @@ class DatabaseServer(Driver):
         return self._get_interesting_pvs("", ioc)
 
     def _get_interesting_pvs(self, level, ioc=None):
-        return self._get_pvs(get_method, (level, ioc))
+        return self._get_pvs(self._db.get_interesting_pvs, (level, ioc))
 
     def _get_active_pvs(self):
-        return self.get_pvs(self._db.get_active_pvs)
+        return self._get_pvs(self._db.get_active_pvs)
 
     def get_sample_par_names(self):
         """Returns the sample parameters from the database, replacing the MYPVPREFIX macro
@@ -257,7 +257,7 @@ class DatabaseServer(Driver):
         """
         return self._get_pvs(self._db.get_sample_pars)
 
-    def get_beamline_par_names(self):
+    def _get_beamline_par_names(self):
         """Returns the beamline parameters from the database, replacing the MYPVPREFIX macro
 
         Returns:
@@ -265,16 +265,16 @@ class DatabaseServer(Driver):
         """
         return self._get_pvs(self._db.get_beamline_pars)
 
-    def get_user_par_names(self):
+    def _get_user_par_names(self):
         """Returns the user parameters from the database, replacing the MYPVPREFIX macro
 
         Returns:
             list : A list of user parameter names, an empty list if the database does not exist
         """
         return self._get_pvs(self._db.get_user_pars)
-    
+
     @staticmethod
-    def get_iocs_not_to_stop():
+    def _get_iocs_not_to_stop():
         """
         Returns: 
             list: A list of IOCs not to stop
