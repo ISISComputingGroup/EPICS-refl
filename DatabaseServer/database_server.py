@@ -225,37 +225,29 @@ class DatabaseServer(Driver):
                 iocs[iocname].update(options[iocname])
         return iocs
 
+    def _get_pvs(self, get_method, *get_args):
+        if self._db is not None:
+            return [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in get_method(get_args)]
+        else:
+            return list()
+
     def _get_high_interest_pvs(self, ioc=None):
         return self._get_interesting_pvs("HIGH", ioc)
 
-    def _get_high_interest_pvs(self, ioc=None):
+    def _get_medium_interest_pvs(self, ioc=None):
         return self._get_interesting_pvs("MEDIUM", ioc)
 
-    def _get_high_interest_pvs(self, ioc=None):
+    def _get_facility_pvs(self, ioc=None):
         return self._get_interesting_pvs("FACILITY", ioc)
 
     def _get_all_pvs(self, ioc=None):
         return self._get_interesting_pvs("", ioc)
 
     def _get_interesting_pvs(self, level, ioc=None):
-        if self._db is not None:
-            return self._db.get_interesting_pvs(level, ioc)
-        else:
-            return list()
+        return self._get_pvs(get_method, (level, ioc))
 
     def _get_active_pvs(self):
-        if self._db is not None:
-            return self._db.get_active_pvs()
-        else:
-            return list()
-
-    @staticmethod
-    def get_iocs_not_to_stop():
-        """
-        Returns: 
-            list: A list of IOCs not to stop
-        """
-        return ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
+        return self.get_pvs(self._db.get_active_pvs)
 
     def get_sample_par_names(self):
         """Returns the sample parameters from the database, replacing the MYPVPREFIX macro
@@ -263,10 +255,7 @@ class DatabaseServer(Driver):
         Returns:
             list : A list of sample parameter names, an empty list if the database does not exist
         """
-        if self._db is not None:
-            return [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in self._db.get_sample_pars()]
-        else:
-            return list()
+        return self._get_pvs(self._db.get_sample_pars)
 
     def get_beamline_par_names(self):
         """Returns the beamline parameters from the database, replacing the MYPVPREFIX macro
@@ -274,10 +263,7 @@ class DatabaseServer(Driver):
         Returns:
             list : A list of beamline parameter names, an empty list if the database does not exist
         """
-        if self._db is not None:
-            return [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in self._db.get_beamline_pars()]
-        else:
-            return list()
+        return self._get_pvs(self._db.get_beamline_pars)
 
     def get_user_par_names(self):
         """Returns the user parameters from the database, replacing the MYPVPREFIX macro
@@ -285,10 +271,15 @@ class DatabaseServer(Driver):
         Returns:
             list : A list of user parameter names, an empty list if the database does not exist
         """
-        if self._db is not None:
-            return [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in self._db.get_user_pars()]
-        else:
-            return list()
+        return self._get_pvs(self._db.get_user_pars)
+    
+    @staticmethod
+    def get_iocs_not_to_stop():
+        """
+        Returns: 
+            list: A list of IOCs not to stop
+        """
+        return ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
