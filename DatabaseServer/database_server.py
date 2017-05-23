@@ -45,6 +45,7 @@ LOG_TARGET = "DBSVR"
 INFO_MSG = "INFO"
 MAJOR_MSG = "MAJOR"
 
+
 class DatabaseServer(Driver):
     """The class for handling all the static PV access and monitors etc.
     """
@@ -71,17 +72,17 @@ class DatabaseServer(Driver):
         try:
             self._db = IOCData(dbid, ps, MACROS["$(MYPVPREFIX)"])
             print_and_log("Connected to database", INFO_MSG, LOG_TARGET)
-        except Exception as err:
+        except Exception as e:
             self._db = None
-            print_and_log("Problem initialising DB connection: %s" % err, MAJOR_MSG, LOG_TARGET)
+            print_and_log("Problem initialising DB connection: %s" % e, MAJOR_MSG, LOG_TARGET)
 
         # Initialise experimental database connection
         try:
             self._ed = ExpData(MACROS["$(MYPVPREFIX)"])
             print_and_log("Connected to experimental details database", INFO_MSG, LOG_TARGET)
-        except Exception as err:
+        except Exception as e:
             self._ed = None
-            print_and_log("Problem connecting to experimental details database: %s" % err, MAJOR_MSG, LOG_TARGET)
+            print_and_log("Problem connecting to experimental details database: %s" % e, MAJOR_MSG, LOG_TARGET)
 
         if self._db is not None and not test_mode:
             # Start a background thread for keeping track of running IOCs
@@ -98,10 +99,10 @@ class DatabaseServer(Driver):
         def create_pvdb_entry(count, get_function):
             return {
                 'type': 'char',
-                'count' : count,
-                'value' : [0],
-                'get' : get_function
-        }
+                'count': count,
+                'value': [0],
+                'get': get_function
+            }
 
         return {
             'IOCS': create_pvdb_entry(pv_size_64k, self._get_iocs_info),
@@ -145,7 +146,7 @@ class DatabaseServer(Driver):
             string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
         if reason in self._pvdb.keys():
-            encoded_data = self._encode_for_return(self._pvdb[reason]['get']())
+            encoded_data = DatabaseServer._encode_for_return(self._pvdb[reason]['get']())
             self._check_pv_capacity(reason, len(encoded_data), BLOCKSERVER_PREFIX)
         else:
             encoded_data = self.getParam(reason)
@@ -164,13 +165,13 @@ class DatabaseServer(Driver):
         status = True
         try:
             if reason == 'ED:RBNUMBER:SP':
-                #print_and_log("Updating to use experiment ID: " + value, INFO_MSG, LOG_LOCATION)
+                # print_and_log("Updating to use experiment ID: " + value, INFO_MSG, LOG_LOCATION)
                 self._ed.updateExperimentID(value)
             elif reason == 'ED:USERNAME:SP':
                 self._ed.updateUsername(dehex_and_decompress(value))
-        except Exception as err:
-            value = compress_and_hex(convert_to_json("Error: " + str(err)))
-            print_and_log(str(err), MAJOR_MSG)
+        except Exception as e:
+            value = compress_and_hex(convert_to_json("Error: " + str(e)))
+            print_and_log(str(e), MAJOR_MSG)
         # store the values
         if status:
             self.setParam(reason, value)
@@ -184,8 +185,8 @@ class DatabaseServer(Driver):
                 self._db.update_iocs_status()
                 for pv in ["IOCS", "PVS:ALL", "PVS:ACTIVE", "PVS:INTEREST:HIGH", "PVS:INTEREST:MEDIUM",
                            "PVS:INTEREST:FACILITY"]:
-                    encoded_data = self._encode_for_return(self._pvdb[pv]['get']())
-                    DatabaseServer._check_pv_capacity(pv, len(encoded_data), BLOCKSERVER_PREFIX)
+                    encoded_data = DatabaseServer._encode_for_return(self._pvdb[pv]['get']())
+                    self._check_pv_capacity(pv, len(encoded_data), BLOCKSERVER_PREFIX)
                     self.setParam(pv, encoded_data)
                 # Update them
                 with self.monitor_lock:
@@ -206,7 +207,8 @@ class DatabaseServer(Driver):
                           .format(prefix + pv, self._pvdb[pv]['count'], size),
                           MAJOR_MSG, LOG_TARGET)
 
-    def _encode_for_return(self, data):
+    @staticmethod
+    def _encode_for_return(data):
         """Converts data to JSON, compresses it and converts it to hex.
 
         Args:
@@ -279,12 +281,16 @@ class DatabaseServer(Driver):
         Returns: 
             list: A list of IOCs not to stop
         """
-        return ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
+        return 'INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL'
+
+    def close(self):
+        self._ca_server.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-bs', '--blockserver_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"]+'CS:BLOCKSERVER:'],
+    parser.add_argument('-bs', '--blockserver_prefix', nargs=1, type=str,
+                        default=[MACROS["$(MYPVPREFIX)"]+'CS:BLOCKSERVER:'],
                         help='The prefix for PVs served by the blockserver(default=%MYPVPREFIX%CS:BLOCKSERVER:)')
 
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
@@ -322,7 +328,7 @@ if __name__ == '__main__':
         try:
             DRIVER.process(0.1)
         except Exception as err:
-            print_and_log(err,MAJOR_MSG)
+            print_and_log(err, MAJOR_MSG)
             break
 
     DRIVER.close()
