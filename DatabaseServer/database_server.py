@@ -119,11 +119,7 @@ class DatabaseServer(Driver):
 
         # Helper to consistently create pvs
         def create_pvdb_entry(count):
-            return {
-                'type': 'char',
-                'count': count,
-                'value': [0]
-            }
+            return {'type': 'char', 'count': count, 'value': [0]}
 
         return {
             'IOCS': create_pvdb_entry(pv_size_64k),
