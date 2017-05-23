@@ -35,8 +35,6 @@ from options_holder import OptionsHolder
 from options_loader import OptionsLoader
 from mocks.mock_procserv_utils import MockProcServWrapper
 
-IOCDB = 'iocdb'
-
 MACROS = {
     "$(MYPVPREFIX)": os.environ['MYPVPREFIX'],
     "$(EPICS_KIT_ROOT)": os.environ['EPICS_KIT_ROOT'],
@@ -320,7 +318,7 @@ if __name__ == '__main__':
         # Create it then
         os.makedirs(os.path.abspath(OPTIONS_DIR))
 
-    DRIVER = DatabaseServer(CAServer(BLOCKSERVER_PREFIX), IOCDB, OPTIONS_DIR)
+    DRIVER = DatabaseServer(CAServer(BLOCKSERVER_PREFIX), "iocdb", OPTIONS_DIR)
     DRIVER.create_server_pv(BLOCKSERVER_PREFIX)
     DRIVER.create_server_pv(MACROS["$(MYPVPREFIX)"], ExpData.EDPV)
 
