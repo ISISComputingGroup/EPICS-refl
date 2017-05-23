@@ -19,6 +19,8 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
+import time
+time.sleep(20)
 
 # Standard imports
 from pcaspy import Driver
@@ -66,7 +68,7 @@ class DatabaseServer(Driver):
         self._ca_server = ca_server
         self._options_holder = OptionsHolder(options_folder, OptionsLoader())
 
-        self._pvdb = self._create_pv_database()
+        self._pv_info = self._generate_pv_info()
 
         # Initialise database connection
         try:
@@ -91,7 +93,7 @@ class DatabaseServer(Driver):
             monitor_thread.daemon = True  # Daemonise thread
             monitor_thread.start()
 
-    def _create_pv_database(self):
+    def _generate_pv_info(self):
         pv_size_64k = 64000
         pv_size_10k = 10000
 
@@ -134,7 +136,7 @@ class DatabaseServer(Driver):
             prefix (string): The PV prefix to prepend to the PVs
             pvs (dict): A dictionary of PVs and associated metadata used to create PVs
         """
-        self._ca_server.createPV(prefix, pvs if pvs is not None else self._pvdb)
+        self._ca_server.createPV(prefix, pvs if pvs is not None else self._pv_info)
 
     def read(self, reason):
         """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
@@ -145,8 +147,8 @@ class DatabaseServer(Driver):
         Returns:
             string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
-        if reason in self._pvdb.keys():
-            encoded_data = DatabaseServer._encode_for_return(self._pvdb[reason]['get']())
+        if reason in self._pv_info.keys():
+            encoded_data = DatabaseServer._encode_for_return(self._pv_info[reason]['get']())
             self._check_pv_capacity(reason, len(encoded_data), BLOCKSERVER_PREFIX)
         else:
             encoded_data = self.getParam(reason)
@@ -185,7 +187,7 @@ class DatabaseServer(Driver):
                 self._db.update_iocs_status()
                 for pv in ["IOCS", "PVS:ALL", "PVS:ACTIVE", "PVS:INTEREST:HIGH", "PVS:INTEREST:MEDIUM",
                            "PVS:INTEREST:FACILITY"]:
-                    encoded_data = DatabaseServer._encode_for_return(self._pvdb[pv]['get']())
+                    encoded_data = DatabaseServer._encode_for_return(self._pv_info[pv]['get']())
                     self._check_pv_capacity(pv, len(encoded_data), BLOCKSERVER_PREFIX)
                     self.setParam(pv, encoded_data)
                 # Update them
@@ -202,9 +204,9 @@ class DatabaseServer(Driver):
             size (int): The required size
             prefix (string): The PV prefix
         """
-        if size > self._pvdb[pv]['count']:
+        if size > self._pv_info[pv]['count']:
             print_and_log("Too much data to encode PV {0}. Current size is {1} characters but {2} are required"
-                          .format(prefix + pv, self._pvdb[pv]['count'], size),
+                          .format(prefix + pv, self._pv_info[pv]['count'], size),
                           MAJOR_MSG, LOG_TARGET)
 
     @staticmethod
