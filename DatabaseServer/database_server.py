@@ -256,10 +256,10 @@ class DatabaseServer(Driver):
 
     def _get_pvs(self, get_method, replace_pv_prefix, *get_args):
         if self._db is not None:
-            result = get_method(*get_args)
+            pv_data = get_method(*get_args)
             if replace_pv_prefix:
-                result = [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in result]
-            return result
+                pv_data = [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in pv_data]
+            return pv_data
         else:
             return list()
 
@@ -276,7 +276,7 @@ class DatabaseServer(Driver):
         return self._get_interesting_pvs("", ioc)
 
     def _get_interesting_pvs(self, level, ioc=None):
-        return self._get_pvs(self._db.get_interesting_pvs, False, (level, ioc))
+        return self._get_pvs(self._db.get_interesting_pvs, False, level, ioc)
 
     def _get_active_pvs(self):
         return self._get_pvs(self._db.get_active_pvs, False)
