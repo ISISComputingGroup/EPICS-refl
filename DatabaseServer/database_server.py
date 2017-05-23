@@ -42,6 +42,8 @@ MACROS = {
 }
 
 LOG_TARGET = "DBSVR"
+INFO_MSG = "INFO"
+MAJOR_MSG = "MAJOR"
 
 class DatabaseServer(Driver):
     """The class for handling all the static PV access and monitors etc.
@@ -67,7 +69,7 @@ class DatabaseServer(Driver):
         # Initialise database connection
         try:
             self._db = IOCData(dbid, ps, MACROS["$(MYPVPREFIX)"])
-            print_and_log("Connected to database", "INFO", LOG_TARGET)
+            print_and_log("Connected to database", INFO_MSG, LOG_TARGET)
         except Exception as err:
             self._db = None
             print_and_log("Problem initialising DB connection: %s" % err, "MAJOR", LOG_TARGET)
@@ -75,10 +77,10 @@ class DatabaseServer(Driver):
         # Initialise experimental database connection
         try:
             self._ed = ExpData(MACROS["$(MYPVPREFIX)"])
-            print_and_log("Connected to experimental details database", "INFO", LOG_TARGET)
+            print_and_log("Connected to experimental details database", INFO_MSG, LOG_TARGET)
         except Exception as err:
             self._ed = None
-            print_and_log("Problem connecting to experimental details database: %s" % err, "MAJOR", LOG_TARGET)
+            print_and_log("Problem connecting to experimental details database: %s" % err, MAJOR_MSG, LOG_TARGET)
 
         if self._db is not None and not test_mode:
             # Start a background thread for keeping track of running IOCs
@@ -161,13 +163,13 @@ class DatabaseServer(Driver):
         status = True
         try:
             if reason == 'ED:RBNUMBER:SP':
-                #print_and_log("Updating to use experiment ID: " + value, "INFO", LOG_LOCATION)
+                #print_and_log("Updating to use experiment ID: " + value, INFO_MSG, LOG_LOCATION)
                 self._ed.updateExperimentID(value)
             elif reason == 'ED:USERNAME:SP':
                 self._ed.updateUsername(dehex_and_decompress(value))
         except Exception as err:
             value = compress_and_hex(convert_to_json("Error: " + str(err)))
-            print_and_log(str(err), "MAJOR")
+            print_and_log(str(err), MAJOR_MSG)
         # store the values
         if status:
             self.setParam(reason, value)
@@ -202,7 +204,7 @@ class DatabaseServer(Driver):
         if size > self._pvdb[pv]['count']:
             print_and_log("Too much data to encode PV {0}. Current size is {1} characters but {2} are required"
                           .format(prefix + pv, self._pvdb[pv]['count'], size),
-                          "MAJOR", LOG_TARGET)
+                          MAJOR_MSG, LOG_TARGET)
 
     def encode4return(self, data):
         """Converts data to JSON, compresses it and converts it to hex.
@@ -306,16 +308,16 @@ if __name__ == '__main__':
     if FACILITY == "ISIS":
         from server_common.loggers.isis_logger import IsisLogger
         set_logger(IsisLogger())
-    print_and_log("FACILITY = %s" % FACILITY, "INFO", LOG_TARGET)
+    print_and_log("FACILITY = %s" % FACILITY, INFO_MSG, LOG_TARGET)
 
     BLOCKSERVER_PREFIX = args.blockserver_prefix[0]
     if not BLOCKSERVER_PREFIX.endswith(':'):
         BLOCKSERVER_PREFIX += ":"
     BLOCKSERVER_PREFIX = BLOCKSERVER_PREFIX.replace('%MYPVPREFIX%', MACROS["$(MYPVPREFIX)"])
-    print_and_log("BLOCKSERVER PREFIX = %s" % BLOCKSERVER_PREFIX, "INFO", LOG_TARGET)
+    print_and_log("BLOCKSERVER PREFIX = %s" % BLOCKSERVER_PREFIX, INFO_MSG, LOG_TARGET)
 
     OPTIONS_DIR = os.path.abspath(args.options_dir[0])
-    print_and_log("OPTIONS DIRECTORY = %s" % OPTIONS_DIR, "INFO", LOG_TARGET)
+    print_and_log("OPTIONS DIRECTORY = %s" % OPTIONS_DIR, INFO_MSG, LOG_TARGET)
     if not os.path.isdir(os.path.abspath(OPTIONS_DIR)):
         # Create it then
         os.makedirs(os.path.abspath(OPTIONS_DIR))
