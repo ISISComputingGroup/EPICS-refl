@@ -64,7 +64,7 @@ class DatabaseServer(Driver):
         self._ca_server = ca_server
         self._options_holder = OptionsHolder(options_folder, OptionsLoader())
 
-        self._pv_info = self._generate_pv_info()
+        self._pv_info = self._generate_pv_acquisition_info()
 
         # Initialise database connection
         try:
@@ -89,7 +89,13 @@ class DatabaseServer(Driver):
             monitor_thread.daemon = True  # Daemonise thread
             monitor_thread.start()
 
-    def _generate_pv_info(self):
+    def _generate_pv_acquisition_info(self):
+        """
+        Generates information needed to get the data for the DB PVs.
+
+        Returns:
+            Dictionary : Dictionary containing the information to get the information for the PVs
+        """
         enhanced_info = DatabaseServer.generate_pv_info()
 
         def add_get_method(pv, get_function):
@@ -113,6 +119,9 @@ class DatabaseServer(Driver):
         """
         Generates information needed to construct PVs. Must be consumed by Server before
         DatabaseServer is initialized so must be static
+
+        Returns:
+            Dictionary : Dictionary containing the information to construct PVs
         """
         pv_size_64k = 64000
         pv_size_10k = 10000
