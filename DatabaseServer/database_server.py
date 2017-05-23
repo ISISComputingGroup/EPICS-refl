@@ -284,7 +284,8 @@ class DatabaseServer(Driver):
         return 'INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL'
 
     def close(self):
-        self._ca_server.close()
+        # Nothing needs activtely closing
+        pass
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
