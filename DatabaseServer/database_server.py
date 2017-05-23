@@ -72,7 +72,7 @@ class DatabaseServer(Driver):
             print_and_log("Connected to database", INFO_MSG, LOG_TARGET)
         except Exception as err:
             self._db = None
-            print_and_log("Problem initialising DB connection: %s" % err, "MAJOR", LOG_TARGET)
+            print_and_log("Problem initialising DB connection: %s" % err, MAJOR_MSG, LOG_TARGET)
 
         # Initialise experimental database connection
         try:
@@ -331,7 +331,7 @@ if __name__ == '__main__':
         try:
             DRIVER.process(0.1)
         except Exception as err:
-            print_and_log(err,"MAJOR")
+            print_and_log(err,MAJOR_MSG)
             break
 
     DRIVER.close()
