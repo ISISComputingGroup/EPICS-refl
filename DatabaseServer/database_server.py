@@ -90,33 +90,30 @@ class DatabaseServer(Driver):
             monitor_thread.start()
 
     def _generate_pv_info(self):
-        pv_size_64k = 64000
-        pv_size_10k = 10000
+        enhanced_info = DatabaseServer.generate_pv_info()
 
-        # Helper to consistently create pvs
-        def create_pvdb_entry(count, get_function):
-            return {
-                'type': 'char',
-                'count': count,
-                'value': [0],
-                'get': get_function
-            }
+        def add_get_method(pv, get_function):
+            enhanced_info[pv]['get'] = get_function
 
-        return {
-            'IOCS': create_pvdb_entry(pv_size_64k, self._get_iocs_info),
-            'PVS:INTEREST:HIGH': create_pvdb_entry(pv_size_64k, self._get_high_interest_pvs),
-            'PVS:INTEREST:MEDIUM': create_pvdb_entry(pv_size_64k, self._get_medium_interest_pvs),
-            'PVS:INTEREST:FACILITY': create_pvdb_entry(pv_size_64k, self._get_facility_pvs),
-            'PVS:ACTIVE': create_pvdb_entry(pv_size_64k, self._get_active_pvs),
-            'PVS:ALL': create_pvdb_entry(pv_size_64k, self._get_all_pvs),
-            'SAMPLE_PARS': create_pvdb_entry(pv_size_10k, self.get_sample_par_names),
-            'BEAMLINE_PARS': create_pvdb_entry(pv_size_10k, self._get_beamline_par_names),
-            'USER_PARS': create_pvdb_entry(pv_size_10k, self._get_user_par_names),
-            'IOCS_NOT_TO_STOP': create_pvdb_entry(pv_size_64k, DatabaseServer._get_iocs_not_to_stop),
-        }
+        add_get_method('IOCS', self._get_iocs_info)
+        add_get_method('PVS:INTEREST:HIGH', self._get_high_interest_pvs)
+        add_get_method('PVS:INTEREST:MEDIUM', self._get_medium_interest_pvs)
+        add_get_method('PVS:INTEREST:FACILITY', self._get_facility_pvs)
+        add_get_method('PVS:ACTIVE', self._get_active_pvs)
+        add_get_method('PVS:ALL', self._get_all_pvs)
+        add_get_method('SAMPLE_PARS', self._get_sample_par_names)
+        add_get_method('BEAMLINE_PARS', self._get_beamline_par_names)
+        add_get_method('USER_PARS', self._get_user_par_names)
+        add_get_method('IOCS_NOT_TO_STOP', DatabaseServer._get_iocs_not_to_stop)
+
+        return enhanced_info
 
     @staticmethod
-    def _generate_pv_info_basic():
+    def generate_pv_info():
+        """
+        Generates information needed to construct PVs. Must be consumed by Server before
+        DatabaseServer is initialized so must be static
+        """
         pv_size_64k = 64000
         pv_size_10k = 10000
 
@@ -278,7 +275,7 @@ class DatabaseServer(Driver):
     def _get_active_pvs(self):
         return self._get_pvs(self._db.get_active_pvs, False)
 
-    def get_sample_par_names(self):
+    def _get_sample_par_names(self):
         """Returns the sample parameters from the database, replacing the MYPVPREFIX macro
 
         Returns:
@@ -348,7 +345,7 @@ if __name__ == '__main__':
         os.makedirs(os.path.abspath(OPTIONS_DIR))
 
     SERVER = CAServer(BLOCKSERVER_PREFIX)
-    SERVER.createPV(BLOCKSERVER_PREFIX, DatabaseServer._generate_pv_info_basic())
+    SERVER.createPV(BLOCKSERVER_PREFIX, DatabaseServer.generate_pv_info())
     SERVER.createPV(MACROS["$(MYPVPREFIX)"], ExpData.EDPV)
     DRIVER = DatabaseServer(SERVER, "iocdb", OPTIONS_DIR)
 
