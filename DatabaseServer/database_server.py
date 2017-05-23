@@ -20,7 +20,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 import time
-time.sleep(20)
+time.sleep(10)
 
 # Standard imports
 from pcaspy import Driver
@@ -59,7 +59,6 @@ class DatabaseServer(Driver):
             dbid (string): The id of the database that holds IOC information.
             options_folder (string): The location of the folder containing the config.xml file that holds IOC options
         """
-        pass
         if test_mode:
             ps = MockProcServWrapper()
         else:
@@ -117,6 +116,32 @@ class DatabaseServer(Driver):
             'BEAMLINE_PARS': create_pvdb_entry(pv_size_10k, self._get_beamline_par_names),
             'USER_PARS': create_pvdb_entry(pv_size_10k, self._get_user_par_names),
             'IOCS_NOT_TO_STOP': create_pvdb_entry(pv_size_64k, DatabaseServer._get_iocs_not_to_stop),
+        }
+
+    @staticmethod
+    def _generate_pv_info_basic():
+        pv_size_64k = 64000
+        pv_size_10k = 10000
+
+        # Helper to consistently create pvs
+        def create_pvdb_entry(count):
+            return {
+                'type': 'char',
+                'count': count,
+                'value': [0]
+            }
+
+        return {
+            'IOCS': create_pvdb_entry(pv_size_64k),
+            'PVS:INTEREST:HIGH': create_pvdb_entry(pv_size_64k),
+            'PVS:INTEREST:MEDIUM': create_pvdb_entry(pv_size_64k),
+            'PVS:INTEREST:FACILITY': create_pvdb_entry(pv_size_64k),
+            'PVS:ACTIVE': create_pvdb_entry(pv_size_64k),
+            'PVS:ALL': create_pvdb_entry(pv_size_64k),
+            'SAMPLE_PARS': create_pvdb_entry(pv_size_10k),
+            'BEAMLINE_PARS': create_pvdb_entry(pv_size_10k),
+            'USER_PARS': create_pvdb_entry(pv_size_10k),
+            'IOCS_NOT_TO_STOP': create_pvdb_entry(pv_size_64k),
         }
 
     def process(self, interval):
@@ -229,9 +254,12 @@ class DatabaseServer(Driver):
                 iocs[iocname].update(options[iocname])
         return iocs
 
-    def _get_pvs(self, get_method, *get_args):
+    def _get_pvs(self, get_method, replace_pv_prefix, *get_args):
         if self._db is not None:
-            return [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in get_method(get_args)]
+            result = get_method(*get_args)
+            if replace_pv_prefix:
+                result = [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in result]
+            return result
         else:
             return list()
 
@@ -248,10 +276,10 @@ class DatabaseServer(Driver):
         return self._get_interesting_pvs("", ioc)
 
     def _get_interesting_pvs(self, level, ioc=None):
-        return self._get_pvs(self._db.get_interesting_pvs, (level, ioc))
+        return self._get_pvs(self._db.get_interesting_pvs, False, (level, ioc))
 
     def _get_active_pvs(self):
-        return self._get_pvs(self._db.get_active_pvs)
+        return self._get_pvs(self._db.get_active_pvs, False)
 
     def get_sample_par_names(self):
         """Returns the sample parameters from the database, replacing the MYPVPREFIX macro
@@ -259,7 +287,7 @@ class DatabaseServer(Driver):
         Returns:
             list : A list of sample parameter names, an empty list if the database does not exist
         """
-        return self._get_pvs(self._db.get_sample_pars)
+        return self._get_pvs(self._db.get_sample_pars, True)
 
     def _get_beamline_par_names(self):
         """Returns the beamline parameters from the database, replacing the MYPVPREFIX macro
@@ -267,7 +295,7 @@ class DatabaseServer(Driver):
         Returns:
             list : A list of beamline parameter names, an empty list if the database does not exist
         """
-        return self._get_pvs(self._db.get_beamline_pars)
+        return self._get_pvs(self._db.get_beamline_pars, True)
 
     def _get_user_par_names(self):
         """Returns the user parameters from the database, replacing the MYPVPREFIX macro
@@ -275,7 +303,7 @@ class DatabaseServer(Driver):
         Returns:
             list : A list of user parameter names, an empty list if the database does not exist
         """
-        return self._get_pvs(self._db.get_user_pars)
+        return self._get_pvs(self._db.get_user_pars, True)
 
     @staticmethod
     def _get_iocs_not_to_stop():
@@ -322,9 +350,10 @@ if __name__ == '__main__':
         # Create it then
         os.makedirs(os.path.abspath(OPTIONS_DIR))
 
-    DRIVER = DatabaseServer(CAServer(BLOCKSERVER_PREFIX), "iocdb", OPTIONS_DIR)
-    DRIVER.create_server_pv(BLOCKSERVER_PREFIX)
-    DRIVER.create_server_pv(MACROS["$(MYPVPREFIX)"], ExpData.EDPV)
+    SERVER = CAServer(BLOCKSERVER_PREFIX)
+    SERVER.createPV(BLOCKSERVER_PREFIX, DatabaseServer._generate_pv_info_basic())
+    SERVER.createPV(MACROS["$(MYPVPREFIX)"], ExpData.EDPV)
+    DRIVER = DatabaseServer(SERVER, "iocdb", OPTIONS_DIR)
 
     # Process CA transactions
     while True:
