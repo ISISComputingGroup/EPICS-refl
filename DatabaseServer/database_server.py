@@ -138,25 +138,6 @@ class DatabaseServer(Driver):
             'IOCS_NOT_TO_STOP': create_pvdb_entry(pv_size_64k),
         }
 
-    def process(self, interval):
-        """
-        Tell the CA server to process requests
-        
-        Args:
-            interval (float): How long the processing loop will take in seconds
-        """
-        self._ca_server.process(interval)
-
-    def create_server_pv(self, prefix, pvs=None):
-        """
-        Instruct the CA server to create a set of PVs
-        
-        Args:
-            prefix (string): The PV prefix to prepend to the PVs
-            pvs (dict): A dictionary of PVs and associated metadata used to create PVs
-        """
-        self._ca_server.createPV(prefix, pvs if pvs is not None else self._pv_info)
-
     def read(self, reason):
         """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
 
@@ -352,7 +333,7 @@ if __name__ == '__main__':
     # Process CA transactions
     while True:
         try:
-            DRIVER.process(0.1)
+            SERVER.process(0.1)
         except Exception as err:
             print_and_log(err, MAJOR_MSG)
             break
