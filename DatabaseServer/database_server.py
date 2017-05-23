@@ -234,20 +234,20 @@ class DatabaseServer(Driver):
         else:
             return list()
 
-    def _get_high_interest_pvs(self, ioc=None):
-        return self._get_interesting_pvs("HIGH", ioc)
+    def _get_high_interest_pvs(self):
+        return self._get_interesting_pvs("HIGH")
 
-    def _get_medium_interest_pvs(self, ioc=None):
-        return self._get_interesting_pvs("MEDIUM", ioc)
+    def _get_medium_interest_pvs(self):
+        return self._get_interesting_pvs("MEDIUM")
 
-    def _get_facility_pvs(self, ioc=None):
-        return self._get_interesting_pvs("FACILITY", ioc)
+    def _get_facility_pvs(self):
+        return self._get_interesting_pvs("FACILITY")
 
-    def _get_all_pvs(self, ioc=None):
-        return self._get_interesting_pvs("", ioc)
+    def _get_all_pvs(self):
+        return self._get_interesting_pvs("")
 
-    def _get_interesting_pvs(self, level, ioc=None):
-        return self._get_pvs(self._db.get_interesting_pvs, False, level, ioc)
+    def _get_interesting_pvs(self, level):
+        return self._get_pvs(self._db.get_interesting_pvs, False, level)
 
     def _get_active_pvs(self):
         return self._get_pvs(self._db.get_active_pvs, False)
