@@ -44,67 +44,30 @@ MACROS = {
     "$(ICPCONFIGROOT)": os.environ['ICPCONFIGROOT']
 }
 
+PV_SIZE_64K = 64000
+PV_SIZE_10K = 10000
+
+def create_pvdb_entry(count):
+    return {
+        'type': 'char',
+        'count' : count,
+        'value' : [0]
+    }
+
 PV_SIZE = {"default": 64000, "pars": 10000}
 
 PVDB = {
-    'IOCS': {
-        # Handled by the monitor thread
-        'type': 'char',
-        'count': PV_SIZE["default"],
-        'value': [0],
-    },
-    'PVS:INTEREST:HIGH': {
-        # Handled by the monitor thread
-        'type': 'char',
-        'count': PV_SIZE["default"],
-        'value': [0],
-    },
-    'PVS:INTEREST:MEDIUM': {
-        # Handled by the monitor thread
-        'type': 'char',
-        'count': PV_SIZE["default"],
-        'value': [0],
-    },
-    'PVS:INTEREST:FACILITY': {
-        # Handled by the monitor thread
-        'type': 'char',
-        'count': PV_SIZE["default"],
-        'value': [0],
-    },
-    'PVS:ACTIVE': {
-        # Handled by the monitor thread
-        'type': 'char',
-        'count': 64000,
-        'value': [0],
-    },
-    'PVS:ALL': {
-        # Handled by the monitor thread
-        'type': 'char',
-        'count': PV_SIZE["default"],
-        'value': [0],
-    },
-    'SAMPLE_PARS': {
-        'type': 'char',
-        'count': PV_SIZE["pars"],
-        'value': [0],
-    },
-    'BEAMLINE_PARS': {
-        'type': 'char',
-        'count': PV_SIZE["pars"],
-        'value': [0],
-    },
-    'USER_PARS': {
-        'type': 'char',
-        'count': PV_SIZE["pars"],
-        'value': [0],
-    },
-    'IOCS_NOT_TO_STOP': {
-        'type': 'char',
-        'count': PV_SIZE["default"],
-        'value': [0],
-    },
+    'IOCS': create_pvdb_entry(PV_SIZE_64K),
+    'PVS:INTEREST:HIGH': create_pvdb_entry(PV_SIZE_64K),
+    'PVS:INTEREST:MEDIUM': create_pvdb_entry(PV_SIZE_64K),
+    'PVS:INTEREST:FACILITY': create_pvdb_entry(PV_SIZE_64K),
+    'PVS:ACTIVE': create_pvdb_entry(PV_SIZE_64K),
+    'PVS:ALL': create_pvdb_entry(PV_SIZE_64K),
+    'SAMPLE_PARS': create_pvdb_entry(PV_SIZE_10K),
+    'BEAMLINE_PARS': create_pvdb_entry(PV_SIZE_10K),
+    'USER_PARS': create_pvdb_entry(PV_SIZE_10K),
+    'IOCS_NOT_TO_STOP': create_pvdb_entry(PV_SIZE_64K),
 }
-
 
 class DatabaseServer(Driver):
     """The class for handling all the static PV access and monitors etc.
