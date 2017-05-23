@@ -19,9 +19,6 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
-import time
-time.sleep(10)
-
 # Standard imports
 from pcaspy import Driver
 from time import sleep
