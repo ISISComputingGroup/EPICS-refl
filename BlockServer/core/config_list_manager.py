@@ -42,11 +42,12 @@ class ConfigListManager(object):
         """Constructor.
 
         Args:
-            block_server (BlockServer): A reference to the BlockServer itself
+            block_server (block_server.BlockServer): A reference to the BlockServer itself
             schema_folder (string): The location of the schemas for validation
-            vc_manager (ConfigVersionControl): The object for managing version control
+            vc_manager (GitVersionControl, MockVersionControl): The object for managing version control
             file_manager (ConfigurationFileManager): Deals with writing the config files
         """
+
         self._config_metas = dict()
         self._component_metas = dict()
         self._comp_dependencies = dict()
@@ -360,5 +361,3 @@ class ConfigListManager(object):
             self._bs.setParam(BlockserverPVNames.COMPS, compress_and_hex(convert_to_json(self.get_components())))
             # Update them
             self._bs.updatePVs()
-
-        AlarmConfigLoader.get_instance().load_in_new_thread()

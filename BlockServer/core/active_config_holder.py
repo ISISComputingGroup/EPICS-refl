@@ -15,7 +15,6 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import os
-import json
 
 from server_common.utilities import print_and_log
 from BlockServer.core.macros import BLOCK_PREFIX, MACROS
@@ -33,7 +32,7 @@ class ActiveConfigHolder(ConfigHolder):
             macros (dict): The BlockServer macros
             archive_manager (ArchiveManager): Responsible for updating the archiver
             vc_manager (ConfigVersionControl): Manages version control
-            file_manager (ConfigurationFileManager): Deals with writing the config files
+            file_manager (ConfigurationFileManager|MockVersionControl): Deals with writing the config files
             ioc_control (IocControl): Manages stopping and starting IOCs
         """
         super(ActiveConfigHolder, self).__init__(macros, vc_manager, file_manager)

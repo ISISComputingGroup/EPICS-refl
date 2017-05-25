@@ -1,59 +1,89 @@
-import subprocess
 import threading
-import os
 import time
 
 
 class AlarmConfigLoader(object):
+    """
+    Alarm configuration loader class will create a new configuration and load it into the alarm server. While the
+    instance exists it will count down when it get to 0 it will no longer be the current instance and will then
+    restart the alarm server with a new config
+
+    Currently it does this by restarting the alarm server after a delay. It is a singleton there is only one
+    at any one time.
+    """
 
     # Instance of this singleton
-    instance = None
-    # The subprocess that the alarm server reloads itself in
-    process = None
-    # Number of seconds to delay the reload by
-    # (the blockserver must have finished loading the configuration before the alarm server can be restarted)
-    delay = 20
+    _instance = None
+
+    # Number of seconds to delay the reload by so that IOC has started and published its alarmed PVs
+    DELAY = 20
+
+    # lock for accessing the delay and instance variables.
+    lock = threading.Lock()
+
+    thread = None
+
+    def __init__(self, ioc_control):
+        """
+        Constructor
+        :param ioc_control: ioc control class to enable this class to restart the Alarm IOC
+        """
+
+        self._delay_left = AlarmConfigLoader.DELAY
+        self._ioc_control = ioc_control
+
+    def run(self):
+        """
+        Delay until the time has run out then recreate the alarm config and reload it. This method should be called in
+        a thread because it is blocking
+        """
+        while self._is_still_delayed():
+            time.sleep(1)
+
+        self._ioc_control.restart_ioc("ALARM", force=True)
+
+    def do_reset_alarm(self):
+        """
+        Thread safe way to restart the counter
+        :return:
+        """
+        with AlarmConfigLoader.lock:
+            self._delay_left = AlarmConfigLoader.DELAY
+            print "Alarm server will update in " + str(self._delay_left) + " seconds from now\n"
+
+    def _is_still_delayed(self):
+        """
+        Reduce the delay by 1 and check if it has run out. If it is no longer delayed remove this instance
+        :return: True if still delayed; False otherwise
+        """
+        with AlarmConfigLoader.lock:
+            self._delay_left -= 1
+
+            if self._delay_left > 0:
+                return True
+
+            AlarmConfigLoader._instance = None
+            return False
 
     @staticmethod
-    def get_instance():
+    def restart_alarm_server(ioc_control):
+        instance = AlarmConfigLoader._get_instance(ioc_control)
+        instance.do_reset_alarm()
 
-        if AlarmConfigLoader.instance is None:
-            AlarmConfigLoader.instance = AlarmConfigLoader()
-
-        return AlarmConfigLoader.instance
-
-    def _load(self):
+    @staticmethod
+    def _get_instance(ioc_control):
         """
-        Simple wrapper around a batch script which reloads the configuration in the alarm server.
+        Get the instance of the load alarm config
+
+        :param ioc_control (BlockServer.core.ioc_controlIocControl):
+        :return (AlarmConfigLoader): instance of the alarm config loader
         """
+        with AlarmConfigLoader.lock:
+            if AlarmConfigLoader._instance is None:
 
-        # Terminate the last batch job if it is still running
-        # (prevents two instances from running concurrently which might cause problems).
-        if AlarmConfigLoader.process is not None:
-            AlarmConfigLoader.process.kill()
+                AlarmConfigLoader._instance = AlarmConfigLoader(ioc_control)
 
-        print "Alarm server will update in " + str(self.delay) + " seconds\n"
-        time.sleep(AlarmConfigLoader.delay)
-        print "Alarm server updating...\n"
+                AlarmConfigLoader.thread = threading.Thread(target=AlarmConfigLoader._instance.run)
+                AlarmConfigLoader.thread.start()
 
-        filepath = os.path.join('C:\\', 'Instrument', 'Apps', 'EPICS', 'CSS', 'master', 'AlarmServer', 'run_alarm_server.bat')
-
-        try:
-            with open(filepath, 'r') and open(os.devnull) as devnull:
-                AlarmConfigLoader.process = subprocess.Popen(filepath, stderr=devnull)
-                # Use communicate rather than call because of potential deadlocks based on output volume
-                AlarmConfigLoader.process.communicate(input=None)
-        except Exception as e:
-            print "Error while reloading alarm server."
-            print e
-
-        print "Alarm server updated\n"
-
-    def load_in_new_thread(self):
-        thread = threading.Thread(target=self._load)
-        thread.start()
-
-# Only used if you want to run this file on it's own
-# e.g. for testing that the alarm server reload is working correctly.
-if __name__ == "__main__":
-    AlarmConfigLoader.get_instance().load_in_new_thread()
+            return AlarmConfigLoader._instance

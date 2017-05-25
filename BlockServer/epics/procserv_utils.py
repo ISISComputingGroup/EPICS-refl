@@ -112,12 +112,13 @@ class ProcServWrapper(object):
         Returns:
             bool : Whether auto-restart is enabled
         """
-        ans = ChannelAccess.caget(self.generate_prefix(prefix, ioc) + ":AUTORESTART", as_string=True)
+        ioc_prefix = self.generate_prefix(prefix, ioc)
+        ans = ChannelAccess.caget(ioc_prefix + ":AUTORESTART", as_string=True)
         if ans is None:
-            raise Exception("Could not find IOC (%s)" % self.generate_prefix(prefix, ioc))
+            raise Exception("Could not find IOC (%s)" % ioc_prefix)
         elif ans == "On":
             return True
         elif ans == "Off":
             return False
         else:
-            raise Exception("Could not get auto-restart property for IOC (%s)" % self.generate_prefix(prefix, ioc))
+            raise Exception("Could not get auto-restart property for IOC ({0}) got '{1}'".format(ioc_prefix, ans))
