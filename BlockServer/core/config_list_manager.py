@@ -366,7 +366,8 @@ class ConfigListManager(object):
         """
         Commits changes to git.
 
-        :param message: the commit message
+        Args:
+            message (string): the commit message
         """
         self._vc.commit(message)
 
@@ -374,9 +375,10 @@ class ConfigListManager(object):
         """
         Adds a specified file to git.
 
-        :param path: the path to add
+        Args:
+             path(string): the path to add
         """
         if path is not None:
             self._vc.add(path)
         else:
-            self._vc.add_u()
+            self._vc.add_all_edited_files()

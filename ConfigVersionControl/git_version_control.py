@@ -250,7 +250,7 @@ class GitVersionControl:
         # because the git library always forces an add - it has a force flag, but it's not used)
         return SYSTEM_TEST_PREFIX in file_path
 
-    def add_u(self):
+    def add_all_edited_files(self):
         """
         Does a 'git add -u' which adds all edited files.
         """
