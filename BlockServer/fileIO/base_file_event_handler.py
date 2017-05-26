@@ -32,15 +32,15 @@ class BaseFileEventHandler(FileSystemEventHandler):
         self._manager = manager
 
     def on_created(self, event):
-        raise NotImplementedError()
+        pass
 
     def on_modified(self, event):
-        raise NotImplementedError()
+        pass
 
     def on_moved(self, event):
-        raise NotImplementedError()
+        pass
 
     def on_deleted(self, event):
-        raise NotImplementedError()
+        pass
 
 
