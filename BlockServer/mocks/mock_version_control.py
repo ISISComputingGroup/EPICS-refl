@@ -26,6 +26,9 @@ class MockVersionControl(object):
     def add(self, file_path):
         pass
 
+    def add_all_edited_files(self):
+        pass
+
     def remove(self, file_path):
         if os.path.isdir(file_path):
             shutil.rmtree(file_path)
