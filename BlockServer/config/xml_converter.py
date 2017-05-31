@@ -94,7 +94,7 @@ class ConfigurationXmlConverter(object):
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, group in groups.iteritems():
             # Don't generate xml if in NONE or if it is empty
-            if name != KEY_NONE and group.blocks is not None and len(group.blocks) > 0:
+            if name != KEY_NONE and group.blocks is not None:
                 ConfigurationXmlConverter._group_to_xml(root, group)
 
         # If we are adding the None group it should go at the end
@@ -215,6 +215,8 @@ class ConfigurationXmlConverter(object):
         """Generates the XML for a group"""
         grp = ElementTree.SubElement(root_xml, TAG_GROUP)
         grp.set(TAG_NAME, group.name)
+        if group.component is not None:
+            grp.set(TAG_COMPONENT, group.component)
         for blk in group.blocks:
             b = ElementTree.SubElement(grp, TAG_BLOCK)
             b.set(TAG_NAME, blk)

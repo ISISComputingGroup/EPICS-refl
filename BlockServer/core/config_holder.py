@@ -146,11 +146,9 @@ class ConfigHolder(object):
                 if gn not in groups.keys():
                     # Add the groups if they have not been used before and exist
                     blks = [x for x in grp.blocks if x not in used_blocks and x in blocks]
-                    if len(blks) > 0:
-                        # Only add if contains blocks
-                        groups[gn] = grp
-                        groups[gn].blocks = blks
-                        used_blocks.extend(blks)
+                    groups[gn] = grp
+                    groups[gn].blocks = blks
+                    used_blocks.extend(blks)
                 else:
                     # If group exists then append with component group
                     # But don't add any duplicate blocks or blocks that don't exist
@@ -169,7 +167,7 @@ class ConfigHolder(object):
                 continue
             # If the group is in the config then it can be changed completely
             if grp["name"].lower() in self._config.groups:
-                if len(grp["blocks"]) == 0:
+                if len(grp["blocks"]) == 0 and grp["component"] is None:
                     # No blocks so delete the group
                     del self._config.groups[grp["name"].lower()]
                     continue
@@ -180,8 +178,9 @@ class ConfigHolder(object):
                         homeless_blocks.remove(blk)
             else:
                 # Not in config yet, so add it (it will override settings in any components)
-                # Only add it if there are actually blocks
-                if len(grp["blocks"]) > 0:
+                if grp.get("component") is not None:
+                    self._config.groups[grp["name"].lower()] = Group(grp["name"], component=grp.get("component"))
+                elif len(grp["blocks"]) > 0:
                     self._config.groups[grp["name"].lower()] = Group(grp["name"])
                     for blk in grp["blocks"]:
                         if blk in homeless_blocks:
@@ -386,11 +385,7 @@ class ConfigHolder(object):
                         raise Exception('Cannot override blocks from components')
                     self.add_block(args)
             if "groups" in details:
-                # List of dicts
-                for args in details["groups"]:
-                    if args.get('component') is not None:
-                        raise Exception('Cannot override groups from components')
-                    self._set_group_details(details['groups'])
+                self._set_group_details(details["groups"])
             if "name" in details:
                 self._set_config_name(details["name"])
             if "description" in details:
