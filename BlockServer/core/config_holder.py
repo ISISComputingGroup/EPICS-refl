@@ -178,14 +178,14 @@ class ConfigHolder(object):
                         homeless_blocks.remove(blk)
             else:
                 # Not in config yet, so add it (it will override settings in any components)
-                if grp.get("component") is not None:
-                    self._config.groups[grp["name"].lower()] = Group(grp["name"], component=grp.get("component"))
-                elif len(grp["blocks"]) > 0:
-                    self._config.groups[grp["name"].lower()] = Group(grp["name"])
-                    for blk in grp["blocks"]:
-                        if blk in homeless_blocks:
-                            self._config.groups[grp["name"].lower()].blocks.append(blk)
-                            homeless_blocks.remove(blk)
+                if len(grp["blocks"]) > 0:
+                    component = grp.get("component")
+                    self._config.groups[grp["name"].lower()] = Group(grp["name"], component=component)
+                    if component is None:
+                        for blk in grp["blocks"]:
+                            if blk in homeless_blocks:
+                                self._config.groups[grp["name"].lower()].blocks.append(blk)
+                                homeless_blocks.remove(blk)
         # Finally, anything in homeless gets put in NONE
         if GRP_NONE.lower() not in self._config.groups:
             self._config.groups[GRP_NONE.lower()] = Group(GRP_NONE)
