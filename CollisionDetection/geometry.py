@@ -3,6 +3,7 @@ import ode
 
 from transform import Transformation
 
+
 class GeometryBox(object):
     def __init__(self, space, position=(0, 0, 0), size=(1, 1, 1), color=(1, 1, 1), oversize=1, name=None):
 
@@ -59,9 +60,6 @@ class GeometryBox(object):
                              (-0.5, 0.5, -0.5)])
 
         vertices *= self.geom.getLengths()
-
         t = self.get_transform()
-
         vertices = [t.evaluate(v) for v in vertices]
-
         return vertices
