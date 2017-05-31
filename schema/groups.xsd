@@ -13,9 +13,10 @@
   <xs:element name="group">
     <xs:complexType>
       <xs:sequence>
-        <xs:element maxOccurs="unbounded" ref="grp:block"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="grp:block"/>
       </xs:sequence>
       <xs:attribute name="name" use="required"/>
+      <xs:attribute name="component" use="optional"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="block">
