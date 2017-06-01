@@ -177,9 +177,10 @@ class ConfigHolder(object):
                         self._config.groups[grp["name"].lower()].blocks.append(blk)
                         homeless_blocks.remove(blk)
             else:
-                # Not in config yet, so add it (it will override settings in any components)
-                if len(grp["blocks"]) > 0:
-                    component = grp.get("component")
+                component = grp.get("component")
+                # Ignore empty groups, except those with components. Component groups are included just
+                # for ordering
+                if len(grp["blocks"]) > 0 or component is not None:
                     self._config.groups[grp["name"].lower()] = Group(grp["name"], component=component)
                     if component is None:
                         for blk in grp["blocks"]:
