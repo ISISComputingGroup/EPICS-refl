@@ -49,7 +49,7 @@ class AlarmConfigLoader(object):
         """
         with AlarmConfigLoader.lock:
             self._delay_left = AlarmConfigLoader.DELAY
-            print "Alarm server will update in " + str(self._delay_left) + " seconds from now\n"
+            print "Alarm server will update in {0} seconds from now\n".format(self._delay_left)
 
     def _is_still_delayed(self):
         """
