@@ -42,4 +42,3 @@ class BlockRules(object):
         self._bs.add_string_pv_to_db(BlockserverPVNames.BLOCK_RULES, 16000)
         self._bs.setParam(BlockserverPVNames.BLOCK_RULES, compress_and_hex(json.dumps(self.rules)))
         self._bs.updatePVs()
-
