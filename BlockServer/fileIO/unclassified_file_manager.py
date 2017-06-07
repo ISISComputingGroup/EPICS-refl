@@ -14,33 +14,48 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
+from server_common.utilities import print_and_log
+from ConfigVersionControl.version_control_exceptions import UpdateFromVersionControlException
 
 
-class BaseFileEventHandler(FileSystemEventHandler):
-    """ The BaseFileEventHandler class
-        Inherit from this class to provide event handling for different kinds of configuration files.
-    """
+class UnclassifiedFileManager(object):
+    """ Class for managing miscellaneous config files"""
 
-    def __init__(self, manager):
+    def __init__(self, vc_manager):
         """ Constructor.
 
         Args:
-        manager : The File Manager.
+            vc_manager (ConfigVersionControl): The manager to allow version control modifications
         """
+        self._vc = vc_manager
 
-        self._manager = manager
-
-    def on_created(self, event):
+    def recover_from_version_control(self):
         pass
 
-    def on_modified(self, event):
+    def delete(self, name):
         pass
 
-    def on_moved(self, event):
+    def update(self):
         pass
 
-    def on_deleted(self, event):
+    def add_and_commit(self, message, path=None):
+        self._vc.add(path)
+        self._vc.commit(message)
+
+    def initialise(self, full_init=False):
         pass
 
+    def read_pv_exists(self, pv):
+        return False
 
+    def write_pv_exists(self, pv):
+        return False
+
+    def handle_pv_write(self, pv, data):
+        pass
+
+    def handle_pv_read(self, pv):
+        pass
+
+    def update_monitors(self):
+        pass

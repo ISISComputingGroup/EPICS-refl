@@ -20,14 +20,13 @@ import os
 from watchdog.events import FileSystemEventHandler, FileDeletedEvent, FileMovedEvent
 
 from BlockServer.core.constants import *
-from BlockServer.fileIO.base_file_event_handler import BaseFileEventHandler
-from server_common.utilities import print_and_log
+from BlockServer.fileIO.reverting_file_event_handler import RevertingFileEventHandler
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
-from BlockServer.fileIO.schema_checker import ConfigurationIncompleteException, NotConfigFileException
+from BlockServer.fileIO.schema_checker import NotConfigFileException
 from BlockServer.devices.devices_manager import SCREENS_SCHEMA
 
 
-class DevicesFileEventHandler(BaseFileEventHandler):
+class DevicesFileEventHandler(RevertingFileEventHandler):
     """ The DevicesFileEventHandler class
 
     Subclasses the FileSystemEventHandler class from the watchdog module. Handles all events on the filesystem and

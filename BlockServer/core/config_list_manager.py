@@ -361,3 +361,24 @@ class ConfigListManager(object):
                               compress_and_hex(convert_to_json(self.all_components.values())))
             # Update them
             self._bs.updatePVs()
+
+    def commit(self, message):
+        """
+        Commits changes to git.
+
+        Args:
+            message (string): the commit message
+        """
+        self._vc.commit(message)
+
+    def add(self, path=None):
+        """
+        Adds a specified file to git.
+
+        Args:
+             path(string): the path to add
+        """
+        if path is not None:
+            self._vc.add(path)
+        else:
+            self._vc.add_all_edited_files()

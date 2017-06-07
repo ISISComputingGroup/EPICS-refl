@@ -39,6 +39,7 @@ from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.synoptic.synoptic_manager import SynopticManager
 from BlockServer.devices.devices_manager import DevicesManager
+from BlockServer.fileIO.unclassified_file_manager import UnclassifiedFileManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from ConfigVersionControl.git_version_control import GitVersionControl, RepoFactory
 from ConfigVersionControl.version_control_exceptions import NotUnderVersionControl, VersionControlException
@@ -192,7 +193,7 @@ class BlockServer(Driver):
         self.write_lock = RLock()
         self.write_queue = list()
 
-        FILEPATH_MANAGER.initialise(CONFIG_DIR, SCHEMA_DIR)
+        FILEPATH_MANAGER.initialise(CONFIG_DIR, SCRIPT_DIR, SCHEMA_DIR)
 
         self._cas = ca_server
         self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])
@@ -275,6 +276,10 @@ class BlockServer(Driver):
         # Import all the devices data and create PVs
         self._devices = DevicesManager(self, SCHEMA_DIR, self._vc)
         self.on_the_fly_handlers.append(self._devices)
+
+        # A file manager for any other files
+        self._other_files = UnclassifiedFileManager(self)
+        self.on_the_fly_handlers.append(self._other_files)
 
         # Start file watcher
         self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn, self._devices)
@@ -766,6 +771,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-cd', '--config_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration (default=current directory)')
+    parser.add_argument('-scd', '--script_dir', nargs=1, type=str, default=['.'],
+                        help='The directory in which instrument scripts are stored')
     parser.add_argument('-sd', '--schema_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration schema (default=current directory)')
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
@@ -803,7 +810,10 @@ if __name__ == '__main__':
     print_and_log("BLOCK GATEWAY PREFIX = %s" % GATEWAY_PREFIX)
 
     CONFIG_DIR = os.path.abspath(args.config_dir[0])
-    print_and_log("CONFIGURATION DIRECTORROOT_DIR %s" % CONFIG_DIR)
+    print_and_log("CONFIGURATION DIRECTORY %s" % CONFIG_DIR)
+
+    SCRIPT_DIR = os.path.abspath(args.script_dir[0])
+    print_and_log("SCRIPTS DIRECTORY %s" % SCRIPT_DIR)
 
     SCHEMA_DIR = os.path.abspath(args.schema_dir[0])
     print_and_log("SCHEMA DIRECTORY = %s" % SCHEMA_DIR)
