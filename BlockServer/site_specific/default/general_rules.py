@@ -76,4 +76,3 @@ class ConfigurationDescriptionRules(object):
         self._bs.add_string_pv_to_db(BlockserverPVNames.CONF_DESC_RULES, 16000)
         self._bs.setParam(BlockserverPVNames.CONF_DESC_RULES, compress_and_hex(json.dumps(self.rules)))
         self._bs.updatePVs()
-

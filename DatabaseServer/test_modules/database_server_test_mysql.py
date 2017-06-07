@@ -24,6 +24,7 @@ import json
 
 generate_fake_db(TEST_DB)
 
+
 class TestDatabaseServer(unittest.TestCase):
     def setUp(self):
         self.ms = MockCAServer()
