@@ -35,6 +35,7 @@ from BlockServer.config.configuration import Configuration
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 
 TEST_DIRECTORY = os.path.abspath("test_configs")
+SCRIPT_DIRECTORY = os.path.abspath("test_scripts")
 SCHEMA_FOLDER = "schema"
 
 TEST_CONFIG = {"iocs":
@@ -85,7 +86,7 @@ class TestSchemaChecker(unittest.TestCase):
             dir = os.path.join(dir, "..")
         self.schema_dir = os.path.join(dir, SCHEMA_FOLDER)
 
-        FILEPATH_MANAGER.initialise(TEST_DIRECTORY, None, self.schema_dir)
+        FILEPATH_MANAGER.initialise(TEST_DIRECTORY, SCRIPT_DIRECTORY, self.schema_dir)
         self.cs = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
                                      MockVersionControl(), MockConfigurationFileManager(), MockIocControl(""))
 
