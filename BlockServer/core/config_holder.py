@@ -156,6 +156,12 @@ class ConfigHolder(object):
                         if bn not in groups[gn].blocks and bn not in used_blocks and bn in blocks:
                             groups[gn].blocks.append(bn)
                             used_blocks.append(bn)
+
+        # If any groups are empty now we've filled in from the components, get rid of them
+        for key in groups:
+            if len(groups[key].blocks)==0:
+                del groups[key]
+
         return groups
 
     def _set_group_details(self, redefinition):
