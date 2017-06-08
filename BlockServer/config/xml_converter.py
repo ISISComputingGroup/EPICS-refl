@@ -322,11 +322,15 @@ class ConfigurationXmlConverter(object):
         grps = ConfigurationXmlConverter._find_all_nodes(root_xml, NS_TAG_GROUP, TAG_GROUP)
         for g in grps:
             gname = g.attrib[TAG_NAME]
+            try:
+                gcomp = g.attrib[TAG_COMPONENT]
+            except KeyError as e:
+                gcomp = None
             gname_low = gname.lower()
 
             # Add the group to the dict unless it already exists (i.e. the group is defined twice)
             if gname_low not in groups.keys():
-                groups[gname_low] = Group(gname)
+                groups[gname_low] = Group(gname, gcomp)
 
             blks = ConfigurationXmlConverter._find_all_nodes(g, NS_TAG_GROUP, TAG_BLOCK)
 
@@ -343,7 +347,6 @@ class ConfigurationXmlConverter(object):
                 if KEY_NONE in groups:
                     if name in groups[KEY_NONE].blocks:
                         groups[KEY_NONE].blocks.remove(name)
-
 
     @staticmethod
     def ioc_from_xml(root_xml, iocs):
