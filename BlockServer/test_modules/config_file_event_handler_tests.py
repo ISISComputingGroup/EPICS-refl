@@ -26,12 +26,13 @@ from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 from mock import MagicMock
 
 TEST_DIRECTORY = os.path.abspath(os.path.join(__file__, "..", "test_configs"))
+SCRIPTS_DIRECTORY = os.path.abspath(os.path.join(__file__, "..", "script_configs"))
 SCHEMA_DIR = os.path.abspath(os.path.join("..", "..", "schema", "configurations"))
 
 
 class TestConfigFileEventHandler(unittest.TestCase):
     def setUp(self):
-        FILEPATH_MANAGER.initialise(TEST_DIRECTORY, None, SCHEMA_DIR)
+        FILEPATH_MANAGER.initialise(TEST_DIRECTORY, SCRIPTS_DIRECTORY, SCHEMA_DIR)
         self.file_manager = MockConfigurationFileManager()
         self.config_list_manager = MagicMock()
         self.is_component = False
