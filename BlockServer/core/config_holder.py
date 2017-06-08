@@ -511,6 +511,11 @@ class ConfigHolder(object):
                 self._is_component = True
             else:
                 raise Exception("Can not cast to a component as the configuration contains at least one component")
+
+            # Strip out any remaining groups that belong to components
+            for key in self._config.groups:
+                if self._config.groups[key].component is not None:
+                    del self._config.groups[key]
         else:
             self._is_component = False
 
