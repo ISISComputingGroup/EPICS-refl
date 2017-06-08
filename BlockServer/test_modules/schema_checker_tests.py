@@ -85,7 +85,7 @@ class TestSchemaChecker(unittest.TestCase):
             dir = os.path.join(dir, "..")
         self.schema_dir = os.path.join(dir, SCHEMA_FOLDER)
 
-        FILEPATH_MANAGER.initialise(TEST_DIRECTORY, self.schema_dir)
+        FILEPATH_MANAGER.initialise(TEST_DIRECTORY, None, self.schema_dir)
         self.cs = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
                                      MockVersionControl(), MockConfigurationFileManager(), MockIocControl(""))
 
