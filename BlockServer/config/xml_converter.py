@@ -94,7 +94,7 @@ class ConfigurationXmlConverter(object):
         root.attrib["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
         for name, group in groups.iteritems():
             # Don't generate xml if in NONE or if it is empty
-            if name != KEY_NONE and group.blocks is not None and len(group.blocks) > 0:
+            if name != KEY_NONE and group.blocks is not None:
                 ConfigurationXmlConverter._group_to_xml(root, group)
 
         # If we are adding the None group it should go at the end
@@ -215,6 +215,8 @@ class ConfigurationXmlConverter(object):
         """Generates the XML for a group"""
         grp = ElementTree.SubElement(root_xml, TAG_GROUP)
         grp.set(TAG_NAME, group.name)
+        if group.component is not None:
+            grp.set(TAG_COMPONENT, group.component)
         for blk in group.blocks:
             b = ElementTree.SubElement(grp, TAG_BLOCK)
             b.set(TAG_NAME, blk)
@@ -320,11 +322,15 @@ class ConfigurationXmlConverter(object):
         grps = ConfigurationXmlConverter._find_all_nodes(root_xml, NS_TAG_GROUP, TAG_GROUP)
         for g in grps:
             gname = g.attrib[TAG_NAME]
+            try:
+                gcomp = g.attrib[TAG_COMPONENT]
+            except KeyError as e:
+                gcomp = None
             gname_low = gname.lower()
 
             # Add the group to the dict unless it already exists (i.e. the group is defined twice)
             if gname_low not in groups.keys():
-                groups[gname_low] = Group(gname)
+                groups[gname_low] = Group(gname, gcomp)
 
             blks = ConfigurationXmlConverter._find_all_nodes(g, NS_TAG_GROUP, TAG_BLOCK)
 
@@ -341,7 +347,6 @@ class ConfigurationXmlConverter(object):
                 if KEY_NONE in groups:
                     if name in groups[KEY_NONE].blocks:
                         groups[KEY_NONE].blocks.remove(name)
-
 
     @staticmethod
     def ioc_from_xml(root_xml, iocs):
