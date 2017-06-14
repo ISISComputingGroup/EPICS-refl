@@ -429,12 +429,12 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch = create_default_test_config_holder()
 
         # Move TESTBLOCK2 and TESTBLOCK4 into group 1
-        redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK4"]},
-                 {"name": "group2", "blocks": ["TESTBLOCK3"]}]
+        redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK4"], "component": None},
+                 {"name": "group2", "blocks": ["TESTBLOCK3"], "component": None}]
         ch._set_group_details(redef)
 
         grps = ch.get_group_details()
-        self.assertEqual(len(grps), 3)
+        self.assertEqual(len(grps), 1)
         self.assertTrue('group1' in grps)
         self.assertTrue('group2' in grps)
         self.assertTrue("TESTBLOCK1" in grps['group1'].blocks)
@@ -446,12 +446,13 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch = create_default_test_config_holder()
 
         # Move TESTBLOCK2, TESTBLOCK3 and TESTBLOCK4 into group 1
-        redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK3", "TESTBLOCK4"]},
-                 {"name": "group2", "blocks": []}]
+        redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK3", "TESTBLOCK4"]
+                     , "component": None},
+                 {"name": "group2", "blocks": [], "component": None}]
         ch._set_group_details(redef)
 
         grps = ch.get_group_details()
-        self.assertEqual(len(grps), 2)  # The group1 and none
+        self.assertEqual(len(grps), 1)  # The group1
         self.assertTrue('group1' in grps)
         self.assertFalse('group2' in grps)
         self.assertTrue("TESTBLOCK1" in grps['group1'].blocks)
@@ -467,13 +468,13 @@ class TestConfigHolderSequence(unittest.TestCase):
 
         # Move COMPBLOCK1 and COMPBLOCK2 into group 1
         redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK3", "TESTBLOCK4", "COMPBLOCK1",
-                                               "COMPBLOCK2"]},
+                                               "COMPBLOCK2"], "component": None},
                  {"name": "group2", "blocks": []},
                  {"name": "compgroup", "blocks": []}]
         ch._set_group_details(redef)
 
         grps = ch.get_group_details()
-        self.assertEqual(len(grps), 2)  # group1 and none
+        self.assertEqual(len(grps), 1)  # group1
         self.assertTrue('group1' in grps)
         self.assertFalse('group2' in grps)
         self.assertFalse('compgroup' in grps)
