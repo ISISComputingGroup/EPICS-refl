@@ -434,7 +434,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         ch._set_group_details(redef)
 
         grps = ch.get_group_details()
-        self.assertEqual(len(grps), 1)
+        self.assertEqual(len(grps), 2)
         self.assertTrue('group1' in grps)
         self.assertTrue('group2' in grps)
         self.assertTrue("TESTBLOCK1" in grps['group1'].blocks)
@@ -459,7 +459,6 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTBLOCK2" in grps['group1'].blocks)
         self.assertTrue("TESTBLOCK3" in grps['group1'].blocks)
         self.assertTrue("TESTBLOCK4" in grps['group1'].blocks)
-        self.assertEqual(len(grps['none'].blocks), 0)
 
     def test_redefine_groups_from_list_component_changes(self):
         ch = create_default_test_config_holder()
@@ -469,8 +468,8 @@ class TestConfigHolderSequence(unittest.TestCase):
         # Move COMPBLOCK1 and COMPBLOCK2 into group 1
         redef = [{"name": "group1", "blocks": ["TESTBLOCK1", "TESTBLOCK2", "TESTBLOCK3", "TESTBLOCK4", "COMPBLOCK1",
                                                "COMPBLOCK2"], "component": None},
-                 {"name": "group2", "blocks": []},
-                 {"name": "compgroup", "blocks": []}]
+                 {"name": "group2", "blocks": [], "component": None},
+                 {"name": "compgroup", "blocks": [], "component": None}]
         ch._set_group_details(redef)
 
         grps = ch.get_group_details()
@@ -482,7 +481,6 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTBLOCK2" in grps['group1'].blocks)
         self.assertTrue("TESTBLOCK3" in grps['group1'].blocks)
         self.assertTrue("TESTBLOCK4" in grps['group1'].blocks)
-        self.assertEqual(len(grps['none'].blocks), 0)
 
     def test_set_config_details(self):
         # Need component
