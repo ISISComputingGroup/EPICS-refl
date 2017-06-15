@@ -12,4 +12,3 @@ if "%CSPID%" == "" (
     %ICPTOOLS%\cygwin_bin\cygwin_kill.exe %CSPID%
     del c:\windows\temp\EPICS_BLOCKCACHE.pid
 )
-

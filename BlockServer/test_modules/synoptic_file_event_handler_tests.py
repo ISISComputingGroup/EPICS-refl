@@ -125,7 +125,7 @@ class TestConfigFileEventHandler(unittest.TestCase):
         self.synoptic_manager.load_synoptic.return_value = SAMPLE_SYNOPTIC
 
         # Act
-        self.eh.on_any_event(e)
+        self.eh.file_modified(e)
 
         # Assert
         self.synoptic_manager.load_synoptic.assert_called_with(path)

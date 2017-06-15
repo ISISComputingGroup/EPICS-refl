@@ -31,7 +31,7 @@ class IsisLogger(object):
                                         Default severity is INFO
             src (string, optional): Gives the source of the message. Default source is BLOCKSVR
         """
-        if severity not in ['INFO','MINOR','MAJOR','FATAL'] :
+        if severity not in ['INFO', 'MINOR', 'MAJOR', 'FATAL']:
             print "write_to_ioc_log: invalid severity ", severity
             return
         msg_time = datetime.datetime.utcnow()

@@ -26,6 +26,7 @@ from BlockServer.mocks.mock_version_control import *
 from ConfigVersionControl.version_control_exceptions import *
 
 CONFIG_PATH = os.path.join(os.getcwd(), "test_configs")
+SCRIPT_PATH = os.path.join(os.getcwd(), "test_scripts")
 BASE_PATH = "example_base"
 SCREENS_FILE = "screens.xml"
 SCHEMA_FOLDER = "schema"
@@ -99,7 +100,7 @@ class MockDevicesFileIO(object):
 class TestDevicesManagerSequence(unittest.TestCase):
     def setUp(self):
         # Make directory and fill with fake content
-        FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH), os.path.abspath(SCHEMA_PATH))
+        FILEPATH_MANAGER.initialise(os.path.abspath(CONFIG_PATH), os.path.abspath(SCRIPT_PATH), os.path.abspath(SCHEMA_PATH))
 
         # Find the schema directory
         dir = os.path.join(".")

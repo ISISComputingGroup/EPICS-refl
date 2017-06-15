@@ -359,5 +359,29 @@ class ConfigListManager(object):
             self._bs.setParam(BlockserverPVNames.CONFIGS, compress_and_hex(convert_to_json(self.get_configs())))
             # Set the available comps
             self._bs.setParam(BlockserverPVNames.COMPS, compress_and_hex(convert_to_json(self.get_components())))
+            # Set the available component details
+            self._bs.setParam(BlockserverPVNames.ALL_COMPONENT_DETAILS,
+                              compress_and_hex(convert_to_json(self.all_components.values())))
             # Update them
             self._bs.updatePVs()
+
+    def commit(self, message):
+        """
+        Commits changes to git.
+
+        Args:
+            message (string): the commit message
+        """
+        self._vc.commit(message)
+
+    def add(self, path=None):
+        """
+        Adds a specified file to git.
+
+        Args:
+             path(string): the path to add
+        """
+        if path is not None:
+            self._vc.add(path)
+        else:
+            self._vc.add_all_edited_files()

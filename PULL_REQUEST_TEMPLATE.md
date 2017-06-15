@@ -15,7 +15,7 @@
 #### Code Review
 
 - [ ] Is the code of an acceptable quality?
-- [ ] Has the author taken into account the multi-thredded nature of the code?
+- [ ] Has the author taken into account the multi-threaded nature of the code?
 - [ ] Have the changes been documented in the [release notes](https://github.com/ISISComputingGroup/IBEX/wiki/ReleaseNotes_Dev). If so, do they describe the changes appropriately?
 - [ ] Has the [manual system tests spreadsheet](https://github.com/ISISComputingGroup/ibex_developers_manual/wiki/Manual-system-tests) been updated?
 
