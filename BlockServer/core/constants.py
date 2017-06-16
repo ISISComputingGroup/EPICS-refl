@@ -61,8 +61,6 @@ TAG_RC_OUT_LIST = "CS:RC:OUT:LIST"
 
 SIMLEVELS = ['recsim', 'devsim']
 
-IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
-
 # Name of default component that is loaded with every configuration.
 # Contains essential IOCs (and blocks/groups?) e.g. DAE, INSTETC
 DEFAULT_COMPONENT = "_base"
