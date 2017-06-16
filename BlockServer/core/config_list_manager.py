@@ -28,6 +28,7 @@ from BlockServer.core.pv_names import BlockserverPVNames
 from config_list_manager_exceptions import InvalidDeleteException
 from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
     CommitToVersionControlException, UpdateFromVersionControlException, RemoveFromVersionControlException
+from BlockServer.alarm.load_alarm_config import AlarmConfigLoader
 
 
 class ConfigListManager(object):
@@ -41,11 +42,12 @@ class ConfigListManager(object):
         """Constructor.
 
         Args:
-            block_server (BlockServer): A reference to the BlockServer itself
+            block_server (block_server.BlockServer): A reference to the BlockServer itself
             schema_folder (string): The location of the schemas for validation
-            vc_manager (ConfigVersionControl): The object for managing version control
+            vc_manager (GitVersionControl, MockVersionControl): The object for managing version control
             file_manager (ConfigurationFileManager): Deals with writing the config files
         """
+
         self._config_metas = dict()
         self._component_metas = dict()
         self._comp_dependencies = dict()
@@ -350,6 +352,7 @@ class ConfigListManager(object):
             print_and_log("Unable to recover configurations from version control: %s" % err, "MINOR")
 
     def update_monitors(self):
+
         with self._bs.monitor_lock:
             print "UPDATING CONFIG LIST MONITORS"
             # Set the available configs

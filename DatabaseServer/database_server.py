@@ -17,6 +17,7 @@
 # Add root path for access to server_commons
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 # Standard imports
@@ -25,6 +26,7 @@ from time import sleep
 import argparse
 from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, dehex_and_decompress
 from server_common.channel_access_server import CAServer
+from server_common.constants import IOCS_NOT_TO_STOP
 from ioc_data import IOCData
 from exp_data import ExpData
 import json
@@ -291,7 +293,7 @@ class DatabaseServer(Driver):
         Returns: 
             list: A list of IOCs not to stop
         """
-        return 'INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL'
+        return IOCS_NOT_TO_STOP
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

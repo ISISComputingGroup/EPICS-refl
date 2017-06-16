@@ -15,10 +15,12 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 from time import sleep, time
-from BlockServer.epics.procserv_utils import ProcServWrapper
-from server_common.utilities import print_and_log
 
-IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL')
+
+from BlockServer.epics.procserv_utils import ProcServWrapper
+from BlockServer.alarm.load_alarm_config import AlarmConfigLoader
+from server_common.utilities import print_and_log
+from server_common.constants import IOCS_NOT_TO_STOP
 
 
 class IocControl(object):
@@ -41,6 +43,8 @@ class IocControl(object):
         """
         try:
             self._proc.start_ioc(self._prefix, ioc)
+            if ioc != "ALARM":
+                AlarmConfigLoader.restart_alarm_server(self)
         except Exception as err:
             print_and_log("Could not start IOC %s: %s" % (ioc, str(err)), "MAJOR")
 
@@ -60,6 +64,8 @@ class IocControl(object):
         try:
             auto = self._proc.get_autorestart(self._prefix, ioc)
             self._proc.restart_ioc(self._prefix, ioc)
+            if ioc != "ALARM":
+                AlarmConfigLoader.restart_alarm_server(self)
         except Exception as err:
             print_and_log("Could not restart IOC %s: %s" % (ioc, str(err)), "MAJOR")
 
@@ -75,6 +81,8 @@ class IocControl(object):
             return
         try:
             self._proc.stop_ioc(self._prefix, ioc)
+            if ioc != "ALARM":
+                AlarmConfigLoader.restart_alarm_server(self)
         except Exception as err:
             print_and_log("Could not stop IOC %s: %s" % (ioc, str(err)), "MAJOR")
 
