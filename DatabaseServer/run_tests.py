@@ -24,7 +24,6 @@ import unittest
 import xmlrunner
 import argparse
 
-from server_common.test_modules.mysql_wrapper_tests import TestMySQLWrapperSequence
 from test_modules.options_holder_tests import TestOptionsHolderSequence
 from test_modules.exp_data_test import TestExpData
 
@@ -39,7 +38,6 @@ if __name__ == '__main__':
     xml_dir = args.output_dir[0]
 
     # Load tests from test suites
-    mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestMySQLWrapperSequence)
     options_holder_suite = unittest.TestLoader().loadTestsFromTestCase(TestOptionsHolderSequence)
     # database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
     exp_data_suite = unittest.TestLoader().loadTestsFromTestCase(TestExpData)

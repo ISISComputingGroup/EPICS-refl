@@ -14,10 +14,10 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-import mysql.connector
 from threading import RLock
+
+from server_common.mysql_abstraction_layer import SQLAbstraction
 from server_common.utilities import print_and_log
-from mysql_abstraction_layer import SQLAbstraction
 
 
 class IOCData(object):
@@ -81,9 +81,9 @@ class IOCData(object):
         try:
             sqlquery = "SELECT DISTINCT pvinfo.pvname FROM pvinfo"
             sqlquery += " INNER JOIN pvs ON pvs.pvname = pvinfo.pvname"
-            sqlquery += " WHERE (infoname='PVCATEGORY' AND value LIKE '%" + category + "%' AND pvinfo.pvname NOT LIKE '%:SP')"
+            sqlquery += " WHERE (infoname='PVCATEGORY' AND value LIKE %s AND pvinfo.pvname NOT LIKE '%:SP')"
             # Get as a plain list
-            values = [str(element[0]) for element in self._db.query(sqlquery)]
+            values = [str(element[0]) for element in self._db.query(sqlquery, ("%{0}%".format(category),))]
             # Convert any bytearrays
             for i, pv in enumerate(values):
                 for j, element in enumerate(pv):
@@ -129,17 +129,17 @@ class IOCData(object):
                 # Get all the iocnames and whether they are running, but ignore IOCs associated with PSCTRL
                 sqlquery = "SELECT iocname, running FROM iocrt WHERE (iocname NOT LIKE 'PSCTRL_%')"
                 rows = self._db.query(sqlquery)
-                for row in rows:
+                for ioc_name, is_running in rows:
                     # Check to see if running using CA and procserv
                     try:
-                        if self._procserve.get_ioc_status(self._prefix, row[0]).upper() == "RUNNING":
-                            self._running_iocs.append(row[0])
-                            if row[1] == 0:
+                        if self._procserve.get_ioc_status(self._prefix, ioc_name).upper() == "RUNNING":
+                            self._running_iocs.append(ioc_name)
+                            if is_running == 0:
                                 # This should only get called if the IOC failed to tell the DB it started
-                                self._db.update("UPDATE iocrt SET running=1 WHERE iocname='%s'" % row[0])
+                                self._db.update("UPDATE iocrt SET running=1 WHERE iocname='%s'", (ioc_name, ))
                         else:
-                            if row[1] == 1:
-                                self._db.update("UPDATE iocrt SET running=0 WHERE iocname='%s'" % row[0])
+                            if is_running == 1:
+                                self._db.update("UPDATE iocrt SET running=0 WHERE iocname='%s'", (ioc_name, ))
                     except Exception as err:
                         # Fail but continue - probably couldn't find procserv for the ioc
                         print_and_log("issue with updating IOC status: %s" % err, "MAJOR", "DBSVR")
@@ -166,7 +166,7 @@ class IOCData(object):
         where_ioc = ''
 
         if ioc is not None and ioc != "":
-            where_ioc = "AND iocname='%s'" % ioc
+            where_ioc = "AND iocname='%s'"
 
         try:
             if level.lower().startswith('h'):
@@ -180,7 +180,10 @@ class IOCData(object):
                 pass
 
             # Get as a plain list of lists
-            values = [list(element) for element in self._db.query(sqlquery)]
+            if ioc is not None and ioc != "":
+                values = [list(element) for element in self._db.query(sqlquery, ioc)]
+            else:
+                values = [list(element) for element in self._db.query(sqlquery)]
             # Convert any bytearrays
             for i, pv in enumerate(values):
                 for j, element in enumerate(pv):
