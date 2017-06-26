@@ -340,4 +340,3 @@ if __name__ == '__main__':
         except Exception as err:
             print_and_log(err, MAJOR_MSG)
             break
-

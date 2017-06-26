@@ -25,8 +25,7 @@ import xmlrunner
 import argparse
 
 from server_common.test_modules.mysql_wrapper_tests import TestMySQLWrapperSequence
-from test_modules.options_holder_tests import TestOptionsHolderSequence
-from test_modules.exp_data_test import TestExpData
+from server_common.test_modules.utilities_tests import TestCreatePVName
 
 DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 
@@ -40,16 +39,12 @@ if __name__ == '__main__':
 
     # Load tests from test suites
     mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestMySQLWrapperSequence)
-    options_holder_suite = unittest.TestLoader().loadTestsFromTestCase(TestOptionsHolderSequence)
-    # database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
-    exp_data_suite = unittest.TestLoader().loadTestsFromTestCase(TestExpData)
+    utilities_tests = unittest.TestLoader().loadTestsFromTestCase(TestCreatePVName)
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
     ret_vals = list()
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite))
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite))
-    # ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite))
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(exp_data_suite))
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(utilities_tests))
     print "------ UNIT TESTS COMPLETE ------\n\n"
 
     # Return failure exit code if a test failed

@@ -18,6 +18,7 @@ import unittest
 from datetime import datetime, timedelta
 
 from hamcrest import *
+from mock import Mock
 
 from ArchiverAccess.periodic_data_generator import PeriodicDataGenerator
 
@@ -187,7 +188,9 @@ class TestArchiverAccess(unittest.TestCase):
 
         assert_that([x[0] for x in results], is_(expected_result))
 
-    def _setup_data_generator(self, expected_start_time, initial_pv_values, log_count, values=None):
+    def _setup_data_generator(self, expected_start_time, initial_pv_values, log_count, values=None, archiver_throw_exception_on_initial_values=False):
         archiver_data = ArchiverDataStub(initial_pv_values, values)
+        if archiver_throw_exception_on_initial_values:
+            archiver_data.initial_values = Mock(side_effect=ValueError())
         data_generator = PeriodicDataGenerator(expected_start_time, timedelta(seconds=1), log_count, archiver_data)
         return data_generator

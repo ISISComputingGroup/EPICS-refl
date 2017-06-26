@@ -14,13 +14,15 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-from mysql_wrapper_tests import generate_fake_db, TEST_DB, HIGH_PV_NAMES, MEDIUM_PV_NAMES
-import unittest
-from database_server import DatabaseServer
-from server_common.mocks.mock_ca_server import MockCAServer
-from server_common.utilities import dehex_and_decompress
-import os
 import json
+import os
+import unittest
+
+from database_server import DatabaseServer
+
+from server_common.mocks.mock_ca_server import MockCAServer
+from server_common.test_modules.mysql_wrapper_tests import generate_fake_db, TEST_DB, HIGH_PV_NAMES, MEDIUM_PV_NAMES
+from server_common.utilities import dehex_and_decompress
 
 generate_fake_db(TEST_DB)
 
