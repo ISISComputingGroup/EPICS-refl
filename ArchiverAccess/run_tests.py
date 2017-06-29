@@ -24,7 +24,7 @@ import unittest
 import xmlrunner
 import argparse
 
-from test_modules.test_archiver_access import TestArchiverAccess
+from test_modules.test_periodic_data_generator import TestPeriodicDataGenerator
 
 DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     xml_dir = args.output_dir[0]
 
     # Load tests from test suites
-    mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestArchiverAccess)
+    mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestPeriodicDataGenerator)
 
     print "\n\n------ BEGINNING ARCHIVER ACCESS UNIT TESTS ------"
     ret_vals = list()

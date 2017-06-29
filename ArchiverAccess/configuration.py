@@ -1,3 +1,6 @@
+from string import Formatter
+
+
 class ConfigBuilder(object):
     """
     Configuration builder a way of creating a config step by step
@@ -7,7 +10,7 @@ class ConfigBuilder(object):
         """
         Constuctor
         :param filename_template: the filename template to use; template that are replaced are `{xxx}` where xxx can be
-         first:time - for start date time of log
+         first:datetime - for start date time of log
         """
         self.filename_template = filename_template
         self.header_lines = []
@@ -57,3 +60,12 @@ class Config(object):
         """
         for line in self._header_lines:
             yield line
+
+    def pv_names_in_header(self):
+
+        pvnames = set()
+        for line in self._header_lines:
+            for text, name, fomat_spec, conversion in Formatter().parse(line):
+                pvnames.add(name)
+
+        return pvnames

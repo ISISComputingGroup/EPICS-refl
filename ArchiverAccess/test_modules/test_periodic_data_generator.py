@@ -20,32 +20,18 @@ from datetime import datetime, timedelta
 from hamcrest import *
 from mock import Mock
 
+from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from ArchiverAccess.periodic_data_generator import PeriodicDataGenerator
+from ArchiverAccess.test_modules.stubs import ArchiverDataStub
 
 
-class ArchiverDataStub(object):
-    def __init__(self, initial_values, values):
-        self._initial_values = initial_values
-        if values is None:
-            self._values = []
-        else:
-            self._values = values
-
-    def initial_values(self):
-        return self._initial_values
-
-    def changes_generator(self):
-        for value in self._values:
-            yield(value)
-
-
-class TestArchiverAccess(unittest.TestCase):
+class TestPeriodicDataGenerator(unittest.TestCase):
 
     def test_GIVEN_single_initial_values_WHEN_write_values_THEN_first_data_line_is_at_start_time(self):
         expected_start_time = datetime(2017, 1, 1, 1, 2, 3, 0)
         data_generator = self._setup_data_generator(expected_start_time, [1], 10)
 
-        result = data_generator.get_generator().next()
+        result = data_generator.next()
 
         assert_that(result[0], is_(expected_start_time))
 
@@ -53,7 +39,7 @@ class TestArchiverAccess(unittest.TestCase):
         initial_value_pv1 = 1.23
         data_generator = self._setup_data_generator(datetime(2017, 1, 1, 1, 2, 3, 0), [initial_value_pv1], 10)
 
-        result = data_generator.get_generator().next()
+        result = data_generator.next()
 
         assert_that(result.values[0], is_(initial_value_pv1))
 
@@ -61,7 +47,7 @@ class TestArchiverAccess(unittest.TestCase):
         initial_value_pvs = [1.23, 3.45, 5.67]
         data_generator = self._setup_data_generator(datetime(2017, 1, 1, 1, 2, 3, 0), initial_value_pvs, 10)
 
-        result = data_generator.get_generator().next()
+        result = data_generator.next()
 
         assert_that(result.values, is_(initial_value_pvs))
 
@@ -71,7 +57,7 @@ class TestArchiverAccess(unittest.TestCase):
         data_generator = self._setup_data_generator(expected_start_time, [1.23], log_count)
 
         results = []
-        for value in data_generator.get_generator():
+        for value in data_generator:
             results.append(value)
 
         assert_that([x[0] for x in results], is_([expected_start_time + timedelta(seconds=delta) for delta in range(log_count + 1)]))
@@ -87,7 +73,7 @@ class TestArchiverAccess(unittest.TestCase):
         data_generator = self._setup_data_generator(expected_start_time, [initial_value], log_count, values=values)
 
         results = []
-        for value in data_generator.get_generator():
+        for value in data_generator:
             results.append(value.values)
 
         assert_that([x[0] for x in results], is_(expected_result))
@@ -123,7 +109,7 @@ class TestArchiverAccess(unittest.TestCase):
         data_generator = self._setup_data_generator(expected_start_time, [initial_value], log_count, values=values)
 
         results = []
-        for value in data_generator.get_generator():
+        for value in data_generator:
             results.append(value.values)
 
         assert_that([x[0] for x in results], is_(expected_result))
@@ -167,7 +153,7 @@ class TestArchiverAccess(unittest.TestCase):
         data_generator = self._setup_data_generator(expected_start_time, initial_values, log_count, values=values)
 
         results = []
-        for value in data_generator.get_generator():
+        for value in data_generator:
             results.append(value.values)
 
         assert_that(results, is_(expected_result))
@@ -183,7 +169,7 @@ class TestArchiverAccess(unittest.TestCase):
         data_generator = self._setup_data_generator(expected_start_time, [initial_value], log_count, values=values)
 
         results = []
-        for value in data_generator.get_generator():
+        for value in data_generator:
             results.append(value.values)
 
         assert_that([x[0] for x in results], is_(expected_result))
@@ -192,5 +178,9 @@ class TestArchiverAccess(unittest.TestCase):
         archiver_data = ArchiverDataStub(initial_pv_values, values)
         if archiver_throw_exception_on_initial_values:
             archiver_data.initial_values = Mock(side_effect=ValueError())
-        data_generator = PeriodicDataGenerator(expected_start_time, timedelta(seconds=1), log_count, archiver_data)
-        return data_generator
+
+        data_generator = PeriodicDataGenerator(archiver_data)
+
+        return data_generator.get_generator(
+            ["pv{0}".format(i) for i in range(len(initial_pv_values))],
+            ArchiveTimePeriod(expected_start_time, timedelta(seconds=1), log_count))
