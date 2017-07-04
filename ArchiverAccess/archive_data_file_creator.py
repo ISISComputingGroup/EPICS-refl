@@ -1,29 +1,29 @@
+# This file is part of the ISIS IBEX application.
+# Copyright (C) 2017 Science & Technology Facilities Council.
+# All rights reserved.
+#
+# This program is distributed in the hope that it will be useful.
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License v1.0 which accompanies this distribution.
+# EXCEPT AS EXPRESSLY SET FORTH IN THE ECLIPSE PUBLIC LICENSE V1.0, THE PROGRAM
+# AND ACCOMPANYING MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND.  See the Eclipse Public License v1.0 for more details.
+#
+# You should have received a copy of the Eclipse Public License v1.0
+# along with this program; if not, you can obtain a copy from
+# https://www.eclipse.org/org/documents/epl-v10.php or
+# http://opensource.org/licenses/eclipse-1.0.php
+"""
+Module for creating a log file from a configuration and periodic data source.
+"""
+
 import os
 from string import Formatter
 
-# Message when a formatter can not be applied when writing a pv
-FORMATTER_NOT_APPLIED_MESSAGE = " (formatter not applied)"
+from ArchiverAccess.periodic_data_generator import PeriodicDataGenerator
 
-
-class PvValuesAtTime(object):
-    """
-    Generate PV Values at a given time as a dictionary
-    """
-    def __init__(self, archiver_data_source):
-        """
-        Constructor
-
-        Args:
-            archiver_data_source: archiver data source to read
-        """
-        self._archiver_data_source = archiver_data_source
-
-    def get_values(self, time, pv_names):
-        result = {}
-
-        for pv_name, value in zip(pv_names, self._archiver_data_source.initial_values(pv_names, time)):
-            result[pv_name] = value
-        return result
+FORMATTER_NOT_APPLIED_MESSAGE = " (formatter not applied: `{0}`)"
+"""Message when a formatter can not be applied when writing a pv"""
 
 
 class TemplateReplacer(object):
@@ -31,16 +31,20 @@ class TemplateReplacer(object):
     Code to replace templated values
     """
 
-    def __init__(self, time_period, pv_values):
+    def __init__(self, pv_values, time_period=None, time=None):
         """
 
         Args:
             time_period (ArchiverAccess.archive_time_period.ArchiveTimePeriod): time period
-            pv_values: dictionary of pv name and values
+            pv_values: values of the pvs in order of keyword
         """
 
-        self._replacements = pv_values
-        self._replacements["start_time"] = time_period.start_time.isoformat("T")
+        self._pv_values = pv_values
+        self._replacements = {}
+        if time_period is not None:
+            self._replacements["start_time"] = time_period.start_time.isoformat("T")
+        if time is not None:
+            self._replacements["time"] = time.isoformat("T")
 
     def replace(self, template):
         """
@@ -52,14 +56,14 @@ class TemplateReplacer(object):
 
         """
         try:
-            return template.format(**self._replacements)
-        except ValueError:
+            return template.format(*self._pv_values, **self._replacements)
+        except ValueError as ex:
             # incorrect formatter output without format
             template_no_format = ""
             for text, name, fomat_spec, conversion in Formatter().parse(template):
                 template_no_format += "{text}{{{name}}}".format(text=text, name=name)
-            template_no_format += FORMATTER_NOT_APPLIED_MESSAGE
-            return template_no_format.format(**self._replacements)
+            template_no_format += FORMATTER_NOT_APPLIED_MESSAGE.format(ex)
+            return template_no_format.format(*self._pv_values, **self._replacements)
 
 
 class ArchiveDataFileCreator(object):
@@ -78,21 +82,30 @@ class ArchiveDataFileCreator(object):
         self._config = config
         self._file_access_class = file_access_class
         self._time_period = time_period
-        self._pv_values_at_time_provider = PvValuesAtTime(archiver_data_source)
+        self._archiver_data_source = archiver_data_source
 
     def write(self):
         """
-        Write the file out
+        Write the file to the file object.
+
         :return:
         """
 
-        #periodic_data_generator = PeriodicDataGenerator(start_time, period, point_count, archiver_data_source)
-
-        pv_values = self._pv_values_at_time_provider.get_values(self._time_period.start_time, self._config.pv_names_in_header())
-        template_replacer = TemplateReplacer(self._time_period, pv_values)
+        pv_names_in_header = self._config.pv_names_in_header
+        pv_values = self._archiver_data_source.initial_values(pv_names_in_header, self._time_period.start_time)
+        template_replacer = TemplateReplacer(pv_values, time_period=self._time_period)
+        periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
 
         filename = template_replacer.replace(self._config.filename)
         with self._file_access_class(filename) as f:
-            for header_template in self._config.header():
+            for header_template in self._config.header:
                 header_line = template_replacer.replace(header_template)
                 f.write("{0}{1}".format(header_line, os.linesep))
+
+            f.write("{0}{1}".format(self._config.column_headers, os.linesep))
+
+            periodic_data = periodic_data_generator.get_generator(self._config.pv_names_in_columns, self._time_period)
+            for time, values in periodic_data:
+                table_template_replacer = TemplateReplacer(values, time=time)
+                table_line = table_template_replacer.replace(self._config.table_line)
+                f.write("{0}{1}".format(table_line, os.linesep))

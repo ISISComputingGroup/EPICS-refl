@@ -7,11 +7,15 @@ class ArchiverDataStub(object):
             self._values = values
 
     def initial_values(self, pv_names, time):
-        return self._initial_values
+        initial_values = []
+        for pvname in pv_names:
+            initial_values.append(self._initial_values[pvname])
+        return initial_values
 
     def changes_generator(self, pv_names, time_period):
         for value in self._values:
-            yield(value)
+
+            yield (value[0], pv_names.index(value[1]), value[2])
 
 
 class FileStub(object):

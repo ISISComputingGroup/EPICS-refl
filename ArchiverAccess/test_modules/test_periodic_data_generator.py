@@ -67,7 +67,7 @@ class TestPeriodicDataGenerator(unittest.TestCase):
         log_count = 10
         initial_value = 1.23
         final_value = -12.24
-        values = [[expected_start_time + timedelta(seconds=3.5), 0, final_value]]
+        values = [[expected_start_time + timedelta(seconds=3.5), "pv0", final_value]]
         expected_result = [initial_value] * 4 + [final_value] * 7
 
         data_generator = self._setup_data_generator(expected_start_time, [initial_value], log_count, values=values)
@@ -88,11 +88,11 @@ class TestPeriodicDataGenerator(unittest.TestCase):
         val4 = 78.5
         val5 = 34.6
         values = [
-            [expected_start_time + timedelta(seconds=3.5), 0, val1],
-            [expected_start_time + timedelta(seconds=3.6), 0, val2],
-            [expected_start_time + timedelta(seconds=4.1), 0, val3],
-            [expected_start_time + timedelta(seconds=6.1), 0, val4],
-            [expected_start_time + timedelta(seconds=7), 0, val5]
+            [expected_start_time + timedelta(seconds=3.5), "pv0", val1],
+            [expected_start_time + timedelta(seconds=3.6), "pv0", val2],
+            [expected_start_time + timedelta(seconds=4.1), "pv0", val3],
+            [expected_start_time + timedelta(seconds=6.1), "pv0", val4],
+            [expected_start_time + timedelta(seconds=7), "pv0", val5]
         ]
         expected_result = [initial_value,
                            initial_value,
@@ -129,14 +129,14 @@ class TestPeriodicDataGenerator(unittest.TestCase):
         val7 = 147.6
         val8 = 1516.6
         values = [
-            [expected_start_time + timedelta(seconds=3.5), 0, val1],
-            [expected_start_time + timedelta(seconds=3.4), 1, val6],
-            [expected_start_time + timedelta(seconds=3.6), 0, val2],
-            [expected_start_time + timedelta(seconds=4.1), 0, val3],
-            [expected_start_time + timedelta(seconds=6.1), 0, val4],
-            [expected_start_time + timedelta(seconds=7), 0, val5],
-            [expected_start_time + timedelta(seconds=7), 1, val7],
-            [expected_start_time + timedelta(seconds=7.4), 1, val8]
+            [expected_start_time + timedelta(seconds=3.5), "pv0", val1],
+            [expected_start_time + timedelta(seconds=3.4), "pv1", val6],
+            [expected_start_time + timedelta(seconds=3.6), "pv0", val2],
+            [expected_start_time + timedelta(seconds=4.1), "pv0", val3],
+            [expected_start_time + timedelta(seconds=6.1), "pv0", val4],
+            [expected_start_time + timedelta(seconds=7), "pv0", val5],
+            [expected_start_time + timedelta(seconds=7), "pv1", val7],
+            [expected_start_time + timedelta(seconds=7.4), "pv1", val8]
         ]
         expected_result = [initial_values,
                            initial_values,
@@ -163,7 +163,7 @@ class TestPeriodicDataGenerator(unittest.TestCase):
         log_count = 10
         initial_value = 1.23
         final_value = "Disconnected"
-        values = [[expected_start_time + timedelta(seconds=3.5), 0, final_value]]
+        values = [[expected_start_time + timedelta(seconds=3.5), "pv0", final_value]]
         expected_result = [initial_value] * 4 + [final_value] * 7
 
         data_generator = self._setup_data_generator(expected_start_time, [initial_value], log_count, values=values)
@@ -175,12 +175,17 @@ class TestPeriodicDataGenerator(unittest.TestCase):
         assert_that([x[0] for x in results], is_(expected_result))
 
     def _setup_data_generator(self, expected_start_time, initial_pv_values, log_count, values=None, archiver_throw_exception_on_initial_values=False):
-        archiver_data = ArchiverDataStub(initial_pv_values, values)
+        pv_names = ["pv{0}".format(i) for i in range(len(initial_pv_values))]
+        initial_pv_values_dict = {}
+        for name, val  in zip(pv_names, initial_pv_values):
+            initial_pv_values_dict[name] = val
+        archiver_data = ArchiverDataStub(initial_pv_values_dict, values)
         if archiver_throw_exception_on_initial_values:
             archiver_data.initial_values = Mock(side_effect=ValueError())
 
         data_generator = PeriodicDataGenerator(archiver_data)
 
+
         return data_generator.get_generator(
-            ["pv{0}".format(i) for i in range(len(initial_pv_values))],
+            pv_names,
             ArchiveTimePeriod(expected_start_time, timedelta(seconds=1), log_count))
