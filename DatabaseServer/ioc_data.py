@@ -136,10 +136,10 @@ class IOCData(object):
                             self._running_iocs.append(ioc_name)
                             if is_running == 0:
                                 # This should only get called if the IOC failed to tell the DB it started
-                                self._db.update("UPDATE iocrt SET running=1 WHERE iocname='%s'", (ioc_name, ))
+                                self._db.update("UPDATE iocrt SET running=1 WHERE iocname=%s", (ioc_name, ))
                         else:
                             if is_running == 1:
-                                self._db.update("UPDATE iocrt SET running=0 WHERE iocname='%s'", (ioc_name, ))
+                                self._db.update("UPDATE iocrt SET running=0 WHERE iocname=%s", (ioc_name, ))
                     except Exception as err:
                         # Fail but continue - probably couldn't find procserv for the ioc
                         print_and_log("issue with updating IOC status: %s" % err, "MAJOR", "DBSVR")
@@ -166,7 +166,7 @@ class IOCData(object):
         where_ioc = ''
 
         if ioc is not None and ioc != "":
-            where_ioc = "AND iocname='%s'"
+            where_ioc = "AND iocname=%s"
 
         try:
             if level.lower().startswith('h'):
