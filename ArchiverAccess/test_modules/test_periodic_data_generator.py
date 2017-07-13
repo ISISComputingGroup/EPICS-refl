@@ -60,11 +60,11 @@ class TestPeriodicDataGenerator(unittest.TestCase):
         for value in data_generator:
             results.append(value)
 
-        assert_that([x[0] for x in results], is_([expected_start_time + timedelta(seconds=delta) for delta in range(log_count + 1)]))
+        assert_that([x[0] for x in results], is_([expected_start_time + timedelta(seconds=delta) for delta in range(log_count)]))
 
     def test_GIVEN_single_change_in_single_values_WHEN_write_values_THEN_value_changes_after_specified_time(self):
         expected_start_time = datetime(2017, 1, 1, 1, 2, 3, 0)
-        log_count = 10
+        log_count = 11
         initial_value = 1.23
         final_value = -12.24
         values = [[expected_start_time + timedelta(seconds=3.5), "pv0", final_value]]
@@ -80,7 +80,7 @@ class TestPeriodicDataGenerator(unittest.TestCase):
 
     def test_GIVEN_multiple_changes_in_single_value_some_more_often_than_log_frequency_some_longer_WHEN_write_values_THEN_value_changes_after_specified_time(self):
         expected_start_time = datetime(2017, 1, 1, 1, 2, 3, 0)
-        log_count = 10
+        log_count = 11
         initial_value = 1.23
         val1 = 6
         val2 = 23.2
@@ -117,7 +117,7 @@ class TestPeriodicDataGenerator(unittest.TestCase):
 
     def test_GIVEN_multiple_changes_in_multiple_values_some_more_often_than_log_frequency_some_longer_WHEN_write_values_THEN_value_changes_after_specified_time(self):
         expected_start_time = datetime(2017, 1, 1, 1, 2, 3, 0)
-        log_count = 10
+        log_count = 11
         val0 = 4.3
         initial_values = [1.23, 8.4, val0]
         val1 = 6
@@ -160,7 +160,7 @@ class TestPeriodicDataGenerator(unittest.TestCase):
 
     def test_GIVEN_string_value_WHEN_write_values_THEN_string_value_used(self):
         expected_start_time = datetime(2017, 1, 1, 1, 2, 3, 0)
-        log_count = 10
+        log_count = 11
         initial_value = 1.23
         final_value = "Disconnected"
         values = [[expected_start_time + timedelta(seconds=3.5), "pv0", final_value]]
@@ -184,7 +184,6 @@ class TestPeriodicDataGenerator(unittest.TestCase):
             archiver_data.initial_values = Mock(side_effect=ValueError())
 
         data_generator = PeriodicDataGenerator(archiver_data)
-
 
         return data_generator.get_generator(
             pv_names,

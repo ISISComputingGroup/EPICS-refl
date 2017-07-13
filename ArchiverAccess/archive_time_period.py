@@ -25,26 +25,25 @@ class ArchiveTimePeriod(object):
     A time period.
     """
 
-    def __init__(self, start_time, delta, point_count):
+    def __init__(self, start_time, delta, point_count=None, finish_time=None):
         """
         Construct a time period.
 
         Args:
-            start_time(datetime): the start time of the period (this is rounded down to the nearest millisecond)
+            start_time(datetime): the start time of the period (this is rounded down to the nearest 10th of a second)
             delta: the delta of each point within a period
-            point_count: the point count of the period
+            point_count: the number of points in the period
+            finish_time: the end time is the last value that is logged before this time
         """
-        self.start_time = start_time.replace(microsecond=0)
-        self.period = delta
-        self.point_count = point_count
+        self.start_time = start_time.replace(microsecond=((start_time.microsecond // 100000) * 100000))
+        self.delta = delta
+        if point_count is None:
+            self.point_count = int((finish_time - self.start_time).total_seconds() // self.delta.total_seconds() + 1)
+        else:
+            self.point_count = point_count
 
-    @property
-    def end_time(self):
-        """
-
-        Returns: the end time of the period
-        """
-        return self.start_time + self.period * self.point_count
+        number_of_deltas = self.point_count - 1
+        self.end_time = self.start_time + number_of_deltas * self.delta
 
     def get_time_after(self, periods_count):
         """
@@ -55,4 +54,4 @@ class ArchiveTimePeriod(object):
         Returns: the current ime in the period
 
         """
-        return self.start_time + self.period * periods_count
+        return self.start_time + self.delta * periods_count

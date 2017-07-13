@@ -28,19 +28,17 @@ from server_common.mysql_abstraction_layer import DatabaseError
 
 class SQLAbstractionStub(object):
 
-
-
     def __init__(self):
         self._initial_values_index = -1
         self.initial_values = []
         self.changes = []
 
-    def add_initial_value(self, severity_id=None, status_id=None, num_val=None, float_val=None, str_val=None, array_val=None):
-        archiver_data_value = ArchiverDataValue([severity_id, status_id, num_val, float_val, str_val, array_val])
+    def add_initial_value(self, severity_id=None, status_id=None, num_val=None, float_val=None, str_val=None, array_val=None, sample_time=None):
+        archiver_data_value = ArchiverDataValue([severity_id, status_id, num_val, float_val, str_val, array_val, sample_time])
         self.initial_values.append([archiver_data_value.get_as_array()])
 
     def add_changes(self, smpl_time, channel_name, severity_id=None, status_id=None, num_val=None, float_val=None, str_val=None, array_val=None):
-        archiver_data_value = ArchiverDataValue([severity_id, status_id, num_val, float_val, str_val, array_val])
+        archiver_data_value = ArchiverDataValue([severity_id, status_id, num_val, float_val, str_val, array_val, smpl_time])
         change = [channel_name, smpl_time]
         change.extend(archiver_data_value.get_as_array())
         self.changes.append(change)

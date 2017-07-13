@@ -57,7 +57,7 @@ class PeriodicDataGenerator(object):
         current_values = self._archiver_data_source.initial_values(pv_names, time_period.start_time)
         self._set_next_change(archiver_changes_generator)
 
-        for current_point_count in range(time_period.point_count + 1):
+        for current_point_count in range(time_period.point_count):
             current_time = time_period.get_time_after(current_point_count)
             current_values = self._get_values_at_time(current_values, current_time, archiver_changes_generator)
 

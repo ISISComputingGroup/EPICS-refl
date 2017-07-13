@@ -71,29 +71,31 @@ class ArchiveDataFileCreator(object):
     Archive data file creator creates the log file based on the configuration.
     """
 
-    def __init__(self, config, time_period, archiver_data_source, file_access_class=file):
+    def __init__(self, config, archiver_data_source, file_access_class=file):
         """
         Constructor
         Args:
             config(ArchiverAccess.configuration.Config):  configuration for the archive data file to create
-            time_period (ArchiverAccess.archive_time_period.ArchiveTimePeriod): time period
+
             file_access_class: file like object that can be written to
         """
         self._config = config
         self._file_access_class = file_access_class
-        self._time_period = time_period
         self._archiver_data_source = archiver_data_source
 
-    def write(self):
+    def write(self, time_period):
         """
         Write the file to the file object.
+
+        Args:
+            time_period (ArchiverAccess.archive_time_period.ArchiveTimePeriod): time period
 
         :return:
         """
 
         pv_names_in_header = self._config.pv_names_in_header
-        pv_values = self._archiver_data_source.initial_values(pv_names_in_header, self._time_period.start_time)
-        template_replacer = TemplateReplacer(pv_values, time_period=self._time_period)
+        pv_values = self._archiver_data_source.initial_values(pv_names_in_header, time_period.start_time)
+        template_replacer = TemplateReplacer(pv_values, time_period=time_period)
         periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
 
         filename = template_replacer.replace(self._config.filename)
@@ -104,7 +106,7 @@ class ArchiveDataFileCreator(object):
 
             f.write("{0}{1}".format(self._config.column_headers, os.linesep))
 
-            periodic_data = periodic_data_generator.get_generator(self._config.pv_names_in_columns, self._time_period)
+            periodic_data = periodic_data_generator.get_generator(self._config.pv_names_in_columns, time_period)
             for time, values in periodic_data:
                 table_template_replacer = TemplateReplacer(values, time=time)
                 table_line = table_template_replacer.replace(self._config.table_line)

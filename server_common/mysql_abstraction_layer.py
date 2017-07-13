@@ -159,3 +159,16 @@ class SQLAbstraction(object):
             bound_variables (tuple|dict): a tuple of parameters to bind into the query; Default no parameters to bind
         """
         SQLAbstraction._execute_command(self, command, False, bound_variables)
+
+    def generate_in_binding(self, parameter_count):
+        """
+        Generate a list of python sql bindings for use in a sql in clause. One binding for each parameter.
+        i.e. %s, %s, %s for 3 parameters.
+
+        Args:
+            parameter_count: number of items in the in clause
+
+        Returns: in binding
+
+        """
+        return ", ".join(["%s"] * parameter_count)

@@ -18,12 +18,16 @@ Module for dealing with configuration of the logging.
 """
 
 import re
+from datetime import datetime
+
+DEFAULT_LOGGING_PERIOD_IN_S = 1
+"""If no period is given for the logging then this is the default"""
 
 TIME_DATE_COLUMN_HEADING = "Date/time"
 """Column heading for the date and time column"""
 
 DEFAULT_COULMN_SEPARATOR = "\t"
-"""Default seperator between columns in the table"""
+"""Default separator between columns in the table"""
 
 
 class ConfigBuilder(object):
@@ -35,11 +39,14 @@ class ConfigBuilder(object):
         """
         Constuctor
         :param filename_template: the filename template to use; template that are replaced are `{xxx}` where xxx can be
-         first:datetime - for start date time of log
+         start_time - for start date time of log
         """
+        self._create_logs_from = datetime.now()
         self.filename_template = filename_template
         self.header_lines = []
         self.columns = []
+        self._trigger_pv = None
+        self._logging_period_template = DEFAULT_LOGGING_PERIOD_IN_S
 
     def header(self, header_line):
         """
@@ -62,7 +69,8 @@ class ConfigBuilder(object):
         Build a configuration object
         :return: configuration
         """
-        return Config(self.filename_template, self.header_lines, self.columns)
+        return Config(self.filename_template, self.header_lines, self.columns, self._trigger_pv,
+                      self._logging_period_template, self._create_logs_from)
 
     def table_column(self, expected_heading, pv_template):
         """
@@ -81,26 +89,63 @@ class ConfigBuilder(object):
 
         return self
 
+    def trigger_pv(self, pv_name):
+        """
+        PV from which to trigger the creation of a log file
+
+        Args:
+            pv_name: name of the pv to monitor
+
+        Returns: self
+
+        """
+        self._trigger_pv = pv_name
+
+        return self
+
+    def logging_period(self, logging_period):
+        """
+        Logging period
+
+        Args:
+            logging_period: the logging period
+
+        Returns: self
+
+        """
+        self._logging_period_template = logging_period
+
+        return self
+
 
 class Config(object):
     """
-    A complete valid configuration object
+    A complete valid configuration object for creating a single log file
     """
 
-    def __init__(self, filename, header_lines, columns):
+    def __init__(self, filename, header_lines, columns, trigger_pv, logging_period_template, create_logs_from):
         """
-        Constructor - this should be built using the builder
-        :param filename: filename template to use
-        :param header_lines: header line templates
+        Constructor - this can be built using the builder
+
+        Args:
+            filename: filename template to use
+            header_lines: header line templates
+            columns: column definition
+            trigger_pv: pv on which to trigger a log
+            logging_period_template: template logging period
+            create_logs_from: date time from which to start looking at whether logs should be created
         """
 
+        self._create_logs_from = create_logs_from
         self._column_separator = DEFAULT_COULMN_SEPARATOR
 
+        self.trigger_pv = trigger_pv
         self.filename = filename
 
         self._convert_header(header_lines)
         self._convert_column_headers(columns)
         self._convert_columns(columns)
+        self.logging_period = logging_period_template
 
     def _convert_columns(self, columns):
         """
@@ -183,3 +228,10 @@ class Config(object):
                 pv = match.group(1)
                 pvs.add(pv)
         return list(pvs)
+
+    def create_logs_from(self):
+        """
+
+        Returns: the time from which logs can be potentially created
+        """
+        return self._create_logs_from

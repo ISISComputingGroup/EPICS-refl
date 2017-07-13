@@ -18,11 +18,9 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 
 from hamcrest import *
-from mock import Mock
 
 from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator, FORMATTER_NOT_APPLIED_MESSAGE
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
-from ArchiverAccess.archiver_data_source import ArchiverDataSource
 from ArchiverAccess.configuration import ConfigBuilder, TIME_DATE_COLUMN_HEADING
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub, FileStub
 
@@ -39,14 +37,15 @@ class TestlogFileCreator(TestCase):
         if initial_values is None:
             initial_values = {}
         archiver_data_source = ArchiverDataStub(initial_values, values)
-        return ArchiveDataFileCreator(config, time_period, archiver_data_source, FileStub)
+        self.time_period = time_period
+        return ArchiveDataFileCreator(config, archiver_data_source, FileStub)
 
     def test_GIVEN_config_is_just_constant_header_line_WHEN_write_THEN_values_are_written_to_file(self):
         expected_header_line = "expected_header_line a line of goodness :-)"
         config = ConfigBuilder("filename.txt").header(expected_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config)
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[0], is_(expected_header_line))
 
@@ -55,7 +54,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder(expected_filename).build()
         file_creator = self._archive_data_file_creator_setup(config)
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.filename, is_(expected_filename))
 
@@ -67,7 +66,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder(filename_template).build()
         file_creator = self._archive_data_file_creator_setup(config, time_period)
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.filename, is_(expected_filename))
 
@@ -80,7 +79,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[0], is_(expected_header_line))
 
@@ -93,7 +92,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[0], is_(expected_header_line))
 
@@ -107,7 +106,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line1).header(template_header_line2).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=values)
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[0:2], is_([expected_header_line1, expected_header_line2]))
 
@@ -120,7 +119,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[0], is_(expected_header_line))
 
@@ -135,7 +134,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[0], is_(expected_header_line))
 
@@ -147,7 +146,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").table_column(heading, pvname).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=[1.0])
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[0], is_(expected_header))
 
@@ -163,7 +162,7 @@ class TestlogFileCreator(TestCase):
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=[1.0, 2.0, 3.0])
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[0], is_("\t".join([TIME_DATE_COLUMN_HEADING, expected_heading1, expected_heading2, expected_heading3])))
 
@@ -177,7 +176,7 @@ class TestlogFileCreator(TestCase):
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: initial_value}, time_period=time_period)
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[1], is_(expected_line))
 
@@ -192,7 +191,7 @@ class TestlogFileCreator(TestCase):
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=initial_values, time_period=time_period)
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[1], is_(expected_line))
 
@@ -251,7 +250,7 @@ class TestlogFileCreator(TestCase):
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=initial_values, time_period=time_period, values=values)
 
-        file_creator.write()
+        file_creator.write(self.time_period)
 
         for index, (actual, expected) in enumerate(zip(FileStub.file_contents, expected_file_contents)):
             assert_that(actual, is_(expected), "Error on line {0}".format(index))

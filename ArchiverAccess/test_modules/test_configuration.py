@@ -14,17 +14,10 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-from datetime import datetime, timedelta
 from unittest import TestCase
-
 from hamcrest import *
-from mock import Mock
 
-from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator, FORMATTER_NOT_APPLIED_MESSAGE
-from ArchiverAccess.archive_time_period import ArchiveTimePeriod
-from ArchiverAccess.archiver_data_source import ArchiverDataSource
 from ArchiverAccess.configuration import ConfigBuilder
-from ArchiverAccess.test_modules.stubs import ArchiverDataStub, FileStub
 
 
 class TestConfiguration(TestCase):
