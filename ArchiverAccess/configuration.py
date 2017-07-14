@@ -70,7 +70,7 @@ class ConfigBuilder(object):
         :return: configuration
         """
         return Config(self.filename_template, self.header_lines, self.columns, self._trigger_pv,
-                      self._logging_period_template, self._create_logs_from)
+                      self._logging_period_template)
 
     def table_column(self, expected_heading, pv_template):
         """
@@ -123,7 +123,7 @@ class Config(object):
     A complete valid configuration object for creating a single log file
     """
 
-    def __init__(self, filename, header_lines, columns, trigger_pv, logging_period_template, create_logs_from):
+    def __init__(self, filename, header_lines, columns, trigger_pv, logging_period_template):
         """
         Constructor - this can be built using the builder
 
@@ -133,10 +133,8 @@ class Config(object):
             columns: column definition
             trigger_pv: pv on which to trigger a log
             logging_period_template: template logging period
-            create_logs_from: date time from which to start looking at whether logs should be created
         """
 
-        self._create_logs_from = create_logs_from
         self._column_separator = DEFAULT_COULMN_SEPARATOR
 
         self.trigger_pv = trigger_pv
@@ -229,9 +227,3 @@ class Config(object):
                 pvs.add(pv)
         return list(pvs)
 
-    def create_logs_from(self):
-        """
-
-        Returns: the time from which logs can be potentially created
-        """
-        return self._create_logs_from

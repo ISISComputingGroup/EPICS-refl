@@ -22,35 +22,53 @@ from datetime import timedelta
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 
 
+class ConfigAndDependencies(object):
+
+    """
+    config and its dependencies needed for writting a data file on pv change
+    """
+
+    def __init__(self, config, archive_data_file_creator):
+        """
+        Consructor
+        Args:
+            config(ArchiverAccess.configuration.Config): configuration
+            archive_data_file_creator(ArchiverAccess.archive_data_file_creator.ArchiveDataFileCreator):
+                creator of archive data files
+        """
+
+        self.config = config
+        self.archive_data_file_creator = archive_data_file_creator
+
+
 class LogFileInitiatorOnPVChange(object):
     """
     Initiate the writing of a log file based on the change of a PV.
     """
 
-    def __init__(self, config, archive_data_source, archive_data_file_creator):
+    def __init__(self, config_and_dependencies, archive_data_source, search_for_change_from):
         """
 
         Args:
-            config(ArchiverAccess.configuration.Config): configuration
+            config_and_dependencies(list[ConfigAndDependencies]): list of configs along with their needed dependencies
             archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource): data source
-            archive_data_file_creator(ArchiverAccess.archive_data_file_creator.ArchiveDataFileCreator):
-                creator of archive data files
+            search_for_change_from: time from which to search for changes in the pv
         """
-        self._config = config
+
+        self._config_and_dependencies = config_and_dependencies
         self._archive_data_source = archive_data_source
-        self._archive_data_file_creator = archive_data_file_creator
-        self._trigger_pvs = [config.trigger_pv]
+        self._trigger_pvs = [cad.config.trigger_pv for cad in config_and_dependencies]
 
-        self._initial_data = archive_data_source.initial_archiver_data_values(
-            self._trigger_pvs, config.create_logs_from())
-        self._last_sample_id = self._archive_data_source.sample_id(config.create_logs_from())
+        initial_data_values = archive_data_source.initial_archiver_data_values(
+            self._trigger_pvs, search_for_change_from)
+        self._last_sample_id = self._archive_data_source.sample_id(search_for_change_from)
 
-        if self._value_is_logging_on(self._initial_data[0].value):
-            self._logging_started = self._initial_data[0].sample_time
-        else:
-            self._logging_started = None
-
-        self._logging_period = timedelta(seconds=self._config.logging_period)
+        self._logging_started = []
+        for initial_data_value in initial_data_values:
+            if self._value_is_logging_on(initial_data_value.value):
+                self._logging_started.append(initial_data_value.sample_time)
+            else:
+                self._logging_started.append(None)
 
     def check_write(self):
         """
@@ -67,14 +85,16 @@ class LogFileInitiatorOnPVChange(object):
 
         for timestamp, pv_index, value in changes:
 
-            if self._logging_started is None:
+            logging_start_time = self._logging_started[pv_index]
+            if logging_start_time is None:
                 if self._value_is_logging_on(value):
-                    self._logging_started = timestamp
+                    self._logging_started[pv_index] = timestamp
             else:
                 if not self._value_is_logging_on(value):
-                    time_period = ArchiveTimePeriod(self._logging_started, self._logging_period, finish_time=timestamp)
-                    self._archive_data_file_creator.write(time_period)
-                    self._logging_started = None
+                    logging_period = timedelta(seconds=self._config_and_dependencies[pv_index].config.logging_period)
+                    time_period = ArchiveTimePeriod(logging_start_time, logging_period, finish_time=timestamp)
+                    self._config_and_dependencies[pv_index].archive_data_file_creator.write(time_period)
+                    self._logging_started[pv_index] = None
 
     def _value_is_logging_on(self, value):
         """
