@@ -17,8 +17,6 @@
 Module for initiator for log file creation.
 """
 
-from datetime import timedelta
-
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 
 
@@ -91,7 +89,9 @@ class LogFileInitiatorOnPVChange(object):
                     self._logging_started[pv_index] = timestamp
             else:
                 if not self._value_is_logging_on(value):
-                    logging_period = timedelta(seconds=self._config_and_dependencies[pv_index].config.logging_period)
+                    logging_period_provider = self._config_and_dependencies[pv_index].config.logging_period_provider
+                    logging_period = logging_period_provider.get_logging_period(
+                        self._archive_data_source, logging_start_time)
                     time_period = ArchiveTimePeriod(logging_start_time, logging_period, finish_time=timestamp)
                     self._config_and_dependencies[pv_index].archive_data_file_creator.write(time_period)
                     self._logging_started[pv_index] = None

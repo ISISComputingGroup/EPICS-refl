@@ -1,11 +1,14 @@
-class ArchiverDataStub(object):
+from ArchiverAccess.archiver_data_source import ArchiverDataSource
+
+
+class ArchiverDataStub(ArchiverDataSource):
     def __init__(self,
                  initial_values=None,
                  values=None,
                  initial_archiver_data_value=None,
                  data_changes=None,
                  sample_ids=None):
-
+        super(ArchiverDataStub, self).__init__(None)
         self.from_sample_id = []
         self.to_sample_id = []
         self._initial_values = initial_values

@@ -186,13 +186,29 @@ class TestLogFileInitiator(unittest.TestCase):
         assert_that(logging_time_period.start_time, is_(expected_logging_start_config_2))
         assert_that(logging_time_period.end_time, is_(logging_stop_time_config_2))
 
+    def test_GIVEN_config_with_logging_period_which_is_a_pv_WHEN_log_THEN_logging_period_is_pv_value(self):
+        log_period_in_second = 2.0
+        expected_period = timedelta(seconds=log_period_in_second)
+        pv_name = "myperiodpv"
+        logging_period_pv_values = {pv_name: log_period_in_second}
+        archive_data_source = self._set_up_data_source(initial_pv_values=[1], final_pv_value=0, logging_period_pv_values=logging_period_pv_values)
+        log_file_initiator = self._create_log_file_intiator(archive_data_source, log_period_pvs=[pv_name])
+
+        log_file_initiator.check_write()
+
+        self.log_file_creators[0].write.assert_called_once()
+        logging_time_period = self.log_file_creators[0].write.call_args[0][0]
+        assert_that(logging_time_period.delta, is_(expected_period))
+
+
     def _set_up_data_source(self,
                             initial_pv_values=None,
                             final_pv_value=0,
                             logging_start_times=None,
                             logging_stop_time=datetime(2017, 1, 1, 1, 1, 2),
                             sample_ids=None,
-                            data_changes=None):
+                            data_changes=None,
+                            logging_period_pv_values=None):
 
         if initial_pv_values is None:
             initial_pv_values = [1]
@@ -211,20 +227,28 @@ class TestLogFileInitiator(unittest.TestCase):
             sample_ids = [10, 100]
         archive_data_source = ArchiverDataStub(initial_archiver_data_value=initial_archiver_data_values,
                                               data_changes=data_changes,
-                                              sample_ids=sample_ids)
+                                              sample_ids=sample_ids,
+                                              initial_values=logging_period_pv_values)
         return archive_data_source
 
-    def _create_log_file_intiator(self, archive_data_source, log_period_in_seconds=None):
-        if log_period_in_seconds is None:
+    def _create_log_file_intiator(self, archive_data_source, log_period_in_seconds=None, log_period_pvs=None):
+        if log_period_in_seconds is None and log_period_pvs is None:
             log_period_in_seconds = [1]
-
+        if log_period_pvs is None:
+            log_period_pvs = [None] * len(log_period_in_seconds)
+        if log_period_in_seconds is None:
+            log_period_in_seconds = [None] * len(log_period_pvs)
 
         configs_and_their_dependencies = []
         self.log_file_creators = []
-        for log_period_in_second in log_period_in_seconds:
+        for log_period_in_second, log_period_pv in zip(log_period_in_seconds, log_period_pvs):
             log_file_creator = Mock()
             log_file_creator.write = Mock()
-            config = ConfigBuilder("log_file{start_time}").trigger_pv("my_pv").logging_period(log_period_in_second).build()
+            config_builder = ConfigBuilder("log_file{start_time}").trigger_pv("my_pv")
+            if log_period_in_second is not None:
+                config = config_builder.logging_period(log_period_in_second).build()
+            else:
+                config = config_builder.logging_period_pv(log_period_pv).build()
             configs_and_their_dependencies.append(ConfigAndDependencies(config, log_file_creator))
             self.log_file_creators.append(log_file_creator)
 

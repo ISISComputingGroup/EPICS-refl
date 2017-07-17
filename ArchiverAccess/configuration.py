@@ -16,9 +16,10 @@
 """
 Module for dealing with configuration of the logging.
 """
-
 import re
 from datetime import datetime
+
+from ArchiverAccess.logging_period_providers import LoggingPeriodProviderConst, LoggingPeriodProviderPV
 
 DEFAULT_LOGGING_PERIOD_IN_S = 1
 """If no period is given for the logging then this is the default"""
@@ -46,7 +47,7 @@ class ConfigBuilder(object):
         self.header_lines = []
         self.columns = []
         self._trigger_pv = None
-        self._logging_period_template = DEFAULT_LOGGING_PERIOD_IN_S
+        self._logging_period_provider = LoggingPeriodProviderConst(DEFAULT_LOGGING_PERIOD_IN_S)
 
     def header(self, header_line):
         """
@@ -70,7 +71,7 @@ class ConfigBuilder(object):
         :return: configuration
         """
         return Config(self.filename_template, self.header_lines, self.columns, self._trigger_pv,
-                      self._logging_period_template)
+                      self._logging_period_provider)
 
     def table_column(self, expected_heading, pv_template):
         """
@@ -105,7 +106,7 @@ class ConfigBuilder(object):
 
     def logging_period(self, logging_period):
         """
-        Logging period
+        Constant logging period
 
         Args:
             logging_period: the logging period
@@ -113,8 +114,22 @@ class ConfigBuilder(object):
         Returns: self
 
         """
-        self._logging_period_template = logging_period
+        self._logging_period_provider = LoggingPeriodProviderConst(logging_period)
 
+        return self
+
+    def logging_period_pv(self, logging_period_pv):
+        """
+        Set a logging period depending on the value of a pv
+
+        Args:
+            logging_period_pv: pv to use for the logging period
+
+        Returns: self
+
+        """
+
+        self._logging_period_provider = LoggingPeriodProviderPV(logging_period_pv, DEFAULT_LOGGING_PERIOD_IN_S)
         return self
 
 
@@ -123,7 +138,7 @@ class Config(object):
     A complete valid configuration object for creating a single log file
     """
 
-    def __init__(self, filename, header_lines, columns, trigger_pv, logging_period_template):
+    def __init__(self, filename, header_lines, columns, trigger_pv, logging_period):
         """
         Constructor - this can be built using the builder
 
@@ -132,7 +147,7 @@ class Config(object):
             header_lines: header line templates
             columns: column definition
             trigger_pv: pv on which to trigger a log
-            logging_period_template: template logging period
+            logging_period(ArchiverAccess.logging_period_providers.LoggingPeriodProvider): logging period
         """
 
         self._column_separator = DEFAULT_COULMN_SEPARATOR
@@ -143,7 +158,7 @@ class Config(object):
         self._convert_header(header_lines)
         self._convert_column_headers(columns)
         self._convert_columns(columns)
-        self.logging_period = logging_period_template
+        self.logging_period_provider = logging_period
 
     def _convert_columns(self, columns):
         """
@@ -226,4 +241,3 @@ class Config(object):
                 pv = match.group(1)
                 pvs.add(pv)
         return list(pvs)
-
