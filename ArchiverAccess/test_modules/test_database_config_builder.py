@@ -25,7 +25,7 @@ from ArchiverAccess.database_config_builder import DatabaseConfigBuilder
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub
 
 
-class TestGenerateConfigFromDB(TestCase):
+class TestDatabaseConfigBuilder(TestCase):
 
     def test_GIVEN_ioc_name_WHEN_generate_THEN_configuration_with_correct_file_name_template_is_created(self):
         ioc_name = "myioc"
@@ -313,5 +313,5 @@ class TestGenerateConfigFromDB(TestCase):
 
         data = {ioc_name: logging_data}
         ioc_data_source = Mock()
-        ioc_data_source.read = Mock(return_value=data)
+        ioc_data_source.get_pv_logging_info = Mock(return_value=data)
         return ioc_data_source

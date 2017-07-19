@@ -73,8 +73,8 @@ class ConfigBuilder(object):
 
         """
         logging_period_provider = LoggingPeriodProviderConst(DEFAULT_LOGGING_PERIOD_IN_S)
-        if self._logging_period_provider is None:
-            logging_period_provider = LoggingPeriodProviderConst(DEFAULT_LOGGING_PERIOD_IN_S)
+        if self._logging_period_provider is not None:
+            logging_period_provider = self._logging_period_provider
         return Config(self._filename_template, self._header_lines, self._columns, self._trigger_pv,
                       logging_period_provider)
 

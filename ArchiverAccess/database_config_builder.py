@@ -64,7 +64,7 @@ class DatabaseConfigBuilder(object):
         """
 
         configurations = []
-        for ioc_name, logging_items in self._ioc_data_source.read().iteritems():
+        for ioc_name, logging_items in self._ioc_data_source.get_pv_logging_info().iteritems():
             file_name_template = "{ioc_name}_{{start_time}}".format(ioc_name=ioc_name)
             config_builder = self._create_config_for_ioc(file_name_template, logging_items)
 
