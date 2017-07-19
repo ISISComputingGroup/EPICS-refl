@@ -246,7 +246,7 @@ class TestLogFileInitiator(unittest.TestCase):
             log_file_creator.write = Mock()
             config_builder = ConfigBuilder("log_file{start_time}").trigger_pv("my_pv")
             if log_period_in_second is not None:
-                config = config_builder.logging_period(log_period_in_second).build()
+                config = config_builder.logging_period_seconds(log_period_in_second).build()
             else:
                 config = config_builder.logging_period_pv(log_period_pv).build()
             configs_and_their_dependencies.append(ConfigAndDependencies(config, log_file_creator))

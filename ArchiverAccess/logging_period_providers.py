@@ -104,11 +104,11 @@ class LoggingPeriodProviderPV(LoggingPeriodProvider):
                 return timedelta(seconds=logging_periods[0])
             else:
                 print_and_log("Error logging period to small, from {0} got value '{1}'"
-                              .format(self._logging_period_pv, logging_periods))
+                              .format(self._logging_period_pv, logging_periods), src="ArchiverAccess")
                 return self._period_on_error
         except DatabaseError:
             return self._period_on_error
         except (TypeError, ValueError, IndexError):
             print_and_log("Error when getting logging period from {0} got value '{1}'"
-                          .format(self._logging_period_pv, logging_periods))
+                          .format(self._logging_period_pv, logging_periods), src="ArchiverAccess")
             return self._period_on_error
