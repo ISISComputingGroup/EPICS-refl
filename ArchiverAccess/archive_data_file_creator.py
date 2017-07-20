@@ -21,6 +21,7 @@ import os
 from string import Formatter
 
 from ArchiverAccess.periodic_data_generator import PeriodicDataGenerator
+from server_common.utilities import print_and_log
 
 FORMATTER_NOT_APPLIED_MESSAGE = " (formatter not applied: `{0}`)"
 """Message when a formatter can not be applied when writing a pv"""
@@ -42,7 +43,7 @@ class TemplateReplacer(object):
         self._pv_values = pv_values
         self._replacements = {}
         if time_period is not None:
-            self._replacements["start_time"] = time_period.start_time.isoformat("T")
+            self._replacements["start_time"] = time_period.start_time.strftime("%Y-%m-%dT%H_%M_%S")
         if time is not None:
             self._replacements["time"] = time.isoformat("T")
 
@@ -66,22 +67,38 @@ class TemplateReplacer(object):
             return template_no_format.format(*self._pv_values, **self._replacements)
 
 
+def mkdir_for_file(path):
+    """
+    Make the directory tree for the file don't error if it already exists
+    Args:
+        path: path to create directory structure for
+
+    Returns: nothing
+
+    """
+    abspath = os.path.abspath(os.path.dirname(path))
+    if not os.path.isdir(abspath):
+        os.makedirs(abspath)
+
+
 class ArchiveDataFileCreator(object):
     """
     Archive data file creator creates the log file based on the configuration.
     """
 
-    def __init__(self, config, archiver_data_source, file_access_class=file):
+    def __init__(self, config, archiver_data_source, file_access_class=file, mkdir_for_file_fn=mkdir_for_file):
         """
         Constructor
         Args:
             config(ArchiverAccess.configuration.Config):  configuration for the archive data file to create
-
+            archiver_data_source: archiver data source
             file_access_class: file like object that can be written to
+            mkdir_for_file_fn: function for creating the directories needed
         """
         self._config = config
         self._file_access_class = file_access_class
         self._archiver_data_source = archiver_data_source
+        self._mkdir_for_file_fn = mkdir_for_file_fn
 
     def write(self, time_period):
         """
@@ -99,15 +116,17 @@ class ArchiveDataFileCreator(object):
         periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
 
         filename = template_replacer.replace(self._config.filename)
-        with self._file_access_class(filename) as f:
+        print_and_log("Writing log file '{0}'".format(filename))
+        self._mkdir_for_file_fn(filename)
+        with self._file_access_class(filename, mode="w") as f:
             for header_template in self._config.header:
                 header_line = template_replacer.replace(header_template)
-                f.write("{0}{1}".format(header_line, os.linesep))
+                f.write("{0}\n".format(header_line))
 
-            f.write("{0}{1}".format(self._config.column_headers, os.linesep))
+            f.write("{0}\n".format(self._config.column_headers))
 
             periodic_data = periodic_data_generator.get_generator(self._config.pv_names_in_columns, time_period)
             for time, values in periodic_data:
                 table_template_replacer = TemplateReplacer(values, time=time)
                 table_line = table_template_replacer.replace(self._config.table_line)
-                f.write("{0}{1}".format(table_line, os.linesep))
+                f.write("{0}\n".format(table_line))

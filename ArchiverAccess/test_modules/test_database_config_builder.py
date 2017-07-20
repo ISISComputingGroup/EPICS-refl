@@ -13,14 +13,14 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
+import os
 from unittest import TestCase
 
 from datetime import timedelta
 from hamcrest import *
 from mock import Mock
 
-from ArchiverAccess.configuration import DEFAULT_LOGGING_PERIOD_IN_S
+from ArchiverAccess.configuration import DEFAULT_LOGGING_PERIOD_IN_S, DEFAULT_LOG_PATH
 from ArchiverAccess.database_config_builder import DatabaseConfigBuilder
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub
 
@@ -29,7 +29,7 @@ class TestDatabaseConfigBuilder(TestCase):
 
     def test_GIVEN_ioc_name_WHEN_generate_THEN_configuration_with_correct_file_name_template_is_created(self):
         ioc_name = "myioc"
-        expected_filename_template = "myioc_{start_time}"
+        expected_filename_template = os.path.join(DEFAULT_LOG_PATH, "myioc\myioc_{start_time}.dat")
         ioc_data_source = self._create_ioc_data_source(ioc_name=ioc_name)
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
 
@@ -50,6 +50,7 @@ class TestDatabaseConfigBuilder(TestCase):
 
     def test_GIVEN_templated_header_line_in_database_WHEN_generate_THEN_configuration_is_created(self):
         pv_name = "pv:name"
+        expected_pv_name = pv_name + ".VAL"
         header_line = "Header line with pv {this_pv}"
         expected_header_line = header_line.format(this_pv="{0}")
         ioc_data_source = self._create_ioc_data_source(header_lines=[header_line], header_pvs=[pv_name])
@@ -59,7 +60,7 @@ class TestDatabaseConfigBuilder(TestCase):
 
         assert_that(config, has_length(1))
         assert_that(config[0].header, is_([expected_header_line]))
-        assert_that(config[0].pv_names_in_header, is_([pv_name]))
+        assert_that(config[0].pv_names_in_header, is_([expected_pv_name]))
 
     def test_GIVEN_multiple_header_line_in_database_WHEN_generate_THEN_configuration_is_created(self):
         expected_header_lines = ["line 1", "line2", "line3"]
@@ -87,7 +88,7 @@ class TestDatabaseConfigBuilder(TestCase):
         assert_that(config[0].header, is_(expected_header_lines))
 
     def test_GIVEN_trigger_pv_only_marked_WHEN_generate_THEN_configuration_has_trigger_pv_in(self):
-        expected_trigger_pv = "inst:triggerpv"
+        expected_trigger_pv = "inst:triggerpv.val"
         ioc_data_source = self._create_ioc_data_source(trigger_pv=expected_trigger_pv, trigger_pv_template="")
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
 
@@ -96,7 +97,7 @@ class TestDatabaseConfigBuilder(TestCase):
         assert_that(config[0].trigger_pv, is_(expected_trigger_pv))
 
     def test_GIVEN_trigger_pv_is_templated_WHEN_generate_THEN_configuration_has_trigger_pv_in(self):
-        expected_trigger_pv = "inst:triggerpv"
+        expected_trigger_pv = "inst:triggerpv.val"
         ioc_data_source = self._create_ioc_data_source(trigger_pv=expected_trigger_pv)
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
 
@@ -105,8 +106,9 @@ class TestDatabaseConfigBuilder(TestCase):
         assert_that(config[0].trigger_pv, is_(expected_trigger_pv))
 
     def test_GIVEN_trigger_pv_is_explicit_WHEN_generate_THEN_configuration_has_trigger_pv_in(self):
-        expected_trigger_pv = "diff:triggerpv"
-        ioc_data_source = self._create_ioc_data_source(trigger_pv="blah", trigger_pv_template=expected_trigger_pv)
+        trigger_pv = "diff:triggerpv"
+        expected_trigger_pv = trigger_pv + ".VAL"
+        ioc_data_source = self._create_ioc_data_source(trigger_pv="blah", trigger_pv_template=trigger_pv)
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
@@ -173,8 +175,9 @@ class TestDatabaseConfigBuilder(TestCase):
 
     def test_GIVEN_column_with_only_header_in_database_WHEN_generate_THEN_configuration_has_assoicated_pv_and_header(self):
         expected_column_header = "column header"
-        expected_pv_name = "pv:name"
-        ioc_data_source = self._create_ioc_data_source(column_headers=[(expected_pv_name, 1, expected_column_header)])
+        pv_name = "pv:name"
+        expected_pv_name = pv_name + ".VAL"
+        ioc_data_source = self._create_ioc_data_source(column_headers=[(pv_name, 1, expected_column_header)])
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
@@ -185,9 +188,10 @@ class TestDatabaseConfigBuilder(TestCase):
         assert_that(config[0].table_line, contains_string("{0}"))
 
     def test_GIVEN_column_with_template_value_no_header_in_database_WHEN_generate_THEN_configuration_has_correct_pv_and_header_is_template(self):
-        expected_pv_name = "pv:name"
-        template = "{" + expected_pv_name + "}"
-        ioc_data_source = self._create_ioc_data_source(column_templates=[(expected_pv_name, 1, template)])
+        pv_name = "pv:name"
+        expected_pv_name = pv_name + ".VAL"
+        template = "{" + pv_name + "}"
+        ioc_data_source = self._create_ioc_data_source(column_templates=[(pv_name, 1, template)])
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
@@ -198,9 +202,10 @@ class TestDatabaseConfigBuilder(TestCase):
         assert_that(config[0].table_line, contains_string("{0}"))
 
     def test_GIVEN_column_with_empty_value_no_header_in_database_WHEN_generate_THEN_configuration_has_correct_pv_and_header_is_pv_name(self):
-        expected_pv_name = "pv:name"
-        expected_column_header = expected_pv_name
-        ioc_data_source = self._create_ioc_data_source(column_templates=[(expected_pv_name, 1, "")])
+        pv_name = "pv:name"
+        expected_pv_name = pv_name + ".VAL"
+        expected_column_header = pv_name
+        ioc_data_source = self._create_ioc_data_source(column_templates=[(pv_name, 1, "")])
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
@@ -211,10 +216,11 @@ class TestDatabaseConfigBuilder(TestCase):
         assert_that(config[0].table_line, contains_string("{0}"))
 
     def test_GIVEN_column_with_template_value_and_header_in_database_WHEN_generate_THEN_configuration_has_correct_pv_and_header(self):
-        expected_pv_name = "pv:name"
+        pv_name = "pv:name"
+        expected_pv_name = pv_name + ".VAL"
         expected_column_header = "column name"
         ioc_data_source = self._create_ioc_data_source(
-            column_templates=[("blah", 1, "{" + expected_pv_name + "}")],
+            column_templates=[("blah", 1, "{" + pv_name + "}")],
             column_headers=[("blah", 1, expected_column_header)])
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
 
@@ -227,7 +233,7 @@ class TestDatabaseConfigBuilder(TestCase):
         assert_that(config[0].table_line, contains_string("{0}"))
 
     def test_GIVEN_columns_with_multiple_template_values_and_header_some_with_both_some_with_one_in_database_WHEN_generate_THEN_configuration_has_correct_pv_and_header(self):
-        expected_pv_names = ["pv:name0", "pv:name1", "pv:name2", "pv:name3", "pv:name4"]
+        expected_pv_names = ["pv:name0.val", "pv:name1.val", "pv:name2.val", "pv:name3.val", "pv:name4.val"]
         expected_column_headers = ["column name0", "{" + expected_pv_names[1] + "}", "column_name2", "column_name3", "column_name4"]
 
         ioc_data_source = self._create_ioc_data_source(

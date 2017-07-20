@@ -16,11 +16,15 @@
 """
 Module for dealing with configuration of the logging.
 """
+import os
 import re
 from datetime import datetime
 
 from ArchiverAccess.logging_period_providers import LoggingPeriodProviderConst, LoggingPeriodProviderPV
 from server_common.utilities import print_and_log
+
+DEFAULT_LOG_PATH = "C:\logs"
+"""Default path where logs should be writen"""
 
 DEFAULT_LOGGING_PERIOD_IN_S = 1
 """If no period is given for the logging then this is the default"""
@@ -37,14 +41,19 @@ class ConfigBuilder(object):
     Configuration builder a way of creating a config step by step
     """
 
-    def __init__(self, filename_template):
+    def __init__(self, filename_template, base_path=DEFAULT_LOG_PATH, default_field="VAL"):
         """
         Constuctor
-        :param filename_template: the filename template to use; template that are replaced are `{xxx}` where xxx can be
-         start_time - for start date time of log
+        Args:
+            filename_template: the filename template to use; template that are replaced are `{xxx}` where xxx can be
+                 start_time - for start date time of log
+            base_path: the base path into which files should be placed
+            default_field: the field appended to pvs without field; blank for don't add a field
         """
+
+        self._default_field = default_field
         self._create_logs_from = datetime.now()
-        self._filename_template = filename_template
+        self._filename_template = os.path.join(base_path, filename_template)
         self._header_lines = []
         self._columns = []
         self._trigger_pv = None
@@ -76,7 +85,7 @@ class ConfigBuilder(object):
         if self._logging_period_provider is not None:
             logging_period_provider = self._logging_period_provider
         return Config(self._filename_template, self._header_lines, self._columns, self._trigger_pv,
-                      logging_period_provider)
+                      logging_period_provider, default_field=self._default_field)
 
     def table_column(self, heading, pv_template):
         """
@@ -145,7 +154,7 @@ class Config(object):
     A complete valid configuration object for creating a single log file
     """
 
-    def __init__(self, filename, header_lines, columns, trigger_pv, logging_period_provider):
+    def __init__(self, filename, header_lines, columns, trigger_pv, logging_period_provider, default_field="VAL"):
         """
         Constructor - this can be built using the builder
 
@@ -156,11 +165,17 @@ class Config(object):
             trigger_pv: pv on which to trigger a log
             logging_period_provider(ArchiverAccess.logging_period_providers.LoggingPeriodProvider):
                 an object which will supply the logging period
+            default_field: field appended to PVs without a field
         """
 
         self._column_separator = DEFAULT_COLUMN_SEPARATOR
 
-        self.trigger_pv = trigger_pv
+        if default_field is None or default_field == "":
+            self._default_field = default_field
+        else:
+            self._default_field = "." + default_field
+
+        self.trigger_pv = self._add_default_field(trigger_pv)
         self.filename = filename
 
         self._convert_header(header_lines)
@@ -179,9 +194,11 @@ class Config(object):
 
         """
         line_in_log_format = self._column_separator.join([str(x["pv_template"]) for x in columns])
-        self.pv_names_in_columns = self._generate_pv_list([line_in_log_format])
-        formatted_columns = self._convert_log_formats_to_python_formats(line_in_log_format, self.pv_names_in_columns)
+        pv_names_in_columns = self._generate_pv_list([line_in_log_format])
+        formatted_columns = self._convert_log_formats_to_python_formats(line_in_log_format, pv_names_in_columns)
         self.table_line = "{time}" + self._column_separator + formatted_columns
+
+        self.pv_names_in_columns = self._add_all_default_fields(pv_names_in_columns)
 
     def _convert_column_headers(self, columns):
         """
@@ -205,11 +222,13 @@ class Config(object):
         Returns:
 
         """
-        self.pv_names_in_header = self._generate_pv_list(header_lines)
+        pv_names_in_header = self._generate_pv_list(header_lines)
         self.header = []
         for line in header_lines:
-            final_line = self._convert_log_formats_to_python_formats(line, self.pv_names_in_header)
+            final_line = self._convert_log_formats_to_python_formats(line, pv_names_in_header)
             self.header.append(final_line)
+
+        self.pv_names_in_header = self._add_all_default_fields(pv_names_in_header)
 
     def _convert_log_formats_to_python_formats(self, line, pvs):
         """
@@ -250,3 +269,20 @@ class Config(object):
                 pv = match.group(1)
                 pvs.add(pv)
         return list(pvs)
+
+    def _add_default_field(self, pv_name):
+        if pv_name is None or "." in pv_name:
+            return pv_name
+        return "{0}{1}".format(pv_name, self._default_field)
+
+    def _add_all_default_fields(self, pv_names):
+        """
+        Add default field to pvs if they don't have fields.
+
+        Args:
+            pv_names: iterable pv names
+
+        Returns: names with fields added
+
+        """
+        return [self._add_default_field(pv) for pv in pv_names]

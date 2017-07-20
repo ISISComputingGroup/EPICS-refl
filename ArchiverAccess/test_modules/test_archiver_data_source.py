@@ -32,6 +32,7 @@ class SQLAbstractionStub(object):
         self._initial_values_index = -1
         self.initial_values = []
         self.changes = []
+        self. querry_parms= []
 
     def add_initial_value(self, severity_id=None, status_id=None, num_val=None, float_val=None, str_val=None, array_val=None, sample_time=None):
         archiver_data_value = ArchiverDataValue([severity_id, status_id, num_val, float_val, str_val, array_val, sample_time])
@@ -39,11 +40,12 @@ class SQLAbstractionStub(object):
 
     def add_changes(self, smpl_time, channel_name, severity_id=None, status_id=None, num_val=None, float_val=None, str_val=None, array_val=None):
         archiver_data_value = ArchiverDataValue([severity_id, status_id, num_val, float_val, str_val, array_val, smpl_time])
-        change = [channel_name, smpl_time]
+        change = [channel_name]
         change.extend(archiver_data_value.get_as_array())
         self.changes.append(change)
 
-    def query(self, sql, param):
+    def query(self, sql, param=None):
+        self.querry_parms.append(param)
         self._initial_values_index += 1
         return self.initial_values[self._initial_values_index]
 
@@ -122,7 +124,7 @@ class TestArchiverDataSource(unittest.TestCase):
         self.mysql_abstraction_layer.add_changes(smpl_time=expected_time_stamp, float_val=expected_value, channel_name=channel_name)
 
         changes = []
-        for change in self._data_source.changes_generator((channel_name,), ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5), timedelta(seconds=1), 10)):
+        for change in self._data_source.changes_generator([channel_name,], ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5), timedelta(seconds=1), 10)):
             changes.append(change)
 
         assert_that(changes, is_([(expected_time_stamp, 0, expected_value)]))
@@ -142,7 +144,7 @@ class TestArchiverDataSource(unittest.TestCase):
                                                  channel_name=channel_name2)
 
         changes = []
-        for change in self._data_source.changes_generator((channel_name, channel_name2),  ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5), timedelta(seconds=1), 10)):
+        for change in self._data_source.changes_generator([channel_name, channel_name2],  ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5), timedelta(seconds=1), 10)):
             changes.append(change)
 
         assert_that(changes, is_([(expected_time_stamp, 0, expected_value),
@@ -154,7 +156,7 @@ class TestArchiverDataSource(unittest.TestCase):
         self.set_up_data_source()
 
         changes = []
-        for change in self._data_source.changes_generator((channel_name, channel_name2), ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5), timedelta(seconds=1), 10)):
+        for change in self._data_source.changes_generator([channel_name, channel_name2], ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5), timedelta(seconds=1), 10)):
             changes.append(change)
 
         assert_that(changes, is_(empty()))
@@ -164,6 +166,76 @@ class TestArchiverDataSource(unittest.TestCase):
         self.set_up_data_source()
         self.mysql_abstraction_layer.query_returning_cursor = Mock(side_effect=DatabaseError("Problems with accessing the database"))
 
-        gen = self._data_source.changes_generator((channel_name,), ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5), timedelta(seconds=1), 10))
+        gen = self._data_source.changes_generator([channel_name,], ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5), timedelta(seconds=1), 10))
 
         assert_that(calling(gen.next), raises(DatabaseError))
+
+    def test_GIVEN_nothing_WHEN_get_sample_id_THEN_latest_sample_id_returned(self):
+        self.set_up_data_source()
+        expected_value = 1020
+        data_row = [1020]
+        self.mysql_abstraction_layer.initial_values= [[data_row]]
+
+        result = self._data_source.sample_id()
+
+        assert_that(result, is_(expected_value))
+        assert_that(self.mysql_abstraction_layer.querry_parms[0], is_(none()))
+
+    def test_GIVEN_time_WHEN_get_sample_id_THEN_latest_sample_id_returned(self):
+        self.set_up_data_source()
+        expected_value = 1020
+        data_row = [1020]
+        expected_datetime = datetime(2000, 1, 2, 3, 4)
+        self.mysql_abstraction_layer.initial_values = [[data_row]]
+
+        result = self._data_source.sample_id(expected_datetime)
+
+        assert_that(result, is_(expected_value))
+        assert_that(self.mysql_abstraction_layer.querry_parms[0], is_((expected_datetime,)))
+
+    def test_GIVEN_no_result_WHEN_get_sample_id_THEN_sample_id_is_0(self):
+        self.set_up_data_source()
+        expected_value = 0
+        self.mysql_abstraction_layer.initial_values = [[]]
+
+        result = self._data_source.sample_id()
+
+        assert_that(result, is_(expected_value))
+
+    def test_GIVEN_single_integer_pv_requested_WHEN_get_changes_for_logging_THEN_value_returned(self):
+        channel_name = "channel name"
+        self.set_up_data_source()
+        expected_value = 2.1
+        expected_time_stamp = datetime(2010, 9, 8, 2, 3, 4)
+        self.mysql_abstraction_layer.add_changes(smpl_time=expected_time_stamp, float_val=expected_value, channel_name=channel_name)
+
+        changes = []
+        for change in self._data_source.logging_changes_for_sample_id_generator([channel_name,], 100, 200):
+            changes.append(change)
+
+        assert_that(changes, is_([(expected_time_stamp, 0, expected_value)]))
+
+    def test_GIVEN_no_pvs_requested_WHEN_get_changes_for_logging_THEN_no_values_returned(self):
+        self.set_up_data_source()
+        self.mysql_abstraction_layer.query_returning_cursor = Mock()
+
+
+        changes = []
+        for change in self._data_source.logging_changes_for_sample_id_generator([], 100, 200):
+            changes.append(change)
+
+        self.mysql_abstraction_layer.query_returning_cursor.assert_not_called()
+        assert_that(changes, is_([]))
+
+
+    def test_GIVEN_no_pvs_requested_WHEN_get_changes_THEN_no_values_returned(self):
+        self.set_up_data_source()
+        self.mysql_abstraction_layer.query_returning_cursor = Mock()
+
+
+        changes = []
+        for change in self._data_source.changes_generator([], ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5), timedelta(seconds=1), 10)):
+            changes.append(change)
+
+        self.mysql_abstraction_layer.query_returning_cursor.assert_not_called()
+        assert_that(changes, is_([]))

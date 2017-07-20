@@ -160,7 +160,8 @@ class SQLAbstraction(object):
         """
         SQLAbstraction._execute_command(self, command, False, bound_variables)
 
-    def generate_in_binding(self, parameter_count):
+    @staticmethod
+    def generate_in_binding(parameter_count):
         """
         Generate a list of python sql bindings for use in a sql in clause. One binding for each parameter.
         i.e. %s, %s, %s for 3 parameters.

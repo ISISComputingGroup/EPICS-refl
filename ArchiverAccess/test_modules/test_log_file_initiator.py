@@ -200,7 +200,6 @@ class TestLogFileInitiator(unittest.TestCase):
         logging_time_period = self.log_file_creators[0].write.call_args[0][0]
         assert_that(logging_time_period.delta, is_(expected_period))
 
-
     def _set_up_data_source(self,
                             initial_pv_values=None,
                             final_pv_value=0,

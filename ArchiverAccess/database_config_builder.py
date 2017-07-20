@@ -1,5 +1,5 @@
 # This file is part of the ISIS IBEX application.
-# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# Copyright (C) 2017 Science & Technology Facilities Council.
 # All rights reserved.
 #
 # This program is distributed in the hope that it will be useful.
@@ -16,9 +16,10 @@
 """
 Module for taking the configuration from the ioc data source and creating a configuration.
 """
+import os
 
 from ArchiverAccess.configuration import ConfigBuilder
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log, SEVERITY
 
 HEADER_ANNOTATION_PREFIX = "LOG_header"
 """The annotation prefix for a header line, the end is the header line number"""
@@ -65,7 +66,10 @@ class DatabaseConfigBuilder(object):
 
         configurations = []
         for ioc_name, logging_items in self._ioc_data_source.get_pv_logging_info().iteritems():
-            file_name_template = "{ioc_name}_{{start_time}}".format(ioc_name=ioc_name)
+            print_and_log("Reading config for ioc: {ioc}".format(ioc=ioc_name),
+                          severity=SEVERITY.INFO, src="ArchiverAccess")
+            file_name_template = "{ioc_name}_{{start_time}}.dat".format(ioc_name=ioc_name)
+            file_name_template = os.path.join(ioc_name, file_name_template)
             config_builder = self._create_config_for_ioc(file_name_template, logging_items)
 
             configurations.append(config_builder.build())

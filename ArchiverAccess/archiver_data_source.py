@@ -42,7 +42,8 @@ class ArchiverDataValue:
             self.severity_id, self.status_id, self.num_val, self.float_val, self.str_val, self.array_val, \
                 self.sample_time = data_base_query_list
         else:
-            self.severity_id = self.status_id = self.num_val = self.float_val = self.array_val = self.str_val = None
+            self.severity_id = self.status_id = self.num_val = self.float_val = self.array_val = self.str_val \
+                = self.sample_time = None
 
         self.retrieval_error = retrieval_error
 
@@ -76,8 +77,11 @@ class ArchiverDataValue:
         return [self.severity_id, self.status_id, self.num_val, self.float_val, self.str_val, self.array_val,
                 self.sample_time]
 
+ARCHIVER_DATA_VALUE_QUERY = "severity_id, status_id, num_val, float_val, str_val, array_val, smpl_time"
+"""Field which are part of the archiver data value query string"""
+
 INITIAL_VALUES_QUERY = """
-    SELECT severity_id, status_id, num_val, float_val, str_val, array_val, smpl_time
+    SELECT {0} 
       FROM archive.sample 
      WHERE sample_id = (
         SELECT max(s.sample_id)
@@ -88,20 +92,20 @@ INITIAL_VALUES_QUERY = """
                  WHERE name = %s)
            AND s.smpl_time <= %s
      )
-"""
+""".format(ARCHIVER_DATA_VALUE_QUERY)
 """ SQL Query to return the values at a specific time by lookking for the latest sampled value for the 
 pv before the given time"""
 
 GET_CHANGES_QUERY_FOR_ALL_TIME = """
-    SELECT c.name, s.smpl_time, s.severity_id, s.status_id, s.num_val, s.float_val, s.str_val, s.array_val
+    SELECT c.name, {arc_data_query}
       FROM archive.sample s
       JOIN archive.channel c ON c.channel_id = s.channel_id
     
      WHERE s.channel_id in (
             SELECT channel_id
               FROM archive.channel c
-             WHERE name in ({0}))
-"""
+             WHERE name in ({in_clause}))
+""".format(arc_data_query=ARCHIVER_DATA_VALUE_QUERY, in_clause="{0}")
 
 GET_CHANGES_QUERY = GET_CHANGES_QUERY_FOR_ALL_TIME + """
 
@@ -185,11 +189,11 @@ class ArchiverDataSource(object):
             generator which gives tuple of timestamp, pv index and new value
 
         """
-        query_with_correct_number_of_bound_ins = GET_CHANGES_QUERY.format(", ".join(["%s"] * len(pv_names)))
-        changes_cursor = self._sql_abstraction_layer.query_returning_cursor(
-            query_with_correct_number_of_bound_ins, pv_names + (time_period.start_time, time_period.end_time))
-        for values in self._changes_generator(pv_names, changes_cursor):
-            yield values
+        query = GET_CHANGES_QUERY
+        result_bounds = [time_period.start_time, time_period.end_time]
+
+        for change in self._changes_generator(query, pv_names, result_bounds):
+            yield change
 
     def sample_id(self, time=None):
         """
@@ -205,7 +209,7 @@ class ArchiverDataSource(object):
         else:
             sample_id_result = self._sql_abstraction_layer.query(GET_SAMPLE_ID_NOW)
         if len(sample_id_result) == 1:
-            sample_id = sample_id_result[0]
+            sample_id = sample_id_result[0][0]
         else:
             sample_id = 0
 
@@ -224,20 +228,38 @@ class ArchiverDataSource(object):
             generator which gives tuple of timestamp, pv index and new value
 
         """
-        sql_in_binding = self._sql_abstraction_layer.generate_in_binding(len(pv_names))
-        query_with_correct_number_of_bound_ins = GET_CHANGES_QUERY_FOR_SAMPLE_ID_PERIOD.format(sql_in_binding)
-        changes_cursor = self._sql_abstraction_layer.query_returning_cursor(
-            query_with_correct_number_of_bound_ins,
-            pv_names + (from_sample_id, to_sample_id))
-        for values in self._changes_generator(pv_names, changes_cursor):
-            yield values
+        query = GET_CHANGES_QUERY_FOR_SAMPLE_ID_PERIOD
+        result_bounds = [from_sample_id, to_sample_id]
 
-    def _changes_generator(self, pv_names, changes_cursor):
+        for change in self._changes_generator(query, pv_names, result_bounds):
+            yield change
+
+    def _changes_generator(self, query, pv_names, result_bounds):
+        """
+        Generate changes based on the query, with pv names and bounds on that query
+        Args:
+            query: query template
+            pv_names: pv name to bind as an in expression into the template
+            result_bounds: the results bound, i.e. smple ids or time
+
+        Returns: generator for changes
+
+        """
+
+        pv_name_count = len(pv_names)
+        if pv_name_count == 0:
+            raise StopIteration()
+        sql_in_binding = SQLAbstraction.generate_in_binding(pv_name_count)
+        query_with_correct_number_of_bound_ins = query.format(sql_in_binding)
+
+        changes_cursor = self._sql_abstraction_layer.query_returning_cursor(
+            query_with_correct_number_of_bound_ins, pv_names + result_bounds)
+
         for database_return in changes_cursor:
-            value = ArchiverDataValue(database_return[2:])
+            value = ArchiverDataValue(database_return[1:])
             channel_name = database_return[0]
             index = pv_names.index(channel_name)
-            time_stamp = database_return[1]
+            time_stamp = value.sample_time
             yield(time_stamp, index, value.value)
 
 

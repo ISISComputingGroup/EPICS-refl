@@ -13,7 +13,7 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
+import os
 from datetime import datetime, timedelta
 from unittest import TestCase
 
@@ -38,7 +38,12 @@ class TestlogFileCreator(TestCase):
             initial_values = {}
         archiver_data_source = ArchiverDataStub(initial_values, values)
         self.time_period = time_period
-        return ArchiveDataFileCreator(config, archiver_data_source, FileStub)
+        self.created_file_path = ""
+
+        def mkdir_for_file_stub(path):
+            self.created_file_path = path
+
+        return ArchiveDataFileCreator(config, archiver_data_source, FileStub, mkdir_for_file_fn=mkdir_for_file_stub)
 
     def test_GIVEN_config_is_just_constant_header_line_WHEN_write_THEN_values_are_written_to_file(self):
         expected_header_line = "expected_header_line a line of goodness :-)"
@@ -51,7 +56,7 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_contains_plain_filename_WHEN_write_THEN_file_is_opened(self):
         expected_filename = "filename.txt"
-        config = ConfigBuilder(expected_filename).build()
+        config = ConfigBuilder(expected_filename, base_path="").build()
         file_creator = self._archive_data_file_creator_setup(config)
 
         file_creator.write(self.time_period)
@@ -59,8 +64,8 @@ class TestlogFileCreator(TestCase):
         assert_that(FileStub.filename, is_(expected_filename))
 
     def test_GIVEN_config_contains_templated_filename_WHEN_write_THEN_filename_is_correct(self):
-        filename_template = "c:\log\:filename{start_time}.txt"
-        expected_filename = filename_template.format(start_time="2017-06-10T12:11:10")
+        filename_template = r"c:\log\filename{start_time}.txt"
+        expected_filename = filename_template.format(start_time="2017-06-10T12_11_10")
         time_period = ArchiveTimePeriod(datetime(2017, 06, 10, 12, 11, 10, 7), timedelta(seconds=10), 10)
 
         config = ConfigBuilder(filename_template).build()
@@ -70,11 +75,21 @@ class TestlogFileCreator(TestCase):
 
         assert_that(FileStub.filename, is_(expected_filename))
 
+    def test_GIVEN_config_contains_plain_filename_WHEN_write_THEN_directory_is_created(self):
+        expected_filename = "filename.txt"
+        expected_base_parth = r"c:\blah"
+        config = ConfigBuilder(expected_filename, base_path=expected_base_parth).build()
+        file_creator = self._archive_data_file_creator_setup(config)
+
+        file_creator.write(self.time_period)
+
+        assert_that(self.created_file_path, is_(os.path.join(expected_base_parth, expected_filename)))
+
     def test_GIVEN_config_is_line_with_pv_in_WHEN_write_THEN_pv_is_replaced_with_value_at_time(self):
         expected_pv_value = 12.9
-        pvname = "pvname"
+        pvname = "pvname.VAL"
         template_header_line = "expected_header_line a line {{{0}}}".format(pvname)
-        expected_header_line = template_header_line.format(pvname=expected_pv_value)
+        expected_header_line = "expected_header_line a line " + str(expected_pv_value)
 
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
@@ -85,7 +100,7 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_is_line_with_realistic_pv_in_WHEN_write_THEN_pv_is_replaced_with_value_at_time(self):
         expected_pv_value = 12.9
-        pvname = "IN:INST:IOC_01:01:VALUE"
+        pvname = "IN:INST:IOC_01:01:VALUE.VAL"
         template_header_line = "expected_header_line a line {{{0}}}".format(pvname)
         expected_header_line = "expected_header_line a line 12.9"
 
@@ -97,7 +112,7 @@ class TestlogFileCreator(TestCase):
         assert_that(FileStub.file_contents[0], is_(expected_header_line))
 
     def test_GIVEN_multiple_line_in_header_with_pvs_in_WHEN_write_THEN_pvs_are_replaced_with_value_at_time(self):
-        values = {'pvname1': 12, 'pvname2':"hi"}
+        values = {'pvname1.VAL': 12, 'pvname2.VAL': "hi"}
         template_header_line1 = "expected_header_line a line {pvname1}"
         expected_header_line1 = template_header_line1.format(pvname1=12)
         template_header_line2 = "expected_header_line a line {pvname1} and {pvname2}"
@@ -112,7 +127,7 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_is_header_with_pv_with_formatting_WHEN_write_THEN_pv_is_replaced_with_value_at_time(self):
         expected_pv_value = 12.9
-        pvname = "pvname"
+        pvname = "pvname.VAL"
         template_header_line = "expected_header_line a line {{{0}|.3f}}".format(pvname)
         expected_header_line = "expected_header_line a line 12.900"
 
@@ -125,7 +140,7 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_is_header_with_pv_with_formatting_error_WHEN_write_THEN_pv_is_replaced_with_value_no_formatting(self):
         expected_pv_value = "disconnected"
-        pvname = "pvname"
+        pvname = "pvname.VAL"
         template_header_line = "expected_header_line a line {{{0}|.3f}}".format(pvname)
         expected_header_line = "expected_header_line a line disconnected{0}"\
             .format(FORMATTER_NOT_APPLIED_MESSAGE
@@ -168,7 +183,7 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_with_1_column_and_initial_data_WHEN_write_THEN_table_has_initial_data(self):
         time_period = ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10)
-        pvname = "pvname"
+        pvname = "pvname.VAL"
         initial_value = 2.91
         expected_line = "2017-01-01T01:02:03\t{0}".format(initial_value)
         config = ConfigBuilder("filename.txt")\
@@ -182,8 +197,11 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_with_3_column_and_initial_data_WHEN_write_THEN_table_has_initial_data(self):
         time_period = ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10)
-        initial_values = {"pvname1": 2.91, "pvname2": "hi", "pvname3": 5, "time": ""}
-        expected_line = "{0}\t{pvname1}\t{pvname2}\t{pvname3}".format("2017-01-01T01:02:03", **initial_values)
+        val1 = 2.91
+        val2 = "hi"
+        val3 = 5
+        initial_values = {"pvname1.VAL": val1, "pvname2.VAL": val2, "pvname3.VAL": val3, "time": ""}
+        expected_line = "{0}\t{1}\t{2}\t{3}".format("2017-01-01T01:02:03", val1, val2, val3)
         config = ConfigBuilder("filename.txt") \
             .table_column("heading1", "{%s}" % "pvname1") \
             .table_column("heading2", "{%s}" % "pvname2")  \
@@ -209,14 +227,14 @@ class TestlogFileCreator(TestCase):
         load1 = 23
         strain0 = 7.98
         strain1 = 183
-        initial_values = {"IN:PV:CSA": 2.91, "IN:PV:GLS": 123.8764, "IN:PV:RBNum": 123456789,
-                          "RunNumber": rn0, "POS": pos0, "Load": load0, "Strain": strain0}
+        initial_values = {"IN:PV:CSA.VAL": 2.91, "IN:PV:GLS.VAL": 123.8764, "IN:PV:RBNum.VAL": 123456789,
+                          "RunNumber.VAL": rn0, "POS.VAL": pos0, "Load.VAL": load0, "Strain.VAL": strain0}
         values = [
-            [expected_start_time + timedelta(seconds=35), "RunNumber", rn1],
-            [expected_start_time + timedelta(seconds=36), "POS",  pos1],
-            [expected_start_time + timedelta(seconds=41), "POS", pos2],
-            [expected_start_time + timedelta(seconds=61), "Load", load1],
-            [expected_start_time + timedelta(seconds=70), "Strain", strain1]
+            [expected_start_time + timedelta(seconds=35), "RunNumber.VAL", rn1],
+            [expected_start_time + timedelta(seconds=36), "POS.VAL",  pos1],
+            [expected_start_time + timedelta(seconds=41), "POS.VAL", pos2],
+            [expected_start_time + timedelta(seconds=61), "Load.VAL", load1],
+            [expected_start_time + timedelta(seconds=70), "Strain.VAL", strain1]
         ]
 
         table_format = "{0}\t{1:6d}\t{2:10.6f}\t{3:10.6f}\t{4:10.6f}"

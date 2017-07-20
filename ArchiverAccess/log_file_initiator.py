@@ -106,6 +106,6 @@ class LogFileInitiatorOnPVChange(object):
         """
         try:
             return int(value) == 1
-        except ValueError:
+        except (TypeError, ValueError):
             # main case is pv is disconnected
             return False

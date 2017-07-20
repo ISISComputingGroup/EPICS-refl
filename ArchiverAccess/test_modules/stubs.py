@@ -56,7 +56,7 @@ class FileStub(object):
     filename = ""
     file_open = False
 
-    def __init__(self, filename):
+    def __init__(self, filename, mode=""):
         FileStub.file_contents = None
         FileStub.filename = filename
         FileStub.file_open = False
