@@ -14,16 +14,18 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 """
-Module for accessing the archiver
+Module for creating a log file
 """
 
 import signal
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 
 from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator
+from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from ArchiverAccess.archiver_data_source import ArchiverDataSource
+from ArchiverAccess.configuration import ConfigBuilder
 from ArchiverAccess.database_config_builder import DatabaseConfigBuilder
 from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange, ConfigAndDependencies
 from server_common.ioc_data import IocDataSource
@@ -33,49 +35,36 @@ finish = False
 """Finish the program"""
 
 
-def create_pv_monitor():
+def create_log(headers, columns, time_period, filename_template="default.log", host="127.0.0.1"):
     """
     Create pv monitors based on the iocdatabase
 
     Returns: monitor for PV
 
     """
-    archive_mysql_abstraction_layer = SQLAbstraction("archive", "report", "$report")
-    ioc_mysql_abstraction_layer = SQLAbstraction("iocdb", "iocdb", "$iocdb")
+    archive_mysql_abstraction_layer = SQLAbstraction("archive", "report", "$report", host=host)
     archiver_data_source = ArchiverDataSource(archive_mysql_abstraction_layer)
-    ioc_data_source = IocDataSource(ioc_mysql_abstraction_layer)
-    configs_from_db = DatabaseConfigBuilder(ioc_data_source).create()
-    config_and_dependencies = []
-    for config in configs_from_db:
-        archive_data_file_creator = ArchiveDataFileCreator(config, archiver_data_source)
-        config_and_dependencies.append(
-            ConfigAndDependencies(config, archive_data_file_creator)
-        )
-    return LogFileInitiatorOnPVChange(config_and_dependencies, archiver_data_source, datetime(2017, 7, 20, 8, 0))
 
+    config_builder = ConfigBuilder(filename_template)
+    for header in headers:
+        config_builder.header(header)
 
-def signal_handler(signal, frame):
-    """
-    Handle interrupt singal nicely
-    Args:
-        signal: signal
-        frame: frame in which it was issued
+    for column_header, column_template in columns:
+        config_builder.table_column(column_header, column_template)
 
-    Returns:
-
-    """
-    global finish
-    finish = True
+    adfc = ArchiveDataFileCreator(config_builder.build(), archiver_data_source)
+    adfc.write(time_period)
 
 if __name__ == '__main__':
-
-    pv_monitor = create_pv_monitor()
-
-    signal.signal(signal.SIGINT, signal_handler)
-    while not finish:
-        pv_monitor.check_write()
-        try:
-            sleep(1)
-        except IOError:
-            # signal interrupts sleep
-            pass
+    sample_size = 1000000
+    time_period = ArchiveTimePeriod(datetime(2017, 06, 10, 19, 49), timedelta(seconds=1), sample_size)
+    header_line = ["Test IMAT"]
+    columns = [
+        ("SKFChopper status warn", "{IN:IMAT:SKFCHOPPER_02:STATUS:WARN}"),
+        ("SKFChopper phase acceleration", "{IN:IMAT:SKFCHOPPER_04:PHASE_ACC}")]
+    create_log(
+        header_line,
+        columns,
+        time_period,
+        filename_template="default{0}.log".format(sample_size),
+        host="ndximat")
