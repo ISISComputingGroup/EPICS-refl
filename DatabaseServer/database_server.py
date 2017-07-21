@@ -27,7 +27,7 @@ import argparse
 from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, dehex_and_decompress
 from server_common.channel_access_server import CAServer
 from server_common.constants import IOCS_NOT_TO_STOP
-from ioc_data import IOCData
+from server_common.ioc_data import IOCData
 from exp_data import ExpData
 import json
 from threading import Thread, RLock

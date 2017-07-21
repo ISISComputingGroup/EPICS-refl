@@ -21,7 +21,7 @@ import unittest
 from database_server import DatabaseServer
 
 from server_common.mocks.mock_ca_server import MockCAServer
-from server_common.test_modules.mysql_wrapper_tests import generate_fake_db, TEST_DB, HIGH_PV_NAMES, MEDIUM_PV_NAMES
+from server_common.test_modules.test_mysql_wrapper import generate_fake_db, TEST_DB, HIGH_PV_NAMES, MEDIUM_PV_NAMES
 from server_common.utilities import dehex_and_decompress
 
 generate_fake_db(TEST_DB)

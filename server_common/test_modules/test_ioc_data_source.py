@@ -19,7 +19,7 @@ import unittest
 from hamcrest import *
 from mock import Mock
 
-from ArchiverAccess.ioc_data_source import IocDataSource
+from server_common.ioc_data import IocDataSource
 from server_common.mysql_abstraction_layer import DatabaseError
 
 
@@ -38,13 +38,13 @@ class SQLAbstractionStubForIOC(object):
         return self.query_return
 
 
-class TestArchiverDataSource(unittest.TestCase):
+class TestIocDataSource(unittest.TestCase):
 
     def test_GIVEN_1_logging_annotations_request_WHEN_get_values_THEN_value_returned_grouped_by_ioc(self):
-        expected_result = {"ioc1": [("pv1", "LOG_header1", "an intereseting value")]}
+        expected_result = {"ioc1": [["pv1", "LOG_header1", "an intereseting value"]]}
 
         mysql_abstraction_layer = SQLAbstractionStubForIOC(expected_result)
-        data_source=IocDataSource(mysql_abstraction_layer)
+        data_source = IocDataSource(mysql_abstraction_layer)
 
         result = data_source.get_pv_logging_info()
 
@@ -62,11 +62,11 @@ class TestArchiverDataSource(unittest.TestCase):
 
     def test_GIVEN_multiple_logging_annotations_over_multiple_iocs_WHEN_get_values_THEN_values_returned_grouped_by_ioc(self):
         expected_result = {
-            "ioc1": [("pv1", "LOG_header1", "an intereseting value"),
-                     ("pv1", "LOG_header2", "an intereseting value"),
-                     ("pv3", "LOG_trigger", "an intereseting value")],
-            "ioc2": [("pv5", "LOG_header1", "an intereseting value")],
-            "ioc3": [("pv1", "LOG_header1", "an intereseting value")]
+            "ioc1": [["pv1", "LOG_header1", "an intereseting value"],
+                     ["pv1", "LOG_header2", "an intereseting value"],
+                     ["pv3", "LOG_trigger", "an intereseting value"]],
+            "ioc2": [["pv5", "LOG_header1", "an intereseting value"]],
+            "ioc3": [["pv1", "LOG_header1", "an intereseting value"]]
         }
 
         mysql_abstraction_layer = SQLAbstractionStubForIOC(expected_result)

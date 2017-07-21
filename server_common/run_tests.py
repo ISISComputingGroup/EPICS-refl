@@ -17,6 +17,9 @@
 # Add root path for access to server_commons
 import os
 import sys
+
+from server_common.test_modules.test_ioc_data_source import TestIocDataSource
+
 os.environ["MYDIRBLOCK"] = os.path.abspath('..')
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 # Standard imports
@@ -24,8 +27,8 @@ import unittest
 import xmlrunner
 import argparse
 
-from server_common.test_modules.mysql_wrapper_tests import TestMySQLWrapperSequence
-from server_common.test_modules.utilities_tests import TestCreatePVName
+from server_common.test_modules.test_mysql_wrapper import TestMySQLWrapperSequence
+from server_common.test_modules.test_utilities import TestCreatePVName
 
 DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 
@@ -40,6 +43,7 @@ if __name__ == '__main__':
     # Load tests from test suites
     mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestMySQLWrapperSequence)
     utilities_tests = unittest.TestLoader().loadTestsFromTestCase(TestCreatePVName)
+    test_ioc_data_source = unittest.TestLoader().loadTestsFromTestCase(TestIocDataSource)
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
     ret_vals = list()
