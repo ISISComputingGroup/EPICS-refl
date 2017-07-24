@@ -84,19 +84,21 @@ INITIAL_VALUES_QUERY = """
     SELECT {0} 
       FROM archive.sample 
      WHERE sample_id = (
-        SELECT max(s.sample_id)
+        SELECT s.sample_id
           FROM archive.sample s
          WHERE channel_id = (
                 SELECT channel_id
                   FROM archive.channel
                  WHERE name = %s)
            AND s.smpl_time <= %s
+         ORDER BY s.smpl_time
+         LIMIT 1
      )
 """.format(ARCHIVER_DATA_VALUE_QUERY)
 """ SQL Query to return the values at a specific time by lookking for the latest sampled value for the 
 pv before the given time"""
 
-GET_CHANGES_QUERY_FOR_ALL_TIME = """
+GET_CHANGES_QUERY = """
     SELECT c.name, {arc_data_query}
       FROM archive.sample s
       JOIN archive.channel c ON c.channel_id = s.channel_id
@@ -105,25 +107,15 @@ GET_CHANGES_QUERY_FOR_ALL_TIME = """
             SELECT channel_id
               FROM archive.channel c
              WHERE name in ({in_clause}))
-""".format(arc_data_query=ARCHIVER_DATA_VALUE_QUERY, in_clause="{0}")
-
-GET_CHANGES_QUERY = GET_CHANGES_QUERY_FOR_ALL_TIME + """
-
       AND s.smpl_time > %s
       AND s.smpl_time <= %s
-"""
-"""SQL query to get a list of changes after a given time for certain pvs"""
-
-GET_CHANGES_QUERY_FOR_SAMPLE_ID_PERIOD = GET_CHANGES_QUERY_FOR_ALL_TIME + """
-
-      AND s.sample_id > %s
-      AND s.sample_id <= %s
-"""
-"""SQL query to get a list of changes after a given time for certain pvs"""
+      ORDER BY s.smpl_time 
+""".format(arc_data_query=ARCHIVER_DATA_VALUE_QUERY, in_clause="{0}")
+"""SQL query to get a list of changes between given times for certain pvs"""
 
 
 GET_SAMPLE_ID_NOW = """
-        SELECT max(s.sample_id)
+        SELECT max(s.smpl_time)
           FROM archive.sample s
 """
 
@@ -195,7 +187,7 @@ class ArchiverDataSource(object):
         for change in self._changes_generator(query, pv_names, result_bounds):
             yield change
 
-    def sample_id(self, time=None):
+    def get_latest_sample_time(self, time=None):
         """
         Get the largest sample id taken before a given time
 
@@ -211,7 +203,7 @@ class ArchiverDataSource(object):
         if len(sample_id_result) == 1:
             sample_id = sample_id_result[0][0]
         else:
-            sample_id = 0
+            sample_id = datetime(1970, 1, 1, 0, 0, 0)
 
         return sample_id
 
@@ -228,7 +220,7 @@ class ArchiverDataSource(object):
             generator which gives tuple of timestamp, pv index and new value
 
         """
-        query = GET_CHANGES_QUERY_FOR_SAMPLE_ID_PERIOD
+        query = GET_CHANGES_QUERY
         result_bounds = [from_sample_id, to_sample_id]
 
         for change in self._changes_generator(query, pv_names, result_bounds):

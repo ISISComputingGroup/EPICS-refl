@@ -29,8 +29,8 @@ from ArchiverAccess.test_modules.stubs import ArchiverDataStub
 class TestLogFileInitiator(unittest.TestCase):
 
     def test_GIVEN_config_with_pv_WHEN_get_data_THEN_correct_sample_ids_asked_for(self):
-        sample_ids = [10, 100]
-        archive_data_source = self._set_up_data_source(sample_ids=sample_ids)
+        sample_ids = [datetime(2001, 2, 3, 4, 5, 6), datetime(2001, 2, 3, 4, 5, 36)]
+        archive_data_source = self._set_up_data_source(sample_times=sample_ids)
         log_file_initiator = self._create_log_file_intiator(archive_data_source)
 
         log_file_initiator.check_write()
@@ -39,8 +39,8 @@ class TestLogFileInitiator(unittest.TestCase):
         assert_that(archive_data_source.to_sample_id, is_([sample_ids[1]]))
 
     def test_GIVEN_config_with_pv_WHEN_check_write_twice_THEN_consecutive_sample_ids_are_used(self):
-        sample_ids = [10, 100, 800]
-        archive_data_source = self._set_up_data_source(sample_ids=sample_ids, data_changes=[[], []])
+        sample_ids = [datetime(2001, 2, 3, 4, 5, 6), datetime(2001, 2, 3, 4, 5, 36), datetime(2001, 2, 3, 4, 6, 6)]
+        archive_data_source = self._set_up_data_source(sample_times=sample_ids, data_changes=[[], []])
         log_file_initiator = self._create_log_file_intiator(archive_data_source)
 
         log_file_initiator.check_write()
@@ -128,12 +128,12 @@ class TestLogFileInitiator(unittest.TestCase):
     def test_GIVEN_config_with_pv_WHEN_pv_has_changed_twice_from_1_to_0_over_two_different_write_checks_THEN_two_log_files_created(self):
         log_period_in_second = 1
         expected_logging_start1 = datetime(2017, 1, 1, 1, 1, 1)
-        sample_ids = [10, 100, 800]
+        sample_ids = [datetime(2001, 2, 3, 4, 5, 6), datetime(2001, 2, 3, 4, 5, 36), datetime(2001, 2, 3, 4, 6, 6)]
         data_changes = [[],
                         [(datetime(2017, 1, 1, 1, 1, 2), 0, 0),
                         (datetime(2017, 1, 1, 1, 2, 2), 0, 1),
                         (datetime(2017, 1, 1, 1, 3, 2), 0, 0)]]
-        archive_data_source = self._set_up_data_source(initial_pv_values=[1], data_changes=data_changes, sample_ids=sample_ids, logging_start_times=[expected_logging_start1])
+        archive_data_source = self._set_up_data_source(initial_pv_values=[1], data_changes=data_changes, sample_times=sample_ids, logging_start_times=[expected_logging_start1])
         expected_period = timedelta(seconds=log_period_in_second)
         expected_logging_stop_time1 = datetime(2017, 1, 1, 1, 1, 2)
         expected_logging_start_time2 = datetime(2017, 1, 1, 1, 2, 2)
@@ -205,7 +205,7 @@ class TestLogFileInitiator(unittest.TestCase):
                             final_pv_value=0,
                             logging_start_times=None,
                             logging_stop_time=datetime(2017, 1, 1, 1, 1, 2),
-                            sample_ids=None,
+                            sample_times=None,
                             data_changes=None,
                             logging_period_pv_values=None):
 
@@ -222,12 +222,12 @@ class TestLogFileInitiator(unittest.TestCase):
 
         if data_changes is None:
             data_changes = [[(logging_stop_time, 0, final_pv_value)]]
-        if sample_ids is None:
-            sample_ids = [10, 100]
+        if sample_times is None:
+            sample_times = [datetime(2010, 9, 8, 2, 3, 4), datetime(2010, 9, 8, 2, 3, 34)]
         archive_data_source = ArchiverDataStub(initial_archiver_data_value=initial_archiver_data_values,
-                                              data_changes=data_changes,
-                                              sample_ids=sample_ids,
-                                              initial_values=logging_period_pv_values)
+                                               data_changes=data_changes,
+                                               sample_ids=sample_times,
+                                               initial_values=logging_period_pv_values)
         return archive_data_source
 
     def _create_log_file_intiator(self, archive_data_source, log_period_in_seconds=None, log_period_pvs=None):
@@ -250,5 +250,6 @@ class TestLogFileInitiator(unittest.TestCase):
                 config = config_builder.logging_period_pv(log_period_pv).build()
             configs_and_their_dependencies.append(ConfigAndDependencies(config, log_file_creator))
             self.log_file_creators.append(log_file_creator)
-
-        return LogFileInitiatorOnPVChange(configs_and_their_dependencies, archive_data_source, datetime.now())
+        time_last_active = Mock()
+        time_last_active.get = Mock(return_value=datetime.now())
+        return LogFileInitiatorOnPVChange(configs_and_their_dependencies, archive_data_source, time_last_active)

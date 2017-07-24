@@ -16,16 +16,21 @@
 """
 Module for accessing the archiver
 """
-
+import os
 import signal
 
-from datetime import datetime
+
 from time import sleep
+
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
 from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator
 from ArchiverAccess.archiver_data_source import ArchiverDataSource
 from ArchiverAccess.database_config_builder import DatabaseConfigBuilder
 from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange, ConfigAndDependencies
+from ArchiverAccess.time_last_active import TimeLastActive
 from server_common.ioc_data import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
 
@@ -51,7 +56,7 @@ def create_pv_monitor():
         config_and_dependencies.append(
             ConfigAndDependencies(config, archive_data_file_creator)
         )
-    return LogFileInitiatorOnPVChange(config_and_dependencies, archiver_data_source, datetime(2017, 7, 20, 8, 0))
+    return LogFileInitiatorOnPVChange(config_and_dependencies, archiver_data_source, TimeLastActive())
 
 
 def signal_handler(signal, frame):

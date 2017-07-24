@@ -33,7 +33,7 @@ class ArchiverDataStub(ArchiverDataSource):
         for value in self._values:
             yield (value[0], pv_names.index(value[1]), value[2])
 
-    def sample_id(self, time=None):
+    def get_latest_sample_time(self, time=None):
         self._sample_id_index += 1
         return self._sample_ids[self._sample_id_index - 1]
 
@@ -53,6 +53,7 @@ class FileStub(object):
     Mimic the python file object
     """
     file_contents = None
+    file_contents_to_read = []
     filename = ""
     file_open = False
 
@@ -60,6 +61,7 @@ class FileStub(object):
         FileStub.file_contents = None
         FileStub.filename = filename
         FileStub.file_open = False
+        self.read_line_index = 0
 
     def __enter__(self):
         FileStub.file_open = True
@@ -71,3 +73,12 @@ class FileStub(object):
 
     def write(self, line):
         FileStub.file_contents.extend(line.splitlines())
+
+    def readline(self):
+        next_line = FileStub.file_contents_to_read[self.read_line_index]
+        self.read_line_index += 1
+        return "{0}\n".format(next_line)
+
+    @classmethod
+    def add_file(cls, file_contents):
+        FileStub.file_contents_to_read = file_contents

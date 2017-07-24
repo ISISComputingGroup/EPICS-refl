@@ -44,22 +44,23 @@ class LogFileInitiatorOnPVChange(object):
     Initiate the writing of a log file based on the change of a PV.
     """
 
-    def __init__(self, config_and_dependencies, archive_data_source, search_for_change_from):
+    def __init__(self, config_and_dependencies, archive_data_source, time_last_active):
         """
 
         Args:
             config_and_dependencies(list[ConfigAndDependencies]): list of configs along with their needed dependencies
             archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource): data source
-            search_for_change_from: time from which to search for changes in the pv
+            time_last_active: provider for the time from which to search for changes in the logging pv
         """
 
         self._config_and_dependencies = config_and_dependencies
         self._archive_data_source = archive_data_source
         self._trigger_pvs = [cad.config.trigger_pv for cad in config_and_dependencies]
-
+        self._time_last_active = time_last_active
+        search_for_change_from = time_last_active.get()
         initial_data_values = archive_data_source.initial_archiver_data_values(
             self._trigger_pvs, search_for_change_from)
-        self._last_sample_id = self._archive_data_source.sample_id(search_for_change_from)
+        self._last_sample_time = self._archive_data_source.get_latest_sample_time(search_for_change_from)
 
         self._logging_started = []
         for initial_data_value in initial_data_values:
@@ -76,10 +77,10 @@ class LogFileInitiatorOnPVChange(object):
 
         """
 
-        current_sample_id = self._archive_data_source.sample_id()
+        current_sample_time = self._archive_data_source.get_latest_sample_time()
         changes = self._archive_data_source.logging_changes_for_sample_id_generator(
-            self._trigger_pvs, self._last_sample_id, current_sample_id)
-        self._last_sample_id = current_sample_id
+            self._trigger_pvs, self._last_sample_time, current_sample_time)
+        self._last_sample_time = current_sample_time
 
         for timestamp, pv_index, value in changes:
 
@@ -95,6 +96,7 @@ class LogFileInitiatorOnPVChange(object):
                     time_period = ArchiveTimePeriod(logging_start_time, logging_period, finish_time=timestamp)
                     self._config_and_dependencies[pv_index].archive_data_file_creator.write(time_period)
                     self._logging_started[pv_index] = None
+                    self._time_last_active.set(timestamp)
 
     def _value_is_logging_on(self, value):
         """
