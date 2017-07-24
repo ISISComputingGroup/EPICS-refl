@@ -63,7 +63,8 @@ class TemplateReplacer(object):
             template_no_format = ""
             for text, name, fomat_spec, conversion in Formatter().parse(template):
                 template_no_format += "{text}{{{name}}}".format(text=text, name=name)
-            template_no_format += FORMATTER_NOT_APPLIED_MESSAGE.format(ex)
+            if "Disconnected" not in self._pv_values and "Archive_Off" not in self._pv_values:
+                template_no_format += FORMATTER_NOT_APPLIED_MESSAGE.format(ex)
             return template_no_format.format(*self._pv_values, **self._replacements)
 
 

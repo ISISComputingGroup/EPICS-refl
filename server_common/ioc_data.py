@@ -154,10 +154,10 @@ class IOCData(object):
 
 
 GET_PV_INFO_QUERY = """
-SELECT s.iocname, p.pvname, p.infoname, p.value 
+SELECT s.iocname, p.pvname, lower(p.infoname), p.value 
   FROM pvinfo p 
   JOIN pvs s ON s.pvname = p.pvname 
- WHERE p.infoname LIKE "LOG%" 
+ WHERE lower(p.infoname) LIKE "log%" 
  ORDER BY s.iocname, p.infoname"""
 """Query to return pv info for iocs from the ioc database"""
 

@@ -139,12 +139,12 @@ class TestlogFileCreator(TestCase):
         assert_that(FileStub.file_contents[0], is_(expected_header_line))
 
     def test_GIVEN_config_is_header_with_pv_with_formatting_error_WHEN_write_THEN_pv_is_replaced_with_value_no_formatting(self):
-        expected_pv_value = "disconnected"
+        expected_pv_value = "this is a string"
         pvname = "pvname.VAL"
         template_header_line = "expected_header_line a line {{{0}|.3f}}".format(pvname)
-        expected_header_line = "expected_header_line a line disconnected{0}"\
+        expected_header_line = "expected_header_line a line {value}{0}"\
             .format(FORMATTER_NOT_APPLIED_MESSAGE
-                   .format("Unknown format code 'f' for object of type 'str'"))
+                   .format("Unknown format code 'f' for object of type 'str'"), value=expected_pv_value)
 
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
@@ -152,6 +152,33 @@ class TestlogFileCreator(TestCase):
         file_creator.write(self.time_period)
 
         assert_that(FileStub.file_contents[0], is_(expected_header_line))
+
+    def test_GIVEN_config_is_header_with_pv_with_disconnected_WHEN_write_THEN_pv_is_replaced_with_disconnected_no_formatting_error(self):
+        expected_pv_value = "Disconnected"
+        pvname = "pvname.VAL"
+        template_header_line = "expected_header_line a line {{{0}|.3f}}".format(pvname)
+        expected_header_line = "expected_header_line a line Disconnected"
+
+        config = ConfigBuilder("filename.txt").header(template_header_line).build()
+        file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
+
+        file_creator.write(self.time_period)
+
+        assert_that(FileStub.file_contents[0], is_(expected_header_line))
+
+    def test_GIVEN_config_is_header_with_pv_with_archive_off_WHEN_write_THEN_pv_is_replaced_with_archive_off_no_formatting_error(self):
+        expected_pv_value = "Archive_Off"
+        pvname = "pvname.VAL"
+        template_header_line = "expected_header_line a line {{{0}|.3f}}".format(pvname)
+        expected_header_line = "expected_header_line a line Archive_Off"
+
+        config = ConfigBuilder("filename.txt").header(template_header_line).build()
+        file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
+
+        file_creator.write(self.time_period)
+
+        assert_that(FileStub.file_contents[0], is_(expected_header_line))
+
 
     def test_GIVEN_config_has_column_heading_WHEN_write_THEN_table_has_correct_heading(self):
         heading = "PV Heading"

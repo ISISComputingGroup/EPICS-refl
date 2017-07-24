@@ -72,11 +72,11 @@ class TestDatabaseConfigBuilder(TestCase):
         assert_that(config, has_length(1))
         assert_that(config[0].header, is_(expected_header_lines))
 
-    def test_GIVEN_multiple_header_line_in_funny_order_with_repeated_indexes_WHEN_generate_THEN_configuration_is_created(self):
+    def test_GIVEN_multiple_header_line_in_funny_order_with_repeated_indexes_and_different_cases_WHEN_generate_THEN_configuration_is_created(self):
         expected_header_lines = ["line 1", "line2", "line3", "line4"]
-        header_lines_section = [("pvname", "LOG_header6", expected_header_lines[3]),
+        header_lines_section = [("pvname", "LoG_header6", expected_header_lines[3]),
                                 ("pvname", "LOG_header4", expected_header_lines[1]),
-                                ("pvname", "LOG_header1", expected_header_lines[0]),
+                                ("pvname", "LOG_Header1", expected_header_lines[0]),
                                 ("pvname", "LOG_header4", expected_header_lines[2])]
 
         ioc_data_source = self._create_ioc_data_source(header_lines_section=header_lines_section)

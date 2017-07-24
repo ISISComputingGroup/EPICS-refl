@@ -21,25 +21,25 @@ import os
 from ArchiverAccess.configuration import ConfigBuilder
 from server_common.utilities import print_and_log, SEVERITY
 
-HEADER_ANNOTATION_PREFIX = "LOG_header"
+HEADER_ANNOTATION_PREFIX = "log_header"
 """The annotation prefix for a header line, the end is the header line number"""
 
 PV_SUB_EXPRESSION = "this_pv"
 """The pv expression to be replaced with the actual pv name"""
 
-TRIGGER_PV = "LOG_trigger"
+TRIGGER_PV = "log_trigger"
 """The annotation indicating the trigger pv"""
 
-PERIOD_PV = "LOG_period_pv"
+PERIOD_PV = "log_period_pv"
 """The annotation indicating a logging period pv"""
 
-PERIOD_CONST_S = "LOG_period_seconds"
+PERIOD_CONST_S = "log_period_seconds"
 """The annotation indicating a logging period in seconds"""
 
-COLUMN_HEADER_ANNOTATION_PREFIX = "LOG_column_header"
+COLUMN_HEADER_ANNOTATION_PREFIX = "log_column_header"
 """The annotation prefix for a column header, the end is the column index"""
 
-COLUMN_TEMPLATE_ANNOTATION_PREFIX = "LOG_column_template"
+COLUMN_TEMPLATE_ANNOTATION_PREFIX = "log_column_template"
 """The annotation prefix for a column template, the end is the column index"""
 
 
@@ -80,7 +80,7 @@ class DatabaseConfigBuilder(object):
         config_builder = ConfigBuilder(file_name_template)
         sorted_values = sorted(logging_items, key=lambda x: x[1])
         for pv_name, key, template in sorted_values:
-            self._translate_db_annotations_to_config(key, pv_name, template, columns, config_builder)
+            self._translate_db_annotations_to_config(key.lower(), pv_name, template, columns, config_builder)
         for column_index in sorted(columns.keys()):
             column_header, column_template = columns[column_index]
             config_builder.table_column(column_header, column_template)

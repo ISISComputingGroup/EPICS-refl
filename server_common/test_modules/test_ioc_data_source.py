@@ -41,7 +41,7 @@ class SQLAbstractionStubForIOC(object):
 class TestIocDataSource(unittest.TestCase):
 
     def test_GIVEN_1_logging_annotations_request_WHEN_get_values_THEN_value_returned_grouped_by_ioc(self):
-        expected_result = {"ioc1": [["pv1", "LOG_header1", "an intereseting value"]]}
+        expected_result = {"ioc1": [["pv1", "log_header1", "an intereseting value"]]}
 
         mysql_abstraction_layer = SQLAbstractionStubForIOC(expected_result)
         data_source = IocDataSource(mysql_abstraction_layer)
@@ -62,11 +62,11 @@ class TestIocDataSource(unittest.TestCase):
 
     def test_GIVEN_multiple_logging_annotations_over_multiple_iocs_WHEN_get_values_THEN_values_returned_grouped_by_ioc(self):
         expected_result = {
-            "ioc1": [["pv1", "LOG_header1", "an intereseting value"],
-                     ["pv1", "LOG_header2", "an intereseting value"],
-                     ["pv3", "LOG_trigger", "an intereseting value"]],
-            "ioc2": [["pv5", "LOG_header1", "an intereseting value"]],
-            "ioc3": [["pv1", "LOG_header1", "an intereseting value"]]
+            "ioc1": [["pv1", "log_header1", "an intereseting value"],
+                     ["pv1", "log_header2", "an intereseting value"],
+                     ["pv3", "log_trigger", "an intereseting value"]],
+            "ioc2": [["pv5", "log_header1", "an intereseting value"]],
+            "ioc3": [["pv1", "log_header1", "an intereseting value"]]
         }
 
         mysql_abstraction_layer = SQLAbstractionStubForIOC(expected_result)
