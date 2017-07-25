@@ -45,7 +45,9 @@ class TemplateReplacer(object):
         if time_period is not None:
             self._replacements["start_time"] = time_period.start_time.strftime("%Y-%m-%dT%H_%M_%S")
         if time is not None:
-            self._replacements["time"] = time.isoformat("T")
+            time_as_string = time.strftime("%Y-%m-%dT%H:%M:%S")
+            milliseconds = time.microsecond / 1000
+            self._replacements["time"] = "%s.%03d" % (time_as_string, milliseconds)
 
     def replace(self, template):
         """

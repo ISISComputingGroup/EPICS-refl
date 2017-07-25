@@ -35,7 +35,8 @@ class ArchiveTimePeriod(object):
             point_count: the number of points in the period
             finish_time: the end time is the last value that is logged before this time
         """
-        self.start_time = start_time.replace(microsecond=((start_time.microsecond // 100000) * 100000))
+        nearest_10th_second = ((start_time.microsecond // 100000) * 100000)
+        self.start_time = start_time.replace(microsecond=nearest_10th_second)
         self.delta = delta
         if point_count is None:
             self.point_count = int((finish_time - self.start_time).total_seconds() // self.delta.total_seconds() + 1)

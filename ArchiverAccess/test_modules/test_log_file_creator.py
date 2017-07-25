@@ -212,7 +212,7 @@ class TestlogFileCreator(TestCase):
         time_period = ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10)
         pvname = "pvname.VAL"
         initial_value = 2.91
-        expected_line = "2017-01-01T01:02:03\t{0}".format(initial_value)
+        expected_line = "2017-01-01T01:02:03.000\t{0}".format(initial_value)
         config = ConfigBuilder("filename.txt")\
             .table_column("heading", "{%s}" % pvname)\
             .build()
@@ -228,7 +228,7 @@ class TestlogFileCreator(TestCase):
         val2 = "hi"
         val3 = 5
         initial_values = {"pvname1.VAL": val1, "pvname2.VAL": val2, "pvname3.VAL": val3, "time": ""}
-        expected_line = "{0}\t{1}\t{2}\t{3}".format("2017-01-01T01:02:03", val1, val2, val3)
+        expected_line = "{0}\t{1}\t{2}\t{3}".format("2017-01-01T01:02:03.000", val1, val2, val3)
         config = ConfigBuilder("filename.txt") \
             .table_column("heading1", "{%s}" % "pvname1") \
             .table_column("heading2", "{%s}" % "pvname2")  \
@@ -271,16 +271,16 @@ class TestlogFileCreator(TestCase):
             "RB Number = 123456789",
             "",
             "\t".join((TIME_DATE_COLUMN_HEADING, "Run Number",  "Position", "Load", "Strain")),
-            table_format.format("2017-01-01T01:02:03", rn0, pos0, load0, strain0),
-            table_format.format("2017-01-01T01:02:13", rn0, pos0, load0, strain0),
-            table_format.format("2017-01-01T01:02:23", rn0, pos0, load0, strain0),
-            table_format.format("2017-01-01T01:02:33", rn0, pos0, load0, strain0),
-            table_format.format("2017-01-01T01:02:43", rn1, pos1, load0, strain0),
-            table_format.format("2017-01-01T01:02:53", rn1, pos2, load0, strain0),
-            table_format.format("2017-01-01T01:03:03", rn1, pos2, load0, strain0),
-            table_format.format("2017-01-01T01:03:13", rn1, pos2, load1, strain1),
-            table_format.format("2017-01-01T01:03:23", rn1, pos2, load1, strain1),
-            table_format.format("2017-01-01T01:03:33", rn1, pos2, load1, strain1)
+            table_format.format("2017-01-01T01:02:03.000", rn0, pos0, load0, strain0),
+            table_format.format("2017-01-01T01:02:13.000", rn0, pos0, load0, strain0),
+            table_format.format("2017-01-01T01:02:23.000", rn0, pos0, load0, strain0),
+            table_format.format("2017-01-01T01:02:33.000", rn0, pos0, load0, strain0),
+            table_format.format("2017-01-01T01:02:43.000", rn1, pos1, load0, strain0),
+            table_format.format("2017-01-01T01:02:53.000", rn1, pos2, load0, strain0),
+            table_format.format("2017-01-01T01:03:03.000", rn1, pos2, load0, strain0),
+            table_format.format("2017-01-01T01:03:13.000", rn1, pos2, load1, strain1),
+            table_format.format("2017-01-01T01:03:23.000", rn1, pos2, load1, strain1),
+            table_format.format("2017-01-01T01:03:33.000", rn1, pos2, load1, strain1)
         ]
 
         config = ConfigBuilder("filename.txt") \
