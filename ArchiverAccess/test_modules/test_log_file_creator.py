@@ -39,11 +39,17 @@ class TestlogFileCreator(TestCase):
         archiver_data_source = ArchiverDataStub(initial_values, values)
         self.time_period = time_period
         self.created_file_path = ""
+        self.file_made_readonly_path = ""
 
         def mkdir_for_file_stub(path):
             self.created_file_path = path
 
-        return ArchiveDataFileCreator(config, archiver_data_source, FileStub, mkdir_for_file_fn=mkdir_for_file_stub)
+        def make_file_readonly_fn(path):
+            self.file_made_readonly_path = path
+
+        FileStub.raise_on_write = None
+        return ArchiveDataFileCreator(config, archiver_data_source, FileStub, mkdir_for_file_fn=mkdir_for_file_stub,
+                                      make_file_readonly=make_file_readonly_fn)
 
     def test_GIVEN_config_is_just_constant_header_line_WHEN_write_THEN_values_are_written_to_file(self):
         expected_header_line = "expected_header_line a line of goodness :-)"
@@ -299,3 +305,31 @@ class TestlogFileCreator(TestCase):
 
         for index, (actual, expected) in enumerate(zip(FileStub.file_contents, expected_file_contents)):
             assert_that(actual, is_(expected), "Error on line {0}".format(index))
+
+    def test_GIVEN_config_file_created_WHEN_write_THEN_file_is_set_as_readonly(self):
+        expected_header_line = "expected_header_line a line of goodness :-)"
+        expected_filename = "filename.txt"
+        config = ConfigBuilder(expected_filename, base_path="").header(expected_header_line).build()
+        file_creator = self._archive_data_file_creator_setup(config)
+
+        file_creator.write(self.time_period)
+
+        assert_that(self.file_made_readonly_path, is_(expected_filename))
+
+    def test_GIVEN_config_file_created_WHEN_write_THEN_write_returns_sucess(self):
+        config = ConfigBuilder("filename").build()
+        file_creator = self._archive_data_file_creator_setup(config)
+
+        result = file_creator.write(self.time_period)
+
+        assert_that(result, is_(True))
+
+    def test_GIVEN_config_file_creation_raise_error_WHEN_write_THEN_no_crash_and_file_is_not_made_read_only(self):
+        expected_filename = "filename.txt"
+        config = ConfigBuilder(expected_filename, base_path="").build()
+        file_creator = self._archive_data_file_creator_setup(config)
+        FileStub.raise_on_write = IOError("Can not write")
+
+        result = file_creator.write(self.time_period)
+
+        assert_that(result, is_(False))

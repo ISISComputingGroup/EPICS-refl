@@ -17,14 +17,13 @@
 # Add root path for access to server_commons
 import os
 import sys
+
 os.environ["MYDIRBLOCK"] = os.path.abspath('..')
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 # Standard imports
 import unittest
 import xmlrunner
 import argparse
-
-from test_modules.test_periodic_data_generator import TestPeriodicDataGenerator
 
 DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 
@@ -37,7 +36,8 @@ if __name__ == '__main__':
     xml_dir = args.output_dir[0]
 
     # Load tests from test suites
-    mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestPeriodicDataGenerator)
+    test_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_modules"))
+    mysql_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
 
     print "\n\n------ BEGINNING ARCHIVER ACCESS UNIT TESTS ------"
     ret_vals = list()

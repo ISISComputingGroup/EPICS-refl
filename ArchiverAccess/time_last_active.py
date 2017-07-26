@@ -58,7 +58,8 @@ class TimeLastActive(object):
 
         """
         time_last_active = self._get_last_active()
-        return print_and_log("Last active: {0}".format(time_last_active.isoformat()), src="ArchiverAccess")
+        print_and_log("Last active: {0}".format(time_last_active.isoformat()), src="ArchiverAccess")
+        return time_last_active
 
     def _get_last_active(self):
         """

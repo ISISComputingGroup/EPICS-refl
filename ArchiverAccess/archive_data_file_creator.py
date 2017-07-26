@@ -18,10 +18,11 @@ Module for creating a log file from a configuration and periodic data source.
 """
 
 import os
+from stat import S_IROTH, S_IRGRP, S_IREAD
 from string import Formatter
 
 from ArchiverAccess.periodic_data_generator import PeriodicDataGenerator
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log, SEVERITY
 
 FORMATTER_NOT_APPLIED_MESSAGE = " (formatter not applied: `{0}`)"
 """Message when a formatter can not be applied when writing a pv"""
@@ -70,18 +71,30 @@ class TemplateReplacer(object):
             return template_no_format.format(*self._pv_values, **self._replacements)
 
 
-def mkdir_for_file(path):
+def mkdir_for_file(filepath):
     """
     Make the directory tree for the file don't error if it already exists
     Args:
-        path: path to create directory structure for
+        filepath: path to create directory structure for
 
     Returns: nothing
 
     """
-    abspath = os.path.abspath(os.path.dirname(path))
+    abspath = os.path.abspath(os.path.dirname(filepath))
     if not os.path.isdir(abspath):
         os.makedirs(abspath)
+
+
+def make_file_readonly_fn(filepath):
+    """
+    Make file readonly.
+    Args:
+        filepath: path to file
+
+    Returns:
+
+    """
+    os.chmod(filepath, S_IREAD | S_IRGRP | S_IROTH)
 
 
 class ArchiveDataFileCreator(object):
@@ -89,7 +102,8 @@ class ArchiveDataFileCreator(object):
     Archive data file creator creates the log file based on the configuration.
     """
 
-    def __init__(self, config, archiver_data_source, file_access_class=file, mkdir_for_file_fn=mkdir_for_file):
+    def __init__(self, config, archiver_data_source, file_access_class=file, mkdir_for_file_fn=mkdir_for_file,
+                 make_file_readonly=make_file_readonly_fn):
         """
         Constructor
         Args:
@@ -97,11 +111,13 @@ class ArchiveDataFileCreator(object):
             archiver_data_source: archiver data source
             file_access_class: file like object that can be written to
             mkdir_for_file_fn: function for creating the directories needed
+            make_file_readonly: function to make a file readonly
         """
         self._config = config
         self._file_access_class = file_access_class
         self._archiver_data_source = archiver_data_source
         self._mkdir_for_file_fn = mkdir_for_file_fn
+        self._make_file_readonly_fn = make_file_readonly
 
     def write(self, time_period):
         """
@@ -110,26 +126,36 @@ class ArchiveDataFileCreator(object):
         Args:
             time_period (ArchiverAccess.archive_time_period.ArchiveTimePeriod): time period
 
-        :return:
+        Returns: True if log file as created and made readonly; False otherwise
+
         """
 
-        pv_names_in_header = self._config.pv_names_in_header
-        pv_values = self._archiver_data_source.initial_values(pv_names_in_header, time_period.start_time)
-        template_replacer = TemplateReplacer(pv_values, time_period=time_period)
-        periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
+        try:
+            pv_names_in_header = self._config.pv_names_in_header
+            pv_values = self._archiver_data_source.initial_values(pv_names_in_header, time_period.start_time)
+            template_replacer = TemplateReplacer(pv_values, time_period=time_period)
+            periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
 
-        filename = template_replacer.replace(self._config.filename)
-        print_and_log("Writing log file '{0}'".format(filename))
-        self._mkdir_for_file_fn(filename)
-        with self._file_access_class(filename, mode="w") as f:
-            for header_template in self._config.header:
-                header_line = template_replacer.replace(header_template)
-                f.write("{0}\n".format(header_line))
+            filename = template_replacer.replace(self._config.filename)
+            print_and_log("Writing log file '{0}'".format(filename), src="ArchiverAccess")
+            self._mkdir_for_file_fn(filename)
+            with self._file_access_class(filename, mode="w") as f:
+                for header_template in self._config.header:
+                    header_line = template_replacer.replace(header_template)
+                    f.write("{0}\n".format(header_line))
 
-            f.write("{0}\n".format(self._config.column_headers))
+                f.write("{0}\n".format(self._config.column_headers))
 
-            periodic_data = periodic_data_generator.get_generator(self._config.pv_names_in_columns, time_period)
-            for time, values in periodic_data:
-                table_template_replacer = TemplateReplacer(values, time=time)
-                table_line = table_template_replacer.replace(self._config.table_line)
-                f.write("{0}\n".format(table_line))
+                periodic_data = periodic_data_generator.get_generator(self._config.pv_names_in_columns, time_period)
+                for time, values in periodic_data:
+                    table_template_replacer = TemplateReplacer(values, time=time)
+                    table_line = table_template_replacer.replace(self._config.table_line)
+                    f.write("{0}\n".format(table_line))
+
+            self._make_file_readonly_fn(filename)
+            return True
+        except Exception as ex:
+            print_and_log("Failed to create log file {filename} for time period {time_period}. Error is: '{exception}'"
+                          .format(time_period=time_period, exception=ex, filename=self._config.filename),
+                          severity=SEVERITY.MAJOR, src="ArchiverAccess")
+            return False

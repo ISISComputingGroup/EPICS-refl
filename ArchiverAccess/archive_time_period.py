@@ -56,3 +56,6 @@ class ArchiveTimePeriod(object):
 
         """
         return self.start_time + self.delta * periods_count
+
+    def __repr__(self):
+        return "From {0} to {1} in periods of {2}s".format(self.start_time, self.end_time, self.delta.total_seconds())

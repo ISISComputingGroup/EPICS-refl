@@ -56,6 +56,7 @@ class FileStub(object):
     file_contents_to_read = []
     filename = ""
     file_open = False
+    raise_on_write = None
 
     def __init__(self, filename, mode=""):
         FileStub.file_contents = None
@@ -72,6 +73,8 @@ class FileStub(object):
         FileStub.file_open = False
 
     def write(self, line):
+        if FileStub.raise_on_write is not None:
+            raise FileStub.raise_on_write
         FileStub.file_contents.extend(line.splitlines())
 
     def readline(self):

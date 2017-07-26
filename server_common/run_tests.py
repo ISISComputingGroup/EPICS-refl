@@ -18,8 +18,6 @@
 import os
 import sys
 
-from server_common.test_modules.test_ioc_data_source import TestIocDataSource
-
 os.environ["MYDIRBLOCK"] = os.path.abspath('..')
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 # Standard imports
@@ -27,10 +25,8 @@ import unittest
 import xmlrunner
 import argparse
 
-from server_common.test_modules.test_mysql_wrapper import TestMySQLWrapperSequence
-from server_common.test_modules.test_utilities import TestCreatePVName
 
-DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
+DEFAULT_DIRECTORY = os.path.join('..', '..', '..', '..', 'test-reports')
 
 if __name__ == '__main__':
     # get output directory from command line arguments
@@ -41,14 +37,12 @@ if __name__ == '__main__':
     xml_dir = args.output_dir[0]
 
     # Load tests from test suites
-    mysql_suite = unittest.TestLoader().loadTestsFromTestCase(TestMySQLWrapperSequence)
-    utilities_tests = unittest.TestLoader().loadTestsFromTestCase(TestCreatePVName)
-    test_ioc_data_source = unittest.TestLoader().loadTestsFromTestCase(TestIocDataSource)
+    test_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_modules"))
+    test_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
     ret_vals = list()
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite))
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(utilities_tests))
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite))
     print "------ UNIT TESTS COMPLETE ------\n\n"
 
     # Return failure exit code if a test failed
