@@ -190,7 +190,7 @@ class TestLogFileInitiator(unittest.TestCase):
         log_period_in_second = 2.0
         expected_period = timedelta(seconds=log_period_in_second)
         pv_name = "myperiodpv"
-        logging_period_pv_values = {pv_name: log_period_in_second}
+        logging_period_pv_values = {pv_name + ".VAL": log_period_in_second}
         archive_data_source = self._set_up_data_source(initial_pv_values=[1], final_pv_value=0, logging_period_pv_values=logging_period_pv_values)
         log_file_initiator = self._create_log_file_intiator(archive_data_source, log_period_pvs=[pv_name])
 

@@ -21,6 +21,7 @@ import abc
 
 from datetime import timedelta
 
+from ArchiverAccess.utilities import add_default_field
 from server_common.mysql_abstraction_layer import DatabaseError
 from server_common.utilities import print_and_log
 
@@ -44,6 +45,19 @@ class LoggingPeriodProvider(object):
             time: time at which the logging period is needed
 
         Returns: logging period
+
+        """
+        raise NotImplementedError('users must define get_logging_period to use this base class')
+
+    @abc.abstractmethod
+    def set_default_field(self, default_field):
+        """
+        Set a default field on any pvs this logging provider uses. If this is not blank it will add this to
+        any pv without a field.
+        Args:
+            default_field: the new default field to use
+
+        Returns:
 
         """
         raise NotImplementedError('users must define get_logging_period to use this base class')
@@ -74,6 +88,20 @@ class LoggingPeriodProviderConst(LoggingPeriodProvider):
 
         """
         return timedelta(seconds=self._logging_period_const)
+
+    def set_default_field(self, default_field):
+        """
+        Set a default field on any pvs this logging provider uses. If this is not blank it will add this to
+        any pv without a field.
+
+        Args:
+            default_field: the new default field to use
+
+        Returns:
+
+        """
+        # This logging provider does not depend on any pvs so mothing is done
+        pass
 
 
 class LoggingPeriodProviderPV(LoggingPeriodProvider):
@@ -112,3 +140,16 @@ class LoggingPeriodProviderPV(LoggingPeriodProvider):
             print_and_log("Error when getting logging period from {0} got value '{1}'"
                           .format(self._logging_period_pv, logging_periods), src="ArchiverAccess")
             return self._period_on_error
+
+    def set_default_field(self, default_field):
+        """
+        Set a default field on any pvs this logging provider uses. If this is not blank it will add this to
+        any pv without a field.
+
+        Args:
+            default_field: the new default field to use
+
+        Returns:
+
+        """
+        self._logging_period_pv = add_default_field(self._logging_period_pv, default_field)

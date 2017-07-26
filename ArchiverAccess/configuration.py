@@ -21,6 +21,7 @@ import re
 from datetime import datetime
 
 from ArchiverAccess.logging_period_providers import LoggingPeriodProviderConst, LoggingPeriodProviderPV
+from ArchiverAccess.utilities import add_default_field
 from server_common.utilities import print_and_log
 
 DEFAULT_LOG_PATH = "C:\logs"
@@ -170,12 +171,9 @@ class Config(object):
 
         self._column_separator = DEFAULT_COLUMN_SEPARATOR
 
-        if default_field is None or default_field == "":
-            self._default_field = default_field
-        else:
-            self._default_field = "." + default_field
+        self._default_field = default_field
 
-        self.trigger_pv = self._add_default_field(trigger_pv)
+        self.trigger_pv = add_default_field(trigger_pv, self._default_field)
         self.filename = filename
 
         self._convert_header(header_lines)
@@ -183,6 +181,7 @@ class Config(object):
         self._convert_column_headers(columns)
         self._convert_columns(columns)
         self.logging_period_provider = logging_period_provider
+        self.logging_period_provider.set_default_field(self._default_field)
 
     def _convert_columns(self, columns):
         """
@@ -270,11 +269,6 @@ class Config(object):
                 pvs.add(pv)
         return list(pvs)
 
-    def _add_default_field(self, pv_name):
-        if pv_name is None or "." in pv_name:
-            return pv_name
-        return "{0}{1}".format(pv_name, self._default_field)
-
     def _add_all_default_fields(self, pv_names):
         """
         Add default field to pvs if they don't have fields.
@@ -285,4 +279,4 @@ class Config(object):
         Returns: names with fields added
 
         """
-        return [self._add_default_field(pv) for pv in pv_names]
+        return [add_default_field(pv, self._default_field) for pv in pv_names]

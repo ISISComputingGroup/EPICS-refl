@@ -91,7 +91,7 @@ INITIAL_VALUES_QUERY = """
                   FROM archive.channel
                  WHERE name = %s)
            AND s.smpl_time <= %s
-         ORDER BY s.smpl_time
+         ORDER BY s.smpl_time DESC
          LIMIT 1
      )
 """.format(ARCHIVER_DATA_VALUE_QUERY)
@@ -109,7 +109,7 @@ GET_CHANGES_QUERY = """
              WHERE name in ({in_clause}))
       AND s.smpl_time > %s
       AND s.smpl_time <= %s
-      ORDER BY s.smpl_time 
+      ORDER BY s.smpl_time
 """.format(arc_data_query=ARCHIVER_DATA_VALUE_QUERY, in_clause="{0}")
 """SQL query to get a list of changes between given times for certain pvs"""
 

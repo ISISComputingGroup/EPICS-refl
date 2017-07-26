@@ -116,7 +116,7 @@ class TestDatabaseConfigBuilder(TestCase):
         assert_that(config[0].trigger_pv, is_(expected_trigger_pv))
 
     def test_GIVEN_logging_period_pv_is_only_marked_WHEN_generate_THEN_configuration_has_logging_period_pv(self):
-        period_pv = "diff:triggerpv"
+        period_pv = "diff:triggerpv.VAL"
         ioc_data_source = self._create_ioc_data_source(period_pv=period_pv, period_pv_template="")
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
         log_period = 10
@@ -134,7 +134,7 @@ class TestDatabaseConfigBuilder(TestCase):
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
         log_period = 10
         expected_log_period = timedelta(seconds=log_period)
-        archive_data_source = ArchiverDataStub(initial_values={period_pv: log_period})
+        archive_data_source = ArchiverDataStub(initial_values={period_pv + ".VAL": log_period})
 
         config = db_config_builder.create()
 
@@ -142,7 +142,7 @@ class TestDatabaseConfigBuilder(TestCase):
         assert_that(logging_period, is_(expected_log_period))
 
     def test_GIVEN_logging_period_pv_is_explicit_WHEN_generate_THEN_configuration_has_logging_period_pv(self):
-        period_pv = "diff:triggerpv"
+        period_pv = "diff:triggerpv.field"
         ioc_data_source = self._create_ioc_data_source(period_pv="blah", period_pv_template=period_pv)
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
         log_period = 10
