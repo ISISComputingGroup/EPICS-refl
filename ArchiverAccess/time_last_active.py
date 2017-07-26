@@ -21,7 +21,7 @@ import os
 from datetime import datetime, timedelta
 
 from ArchiverAccess.configuration import DEFAULT_LOG_PATH
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log, SEVERITY
 
 TIME_LAST_ACTIVE_HEADER = "# File containing two line, time the logger was last active and " \
                           "maximum number of days use the time last active"
@@ -57,20 +57,28 @@ class TimeLastActive(object):
         Returns: the last time that this service was active
 
         """
+        time_last_active = self._get_last_active()
+        return print_and_log("Last active: {0}".format(time_last_active.isoformat()), src="ArchiverAccess")
+
+    def _get_last_active(self):
+        """
+
+        Returns: time last active
+
+        """
         time_now = self._time_now_fn()
         try:
             with self._file(FILENAME, mode="r") as time_last_active_file:
                 time_last_active_file.readline()
                 last_active_time = datetime.strptime(time_last_active_file.readline().strip(), "%Y-%m-%dT%H:%M:%S")
                 max_delta = int(time_last_active_file.readline().strip())
-        except (ValueError, TypeError, IOError):
+        except (ValueError, TypeError, IOError) as ex:
+            print_and_log("Failed to read last active file error '{0}'".format(ex),
+                          severity=SEVERITY.MINOR, src="ArchiverAccess")
             return time_now - timedelta(days=DEFAULT_DELTA)
-
         if max_delta < 0:
             max_delta = DEFAULT_DELTA
-
         earliest_time = time_now - timedelta(days=max_delta)
-
         if earliest_time > last_active_time:
             return earliest_time
         return last_active_time

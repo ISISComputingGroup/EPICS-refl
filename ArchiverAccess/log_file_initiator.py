@@ -18,6 +18,7 @@ Module for initiator for log file creation.
 """
 
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
+from server_common.utilities import print_and_log
 
 
 class ConfigAndDependencies(object):
@@ -88,8 +89,12 @@ class LogFileInitiatorOnPVChange(object):
             if logging_start_time is None:
                 if self._value_is_logging_on(value):
                     self._logging_started[pv_index] = timestamp
+                    print_and_log("Logging started for {0} at {1}".format(self._trigger_pvs[pv_index], timestamp),
+                                  src="ArchiverAccess")
             else:
                 if not self._value_is_logging_on(value):
+                    print_and_log("Logging stopped for {0} at {1}".format(self._trigger_pvs[pv_index], timestamp),
+                                  src="ArchiverAccess")
                     logging_period_provider = self._config_and_dependencies[pv_index].config.logging_period_provider
                     logging_period = logging_period_provider.get_logging_period(
                         self._archive_data_source, logging_start_time)

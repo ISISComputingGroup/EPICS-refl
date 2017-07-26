@@ -183,6 +183,17 @@ class Config(object):
         self.logging_period_provider = logging_period_provider
         self.logging_period_provider.set_default_field(self._default_field)
 
+    def __rep__(self):
+        rep = "Logging configuration (pvs as read from the archive)"
+        rep += " - file: {0}".format(self.filename)
+        rep += " - trigger pv: {0}".format(self.trigger_pv)
+        rep += " - file headers: {0}".format(self.header)
+        rep += " - pvs in fileheader {0}".format(self.pv_names_in_header)
+        rep += " - table headers: {0}".format(self.column_header_list)
+        rep += " - table line: {0}".format(self.table_line)
+        rep += " - pvs in table line {0}".format(self.pv_names_in_columns)
+        return rep
+
     def _convert_columns(self, columns):
         """
         Convert columns to table line and list of pvs contained

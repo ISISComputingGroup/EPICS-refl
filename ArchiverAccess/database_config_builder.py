@@ -72,7 +72,10 @@ class DatabaseConfigBuilder(object):
             file_name_template = os.path.join(ioc_name, file_name_template)
             config_builder = self._create_config_for_ioc(file_name_template, logging_items)
 
-            configurations.append(config_builder.build())
+            config = config_builder.build()
+            print_and_log("{0}".format(config.__rep__().replace(" - ", "\n  - ")),
+                          severity=SEVERITY.INFO, src="ArchiverAccess")
+            configurations.append(config)
         return configurations
 
     def _create_config_for_ioc(self, file_name_template, logging_items):
