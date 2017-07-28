@@ -115,16 +115,18 @@ class TestSchemaChecker(unittest.TestCase):
 
     def test_valid_groups_xml_matches_schema(self):
         self.cs.set_config_details(TEST_CONFIG)
-        xml = ConfigurationXmlConverter.groups_to_xml(self.cs.get_group_details(), MACROS)
+        xml = ConfigurationXmlConverter.groups_to_xml(self.cs.get_group_details())
 
         try:
             ConfigurationSchemaChecker.check_xml_data_matches_schema(os.path.join(self.schema_dir, "groups.xsd"), xml)
         except Exception as ex:
-            self.fail(msg="Exception thrown from schema checker {0}".format(traceback.format_exc()))
+            self.fail(
+                msg="Exception thrown from schema checker. Xml is {xml} exception is {0}".format(traceback.format_exc(),
+                                                                                                 xml=xml))
 
     def test_groups_xml_does_not_match_schema_raises(self):
         self.cs.set_config_details(TEST_CONFIG)
-        xml = ConfigurationXmlConverter.groups_to_xml(self.cs.get_group_details(), MACROS)
+        xml = ConfigurationXmlConverter.groups_to_xml(self.cs.get_group_details())
 
         # Keep it valid XML but don't match schema
         xml = xml.replace("<block ", "<notblock ")
@@ -139,7 +141,7 @@ class TestSchemaChecker(unittest.TestCase):
         try:
             ConfigurationSchemaChecker.check_xml_data_matches_schema(os.path.join(self.schema_dir, "iocs.xsd"), xml)
         except Exception as ex:
-            self.fail(msg="Exception thrown from schema checker {0}".format(traceback.format_exc()))
+            self.fail(msg="Exception thrown from schema checker. Xml is {xml} exception is {0}".format(traceback.format_exc(), xml=xml))
 
     def test_iocs_xml_does_not_match_schema_raises(self):
         self.cs.set_config_details(TEST_CONFIG)
