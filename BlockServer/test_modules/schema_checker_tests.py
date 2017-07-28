@@ -13,7 +13,7 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
+import traceback
 import unittest
 import os
 import json
@@ -119,8 +119,8 @@ class TestSchemaChecker(unittest.TestCase):
 
         try:
             ConfigurationSchemaChecker.check_xml_data_matches_schema(os.path.join(self.schema_dir, "groups.xsd"), xml)
-        except:
-            self.fail()
+        except Exception as ex:
+            self.fail(msg="Exception thrown from schema checker {0}".format(traceback.format_exc()))
 
     def test_groups_xml_does_not_match_schema_raises(self):
         self.cs.set_config_details(TEST_CONFIG)
@@ -138,8 +138,8 @@ class TestSchemaChecker(unittest.TestCase):
 
         try:
             ConfigurationSchemaChecker.check_xml_data_matches_schema(os.path.join(self.schema_dir, "iocs.xsd"), xml)
-        except:
-            self.fail()
+        except Exception as ex:
+            self.fail(msg="Exception thrown from schema checker {0}".format(traceback.format_exc()))
 
     def test_iocs_xml_does_not_match_schema_raises(self):
         self.cs.set_config_details(TEST_CONFIG)
