@@ -187,6 +187,7 @@ class Config(object):
         rep = "Logging configuration (pvs as read from the archive)"
         rep += " - file: {0}".format(self.filename)
         rep += " - trigger pv: {0}".format(self.trigger_pv)
+        rep += " - trigger pv: {0}".format(self.logging_period_provider)
         rep += " - file headers: {0}".format(self.header)
         rep += " - pvs in fileheader {0}".format(self.pv_names_in_header)
         rep += " - table headers: {0}".format(self.column_header_list)

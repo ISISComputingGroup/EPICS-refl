@@ -74,7 +74,10 @@ class LoggingPeriodProviderConst(LoggingPeriodProvider):
         Args:
             logging_period: the logging period in seconds to use
         """
-        self._logging_period_const = logging_period
+        self._logging_period_in_seconds = logging_period
+
+    def __repr__(self):
+        return "Logging period of {0}s".format(self._logging_period_in_seconds)
 
     def get_logging_period(self, archive_data_source, time):
         """
@@ -87,7 +90,7 @@ class LoggingPeriodProviderConst(LoggingPeriodProvider):
         Returns: logging period
 
         """
-        return timedelta(seconds=self._logging_period_const)
+        return timedelta(seconds=self._logging_period_in_seconds)
 
     def set_default_field(self, default_field):
         """
@@ -111,7 +114,12 @@ class LoggingPeriodProviderPV(LoggingPeriodProvider):
 
     def __init__(self, logging_period_pv, default_on_error):
         self._logging_period_pv = logging_period_pv
+        self._default_on_error = default_on_error
         self._period_on_error = timedelta(seconds=default_on_error)
+
+    def __repr__(self):
+        return "Logging from pv {0} with a default on error of {1}s".format(
+            self._logging_period_pv, self._default_on_error)
 
     def get_logging_period(self, archive_data_source, time):
         """
