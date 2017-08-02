@@ -22,7 +22,7 @@ from datetime import datetime
 
 from ArchiverAccess.logging_period_providers import LoggingPeriodProviderConst, LoggingPeriodProviderPV
 from ArchiverAccess.utilities import add_default_field
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log, SEVERITY
 
 DEFAULT_LOG_PATH = "C:\logs"
 """Default path where logs should be writen"""
@@ -115,6 +115,10 @@ class ConfigBuilder(object):
         Returns: self
 
         """
+        if self._trigger_pv is not None:
+            print_and_log("Trigger pv being redefined to {0} from {1}".format(pv_name, self._trigger_pv),
+                          severity=SEVERITY.MAJOR, src="ArchiverAccess")
+
         self._trigger_pv = pv_name
 
         return self
@@ -129,9 +133,7 @@ class ConfigBuilder(object):
         Returns: self
 
         """
-        if self._logging_period_provider is not None:
-            print_and_log("Logging period being redefined", severity="MINOR", src="ArchiverAccess")
-        self._logging_period_provider = LoggingPeriodProviderConst(logging_period)
+        self._set_logging_period_provider(LoggingPeriodProviderConst(logging_period))
 
         return self
 
@@ -145,9 +147,15 @@ class ConfigBuilder(object):
         Returns: self
 
         """
-
-        self._logging_period_provider = LoggingPeriodProviderPV(logging_period_pv, DEFAULT_LOGGING_PERIOD_IN_S)
+        self._set_logging_period_provider(LoggingPeriodProviderPV(logging_period_pv, DEFAULT_LOGGING_PERIOD_IN_S))
         return self
+
+    def _set_logging_period_provider(self, logging_period_provider):
+        if self._logging_period_provider is not None:
+            print_and_log("Logging period being redefined to {0} from {1}".format(
+                logging_period_provider, self._logging_period_provider), severity=SEVERITY.MAJOR, src="ArchiverAccess")
+
+        self._logging_period_provider = logging_period_provider
 
 
 class Config(object):

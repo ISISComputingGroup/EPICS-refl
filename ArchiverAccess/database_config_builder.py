@@ -80,10 +80,16 @@ class DatabaseConfigBuilder(object):
 
     def _create_config_for_ioc(self, file_name_template, logging_items):
         columns = {}
+        all_keys = set()
         config_builder = ConfigBuilder(file_name_template)
         sorted_values = sorted(logging_items, key=lambda x: x[1])
         for pv_name, key, template in sorted_values:
-            self._translate_db_annotations_to_config(key.lower(), pv_name, template, columns, config_builder)
+            key_lowered = key.lower()
+            if key_lowered in all_keys:
+                print_and_log("Logging info key {0} is repeated.".format(key),
+                              severity=SEVERITY.MAJOR, src="ArchiverAccess")
+            all_keys.add(key_lowered)
+            self._translate_db_annotations_to_config(key_lowered, pv_name, template, columns, config_builder)
         for column_index in sorted(columns.keys()):
             column_header, column_template = columns[column_index]
             config_builder.table_column(column_header, column_template)
@@ -94,14 +100,15 @@ class DatabaseConfigBuilder(object):
         if key.startswith(HEADER_ANNOTATION_PREFIX):
             config_builder.header(value)
         elif key == TRIGGER_PV:
-            config_builder.trigger_pv(self._use_default__if_blank(value, pv_name))
+            config_builder.trigger_pv(self._use_default_if_blank(value, pv_name))
         elif key == PERIOD_PV:
-            config_builder.logging_period_pv(self._use_default__if_blank(value, pv_name))
+            config_builder.logging_period_pv(self._use_default_if_blank(value, pv_name))
         elif key == PERIOD_CONST_S:
             try:
                 config_builder.logging_period_seconds(float(value))
             except (TypeError, ValueError):
-                print_and_log("Invalid logging period set '{0}'".format(value), src="ArchiverAccess")
+                print_and_log("Invalid logging period set '{0}'".format(value),
+                              severity=SEVERITY.MAJOR, src="ArchiverAccess")
         elif key.startswith(COLUMN_HEADER_ANNOTATION_PREFIX):
             default_template = "{{{pv_name}}}".format(pv_name=pv_name)
             index = key[len(COLUMN_HEADER_ANNOTATION_PREFIX):]
@@ -109,14 +116,14 @@ class DatabaseConfigBuilder(object):
             columns[index] = (value, current_template)
 
         elif key.startswith(COLUMN_TEMPLATE_ANNOTATION_PREFIX):
-            default_header = self._use_default__if_blank(value, pv_name)
+            default_header = self._use_default_if_blank(value, pv_name)
             index = key[len(COLUMN_TEMPLATE_ANNOTATION_PREFIX):]
             current_header, current_template = columns.get(index, (default_header, None))
 
             pv_name_template = "{{{pv_name}}}".format(pv_name=pv_name)
-            columns[index] = (current_header, self._use_default__if_blank(value, pv_name_template))
+            columns[index] = (current_header, self._use_default_if_blank(value, pv_name_template))
 
-    def _use_default__if_blank(self, value, default):
+    def _use_default_if_blank(self, value, default):
         if value is None or value == "":
             return default
         return value
