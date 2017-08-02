@@ -19,7 +19,7 @@ from unittest import TestCase
 
 from hamcrest import *
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
-from ArchiverAccess.utilities import add_default_field
+from ArchiverAccess.utilities import add_default_field, truncate
 
 
 class TestUtilities(TestCase):
@@ -77,3 +77,57 @@ class TestUtilities(TestCase):
         result = add_default_field(pv, default_field)
 
         assert_that(result, is_(expected_pv))
+
+    def test_GIVEN_number_WHEN_trancate_to_1_dp_THEN_number_is_truncated(self):
+        num = 0.1234
+        dps = 1
+        expected_num = 0.1
+
+        result = truncate(num, dps)
+
+        assert_that(result, is_(expected_num))
+
+    def test_GIVEN_number_WHEN_truncate_to_mre_dps_than_given_THEN_number_is_not_truncated(self):
+        num = 0.12
+        dps = 4
+        expected_num = num
+
+        result = truncate(num, dps)
+
+        assert_that(result, is_(expected_num))
+
+    def test_GIVEN_number_WHEN_trancate_to_0_dp_THEN_number_is_truncated(self):
+        num = 123.12
+        dps = 0
+        expected_num = 123
+
+        result = truncate(num, dps)
+
+        assert_that(result, is_(expected_num))
+
+    def test_GIVEN_number_WHEN_truncate_to_nearest_10_THEN_number_is_truncated(self):
+        num = 123.12
+        dps = -1
+        expected_num = 120
+
+        result = truncate(num, dps)
+
+        assert_that(result, is_(expected_num))
+
+    def test_GIVEN_number_WHEN_truncated_to_number_bigger_than_input_THEN_number_0(self):
+        num = 123.12
+        dps = -4
+        expected_num = 0
+
+        result = truncate(num, dps)
+
+        assert_that(result, is_(expected_num))
+
+    def test_GIVEN_int_number_WHEN_truncate_to_nearest_10_THEN_number_is_truncated(self):
+        num = 250000
+        dps = -5
+        expected_num = 200000
+
+        result = truncate(num, dps)
+
+        assert_that(result, is_(expected_num))

@@ -19,6 +19,8 @@ Module for defining a time period for the archive access
 
 from datetime import datetime
 
+from ArchiverAccess.utilities import truncate
+
 
 class ArchiveTimePeriod(object):
     """
@@ -35,7 +37,7 @@ class ArchiveTimePeriod(object):
             point_count: the number of points in the period
             finish_time: the end time is the last value that is logged before this time
         """
-        nearest_10th_second = ((start_time.microsecond // 100000) * 100000)
+        nearest_10th_second = truncate(start_time.microsecond, -5)
         self.start_time = start_time.replace(microsecond=nearest_10th_second)
         self.delta = delta
         if point_count is None:

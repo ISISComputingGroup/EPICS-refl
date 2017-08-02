@@ -37,3 +37,21 @@ def add_default_field(pv_name, default_field):
     if pv_name is None or pv_name == "" or "." in pv_name:
         return pv_name
     return "{0}.{1}".format(pv_name, default_field)
+
+
+def truncate(x, d):
+    """
+    Truncate a number to d decimal places
+    Args:
+        x: the number to truncate
+        d: the number of decimal places; -ve to truncate to powers
+
+    Returns: truncated number
+
+    """
+    if d > 0:
+        mult = 10.0 ** d
+        return int(x * mult) / mult
+    else:
+        mult = 10 ** (-d)
+        return int(x / mult) * mult
