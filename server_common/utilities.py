@@ -26,6 +26,12 @@ from loggers.logger import Logger
 LOGGER = Logger()
 
 
+class SEVERITY(object):
+    INFO = "INFO"
+    MINOR = "MINOR"
+    MAJOR = "MAJOR"
+
+
 def set_logger(logger):
     """Sets the logger used by the print_and_log function.
 
