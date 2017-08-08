@@ -17,6 +17,7 @@
 # Add root path for access to server_commons
 import os
 import sys
+
 os.environ["MYDIRBLOCK"] = os.path.abspath('..')
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 # Standard imports
@@ -26,6 +27,7 @@ import argparse
 
 from test_modules.options_holder_tests import TestOptionsHolderSequence
 from test_modules.exp_data_test import TestExpData
+from test_modules.database_server_test_mysql import TestDatabaseServer
 
 DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 
@@ -39,14 +41,13 @@ if __name__ == '__main__':
 
     # Load tests from test suites
     options_holder_suite = unittest.TestLoader().loadTestsFromTestCase(TestOptionsHolderSequence)
-    # database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
+    database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
     exp_data_suite = unittest.TestLoader().loadTestsFromTestCase(TestExpData)
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
     ret_vals = list()
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(mysql_suite))
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite))
-    # ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite))
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite))
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(exp_data_suite))
     print "------ UNIT TESTS COMPLETE ------\n\n"
 

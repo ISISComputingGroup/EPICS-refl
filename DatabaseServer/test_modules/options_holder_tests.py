@@ -13,12 +13,12 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
+import os
 import unittest
 from options_holder import OptionsHolder
 from options_loader import OptionsLoader
 
-OPTIONS_PATH = "./test_files/"
+OPTIONS_PATH = os.path.join(os.path.dirname(__file__), os.path.pardir,  "test_files")
 
 
 class TestOptionsHolderSequence(unittest.TestCase):
