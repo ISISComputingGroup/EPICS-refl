@@ -175,7 +175,7 @@ GET_ACTIVE_IOC_INTERESTING_PVS = GET_PVS_WITH_DETAILS + """
 """Select interesting pvs from running active iocs"""
 
 GET_PVS_WITH_TEMPLATED_INTEREST = GET_PVS_WITH_DETAILS + """
-WHERE (infoname='INTEREST' AND value={interest})"""
+WHERE (infoname='INTEREST' AND value='{interest}')"""
 
 GET_PVS_WITH_TEMPLATED_INTEREST_FOR_AN_IOC = GET_PVS_WITH_TEMPLATED_INTEREST + """
 AND iocname=%s"""
@@ -305,7 +305,6 @@ class IocDataSource(object):
                     sqlquery = GET_PVS_WITH_TEMPLATED_INTEREST.format(interest=interest)
                 else:
                     sqlquery = GET_PVS_WITH_DETAILS
-
             return self._query_and_normalise(sqlquery, bind_vars)
         except Exception as err:
             print_and_log("issue with getting interesting PVs: %s" % err, "MAJOR", "DBSVR")

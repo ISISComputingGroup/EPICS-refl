@@ -21,6 +21,8 @@ import mysql.connector
 from DatabaseServer.mocks.mock_procserv_utils import MockProcServWrapper
 from server_common.ioc_data import IOCData
 
+IOCS = ['SIMPLE1', "SIMPLE2", "TESTIOC", "STOPDIOC"]
+
 TEST_DB = 'test_iocdb'
 HIGH_PV_NAMES = list()
 MEDIUM_PV_NAMES = list()
@@ -62,7 +64,7 @@ def generate_fake_db(iocdb):
     #Populate the tables for testing
     sql = []
     count = 0
-    for iocname in ['SIMPLE1', "SIMPLE2", "TESTIOC", "STOPDIOC"]:
+    for iocname in IOCS:
         # Populate iocs
         sql.append("""INSERT INTO `%s`.`iocs` (`iocname`, `dir`, `consoleport`, `logport`, `exe`, `cmd`) VALUES ('%s','%s','%s','%s','%s','%s')""" % (iocdb,iocname, 'fake_dir', count, count, 'fake_exe', 'fake_cmd'))
         # Populate iocsrt
