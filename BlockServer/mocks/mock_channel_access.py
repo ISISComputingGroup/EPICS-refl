@@ -15,17 +15,69 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 PVS = dict()
-
+PV_TEST_DICT = None
+PV_TEST_DICT_CALL_INDEX = None
 
 class MockChannelAccess(object):
+
     @staticmethod
     def caget(name, as_string=False):
+        if PV_TEST_DICT is not None and name in PV_TEST_DICT:
+            return MockChannelAccess._get_from_ca_env(name)
         if name in PVS:
             return PVS[name]
         return "Something that is not None"
+
+    @staticmethod
+    def _get_from_ca_env(name):
+        call_index = PV_TEST_DICT_CALL_INDEX[name]
+        PV_TEST_DICT_CALL_INDEX[name] += 1
+        return PV_TEST_DICT[name][call_index]
+
 
     @staticmethod
     def caput(name, value, wait=False):
         global PVS
         PVS[name] = value
 
+
+class ChannelAccessEnv(object):
+
+    def __init__(self, pv_values):
+        """
+        Setup a new channel access environment.
+
+        This will set up a number of PVs with a series of different values to
+        return each time they are accessed.
+
+        Args:
+            pv_values (dict): dict of pv names and a list of values to return
+                each time the PV is called
+        """
+        self._pv_values = pv_values
+        self._old_values = None
+        self._old_index = None
+
+    def __enter__(self):
+        """ Setup a global environment dict for channel access"""
+        global PV_TEST_DICT, PV_TEST_DICT_CALL_INDEX
+        self._old_values = PV_TEST_DICT
+        self._old_index = PV_TEST_DICT_CALL_INDEX
+
+        PV_TEST_DICT = self._pv_values
+        PV_TEST_DICT_CALL_INDEX = {}
+        for name in self._pv_values:
+            PV_TEST_DICT_CALL_INDEX[name] = 0
+
+        return self
+
+    def __exit__(self, t, value, trace):
+        """ Tear down a global environment dict for channel access"""
+        global PV_TEST_DICT, PV_TEST_DICT_CALL_INDEX
+        PV_TEST_DICT = self._old_values
+        PV_TEST_DICT_CALL_INDEX = self._old_index
+
+    def get_call_count(self, name):
+        """ Get the number of times a PV was called"""
+        global PV_TEST_DICT_CALL_INDEX
+        return PV_TEST_DICT_CALL_INDEX[name]

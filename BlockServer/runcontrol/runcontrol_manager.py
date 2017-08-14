@@ -15,6 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import os
+from datetime import datetime
 from time import sleep
 
 from BlockServer.core.constants import TAG_RC_LOW, TAG_RC_HIGH, TAG_RC_ENABLE, TAG_RC_OUT_LIST
@@ -43,7 +44,7 @@ class RunControlManager(OnTheFlyPvInterface):
     """
 
     def __init__(self, prefix, config_dir, var_dir, ioc_control, active_configholder, block_server,
-                 channel_access=ChannelAccess()):
+                 channel_access=ChannelAccess(), sleep_func=sleep):
         """Constructor.
 
         Args:
@@ -55,7 +56,8 @@ class RunControlManager(OnTheFlyPvInterface):
             block_server (BlockServer): A reference to the BlockServer instance
             channel_access (ChannelAccess): A reference to the ChannelAccess instance
         """
-        self._rc_ioc_start_time = ""
+        self._sleep_func = sleep_func
+        self._rc_ioc_start_time = None
         self._prefix = prefix
         self._settings_file = os.path.join(config_dir, RUNCONTROL_SETTINGS)
         self._autosave_dir = os.path.join(var_dir, AUTOSAVE_DIR, RUNCONTROL_IOC)
@@ -219,6 +221,37 @@ class RunControlManager(OnTheFlyPvInterface):
                 except Exception as err:
                     print_and_log("Problem with setting runcontrol for %s: %s" % (bn, err))
 
+    def _get_latest_ioc_start(self):
+        """
+        Get the latest IOC start time
+
+        Returns:
+            latest_ioc_start (datetime): the latest IOC start time
+        """
+        latest_ioc_start = self._channel_access.caget(self._prefix + RC_START_PV)
+
+        if latest_ioc_start is not None:
+            print latest_ioc_start
+            latest_ioc_start = datetime.strptime(latest_ioc_start, '%m/%d/%Y %H:%M:%S')
+
+        return latest_ioc_start
+
+    def _invalid_ioc_start_time(self, latest_ioc_start):
+        """
+        Check is this start time is invalid
+
+        This checks if it was successfully parsed and whether it is less than
+        the current run control IOC start time.
+
+        Args:
+            latest_ioc_start (datetime): time to check
+
+        Returns:
+            Bool whether the parsed datetime is valid
+        """
+        return latest_ioc_start is None or (self._rc_ioc_start_time is
+                not None and latest_ioc_start < self._rc_ioc_start_time)
+
     def wait_for_ioc_start(self, time_between_tries=2):
         """
         Waits for the run-control IOC to start.
@@ -235,20 +268,22 @@ class RunControlManager(OnTheFlyPvInterface):
             try:
                 if ioc_restart_pending(self._prefix + RC_IOC_PREFIX, self._channel_access):
                     raise Exception()
-                latest_ioc_start = self._channel_access.caget(self._prefix + RC_START_PV)
-                if latest_ioc_start is None or (self._rc_ioc_start_time != "" and
-                                                        latest_ioc_start <= self._rc_ioc_start_time):
+
+                latest_ioc_start = self._get_latest_ioc_start()
+
+                if self._invalid_ioc_start_time(latest_ioc_start):
                     raise Exception()
+
                 self._rc_ioc_start_time = latest_ioc_start
                 started = True
                 print_and_log("... Runcontrol IOC started")
             except Exception as err:
-                sleep(time_between_tries)
+                self._sleep_func(time_between_tries)
         if not started:
             print_and_log("Runcontrol appears not to have started", "MAJOR")
         else:
             # wait for other RC PVs to appear
-            sleep(time_between_tries * 3)
+            self._sleep_func(time_between_tries * 3)
 
     def _start_ioc(self):
         """Start the IOC."""
