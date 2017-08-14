@@ -231,7 +231,6 @@ class RunControlManager(OnTheFlyPvInterface):
         latest_ioc_start = self._channel_access.caget(self._prefix + RC_START_PV)
 
         if latest_ioc_start is not None:
-            print latest_ioc_start
             latest_ioc_start = datetime.strptime(latest_ioc_start, '%m/%d/%Y %H:%M:%S')
 
         return latest_ioc_start
@@ -250,7 +249,7 @@ class RunControlManager(OnTheFlyPvInterface):
             Bool whether the parsed datetime is valid
         """
         return latest_ioc_start is None or (self._rc_ioc_start_time is
-                not None and latest_ioc_start < self._rc_ioc_start_time)
+                not None and latest_ioc_start <= self._rc_ioc_start_time)
 
     def wait_for_ioc_start(self, time_between_tries=2):
         """
