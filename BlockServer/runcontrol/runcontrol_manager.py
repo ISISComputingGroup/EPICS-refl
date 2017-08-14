@@ -260,9 +260,11 @@ class RunControlManager(OnTheFlyPvInterface):
         latest_ioc_start = self._channel_access.caget(self._prefix
                                                       + RC_START_PV)
 
-        if latest_ioc_start is not None:
+        if latest_ioc_start is not None and latest_ioc_start != '':
             frmt = '%m/%d/%Y %H:%M:%S'
             latest_ioc_start = datetime.strptime(latest_ioc_start, frmt)
+        else:
+            return None
 
         return latest_ioc_start
 
