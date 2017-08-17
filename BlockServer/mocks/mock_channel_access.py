@@ -26,7 +26,8 @@ class MockChannelAccess(object):
 
     @staticmethod
     def caget(name, as_string=False):
-        """Mock channel access get.
+        """
+        Mock channel access get.
 
         Args:
             name (str): the PV to return a value for
@@ -46,7 +47,8 @@ class MockChannelAccess(object):
 
     @staticmethod
     def caput(name, value, wait=False):
-        """Mock channel access put.
+        """
+        Mock channel access put.
 
         Args:
             name (str): the PV to set a value for
@@ -58,7 +60,8 @@ class MockChannelAccess(object):
 
 
 class ChannelAccessEnv(object):
-    """Channel access environment setup.
+    """
+    Channel access environment setup.
 
     Use this to create a channel access environment that can return different
     values depending on the number of times a PV is accessed. This will also
@@ -66,7 +69,8 @@ class ChannelAccessEnv(object):
     """
 
     def __init__(self, pv_values):
-        """Create a new channel access environment.
+        """
+        Create a new channel access environment.
 
         This will set up a number of PVs with a series of different values to
         return each time they are accessed.
@@ -80,7 +84,9 @@ class ChannelAccessEnv(object):
         self._old_index = None
 
     def __enter__(self):
-        """Create a global environment dict for channel access."""
+        """
+        Create a global environment dict for channel access.
+        """
         global PV_TEST_DICT, PV_TEST_DICT_CALL_INDEX
         self._old_values = PV_TEST_DICT
         self._old_index = PV_TEST_DICT_CALL_INDEX
@@ -93,12 +99,16 @@ class ChannelAccessEnv(object):
         return self
 
     def __exit__(self, t, value, trace):
-        """Tear down a global environment dict for channel access."""
+        """
+        Tear down a global environment dict for channel access.
+        """
         global PV_TEST_DICT, PV_TEST_DICT_CALL_INDEX
         PV_TEST_DICT = self._old_values
         PV_TEST_DICT_CALL_INDEX = self._old_index
 
     def get_call_count(self, name):
-        """Get the number of times a PV was called."""
+        """
+        Get the number of times a PV was called.
+        """
         global PV_TEST_DICT_CALL_INDEX
         return PV_TEST_DICT_CALL_INDEX[name]

@@ -51,8 +51,8 @@ def add_block(cs, data):
 def _get_current_time():
     return datetime.strftime(datetime.now(), '%m/%d/%Y %H:%M:%S')
 
-class TestRunControlSequence(unittest.TestCase):
 
+class TestRunControlSequence(unittest.TestCase):
     def setUp(self):
         self.activech = MockActiveConfigHolder(MACROS)
         self.cs = MockChannelAccess()
@@ -61,7 +61,8 @@ class TestRunControlSequence(unittest.TestCase):
         def dummy_sleep_func(seconds):
             return
 
-        self.rcm = RunControlManager("", "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs, dummy_sleep_func)
+        self.rcm = RunControlManager("", "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs,
+                                     dummy_sleep_func)
 
     def set_start_time_of_run_control(self, start_time=_get_current_time()):
         PVS[MACROS["$(MYPVPREFIX)"] + RC_START_PV] = start_time
