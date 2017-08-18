@@ -21,7 +21,7 @@ from datetime import datetime
 from time import sleep
 
 from BlockServer.core.constants import TAG_RC_LOW, TAG_RC_HIGH, \
-        TAG_RC_ENABLE, TAG_RC_OUT_LIST
+    TAG_RC_ENABLE, TAG_RC_OUT_LIST
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from server_common.utilities import print_and_log, compress_and_hex, \
     convert_to_json, ioc_restart_pending
@@ -135,12 +135,12 @@ class RunControlManager(OnTheFlyPvInterface):
                 started
         """
         self.update_runcontrol_blocks(
-                self._active_configholder.get_block_details())
+            self._active_configholder.get_block_details())
         self.restart_ioc(clear_autosave)
         # Need to wait for RUNCONTROL_IOC to restart
         self.wait_for_ioc_start(time_between_tries)
         self.restore_config_settings(
-                self._active_configholder.get_block_details())
+            self._active_configholder.get_block_details())
 
     def update_runcontrol_blocks(self, blocks):
         """Update the run-control settings in the IOC with the current blocks.
@@ -259,11 +259,10 @@ class RunControlManager(OnTheFlyPvInterface):
         """
         latest_ioc_start = self._channel_access.caget(self._prefix
                                                       + RC_START_PV)
-
-        if latest_ioc_start is not None and latest_ioc_start != '':
+        try:
             frmt = '%m/%d/%Y %H:%M:%S'
             latest_ioc_start = datetime.strptime(latest_ioc_start, frmt)
-        else:
+        except:
             return None
 
         return latest_ioc_start
@@ -299,21 +298,21 @@ class RunControlManager(OnTheFlyPvInterface):
         while not started and loop_count < MAX_LOOPS_TO_WAIT_FOR_START:
             loop_count += 1
             # See if the IOC has restarted
-            try:
-                if ioc_restart_pending(self._prefix + RC_IOC_PREFIX,
-                                       self._channel_access):
-                    raise Exception()
-
-                latest_ioc_start = self._get_latest_ioc_start()
-
-                if self._invalid_ioc_start_time(latest_ioc_start):
-                    raise Exception()
-
-                self._rc_ioc_start_time = latest_ioc_start
-                started = True
-                print_and_log("... Runcontrol IOC started")
-            except Exception:
+            if ioc_restart_pending(self._prefix + RC_IOC_PREFIX,
+                                   self._channel_access):
                 self._sleep_func(time_between_tries)
+                continue
+
+            latest_ioc_start = self._get_latest_ioc_start()
+
+            if self._invalid_ioc_start_time(latest_ioc_start):
+                self._sleep_func(time_between_tries)
+                continue
+
+            self._rc_ioc_start_time = latest_ioc_start
+            started = True
+            print_and_log("... Runcontrol IOC started")
+
         if not started:
             print_and_log("Runcontrol appears not to have started", "MAJOR")
         else:

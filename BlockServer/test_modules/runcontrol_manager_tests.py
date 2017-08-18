@@ -30,7 +30,7 @@ from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 MACROS = {
@@ -48,6 +48,15 @@ def add_block(cs, data):
     cs.add_block(data)
 
 
+def dummy_sleep_func(seconds):
+    return
+
+
+def _get_time(t, **kwargs):
+    td = timedelta(**kwargs)
+    return datetime.strftime(t+td, '%m/%d/%Y %H:%M:%S')
+
+
 def _get_current_time():
     return datetime.strftime(datetime.now(), '%m/%d/%Y %H:%M:%S')
 
@@ -57,9 +66,6 @@ class TestRunControlSequence(unittest.TestCase):
         self.activech = MockActiveConfigHolder(MACROS)
         self.cs = MockChannelAccess()
         self.set_start_time_of_run_control()
-
-        def dummy_sleep_func(seconds):
-            return
 
         self.rcm = RunControlManager("", "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs, dummy_sleep_func)
 
@@ -119,14 +125,32 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertEqual(ans["TESTBLOCK1"]["LOW"], 0)
 
     def test_GIVEN_non_restarting_runcontrol_WHEN_create_PVs_THAT_code_is_not_stuck_in_loop(self):
-        rc_pv = MACROS["$(MYPVPREFIX)"] + RC_START_PV
-        with ChannelAccessEnv({rc_pv: [_get_current_time()]}) as channel:
-            self.rcm.create_runcontrol_pvs(False, 0)
+        prefix = ""
+        rc_pv = prefix + RC_START_PV
+
+        def _get_time(t, **kwargs):
+            td = timedelta(**kwargs)
+            return datetime.strftime(t+td, '%m/%d/%Y %H:%M:%S')
+
+        now = datetime.now()
+        with ChannelAccessEnv({rc_pv: [_get_time(now, minutes=-3)]}) as channel:
+            self.rcm = RunControlManager(prefix, "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs, dummy_sleep_func)
             self.assertEqual(channel.get_call_count(rc_pv), 1)
 
+    def test_GIVEN_already_started_runcontrol_WHEN_restart_THAT_code_is_not_stuck_in_loop(self):
+        prefix = ""
+        rc_pv = prefix + RC_START_PV
+
+        now = datetime.now()
+        with ChannelAccessEnv({rc_pv: [_get_time(now, minutes=-3), "", _get_time(now, minutes=-2)]}) as channel:
+            rcm = RunControlManager(prefix, "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs, dummy_sleep_func)
+            rcm.create_runcontrol_pvs(False, 0)
+            self.assertEqual(channel.get_call_count(rc_pv), 3)
+
+
     def test_GIVEN_nonsense_runcontrol_start_time_WHEN_restart_runcontrol_THAT_code_loops_to_restart_runcontrol(self):
-        rc_pv = MACROS["$(MYPVPREFIX)"] + RC_START_PV
+        prefix = ""
+        rc_pv = "" + RC_START_PV
         with ChannelAccessEnv({rc_pv: [""] * 60}) as channel:
-            self.set_start_time_of_run_control(2)
-            self.rcm.create_runcontrol_pvs(False, 0)
+            rcm = RunControlManager(prefix, "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs, dummy_sleep_func)
             self.assertEqual(channel.get_call_count(rc_pv), 60)
