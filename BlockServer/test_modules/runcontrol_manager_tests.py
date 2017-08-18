@@ -54,11 +54,12 @@ def dummy_sleep_func(seconds):
 
 def _get_time(t, **kwargs):
     td = timedelta(**kwargs)
-    return datetime.strftime(t+td, '%m/%d/%Y %H:%M:%S')
+    return datetime.strftime(t + td, '%m/%d/%Y %H:%M:%S')
 
 
 def _get_current_time():
     return datetime.strftime(datetime.now(), '%m/%d/%Y %H:%M:%S')
+
 
 class TestRunControlSequence(unittest.TestCase):
 
@@ -67,7 +68,8 @@ class TestRunControlSequence(unittest.TestCase):
         self.cs = MockChannelAccess()
         self.set_start_time_of_run_control()
 
-        self.rcm = RunControlManager("", "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs, dummy_sleep_func)
+        self.rcm = RunControlManager("", "", "", MockIocControl(
+            ""), self.activech, MockBlockServer(), self.cs, dummy_sleep_func)
 
     def set_start_time_of_run_control(self, start_time=_get_current_time()):
         PVS[MACROS["$(MYPVPREFIX)"] + RC_START_PV] = start_time
@@ -79,10 +81,14 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertTrue(len(ans) == 0)
 
     def test_get_runcontrol_settings_blocks(self):
-        add_block(self.activech, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-        add_block(self.activech, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-        add_block(self.activech, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-        add_block(self.activech, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+        add_block(self.activech, quick_block_to_json(
+            "TESTBLOCK1", "PV1", "GROUP1", True))
+        add_block(self.activech, quick_block_to_json(
+            "TESTBLOCK2", "PV2", "GROUP2", True))
+        add_block(self.activech, quick_block_to_json(
+            "TESTBLOCK3", "PV3", "GROUP2", True))
+        add_block(self.activech, quick_block_to_json(
+            "TESTBLOCK4", "PV4", "NONE", True))
         self.set_start_time_of_run_control()
         self.rcm.create_runcontrol_pvs(False, 0)
         ans = self.rcm.get_current_settings()
@@ -101,7 +107,8 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertTrue("ENABLE" in ans["TESTBLOCK4"])
 
     def test_get_runcontrol_settings_blocks_limits(self):
-        data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
+        data = {'name': "TESTBLOCK1", 'pv': "PV1",
+                'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
         add_block(self.activech, data)
         self.set_start_time_of_run_control()
         self.rcm.create_runcontrol_pvs(False, 0)
@@ -111,7 +118,8 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertTrue(ans["TESTBLOCK1"]["LOW"] == -5)
 
     def test_set_runcontrol_settings_limits(self):
-        data = {'name': "TESTBLOCK1", 'pv': "PV1", 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
+        data = {'name': "TESTBLOCK1", 'pv': "PV1",
+                'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
         add_block(self.activech, data)
         self.set_start_time_of_run_control()
         self.rcm.create_runcontrol_pvs(False, 0)
@@ -128,13 +136,11 @@ class TestRunControlSequence(unittest.TestCase):
         prefix = ""
         rc_pv = prefix + RC_START_PV
 
-        def _get_time(t, **kwargs):
-            td = timedelta(**kwargs)
-            return datetime.strftime(t+td, '%m/%d/%Y %H:%M:%S')
-
         now = datetime.now()
         with ChannelAccessEnv({rc_pv: [_get_time(now, minutes=-3)]}) as channel:
-            self.rcm = RunControlManager(prefix, "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs, dummy_sleep_func)
+            rcm = RunControlManager(prefix, "", "",
+                                    MockIocControl(""), self.activech,
+                                    MockBlockServer(), self.cs, dummy_sleep_func)
             self.assertEqual(channel.get_call_count(rc_pv), 1)
 
     def test_GIVEN_already_started_runcontrol_WHEN_restart_THAT_code_is_not_stuck_in_loop(self):
@@ -143,14 +149,17 @@ class TestRunControlSequence(unittest.TestCase):
 
         now = datetime.now()
         with ChannelAccessEnv({rc_pv: [_get_time(now, minutes=-3), "", _get_time(now, minutes=-2)]}) as channel:
-            rcm = RunControlManager(prefix, "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs, dummy_sleep_func)
+            rcm = RunControlManager(prefix, "", "",
+                                    MockIocControl(""), self.activech,
+                                    MockBlockServer(), self.cs, dummy_sleep_func)
             rcm.create_runcontrol_pvs(False, 0)
             self.assertEqual(channel.get_call_count(rc_pv), 3)
-
 
     def test_GIVEN_nonsense_runcontrol_start_time_WHEN_restart_runcontrol_THAT_code_loops_to_restart_runcontrol(self):
         prefix = ""
         rc_pv = "" + RC_START_PV
         with ChannelAccessEnv({rc_pv: [""] * 60}) as channel:
-            rcm = RunControlManager(prefix, "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs, dummy_sleep_func)
+            rcm = RunControlManager(prefix, "", "",
+                                    MockIocControl(""), self.activech,
+                                    MockBlockServer(), self.cs, dummy_sleep_func)
             self.assertEqual(channel.get_call_count(rc_pv), 60)
