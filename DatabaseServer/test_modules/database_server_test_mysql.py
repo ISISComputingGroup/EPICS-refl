@@ -14,13 +14,16 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-from mysql_wrapper_tests import generate_fake_db, TEST_DB, HIGH_PV_NAMES, MEDIUM_PV_NAMES
-import unittest
-from database_server import DatabaseServer
-from server_common.mocks.mock_ca_server import MockCAServer
-from server_common.utilities import dehex_and_decompress
-import os
 import json
+import os
+import unittest
+
+from database_server import DatabaseServer
+
+from server_common.mocks.mock_ca_server import MockCAServer
+from server_common.test_modules.test_mysql_wrapper import generate_fake_db, TEST_DB, HIGH_PV_NAMES, MEDIUM_PV_NAMES, \
+    FACILITY_PV_NAMES, IOCS
+from server_common.utilities import dehex_and_decompress
 
 generate_fake_db(TEST_DB)
 
@@ -28,24 +31,37 @@ generate_fake_db(TEST_DB)
 class TestDatabaseServer(unittest.TestCase):
     def setUp(self):
         self.ms = MockCAServer()
-        self.db_server = DatabaseServer(self.ms, TEST_DB, os.path.abspath('./test_files'), True)
+        self.db_server = DatabaseServer(self.ms, TEST_DB, os.path.abspath('./test_files'), "block_prefix", True)
 
     def test_interest_high_pvs_correct(self):
-        on_fly_pvs = self.ms.pv_list
-        data = [json.loads(dehex_and_decompress(x)) for x in on_fly_pvs.values()]
+        pv_data = json.loads(dehex_and_decompress(self.db_server.read("PVS:INTEREST:HIGH")))
         pv_names = []
-        for item in data:
+        for item in pv_data:
             if len(item) > 0:
-                pv_names.extend([x[0] for x in item])
+                pv_names.append(item[0])
         for name in HIGH_PV_NAMES:
-            self.assertTrue(name in pv_names)
+            self.assertTrue(name in pv_names, msg="{name} in {pv_names}".format(name=name, pv_names=pv_names))
 
     def test_interest_medium_pvs_correct(self):
-        on_fly_pvs = self.ms.pv_list
-        data = [json.loads(dehex_and_decompress(x)) for x in on_fly_pvs.values()]
+        pv_data = json.loads(dehex_and_decompress(self.db_server.read("PVS:INTEREST:MEDIUM")))
         pv_names = []
-        for item in data:
+        for item in pv_data:
             if len(item) > 0:
-                pv_names.extend([x[0] for x in item])
+                pv_names.append(item[0])
         for name in MEDIUM_PV_NAMES:
-            self.assertTrue(name in pv_names)
+            self.assertTrue(name in pv_names, msg="{name} in {pv_names}".format(name=name, pv_names=pv_names))
+
+    def test_interest_facility_pvs_correct(self):
+        pv_data = json.loads(dehex_and_decompress(self.db_server.read("PVS:INTEREST:FACILITY")))
+        pv_names = []
+        for item in pv_data:
+            if len(item) > 0:
+                pv_names.append(item[0])
+        for name in FACILITY_PV_NAMES:
+            self.assertTrue(name in pv_names, msg="{name} in {pv_names}".format(name=name, pv_names=pv_names))
+
+    def test_iocs_pvs_correct(self):
+        pv_data = json.loads(dehex_and_decompress(self.db_server.read("IOCS")))
+        for name in IOCS:
+            self.assertTrue(name in pv_data, msg="{name} in {pv_names}".format(name=name, pv_names=pv_data))
+

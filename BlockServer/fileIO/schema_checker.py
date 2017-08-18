@@ -63,11 +63,12 @@ class ConfigurationSchemaChecker(object):
             raise ConfigurationFileBlank("Invalid XML: File is blank.")
 
         folder, file_name = string.rsplit(schema_filepath, os.sep, 1)
-        xmlparser = ConfigurationSchemaChecker._import_schema(folder, file_name)
+        schema = ConfigurationSchemaChecker._get_schema(folder, file_name)
 
         try:
-            etree.fromstring(xml_data, xmlparser)
-        except etree.XMLSyntaxError as err:
+            doc = etree.fromstring(xml_data)
+            schema.assertValid(doc)
+        except etree.DocumentInvalid as err:
             raise ConfigurationInvalidUnderSchema(err.message)
 
     @staticmethod
@@ -88,26 +89,32 @@ class ConfigurationSchemaChecker(object):
             schema_file (string): The schema file to use
 
         Raises:
-            etree.XMLSyntaxError : Raised if the file is incorrect
+            etree.DocumentInvalid : Raised if the file is incorrect
         """
-        xmlparser = ConfigurationSchemaChecker._import_schema(schema_folder, schema_file)
+        schema = ConfigurationSchemaChecker._get_schema(schema_folder, schema_file)
 
         # Import the xml file
         with open(xml_file, 'r') as f:
             xml = f.read()
 
-        etree.fromstring(xml, xmlparser)
+        doc = etree.fromstring(xml)
+        schema.assertValid(doc)
 
     @staticmethod
-    def _import_schema(schema_folder, schema_file):
-        # Import the schema file (must move to path for includes)
+    def _get_schema(schema_folder, schema_file):
+        """ This method generates an xml schemaq object for later use in validation.
+
+        Args:
+            schema_folder (string): The directory for schema files
+            schema_file (string): The initial schema file
+        """
+        # must move to directory to handle schema includes
         cur = os.getcwd()
         os.chdir(schema_folder)
         with open(schema_file, 'r') as f:
             schema_raw = etree.XML(f.read())
 
-        conf_schema = etree.XMLSchema(schema_raw)
-        xmlparser = etree.XMLParser(schema=conf_schema)
+        schema = etree.XMLSchema(schema_raw)
         os.chdir(cur)
 
-        return xmlparser
+        return schema

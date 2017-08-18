@@ -14,14 +14,12 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-from mysql_abstraction_layer import SQLAbstraction
-from server_common.channel_access import ChannelAccess
-from server_common.utilities import compress_and_hex
 import json
 import unicodedata
-import string
 
-from server_common.utilities import compress_and_hex, print_and_log, convert_to_json
+from server_common.channel_access import ChannelAccess
+from server_common.mysql_abstraction_layer import SQLAbstraction
+from server_common.utilities import compress_and_hex
 
 EDDB = 'exp_data'
 
@@ -99,10 +97,10 @@ class ExpData(object):
             sqlquery += " FROM role, user, experimentteams"
             sqlquery += " WHERE role.roleID = experimentteams.roleID"
             sqlquery += " AND user.userID = experimentteams.userID"
-            sqlquery += " AND experimentteams.experimentID = %s" % experimentID
+            sqlquery += " AND experimentteams.experimentID = %s"
             sqlquery += " GROUP BY user.userID"
             sqlquery += " ORDER BY role.priority"
-            team = [list(element) for element in self._db.query(sqlquery)]
+            team = [list(element) for element in self._db.query(sqlquery, (experimentID, ))]
             if len(team) == 0:
                 raise Exception("unable to find team details for experiment ID %s" % experimentID)
             else:
@@ -122,8 +120,8 @@ class ExpData(object):
         try:
             sqlquery = "SELECT experiment.experimentID"
             sqlquery += " FROM experiment "
-            sqlquery += " WHERE experiment.experimentID = \"%s\"" % experimentID
-            id = self._db.query(sqlquery)
+            sqlquery += " WHERE experiment.experimentID = %s"
+            id = self._db.query(sqlquery, (experimentID,))
             if len(id) >= 1:
                 return True
             else:

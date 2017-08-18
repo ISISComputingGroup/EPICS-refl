@@ -27,7 +27,7 @@ import argparse
 from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, dehex_and_decompress
 from server_common.channel_access_server import CAServer
 from server_common.constants import IOCS_NOT_TO_STOP
-from ioc_data import IOCData
+from server_common.ioc_data import IOCData
 from exp_data import ExpData
 import json
 from threading import Thread, RLock
@@ -50,7 +50,7 @@ MAJOR_MSG = "MAJOR"
 class DatabaseServer(Driver):
     """The class for handling all the static PV access and monitors etc.
     """
-    def __init__(self, ca_server, dbid, options_folder, test_mode=False):
+    def __init__(self, ca_server, dbid, options_folder, blockserver_prefix, test_mode=False):
         """Constructor.
 
         Args:
@@ -58,7 +58,9 @@ class DatabaseServer(Driver):
             dbid (string): The id of the database that holds IOC information.
             options_folder (string): The location of the folder containing the config.xml file that holds IOC options
         """
+        self._blockserver_prefix = blockserver_prefix
         if test_mode:
+
             ps = MockProcServWrapper()
         else:
             super(DatabaseServer, self).__init__()
@@ -156,7 +158,7 @@ class DatabaseServer(Driver):
         """
         if reason in self._pv_info.keys():
             encoded_data = DatabaseServer._encode_for_return(self._pv_info[reason]['get']())
-            self._check_pv_capacity(reason, len(encoded_data), BLOCKSERVER_PREFIX)
+            self._check_pv_capacity(reason, len(encoded_data), self._blockserver_prefix)
         else:
             encoded_data = self.getParam(reason)
         return encoded_data
@@ -195,7 +197,7 @@ class DatabaseServer(Driver):
                 for pv in ["IOCS", "PVS:ALL", "PVS:ACTIVE", "PVS:INTEREST:HIGH", "PVS:INTEREST:MEDIUM",
                            "PVS:INTEREST:FACILITY"]:
                     encoded_data = DatabaseServer._encode_for_return(self._pv_info[pv]['get']())
-                    self._check_pv_capacity(pv, len(encoded_data), BLOCKSERVER_PREFIX)
+                    self._check_pv_capacity(pv, len(encoded_data), self._blockserver_prefix)
                     self.setParam(pv, encoded_data)
                 # Update them
                 with self.monitor_lock:
@@ -331,7 +333,7 @@ if __name__ == '__main__':
     SERVER = CAServer(BLOCKSERVER_PREFIX)
     SERVER.createPV(BLOCKSERVER_PREFIX, DatabaseServer.generate_pv_info())
     SERVER.createPV(MACROS["$(MYPVPREFIX)"], ExpData.EDPV)
-    DRIVER = DatabaseServer(SERVER, "iocdb", OPTIONS_DIR)
+    DRIVER = DatabaseServer(SERVER, "iocdb", OPTIONS_DIR, BLOCKSERVER_PREFIX)
 
     # Process CA transactions
     while True:
@@ -340,4 +342,3 @@ if __name__ == '__main__':
         except Exception as err:
             print_and_log(err, MAJOR_MSG)
             break
-

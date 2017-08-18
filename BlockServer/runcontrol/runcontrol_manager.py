@@ -48,7 +48,8 @@ class RunControlManager(OnTheFlyPvInterface):
     def __init__(self, prefix, config_dir, var_dir, ioc_control,
                  active_configholder, block_server,
                  channel_access=ChannelAccess(), sleep_func=sleep):
-        """Constructor.
+        """
+        Constructor.
 
         Args:
             prefix (string): The instrument prefix
@@ -79,20 +80,28 @@ class RunControlManager(OnTheFlyPvInterface):
         self._intialise_runcontrol_ioc()
 
     def read_pv_exists(self, pv):
-        """Check is a PV exists."""
+        """
+        Check is a PV exists.
+        """
         return pv in self._pvs_to_read
 
     def write_pv_exists(self, pv):
-        """Unimplemented."""
+        """
+        Unimplemented.
+        """
         return False
 
     def handle_pv_write(self, pv, data):
-        """Unimplemented."""
+        """
+        Unimplemented.
+        """
         # Nothing to write
         pass
 
     def handle_pv_read(self, pv):
-        """Handle reading a run control PV."""
+        """
+        Handle reading a run control PV.
+        """
         if pv == RUNCONTROL_GET_PV:
             js = convert_to_json(self.get_current_settings())
             value = compress_and_hex(js)
@@ -104,12 +113,16 @@ class RunControlManager(OnTheFlyPvInterface):
         return ""
 
     def update_monitors(self):
-        """Unimplemented."""
+        """
+        Unimplemented.
+        """
         # No monitors
         pass
 
     def initialise(self, full_init=False):
-        """Initilise & create a new set of run control PVs."""
+        """
+        Initilise & create a new set of run control PVs.
+        """
         self.create_runcontrol_pvs(full_init)
 
     def _create_standard_pvs(self):
@@ -124,7 +137,8 @@ class RunControlManager(OnTheFlyPvInterface):
         print_and_log("Runcontrol IOC started")
 
     def create_runcontrol_pvs(self, clear_autosave, time_between_tries=2):
-        """Create the PVs for run-control.
+        """
+        Create the PVs for run-control.
 
         Configures the run-control IOC to have PVs for the current
         configuration.
@@ -143,7 +157,8 @@ class RunControlManager(OnTheFlyPvInterface):
             self._active_configholder.get_block_details())
 
     def update_runcontrol_blocks(self, blocks):
-        """Update the run-control settings in the IOC with the current blocks.
+        """
+        Update the run-control settings in the IOC with the current blocks.
 
         Args:
             blocks (OrderedDict): The blocks that are part of the current
@@ -165,7 +180,8 @@ class RunControlManager(OnTheFlyPvInterface):
                 f.close()
 
     def get_out_of_range_pvs(self):
-        """Get a list of PVs that are currently out of range.
+        """
+        Get a list of PVs that are currently out of range.
 
         This may include PVs that are not blocks, but have had run-control
         settings applied directly
@@ -187,7 +203,8 @@ class RunControlManager(OnTheFlyPvInterface):
             return list()
 
     def get_current_settings(self):
-        """Get the current run-control settings.
+        """
+        Get the current run-control settings.
 
         Returns:
             dict : The current run-control settings
@@ -210,7 +227,8 @@ class RunControlManager(OnTheFlyPvInterface):
         return settings
 
     def restore_config_settings(self, blocks):
-        """Restore run-control settings based on what is stored in a configuration.
+        """
+        Restore run-control settings based on what is stored in a configuration.
 
         Args:
             blocks (OrderedDict): The blocks for the configuration
@@ -228,7 +246,8 @@ class RunControlManager(OnTheFlyPvInterface):
             self._set_rc_values(blk.name, settings)
 
     def set_runcontrol_settings(self, data):
-        """Replace the run-control settings with new values.
+        """
+        Replace the run-control settings with new values.
 
         Args:
             data (dict): The new run-control settings to set (dictionary of
@@ -251,7 +270,8 @@ class RunControlManager(OnTheFlyPvInterface):
                                   % (bn, err))
 
     def _get_latest_ioc_start(self):
-        """Get the latest IOC start time.
+        """
+        Get the latest IOC start time.
 
         Returns:
             latest_ioc_start (datetime): the latest IOC start time
@@ -268,7 +288,8 @@ class RunControlManager(OnTheFlyPvInterface):
         return latest_ioc_start
 
     def _invalid_ioc_start_time(self, latest_ioc_start):
-        """Check is this start time is invalid.
+        """
+        Check is this start time is invalid.
 
         This checks if it was successfully parsed and whether it is less than
         the current run control IOC start time.
@@ -285,7 +306,8 @@ class RunControlManager(OnTheFlyPvInterface):
                                             <= self._rc_ioc_start_time)
 
     def wait_for_ioc_start(self, time_between_tries=2):
-        """Wait for the run-control IOC to start.
+        """
+        Wait for the run-control IOC to start.
 
         Args:
             time_between_tries (int): time to wait before checking if run
@@ -320,7 +342,9 @@ class RunControlManager(OnTheFlyPvInterface):
             self._sleep_func(time_between_tries * 3)
 
     def _start_ioc(self):
-        """Start the IOC."""
+        """
+        Start the IOC.
+        """
         try:
             self._ioc_control.start_ioc(RUNCONTROL_IOC)
         except Exception as err:
@@ -328,7 +352,8 @@ class RunControlManager(OnTheFlyPvInterface):
                           % str(err), "MAJOR")
 
     def restart_ioc(self, clear_autosave):
-        """Restarts the IOC.
+        """
+        Restarts the IOC.
 
         Args:
             clear_autosave (bool): Whether to delete the autosave files first

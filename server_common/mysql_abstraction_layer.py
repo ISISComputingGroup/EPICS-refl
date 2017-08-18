@@ -17,6 +17,15 @@
 import mysql.connector
 from server_common.utilities import print_and_log
 
+
+class DatabaseError(Exception):
+    """
+    Exception that is thrown if there is a problem with the database
+    """
+    def __init__(self, message):
+        self.message = message
+
+
 class SQLAbstraction(object):
     """A wrapper to connect to MySQL databases"""
 
@@ -75,7 +84,7 @@ class SQLAbstraction(object):
         except Exception as err:
             raise Exception("Unable to get connection from pool: %s" % err.message)
 
-    def execute_command(self, command, is_query):
+    def _execute_command(self, command, is_query, bound_variables):
         """Executes a command on the database, and returns all values
 
         Args:
@@ -91,14 +100,15 @@ class SQLAbstraction(object):
         try:
             conn = self._get_connection()
             curs = conn.cursor()
-            curs.execute(command)
+            curs.execute(command, bound_variables)
             if is_query:
                 values = curs.fetchall()
             # Commit as part of the query or results won't be updated between subsequent transactions. Can lead
             # to values not auto-updating in the GUI.
             conn.commit()
         except Exception as err:
-            print_and_log("Error executing command on database: %s" % err.message, "MAJOR")
+            print_and_log("Error executing command on database: {0}".format(err), "MAJOR")
+            raise DatabaseError(str(err))
         finally:
             if curs is not None:
                 curs.close()
@@ -106,21 +116,60 @@ class SQLAbstraction(object):
                 conn.close()
         return values
 
-    def query(self, command):
+    def query_returning_cursor(self, command, bound_variables):
+        conn = None
+        curs = None
+        try:
+            conn = self._get_connection()
+            curs = conn.cursor()
+            curs.execute(command, bound_variables)
+
+            for row in curs:
+                yield row
+
+            # Commit as part of the query or results won't be updated between subsequent transactions. Can lead
+            # to values not auto-updating in the GUI.
+            conn.commit()
+        except Exception as err:
+            print_and_log("Error executing command on database: {0}".format(err), "MAJOR")
+            raise DatabaseError(str(err))
+        finally:
+            if curs is not None:
+                curs.close()
+            if conn is not None:
+                conn.close()
+
+    def query(self, command, bound_variables=None):
         """Executes a query on the database, and returns all values
 
         Args:
             command (string): the SQL command to run
+            bound_variables (tuple|dict): a tuple of parameters to bind into the query; Default no parameters to bind
 
         Returns:
             values (list): list of all rows returned
         """
-        return SQLAbstraction.execute_command(self, command, True)
+        return SQLAbstraction._execute_command(self, command, True, bound_variables)
 
-    def update(self, command):
+    def update(self, command, bound_variables=None):
         """Executes an update on the database, and returns all values
 
         Args:
             command (string): the SQL command to run
+            bound_variables (tuple|dict): a tuple of parameters to bind into the query; Default no parameters to bind
         """
-        SQLAbstraction.execute_command(self, command, False)
+        SQLAbstraction._execute_command(self, command, False, bound_variables)
+
+    @staticmethod
+    def generate_in_binding(parameter_count):
+        """
+        Generate a list of python sql bindings for use in a sql in clause. One binding for each parameter.
+        i.e. %s, %s, %s for 3 parameters.
+
+        Args:
+            parameter_count: number of items in the in clause
+
+        Returns: in binding
+
+        """
+        return ", ".join(["%s"] * parameter_count)

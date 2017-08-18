@@ -30,7 +30,7 @@ class ActiveConfigHolder(ConfigHolder):
 
         Args:
             macros (dict): The BlockServer macros
-            archive_manager (ArchiveManager): Responsible for updating the archiver
+            archive_manager (ArchiverManager): Responsible for updating the archiver
             vc_manager (ConfigVersionControl): Manages version control
             file_manager (ConfigurationFileManager|MockVersionControl): Deals with writing the config files
             ioc_control (IocControl): Manages stopping and starting IOCs

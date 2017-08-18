@@ -15,9 +15,13 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import unittest
+
 import mysql.connector
-from ioc_data import IOCData
-from mocks.mock_procserv_utils import MockProcServWrapper
+
+from DatabaseServer.mocks.mock_procserv_utils import MockProcServWrapper
+from server_common.ioc_data import IOCData
+
+IOCS = ['SIMPLE1', "SIMPLE2", "TESTIOC", "STOPDIOC"]
 
 TEST_DB = 'test_iocdb'
 HIGH_PV_NAMES = list()
@@ -28,13 +32,12 @@ SAMPLE_PVS = ["PARS:SAMPLE:AOI", "PARS:SAMPLE:GEOMETRY", "PARS:SAMPLE:WIDTH"]
 
 
 def generate_fake_db(iocdb):
-    import sys
-    import shutil
     import os
-    import fileinput
     #create the schema file
-    schemapath = os.path.join(os.environ['EPICS_KIT_ROOT'],'iocstartup','iocdb_mysql_schema.txt')
-    testpath = os.path.join(os.environ['EPICS_KIT_ROOT'],'iocstartup','test_iocdb_mysql_schema.txt')
+    epics_fit_root = os.environ.get("EPICS_KIT_ROOT",
+                   os.path.join(os.path.dirname(os.path.relpath(__file__)), os.pardir, os.pardir, os.pardir, os.pardir, os.pardir))
+    schemapath = os.path.join(epics_fit_root,'iocstartup','iocdb_mysql_schema.txt')
+    testpath = os.path.join(epics_fit_root,'iocstartup','test_iocdb_mysql_schema.txt')
     schemafile = open(schemapath, 'r')
     testfile = open(testpath, 'w')
     for line in schemafile:
@@ -61,7 +64,7 @@ def generate_fake_db(iocdb):
     #Populate the tables for testing
     sql = []
     count = 0
-    for iocname in ['SIMPLE1', "SIMPLE2", "TESTIOC", "STOPDIOC"]:
+    for iocname in IOCS:
         # Populate iocs
         sql.append("""INSERT INTO `%s`.`iocs` (`iocname`, `dir`, `consoleport`, `logport`, `exe`, `cmd`) VALUES ('%s','%s','%s','%s','%s','%s')""" % (iocdb,iocname, 'fake_dir', count, count, 'fake_exe', 'fake_cmd'))
         # Populate iocsrt
