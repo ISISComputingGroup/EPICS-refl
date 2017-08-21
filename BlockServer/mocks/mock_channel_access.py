@@ -41,6 +41,7 @@ class MockChannelAccess(object):
 
     @staticmethod
     def _get_from_ca_env(name):
+        global PV_TEST_DICT_CALL_INDEX
         call_index = PV_TEST_DICT_CALL_INDEX[name]
         PV_TEST_DICT_CALL_INDEX[name] += 1
         return PV_TEST_DICT[name][call_index]
