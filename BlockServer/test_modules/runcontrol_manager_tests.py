@@ -52,14 +52,13 @@ def dummy_sleep_func(seconds):
     return
 
 
-def _get_time(t, **kwargs):
-    td = timedelta(**kwargs)
-    return datetime.strftime(t + td, '%m/%d/%Y %H:%M:%S')
+def _get_relative_time(t, **kwargs):
+    return datetime.strftime(t + timedelta(**kwargs), '%m/%d/%Y %H:%M:%S')
 
 
 def _get_current_time():
     return datetime.strftime(datetime.now(), '%m/%d/%Y %H:%M:%S')
-  
+
 
 class TestRunControlSequence(unittest.TestCase):
     def setUp(self):
@@ -135,7 +134,7 @@ class TestRunControlSequence(unittest.TestCase):
         rc_pv = prefix + RC_START_PV
 
         now = datetime.now()
-        with ChannelAccessEnv({rc_pv: [_get_time(now, minutes=-3)]}) as channel:
+        with ChannelAccessEnv({rc_pv: [_get_relative_time(now, minutes=-3)]}) as channel:
             rcm = RunControlManager(prefix, "", "",
                                     MockIocControl(""), self.activech,
                                     MockBlockServer(), self.cs, dummy_sleep_func)
@@ -146,7 +145,8 @@ class TestRunControlSequence(unittest.TestCase):
         rc_pv = prefix + RC_START_PV
 
         now = datetime.now()
-        with ChannelAccessEnv({rc_pv: [_get_time(now, minutes=-3), "", _get_time(now, minutes=-2)]}) as channel:
+        env = {rc_pv: [_get_relative_time(now, minutes=-3), "", _get_relative_time(now, minutes=-2)]}
+        with ChannelAccessEnv(env) as channel:
             rcm = RunControlManager(prefix, "", "",
                                     MockIocControl(""), self.activech,
                                     MockBlockServer(), self.cs, dummy_sleep_func)
