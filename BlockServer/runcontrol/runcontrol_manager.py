@@ -279,11 +279,16 @@ class RunControlManager(OnTheFlyPvInterface):
         """
         raw_ioc_time = self._channel_access.caget(self._prefix
                                                       + RC_START_PV)
+
         try:
             frmt = '%m/%d/%Y %H:%M:%S'
             latest_ioc_start = datetime.strptime(raw_ioc_time, frmt)
-        except ValueError:
-            return None
+        except TypeError as e:
+            latest_ioc_start = None
+            print_and_log("Unable to get run control start time, IOC has not started yet", "MINOR")
+        except ValueError as e:
+            latest_ioc_start = None
+            print_and_log("Unable to format ioc start time: {0}".format(e), "MAJOR")
 
         return latest_ioc_start
 
@@ -317,11 +322,14 @@ class RunControlManager(OnTheFlyPvInterface):
         print_and_log("Waiting for runcontrol IOC to start ...")
 
         for loop_count in range(MAX_LOOPS_TO_WAIT_FOR_START):
+
             restart_pending = ioc_restart_pending(self._prefix + RC_IOC_PREFIX,
                                                   self._channel_access)
-            latest_ioc_start = self._get_latest_ioc_start()
 
-            if restart_pending or self._invalid_ioc_start_time(latest_ioc_start):
+            latest_ioc_start = self._get_latest_ioc_start()
+            start_time_invalid = self._invalid_ioc_start_time(latest_ioc_start)
+
+            if restart_pending or start_time_invalid:
                 self._sleep_func(time_between_tries)
             else:
                 self._rc_ioc_start_time = latest_ioc_start
