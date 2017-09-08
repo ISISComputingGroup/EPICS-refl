@@ -162,7 +162,7 @@ SELECT s.iocname, p.pvname, lower(p.infoname), p.value
 """Query to return pv info for iocs from the ioc database"""
 
 GET_PVS_WITH_DETAILS = """
-    SELECT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname 
+    SELECT DISTINCT pvinfo.pvname, pvs.record_type, pvs.record_desc, pvs.iocname 
       FROM pvinfo
 INNER JOIN pvs ON pvs.pvname = pvinfo.pvname"""
 
@@ -196,7 +196,7 @@ GET_IOCS_AND_DESCRIPTIONS = "SELECT iocname, descr FROM iocs"
 """Return all IOC andes and their descriptions"""
 
 GET_IOCS_AND_RUNNING_STATUS = """
-  SELECT iocname, running 
+  SELECT DISTINCT iocname, running 
     FROM iocrt 
    WHERE iocname NOT LIKE 'PSCTRL_%'"""
 """Sql query for getting iocnames and their running status"""
