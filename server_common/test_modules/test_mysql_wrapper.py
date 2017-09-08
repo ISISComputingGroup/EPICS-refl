@@ -20,6 +20,7 @@ import mysql.connector
 
 from DatabaseServer.mocks.mock_procserv_utils import MockProcServWrapper
 from server_common.ioc_data import IOCData
+from hamcrest import *
 
 IOCS = ['SIMPLE1', "SIMPLE2", "TESTIOC", "STOPDIOC"]
 
@@ -77,6 +78,8 @@ def generate_fake_db(iocdb):
             # Add interesting PVs
             HIGH_PV_NAMES.append(pv)
             sql.append("""INSERT INTO `%s`.`pvinfo` (`pvname`, `infoname`, `value`) VALUES ('%s','%s','%s')""" % (iocdb, pv, 'INTEREST', 'HIGH'))
+            sql.append("""INSERT INTO `%s`.`pvinfo` (`pvname`, `infoname`, `value`) VALUES ('%s','%s','%s')""" % (iocdb, pv, 'archive', 'VAL'))
+
         # Add procserve
         pvnames = ["%s:START" % iocname, "%s:STOP" % iocname, "%s:RESTART" % iocname, "%s:STATUS" % iocname]
         for pv in pvnames:
@@ -144,8 +147,12 @@ class TestMySQLWrapperSequence(unittest.TestCase):
     def test_get_interesting_pvs_all(self):
         # Get all PVs
         pvs = self.wrapper.get_interesting_pvs()
-        for pv in pvs:
-            self.assertTrue(pv[0] in MEDIUM_PV_NAMES or pv[0] in HIGH_PV_NAMES or pv[0] in FACILITY_PV_NAMES)
+
+        all_names = list(HIGH_PV_NAMES)
+        all_names.extend(MEDIUM_PV_NAMES)
+        all_names.extend(FACILITY_PV_NAMES)
+
+        assert_that([str(pv[0]) for pv in pvs], is_(contains_inanyorder(*all_names)), "PVs should be in once and only once")
 
     def test_get_interesting_pvs_high(self):
         # Get all PVs
