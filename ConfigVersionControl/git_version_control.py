@@ -129,9 +129,9 @@ class GitVersionControl:
         if self._should_ignore(path):
             return
         if not self._needs_adding(path):
-            print "GIT: unchanged, ignored or already added '{}'".format(path)
+            print_and_log("GIT: unchanged, ignored or already added '{}'".format(path))
             return # unchanged, ignored or already added
-        print "GIT: adding '{}' ".format(path)
+        print_and_log("GIT: adding '{}' ".format(path))
         attempts = 0
         # note that index.add() does not honour .gitignore and passing force=False doesn't change this
         # however repo.untracked_files does honour .gitignore so use of self._needs_adding() above covers this
@@ -160,7 +160,7 @@ class GitVersionControl:
             commit_comment (str): comment to leave with the commit
         """
         if len(self.repo.index.diff("HEAD")) == 0:
-            print "GIT: Nothing to commit"
+            print_and_log("GIT: Nothing to commit")
             return # nothing staged for commit
         attempts = 0
         while attempts < RETRY_MAX_ATTEMPTS:
@@ -283,10 +283,7 @@ class GitVersionControl:
         changed = [ os.path.normcase(os.path.normpath(str(p))) for p in c1 ]
         untracked = [ os.path.normcase(os.path.normpath(str(p))) for p in self.repo.untracked_files ]
         if isdir:
-            for p in untracked + changed:
-                # only add directory if it contains some changed/untracked files
-                if p.startswith(relpath):
-                    return True
-            return False
+            # only add directory if it contains some changed/untracked files
+            return any(p.startswith(relpath) for p in untracked + changed)
         else:
             return relpath in untracked + changed
