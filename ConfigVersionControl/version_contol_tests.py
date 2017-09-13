@@ -30,13 +30,16 @@ class TestVersionControl(unittest.TestCase):
 
     def test_WHEN_config_name_does_not_contain_rcptt_THEN_add(self):
         mock_vc = Mock()
+        mock_vc.index.diff.return_value = [ ]
+        mock_vc.untracked_files = [ "test" ]
+        mock_vc.working_dir = "."
         cfg = GitVersionControl(None, mock_vc)
         cfg.add("test")
 
         calls = mock_vc.method_calls
 
-        self.assertEqual(len(calls), 1)
-        self.assertTrue("test" == calls[0][1][0][0])
+        self.assertEqual(len(calls), 2)
+        self.assertTrue("test" == calls[1][1][0][0])
 
     def test_WHEN_banch_is_master_THEN_branch_not_allowed(self):
         self.assertFalse(GitVersionControl.branch_allowed("master"))
