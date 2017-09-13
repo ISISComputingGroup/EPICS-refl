@@ -126,11 +126,17 @@ class GitVersionControl:
         Args:
             path (str): the file to add
         """
+        if self._should_ignore(path):
+            return
+        if not self._needs_adding(path):
+            print_and_log("GIT: unchanged, ignored or already added '{}'".format(path))
+            return # unchanged, ignored or already added
+        print_and_log("GIT: adding '{}' ".format(path))
         attempts = 0
+        # note that index.add() does not honour .gitignore and passing force=False doesn't change this
+        # however repo.untracked_files does honour .gitignore so use of self._needs_adding() above covers this
         while attempts < RETRY_MAX_ATTEMPTS:
             try:
-                if self._should_ignore(path):
-                    return
                 self.repo.index.add([path])
                 return
             except WindowsError as err:
@@ -153,6 +159,9 @@ class GitVersionControl:
         Args:
             commit_comment (str): comment to leave with the commit
         """
+        if len(self.repo.index.diff("HEAD")) == 0:
+            print_and_log("GIT: Nothing to commit")
+            return # nothing staged for commit
         attempts = 0
         while attempts < RETRY_MAX_ATTEMPTS:
             try:
@@ -248,6 +257,8 @@ class GitVersionControl:
         # Ignore anything that starts with the system tests prefix
         # (unfortunately putting the system test prefix in the .gitignore doesn't work
         # because the git library always forces an add - it has a force flag, but it's not used)
+        # NOTE: this may now have been fixed by the new self._needs_adding() function
+        # as repo.untracked_files does honour .gitignore
         return SYSTEM_TEST_PREFIX in file_path
 
     def add_all_edited_files(self):
@@ -255,3 +266,24 @@ class GitVersionControl:
         Does a 'git add -u' which adds all edited files.
         """
         self.repo.git.add(u=True)
+
+    def _needs_adding(self, path):
+        """
+        Check if file or directory really needs to be added to git
+        """
+        # we need to make sure paths we compare are consistent in both case and path separators
+        # also as git returns changed/untracked files and we may get passed a directory name, we need
+        # to use "startswith" on the directory prefix later so also make sure it ends with a separator
+        # repo.untracked_files honours .gitignore allowing us to workaround the index.add() issue
+        isdir = os.path.isdir(path)
+        relpath = os.path.normcase(os.path.normpath(os.path.relpath(path, str(self.repo.working_dir))))
+        if isdir and not relpath.endswith(os.sep):
+            relpath = relpath + os.sep
+        c1 = [ item.a_path for item in self.repo.index.diff(None) ]
+        changed = [ os.path.normcase(os.path.normpath(str(p))) for p in c1 ]
+        untracked = [ os.path.normcase(os.path.normpath(str(p))) for p in self.repo.untracked_files ]
+        if isdir:
+            # only add directory if it contains some changed/untracked files
+            return any(p.startswith(relpath) for p in untracked + changed)
+        else:
+            return relpath in untracked + changed
