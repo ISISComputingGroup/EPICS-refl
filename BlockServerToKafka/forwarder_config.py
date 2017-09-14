@@ -18,7 +18,7 @@ import json
 
 class ForwarderConfig():
 
-    def __init__(self, topic, using_v4=False, schema="f140"):
+    def __init__(self, topic, using_v4=False, schema="f142"):
         self.schema = schema
         self.topic = topic
         self.using_v4 = using_v4

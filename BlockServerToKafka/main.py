@@ -24,7 +24,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
 
     parser.add_argument('-d', '--data', help='Kafka topic to send PV data to', nargs=1, type=str,
-                        default='test_bs_forwarder_142')
+                        default='test_bs_forwarder')
     parser.add_argument('-c', '--config', help='Kafka topic to send forwarder config to', nargs=1, type=str,
                         default='test_bs_forwarder_config')
     parser.add_argument('-b', '--broker', help='Location of the Kafka brokers (host:port)', nargs=1, type=str,
