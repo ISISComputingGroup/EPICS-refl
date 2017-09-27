@@ -19,17 +19,27 @@ from server_common.utilities import print_and_log
 
 
 class Producer():
+    """ Wrapper class for the kafka producer
+    """
     def __init__(self, server, config_topic, data_topic):
         self.topic = config_topic
         self.producer = KafkaProducer(bootstrap_servers=server)
         self.converter = ForwarderConfig(data_topic)
 
     def add_config(self, pvs):
+        """
+        Args:
+             pvs (string) The Json string with BS configuration to add to topic
+        """
         data = self.converter.create_forwarder_configuration(pvs)
         print_and_log("Sending data {}".format(data))
         self.producer.send(self.topic, bytes(data))
 
     def remove_config(self, pvs):
+        """
+        Args:
+            pvs (string) The json string with old BS configuration to remove from topic
+        """
         data = self.converter.remove_forwarder_configuration(pvs)
         for pv in data:
             print_and_log("Sending data {}".format(data))

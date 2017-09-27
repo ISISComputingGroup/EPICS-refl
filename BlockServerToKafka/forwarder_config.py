@@ -25,9 +25,19 @@ class ForwarderConfig():
         self.using_v4 = using_v4
 
     def _get_converter(self):
+        """ Returns the flatbuffers schema and the topic it's being applied to.
+        Returns:
+              (dict) The dictionary of the schema and topic for the flatbuffers converter
+        """
         return {"schema": self.schema, "topic": self.topic}
 
     def _create_stream(self, blk):
+        """ Creates a stream for the JSON for specified block.
+        Args:
+            blk(string): the block containing the PV data
+        Returns:
+             (dict) the stream information including channel and flatbuffer encoding
+        """
         return {
             "channel": blk,
             "converter": self._get_converter(),
@@ -35,6 +45,12 @@ class ForwarderConfig():
         }
 
     def create_forwarder_configuration(self, pvs):
+        """ Add all specified PVs and return JSON string
+        Args:
+            pvs(list) PVs in blocks
+        Returns:
+            (string) JSON configuration string
+        """
         output_dict = {
             "cmd": "add",
             "streams": [self._create_stream(pv) for pv in pvs]
@@ -42,6 +58,12 @@ class ForwarderConfig():
         return json.dumps(output_dict)
 
     def remove_forwarder_configuration(self, pvs):
+        """ Remove old forwarder configuration with the stop_channel command
+        Args:
+            pvs(list) all PVs to be removed
+        Returns:
+            (list) list of json strings with all PVs to remove
+        """
         output_list = []
         for pv in pvs:
             out_dict = {

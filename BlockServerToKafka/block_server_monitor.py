@@ -46,21 +46,29 @@ class BlockServerMonitor:
         self.channel.pend_event()
 
     def block_name_to_pv_name(self, blk):
-        """ Converts a block name to a PV by adding the prefixes.
-
+        """ Converts a block name to a PV name by adding the prefixes.
         Args:
-            blk (str): The name of the block
-
+            blk (string): the name of the block
         Returns:
-            str: The associated PV
+            (string) the associated PV name
         """
         return '{}{}{}'.format(self.PVPREFIX, BLOCK_PREFIX, blk.upper())
 
     def convert_to_string(self, pv_array):
+        """ Converts from byte array to string and removes null characters
+        Args:
+            pv_array(bytearray): The byte array of PVs.
+        Returns:
+            (string) The string formed from the bytearray
+        """
         # Cannot get the number of elements in the array so just convert to bytes and remove the nulls
         return str(bytearray(pv_array)).replace("\x00", "")
 
     def update_config(self, blocks):
+        """ Updates the BlockServer configuration if it has changed and removes old configuration
+        Args:
+            blocks(list): Blocks in the BlockServer containing PV data
+        """
         pvs = [self.block_name_to_pv_name(blk) for blk in blocks]
         if pvs != self.last_pvs:
             print_and_log("Configuration changed to: {}".format(pvs))
@@ -70,10 +78,9 @@ class BlockServerMonitor:
 
     def update(self, epics_args, user_args):
         """ Updates the kafka config when the blockserver changes. This is called from the monitor.
-
         Args:
-            epics_args (dict): Dictionary containing the information for the blockserver blocks PV.
-            user_args (not used)
+            epics_args(dict): Dictionary containing the information for the blockserver blocks PV.
+            user_args(dict): not used.
         """
         data = self.convert_to_string(epics_args['pv_value'])
         data = dehex_and_decompress(data)
