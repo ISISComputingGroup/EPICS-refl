@@ -26,6 +26,13 @@ class TestIocControlSequence(unittest.TestCase):
     test_block_1 = "block1"
     test_block_2 = "block2"
 
+    def is_json(self, json_str):
+        try:
+            json.loads(json_str)
+        except ValueError, e:
+            return False
+        return True
+
     def setUp(self):
         self.kafka_forwarder = ForwarderConfig(self.test_topic, False, self.test_schema)
         self.config_with_one_block = [self.test_block_1]
@@ -33,36 +40,33 @@ class TestIocControlSequence(unittest.TestCase):
 
     def test_WHEN_new_forwarder_config_created_THEN_returns_valid_JSON(self):
         output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_one_block)
-        try:
-            json.loads(output)
-        except Exception as e:
-            self.assertTrue(False, "invalid json: " + e.message)
+        self.assertTrue(self.is_json(output))
 
     def test_WHEN_new_forwarder_config_created_THEN_returns_JSON_containing_add_command(self):
         raw_output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_one_block)
         output = json.loads(raw_output)
         self.assertTrue("cmd" in output)
-        self.assertEqual(output["cmd"], "add")
+        self.assertEqual("add", output["cmd"])
 
     def test_WHEN_new_forwarder_config_created_THEN_returns_JSON_containing_list_of_streams(self):
         raw_output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_one_block)
         output = json.loads(raw_output)
         self.assertTrue("streams" in output)
-        self.assertEqual(type(output["streams"]), list)
+        self.assertEqual(list, type(output["streams"]))
 
     def test_WHEN_new_forwarder_config_created_THEN_returns_JSON_containing_streams_with_channels_and_converters(self):
         raw_output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_one_block)
         output = json.loads(raw_output)
-        self.assertNotEqual(len(output["streams"]), 0)
+        self.assertNotEqual(0, len(output["streams"]))
         for stream in output["streams"]:
-            self.assertEqual(type(stream), dict)
+            self.assertEqual(dict, type(stream))
             self.assertTrue("channel" in stream)
             self.assertTrue("converter" in stream)
 
     def test_GIVEN_schema_and_topic_WHEN_forwarder_config_created_THEN_returns_JSON_containing_schema_and_topic(self):
         raw_output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_one_block)
         output = json.loads(raw_output)
-        self.assertNotEqual(len(output["streams"]), 0)
+        self.assertNotEqual(0, len(output["streams"]))
         for stream in output["streams"]:
             self.assertNotEqual(len(stream["converter"]), 0)
             self.assertTrue("schema" in stream["converter"])
@@ -73,7 +77,7 @@ class TestIocControlSequence(unittest.TestCase):
     def test_GIVEN_using_version_3_WHEN_new_forwarder_config_created_THEN_returns_JSON_containing_streams_with_ca_as_channel_type(self):
         raw_output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_one_block)
         output = json.loads(raw_output)
-        self.assertNotEqual(len(output["streams"]), 0)
+        self.assertNotEqual(0, len(output["streams"]))
         for stream in output["streams"]:
             self.assertTrue("channel_provider_type" in stream)
             self.assertEqual("ca", stream["channel_provider_type"])
@@ -82,49 +86,45 @@ class TestIocControlSequence(unittest.TestCase):
         kafka_version_4 = ForwarderConfig(self.test_schema, self.test_topic, True)
         raw_output = kafka_version_4.create_forwarder_configuration(self.config_with_one_block)
         output = json.loads(raw_output)
-        self.assertNotEqual(len(output["streams"]), 0)
+        self.assertNotEqual(0, len(output["streams"]))
         for stream in output["streams"]:
             self.assertFalse("channel_provider_type" in stream)
 
     def test_GIVEN_configuration_with_one_block_WHEN_new_forwarder_config_created_THEN_returns_JSON_containing_one_stream(self):
         raw_output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_one_block)
         output = json.loads(raw_output)
-        self.assertEqual(len(output["streams"]), 1)
+        self.assertEqual(1, len(output["streams"]))
 
     def test_GIVEN_configuration_with_two_block_WHEN_new_forwarder_config_created_THEN_returns_JSON_containing_two_stream(self):
         raw_output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_two_blocks)
         output = json.loads(raw_output)
-        self.assertEqual(len(output["streams"]), 2)
+        self.assertEqual(2, len(output["streams"]))
 
     def test_GIVEN_configuration_with_one_block_WHEN_new_forwarder_config_created_THEN_returns_block_pv_string(self):
         raw_output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_one_block)
         output = json.loads(raw_output)
         stream = output["streams"][0]
-        self.assertEqual(stream["channel"], self.test_block_1)
+        self.assertEqual(self.test_block_1, stream["channel"])
 
     def test_GIVEN_configuration_with_two_blocks_WHEN_new_forwarder_config_created_THEN_returns_both_block_pv_string(self):
         raw_output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_two_blocks)
         output = json.loads(raw_output)
 
-        blks = [self.test_block_1, self.test_block_2]
-        for i in range(2):
+        for i, blk in enumerate([self.test_block_1, self.test_block_2]):
             stream = output["streams"][i]
-            self.assertEqual(stream["channel"], blks[i])
+            self.assertEqual(blk, stream["channel"])
 
     def test_WHEN_removed_old_forwarder_THEN_JSON_returns_valid(self):
         output = self.kafka_forwarder.remove_forwarder_configuration(self.config_with_one_block)
         for js in output:
-            try:
-                json.loads(js)
-            except Exception as e:
-                self.assertTrue(False, "invalid json: " + e.message)
+            self.assertTrue(self.is_json(js))
 
     def test_WHEN_removed_old_forwarder_THEN_returns_JSON_containing_stop_channel_command(self):
         raw_output = self.kafka_forwarder.remove_forwarder_configuration(self.config_with_one_block)
         for js in raw_output:
             output = json.loads(js)
             self.assertTrue("cmd" in output)
-            self.assertEqual(output["cmd"], "stop_channel")
+            self.assertEqual("stop_channel", output["cmd"])
 
     def test_GIVEN_configuration_with_one_block_WHEN_removed_old_forwarder_THEN_returns_JSON_containing_block_pv_string(self):
         raw_output = self.kafka_forwarder.remove_forwarder_configuration(self.config_with_one_block)
@@ -132,14 +132,13 @@ class TestIocControlSequence(unittest.TestCase):
         for js in raw_output:
             output = json.loads(js)
             self.assertTrue("channel" in output)
-            self.assertEqual(output["channel"], self.test_block_1)
+            self.assertEqual(self.test_block_1, output["channel"])
 
     def test_GIVEN_configuration_with_two_blocks_WHEN_removed_old_forwarder_THEN_returns_JSON_containing_both_block_pv_string(self):
         raw_output = self.kafka_forwarder.remove_forwarder_configuration(self.config_with_two_blocks)
         self.assertTrue(len(raw_output) == 2)
 
-        blks = [self.test_block_1, self.test_block_2]
-        for i in range(2):
+        for i, blk in enumerate([self.test_block_1, self.test_block_2]):
             output = json.loads(raw_output[i])
             self.assertTrue("channel" in output)
-            self.assertEqual(output["channel"], blks[i])
+            self.assertEqual(blk, output["channel"])

@@ -17,7 +17,8 @@ import json
 
 
 class ForwarderConfig():
-
+    """ Class that converts the pv information to a forwarder config.
+    """
     def __init__(self, topic, using_v4=False, schema="f142"):
         self.schema = schema
         self.topic = topic
@@ -27,31 +28,25 @@ class ForwarderConfig():
         return {"schema": self.schema, "topic": self.topic}
 
     def _create_stream(self, blk):
-        stream = dict()
-        stream["channel"] = blk
-        stream["converter"] = self._get_converter()
-        if not self.using_v4:
-            stream["channel_provider_type"] = "ca"
-        return stream
+        return {
+            "channel": blk,
+            "converter": self._get_converter(),
+            "channel_provider_type": "pva" if self.using_v4 else "ca"
+        }
 
     def create_forwarder_configuration(self, pvs):
-        output_dict = dict()
-
-        output_dict["cmd"] = "add"
-
-        streams = []
-        for pv in pvs:
-            streams.append(self._create_stream(pv))
-
-        output_dict["streams"] = streams
-
+        output_dict = {
+            "cmd": "add",
+            "streams": [self._create_stream(pv) for pv in pvs]
+        }
         return json.dumps(output_dict)
 
     def remove_forwarder_configuration(self, pvs):
         output_list = []
         for pv in pvs:
-            out_dict = dict()
-            out_dict["cmd"] = "stop_channel"
-            out_dict["channel"] = pv
+            out_dict = {
+                "cmd": "stop_channel",
+                "channel": pv
+            }
             output_list.append(json.dumps(out_dict))
         return output_list

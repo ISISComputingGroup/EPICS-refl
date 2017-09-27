@@ -14,20 +14,22 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 from forwarder_config import ForwarderConfig
+from kafka import KafkaProducer
 
 
 class Producer():
     def __init__(self, server, config_topic, data_topic):
-        from kafka import KafkaProducer
         self.topic = config_topic
         self.producer = KafkaProducer(bootstrap_servers=server)
         self.converter = ForwarderConfig(data_topic)
 
     def add_config(self, pvs):
         data = self.converter.create_forwarder_configuration(pvs)
+        print "Sending data {}".format(data)
         self.producer.send(self.topic, bytes(data))
 
     def remove_config(self, pvs):
         data = self.converter.remove_forwarder_configuration(pvs)
         for pv in data:
+            print "Sending data {}".format(data)
             self.producer.send(self.topic, bytes(pv))

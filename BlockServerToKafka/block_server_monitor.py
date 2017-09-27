@@ -15,23 +15,26 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 from CaChannel import CaChannel
 from CaChannel import CaChannelException
-from server_common import utilities
+from server_common.utilities import dehex_and_decompress, print_and_log
 import ca
 import json
 from BlockServer.core.macros import BLOCK_PREFIX
 
 
 class BlockServerMonitor:
+    """ Class that monitors the blockserver to see when the config has changed.
+    """
     def __init__(self, address, pvprefix, producer):
+
         self.PVPREFIX = pvprefix
         self.address = address
         self.channel = CaChannel()
         self.producer = producer
-        self.last_pv = []
+        self.last_pvs = []
         try:
             self.channel.searchw(self.address)
         except CaChannelException:
-            print ("Unable to find pv " + self.address)
+            print_and_log("Unable to find pv {}".format(self.address))
             return
 
         # Create the CA monitor callback
@@ -44,16 +47,32 @@ class BlockServerMonitor:
         self.channel.pend_event()
 
     def block_name_to_pv_name(self, blk):
+        """ Converts a block name to a PV by adding the prefixes.
+
+        Args:
+            blk (str): The name of the block
+
+        Returns:
+            str: The associated PV
+        """
         return '{}{}{}'.format(self.PVPREFIX, BLOCK_PREFIX, blk.upper())
 
     def update(self, epics_args, user_args):
+        """ Updates the kafka config when the blockserver changes.
+
+        Args:
+            epics_args (dict): Dictionary containing the information for the blockserver blocks PV.
+            user_args (not used)
+        """
+
+        # Cannot get the number of elements in the array so just convert to bytes and remove the nulls
         data = str(bytearray(epics_args['pv_value'])).replace("\x00", "")
-        data = utilities.dehex_and_decompress(data)
+        data = dehex_and_decompress(data)
         blocks = json.loads(data)
 
         pvs = [self.block_name_to_pv_name(blk) for blk in blocks]
-        if pvs != self.last_pv:
-            print("Configuration changed to: {}".format(pvs))
-            self.producer.remove_config(self.last_pv)
+        if pvs != self.last_pvs:
+            print_and_log("Configuration changed to: {}".format(pvs))
+            self.producer.remove_config(self.last_pvs)
             self.producer.add_config(pvs)
-            self.last_pv = pvs
+            self.last_pvs = pvs
