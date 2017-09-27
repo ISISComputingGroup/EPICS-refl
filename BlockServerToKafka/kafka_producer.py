@@ -15,6 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 from forwarder_config import ForwarderConfig
 from kafka import KafkaProducer
+from server_common.utilities import print_and_log
 
 
 class Producer():
@@ -25,11 +26,11 @@ class Producer():
 
     def add_config(self, pvs):
         data = self.converter.create_forwarder_configuration(pvs)
-        print "Sending data {}".format(data)
+        print_and_log("Sending data {}".format(data))
         self.producer.send(self.topic, bytes(data))
 
     def remove_config(self, pvs):
         data = self.converter.remove_forwarder_configuration(pvs)
         for pv in data:
-            print "Sending data {}".format(data)
+            print_and_log("Sending data {}".format(data))
             self.producer.send(self.topic, bytes(pv))

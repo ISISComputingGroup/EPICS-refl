@@ -20,7 +20,7 @@ import json
 from BlockServerToKafka.forwarder_config import ForwarderConfig
 
 
-class TestIocControlSequence(unittest.TestCase):
+class TestForwarderConfig(unittest.TestCase):
     test_schema = "schema"
     test_topic = "topic"
     test_block_1 = "block1"

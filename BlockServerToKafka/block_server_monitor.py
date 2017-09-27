@@ -25,7 +25,6 @@ class BlockServerMonitor:
     """ Class that monitors the blockserver to see when the config has changed.
     """
     def __init__(self, address, pvprefix, producer):
-
         self.PVPREFIX = pvprefix
         self.address = address
         self.channel = CaChannel()
@@ -57,22 +56,27 @@ class BlockServerMonitor:
         """
         return '{}{}{}'.format(self.PVPREFIX, BLOCK_PREFIX, blk.upper())
 
-    def update(self, epics_args, user_args):
-        """ Updates the kafka config when the blockserver changes.
-
-        Args:
-            epics_args (dict): Dictionary containing the information for the blockserver blocks PV.
-            user_args (not used)
-        """
-
+    def convert_to_string(self, pv_array):
         # Cannot get the number of elements in the array so just convert to bytes and remove the nulls
-        data = str(bytearray(epics_args['pv_value'])).replace("\x00", "")
-        data = dehex_and_decompress(data)
-        blocks = json.loads(data)
+        return str(bytearray(pv_array)).replace("\x00", "")
 
+    def update_config(self, blocks):
         pvs = [self.block_name_to_pv_name(blk) for blk in blocks]
         if pvs != self.last_pvs:
             print_and_log("Configuration changed to: {}".format(pvs))
             self.producer.remove_config(self.last_pvs)
             self.producer.add_config(pvs)
             self.last_pvs = pvs
+
+    def update(self, epics_args, user_args):
+        """ Updates the kafka config when the blockserver changes. This is called from the monitor.
+
+        Args:
+            epics_args (dict): Dictionary containing the information for the blockserver blocks PV.
+            user_args (not used)
+        """
+        data = self.convert_to_string(epics_args['pv_value'])
+        data = dehex_and_decompress(data)
+        blocks = json.loads(data)
+
+        self.update_config(blocks)
