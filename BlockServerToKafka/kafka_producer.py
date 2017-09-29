@@ -27,18 +27,20 @@ class Producer():
         self.converter = ForwarderConfig(data_topic)
 
     def add_config(self, pvs):
-        """
+        """ Creates a forwarder configuration to add more pvs to be monitored.
+
         Args:
-             pvs (string) The Json string with BS configuration to add to topic
+             pvs (list) A list of new PVs to add to the forwarder configuration.
         """
         data = self.converter.create_forwarder_configuration(pvs)
         print_and_log("Sending data {}".format(data))
         self.producer.send(self.topic, bytes(data))
 
     def remove_config(self, pvs):
-        """
+        """ Creates a forwarder configuration to remove pvs that are being monitored.
+
         Args:
-            pvs (string) The json string with old BS configuration to remove from topic
+            pvs (list) A list of PVs to remove from the forwarder configuration.
         """
         data = self.converter.remove_forwarder_configuration(pvs)
         for pv in data:

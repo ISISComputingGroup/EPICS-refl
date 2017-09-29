@@ -65,7 +65,7 @@ class BlockServerMonitor:
         return str(bytearray(pv_array)).replace("\x00", "")
 
     def update_config(self, blocks):
-        """ Updates the BlockServer configuration if it has changed and removes old configuration
+        """ Updates the forwarder configuration to monitor the supplied blocks
         Args:
             blocks(list): Blocks in the BlockServer containing PV data
         """
