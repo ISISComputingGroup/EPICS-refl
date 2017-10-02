@@ -20,7 +20,7 @@ from unittest import TestCase
 from hamcrest import *
 
 from ArchiverAccess.test_modules.stubs import FileStub
-from ArchiverAccess.time_last_active import TimeLastActive, TIME_LAST_ACTIVE_HEADER
+from ArchiverAccess.time_last_active import TimeLastActive, TIME_LAST_ACTIVE_HEADER, TIME_LAST_ACTIVE_FILENAME
 
 
 class TestTimeLastActive(TestCase):
@@ -83,17 +83,18 @@ class TestTimeLastActive(TestCase):
 
         time_last_active.set(last_active_time)
 
-        assert_that(FileStub.file_contents, is_([TIME_LAST_ACTIVE_HEADER, last_active_time.isoformat(), "1"]))
+        assert_that(FileStub.contents_of_only_file(), is_([TIME_LAST_ACTIVE_HEADER, last_active_time.isoformat(), "1"]))
 
     def _setup_last_active_time(self, last_active_time, max_delta_in_days, time_now):
 
         def time_now_fn():
             return time_now
 
+        FileStub.clear()
         try:
-            FileStub.add_file([TIME_LAST_ACTIVE_HEADER, last_active_time.isoformat(), max_delta_in_days])
+            FileStub.add_file([TIME_LAST_ACTIVE_HEADER, last_active_time.isoformat(), max_delta_in_days], TIME_LAST_ACTIVE_FILENAME)
         except AttributeError:
-            FileStub.add_file([TIME_LAST_ACTIVE_HEADER, last_active_time, max_delta_in_days])
+            FileStub.add_file([TIME_LAST_ACTIVE_HEADER, last_active_time, max_delta_in_days], TIME_LAST_ACTIVE_FILENAME)
 
         file_stub = FileStub
         time_last_active = TimeLastActive(file_cls=file_stub, time_now_fn=time_now_fn)

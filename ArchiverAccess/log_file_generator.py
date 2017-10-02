@@ -53,18 +53,18 @@ def create_log(headers, columns, time_period, filename_template="default.log", h
         config_builder.table_column(column_header, column_template)
 
     adfc = ArchiveDataFileCreator(config_builder.build(), archiver_data_source)
-    adfc.write(time_period)
+    adfc.write_complete_file(time_period)
 
 if __name__ == '__main__':
-    sample_size = 1000000
-    time_period = ArchiveTimePeriod(datetime(2017, 06, 10, 19, 49), timedelta(seconds=1), sample_size)
+    sample_size = 10000000
+    time_period = ArchiveTimePeriod(datetime(2017, 9, 8, 15, 00), timedelta(seconds=0.1), sample_size)
     header_line = ["Test IMAT"]
     columns = [
-        ("SKFChopper status warn", "{IN:IMAT:SKFCHOPPER_02:STATUS:WARN}"),
-        ("SKFChopper phase acceleration", "{IN:IMAT:SKFCHOPPER_04:PHASE_ACC}")]
+        ("MOT 0201", "{IN:LARMOR:MOT:MTR0201.RBV}"),
+        ("MOT 0208", "{IN:LARMOR:MOT:MTR0208.RBV}")]
     create_log(
         header_line,
         columns,
         time_period,
-        filename_template="default{0}.log".format(sample_size),
-        host="ndximat")
+        filename_template="larmor_motors.log".format(sample_size),
+        host="ndxlarmor")

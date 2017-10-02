@@ -59,8 +59,8 @@ class TestLogFileInitiator(unittest.TestCase):
 
         log_file_initiator.check_write()
 
-        self.log_file_creators[0].write.assert_called_once()
-        logging_time_period = self.log_file_creators[0].write.call_args[0][0]
+        self.log_file_creators[0].write_complete_file.assert_called_once()
+        logging_time_period = self.log_file_creators[0].write_complete_file.call_args[0][0]
         assert_that(logging_time_period.delta, is_(expected_period))
         assert_that(logging_time_period.start_time, is_(expected_logging_start))
         assert_that(logging_time_period.end_time, is_(logging_stop_time))
@@ -72,7 +72,7 @@ class TestLogFileInitiator(unittest.TestCase):
 
         log_file_initiator.check_write()
 
-        self.log_file_creators[0].write.assert_not_called()
+        self.log_file_creators[0].write_complete_file.assert_not_called()
 
     def test_GIVEN_config_with_pv_WHEN_pv_has_changed_0_to_0_THEN_log_file_not_created(self):
         archive_data_source = self._set_up_data_source(initial_pv_values=[0], final_pv_value=0)
@@ -80,7 +80,7 @@ class TestLogFileInitiator(unittest.TestCase):
 
         log_file_initiator.check_write()
 
-        self.log_file_creators[0].write.assert_not_called()
+        self.log_file_creators[0].write_complete_file.assert_not_called()
 
     def test_GIVEN_config_with_pv_WHEN_pv_has_changed_1_to_disconnect_THEN_log_file_created(self):
         archive_data_source = self._set_up_data_source(initial_pv_values=[1], final_pv_value="disconnect")
@@ -88,7 +88,7 @@ class TestLogFileInitiator(unittest.TestCase):
 
         log_file_initiator.check_write()
 
-        self.log_file_creators[0].write.assert_called()
+        self.log_file_creators[0].write_complete_file.assert_called()
 
     def test_GIVEN_config_with_pv_WHEN_pv_has_changed_disconnected_to_0_THEN_log_file_not_created(self):
         archive_data_source = self._set_up_data_source(initial_pv_values=["disconnect"], final_pv_value=1)
@@ -96,7 +96,7 @@ class TestLogFileInitiator(unittest.TestCase):
 
         log_file_initiator.check_write()
 
-        self.log_file_creators[0].write.assert_not_called()
+        self.log_file_creators[0].write_complete_file.assert_not_called()
 
 
     def test_GIVEN_config_with_pv_WHEN_pv_has_changed_twice_from_1_to_0_THEN_log_file_created(self):
@@ -114,7 +114,7 @@ class TestLogFileInitiator(unittest.TestCase):
 
         log_file_initiator.check_write()
 
-        arg_list = self.log_file_creators[0].write.call_args_list
+        arg_list = self.log_file_creators[0].write_complete_file.call_args_list
         logging_time_period1 = arg_list[0][0][0]
         assert_that(logging_time_period1.delta, is_(expected_period))
         assert_that(logging_time_period1.start_time, is_(expected_logging_start1))
@@ -144,7 +144,7 @@ class TestLogFileInitiator(unittest.TestCase):
         log_file_initiator.check_write()
         log_file_initiator.check_write()
 
-        arg_list = self.log_file_creators[0].write.call_args_list
+        arg_list = self.log_file_creators[0].write_complete_file.call_args_list
         logging_time_period1 = arg_list[0][0][0]
 
         assert_that(logging_time_period1.delta, is_(expected_period))
@@ -174,14 +174,14 @@ class TestLogFileInitiator(unittest.TestCase):
 
         log_file_initiator.check_write()
 
-        self.log_file_creators[0].write.assert_called_once()
-        logging_time_period = self.log_file_creators[0].write.call_args[0][0]
+        self.log_file_creators[0].write_complete_file.assert_called_once()
+        logging_time_period = self.log_file_creators[0].write_complete_file.call_args[0][0]
         assert_that(logging_time_period.delta, is_(expected_period_config_1))
         assert_that(logging_time_period.start_time, is_(expected_logging_start_config_1))
         assert_that(logging_time_period.end_time, is_(logging_stop_time_config_1))
 
-        self.log_file_creators[1].write.assert_called_once()
-        logging_time_period = self.log_file_creators[1].write.call_args[0][0]
+        self.log_file_creators[1].write_complete_file.assert_called_once()
+        logging_time_period = self.log_file_creators[1].write_complete_file.call_args[0][0]
         assert_that(logging_time_period.delta, is_(expected_period_config_2))
         assert_that(logging_time_period.start_time, is_(expected_logging_start_config_2))
         assert_that(logging_time_period.end_time, is_(logging_stop_time_config_2))
@@ -196,8 +196,8 @@ class TestLogFileInitiator(unittest.TestCase):
 
         log_file_initiator.check_write()
 
-        self.log_file_creators[0].write.assert_called_once()
-        logging_time_period = self.log_file_creators[0].write.call_args[0][0]
+        self.log_file_creators[0].write_complete_file.assert_called_once()
+        logging_time_period = self.log_file_creators[0].write_complete_file.call_args[0][0]
         assert_that(logging_time_period.delta, is_(expected_period))
 
     def _set_up_data_source(self,

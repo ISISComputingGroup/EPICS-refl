@@ -38,8 +38,8 @@ class TestlogFileCreator(TestCase):
             initial_values = {}
         archiver_data_source = ArchiverDataStub(initial_values, values)
         self.time_period = time_period
-        self.created_file_path = ""
-        self.file_made_readonly_path = ""
+        self.created_file_path = None
+        self.file_made_readonly_path = None
 
         def mkdir_for_file_stub(path):
             self.created_file_path = path
@@ -47,7 +47,7 @@ class TestlogFileCreator(TestCase):
         def make_file_readonly_fn(path):
             self.file_made_readonly_path = path
 
-        FileStub.raise_on_write = None
+        FileStub.clear()
         return ArchiveDataFileCreator(config, archiver_data_source, FileStub, mkdir_for_file_fn=mkdir_for_file_stub,
                                       make_file_readonly=make_file_readonly_fn)
 
@@ -56,30 +56,31 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(expected_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config)
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[0], is_(expected_header_line))
+        assert_that(FileStub.contents_of_only_file()[0], is_(expected_header_line))
 
     def test_GIVEN_config_contains_plain_filename_WHEN_write_THEN_file_is_opened(self):
         expected_filename = "filename.txt"
         config = ConfigBuilder(expected_filename, base_path="").build()
         file_creator = self._archive_data_file_creator_setup(config)
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.filename, is_(expected_filename))
+        assert_that(FileStub.file_contents, has_key(expected_filename))
+        assert_that(FileStub.file_contents, has_length(1))
 
     def test_GIVEN_config_contains_templated_filename_WHEN_write_THEN_filename_is_correct(self):
         filename_template = r"c:\log\filename{start_time}.txt"
         expected_filename = filename_template.format(start_time="2017-06-10T12_11_10")
-        time_period = ArchiveTimePeriod(datetime(2017, 06, 10, 12, 11, 10, 7), timedelta(seconds=10), 10)
+        time_period = ArchiveTimePeriod(datetime(2017, 6, 10, 12, 11, 10, 7), timedelta(seconds=10), 10)
 
         config = ConfigBuilder(filename_template).build()
         file_creator = self._archive_data_file_creator_setup(config, time_period)
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.filename, is_(expected_filename))
+        assert_that(FileStub.file_contents, has_key(expected_filename))
 
     def test_GIVEN_config_contains_plain_filename_WHEN_write_THEN_directory_is_created(self):
         expected_filename = "filename.txt"
@@ -87,7 +88,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder(expected_filename, base_path=expected_base_parth).build()
         file_creator = self._archive_data_file_creator_setup(config)
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
         assert_that(self.created_file_path, is_(os.path.join(expected_base_parth, expected_filename)))
 
@@ -100,9 +101,9 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[0], is_(expected_header_line))
+        assert_that(FileStub.contents_of_only_file()[0], is_(expected_header_line))
 
     def test_GIVEN_config_is_line_with_realistic_pv_in_WHEN_write_THEN_pv_is_replaced_with_value_at_time(self):
         expected_pv_value = 12.9
@@ -113,9 +114,9 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[0], is_(expected_header_line))
+        assert_that(FileStub.contents_of_only_file()[0], is_(expected_header_line))
 
     def test_GIVEN_multiple_line_in_header_with_pvs_in_WHEN_write_THEN_pvs_are_replaced_with_value_at_time(self):
         values = {'pvname1.VAL': 12, 'pvname2.VAL': "hi"}
@@ -127,9 +128,9 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line1).header(template_header_line2).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=values)
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[0:2], is_([expected_header_line1, expected_header_line2]))
+        assert_that(FileStub.contents_of_only_file()[0:2], is_([expected_header_line1, expected_header_line2]))
 
     def test_GIVEN_config_is_header_with_pv_with_formatting_WHEN_write_THEN_pv_is_replaced_with_value_at_time(self):
         expected_pv_value = 12.9
@@ -140,9 +141,9 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[0], is_(expected_header_line))
+        assert_that(FileStub.contents_of_only_file()[0], is_(expected_header_line))
 
     def test_GIVEN_config_is_header_with_pv_with_formatting_error_WHEN_write_THEN_pv_is_replaced_with_value_no_formatting(self):
         expected_pv_value = "this is a string"
@@ -155,9 +156,9 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[0], is_(expected_header_line))
+        assert_that(FileStub.contents_of_only_file()[0], is_(expected_header_line))
 
     def test_GIVEN_config_is_header_with_pv_with_disconnected_WHEN_write_THEN_pv_is_replaced_with_disconnected_no_formatting_error(self):
         expected_pv_value = "Disconnected"
@@ -168,9 +169,9 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[0], is_(expected_header_line))
+        assert_that(FileStub.contents_of_only_file()[0], is_(expected_header_line))
 
     def test_GIVEN_config_is_header_with_pv_with_archive_off_WHEN_write_THEN_pv_is_replaced_with_archive_off_no_formatting_error(self):
         expected_pv_value = "Archive_Off"
@@ -181,9 +182,9 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[0], is_(expected_header_line))
+        assert_that(FileStub.contents_of_only_file()[0], is_(expected_header_line))
 
 
     def test_GIVEN_config_has_column_heading_WHEN_write_THEN_table_has_correct_heading(self):
@@ -194,9 +195,9 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename.txt").table_column(heading, pvname).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=[1.0])
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[0], is_(expected_header))
+        assert_that(FileStub.contents_of_only_file()[0], is_(expected_header))
 
     def test_GIVEN_config_has_many_column_headings_WHEN_write_THEN_table_has_correct_headings(self):
         expected_heading1 = "PV Heading"
@@ -210,9 +211,9 @@ class TestlogFileCreator(TestCase):
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=[1.0, 2.0, 3.0])
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[0], is_("\t".join([TIME_DATE_COLUMN_HEADING, expected_heading1, expected_heading2, expected_heading3])))
+        assert_that(FileStub.contents_of_only_file()[0], is_("\t".join([TIME_DATE_COLUMN_HEADING, expected_heading1, expected_heading2, expected_heading3])))
 
     def test_GIVEN_config_with_1_column_and_initial_data_WHEN_write_THEN_table_has_initial_data(self):
         time_period = ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10)
@@ -224,9 +225,9 @@ class TestlogFileCreator(TestCase):
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: initial_value}, time_period=time_period)
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[1], is_(expected_line))
+        assert_that(FileStub.contents_of_only_file()[1], is_(expected_line))
 
     def test_GIVEN_config_with_3_column_and_initial_data_WHEN_write_THEN_table_has_initial_data(self):
         time_period = ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10)
@@ -242,9 +243,9 @@ class TestlogFileCreator(TestCase):
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=initial_values, time_period=time_period)
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        assert_that(FileStub.file_contents[1], is_(expected_line))
+        assert_that(FileStub.contents_of_only_file()[1], is_(expected_line))
 
 
     def test_GIVEN_config_with_3_column_and_full_data_with_header_WHEN_write_THEN_contents_is_full_log_file(self):
@@ -301,9 +302,9 @@ class TestlogFileCreator(TestCase):
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=initial_values, time_period=time_period, values=values)
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
-        for index, (actual, expected) in enumerate(zip(FileStub.file_contents, expected_file_contents)):
+        for index, (actual, expected) in enumerate(zip(FileStub.contents_of_only_file(), expected_file_contents)):
             assert_that(actual, is_(expected), "Error on line {0}".format(index))
 
     def test_GIVEN_config_file_created_WHEN_write_THEN_file_is_set_as_readonly(self):
@@ -312,7 +313,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder(expected_filename, base_path="").header(expected_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config)
 
-        file_creator.write(self.time_period)
+        file_creator.write_complete_file(self.time_period)
 
         assert_that(self.file_made_readonly_path, is_(expected_filename))
 
@@ -320,7 +321,7 @@ class TestlogFileCreator(TestCase):
         config = ConfigBuilder("filename").build()
         file_creator = self._archive_data_file_creator_setup(config)
 
-        result = file_creator.write(self.time_period)
+        result = file_creator.write_complete_file(self.time_period)
 
         assert_that(result, is_(True))
 
@@ -328,8 +329,53 @@ class TestlogFileCreator(TestCase):
         expected_filename = "filename.txt"
         config = ConfigBuilder(expected_filename, base_path="").build()
         file_creator = self._archive_data_file_creator_setup(config)
-        FileStub.raise_on_write = IOError("Can not write")
+        FileStub.raise_on_write[expected_filename] = IOError("Can not write")
 
-        result = file_creator.write(self.time_period)
+        result = file_creator.write_complete_file(self.time_period)
+
+        assert_that(result, is_(False))
+
+    def test_GIVEN_config_is_constant_header_line_and_data_WHEN_write_just_header_THEN_just_header_is_written_to_file(self):
+        time_period = ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10)
+        pvname = "pvname.VAL"
+        initial_value = 2.91
+        expected_header_line = "expected_header_line a line of goodness :-)"
+
+        config = ConfigBuilder("filename.txt") \
+            .header(expected_header_line)\
+            .table_column("heading", "{%s}" % pvname)\
+            .build()
+        file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: initial_value}, time_period=time_period)
+
+        file_creator.write_file_header(self.time_period)
+
+        assert_that(FileStub.contents_of_only_file(), has_length(2))
+
+    def test_GIVEN_config_is_constant_header_line_and_data_WHEN_write_just_body_THEN_just_body_is_appended_to_file(self):
+
+        time_period = ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10)
+        pvname = "pvname.VAL"
+        initial_value = 2.91
+        expected_header_line = "expected_header_line a line of goodness :-)"
+        config = ConfigBuilder("filename.txt") \
+            .header(expected_header_line) \
+            .table_column("heading", "{%s}" % pvname) \
+            .build()
+        file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: initial_value}, time_period=time_period)
+        file_creator.write_file_header(self.time_period)
+        assert_that(FileStub.contents_of_only_file(), has_length(2))
+
+        file_creator.write_data_lines(self.time_period)
+
+        assert_that(FileStub.contents_of_only_file(), has_length(2+10))
+        assert_that(self.file_made_readonly_path, is_(None))
+
+    def test_GIVEN_write_header_not_called_WHEN_write_data_lines_THEN_write_fails(self):
+
+        time_period = ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10)
+
+        file_creator = self._archive_data_file_creator_setup(ConfigBuilder("filename").build())
+
+        result = file_creator.write_data_lines(time_period)
 
         assert_that(result, is_(False))

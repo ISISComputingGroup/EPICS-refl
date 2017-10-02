@@ -50,38 +50,51 @@ class ArchiverDataStub(ArchiverDataSource):
 
 class FileStub(object):
     """
-    Mimic the python file object
+    Mimic the python file object (inc file system effects) call clear on setup to avoid persisted state
     """
-    file_contents = None
-    file_contents_to_read = []
-    filename = ""
-    file_open = False
-    raise_on_write = None
 
-    def __init__(self, filename, mode=""):
-        FileStub.file_contents = None
-        FileStub.filename = filename
-        FileStub.file_open = False
+    file_contents = {}
+    file_open = {}
+    raise_on_write = {}
+
+    def __init__(self, filename, mode="r"):
+        self.filename = filename
+        FileStub.file_open[filename] = False
+        self.mode = mode
         self.read_line_index = 0
 
     def __enter__(self):
-        FileStub.file_open = True
-        FileStub.file_contents = []
+        FileStub.file_open[self.filename] = True
+        if self.mode == "w" or self.filename not in FileStub.file_contents:
+            FileStub.file_contents[self.filename] = []
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        FileStub.file_open = False
+        FileStub.file_open[self.filename] = False
 
     def write(self, line):
-        if FileStub.raise_on_write is not None:
-            raise FileStub.raise_on_write
-        FileStub.file_contents.extend(line.splitlines())
+        if self.filename in FileStub.raise_on_write:
+            raise FileStub.raise_on_write[self.filename]
+        FileStub.file_contents[self.filename].extend(line.splitlines())
 
     def readline(self):
-        next_line = FileStub.file_contents_to_read[self.read_line_index]
+        file_contents_for_file = FileStub.file_contents[self.filename]
+        next_line = file_contents_for_file[self.read_line_index]
         self.read_line_index += 1
         return "{0}\n".format(next_line)
 
     @classmethod
-    def add_file(cls, file_contents):
-        FileStub.file_contents_to_read = file_contents
+    def add_file(cls, file_contents, filename):
+        FileStub.file_contents[filename] = file_contents
+
+    @classmethod
+    def clear(cls):
+        FileStub.file_contents = {}
+        FileStub.file_open = {}
+        FileStub.raise_on_write = {}
+
+    @classmethod
+    def contents_of_only_file(cls):
+        assert len(FileStub.file_contents) == 1, \
+            "Number of files created is not 1. Filenames are {0}".format(FileStub.file_contents.keys())
+        return FileStub.file_contents.values()[0]

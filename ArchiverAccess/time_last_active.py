@@ -27,7 +27,7 @@ TIME_LAST_ACTIVE_HEADER = "# File containing two line, time the logger was last 
                           "maximum number of days use the time last active"
 """Header for the last active file """
 
-FILENAME = os.path.join(DEFAULT_LOG_PATH, "LOG_last_active_time")
+TIME_LAST_ACTIVE_FILENAME = os.path.join(DEFAULT_LOG_PATH, "LOG_last_active_time")
 """File name for the last active file"""
 
 DEFAULT_DELTA = 1
@@ -69,7 +69,7 @@ class TimeLastActive(object):
         """
         time_now = self._time_now_fn()
         try:
-            with self._file(FILENAME, mode="r") as time_last_active_file:
+            with self._file(TIME_LAST_ACTIVE_FILENAME, mode="r") as time_last_active_file:
                 time_last_active_file.readline()
                 last_active_time = datetime.strptime(time_last_active_file.readline().strip(), "%Y-%m-%dT%H:%M:%S")
                 max_delta = int(time_last_active_file.readline().strip())
@@ -95,7 +95,7 @@ class TimeLastActive(object):
 
         """
         try:
-            with self._file(FILENAME, mode="w") as time_last_active_file:
+            with self._file(TIME_LAST_ACTIVE_FILENAME, mode="w") as time_last_active_file:
                 time_last_active_file.write("{0}\n".format(TIME_LAST_ACTIVE_HEADER))
                 time_last_active_file.write("{0}\n".format(last_active_time.isoformat()))
                 time_last_active_file.write("{0}\n".format(delta))

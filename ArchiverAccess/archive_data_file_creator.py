@@ -118,8 +118,9 @@ class ArchiveDataFileCreator(object):
         self._archiver_data_source = archiver_data_source
         self._mkdir_for_file_fn = mkdir_for_file_fn
         self._make_file_readonly_fn = make_file_readonly
+        self._filename = None
 
-    def write(self, time_period):
+    def write_complete_file(self, time_period):
         """
         Write the file to the file object.
 
@@ -130,29 +131,73 @@ class ArchiveDataFileCreator(object):
 
         """
 
+        if not self.write_file_header(time_period):
+            return False
+
+        if not self.write_data_lines(time_period):
+            return False
+
+        try:
+            self._make_file_readonly_fn(self._filename)
+            return True
+        except Exception as ex:
+            print_and_log("Failed to create log file {filename} for time period {time_period}. Error is: '{exception}'"
+                          .format(time_period=time_period, exception=ex, filename=self._config.filename),
+                          severity=SEVERITY.MAJOR, src="ArchiverAccess")
+            return False
+
+    def write_file_header(self, time_period):
+        """
+        Write the file header to a newly created file
+        Args:
+            time_period: time period to write the header for
+
+        Returns: true if successful; False otherwise
+
+        """
         try:
             pv_names_in_header = self._config.pv_names_in_header
             pv_values = self._archiver_data_source.initial_values(pv_names_in_header, time_period.start_time)
             template_replacer = TemplateReplacer(pv_values, time_period=time_period)
-            periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
 
-            filename = template_replacer.replace(self._config.filename)
-            print_and_log("Writing log file '{0}'".format(filename), src="ArchiverAccess")
-            self._mkdir_for_file_fn(filename)
-            with self._file_access_class(filename, mode="w") as f:
+            self._filename = template_replacer.replace(self._config.filename)
+            print_and_log("Writing log file '{0}'".format(self._filename), src="ArchiverAccess")
+            self._mkdir_for_file_fn(self._filename)
+            with self._file_access_class(self._filename, mode="w") as f:
                 for header_template in self._config.header:
                     header_line = template_replacer.replace(header_template)
                     f.write("{0}\n".format(header_line))
 
                 f.write("{0}\n".format(self._config.column_headers))
 
+            return True
+        except Exception as ex:
+            print_and_log("Failed to create log file {filename} for time period {time_period}. Error is: '{exception}'"
+                          .format(time_period=time_period, exception=ex, filename=self._config.filename),
+                          severity=SEVERITY.MAJOR, src="ArchiverAccess")
+            return False
+
+    def write_data_lines(self, time_period):
+        """
+        Append data lines to a file for the given time period
+        Args:
+            time_period: the time period to generate data lines for
+
+        Returns: True if success; False otherwise
+
+        """
+        try:
+
+            assert self._filename is not None, "Called write_data_lines before writing header."
+
+            periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
+            with self._file_access_class(self._filename, mode="a") as f:
                 periodic_data = periodic_data_generator.get_generator(self._config.pv_names_in_columns, time_period)
                 for time, values in periodic_data:
                     table_template_replacer = TemplateReplacer(values, time=time)
                     table_line = table_template_replacer.replace(self._config.table_line)
                     f.write("{0}\n".format(table_line))
 
-            self._make_file_readonly_fn(filename)
             return True
         except Exception as ex:
             print_and_log("Failed to create log file {filename} for time period {time_period}. Error is: '{exception}'"
