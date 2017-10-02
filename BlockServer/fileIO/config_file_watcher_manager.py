@@ -29,7 +29,7 @@ from BlockServer.fileIO.unclassified_file_manager import UnclassifiedFileManager
 class ConfigFileWatcherManager(object):
     """ The ConfigFileWatcherManager class.
 
-    Registers and communicates with the event handlers for configuration and synoptic filewatchers.
+    Registers and communicates with the event handlers for configuration, synoptic and device screen filewatchers.
     """
     def __init__(self, schema_folder, config_list_manager, synoptic_manager, devices_manager):
         """Constructor.

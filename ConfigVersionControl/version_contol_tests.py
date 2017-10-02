@@ -41,14 +41,14 @@ class TestVersionControl(unittest.TestCase):
         self.assertEqual(len(calls), 2)
         self.assertTrue("test" == calls[1][1][0][0])
 
-    def test_WHEN_banch_is_master_THEN_branch_not_allowed(self):
+    def test_WHEN_branch_is_master_THEN_branch_not_allowed(self):
         self.assertFalse(GitVersionControl.branch_allowed("master"))
 
-    def test_WHEN_banch_is_machine_name_THEN_branch_allowed(self):
+    def test_WHEN_branch_is_machine_name_THEN_branch_allowed(self):
         self.assertTrue(GitVersionControl.branch_allowed(socket.gethostname()))
 
-    def test_WHEN_banch_begins_with_nd_THEN_branch_not_allowed(self):
+    def test_WHEN_branch_begins_with_nd_THEN_branch_not_allowed(self):
         self.assertFalse(GitVersionControl.branch_allowed("NDTEST"))
 
-    def test_WHEN_banch_begins_contains_nd_THEN_branch_allowed(self):
+    def test_WHEN_branch_begins_contains_nd_THEN_branch_allowed(self):
         self.assertTrue(GitVersionControl.branch_allowed("testNDtest"))

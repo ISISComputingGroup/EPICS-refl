@@ -45,13 +45,17 @@ class RepoFactory:
 
 class GitVersionControl:
     """Version Control class for dealing with git file operations"""
-    def __init__(self, working_directory, repo):
+    def __init__(self, working_directory, repo, is_local=False):
         self._wd = working_directory
         self.repo = repo
-        self.remote = self.repo.remotes.origin
+        self._is_local = is_local
+
+        if not is_local:
+            self.remote = self.repo.remotes.origin
 
         self._push_required = False
         self._push_lock = RLock()
+
 
     def setup(self):
         """ Call when first starting the version control.
@@ -69,10 +73,11 @@ class GitVersionControl:
         # Set git repository to ignore file permissions otherwise will reset to read only
         config_writer.set_value("core", "filemode", False)
 
-        try:
-            self._pull()
-        except PullFromVersionControlException as err:
-            raise
+        if not self._is_local:
+            try:
+                self._pull()
+            except PullFromVersionControlException as err:
+                raise
 
         # Start a background thread for pushing
         push_thread = Thread(target=self._push, args=())
@@ -166,8 +171,9 @@ class GitVersionControl:
         while attempts < RETRY_MAX_ATTEMPTS:
             try:
                 self.repo.index.commit(commit_comment)
-                with self._push_lock:
-                    self._push_required = True
+                if not self._is_local:
+                    with self._push_lock:
+                        self._push_required = True
                 return
             except Exception as err:
                 sleep(RETRY_INTERVAL)
@@ -180,7 +186,8 @@ class GitVersionControl:
         """ reverts folder to the remote repository
         """
         try:
-            self._pull()
+            if not self._is_local:
+                self._pull()
             if self.repo.is_dirty():
                 self.repo.index.checkout()
         except Exception as err:
