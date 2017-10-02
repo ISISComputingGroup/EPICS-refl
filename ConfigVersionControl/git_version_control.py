@@ -56,7 +56,6 @@ class GitVersionControl:
         self._push_required = False
         self._push_lock = RLock()
 
-
     def setup(self):
         """ Call when first starting the version control.
         Do startup actions here rather than in constructor to allow for easier testing
