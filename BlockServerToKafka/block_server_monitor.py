@@ -19,6 +19,7 @@ from server_common.utilities import dehex_and_decompress, print_and_log
 import ca
 import json
 from BlockServer.core.macros import BLOCK_PREFIX
+from threading import RLock
 
 
 class BlockServerMonitor:
@@ -30,6 +31,7 @@ class BlockServerMonitor:
         self.channel = CaChannel()
         self.producer = producer
         self.last_pvs = []
+        self.monitor_lock = RLock()
         try:
             self.channel.searchw(self.address)
         except CaChannelException:
@@ -52,7 +54,7 @@ class BlockServerMonitor:
         Returns:
             (string) the associated PV name
         """
-        return '{}{}{}'.format(self.PVPREFIX, BLOCK_PREFIX, blk.upper())
+        return '{}{}{}'.format(self.PVPREFIX, BLOCK_PREFIX, blk)
 
     def convert_to_string(self, pv_array):
         """ Converts from byte array to string and removes null characters
@@ -82,8 +84,9 @@ class BlockServerMonitor:
             epics_args(dict): Dictionary containing the information for the blockserver blocks PV.
             user_args(dict): not used.
         """
-        data = self.convert_to_string(epics_args['pv_value'])
-        data = dehex_and_decompress(data)
-        blocks = json.loads(data)
+        with self.monitor_lock:
+            data = self.convert_to_string(epics_args['pv_value'])
+            data = dehex_and_decompress(data)
+            blocks = json.loads(data)
 
-        self.update_config(blocks)
+            self.update_config(blocks)

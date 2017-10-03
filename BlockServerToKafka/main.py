@@ -14,6 +14,11 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.getcwd()))
+
 from argparse import ArgumentParser
 from BlockServerToKafka.block_server_monitor import BlockServerMonitor
 from time import sleep
@@ -33,10 +38,10 @@ if __name__ == '__main__':
                         default=environ["MYPVPREFIX"])
 
     args = parser.parse_args()
-    KAFKA_DATA = args.data
-    KAFKA_CONFIG = args.config
+    KAFKA_DATA = args.data[0]
+    KAFKA_CONFIG = args.config[0]
     KAFKA_BROKER = args.broker
-    PREFIX = args.pvprefix
+    PREFIX = args.pvprefix[0]
     producer = Producer(KAFKA_BROKER, KAFKA_CONFIG, KAFKA_DATA)
     monitor = BlockServerMonitor("{}CS:BLOCKSERVER:BLOCKNAMES".format(PREFIX), PREFIX, producer)
 
