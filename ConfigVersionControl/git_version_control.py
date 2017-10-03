@@ -14,7 +14,6 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-import os
 import shutil
 import stat
 import socket
@@ -53,7 +52,6 @@ class GitVersionControl:
         if not is_local:
             self.remote = self.repo.remotes.origin
 
-        self._push_required = False
         self._push_lock = RLock()
 
     def setup(self):
@@ -66,20 +64,14 @@ class GitVersionControl:
         try:
             self._unlock()
         except UnlockVersionControlException as err:
-            raise
+            raise err
 
         config_writer = self.repo.config_writer()
         # Set git repository to ignore file permissions otherwise will reset to read only
         config_writer.set_value("core", "filemode", False)
 
-        if not self._is_local:
-            try:
-                self._pull()
-            except PullFromVersionControlException as err:
-                raise
-
         # Start a background thread for pushing
-        push_thread = Thread(target=self._push, args=())
+        push_thread = Thread(target=self._commit_and_push, args=())
         push_thread.daemon = True  # Daemonise thread
         push_thread.start()
 
@@ -220,13 +212,6 @@ class GitVersionControl:
         except Exception as err:
             raise RemoveFromVersionControlException(err.message)
 
-    def _pull(self):
-        try:
-            self.remote.pull()
-        except Exception as err:
-            # Most likely server issue
-            raise PullFromVersionControlException("Unable to pull configurations from remote repo: %s" % err.message)
-
     def _set_permissions(self):
         git_path = self.repo.git_dir
         os.chmod(git_path, stat.S_IWRITE)
@@ -236,16 +221,15 @@ class GitVersionControl:
             for f in files:
                 os.chmod(os.path.join(root, f), stat.S_IWRITE)
 
-    def _push(self):
+    def _commit_and_push(self):
         push_interval = PUSH_BASE_INTERVAL
         first_failure = True
 
-        while 1:
+        while True:
+            self.commit()
             with self._push_lock:
-                if self._push_required:
                     try:
                         self.remote.push()
-                        self._push_required = False
                         push_interval = PUSH_BASE_INTERVAL
                         first_failure = True
 

@@ -16,7 +16,6 @@
 
 import os
 import json
-import re
 from threading import RLock
 
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
@@ -28,7 +27,6 @@ from BlockServer.core.pv_names import BlockserverPVNames
 from config_list_manager_exceptions import InvalidDeleteException
 from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
     CommitToVersionControlException, UpdateFromVersionControlException, RemoveFromVersionControlException
-from BlockServer.alarm.load_alarm_config import AlarmConfigLoader
 
 
 class ConfigListManager(object):
@@ -343,13 +341,6 @@ class ConfigListManager(object):
                 return []
             else:
                 return dependencies
-
-    def recover_from_version_control(self):
-        """A method to revert the configurations directory back to the state held in version control."""
-        try:
-            self._vc.update()
-        except UpdateFromVersionControlException as err:
-            print_and_log("Unable to recover configurations from version control: %s" % err, "MINOR")
 
     def update_monitors(self):
 

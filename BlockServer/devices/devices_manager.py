@@ -202,13 +202,6 @@ class DevicesManager(OnTheFlyPvInterface):
                 <devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
                 </devices>"""
 
-    def recover_from_version_control(self):
-        """ A method to revert the configurations directory back to the state held in version control."""
-        try:
-            self._vc.update()
-        except UpdateFromVersionControlException as err:
-            print_and_log("Unable to recover screens to version control: %s" % err, "MINOR")
-
     def load_devices(self, path):
         """
         Reads device screens data from an xml file at a specified location

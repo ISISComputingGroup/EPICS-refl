@@ -177,14 +177,3 @@ class TestDevicesManagerSequence(unittest.TestCase):
             dm.update(EXAMPLE_DEVICES, "Some commit message")
         except CommitToVersionControlException as err:
             self.fail("Oops add raised")
-
-    def test_on_recover_from_version_control_does_not_raise_specified_exception(self):
-        # Arrange
-        dm = DevicesManager(self.bs, self.dir, FailOnUpdateMockVersionControl(), self.file_io)
-        dm.initialise()
-
-        # Act and assert
-        try:
-            dm.recover_from_version_control()
-        except UpdateFromVersionControlException as err:
-            self.fail("Oops update raised")

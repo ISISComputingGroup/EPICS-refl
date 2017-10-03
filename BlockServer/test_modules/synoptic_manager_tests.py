@@ -235,11 +235,3 @@ class TestSynopticManagerSequence(unittest.TestCase):
             sm.delete([SYNOPTIC_1])
         except RemoveFromVersionControlException as err:
             self.fail("Oops remove raised")
-
-    def test_on_recover_from_version_control_does_not_raise_specified_exception(self):
-        sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), FailOnUpdateMockVersionControl(), None,
-                             self.fileIO)
-        try:
-            sm.recover_from_version_control()
-        except UpdateFromVersionControlException as err:
-            self.fail("Oops update raised")

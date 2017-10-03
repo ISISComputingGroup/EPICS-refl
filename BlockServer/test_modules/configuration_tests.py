@@ -27,8 +27,6 @@ from BlockServer.core.macros import MACROS
 NEW_BLOCK_ARGS = {'name': "TESTBLOCK1", 'pv': "PV1", 'group': "GROUP1", 'local': True, 'visible': True}
 NEW_BLOCK_ARGS_2 = {'name': "TESTBLOCK2", 'pv': "PV2", 'group': "GROUP2", 'local': True, 'visible': True}
 
-# TODO write tests for ConfigurationFileManager (config/file_manager.py)
-
 
 class TestConfigurationSequence(unittest.TestCase):
     def setUp(self):

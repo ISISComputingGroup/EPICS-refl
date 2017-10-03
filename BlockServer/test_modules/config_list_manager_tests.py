@@ -590,10 +590,3 @@ class TestInactiveConfigsSequence(unittest.TestCase):
             clm.delete(["testconfig"])
         except CommitToVersionControlException as err:
             self.fail("Oops raised on commit")
-
-    def test_on_recover_from_version_control_does_not_raise_specified_exception(self):
-        clm = ConfigListManager(self.bs, SCHEMA_PATH, FailOnUpdateMockVersionControl(), self.file_manager)
-        try:
-            clm.recover_from_version_control()
-        except UpdateFromVersionControlException as err:
-            self.fail("Oops update raised")

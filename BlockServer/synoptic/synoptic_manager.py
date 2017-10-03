@@ -280,13 +280,6 @@ class SynopticManager(OnTheFlyPvInterface):
         except CommitToVersionControlException as err:
             print_and_log("Could not commit changes to version control: %s" % err, "MAJOR")
 
-    def recover_from_version_control(self):
-        """A method to revert the configurations directory back to the state held in version control."""
-        try:
-            self._vc.update()
-        except UpdateFromVersionControlException as err:
-            print_and_log("Could not update from version control: %s" % err, "MAJOR")
-
     def update(self, xml_data):
         """Updates the synoptic list when modifications are made via the filesystem.
 
