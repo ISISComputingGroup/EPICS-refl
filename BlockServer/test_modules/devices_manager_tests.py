@@ -19,11 +19,8 @@ import os
 
 from server_common.utilities import compress_and_hex, dehex_and_decompress
 from BlockServer.devices.devices_manager import DevicesManager, GET_SCREENS
-from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from BlockServer.mocks.mock_version_control import *
-from ConfigVersionControl.version_control_exceptions import *
 
 CONFIG_PATH = os.path.join(os.getcwd(), "test_configs")
 SCRIPT_PATH = os.path.join(os.getcwd(), "test_scripts")
@@ -111,7 +108,7 @@ class TestDevicesManagerSequence(unittest.TestCase):
 
         self.bs = MockBlockServer()
         self.file_io = MockDevicesFileIO()
-        self.dm = DevicesManager(self.bs, self.dir, MockVersionControl(), self.file_io)
+        self.dm = DevicesManager(self.bs, self.dir, self.file_io)
 
     def tearDown(self):
         pass
@@ -155,25 +152,3 @@ class TestDevicesManagerSequence(unittest.TestCase):
         # Assert:
         # Device screens in blockserver should have been updated with value written to device manager
         self.assertEquals(EXAMPLE_DEVICES, dehex_and_decompress(self.bs.pvs[GET_SCREENS]))
-
-    def test_on_update_cannot_add_to_version_control_does_not_raise_specified_exception(self):
-        # Arrange
-        dm = DevicesManager(self.bs, self.dir, FailOnAddMockVersionControl(), self.file_io)
-        dm.initialise()
-
-        # Act and assert
-        try:
-            dm.update(EXAMPLE_DEVICES)
-        except AddToVersionControlException as err:
-            self.fail("Oops add raised")
-
-    def test_on_update_cannot_commit_to_version_control_does_not_raise_specified_exception(self):
-        # Arrange
-        dm = DevicesManager(self.bs, self.dir, FailOnCommitMockVersionControl(), self.file_io)
-        dm.initialise()
-
-        # Act and assert
-        try:
-            dm.update(EXAMPLE_DEVICES, "Some commit message")
-        except CommitToVersionControlException as err:
-            self.fail("Oops add raised")

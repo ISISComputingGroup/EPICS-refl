@@ -22,9 +22,6 @@ from BlockServer.core.constants import FILENAME_SCREENS as SCREENS_FILE
 from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from BlockServer.devices.devices_file_io import DevicesFileIO
-from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
-    CommitToVersionControlException, UpdateFromVersionControlException
-
 
 SCREENS_SCHEMA = "screens.xsd"
 GET_SCREENS = BlockserverPVNames.GET_SCREENS
@@ -34,13 +31,12 @@ GET_SCHEMA = BlockserverPVNames.SCREENS_SCHEMA
 
 class DevicesManager(OnTheFlyPvInterface):
     """ Class for managing the PVs associated with devices"""
-    def __init__(self, block_server, schema_folder, vc_manager, file_io=DevicesFileIO()):
+    def __init__(self, block_server, schema_folder, file_io=DevicesFileIO()):
         """ Constructor.
 
         Args:
             block_server (BlockServer): A reference to the BlockServer instance
             schema_folder (string): The filepath for the devices schema
-            vc_manager (ConfigVersionControl): The manager to allow version control modifications
             file_io (DevicesFileIO): Object used for loading and saving files
         """
         self._file_io = file_io
@@ -48,7 +44,6 @@ class DevicesManager(OnTheFlyPvInterface):
         self._schema_folder = schema_folder
         self._schema = ""
         self._devices_pvs = dict()
-        self._vc = vc_manager
         self._bs = block_server
         self._data = ""
         self._create_standard_pvs()
@@ -108,8 +103,6 @@ class DevicesManager(OnTheFlyPvInterface):
             print_and_log(err.message)
             return
 
-        self._add_to_version_control("New change found in devices file")
-
     def get_devices_filename(self):
         """ Gets the names of the devices files in the devices directory.
 
@@ -131,7 +124,6 @@ class DevicesManager(OnTheFlyPvInterface):
         """
         self._data = xml_data
         self.update_monitors()
-        self._add_to_version_control(message)
 
     def save_devices_xml(self, xml_data):
         """ Saves the xml in the current "screens.xml" config file.
@@ -158,25 +150,6 @@ class DevicesManager(OnTheFlyPvInterface):
         # Update PVs
         self.update(xml_data, "Device screens modified by client")
         print_and_log("Devices saved to " + self.get_devices_filename())
-
-    def _add_to_version_control(self, commit_message=None):
-        """ Adds the current device screens file to version control.
-        Args:
-            commit_message (string): The commit message.
-
-        Returns:
-
-        """
-        try:
-            self._vc.add(self.get_devices_filename())
-            if commit_message is not None:
-                self._vc.commit(commit_message)
-        except AddToVersionControlException as err:
-            # Logging is fine, no need to raise further
-            print_and_log("Unable to add screens to version control: (%s)" % err, "MINOR")
-        except CommitToVersionControlException as err:
-            # Logging is fine, no need to raise further
-            print_and_log("Unable to commit screens to version control: (%s)" % err, "MINOR")
 
     def get_devices_schema(self):
         """ Gets the XSD data for the devices screens.
