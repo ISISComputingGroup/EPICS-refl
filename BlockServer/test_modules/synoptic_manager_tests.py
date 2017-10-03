@@ -20,10 +20,8 @@ import os
 
 from BlockServer.synoptic.synoptic_manager import SynopticManager, SYNOPTIC_PRE, SYNOPTIC_GET
 from BlockServer.core.config_list_manager import InvalidDeleteException
-from BlockServer.mocks.mock_version_control import *
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.synoptic.synoptic_file_io import SynopticFileIO
-from ConfigVersionControl.version_control_exceptions import *
 
 TEST_DIR = os.path.abspath(".")
 
@@ -68,7 +66,7 @@ class TestSynopticManagerSequence(unittest.TestCase):
 
         self.fileIO = MockSynopticFileIO()
         self.bs = MockBlockServer()
-        self.sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), MockVersionControl(), None, self.fileIO)
+        self.sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), None, self.fileIO)
 
     def tearDown(self):
         pass
@@ -195,43 +193,3 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.assertEqual(len(synoptic_names), initial_len)
         self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_1.upper())))
         self.assertTrue(self.bs.does_pv_exist(construct_pv_name(SYNOPTIC_2.upper())))
-
-    def test_on_creating_cannot_add_to_version_control_does_not_raise_specified_exception(self):
-        # Arrange
-        sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), FailOnAddMockVersionControl(), None,
-                             self.fileIO)
-        try:
-            self._create_a_synoptic(SYNOPTIC_1, sm)
-        except AddToVersionControlException as err:
-            self.fail("Oops add raised")
-
-    def test_on_creating_cannot_commit_to_version_control_does_not_raise_specified_exception(self):
-        sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), FailOnCommitMockVersionControl(), None,
-                             self.fileIO)
-
-        try:
-            self._create_a_synoptic(SYNOPTIC_1, sm)
-        except CommitToVersionControlException as err:
-            self.fail("Oops commmit raised")
-
-    def test_on_delete_cannot_commit_to_version_control_does_not_raise_specified_exception(self):
-        sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), FailOnCommitMockVersionControl(), None,
-                             self.fileIO)
-
-        self._create_a_synoptic(SYNOPTIC_1, sm)
-
-        try:
-            sm.delete([SYNOPTIC_1])
-        except CommitToVersionControlException as err:
-            self.fail("Oops commit raised")
-
-    def test_on_delete_cannot_remove_from_version_control_does_not_raise_specified_exception(self):
-        sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), FailOnRemoveMockVersionControl(), None,
-                             self.fileIO)
-
-        self._create_a_synoptic(SYNOPTIC_1, sm)
-
-        try:
-            sm.delete([SYNOPTIC_1])
-        except RemoveFromVersionControlException as err:
-            self.fail("Oops remove raised")
