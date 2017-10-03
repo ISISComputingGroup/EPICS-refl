@@ -36,10 +36,8 @@ from server_common.utilities import compress_and_hex, dehex_and_decompress, prin
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
-from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.synoptic.synoptic_manager import SynopticManager
 from BlockServer.devices.devices_manager import DevicesManager
-from BlockServer.fileIO.unclassified_file_manager import UnclassifiedFileManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from ConfigVersionControl.git_version_control import GitVersionControl, RepoFactory
 from ConfigVersionControl.version_control_exceptions import NotUnderVersionControl, VersionControlException
@@ -278,11 +276,8 @@ class BlockServer(Driver):
         self.on_the_fly_handlers.append(self._devices)
 
         # A file manager for any other files
-        self._other_files = UnclassifiedFileManager(self)
-        self.on_the_fly_handlers.append(self._other_files)
-
-        # Start file watcher
-        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn, self._devices)
+        # self._other_files = UnclassifiedFileManager(self)  TODO
+        # self.on_the_fly_handlers.append(self._other_files)
 
         try:
             if self._gateway.exists():
@@ -683,7 +678,6 @@ class BlockServer(Driver):
         """
         while True:
             while len(self.write_queue) > 0:
-                if self._filewatcher is not None: self._filewatcher.pause()
                 with self.write_lock:
                     cmd, arg, state = self.write_queue.pop(0)
                 self.update_server_status(state)
@@ -697,7 +691,6 @@ class BlockServer(Driver):
                         "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
                         "MAJOR")
                 self.update_server_status("")
-                if self._filewatcher is not None: self._filewatcher.resume()
             sleep(1)
 
     def get_blank_config(self):
