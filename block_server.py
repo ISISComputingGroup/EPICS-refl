@@ -229,12 +229,12 @@ class BlockServer(Driver):
 
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc, ConfigurationFileManager())
+            self._config_list = ConfigListManager(self, SCHEMA_DIR, ConfigurationFileManager())
         except Exception as err:
             print_and_log(
                 "Error creating inactive config list. Configuration list changes will not be stored " +
                 "in version control: %s " % str(err), "MINOR")
-            self._config_list = ConfigListManager(self, SCHEMA_DIR, MockVersionControl(), ConfigurationFileManager())
+            self._config_list = ConfigListManager(self, SCHEMA_DIR, ConfigurationFileManager())
 
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
@@ -257,7 +257,7 @@ class BlockServer(Driver):
         # This is in a separate method so it can be sent to the thread queue
         arch = ArchiverManager(ARCHIVE_UPLOADER, ARCHIVE_SETTINGS)
 
-        self._active_configserver = ActiveConfigHolder(MACROS, arch, self._vc, ConfigurationFileManager(),
+        self._active_configserver = ActiveConfigHolder(MACROS, arch, ConfigurationFileManager(),
                                                        self._ioc_control)
 
         if facility == "ISIS":
@@ -268,11 +268,11 @@ class BlockServer(Driver):
             self._block_cache = BlockCacheManager(self._ioc_control)
 
         # Import all the synoptic data and create PVs
-        self._syn = SynopticManager(self, SCHEMA_DIR, self._vc, self._active_configserver)
+        self._syn = SynopticManager(self, SCHEMA_DIR, self._active_configserver)
         self.on_the_fly_handlers.append(self._syn)
 
         # Import all the devices data and create PVs
-        self._devices = DevicesManager(self, SCHEMA_DIR, self._vc)
+        self._devices = DevicesManager(self, SCHEMA_DIR)
         self.on_the_fly_handlers.append(self._devices)
 
         # A file manager for any other files
@@ -554,7 +554,7 @@ class BlockServer(Driver):
             as_comp (bool): Whether it is a component or not
         """
         new_details = convert_from_json(json_data)
-        inactive = InactiveConfigHolder(MACROS, self._vc, ConfigurationFileManager())
+        inactive = InactiveConfigHolder(MACROS, ConfigurationFileManager())
 
         history = self._get_inactive_history(new_details["name"], as_comp)
 
@@ -586,7 +586,7 @@ class BlockServer(Driver):
     def _get_inactive_history(self, name, is_component=False):
         # If it already exists load it
         try:
-            inactive = InactiveConfigHolder(MACROS, self._vc, ConfigurationFileManager())
+            inactive = InactiveConfigHolder(MACROS, ConfigurationFileManager())
             inactive.load_inactive(name, is_component)
             # Get previous history
             history = inactive.get_history()
@@ -699,7 +699,7 @@ class BlockServer(Driver):
         Returns:
             dict : A dictionary containing all the details of a blank configuration
         """
-        temp_config = InactiveConfigHolder(MACROS, self._vc, ConfigurationFileManager())
+        temp_config = InactiveConfigHolder(MACROS, ConfigurationFileManager())
         return temp_config.get_config_details()
 
     def _check_config_inactive(self, inactive_name, is_component=False):

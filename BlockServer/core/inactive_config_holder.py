@@ -22,15 +22,14 @@ from BlockServer.core.config_holder import ConfigHolder
 class InactiveConfigHolder(ConfigHolder):
     """ Class to hold a individual inactive configuration or component.
     """
-    def __init__(self, macros, vc_manager, file_manager):
+    def __init__(self, macros, file_manager):
         """ Constructor.
 
         Args:
             macros (dict): The BlockServer macros
-            vc_manager (ConfigVersionControl): Manages version control
             file_manager (ConfigurationFileManager): Deals with writing the config files
         """
-        super(InactiveConfigHolder, self).__init__(macros, vc_manager, file_manager)
+        super(InactiveConfigHolder, self).__init__(macros, file_manager)
 
     # Could we override save_configuration?
     def save_inactive(self, name=None, as_comp=False):

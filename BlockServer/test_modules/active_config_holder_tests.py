@@ -18,7 +18,6 @@ import unittest
 import json
 
 from BlockServer.core.active_config_holder import ActiveConfigHolder
-from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
@@ -74,15 +73,13 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Note: All configurations are saved in memory
         self.mock_archive = ArchiverManager(None, None, MockArchiverWrapper())
         self.mock_file_manager = MockConfigurationFileManager()
-        self.activech = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(),
-                                           self.mock_file_manager, MockIocControl(""))
+        self.activech = ActiveConfigHolder(MACROS, self.mock_archive, self.mock_file_manager, MockIocControl(""))
 
     def tearDown(self):
         pass
 
     def create_ach(self):
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockVersionControl(), MockConfigurationFileManager(),
-                                MockIocControl(""))
+        ch = ActiveConfigHolder(MACROS, self.mock_archive, MockConfigurationFileManager(), MockIocControl(""))
         return ch
 
     def test_add_ioc(self):

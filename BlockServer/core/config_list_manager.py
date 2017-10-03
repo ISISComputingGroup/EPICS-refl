@@ -25,8 +25,6 @@ from server_common.utilities import print_and_log, compress_and_hex, create_pv_n
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.pv_names import BlockserverPVNames
 from config_list_manager_exceptions import InvalidDeleteException
-from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
-    CommitToVersionControlException, UpdateFromVersionControlException, RemoveFromVersionControlException
 
 
 class ConfigListManager(object):
@@ -36,13 +34,12 @@ class ConfigListManager(object):
         active_config_name (string): The name of the active configuration
         active_components (list): The names of the components in the active configuration
     """
-    def __init__(self, block_server, schema_folder, vc_manager, file_manager):
+    def __init__(self, block_server, schema_folder, file_manager):
         """Constructor.
 
         Args:
             block_server (block_server.BlockServer): A reference to the BlockServer itself
             schema_folder (string): The location of the schemas for validation
-            vc_manager (GitVersionControl, MockVersionControl): The object for managing version control
             file_manager (ConfigurationFileManager): Deals with writing the config files
         """
 
@@ -54,7 +51,6 @@ class ConfigListManager(object):
         self.active_components = []
         self.all_components = dict()
         self._lock = RLock()
-        self._vc = vc_manager
         self.schema_folder = schema_folder
         self.file_manager = file_manager
 
@@ -121,10 +117,6 @@ class ConfigListManager(object):
                 # load_config checks the schema
                 config = self.load_config(comp_name, True)
                 self.update_a_config_in_list(config, True)
-                try:
-                    self._vc.add(path)
-                except AddToVersionControlException as err:
-                    print_and_log("Unable to add component to version control: %s" % err, "MINOR")
             except Exception as err:
                 print_and_log("Error in loading component: %s" % err, "MINOR")
 
@@ -134,22 +126,11 @@ class ConfigListManager(object):
 
         for config_name in config_list:
             try:
-                path = FILEPATH_MANAGER.get_config_path(config_name)
                 # load_config checks the schema
                 config = self.load_config(config_name)
                 self.update_a_config_in_list(config)
-                try:
-                    self._vc.add(path)
-                except AddToVersionControlException as err:
-                    print_and_log("Unable to add configuration to version control: %s" % err, "MINOR")
             except Exception as err:
                 print_and_log("Error in loading config: %s" % err, "MINOR")
-
-        # Commit files to version control
-        try:
-            self._vc.commit("Blockserver started, configs updated")
-        except CommitToVersionControlException as err:
-            print_and_log("Unable to commit configurations to version control: %s" % err, "MINOR")
 
     def load_config(self, name, is_component=False):
         """Loads an inactive configuration or component.
@@ -161,7 +142,7 @@ class ConfigListManager(object):
         Returns:
             InactiveConfigHolder : The holder for the requested configuration
         """
-        config = InactiveConfigHolder(MACROS, self._vc, self.file_manager)
+        config = InactiveConfigHolder(MACROS, self.file_manager)
         config.load_inactive(name, is_component)
         return config
 
@@ -273,18 +254,6 @@ class ConfigListManager(object):
                 pv_name = create_pv_name(config_name, curr_pvs, "COMPONENT")
         return pv_name
 
-    def _update_version_control_post_delete(self, folder, files):
-        for config in files:
-            try:
-                self._vc.remove(os.path.join(folder, config))
-            except RemoveFromVersionControlException as err:
-                print_and_log("Could not remove %s from version control: %s" % (config, err), "MAJOR")
-
-        try:
-            self._vc.commit("Deleted %s" % ', '.join(list(files)))
-        except CommitToVersionControlException as err:
-            print_and_log("Unable to update configurations in version control after deletion: %s" % err, "MINOR")
-
     def delete(self, delete_list, are_comps=False):
         """Takes a list of configurations and removes them from the file system and any relevant PVs.
 
@@ -296,7 +265,6 @@ class ConfigListManager(object):
             # TODO: clean this up?
             print_and_log("Deleting: " + ', '.join(list(delete_list)), "INFO")
             lower_delete_list = set([x.lower() for x in delete_list])
-            unable_to_remove_text = "Unable to remove %s from version control: %s"
             if not are_comps:
                 if self.active_config_name.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete currently active configuration")
@@ -306,7 +274,6 @@ class ConfigListManager(object):
                     self._delete_pv(BlockserverPVNames.get_config_details_pv(self._config_metas[config.lower()].pv))
                     del self._config_metas[config.lower()]
                     self._remove_config_from_dependencies(config)
-                self._update_version_control_post_delete(self._conf_path, delete_list)  # Git is case sensitive
             else:
                 if DEFAULT_COMPONENT.lower() in lower_delete_list:
                     raise InvalidDeleteException("Cannot delete default component")
@@ -322,7 +289,6 @@ class ConfigListManager(object):
                     self._delete_pv(BlockserverPVNames.get_dependencies_pv(self._component_metas[comp].pv))
                     del self._component_metas[comp]
                     del self.all_components[comp]
-                self._update_version_control_post_delete(self._comp_path, delete_list)
 
             self.update_monitors()
 
@@ -355,24 +321,3 @@ class ConfigListManager(object):
                               compress_and_hex(convert_to_json(self.all_components.values())))
             # Update them
             self._bs.updatePVs()
-
-    def commit(self, message):
-        """
-        Commits changes to git.
-
-        Args:
-            message (string): the commit message
-        """
-        self._vc.commit(message)
-
-    def add(self, path=None):
-        """
-        Adds a specified file to git.
-
-        Args:
-             path(string): the path to add
-        """
-        if path is not None:
-            self._vc.add(path)
-        else:
-            self._vc.add_all_edited_files()
