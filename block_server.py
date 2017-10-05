@@ -53,6 +53,7 @@ from BlockServer.site_specific.default.general_rules import GroupRules, Configur
 from BlockServer.spangle_banner.banner import Banner
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from WebServer.simple_webserver import Server
+from BlockServer.fileIO.file_event_handler import FileEventHandler
 
 # For documentation on these commands see the wiki
 PVDB = {
@@ -200,7 +201,6 @@ class BlockServer(Driver):
         self._block_cache = None
         self._syn = None
         self._devices = None
-        self._filewatcher = None
         self.on_the_fly_handlers = list()
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX + "BLOCKSERVER:")
@@ -223,6 +223,8 @@ class BlockServer(Driver):
         except Exception as err:
             print_and_log("Unable to initialise version control: %s" % err, "MINOR")
             self._vc = MockVersionControl()
+
+        self._filewatcher = FileEventHandler(self._vc)
 
         # Create banner object
         self.banner = Banner(MACROS["$(MYPVPREFIX)"])

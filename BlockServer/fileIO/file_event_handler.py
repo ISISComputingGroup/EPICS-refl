@@ -15,6 +15,8 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.utilities import print_and_log
 
 
@@ -30,6 +32,14 @@ class FileEventHandler(FileSystemEventHandler):
         """
 
         self._vc = vc
+        self._config_observer = self.create_observer(self, FILEPATH_MANAGER.config_root_dir)
+
+    @staticmethod
+    def create_observer(event_handler, directory):
+        obs = Observer()
+        obs.schedule(event_handler, directory, True)
+        obs.start()
+        return obs
 
     def on_created(self, event):
         pass
@@ -39,15 +49,17 @@ class FileEventHandler(FileSystemEventHandler):
 
     def on_deleted(self, event):
         if not event.is_directory:
-            message = "Deleted a file at {0}".format(event.src_path)
+            path = event.src_path
+            message = "Deleted a file at {0}".format(path)
             print_and_log(message)
-            self._manager.add_and_commit(message)
+            self._vc.remove(path)
 
     def on_modified(self, event):
         if not event.is_directory:
-            message = "A file changed at {0}".format(event.src_path)
+            path = event.src_path
+            message = "Changed a file at {0}".format(path)
             print_and_log(message)
-            self._manager.add_and_commit(message, event.src_path)
+            self._vc.add(path)
 
     def add_and_commit(self, message, path=None):
         self._vc.add(path)

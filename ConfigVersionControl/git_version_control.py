@@ -14,6 +14,7 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
+import os
 import shutil
 import stat
 import socket
@@ -150,21 +151,18 @@ class GitVersionControl:
 
         raise AddToVersionControlException("Couldn't add to version control")
 
-    def commit(self, commit_comment):
+    def commit(self, commit_comment=""):
         """ Commit changes to a repository
         Args:
             commit_comment (str): comment to leave with the commit
         """
         if len(self.repo.index.diff("HEAD")) == 0:
             print_and_log("GIT: Nothing to commit")
-            return # nothing staged for commit
+            return  # nothing staged for commit
         attempts = 0
         while attempts < RETRY_MAX_ATTEMPTS:
             try:
                 self.repo.index.commit(commit_comment)
-                if not self._is_local:
-                    with self._push_lock:
-                        self._push_required = True
                 return
             except Exception as err:
                 sleep(RETRY_INTERVAL)
