@@ -14,6 +14,8 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
+import os
+
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
@@ -49,14 +51,14 @@ class FileEventHandler(FileSystemEventHandler):
 
     def on_deleted(self, event):
         if not event.is_directory:
-            path = event.src_path
+            path = os.path.normpath(event.src_path)
             message = "Deleted a file at {0}".format(path)
             print_and_log(message)
             self._vc.remove(path)
 
     def on_modified(self, event):
         if not event.is_directory:
-            path = event.src_path
+            path = os.path.normpath(event.src_path)
             message = "Changed a file at {0}".format(path)
             print_and_log(message)
             self._vc.add(path)

@@ -70,6 +70,7 @@ class GitVersionControl:
         config_writer = self.repo.config_writer()
         # Set git repository to ignore file permissions otherwise will reset to read only
         config_writer.set_value("core", "filemode", False)
+        self.add_all_files()
 
         # Start a background thread for pushing
         push_thread = Thread(target=self._commit_and_push, args=())
@@ -127,7 +128,7 @@ class GitVersionControl:
             return
         if not self._needs_adding(path):
             print_and_log("GIT: unchanged, ignored or already added '{}'".format(path))
-            return # unchanged, ignored or already added
+            return  # unchanged, ignored or already added
         print_and_log("GIT: adding '{}' ".format(path))
         attempts = 0
         # note that index.add() does not honour .gitignore and passing force=False doesn't change this
@@ -171,17 +172,6 @@ class GitVersionControl:
 
         raise CommitToVersionControlException("Couldn't commit to version control")
 
-    def update(self):
-        """ reverts folder to the remote repository
-        """
-        try:
-            if not self._is_local:
-                self._pull()
-            if self.repo.is_dirty():
-                self.repo.index.checkout()
-        except Exception as err:
-            raise UpdateFromVersionControlException(err.message)
-
     def remove(self, path):
         """ Deletes file from the filesystem as well as removing from the repo
         Args:
@@ -206,6 +196,7 @@ class GitVersionControl:
                         delete_list.append(os.path.abspath(os.path.join(root, d)))
             else:
                 delete_list.append(path)
+
             self.repo.index.remove(delete_list, True)
         except Exception as err:
             raise RemoveFromVersionControlException(err.message)
@@ -249,11 +240,11 @@ class GitVersionControl:
         # as repo.untracked_files does honour .gitignore
         return SYSTEM_TEST_PREFIX in file_path
 
-    def add_all_edited_files(self):
+    def add_all_files(self):
         """
         Does a 'git add -u' which adds all edited files.
         """
-        self.repo.git.add(u=True)
+        self.repo.git.add(A=True)
 
     def _needs_adding(self, path):
         """
