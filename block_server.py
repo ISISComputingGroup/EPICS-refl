@@ -802,9 +802,6 @@ if __name__ == '__main__':
     GATEWAY_PREFIX = GATEWAY_PREFIX.replace('%MYPVPREFIX%', MACROS["$(MYPVPREFIX)"])
     print_and_log("BLOCK GATEWAY PREFIX = %s" % GATEWAY_PREFIX)
 
-    REPO_DIR = os.path.dirname(os.path.abspath(args.config_dir[0]))
-    print_and_log("REPOSITORY ROOT DIRECTORY %s" % REPO_DIR)
-
     CONFIG_DIR = os.path.abspath(args.config_dir[0])
     print_and_log("CONFIGURATION DIRECTORY %s" % CONFIG_DIR)
 

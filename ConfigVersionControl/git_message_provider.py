@@ -1,12 +1,10 @@
 import os
 
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-
-CONFIG_DIR = "configurations\\configurations\\"
-COMP_DIR = "configurations\\components\\"
-SYNOPTIC_DIR = "configurations\\synoptics\\"
-DEVICES_DIR = "configurations\\devices\\"
-SCRIPTS_DIR = "Python\\"
+CONFIG_DIR = os.path.join("configurations", "configurations")
+COMP_DIR = os.path.join("configurations", "components")
+SYNOPTIC_DIR = os.path.join("configurations", "synoptics")
+DEVICES_DIR = os.path.join("configurations", "devices")
+SCRIPTS_DIR = os.path.join("python", "")
 
 
 class CommitMessageProvider:
@@ -89,7 +87,7 @@ class CommitMessageProvider:
             message = self._append(message, "Scripts modified")
         if self._scripts_deleted:
             message = self._append(message, "Scripts deleted")
-        if self._scripts_modified:
+        if self._other_modified:
             message = self._append(message, "Other files modified")
             
         self._reset()
