@@ -22,11 +22,12 @@ from git import *
 from version_control_exceptions import *
 from threading import Thread, RLock
 from time import sleep
+from git_message_provider import CommitMessageProvider
 from server_common.utilities import print_and_log
 
 SYSTEM_TEST_PREFIX = "rcptt_"
 GIT_REMOTE_LOCATION = 'http://control-svcs.isis.cclrc.ac.uk/gitroot/instconfigs/test.git'
-PUSH_BASE_INTERVAL = 10
+PUSH_BASE_INTERVAL = 300
 PUSH_RETRY_INTERVAL = 30
 RETRY_INTERVAL = 0.1
 RETRY_MAX_ATTEMPTS = 100
@@ -49,6 +50,7 @@ class GitVersionControl:
         self._wd = working_directory
         self.repo = repo
         self._is_local = is_local
+        self._message_provider = CommitMessageProvider()
 
         if not is_local:
             self.remote = self.repo.remotes.origin
@@ -129,12 +131,11 @@ class GitVersionControl:
         attempts = 0
         while attempts < RETRY_MAX_ATTEMPTS:
             try:
-                # TODO this could be more detailed
-                commit_comment = "{changed} files modified/deleted".format(changed=num_files_changed)
+                commit_comment = self._message_provider.get_commit_message(self.repo.index.diff("HEAD"))
                 print_and_log("GIT: Committed {changed} changes".format(changed=num_files_changed))
                 self.repo.index.commit(commit_comment)
                 return
-            except Exception as err:
+            except Exception:
                 sleep(RETRY_INTERVAL)
 
             attempts += 1
