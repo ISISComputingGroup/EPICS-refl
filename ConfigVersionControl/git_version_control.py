@@ -15,8 +15,6 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import os
-import shutil
-import stat
 import socket
 from git import *
 from version_control_exceptions import *
@@ -72,7 +70,7 @@ class GitVersionControl:
         config_writer = self.repo.config_writer()
         # Set git repository to ignore file permissions otherwise will reset to read only
         config_writer.set_value("core", "filemode", False)
-        self.add_all_files()
+        self._add_all_files()
 
         # Start a background thread for pushing
         push_thread = Thread(target=self._commit_and_push, args=())
@@ -121,7 +119,7 @@ class GitVersionControl:
 
         raise UnlockVersionControlException("Unable to remove lock from version control repository.")
 
-    def commit(self,):
+    def _commit(self, ):
         """ Commit changes to a repository
         """
         num_files_changed = len(self.repo.index.diff("HEAD"))
@@ -147,8 +145,8 @@ class GitVersionControl:
         first_failure = True
 
         while True:
-            self.add_all_files()
-            self.commit()
+            self._add_all_files()
+            self._commit()
             with self._push_lock:
                     try:
                         self.remote.push()
@@ -165,7 +163,7 @@ class GitVersionControl:
 
             sleep(push_interval)
 
-    def add_all_files(self):
+    def _add_all_files(self):
         """
         Does a 'git add -u' which adds all edited files.
         """

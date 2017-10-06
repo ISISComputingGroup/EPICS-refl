@@ -53,7 +53,6 @@ from BlockServer.site_specific.default.general_rules import GroupRules, Configur
 from BlockServer.spangle_banner.banner import Banner
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from WebServer.simple_webserver import Server
-from BlockServer.fileIO.file_event_handler import FileEventHandler
 
 # For documentation on these commands see the wiki
 PVDB = {
@@ -802,6 +801,9 @@ if __name__ == '__main__':
         GATEWAY_PREFIX += ":"
     GATEWAY_PREFIX = GATEWAY_PREFIX.replace('%MYPVPREFIX%', MACROS["$(MYPVPREFIX)"])
     print_and_log("BLOCK GATEWAY PREFIX = %s" % GATEWAY_PREFIX)
+
+    REPO_DIR = os.path.dirname(os.path.abspath(args.config_dir[0]))
+    print_and_log("REPOSITORY ROOT DIRECTORY %s" % REPO_DIR)
 
     CONFIG_DIR = os.path.abspath(args.config_dir[0])
     print_and_log("CONFIGURATION DIRECTORY %s" % CONFIG_DIR)

@@ -6,6 +6,7 @@ CONFIG_DIR = "configurations\\configurations\\"
 COMP_DIR = "configurations\\components\\"
 SYNOPTIC_DIR = "configurations\\synoptics\\"
 DEVICES_DIR = "configurations\\devices\\"
+SCRIPTS_DIR = "Python\\"
 
 
 class CommitMessageProvider:
@@ -31,7 +32,7 @@ class CommitMessageProvider:
 
     @staticmethod
     def _is_script(path):
-        return FILEPATH_MANAGER.scripts_dir in path and path.endswith(".py")
+        return SCRIPTS_DIR in path and path.endswith(".py")
 
     @staticmethod
     def _append(msg, to_append):
@@ -94,7 +95,6 @@ class CommitMessageProvider:
         self._reset()
 
         return message
-
 
     def _reset(self):
         self._configs_modified = False
