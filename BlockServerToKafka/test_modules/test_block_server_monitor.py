@@ -16,8 +16,6 @@
 
 import unittest
 from mock import patch, MagicMock
-import json
-
 from BlockServerToKafka.block_server_monitor import BlockServerMonitor
 
 
