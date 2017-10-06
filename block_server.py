@@ -224,7 +224,6 @@ class BlockServer(Driver):
             print_and_log("Unable to initialise version control: %s" % err, "MINOR")
             self._vc = MockVersionControl()
 
-        self._filewatcher = FileEventHandler(self._vc)
 
         # Create banner object
         self.banner = Banner(MACROS["$(MYPVPREFIX)"])
