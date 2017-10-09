@@ -5,7 +5,6 @@ from git_version_control import CommitMessageProvider
 
 
 class TestMessageProvider(unittest.TestCase):
-
     @staticmethod
     def add_comma(string):
         return ", " + string;
@@ -87,6 +86,7 @@ class TestMessageProvider(unittest.TestCase):
 
         # Assert
         assert actual_msg == expected_msg
+
     def test_WHEN_comp_modified_THEN_comps_modified_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Configurations", "components", "comp_name", "file.xml")

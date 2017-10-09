@@ -141,30 +141,31 @@ class GitVersionControl:
         raise CommitToVersionControlException("Couldn't commit to version control")
 
     def _commit_and_push(self):
+        """ Frequently adds, commits and pushes all file currently in the repository. """
         push_interval = PUSH_BASE_INTERVAL
         first_failure = True
 
         while True:
             with self._push_lock:
-                    try:
-                        self._add_all_files()
-                        self._commit()
-                        self.remote.push()
-                        push_interval = PUSH_BASE_INTERVAL
-                        first_failure = True
+                try:
+                    self._add_all_files()
+                    self._commit()
+                    self.remote.push()
+                    push_interval = PUSH_BASE_INTERVAL
+                    first_failure = True
 
-                    except GitCommandError as e:
-                        # Most likely issue connecting to server, increase timeout, notify if it's the first time
-                        push_interval = PUSH_RETRY_INTERVAL
-                        if first_failure:
-                            print_and_log("Unable to push config changes, will retry in %i seconds"
-                                          % PUSH_RETRY_INTERVAL, "MINOR")
-                            first_failure = False
+                except GitCommandError as e:
+                    # Most likely issue connecting to server, increase timeout, notify if it's the first time
+                    push_interval = PUSH_RETRY_INTERVAL
+                    if first_failure:
+                        print_and_log("Unable to push config changes, will retry in %i seconds"
+                                      % PUSH_RETRY_INTERVAL, "MINOR")
+                        first_failure = False
 
             sleep(push_interval)
 
     def _add_all_files(self):
         """
-        Does a 'git add -u' which adds all edited files.
+        Does a 'git add -A' which adds all files in the repository.
         """
         self.repo.git.add(A=True)
