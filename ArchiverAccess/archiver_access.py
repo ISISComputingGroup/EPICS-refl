@@ -80,7 +80,7 @@ if __name__ == '__main__':
     while not finish:
         pv_monitor.check_write()
         try:
-            sleep(1)
+            sleep(60)
         except IOError:
             # signal interrupts sleep
             pass
