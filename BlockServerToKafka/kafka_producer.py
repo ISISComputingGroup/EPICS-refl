@@ -14,7 +14,7 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 from forwarder_config import ForwarderConfig
-from kafka import KafkaProducer
+from kafka import KafkaProducer, errors
 from server_common.utilities import print_and_log
 
 
@@ -25,7 +25,10 @@ class Producer:
 
     def __init__(self, server, config_topic, data_topic):
         self.topic = config_topic
-        self.producer = KafkaProducer(bootstrap_servers=server)
+        try:
+            self.producer = KafkaProducer(bootstrap_servers=server)
+        except errors.NoBrokersAvailable():
+            print_and_log("No brokers found on given server: " + server)
         self.converter = ForwarderConfig(data_topic)
 
     def add_config(self, pvs):
