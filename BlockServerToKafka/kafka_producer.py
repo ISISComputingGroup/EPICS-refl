@@ -27,8 +27,8 @@ class Producer:
         self.topic = config_topic
         try:
             self.producer = KafkaProducer(bootstrap_servers=server)
-        except errors.NoBrokersAvailable():
-            print_and_log("No brokers found on given server: " + server)
+        except errors.NoBrokersAvailable:
+            print_and_log("No brokers found on given server: " + server[0])
         self.converter = ForwarderConfig(data_topic)
 
     def add_config(self, pvs):
