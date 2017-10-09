@@ -26,7 +26,7 @@ from server_common.utilities import print_and_log
 SYSTEM_TEST_PREFIX = "rcptt_"
 GIT_REMOTE_LOCATION = 'http://control-svcs.isis.cclrc.ac.uk/gitroot/instconfigs/test.git'
 PUSH_BASE_INTERVAL = 300
-PUSH_RETRY_INTERVAL = 30
+PUSH_RETRY_INTERVAL = 10
 RETRY_INTERVAL = 0.1
 RETRY_MAX_ATTEMPTS = 100
 
@@ -145,10 +145,10 @@ class GitVersionControl:
         first_failure = True
 
         while True:
-            self._add_all_files()
-            self._commit()
             with self._push_lock:
                     try:
+                        self._add_all_files()
+                        self._commit()
                         self.remote.push()
                         push_interval = PUSH_BASE_INTERVAL
                         first_failure = True
