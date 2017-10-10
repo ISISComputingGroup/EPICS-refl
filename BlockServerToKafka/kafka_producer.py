@@ -14,7 +14,7 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 from forwarder_config import ForwarderConfig
-from kafka import KafkaProducer, errors
+from kafka import KafkaProducer, errors, SimpleClient
 from server_common.utilities import print_and_log
 
 
@@ -25,11 +25,26 @@ class Producer:
 
     def __init__(self, server, config_topic, data_topic):
         self.topic = config_topic
-        try:
-            self.producer = KafkaProducer(bootstrap_servers=server)
-        except errors.NoBrokersAvailable:
-            print_and_log("No brokers found on given server: " + server[0])
+        self.producer, self.client = self.set_up_producer(server)
         self.converter = ForwarderConfig(data_topic)
+
+    def set_up_producer(self, server):
+        try:
+            client = SimpleClient(server)
+            producer = KafkaProducer(bootstrap_servers=server)
+        except errors.NoBrokersAvailable:
+            print_and_log("No brokers found on server: " + server[0])
+            quit()
+        except errors.ConnectionError:
+            print_and_log("No server found, connection error")
+            quit()
+        except errors.InvalidConfigurationError:
+            print_and_log("Invalid configuration")
+            quit()
+        except errors.InvalidTopicError:
+            print_and_log("Invalid topic, to enable auto creation of topics set"
+                          " auto.create.topics.enable to false in broker configuration")
+        return producer, client
 
     def add_config(self, pvs):
         """
@@ -41,10 +56,14 @@ class Producer:
         Returns:
             None.
         """
-
+        if not self.topic_exists(self.topic):
+            print_and_log("WARNING: topic {} does not exist. It will be created by default.".format(self.topic))
         data = self.converter.create_forwarder_configuration(pvs)
         print_and_log("Sending data {}".format(data))
         self.producer.send(self.topic, bytes(data))
+
+    def topic_exists(self, topicname):
+        return self.client.ensure_topic_exists(topicname)
 
     def remove_config(self, pvs):
         """
