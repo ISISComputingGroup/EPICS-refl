@@ -14,26 +14,53 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 import os
+import time
 from xml.dom import minidom
 from server_common.utilities import print_and_log
+
+RETRY_MAX_ATTEMPTS = 30
+RETRY_INTERVAL = 1
 
 
 class SynopticFileIO(object):
 
     def write_synoptic_file(self, name, save_path, xml_data):
-        # If save file already exists remove first to avoid case issues
-        if os.path.exists(save_path):
-            os.remove(save_path)
+        attempts = 0
+        while attempts < RETRY_MAX_ATTEMPTS:
+            try:
+                # If save file already exists remove first to avoid case issues
+                if os.path.exists(save_path):
+                    os.remove(save_path)
 
-        # Save the data
-        with open(save_path, 'w') as synfile:
-            pretty_xml = minidom.parseString(xml_data).toprettyxml()
-            synfile.write(pretty_xml)
+                # Save the data
+                with open(save_path, 'w') as synfile:
+                    pretty_xml = minidom.parseString(xml_data).toprettyxml()
+                    synfile.write(pretty_xml)
+                    return
+
+            except IOError:
+                attempts += 1
+                time.sleep(RETRY_INTERVAL)
+
+        raise Exception(
+            "Could not save to synoptic file at %s. Please check the file is not in use by another process." % save_path)
 
     def read_synoptic_file(self, directory, fullname):
-        with open(os.path.join(directory, fullname), 'r') as synfile:
-            data = synfile.read()
-        return data
+        path = os.path.join(directory, fullname)
+
+        attempts = 0
+        while attempts < RETRY_MAX_ATTEMPTS:
+            try:
+                with open(path, 'r') as synfile:
+                    data = synfile.read()
+                return data
+
+            except IOError:
+                attempts += 1
+                time.sleep(RETRY_INTERVAL)
+
+        raise Exception(
+            "Could not open synoptic file at %s. Please check the file is not in use by another process." % path)
 
     def get_list_synoptic_files(self, directory):
         if not os.path.exists(directory):

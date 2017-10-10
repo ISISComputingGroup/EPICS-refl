@@ -16,16 +16,21 @@
 import re
 import os
 import shutil
+import time
 from collections import OrderedDict
 from xml.etree import ElementTree
 
 from BlockServer.config.group import Group
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.configuration import Configuration, MetaData
-from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_COMPONENTS, FILENAME_META
+from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_COMPONENTS, \
+    FILENAME_META
 from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationIncompleteException
+
+RETRY_MAX_ATTEMPTS = 30
+RETRY_INTERVAL = 1
 
 
 class ConfigurationFileManager(object):
@@ -74,7 +79,7 @@ class ConfigurationFileManager(object):
         # Open the block file first
         blocks_path = os.path.join(path, FILENAME_BLOCKS)
         if os.path.isfile(blocks_path):
-            root = ElementTree.parse(blocks_path).getroot()
+            root = self._read_element_tree(blocks_path)
 
             # Check against the schema - raises if incorrect
             self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_BLOCKS)
@@ -86,7 +91,7 @@ class ConfigurationFileManager(object):
         # Import the groups
         groups_path = os.path.join(path, FILENAME_GROUPS)
         if os.path.isfile(groups_path):
-            root = ElementTree.parse(groups_path).getroot()
+            root = self._read_element_tree(groups_path)
 
             # Check against the schema - raises if incorrect
             self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_GROUPS)
@@ -98,11 +103,12 @@ class ConfigurationFileManager(object):
         # Import the IOCs
         iocs_path = os.path.join(path, FILENAME_IOCS)
         if os.path.isfile(iocs_path):
-            root = ElementTree.parse(iocs_path).getroot()
+            root = self._read_element_tree(iocs_path)
 
             # There was a historic bug where the simlevel was saved as 'None' rather than "none".
             # Correct that here
-            correct_xml = ElementTree.tostring(root, encoding='utf8').replace('simlevel="None"', 'simlevel="none"')
+            correct_xml = ElementTree.tostring(root, encoding='utf8').replace('simlevel="None"',
+                                                                              'simlevel="none"')
 
             # Check against the schema - raises if incorrect
             self._check_againgst_schema(correct_xml, FILENAME_IOCS)
@@ -114,7 +120,7 @@ class ConfigurationFileManager(object):
         # Import the components
         component_path = os.path.join(path, FILENAME_COMPONENTS)
         if os.path.isfile(component_path):
-            root = ElementTree.parse(component_path).getroot()
+            root = self._read_element_tree(component_path)
 
             # Check against the schema - raises if incorrect
             self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_COMPONENTS)
@@ -128,7 +134,7 @@ class ConfigurationFileManager(object):
         meta = MetaData(name)
         meta_path = os.path.join(path, FILENAME_META)
         if os.path.isfile(meta_path):
-            root = ElementTree.parse(meta_path).getroot()
+            root = self._read_element_tree(meta_path)
 
             # Check against the schema - raises if incorrect
             self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_META)
@@ -182,24 +188,24 @@ class ConfigurationFileManager(object):
             components_xml = ConfigurationXmlConverter.components_to_xml(dict())
 
         # Save blocks
-        with open(path + '/' + FILENAME_BLOCKS, 'w') as f:
-            f.write(blocks_xml)
+        current_file = os.path.join(path, FILENAME_BLOCKS)
+        self._write_to_file(current_file, blocks_xml)
 
         # Save groups
-        with open(path + '/' + FILENAME_GROUPS, 'w') as f:
-            f.write(groups_xml)
+        current_file = os.path.join(path, FILENAME_GROUPS)
+        self._write_to_file(current_file, groups_xml)
 
         # Save IOCs
-        with open(path + '/' + FILENAME_IOCS, 'w') as f:
-            f.write(iocs_xml)
+        current_file = os.path.join(path, FILENAME_IOCS)
+        self._write_to_file(current_file, iocs_xml)
 
         # Save components
-        with open(path + '/' + FILENAME_COMPONENTS, 'w') as f:
-            f.write(components_xml)
+        current_file = os.path.join(path, FILENAME_COMPONENTS)
+        self._write_to_file(current_file, components_xml)
 
         # Save meta
-        with open(path + '/' + FILENAME_META, 'w') as f:
-            f.write(meta_xml)
+        current_file = os.path.join(path, FILENAME_META)
+        self._write_to_file(current_file, meta_xml)
 
     def component_exists(self, root_path, name):
         """Checks to see if a component exists.
@@ -222,6 +228,48 @@ class ConfigurationFileManager(object):
         """
         shutil.copytree(os.path.abspath(os.path.join(os.environ["MYDIRBLOCK"], EXAMPLE_DEFAULT)),
                         os.path.join(dest_path, DEFAULT_COMPONENT))
+
+    @staticmethod
+    def _read_element_tree(file_path):
+        """ Read and return the element tree from a given xml file.
+
+        Args:
+            file_path (string): The location of the file being read
+        """
+        attempts = 0
+        while attempts < RETRY_MAX_ATTEMPTS:
+            try:
+                root = ElementTree.parse(file_path).getroot()
+                return root
+
+            except IOError:
+                attempts += 1
+                time.sleep(RETRY_INTERVAL)
+
+        raise Exception(
+            "Could not open file at %s. Please check the file is not in use by another process." % file_path)
+
+    @staticmethod
+    def _write_to_file(file_path, data):
+        """ Write xml data to a given configuration file.
+
+        Args:
+            file_path (string): The location of the file being written
+            data (string): The XML data to be saved
+        """
+        attempts = 0
+        while attempts < RETRY_MAX_ATTEMPTS:
+            try:
+                with open(file_path, 'w') as f:
+                    f.write(data)
+                    return
+
+            except IOError:
+                attempts += 1
+                time.sleep(RETRY_INTERVAL)
+
+        raise Exception(
+            "Could not write to file at %s. Please check the file is not in use by another process." % file_path)
 
     def get_files_in_directory(self, path):
         """Gets a list of the files in the specified folder
