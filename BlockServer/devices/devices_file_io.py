@@ -1,9 +1,11 @@
 import os
 import time
+from server_common.utilities import print_and_log
 from xml.dom import minidom
 
 RETRY_MAX_ATTEMPTS = 30
 RETRY_INTERVAL = 1
+
 
 class DevicesFileIO(object):
     """Responsible for loading and saving the devices file."""
@@ -17,9 +19,16 @@ class DevicesFileIO(object):
         Returns:
             string: the XML as a string
         """
+
+        # Create the file if it does not exist
+        if not os.path.exists(file_name):
+            print_and_log("Device screens file not found.")
+            return ""
+
         attempts = 0
         while attempts < RETRY_MAX_ATTEMPTS:
             try:
+
                 with open(file_name, 'r') as devfile:
                     data = devfile.read()
                     return data
@@ -44,11 +53,11 @@ class DevicesFileIO(object):
                 # If save file already exists remove first to avoid case issues
                 if os.path.exists(file_name):
                     os.remove(file_name)
-
                 # Save the data
                 with open(file_name, 'w') as devfile:
                     pretty_xml = minidom.parseString(data).toprettyxml()
                     devfile.write(pretty_xml)
+                    return
 
             except IOError:
                 attempts += 1

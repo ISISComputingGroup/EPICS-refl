@@ -275,10 +275,6 @@ class BlockServer(Driver):
         self._devices = DevicesManager(self, SCHEMA_DIR)
         self.on_the_fly_handlers.append(self._devices)
 
-        # A file manager for any other files
-        # self._other_files = UnclassifiedFileManager(self)  TODO
-        # self.on_the_fly_handlers.append(self._other_files)
-
         try:
             if self._gateway.exists():
                 print_and_log("Found gateway")
