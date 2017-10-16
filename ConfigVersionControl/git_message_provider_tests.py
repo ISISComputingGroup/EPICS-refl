@@ -21,7 +21,7 @@ class TestMessageProvider(unittest.TestCase):
 
     def test_WHEN_initialised_THEN_message_is_empty(self):
         # Assert
-        assert len(self.mp.get_commit_message(self.diff)) == 0
+        self.assertEqual(len(self.mp.get_commit_message(self.diff)), 0)
 
     def test_WHEN_unclassified_item_modified_THEN_other_modified_in_commit_message(self):
         # Arrange
@@ -35,7 +35,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_config_modified_THEN_config_modified_in_commit_message(self):
         # Arrange
@@ -51,7 +51,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_config_deleted_THEN_config_deleted_in_commit_message(self):
         # Arrange
@@ -67,7 +67,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_non_xml_file_in_config_dir_modified_THEN_other_modified_in_commit_message(self):
         # Arrange
@@ -95,7 +95,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_comp_modified_THEN_comps_modified_in_commit_message(self):
         # Arrange
@@ -111,7 +111,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_comp_deleted_THEN_comps_deleted_in_commit_message(self):
         # Arrange
@@ -127,7 +127,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_non_xml_file_in_comp_dir_modified_THEN_other_modified_in_commit_message(self):
         # Arrange
@@ -141,7 +141,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_non_xml_file_in_comp_dir_deleted_THEN_other_modified_in_commit_message(self):
         # Arrange
@@ -155,7 +155,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_synoptic_modified_THEN_synoptics_modified_in_commit_message(self):
         # Arrange
@@ -171,7 +171,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_synoptic_deleted_THEN_synoptics_deleted_in_commit_message(self):
         # Arrange
@@ -187,7 +187,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_non_xml_file_in_comp_dir_modified_THEN_other_modified_in_commit_message(self):
         # Arrange
@@ -201,7 +201,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_non_xml_file_in_comp_dir_deleted_THEN_other_modified_in_commit_message(self):
         # Arrange
@@ -215,7 +215,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_device_screens_modified_THEN_device_screens_modified_in_commit_message(self):
         # Arrange
@@ -231,7 +231,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_device_screens_deleted_THEN_device_screens_deleted_in_commit_message(self):
         # Arrange
@@ -247,7 +247,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_non_device_screens_file_in_comp_dir_modified_THEN_other_modified_in_commit_message(self):
         # Arrange
@@ -261,7 +261,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_non_device_screens_in_comp_dir_deleted_THEN_other_modified_in_commit_message(self):
         # Arrange
@@ -275,7 +275,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_scripts_modified_THEN_scripts_modified_in_commit_message(self):
         # Arrange
@@ -291,7 +291,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_scripts_deleted_THEN_scripts_deleted_in_commit_message(self):
         # Arrange
@@ -307,7 +307,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_non_script_file_in_comp_dir_modified_THEN_other_modified_in_commit_message(self):
         # Arrange
@@ -321,7 +321,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_non_script_in_comp_dir_deleted_THEN_other_modified_in_commit_message(self):
         # Arrange
@@ -335,7 +335,7 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
 
     def test_WHEN_multiple_events_THEN_all_relevant_messages_in_commit_message(self):
         # Arrange
@@ -361,4 +361,4 @@ class TestMessageProvider(unittest.TestCase):
         actual_msg = self.mp.get_commit_message(self.diff)
 
         # Assert
-        assert actual_msg == expected_msg
+        self.assertEqual(actual_msg, expected_msg)
