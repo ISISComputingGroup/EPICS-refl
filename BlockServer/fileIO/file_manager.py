@@ -247,7 +247,7 @@ class ConfigurationFileManager(object):
                 time.sleep(RETRY_INTERVAL)
 
         raise Exception(
-            "Could not open file at %s. Please check the file is not in use by another process." % file_path)
+            "Could not open file at {path}. Please check the file is not in use by another process.".format(path=file_path))
 
     @staticmethod
     def _write_to_file(file_path, data):
@@ -269,7 +269,7 @@ class ConfigurationFileManager(object):
                 time.sleep(RETRY_INTERVAL)
 
         raise Exception(
-            "Could not write to file at %s. Please check the file is not in use by another process." % file_path)
+            "Could not write to file at {path}. Please check the file is not in use by another process.".format(path=file_path))
 
     def get_files_in_directory(self, path):
         """Gets a list of the files in the specified folder

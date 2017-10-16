@@ -38,7 +38,7 @@ class DevicesFileIO(object):
                 time.sleep(RETRY_INTERVAL)
 
         raise Exception(
-            "Could not load device screens file at %s. Please check the file is not in use by another process." % file_name)
+            "Could not load device screens file at {path}. Please check the file is not in use by another process.".format(path=file_name))
 
     def save_devices_file(self, file_name, data):
         """Saves the devices info.
@@ -64,4 +64,4 @@ class DevicesFileIO(object):
                 time.sleep(RETRY_INTERVAL)
 
         raise Exception(
-            "Could not save to device screens file at %s. Please check the file is not in use by another process." % file_name)
+            "Could not save to device screens file at {path}. Please check the file is not in use by another process.".format(path=file_name))

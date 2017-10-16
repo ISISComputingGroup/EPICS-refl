@@ -43,7 +43,7 @@ class SynopticFileIO(object):
                 time.sleep(RETRY_INTERVAL)
 
         raise Exception(
-            "Could not save to synoptic file at %s. Please check the file is not in use by another process." % save_path)
+            "Could not save to synoptic file at {path}. Please check the file is not in use by another process.".format(path=save_path))
 
     def read_synoptic_file(self, directory, fullname):
         path = os.path.join(directory, fullname)
@@ -60,7 +60,7 @@ class SynopticFileIO(object):
                 time.sleep(RETRY_INTERVAL)
 
         raise Exception(
-            "Could not open synoptic file at %s. Please check the file is not in use by another process." % path)
+            "Could not open synoptic file at {path}. Please check the file is not in use by another process.".format(path=path))
 
     def get_list_synoptic_files(self, directory):
         if not os.path.exists(directory):
