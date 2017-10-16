@@ -9,6 +9,12 @@ class TestMessageProvider(unittest.TestCase):
     def add_comma(string):
         return ", " + string;
 
+    @staticmethod
+    def mock_diff(file_path, is_deleted_event):
+        mock = Mock(new_file=is_deleted_event)
+        mock.__repr__ = lambda s: file_path
+        return mock
+
     def setUp(self):
         self.mp = CommitMessageProvider()
         self.diff = []
@@ -34,7 +40,9 @@ class TestMessageProvider(unittest.TestCase):
     def test_WHEN_config_modified_THEN_config_modified_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Configurations", "configurations", "config_name", "file.xml")
-        changed = Mock(a_rawpath=file_path, new_file=False)
+        file_deleted = False
+
+        changed = self.mock_diff(file_path, file_deleted)
         self.diff.append(changed)
 
         expected_msg = self.mp.CONFIGS_MODIFIED
@@ -48,7 +56,9 @@ class TestMessageProvider(unittest.TestCase):
     def test_WHEN_config_deleted_THEN_config_deleted_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Configurations", "configurations", "config_name", "file.xml")
-        changed = Mock(a_rawpath=file_path, new_file=True)
+        file_deleted = True
+
+        changed = self.mock_diff(file_path, file_deleted)
         self.diff.append(changed)
 
         expected_msg = self.mp.CONFIGS_DELETED
@@ -90,7 +100,9 @@ class TestMessageProvider(unittest.TestCase):
     def test_WHEN_comp_modified_THEN_comps_modified_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Configurations", "components", "comp_name", "file.xml")
-        changed = Mock(a_rawpath=file_path, new_file=False)
+        file_deleted = False
+
+        changed = self.mock_diff(file_path, file_deleted)
         self.diff.append(changed)
 
         expected_msg = self.mp.COMPS_MODIFIED
@@ -104,7 +116,9 @@ class TestMessageProvider(unittest.TestCase):
     def test_WHEN_comp_deleted_THEN_comps_deleted_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Configurations", "components", "comp_name", "file.xml")
-        changed = Mock(a_rawpath=file_path, new_file=True)
+        file_deleted = True
+
+        changed = self.mock_diff(file_path, file_deleted)
         self.diff.append(changed)
 
         expected_msg = self.mp.COMPS_DELETED
@@ -146,7 +160,9 @@ class TestMessageProvider(unittest.TestCase):
     def test_WHEN_synoptic_modified_THEN_synoptics_modified_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Configurations", "synoptics", "synoptic_name.xml")
-        changed = Mock(a_rawpath=file_path, new_file=False)
+        file_deleted = False
+
+        changed = self.mock_diff(file_path, file_deleted)
         self.diff.append(changed)
 
         expected_msg = self.mp.SYN_MODIFIED
@@ -160,7 +176,9 @@ class TestMessageProvider(unittest.TestCase):
     def test_WHEN_synoptic_deleted_THEN_synoptics_deleted_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Configurations", "synoptics", "synoptic_name.xml")
-        changed = Mock(a_rawpath=file_path, new_file=True)
+        file_deleted = True
+
+        changed = self.mock_diff(file_path, file_deleted)
         self.diff.append(changed)
 
         expected_msg = self.mp.SYN_DELETED
@@ -202,7 +220,9 @@ class TestMessageProvider(unittest.TestCase):
     def test_WHEN_device_screens_modified_THEN_device_screens_modified_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Configurations", "devices", "screens.xml")
-        changed = Mock(a_rawpath=file_path, new_file=False)
+        file_deleted = False
+
+        changed = self.mock_diff(file_path, file_deleted)
         self.diff.append(changed)
 
         expected_msg = self.mp.DEVICES_MODIFIED
@@ -216,7 +236,9 @@ class TestMessageProvider(unittest.TestCase):
     def test_WHEN_device_screens_deleted_THEN_device_screens_deleted_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Configurations", "devices", "screens.xml")
-        changed = Mock(a_rawpath=file_path, new_file=True)
+        file_deleted = True
+
+        changed = self.mock_diff(file_path, file_deleted)
         self.diff.append(changed)
 
         expected_msg = self.mp.DEVICES_DELETED
@@ -258,7 +280,9 @@ class TestMessageProvider(unittest.TestCase):
     def test_WHEN_scripts_modified_THEN_scripts_modified_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Python", "some_script.py")
-        changed = Mock(a_rawpath=file_path, new_file=False)
+        file_deleted = False
+
+        changed = self.mock_diff(file_path, file_deleted)
         self.diff.append(changed)
 
         expected_msg = self.mp.SCRIPTS_MODIFIED
@@ -272,7 +296,9 @@ class TestMessageProvider(unittest.TestCase):
     def test_WHEN_scripts_deleted_THEN_scripts_deleted_in_commit_message(self):
         # Arrange
         file_path = os.path.join("Python", "some_script.py")
-        changed = Mock(a_rawpath=file_path, new_file=True)
+        file_deleted = True
+
+        changed = self.mock_diff(file_path, file_deleted)
         self.diff.append(changed)
 
         expected_msg = self.mp.SCRIPTS_DELETED
@@ -321,8 +347,8 @@ class TestMessageProvider(unittest.TestCase):
         paths.append(os.path.join("Python", "some_script.py"))
         paths.append(os.path.join("some_folder", "file.txt"))
         for path in paths:
-            self.diff.append(Mock(a_rawpath=path, new_file=False))
-            self.diff.append(Mock(a_rawpath=path, new_file=True))
+            self.diff.append(self.mock_diff(path, False))
+            self.diff.append(self.mock_diff(path, True))
 
         expected_msg = self.mp.CONFIGS_MODIFIED + self.add_comma(
             self.mp.CONFIGS_DELETED) + self.add_comma(self.mp.COMPS_MODIFIED) + self.add_comma(

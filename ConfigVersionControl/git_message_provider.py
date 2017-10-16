@@ -54,8 +54,9 @@ class CommitMessageProvider:
 
     def get_commit_message(self, diff):
         for item in diff:
-            path = os.path.normcase(item.a_rawpath)
-            path = os.path.normpath(path)
+            # First line of diff item contains file path
+            path = str(item).split("\n")[0]
+            path = os.path.normcase(os.path.normpath(path))
             if item.new_file:  # For some reason this is true when file deleted
                 self._deleted(path)
             else:
