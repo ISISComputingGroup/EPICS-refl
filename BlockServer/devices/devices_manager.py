@@ -15,6 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import os
+from server_common.common_exceptions import MaxAttemptsExceededException
 from server_common.utilities import print_and_log, compress_and_hex
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema
@@ -63,8 +64,12 @@ class DevicesManager(OnTheFlyPvInterface):
 
     def handle_pv_write(self, pv, data):
         if pv == SET_SCREENS:
-            self.save_devices_xml(data)
-            self.update_monitors()
+            try:
+                self.save_devices_xml(data)
+                self.update_monitors()
+            except IOError as err:
+                print_and_log(
+                    "Could not save device screens: {error} The PV data will not be updated.".format(error=err))
 
     def handle_pv_read(self, pv):
         # Nothing to do as it is all handled by monitors
@@ -88,10 +93,11 @@ class DevicesManager(OnTheFlyPvInterface):
         # Read the data from file
         try:
             self._data = self._file_io.load_devices_file(self.get_devices_filename())
-        except IOError as err:
+        except MaxAttemptsExceededException:
             self._data = self.get_blank_devices()
-            print_and_log("Unable to load devices file. %s. The PV data will default to a blank set of devices." % err,
-                          "MINOR")
+            print_and_log(
+                "Unable to load devices file. Please check the file is not in use by another process. The PV data will default to a blank set of devices.",
+                "MINOR")
             return
 
         try:
@@ -142,10 +148,9 @@ class DevicesManager(OnTheFlyPvInterface):
             if not os.path.exists(FILEPATH_MANAGER.devices_dir):
                 os.makedirs(FILEPATH_MANAGER.devices_dir)
             self._file_io.save_devices_file(self.get_devices_filename(), xml_data)
-        except IOError as err:
-            print_and_log("Unable to save devices file. %s. The PV data will not be updated." % err,
-                          "MINOR")
-            return
+        except MaxAttemptsExceededException:
+            raise IOError("Unable to save devices file. Please check the file is not in use by another process.",
+                          "MAJOR")
 
         # Update PVs
         self.update(xml_data, "Device screens modified by client")
@@ -189,7 +194,3 @@ class DevicesManager(OnTheFlyPvInterface):
             xml_data = synfile.read()
 
         return xml_data
-
-    def delete(self, name):
-        """ Not needed for devices. Stub for superclass call """
-        pass

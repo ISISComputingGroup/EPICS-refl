@@ -1,15 +1,15 @@
 import os
-import time
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log, retry
 from xml.dom import minidom
 
-RETRY_MAX_ATTEMPTS = 30
-RETRY_INTERVAL = 1
+RETRY_MAX_ATTEMPTS = 20
+RETRY_INTERVAL = 0.5
 
 
 class DevicesFileIO(object):
     """Responsible for loading and saving the devices file."""
 
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, IOError)
     def load_devices_file(self, file_name):
         """Load the devices file.
 
@@ -25,21 +25,11 @@ class DevicesFileIO(object):
             print_and_log("Device screens file not found.")
             return ""
 
-        attempts = 0
-        while attempts < RETRY_MAX_ATTEMPTS:
-            try:
+        with open(file_name, 'r') as devfile:
+            data = devfile.read()
+            return data
 
-                with open(file_name, 'r') as devfile:
-                    data = devfile.read()
-                    return data
-
-            except IOError:
-                attempts += 1
-                time.sleep(RETRY_INTERVAL)
-
-        raise Exception(
-            "Could not load device screens file at {path}. Please check the file is not in use by another process.".format(path=file_name))
-
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, IOError)
     def save_devices_file(self, file_name, data):
         """Saves the devices info.
 
@@ -47,21 +37,11 @@ class DevicesFileIO(object):
             file_name (string): the devices file (full path)
             data (string): the xml to save
         """
-        attempts = 0
-        while attempts < RETRY_MAX_ATTEMPTS:
-            try:
-                # If save file already exists remove first to avoid case issues
-                if os.path.exists(file_name):
-                    os.remove(file_name)
-                # Save the data
-                with open(file_name, 'w') as devfile:
-                    pretty_xml = minidom.parseString(data).toprettyxml()
-                    devfile.write(pretty_xml)
-                    return
+        # If save file already exists remove first to avoid case issues
+        if os.path.exists(file_name):
+            os.remove(file_name)
 
-            except IOError:
-                attempts += 1
-                time.sleep(RETRY_INTERVAL)
-
-        raise Exception(
-            "Could not save to device screens file at {path}. Please check the file is not in use by another process.".format(path=file_name))
+        # Save the data
+        with open(file_name, 'w') as devfile:
+            pretty_xml = minidom.parseString(data).toprettyxml()
+            devfile.write(pretty_xml)

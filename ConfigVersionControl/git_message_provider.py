@@ -7,7 +7,7 @@ DEVICES_DIR = os.path.join("configurations", "devices")
 SCRIPTS_DIR = os.path.join("python", "")
 
 
-class CommitMessageProvider:
+class GitMessageProvider:
 
     CONFIGS_MODIFIED = "Configurations modified"
     CONFIGS_DELETED = "Configurations deleted"

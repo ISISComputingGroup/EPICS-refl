@@ -1,7 +1,7 @@
 import os
 import unittest
 from mock import Mock
-from git_version_control import CommitMessageProvider
+from git_version_control import GitMessageProvider
 
 
 class TestMessageProvider(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestMessageProvider(unittest.TestCase):
         return mock
 
     def setUp(self):
-        self.mp = CommitMessageProvider()
+        self.mp = GitMessageProvider()
         self.diff = []
 
     def test_WHEN_initialised_THEN_message_is_empty(self):

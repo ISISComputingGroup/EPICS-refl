@@ -16,51 +16,32 @@
 import os
 import time
 from xml.dom import minidom
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log, retry
 
-RETRY_MAX_ATTEMPTS = 30
-RETRY_INTERVAL = 1
+RETRY_MAX_ATTEMPTS = 20
+RETRY_INTERVAL = 0.5
 
 
 class SynopticFileIO(object):
 
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, IOError)
     def write_synoptic_file(self, name, save_path, xml_data):
-        attempts = 0
-        while attempts < RETRY_MAX_ATTEMPTS:
-            try:
-                # If save file already exists remove first to avoid case issues
-                if os.path.exists(save_path):
-                    os.remove(save_path)
+        # If save file already exists remove first to avoid case issues
+        if os.path.exists(save_path):
+            os.remove(save_path)
 
-                # Save the data
-                with open(save_path, 'w') as synfile:
-                    pretty_xml = minidom.parseString(xml_data).toprettyxml()
-                    synfile.write(pretty_xml)
-                    return
+        # Save the data
+        with open(save_path, 'w') as synfile:
+            pretty_xml = minidom.parseString(xml_data).toprettyxml()
+            synfile.write(pretty_xml)
+            return
 
-            except IOError:
-                attempts += 1
-                time.sleep(RETRY_INTERVAL)
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, IOError)
+    def read_synoptic_file(self, path):
+        with open(path, 'r') as synfile:
+            data = synfile.read()
 
-        raise Exception(
-            "Could not save to synoptic file at {path}. Please check the file is not in use by another process.".format(path=save_path))
-
-    def read_synoptic_file(self, directory, fullname):
-        path = os.path.join(directory, fullname)
-
-        attempts = 0
-        while attempts < RETRY_MAX_ATTEMPTS:
-            try:
-                with open(path, 'r') as synfile:
-                    data = synfile.read()
-                return data
-
-            except IOError:
-                attempts += 1
-                time.sleep(RETRY_INTERVAL)
-
-        raise Exception(
-            "Could not open synoptic file at {path}. Please check the file is not in use by another process.".format(path=path))
+        return data
 
     def get_list_synoptic_files(self, directory):
         if not os.path.exists(directory):

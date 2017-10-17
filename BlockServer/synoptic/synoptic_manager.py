@@ -20,6 +20,7 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
 from lxml import etree
+from server_common.common_exceptions import MaxAttemptsExceededException
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, \
     convert_to_json, convert_from_json
 from synoptic_file_io import SynopticFileIO
@@ -76,8 +77,10 @@ class SynopticManager(OnTheFlyPvInterface):
             elif pv == SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS:
                 self.save_synoptic_xml(data)
                 self.update_monitors()
+        except IOError as err:
+            print_and_log("Error saving synoptic: {error}".format(error=err), "MAJOR")
         except Exception as err:
-            print_and_log("Error writing to PV %s: %s" % (pv,str(err)),"MAJOR")
+            print_and_log("Error writing to PV %s: %s" % (pv, str(err)), "MAJOR")
 
     def handle_pv_read(self, pv):
         # Nothing to do as it is all handled by monitors
@@ -115,11 +118,16 @@ class SynopticManager(OnTheFlyPvInterface):
         for f in self._file_io.get_list_synoptic_files(self._directory):
             # Load the data, checking the schema
             try:
-                data = self._file_io.read_synoptic_file(self._directory, f)
+                file_path = os.path.join(self._directory, f)
+                data = self._file_io.read_synoptic_file(file_path)
                 ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder,
                                                                                  SYNOPTIC_SCHEMA_FILE), data, "Synoptic")
                 # Get the synoptic name
                 self._create_pv(data)
+            except MaxAttemptsExceededException:
+                print_and_log(
+                    "Could not open synoptic file at {path}. Please check the file is not in use by another process.".format(
+                        path=file_path))
             except Exception as err:
                 print_and_log("Error creating synoptic PV: %s" % str(err), "MAJOR")
 
@@ -182,8 +190,15 @@ class SynopticManager(OnTheFlyPvInterface):
         f = self._file_io.get_list_synoptic_files(self._directory)
         if fullname in f:
             # Load the data
-            data = self._file_io.read_synoptic_file(self._directory, fullname)
-            self._default_syn_xml = data
+            try:
+                path = os.path.join(self._directory, fullname)
+                data = self._file_io.read_synoptic_file(path)
+                self._default_syn_xml = data
+            except MaxAttemptsExceededException:
+                print_and_log(
+                    "Error loading synoptic at {path}. Please check the file is not in use by another process.".format(
+                        path=path), "MAJOR")
+                self._default_syn_xml = ""
         else:
             # No synoptic
             self._default_syn_xml = ""
@@ -224,7 +239,12 @@ class SynopticManager(OnTheFlyPvInterface):
 
         name = self._get_synoptic_name_from_xml(xml_data)
         save_path = FILEPATH_MANAGER.get_synoptic_path(name)
-        self._file_io.write_synoptic_file(name, save_path, xml_data)
+        try:
+            self._file_io.write_synoptic_file(name, save_path, xml_data)
+        except MaxAttemptsExceededException:
+            raise IOError(
+                "Could not save to synoptic file at {path}. Please check the file is not in use by another process.".format(
+                    path=save_path))
         print_and_log("Synoptic saved: " + name)
 
     def delete(self, delete_list):
@@ -240,6 +260,7 @@ class SynopticManager(OnTheFlyPvInterface):
         for synoptic in delete_list:
             self._bs.delete_pv_from_db(SYNOPTIC_PRE + self._synoptic_pvs[synoptic] + SYNOPTIC_GET)
             del self._synoptic_pvs[synoptic]
+            self._file_io.delete(synoptic)
 
     def update(self, xml_data):
         """Updates the synoptic list when modifications are made via the filesystem.

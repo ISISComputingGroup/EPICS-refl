@@ -14,12 +14,14 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
+import time
 import zlib
 import re
 import json
 from xml.etree import ElementTree
 
 from loggers.logger import Logger
+from common_exceptions import  MaxAttemptsExceededException
 
 
 # Default to base class - does not actually log anything
@@ -229,3 +231,30 @@ def ioc_restart_pending(ioc_pv, channel_access):
     """
     return True if channel_access.caget(ioc_pv + ":RESTART", as_string=True) is "Busy" else False
 
+
+def retry(max_attempts, interval, exception):
+    """
+    Attempt to perform a function a number of times in specified intervals before failing.
+
+    Args:
+        max_attempts: The maximum number of tries to execute the function
+        interval: The retry interval
+        exception: The type of exception to handle by retrying
+
+    Returns:
+        The input function wrapped in a retry loop
+
+    """
+    def tags_decorator(function):
+        def wrapper(*args, **kwargs):
+            attempts = 0
+            while attempts < max_attempts:
+                try:
+                    return function(*args, **kwargs)
+                except exception:
+                    attempts += 1
+                    time.sleep(interval)
+
+            raise MaxAttemptsExceededException
+        return wrapper
+    return tags_decorator

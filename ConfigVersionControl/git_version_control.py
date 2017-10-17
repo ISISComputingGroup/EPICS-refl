@@ -20,8 +20,9 @@ from git import *
 from version_control_exceptions import *
 from threading import Thread, RLock
 from time import sleep
-from git_message_provider import CommitMessageProvider
-from server_common.utilities import print_and_log
+from git_message_provider import GitMessageProvider
+from server_common.utilities import print_and_log, retry
+from server_common.common_exceptions import MaxAttemptsExceededException
 
 SYSTEM_TEST_PREFIX = "rcptt_"
 GIT_REMOTE_LOCATION = 'http://control-svcs.isis.cclrc.ac.uk/gitroot/instconfigs/test.git'
@@ -48,7 +49,7 @@ class GitVersionControl:
         self._wd = working_directory
         self.repo = repo
         self._is_local = is_local
-        self._message_provider = CommitMessageProvider()
+        self._message_provider = GitMessageProvider()
 
         if not is_local:
             self.remote = self.repo.remotes.origin
@@ -64,8 +65,8 @@ class GitVersionControl:
 
         try:
             self._unlock()
-        except UnlockVersionControlException as err:
-            raise err
+        except MaxAttemptsExceededException:
+            print_and_log("Unable to remove lock from version control repository, maximum tries exceeded", "MINOR")
 
         config_writer = self.repo.config_writer()
         # Set git repository to ignore file permissions otherwise will reset to read only
@@ -97,48 +98,29 @@ class GitVersionControl:
 
         return True
 
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, WindowsError)
     def _unlock(self):
         """ Removes index.lock if it exists, and it's not being used
         """
-        attempts = 0
-        while attempts < RETRY_MAX_ATTEMPTS:
-            try:
-                lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
-                if os.path.exists(lock_file_path):
-                    print_and_log("Found lock for version control repository, trying to remove: %s" % lock_file_path,
-                                  "INFO")
-                    os.remove(lock_file_path)
-                    print_and_log("Lock removed from version control repository", "INFO")
+        lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
+        if os.path.exists(lock_file_path):
+            print_and_log("Found lock for version control repository, trying to remove: %s" % lock_file_path,
+                          "INFO")
+            os.remove(lock_file_path)
+            print_and_log("Lock removed from version control repository", "INFO")
 
-                return
-            except:
-                # Exception will be thrown below if the function doesn't return.
-                sleep(RETRY_INTERVAL)
-
-            attempts += 1
-
-        raise UnlockVersionControlException("Unable to remove lock from version control repository.")
-
-    def _commit(self, ):
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, GitCommandError)
+    def _commit(self):
         """ Commit changes to a repository
         """
         num_files_changed = len(self.repo.index.diff("HEAD"))
         if num_files_changed == 0:
             print_and_log("GIT: Nothing to commit")
             return  # nothing staged for commit
-        attempts = 0
-        while attempts < RETRY_MAX_ATTEMPTS:
-            try:
-                commit_comment = self._message_provider.get_commit_message(self.repo.index.diff("HEAD"))
-                print_and_log("GIT: Committed {changed} changes".format(changed=num_files_changed))
-                self.repo.index.commit(commit_comment)
-                return
-            except Exception:
-                sleep(RETRY_INTERVAL)
 
-            attempts += 1
-
-        raise CommitToVersionControlException("Couldn't commit to version control")
+        commit_comment = self._message_provider.get_commit_message(self.repo.index.diff("HEAD"))
+        self.repo.index.commit(commit_comment)
+        print_and_log("GIT: Committed {changed} changes".format(changed=num_files_changed))
 
     def _commit_and_push(self):
         """ Frequently adds, commits and pushes all file currently in the repository. """
@@ -153,6 +135,9 @@ class GitVersionControl:
                     self.remote.push()
                     push_interval = PUSH_BASE_INTERVAL
                     first_failure = True
+
+                except MaxAttemptsExceededException:
+                    print_and_log("Could not commit changes to version control, maximum tries exceeded.")
 
                 except GitCommandError as e:
                     # Most likely issue connecting to server, increase timeout, notify if it's the first time

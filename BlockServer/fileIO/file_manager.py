@@ -29,8 +29,8 @@ from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFA
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationIncompleteException
 
-RETRY_MAX_ATTEMPTS = 30
-RETRY_INTERVAL = 1
+RETRY_MAX_ATTEMPTS = 20
+RETRY_INTERVAL = 0.5
 
 
 class ConfigurationFileManager(object):
