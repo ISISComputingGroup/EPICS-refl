@@ -24,7 +24,7 @@ RETRY_INTERVAL = 0.5
 
 class SynopticFileIO(object):
 
-    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, IOError)
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
     def write_synoptic_file(self, name, save_path, xml_data):
         # If save file already exists remove first to avoid case issues
         if os.path.exists(save_path):
@@ -36,8 +36,10 @@ class SynopticFileIO(object):
             synfile.write(pretty_xml)
             return
 
-    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, IOError)
-    def read_synoptic_file(self, path):
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
+    def read_synoptic_file(self, directory, fullname):
+        path = os.path.join(directory, fullname)
+
         with open(path, 'r') as synfile:
             data = synfile.read()
 

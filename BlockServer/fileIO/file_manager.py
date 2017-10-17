@@ -16,7 +16,6 @@
 import re
 import os
 import shutil
-import time
 from collections import OrderedDict
 from xml.etree import ElementTree
 
@@ -28,6 +27,8 @@ from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAM
 from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationIncompleteException
+from server_common.utilities import print_and_log, retry
+from server_common.common_exceptions import MaxAttemptsExceededException
 
 RETRY_MAX_ATTEMPTS = 20
 RETRY_INTERVAL = 0.5
@@ -229,47 +230,42 @@ class ConfigurationFileManager(object):
         shutil.copytree(os.path.abspath(os.path.join(os.environ["MYDIRBLOCK"], EXAMPLE_DEFAULT)),
                         os.path.join(dest_path, DEFAULT_COMPONENT))
 
+    def _read_element_tree(self, file_path):
+        try:
+            return self._attempt_read(file_path)
+        except MaxAttemptsExceededException:
+            raise IOError("Could not open file at {path}. Please check the file is not in use by another process.".format(
+                    path=file_path))
+
+    def _write_to_file(self, file_path, data):
+        try:
+            return self._attempt_write(file_path, data)
+        except MaxAttemptsExceededException:
+            raise IOError("Could not write to file at {path}. Please check the file is not in use by another process.".format(
+                    path=file_path))
+
     @staticmethod
-    def _read_element_tree(file_path):
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
+    def _attempt_read(file_path):
         """ Read and return the element tree from a given xml file.
 
         Args:
             file_path (string): The location of the file being read
         """
-        attempts = 0
-        while attempts < RETRY_MAX_ATTEMPTS:
-            try:
-                root = ElementTree.parse(file_path).getroot()
-                return root
-
-            except IOError:
-                attempts += 1
-                time.sleep(RETRY_INTERVAL)
-
-        raise Exception(
-            "Could not open file at {path}. Please check the file is not in use by another process.".format(path=file_path))
+        return ElementTree.parse(file_path).getroot()
 
     @staticmethod
-    def _write_to_file(file_path, data):
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
+    def _attempt_write(file_path, data):
         """ Write xml data to a given configuration file.
 
         Args:
             file_path (string): The location of the file being written
             data (string): The XML data to be saved
         """
-        attempts = 0
-        while attempts < RETRY_MAX_ATTEMPTS:
-            try:
-                with open(file_path, 'w') as f:
-                    f.write(data)
-                    return
-
-            except IOError:
-                attempts += 1
-                time.sleep(RETRY_INTERVAL)
-
-        raise Exception(
-            "Could not write to file at {path}. Please check the file is not in use by another process.".format(path=file_path))
+        with open(file_path, 'w') as f:
+            f.write(data)
+            return
 
     def get_files_in_directory(self, path):
         """Gets a list of the files in the specified folder

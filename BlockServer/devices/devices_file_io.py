@@ -9,7 +9,7 @@ RETRY_INTERVAL = 0.5
 class DevicesFileIO(object):
     """Responsible for loading and saving the devices file."""
 
-    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, IOError)
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
     def load_devices_file(self, file_name):
         """Load the devices file.
 
@@ -29,7 +29,7 @@ class DevicesFileIO(object):
             data = devfile.read()
             return data
 
-    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, IOError)
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
     def save_devices_file(self, file_name, data):
         """Saves the devices info.
 

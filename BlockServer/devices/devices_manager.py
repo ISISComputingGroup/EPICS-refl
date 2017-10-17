@@ -93,7 +93,7 @@ class DevicesManager(OnTheFlyPvInterface):
         # Read the data from file
         try:
             self._data = self._file_io.load_devices_file(self.get_devices_filename())
-        except MaxAttemptsExceededException:
+        except (MaxAttemptsExceededException, IOError):
             self._data = self.get_blank_devices()
             print_and_log(
                 "Unable to load devices file. Please check the file is not in use by another process. The PV data will default to a blank set of devices.",
@@ -150,7 +150,7 @@ class DevicesManager(OnTheFlyPvInterface):
             self._file_io.save_devices_file(self.get_devices_filename(), xml_data)
         except MaxAttemptsExceededException:
             raise IOError("Unable to save devices file. Please check the file is not in use by another process.",
-                          "MAJOR")
+                          "MINOR")
 
         # Update PVs
         self.update(xml_data, "Device screens modified by client")

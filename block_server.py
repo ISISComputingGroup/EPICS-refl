@@ -573,7 +573,7 @@ class BlockServer(Driver):
                 self._config_list.update_a_config_in_list(inactive, True)
             print_and_log("Saved")
         except Exception as err:
-            print_and_log("Problem occurred saving configuration: %s" % err)
+            print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
 
         # Reload configuration if a component has changed
         if as_comp and new_details["name"] in self._active_configserver.get_component_names():
@@ -617,7 +617,7 @@ class BlockServer(Driver):
             self._active_configserver.save_active(name)
             self._config_list.update_a_config_in_list(self._active_configserver)
         except Exception as err:
-            print_and_log("Problem occurred saving configuration: %s" % err)
+            print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
 
     def update_blocks_monitors(self):
         """Updates the monitors for the blocks and groups, so the clients can see any changes.

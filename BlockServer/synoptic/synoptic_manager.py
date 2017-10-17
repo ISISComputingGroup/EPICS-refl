@@ -118,18 +118,17 @@ class SynopticManager(OnTheFlyPvInterface):
         for f in self._file_io.get_list_synoptic_files(self._directory):
             # Load the data, checking the schema
             try:
-                file_path = os.path.join(self._directory, f)
-                data = self._file_io.read_synoptic_file(file_path)
+                data = self._file_io.read_synoptic_file(self._directory, f)
                 ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder,
                                                                                  SYNOPTIC_SCHEMA_FILE), data, "Synoptic")
                 # Get the synoptic name
                 self._create_pv(data)
             except MaxAttemptsExceededException:
                 print_and_log(
-                    "Could not open synoptic file at {path}. Please check the file is not in use by another process.".format(
-                        path=file_path))
+                    "Could not open synoptic file {path}. Please check the file is not in use by another process.".format(
+                        path=f), "MAJOR")
             except Exception as err:
-                print_and_log("Error creating synoptic PV: %s" % str(err), "MAJOR")
+                print_and_log("Error creating synoptic PV: {error}".format(error=err), "MAJOR")
 
     def _create_pv(self, data):
         """Creates a single PV based on a name and data. Adds this PV to the dictionary returned on get_synoptic_list
@@ -191,13 +190,12 @@ class SynopticManager(OnTheFlyPvInterface):
         if fullname in f:
             # Load the data
             try:
-                path = os.path.join(self._directory, fullname)
-                data = self._file_io.read_synoptic_file(path)
+                data = self._file_io.read_synoptic_file(self._directory, fullname)
                 self._default_syn_xml = data
             except MaxAttemptsExceededException:
                 print_and_log(
-                    "Error loading synoptic at {path}. Please check the file is not in use by another process.".format(
-                        path=path), "MAJOR")
+                    "Could not open synoptic file {path}. Please check the file is not in use by another process.".format(
+                        path=fullname), "MAJOR")
                 self._default_syn_xml = ""
         else:
             # No synoptic

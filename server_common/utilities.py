@@ -255,6 +255,6 @@ def retry(max_attempts, interval, exception):
                     attempts += 1
                     time.sleep(interval)
 
-            raise MaxAttemptsExceededException
+            raise MaxAttemptsExceededException()
         return wrapper
     return tags_decorator
