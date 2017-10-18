@@ -54,6 +54,9 @@ class MockSynopticFileIO(SynopticFileIO):
     def get_list_synoptic_files(self, directory):
         return self.syns.keys()
 
+    def delete_synoptic(self, directory, fullname):
+        del self.syns[fullname]
+
 
 class TestSynopticManagerSequence(unittest.TestCase):
     def setUp(self):

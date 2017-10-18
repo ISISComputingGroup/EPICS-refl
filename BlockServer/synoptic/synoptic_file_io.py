@@ -45,6 +45,13 @@ class SynopticFileIO(object):
 
         return data
 
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
+    def delete_synoptic(self, directory, fullname):
+        path = os.path.join(directory, fullname)
+
+        if os.path.exists(path):
+            os.remove(path)
+
     def get_list_synoptic_files(self, directory):
         if not os.path.exists(directory):
             print_and_log("Synoptics directory does not exist")

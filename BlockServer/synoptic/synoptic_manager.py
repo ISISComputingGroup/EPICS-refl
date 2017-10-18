@@ -78,7 +78,7 @@ class SynopticManager(OnTheFlyPvInterface):
                 self.save_synoptic_xml(data)
                 self.update_monitors()
         except IOError as err:
-            print_and_log("Error saving synoptic: {error}".format(error=err), "MAJOR")
+            print_and_log("Error accessing synoptic file: {error}".format(error=err), "MAJOR")
         except Exception as err:
             print_and_log("Error writing to PV %s: %s" % (pv, str(err)), "MAJOR")
 
@@ -256,9 +256,16 @@ class SynopticManager(OnTheFlyPvInterface):
         if not delete_list.issubset(self._synoptic_pvs.keys()):
             raise InvalidDeleteException("Delete list contains unknown configurations")
         for synoptic in delete_list:
+            try:
+                fullname = synoptic + ".xml"
+                self._file_io.delete_synoptic(self._directory, fullname)
+            except MaxAttemptsExceededException:
+                print_and_log("Could not delete synoptic file {name}. Please check the file is not in use by another process.".format(
+                    name=fullname), "MINOR")
+                continue
+
             self._bs.delete_pv_from_db(SYNOPTIC_PRE + self._synoptic_pvs[synoptic] + SYNOPTIC_GET)
             del self._synoptic_pvs[synoptic]
-            self._file_io.delete(synoptic)
 
     def update(self, xml_data):
         """Updates the synoptic list when modifications are made via the filesystem.
