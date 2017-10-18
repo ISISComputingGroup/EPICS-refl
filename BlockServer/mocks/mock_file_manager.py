@@ -56,6 +56,12 @@ class MockConfigurationFileManager(object):
         else:
             self.confs[configuration.get_name().lower()] = configuration
 
+    def delete(self, name, is_comp):
+        if is_comp:
+            del self.comps[name.lower()]
+        else:
+            del self.confs[name.lower()]
+
     def component_exists(self, root_path, name):
         if name.lower() not in self.confs:
             raise Exception("Component does not exist")

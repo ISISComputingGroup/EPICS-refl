@@ -205,6 +205,9 @@ class ConfigurationFileManager(object):
     @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
     def delete(self, name, is_component):
         path = self.get_path(name, is_component)
+        if not os.path.exists(path):
+            print_and_log("Directory {path} not found on filesystem.".format(path=path), "MINOR")
+            return
         shutil.rmtree(path)
 
     def component_exists(self, root_path, name):
