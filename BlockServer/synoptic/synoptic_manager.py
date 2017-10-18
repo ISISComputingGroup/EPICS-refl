@@ -119,14 +119,13 @@ class SynopticManager(OnTheFlyPvInterface):
             # Load the data, checking the schema
             try:
                 data = self._file_io.read_synoptic_file(self._directory, f)
-                ConfigurationSchemaChecker.check_xml_matches_schema(os.path.join(self._schema_folder,
-                                                                                 SYNOPTIC_SCHEMA_FILE), data, "Synoptic")
+                ConfigurationSchemaChecker.check_xml_matches_schema(
+                    os.path.join(self._schema_folder, SYNOPTIC_SCHEMA_FILE), data, "Synoptic")
                 # Get the synoptic name
                 self._create_pv(data)
             except MaxAttemptsExceededException:
-                print_and_log(
-                    "Could not open synoptic file {path}. Please check the file is not in use by another process.".format(
-                        path=f), "MAJOR")
+                print_and_log("Could not open synoptic file {path}. Please check the file is "
+                              "not in use by another process.".format(path=f), "MAJOR")
             except Exception as err:
                 print_and_log("Error creating synoptic PV: {error}".format(error=err), "MAJOR")
 
@@ -193,9 +192,8 @@ class SynopticManager(OnTheFlyPvInterface):
                 data = self._file_io.read_synoptic_file(self._directory, fullname)
                 self._default_syn_xml = data
             except MaxAttemptsExceededException:
-                print_and_log(
-                    "Could not open synoptic file {path}. Please check the file is not in use by another process.".format(
-                        path=fullname), "MAJOR")
+                print_and_log("Could not open synoptic file {path}. Please check the file is not "
+                              "in use by another process.".format(path=fullname), "MAJOR")
                 self._default_syn_xml = ""
         else:
             # No synoptic
@@ -240,9 +238,8 @@ class SynopticManager(OnTheFlyPvInterface):
         try:
             self._file_io.write_synoptic_file(name, save_path, xml_data)
         except MaxAttemptsExceededException:
-            raise IOError(
-                "Could not save to synoptic file at {path}. Please check the file is not in use by another process.".format(
-                    path=save_path))
+            raise IOError("Could not save to synoptic file at {path}. Please check the file is "
+                          "not in use by another process.".format(path=save_path))
         print_and_log("Synoptic saved: " + name)
 
     def delete(self, delete_list):
@@ -260,8 +257,8 @@ class SynopticManager(OnTheFlyPvInterface):
                 fullname = synoptic + ".xml"
                 self._file_io.delete_synoptic(self._directory, fullname)
             except MaxAttemptsExceededException:
-                print_and_log("Could not delete synoptic file {name}. Please check the file is not in use by another process.".format(
-                    name=fullname), "MINOR")
+                print_and_log("Could not delete synoptic file {name}. Please check the file is "
+                              "not in use by another process.".format(name=fullname), "MINOR")
                 continue
 
             self._bs.delete_pv_from_db(SYNOPTIC_PRE + self._synoptic_pvs[synoptic] + SYNOPTIC_GET)

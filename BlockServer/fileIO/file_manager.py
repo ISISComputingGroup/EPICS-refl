@@ -58,10 +58,7 @@ class ConfigurationFileManager(object):
         """
         configuration = Configuration(macros)
 
-        if is_component:
-            path = os.path.abspath(FILEPATH_MANAGER.get_component_path(name))
-        else:
-            path = os.path.abspath(FILEPATH_MANAGER.get_config_path(name))
+        path = self.get_path(name, is_component)
 
         if not os.path.isdir(path):
             raise IOError("Configuration could not be found: " + name)
@@ -169,10 +166,7 @@ class ConfigurationFileManager(object):
             configuration (Configuration): The actual configuration to save
             is_component (bool): Is it a component?
         """
-        if is_component:
-            path = os.path.abspath(FILEPATH_MANAGER.get_component_path(configuration.get_name()))
-        else:
-            path = os.path.abspath(FILEPATH_MANAGER.get_config_path(configuration.get_name()))
+        path = self.get_path(configuration.get_name(), is_component)
 
         if not os.path.isdir(path):
             # Create the directory
@@ -208,6 +202,11 @@ class ConfigurationFileManager(object):
         current_file = os.path.join(path, FILENAME_META)
         self._write_to_file(current_file, meta_xml)
 
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
+    def delete(self, name, is_component):
+        path = self.get_path(name, is_component)
+        shutil.rmtree(path)
+
     def component_exists(self, root_path, name):
         """Checks to see if a component exists.
 
@@ -234,15 +233,15 @@ class ConfigurationFileManager(object):
         try:
             return self._attempt_read(file_path)
         except MaxAttemptsExceededException:
-            raise IOError("Could not open file at {path}. Please check the file is not in use by another process.".format(
-                    path=file_path))
+            raise IOError("Could not open file at {path}. Please check the file "
+                          "is not in use by another process.".format(path=file_path))
 
     def _write_to_file(self, file_path, data):
         try:
             return self._attempt_write(file_path, data)
         except MaxAttemptsExceededException:
-            raise IOError("Could not write to file at {path}. Please check the file is not in use by another process.".format(
-                    path=file_path))
+            raise IOError("Could not write to file at {path}. Please check the file is "
+                          "not in use by another process.".format(path=file_path))
 
     @staticmethod
     @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
@@ -280,3 +279,12 @@ class ConfigurationFileManager(object):
         if os.path.isdir(path):
             files = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
         return files
+
+    @staticmethod
+    def get_path(name, is_component):
+        if is_component:
+            path = os.path.abspath(FILEPATH_MANAGER.get_component_path(name))
+        else:
+            path = os.path.abspath(FILEPATH_MANAGER.get_config_path(name))
+
+        return path

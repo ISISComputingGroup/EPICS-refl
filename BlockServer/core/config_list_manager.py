@@ -22,6 +22,7 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.macros import MACROS
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
+from server_common.common_exceptions import MaxAttemptsExceededException
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.pv_names import BlockserverPVNames
 from config_list_manager_exceptions import InvalidDeleteException
@@ -271,6 +272,13 @@ class ConfigListManager(object):
                 if not lower_delete_list.issubset(self._config_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown configurations")
                 for config in delete_list:
+                    try:
+                        self.file_manager.delete(config, are_comps)
+                    except MaxAttemptsExceededException:
+                        print_and_log("Could not delete configuration {name} from file system. "
+                                      "Make sure its files are not in use by a different process.".format(name=config),
+                                      "MINOR")
+
                     self._delete_pv(BlockserverPVNames.get_config_details_pv(self._config_metas[config.lower()].pv))
                     del self._config_metas[config.lower()]
                     self._remove_config_from_dependencies(config)
@@ -285,6 +293,12 @@ class ConfigListManager(object):
                 if not lower_delete_list.issubset(self._component_metas.keys()):
                     raise InvalidDeleteException("Delete list contains unknown components")
                 for comp in lower_delete_list:
+                    try:
+                        self.file_manager.delete(comp, are_comps)
+                    except MaxAttemptsExceededException:
+                        print_and_log("Could not delete component {name} from file system. "
+                                      "Make sure its files are not in use by a different process.".format(name=comp),
+                                      "MINOR")
                     self._delete_pv(BlockserverPVNames.get_component_details_pv(self._component_metas[comp].pv))
                     self._delete_pv(BlockserverPVNames.get_dependencies_pv(self._component_metas[comp].pv))
                     del self._component_metas[comp]

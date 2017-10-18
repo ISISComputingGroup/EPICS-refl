@@ -95,9 +95,8 @@ class DevicesManager(OnTheFlyPvInterface):
             self._data = self._file_io.load_devices_file(self.get_devices_filename())
         except (MaxAttemptsExceededException, IOError):
             self._data = self.get_blank_devices()
-            print_and_log(
-                "Unable to load devices file. Please check the file is not in use by another process. The PV data will default to a blank set of devices.",
-                "MINOR")
+            print_and_log("Unable to load devices file. Please check the file is not in use by another process. "
+                          "The PV data will default to a blank set of devices.", "MINOR")
             return
 
         try:
