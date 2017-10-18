@@ -104,8 +104,9 @@ class GitVersionControl:
         """
         lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
         if os.path.exists(lock_file_path):
-            print_and_log("Found lock for version control repository, trying to remove: %s" % lock_file_path,
-                          "INFO")
+            print_and_log(
+                "Found lock for version control repository, trying to remove: {path}".format(path=lock_file_path),
+                "INFO")
             os.remove(lock_file_path)
             print_and_log("Lock removed from version control repository", "INFO")
 
@@ -143,8 +144,8 @@ class GitVersionControl:
                     # Most likely issue connecting to server, increase timeout, notify if it's the first time
                     push_interval = PUSH_RETRY_INTERVAL
                     if first_failure:
-                        print_and_log("Unable to push config changes, will retry in %i seconds"
-                                      % PUSH_RETRY_INTERVAL, "MINOR")
+                        print_and_log("Unable to push config changes, will retry in {interval} seconds".format(
+                            interval=PUSH_RETRY_INTERVAL), "MINOR")
                         first_failure = False
 
             sleep(push_interval)
