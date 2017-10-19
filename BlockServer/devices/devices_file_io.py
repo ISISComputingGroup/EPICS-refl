@@ -1,11 +1,15 @@
 import os
+from server_common.utilities import print_and_log, retry
 from xml.dom import minidom
-from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker
+
+RETRY_MAX_ATTEMPTS = 20
+RETRY_INTERVAL = 0.5
 
 
 class DevicesFileIO(object):
     """Responsible for loading and saving the devices file."""
 
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
     def load_devices_file(self, file_name):
         """Load the devices file.
 
@@ -15,11 +19,17 @@ class DevicesFileIO(object):
         Returns:
             string: the XML as a string
         """
+
+        # Create the file if it does not exist
+        if not os.path.exists(file_name):
+            print_and_log("Device screens file not found.")
+            return ""
+
         with open(file_name, 'r') as devfile:
             data = devfile.read()
+            return data
 
-        return data
-
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
     def save_devices_file(self, file_name, data):
         """Saves the devices info.
 

@@ -21,34 +21,15 @@ import socket
 
 
 class TestVersionControl(unittest.TestCase):
-    def test_WHEN_config_name_contains_rcptt_THEN_do_not_add(self):
-        mock_vc = Mock()
-        cfg = GitVersionControl(None, mock_vc)
-        cfg.add(SYSTEM_TEST_PREFIX + "test")
 
-        self.assertEqual(len(mock_vc.method_calls), 0)
-
-    def test_WHEN_config_name_does_not_contain_rcptt_THEN_add(self):
-        mock_vc = Mock()
-        mock_vc.index.diff.return_value = [ ]
-        mock_vc.untracked_files = [ "test" ]
-        mock_vc.working_dir = "."
-        cfg = GitVersionControl(None, mock_vc)
-        cfg.add("test")
-
-        calls = mock_vc.method_calls
-
-        self.assertEqual(len(calls), 2)
-        self.assertTrue("test" == calls[1][1][0][0])
-
-    def test_WHEN_banch_is_master_THEN_branch_not_allowed(self):
+    def test_WHEN_branch_is_master_THEN_branch_not_allowed(self):
         self.assertFalse(GitVersionControl.branch_allowed("master"))
 
-    def test_WHEN_banch_is_machine_name_THEN_branch_allowed(self):
+    def test_WHEN_branch_is_machine_name_THEN_branch_allowed(self):
         self.assertTrue(GitVersionControl.branch_allowed(socket.gethostname()))
 
-    def test_WHEN_banch_begins_with_nd_THEN_branch_not_allowed(self):
+    def test_WHEN_branch_begins_with_nd_THEN_branch_not_allowed(self):
         self.assertFalse(GitVersionControl.branch_allowed("NDTEST"))
 
-    def test_WHEN_banch_begins_contains_nd_THEN_branch_allowed(self):
+    def test_WHEN_branch_begins_contains_nd_THEN_branch_allowed(self):
         self.assertTrue(GitVersionControl.branch_allowed("testNDtest"))
