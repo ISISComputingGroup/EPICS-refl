@@ -98,7 +98,7 @@ class GitVersionControl:
 
         return True
 
-    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, WindowsError)
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, OSError)
     def _unlock(self):
         """ Removes index.lock if it exists, and it's not being used
         """
