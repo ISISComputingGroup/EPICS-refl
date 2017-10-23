@@ -262,7 +262,6 @@ class RunControlManager(OnTheFlyPvInterface):
                 self._set_rc_values(bn, settings)
 
     def _set_rc_values(self, bn, settings):
-        print_and_log("Setting up runcontrol...")
         for key, value in settings.iteritems():
             if key.upper() in TAG_RC_DICT.keys():
                 try:
@@ -271,7 +270,6 @@ class RunControlManager(OnTheFlyPvInterface):
                     print_and_log("Problem with setting "
                                   "runcontrol for %s: %s"
                                   % (bn, err))
-        print_and_log("Finished setting up runcontrol")
 
     def _get_latest_ioc_start(self):
         """

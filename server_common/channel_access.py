@@ -15,6 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 import time
 from utilities import print_and_log
+import threading
 
 
 class ChannelAccess(object):
@@ -52,12 +53,18 @@ class ChannelAccess(object):
         Raises:
             Exception : If the PV failed to set
         """
-        try:
-            start = time.time()
+        def put_value():
             from genie_python.genie_cachannel_wrapper import CaChannelWrapper
             CaChannelWrapper.set_pv_value(name, value, wait)
-            finish = time.time()
-            print_and_log("Finished setting PV, delta t = {})".format(finish - start))
+
+        try:
+            if wait:
+                raise ValueError("Don't do that.")
+                # If waiting for the PV, don't run in a different thread.
+                put_value()
+            else:
+                # No need to wait for the PV - run in a different thread.
+                threading.Thread(target=put_value).start()
         except Exception as err:
             print err
             raise err

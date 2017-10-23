@@ -99,8 +99,8 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC
         """
         # Check IOC is running, otherwise command is ignored
-        print_and_log("Toggling auto-restart for IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":TOGGLE", 1, False)
+        print_and_log("Toggling auto-restart for IOC {}".format(ioc))
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":TOGGLE", 1)
 
     def get_autorestart(self, prefix, ioc):
         """Gets the current auto-restart setting of the specified IOC.
