@@ -75,8 +75,8 @@ class RunControlManager(OnTheFlyPvInterface):
         self._pvs_to_read = [RUNCONTROL_GET_PV, RUNCONTROL_OUT_PV]
         self._create_standard_pvs()
         self._channel_access = channel_access
-        print "RUNCONTROL SETTINGS FILE: %s" % self._settings_file
-        print "RUNCONTROL AUTOSAVE DIRECTORY: %s" % self._autosave_dir
+        print_and_log("RUNCONTROL SETTINGS FILE: {}".format(self._settings_file))
+        print_and_log("RUNCONTROL AUTOSAVE DIRECTORY: {}".format(self._autosave_dir))
         self._intialise_runcontrol_ioc()
 
     def read_pv_exists(self, pv):
@@ -148,13 +148,17 @@ class RunControlManager(OnTheFlyPvInterface):
             time_between_tries: Time to wait between checking run control has
                 started
         """
+        print_and_log("Start creating runcontrol PVs")
         self.update_runcontrol_blocks(
             self._active_configholder.get_block_details())
         self.restart_ioc(clear_autosave)
         # Need to wait for RUNCONTROL_IOC to restart
         self.wait_for_ioc_start(time_between_tries)
+        print_and_log("Restoring config settings...")
         self.restore_config_settings(
             self._active_configholder.get_block_details())
+        print_and_log("Finish restoring config settings")
+        print_and_log("Finish creating runcontrol PVs")
 
     def update_runcontrol_blocks(self, blocks):
         """
@@ -174,7 +178,7 @@ class RunControlManager(OnTheFlyPvInterface):
             # Need an extra blank line
             f.write("\n")
         except Exception as err:
-            print err
+            print_and_log(str(err))
         finally:
             if f is not None:
                 f.close()
@@ -258,16 +262,16 @@ class RunControlManager(OnTheFlyPvInterface):
                 self._set_rc_values(bn, settings)
 
     def _set_rc_values(self, bn, settings):
+        print_and_log("Setting up runcontrol...")
         for key, value in settings.iteritems():
             if key.upper() in TAG_RC_DICT.keys():
                 try:
-                    self._channel_access.caput(self._block_prefix
-                                               + bn + TAG_RC_DICT[key.upper()],
-                                               value)
+                    self._channel_access.caput(self._block_prefix + bn + TAG_RC_DICT[key.upper()], value)
                 except Exception as err:
                     print_and_log("Problem with setting "
                                   "runcontrol for %s: %s"
                                   % (bn, err))
+        print_and_log("Finished setting up runcontrol")
 
     def _get_latest_ioc_start(self):
         """
@@ -333,8 +337,9 @@ class RunControlManager(OnTheFlyPvInterface):
                 self._sleep_func(time_between_tries)
             else:
                 self._rc_ioc_start_time = latest_ioc_start
-                print_and_log("... Runcontrol IOC started")
+                print_and_log("... Runcontrol IOC started (waiting some arbitrary amount of time)")
                 self._sleep_func(time_between_tries * 3)
+                print_and_log("... Runcontrol IOC started")
                 break
         else:
             print_and_log("Runcontrol appears not to have started", "MAJOR")

@@ -13,6 +13,8 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+import time
+from utilities import print_and_log
 
 
 class ChannelAccess(object):
@@ -51,8 +53,11 @@ class ChannelAccess(object):
             Exception : If the PV failed to set
         """
         try:
+            start = time.time()
             from genie_python.genie_cachannel_wrapper import CaChannelWrapper
             CaChannelWrapper.set_pv_value(name, value, wait)
+            finish = time.time()
+            print_and_log("Finished setting PV, delta t = {})".format(finish - start))
         except Exception as err:
             print err
             raise err

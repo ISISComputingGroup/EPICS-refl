@@ -86,7 +86,7 @@ class Gateway(object):
         f.close()
 
     def _generate_alias(self, blockname, pv, local):
-        print("Creating block: %s for %s" % (blockname, pv))
+        print_and_log("Creating block: {} for {}".format(blockname, pv))
         lines = list()
         if pv.endswith(".VAL"):
             # Strip off the .VAL

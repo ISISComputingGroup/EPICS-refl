@@ -265,15 +265,21 @@ class BlockServer(Driver):
                                                   MACROS["$(ICPVARDIR)"], self._ioc_control, self._active_configserver,
                                                   self)
             self.on_the_fly_handlers.append(self._run_control)
+            print_and_log("Creating block cache manager...")
             self._block_cache = BlockCacheManager(self._ioc_control)
+            print_and_log("Finished creating block cache manager")
 
         # Import all the synoptic data and create PVs
+        print_and_log("Creating synoptic manager...")
         self._syn = SynopticManager(self, SCHEMA_DIR, self._active_configserver)
         self.on_the_fly_handlers.append(self._syn)
+        print_and_log("Finished creating synoptic manager")
 
         # Import all the devices data and create PVs
+        print_and_log("Creating devices manager...")
         self._devices = DevicesManager(self, SCHEMA_DIR)
         self.on_the_fly_handlers.append(self._devices)
+        print_and_log("Finished creating devices manager")
 
         try:
             if self._gateway.exists():
