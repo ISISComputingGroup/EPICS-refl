@@ -49,14 +49,9 @@ class ChannelAccess(object):
             name (string): The name of the PV to be set
             value (object): The data to send to the PV
             wait (bool, optional): Wait for the PV t set before returning
-
-        Returns:
-            The thread in which the caput is running. Call .join() on this object to wait for caput to finish.
         """
         def put_value():
             from genie_python.genie_cachannel_wrapper import CaChannelWrapper
-            # Pass wait=True always. This won't delay execution because it's running in a different thread.
-            # Let callers use .join() on the thread object that is returned if they want to wait for completion.
             CaChannelWrapper.set_pv_value(name, value, wait)
 
         if wait:
