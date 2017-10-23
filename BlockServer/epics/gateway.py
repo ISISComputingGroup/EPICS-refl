@@ -73,17 +73,16 @@ class Gateway(object):
 
     def _generate_alias_file(self, blocks=None):
         # Generate blocks.pvlist for gateway
-        f = open(self._pvlist_file, 'w')
-        header = ALIAS_HEADER % (self._pv_prefix, self._pv_prefix)
-        f.write(header)
-        if blocks is not None:
-            for name, value in blocks.iteritems():
-                lines = self._generate_alias(value.name, value.pv, value.local)
-                for l in lines:
-                    f.write(l)
-        # Add a blank line at the end!
-        f.write("\n")
-        f.close()
+        with open(self._pvlist_file, 'w') as f:
+            header = ALIAS_HEADER % (self._pv_prefix, self._pv_prefix)
+            f.write(header)
+            if blocks is not None:
+                for name, value in blocks.iteritems():
+                    lines = self._generate_alias(value.name, value.pv, value.local)
+                    for l in lines:
+                        f.write(l)
+            # Add a blank line at the end!
+            f.write("\n")
 
     def _generate_alias(self, blockname, pv, local):
         print_and_log("Creating block: {} for {}".format(blockname, pv))

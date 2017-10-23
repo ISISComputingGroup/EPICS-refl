@@ -60,7 +60,10 @@ class ChannelAccess(object):
             CaChannelWrapper.set_pv_value(name, value, wait)
 
         if wait:
+            # If waiting then run in this thread.
             put_value()
         else:
+            # If not waiting, run in a different thread.
+            # Even if not waiting genie_python sometimes takes a while to return from a set_pv_value call.
             thread = threading.Thread(target=put_value)
             thread.start()
