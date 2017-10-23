@@ -63,30 +63,29 @@ class Gateway(object):
         print_and_log("Reloading gateway")
         try:
             # Have to wait after put as the gateway does not do completion callbacks (it is not an IOC)
-            ChannelAccess.caput(self._prefix + "newAsFlag", 1, False)
+            ChannelAccess.caput(self._prefix + "newAsFlag", 1)
 
             while ChannelAccess.caget(self._prefix + "newAsFlag") == 1:
-                time.sleep(1)
+                time.sleep(0.01)
             print_and_log("Gateway reloaded")
         except Exception as err:
-            print_and_log("Problem with reloading the gateway %s" % err)
+            print_and_log("Problem with reloading the gateway {}".format(err))
 
     def _generate_alias_file(self, blocks=None):
         # Generate blocks.pvlist for gateway
-        f = open(self._pvlist_file, 'w')
-        header = ALIAS_HEADER % (self._pv_prefix, self._pv_prefix)
-        f.write(header)
-        if blocks is not None:
-            for name, value in blocks.iteritems():
-                lines = self._generate_alias(value.name, value.pv, value.local)
-                for l in lines:
-                    f.write(l)
-        # Add a blank line at the end!
-        f.write("\n")
-        f.close()
+        with open(self._pvlist_file, 'w') as f:
+            header = ALIAS_HEADER % (self._pv_prefix, self._pv_prefix)
+            f.write(header)
+            if blocks is not None:
+                for name, value in blocks.iteritems():
+                    lines = self._generate_alias(value.name, value.pv, value.local)
+                    for l in lines:
+                        f.write(l)
+            # Add a blank line at the end!
+            f.write("\n")
 
     def _generate_alias(self, blockname, pv, local):
-        print_and_log("Creating block: {} for {}".format(blockname, pv))
+        print_and_log("Creating block: {} for {}".format(blockname, self._pv_prefix + pv if local else + pv))
         lines = list()
         if pv.endswith(".VAL"):
             # Strip off the .VAL

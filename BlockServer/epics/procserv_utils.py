@@ -42,7 +42,7 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC
         """
         print_and_log("Starting IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":START", 1, False)
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":START", 1)
 
     def stop_ioc(self, prefix, ioc):
         """Stops the specified IOC.
@@ -52,7 +52,7 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC
         """
         print_and_log("Stopping IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":STOP", 1, False)
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":STOP", 1)
 
     def restart_ioc(self, prefix, ioc):
         """Restarts the specified IOC.
@@ -62,7 +62,7 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC
         """
         print_and_log("Restarting IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1, False)
+        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1)
 
     def ioc_restart_pending(self, prefix, ioc):
         """Tests to see if an IOC restart is pending
@@ -88,7 +88,7 @@ class ProcServWrapper(object):
         """
         ans = ChannelAccess.caget(self.generate_prefix(prefix, ioc) + ":STATUS", as_string=True)
         if ans is None:
-            raise Exception("Could not find IOC (%s)" % self.generate_prefix(prefix, ioc))
+            raise Exception("Could not find IOC ({})".format(self.generate_prefix(prefix, ioc)))
         return ans.upper()
 
     def toggle_autorestart(self, prefix, ioc):

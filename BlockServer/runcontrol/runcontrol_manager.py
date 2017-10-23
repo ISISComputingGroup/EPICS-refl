@@ -335,9 +335,6 @@ class RunControlManager(OnTheFlyPvInterface):
                 self._sleep_func(time_between_tries)
             else:
                 self._rc_ioc_start_time = latest_ioc_start
-                print_and_log("... Runcontrol IOC started (waiting some arbitrary amount of time)")
-                self._sleep_func(time_between_tries * 3)
-                print_and_log("... Runcontrol IOC started")
                 break
         else:
             print_and_log("Runcontrol appears not to have started", "MAJOR")

@@ -84,7 +84,8 @@ if __name__ == "__main__":
     new_value = json.dumps(instruments_list)
     new_value_compressed = compress_and_hex(new_value)
 
-    ca.caput(pv_address, str(new_value_compressed), True)
+    thread = ca.caput(pv_address, str(new_value_compressed))
+    thread.join()
 
     result_compr = ca.caget(pv_address, True)
     result = dehex_and_decompress(result_compr)

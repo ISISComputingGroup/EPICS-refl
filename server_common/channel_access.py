@@ -41,7 +41,7 @@ class ChannelAccess(object):
             return None
 
     @staticmethod
-    def caput(name, value, wait=False):
+    def caput(name, value):
         """Uses CaChannelWrapper from genie_python to set a pv value. We import CaChannelWrapper when used as this means
         the tests can run without having genie_python installed
 
@@ -50,22 +50,15 @@ class ChannelAccess(object):
             value (object): The data to send to the PV
             wait (bool, optional): Wait for the PV t set before returning
 
-        Raises:
-            Exception : If the PV failed to set
+        Returns:
+            The thread in which the caput is running. Call .join() on this object to wait for caput to finish.
         """
         def put_value():
             from genie_python.genie_cachannel_wrapper import CaChannelWrapper
-            CaChannelWrapper.set_pv_value(name, value, wait)
+            # Pass wait=True always. This won't delay execution because it's running in a different thread.
+            # Let callers use .join() on the thread object that is returned if they want to wait for completion.
+            CaChannelWrapper.set_pv_value(name, value, True)
 
-        try:
-            if wait:
-                raise ValueError("Don't do that.")
-                # If waiting for the PV, don't run in a different thread.
-                put_value()
-            else:
-                # No need to wait for the PV - run in a different thread.
-                threading.Thread(target=put_value).start()
-        except Exception as err:
-            print err
-            raise err
-
+        thread = threading.Thread(target=put_value)
+        thread.start()
+        return thread
