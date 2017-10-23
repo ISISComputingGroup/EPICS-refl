@@ -1,5 +1,6 @@
 import os
-from server_common.utilities import print_and_log, retry
+from server_common.common_exceptions import MaxAttemptsExceededException
+from server_common.utilities import retry
 from xml.dom import minidom
 
 RETRY_MAX_ATTEMPTS = 20
@@ -20,11 +21,9 @@ class DevicesFileIO(object):
             string: the XML as a string
         """
 
-        # Create the file if it does not exist
         if not os.path.exists(file_name):
-            print_and_log("Device screens file not found.")
-            return ""
-
+            # Break retry loop if file does not exist.
+            raise MaxAttemptsExceededException
         with open(file_name, 'r') as devfile:
             data = devfile.read()
             return data

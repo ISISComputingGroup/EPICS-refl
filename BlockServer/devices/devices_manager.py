@@ -68,8 +68,8 @@ class DevicesManager(OnTheFlyPvInterface):
                 self.save_devices_xml(data)
                 self.update_monitors()
             except IOError as err:
-                print_and_log(
-                    "Could not save device screens: {error} The PV data will not be updated.".format(error=err))
+                print_and_log("Could not save device screens: {error} "
+                              "The PV data will not be updated.".format(error=err), "MINOR")
 
     def handle_pv_read(self, pv):
         # Nothing to do as it is all handled by monitors
@@ -148,8 +148,7 @@ class DevicesManager(OnTheFlyPvInterface):
                 os.makedirs(FILEPATH_MANAGER.devices_dir)
             self._file_io.save_devices_file(self.get_devices_filename(), xml_data)
         except MaxAttemptsExceededException:
-            raise IOError("Unable to save devices file. Please check the file is not in use by another process.",
-                          "MINOR")
+            raise IOError("Unable to save devices file. Please check the file is not in use by another process.")
 
         # Update PVs
         self.update(xml_data, "Device screens modified by client")
