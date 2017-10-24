@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 from hamcrest import *
 from mock import Mock
 
+from ArchiverAccess.archive_data_file_creator import DataFileCreationError
 from ArchiverAccess.archiver_data_source import ArchiverDataValue
 from ArchiverAccess.configuration import ConfigBuilder
 from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange, ConfigAndDependencies
@@ -200,6 +201,19 @@ class TestLogFileInitiator(unittest.TestCase):
         logging_time_period = self.log_file_creators[0].write_complete_file.call_args[0][0]
         assert_that(logging_time_period.delta, is_(expected_period))
 
+    def test_GIVEN_config_with_pv_WHEN_pv_has_changed_from_1_to_0_and_write_file_throws_THEN_no_error_thrown_log_not_written(self):
+        log_period_in_second = 1
+        archive_data_source = self._set_up_data_source(initial_pv_values=[1], final_pv_value=0)
+        log_file_initiator = self._create_log_file_intiator(archive_data_source, log_period_in_seconds=[log_period_in_second], throw_on_write_complete_file=True)
+
+        try:
+            log_file_initiator.check_write()
+        except Exception as e:
+            self.fail("If underlying call throws then this should catch and logs. Error: '{}'".format(e))
+
+        self.log_file_creators[0].write_complete_file.assert_called_once()
+
+
     def _set_up_data_source(self,
                             initial_pv_values=None,
                             final_pv_value=0,
@@ -230,7 +244,7 @@ class TestLogFileInitiator(unittest.TestCase):
                                                initial_values=logging_period_pv_values)
         return archive_data_source
 
-    def _create_log_file_intiator(self, archive_data_source, log_period_in_seconds=None, log_period_pvs=None):
+    def _create_log_file_intiator(self, archive_data_source, log_period_in_seconds=None, log_period_pvs=None, throw_on_write_complete_file=False):
         if log_period_in_seconds is None and log_period_pvs is None:
             log_period_in_seconds = [1]
         if log_period_pvs is None:
@@ -242,7 +256,10 @@ class TestLogFileInitiator(unittest.TestCase):
         self.log_file_creators = []
         for log_period_in_second, log_period_pv in zip(log_period_in_seconds, log_period_pvs):
             log_file_creator = Mock()
-            log_file_creator.write = Mock()
+            if throw_on_write_complete_file:
+                log_file_creator.write_complete_file = Mock(side_effect=DataFileCreationError("Test problem"))
+            else:
+                log_file_creator.write_complete_file = Mock()
             config_builder = ConfigBuilder("log_file{start_time}").trigger_pv("my_pv")
             if log_period_in_second is not None:
                 config = config_builder.logging_period_seconds(log_period_in_second).build()

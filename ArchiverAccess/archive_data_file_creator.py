@@ -22,10 +22,16 @@ from stat import S_IROTH, S_IRGRP, S_IREAD
 from string import Formatter
 
 from ArchiverAccess.periodic_data_generator import PeriodicDataGenerator
-from server_common.utilities import print_and_log, SEVERITY
+from server_common.utilities import print_and_log
 
 FORMATTER_NOT_APPLIED_MESSAGE = " (formatter not applied: `{0}`)"
 """Message when a formatter can not be applied when writing a pv"""
+
+
+class DataFileCreationError(Exception):
+    """
+    Exception that is thrown if the data file could not be created.
+    """
 
 
 class TemplateReplacer(object):
@@ -127,24 +133,18 @@ class ArchiveDataFileCreator(object):
         Args:
             time_period (ArchiverAccess.archive_time_period.ArchiveTimePeriod): time period
 
-        Returns: True if log file as created and made readonly; False otherwise
+        Raises DataFileCreationError: if there is a problem writing the log file
 
         """
 
-        if not self.write_file_header(time_period):
-            return False
-
-        if not self.write_data_lines(time_period):
-            return False
-
+        self.write_file_header(time_period)
+        self.write_data_lines(time_period)
         try:
             self._make_file_readonly_fn(self._filename)
-            return True
         except Exception as ex:
-            print_and_log("Failed to create log file {filename} for time period {time_period}. Error is: '{exception}'"
-                          .format(time_period=time_period, exception=ex, filename=self._config.filename),
-                          severity=SEVERITY.MAJOR, src="ArchiverAccess")
-            return False
+            raise DataFileCreationError("Failed to make log file {filename} readonly for time period {time_period}. "
+                                        "Error is: '{exception}'"
+                                        .format(time_period=time_period, exception=ex, filename=self._config.filename))
 
     def write_file_header(self, time_period):
         """
@@ -152,7 +152,7 @@ class ArchiveDataFileCreator(object):
         Args:
             time_period: time period to write the header for
 
-        Returns: true if successful; False otherwise
+        Raises DataFileCreationError: if there is a problem writing the log file
 
         """
         try:
@@ -170,12 +170,10 @@ class ArchiveDataFileCreator(object):
 
                 f.write("{0}\n".format(self._config.column_headers))
 
-            return True
         except Exception as ex:
-            print_and_log("Failed to create log file {filename} for time period {time_period}. Error is: '{exception}'"
-                          .format(time_period=time_period, exception=ex, filename=self._config.filename),
-                          severity=SEVERITY.MAJOR, src="ArchiverAccess")
-            return False
+            raise DataFileCreationError("Failed to write header in log file {filename} for time period {time_period}. "
+                                        "Error is: '{exception}'"
+                                        .format(time_period=time_period, exception=ex, filename=self._config.filename))
 
     def write_data_lines(self, time_period):
         """
@@ -183,11 +181,10 @@ class ArchiveDataFileCreator(object):
         Args:
             time_period: the time period to generate data lines for
 
-        Returns: True if success; False otherwise
+        Raises DataFileCreationError: if there is a problem writing the log file
 
         """
         try:
-
             assert self._filename is not None, "Called write_data_lines before writing header."
 
             periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
@@ -198,9 +195,7 @@ class ArchiveDataFileCreator(object):
                     table_line = table_template_replacer.replace(self._config.table_line)
                     f.write("{0}\n".format(table_line))
 
-            return True
         except Exception as ex:
-            print_and_log("Failed to create log file {filename} for time period {time_period}. Error is: '{exception}'"
-                          .format(time_period=time_period, exception=ex, filename=self._config.filename),
-                          severity=SEVERITY.MAJOR, src="ArchiverAccess")
-            return False
+            raise DataFileCreationError("Failed to write lines in log file {filename} for time period {time_period}. "
+                                        "Error is: '{exception}'"
+                                        .format(time_period=time_period, exception=ex, filename=self._config.filename))

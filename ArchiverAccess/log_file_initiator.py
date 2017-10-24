@@ -16,9 +16,9 @@
 """
 Module for initiator for log file creation.
 """
-
+from ArchiverAccess.archive_data_file_creator import DataFileCreationError
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log, SEVERITY
 
 
 class ConfigAndDependencies(object):
@@ -87,7 +87,7 @@ class LogFileInitiatorOnPVChange(object):
             # what is the state of logging (None not logging)
             logging_start_time = self._logging_started[pv_index]
             if logging_start_time is None:
-                self.store_log_start_time_if_logging_started(pv_index, timestamp, value)
+                self._store_log_start_time_if_logging_started(pv_index, timestamp, value)
             else:
                 self.store_log_stop_if_stopped_and_write_log(logging_start_time, pv_index, timestamp, value)
 
@@ -102,11 +102,14 @@ class LogFileInitiatorOnPVChange(object):
         logging_period = logging_period_provider.get_logging_period(
             self._archive_data_source, logging_start_time)
         time_period = ArchiveTimePeriod(logging_start_time, logging_period, finish_time=timestamp)
-        self._config_and_dependencies[pv_index].archive_data_file_creator.write_complete_file(time_period)
+        try:
+            self._config_and_dependencies[pv_index].archive_data_file_creator.write_complete_file(time_period)
+        except DataFileCreationError as e:
+            print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
         self._logging_started[pv_index] = None
         self._time_last_active.set(timestamp)
 
-    def store_log_start_time_if_logging_started(self, pv_index, timestamp, value):
+    def _store_log_start_time_if_logging_started(self, pv_index, timestamp, value):
         if self._value_is_logging_on(value):
             self._logging_started[pv_index] = timestamp
             print_and_log("Logging started for {0} at {1}".format(self._trigger_pvs[pv_index], timestamp),
