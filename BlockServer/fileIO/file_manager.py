@@ -56,6 +56,7 @@ class ConfigurationFileManager(object):
             macros (dict): The BlockServer macros
             is_component (bool): Is it a component?
         """
+        print_and_log("Start loading config...")
         configuration = Configuration(macros)
 
         path = self.get_path(name, is_component)
@@ -151,6 +152,7 @@ class ConfigurationFileManager(object):
         configuration.iocs = iocs
         configuration.components = components
         configuration.meta = meta
+        print_and_log("Config loaded.")
         return configuration
 
     def _check_againgst_schema(self, xml, filename):

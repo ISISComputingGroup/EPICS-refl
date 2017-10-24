@@ -325,7 +325,7 @@ class ConfigListManager(object):
     def update_monitors(self):
 
         with self._bs.monitor_lock:
-            print "UPDATING CONFIG LIST MONITORS"
+            print_and_log("UPDATING CONFIG LIST MONITORS")
             # Set the available configs
             self._bs.setParam(BlockserverPVNames.CONFIGS, compress_and_hex(convert_to_json(self.get_configs())))
             # Set the available comps
