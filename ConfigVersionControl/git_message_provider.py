@@ -56,7 +56,7 @@ class GitMessageProvider:
         for item in diff:
             # First line of diff item contains file path
             path = str(item).split("\n")[0]
-            path = os.path.normcase(os.path.normpath(path))
+            path = os.path.normpath(path)
             if item.new_file:  # For some reason this is true when file deleted
                 self._deleted(path)
             else:
