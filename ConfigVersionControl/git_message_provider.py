@@ -4,7 +4,7 @@ CONFIG_DIR = os.path.join("configurations", "configurations")
 COMP_DIR = os.path.join("configurations", "components")
 SYNOPTIC_DIR = os.path.join("configurations", "synoptics")
 DEVICES_DIR = os.path.join("configurations", "devices")
-SCRIPTS_DIR = os.path.join("python", "")
+SCRIPTS_DIR = os.path.join("Python", "")
 
 
 class GitMessageProvider:
