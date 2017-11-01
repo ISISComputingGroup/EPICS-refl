@@ -18,6 +18,9 @@ from lxml import etree
 import argparse
 import os
 
+from server_common.utilities import print_and_log
+
+
 def validate(schema_file, xml_file):
     print "\nTrying to valid %s using %s" % (schema_file, xml_file)
     try:
@@ -47,8 +50,8 @@ if __name__ == '__main__':
     conf_path = os.path.abspath(args.config_folder)
     schema_path = os.path.abspath(args.schema_folder)
     
-    print "Configuration folder: %s" % conf_path
-    print "Schema folder: %s" % schema_path
+    print_and_log("Configuration folder: {}".format(conf_path))
+    print_and_log("Schema folder: {}".format(schema_path))
     
     validate("%s\\blocks.xsd" % schema_path, "%s\\blocks.xml" % conf_path)
     validate("%s\\groups.xsd" % schema_path, "%s\\groups.xml" % conf_path)

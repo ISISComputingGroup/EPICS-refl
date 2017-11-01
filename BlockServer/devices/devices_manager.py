@@ -15,6 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import os
+from server_common.common_exceptions import MaxAttemptsExceededException
 from server_common.utilities import print_and_log, compress_and_hex
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema
@@ -22,9 +23,6 @@ from BlockServer.core.constants import FILENAME_SCREENS as SCREENS_FILE
 from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from BlockServer.devices.devices_file_io import DevicesFileIO
-from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
-    CommitToVersionControlException, UpdateFromVersionControlException
-
 
 SCREENS_SCHEMA = "screens.xsd"
 GET_SCREENS = BlockserverPVNames.GET_SCREENS
@@ -34,13 +32,12 @@ GET_SCHEMA = BlockserverPVNames.SCREENS_SCHEMA
 
 class DevicesManager(OnTheFlyPvInterface):
     """ Class for managing the PVs associated with devices"""
-    def __init__(self, block_server, schema_folder, vc_manager, file_io=DevicesFileIO()):
+    def __init__(self, block_server, schema_folder, file_io=DevicesFileIO()):
         """ Constructor.
 
         Args:
             block_server (BlockServer): A reference to the BlockServer instance
             schema_folder (string): The filepath for the devices schema
-            vc_manager (ConfigVersionControl): The manager to allow version control modifications
             file_io (DevicesFileIO): Object used for loading and saving files
         """
         self._file_io = file_io
@@ -48,7 +45,6 @@ class DevicesManager(OnTheFlyPvInterface):
         self._schema_folder = schema_folder
         self._schema = ""
         self._devices_pvs = dict()
-        self._vc = vc_manager
         self._bs = block_server
         self._data = ""
         self._create_standard_pvs()
@@ -68,8 +64,12 @@ class DevicesManager(OnTheFlyPvInterface):
 
     def handle_pv_write(self, pv, data):
         if pv == SET_SCREENS:
-            self.save_devices_xml(data)
-            self.update_monitors()
+            try:
+                self.save_devices_xml(data)
+                self.update_monitors()
+            except IOError as err:
+                print_and_log("Could not save device screens: {error} "
+                              "The PV data will not be updated.".format(error=err), "MINOR")
 
     def handle_pv_read(self, pv):
         # Nothing to do as it is all handled by monitors
@@ -93,10 +93,10 @@ class DevicesManager(OnTheFlyPvInterface):
         # Read the data from file
         try:
             self._data = self._file_io.load_devices_file(self.get_devices_filename())
-        except IOError as err:
+        except (MaxAttemptsExceededException, IOError):
             self._data = self.get_blank_devices()
-            print_and_log("Unable to load devices file. %s. The PV data will default to a blank set of devices." % err,
-                          "MINOR")
+            print_and_log("Unable to load devices file. Please check the file is not in use by another process. "
+                          "The PV data will default to a blank set of devices.", "MINOR")
             return
 
         try:
@@ -107,8 +107,6 @@ class DevicesManager(OnTheFlyPvInterface):
             self._data = self.get_blank_devices()
             print_and_log(err.message)
             return
-
-        self._add_to_version_control("New change found in devices file")
 
     def get_devices_filename(self):
         """ Gets the names of the devices files in the devices directory.
@@ -131,7 +129,6 @@ class DevicesManager(OnTheFlyPvInterface):
         """
         self._data = xml_data
         self.update_monitors()
-        self._add_to_version_control(message)
 
     def save_devices_xml(self, xml_data):
         """ Saves the xml in the current "screens.xml" config file.
@@ -150,33 +147,12 @@ class DevicesManager(OnTheFlyPvInterface):
             if not os.path.exists(FILEPATH_MANAGER.devices_dir):
                 os.makedirs(FILEPATH_MANAGER.devices_dir)
             self._file_io.save_devices_file(self.get_devices_filename(), xml_data)
-        except IOError as err:
-            print_and_log("Unable to save devices file. %s. The PV data will not be updated." % err,
-                          "MINOR")
-            return
+        except MaxAttemptsExceededException:
+            raise IOError("Unable to save devices file. Please check the file is not in use by another process.")
 
         # Update PVs
         self.update(xml_data, "Device screens modified by client")
         print_and_log("Devices saved to " + self.get_devices_filename())
-
-    def _add_to_version_control(self, commit_message=None):
-        """ Adds the current device screens file to version control.
-        Args:
-            commit_message (string): The commit message.
-
-        Returns:
-
-        """
-        try:
-            self._vc.add(self.get_devices_filename())
-            if commit_message is not None:
-                self._vc.commit(commit_message)
-        except AddToVersionControlException as err:
-            # Logging is fine, no need to raise further
-            print_and_log("Unable to add screens to version control: (%s)" % err, "MINOR")
-        except CommitToVersionControlException as err:
-            # Logging is fine, no need to raise further
-            print_and_log("Unable to commit screens to version control: (%s)" % err, "MINOR")
 
     def get_devices_schema(self):
         """ Gets the XSD data for the devices screens.
@@ -202,13 +178,6 @@ class DevicesManager(OnTheFlyPvInterface):
                 <devices xmlns="http://epics.isis.rl.ac.uk/schema/screens/1.0/">
                 </devices>"""
 
-    def recover_from_version_control(self):
-        """ A method to revert the configurations directory back to the state held in version control."""
-        try:
-            self._vc.update()
-        except UpdateFromVersionControlException as err:
-            print_and_log("Unable to recover screens to version control: %s" % err, "MINOR")
-
     def load_devices(self, path):
         """
         Reads device screens data from an xml file at a specified location
@@ -223,7 +192,3 @@ class DevicesManager(OnTheFlyPvInterface):
             xml_data = synfile.read()
 
         return xml_data
-
-    def delete(self, name):
-        """ Not needed for devices. Stub for superclass call """
-        pass

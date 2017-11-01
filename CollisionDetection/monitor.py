@@ -4,6 +4,8 @@ import ca
 import threading
 import time
 
+from utilities import print_and_log
+
 
 class Monitor(object):
 
@@ -20,9 +22,10 @@ class Monitor(object):
             self.stop()
 
         try:
+            print_and_log("Searching for collision detection pv {}".format(self.pv))
             self.channel.searchw(self.pv)
         except CaChannelException:
-            print ("Unable to find pv " + self.pv)
+            print_and_log("Unable to find collision detection pv {}".format(self.pv))
             return
 
         # Create the CA monitor callback

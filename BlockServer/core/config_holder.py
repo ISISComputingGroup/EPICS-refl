@@ -27,8 +27,6 @@ from BlockServer.core.constants import DEFAULT_COMPONENT, GRP_NONE
 from BlockServer.config.group import Group
 from BlockServer.core.macros import PVPREFIX_MACRO
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from ConfigVersionControl.version_control_exceptions import AddToVersionControlException, \
-    CommitToVersionControlException
 
 
 class ConfigHolder(object):
@@ -36,7 +34,7 @@ class ConfigHolder(object):
 
     Holds a configuration which can then be manipulated via this class.
     """
-    def __init__(self, macros, vc_manager, file_manager, is_component=False, test_config=None):
+    def __init__(self, macros, file_manager, is_component=False, test_config=None):
         """ Constructor.
 
         Args:
@@ -52,7 +50,6 @@ class ConfigHolder(object):
         self._components = OrderedDict()
         self._is_component = is_component
         self._macros = macros
-        self._vc = vc_manager
 
         self._config_path = FILEPATH_MANAGER.config_dir
         self._component_path = FILEPATH_MANAGER.component_dir
@@ -478,12 +475,10 @@ class ConfigHolder(object):
         if self._is_component:
             self._set_config_name(name)
             self._filemanager.save_config(self._config, True)
-            self._update_version_control(name)
         else:
             self._set_config_name(name)
             # TODO: CHECK WHAT COMPONENTS self._config contains and remove _base if it is in there
             self._filemanager.save_config(self._config, False)
-            self._update_version_control(name)
 
     def _check_name(self, name, is_comp = False):
         # Not empty
@@ -496,20 +491,6 @@ class ConfigHolder(object):
         m = re.match("^[a-zA-Z][a-zA-Z0-9_]*$", name)
         if m is None:
             raise Exception("Configuration name contains invalid characters")
-
-    def _update_version_control(self, name):
-        if self._is_component:
-            path = FILEPATH_MANAGER.get_component_path(name)
-        else:
-            path = FILEPATH_MANAGER.get_config_path(name)
-
-        try:
-            self._vc.add(path)
-            self._vc.commit("%s modified by client" % name)
-        except AddToVersionControlException as err:
-            print_and_log("Could not add %s to version control: %s" % (name, err), "MAJOR")
-        except CommitToVersionControlException as err:
-            print_and_log("Could not commit changes to %s to version control: %s" % (name, err), "MAJOR")
 
     def _set_as_component(self, value):
         if value is True:

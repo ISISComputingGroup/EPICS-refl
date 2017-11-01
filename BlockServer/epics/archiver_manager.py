@@ -53,7 +53,9 @@ class ArchiverManager(object):
             if self._uploader_path is not None:
                 self._upload_archive_config()
                 # Needs a second delay
+                print_and_log("Arbitrary wait after running archive settings uploader")
                 time.sleep(1)
+                print_and_log("Finished arbitrary wait")
                 self._archive_wrapper.restart_archiver()
         except Exception as err:
             print_and_log("Could not update archiver: %s" % str(err), "MAJOR")
@@ -78,9 +80,10 @@ class ArchiverManager(object):
     def _upload_archive_config(self):
         f = os.path.abspath(self._uploader_path)
         if os.path.isfile(f):
-            print_and_log("Running archiver settings uploader: %s" % f)
+            print_and_log("Running archiver settings uploader: {}".format(f))
             p = Popen(f)
             p.wait()
+            print_and_log("Finished running archiver settings uploader: {}".format(f))
         else:
             print_and_log("Could not find specified archiver uploader batch file: %s" % self._uploader_path)
 
