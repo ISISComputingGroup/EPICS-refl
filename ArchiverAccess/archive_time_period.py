@@ -48,6 +48,11 @@ class ArchiveTimePeriod(object):
         number_of_deltas = self.point_count - 1
         self.end_time = self.start_time + number_of_deltas * self.delta
 
+    def __eq__(self, other):
+        return other is self or (other.start_time == self.start_time and
+                                 other.point_count == self.point_count and
+                                 other.delta == self.delta)
+
     def get_time_after(self, periods_count):
         """
 

@@ -19,7 +19,8 @@ from unittest import TestCase
 
 from hamcrest import *
 
-from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator, FORMATTER_NOT_APPLIED_MESSAGE
+from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator, FORMATTER_NOT_APPLIED_MESSAGE, \
+    DataFileCreationError
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from ArchiverAccess.configuration import ConfigBuilder, TIME_DATE_COLUMN_HEADING
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub, FileStub
@@ -317,23 +318,14 @@ class TestlogFileCreator(TestCase):
 
         assert_that(self.file_made_readonly_path, is_(expected_filename))
 
-    def test_GIVEN_config_file_created_WHEN_write_THEN_write_returns_sucess(self):
-        config = ConfigBuilder("filename").build()
-        file_creator = self._archive_data_file_creator_setup(config)
-
-        result = file_creator.write_complete_file(self.time_period)
-
-        assert_that(result, is_(True))
-
     def test_GIVEN_config_file_creation_raise_error_WHEN_write_THEN_no_crash_and_file_is_not_made_read_only(self):
         expected_filename = "filename.txt"
         config = ConfigBuilder(expected_filename, base_path="").build()
         file_creator = self._archive_data_file_creator_setup(config)
         FileStub.raise_on_write[expected_filename] = IOError("Can not write")
 
-        result = file_creator.write_complete_file(self.time_period)
-
-        assert_that(result, is_(False))
+        with self.assertRaises(DataFileCreationError):
+            file_creator.write_complete_file(self.time_period)
 
     def test_GIVEN_config_is_constant_header_line_and_data_WHEN_write_just_header_THEN_just_header_is_written_to_file(self):
         time_period = ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10)
@@ -347,7 +339,7 @@ class TestlogFileCreator(TestCase):
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: initial_value}, time_period=time_period)
 
-        file_creator.write_file_header(self.time_period)
+        file_creator.write_file_header(self.time_period.start_time)
 
         assert_that(FileStub.contents_of_only_file(), has_length(2))
 
@@ -362,7 +354,7 @@ class TestlogFileCreator(TestCase):
             .table_column("heading", "{%s}" % pvname) \
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: initial_value}, time_period=time_period)
-        file_creator.write_file_header(self.time_period)
+        file_creator.write_file_header(self.time_period.start_time)
         assert_that(FileStub.contents_of_only_file(), has_length(2))
 
         file_creator.write_data_lines(self.time_period)
@@ -376,6 +368,5 @@ class TestlogFileCreator(TestCase):
 
         file_creator = self._archive_data_file_creator_setup(ConfigBuilder("filename").build())
 
-        result = file_creator.write_data_lines(time_period)
-
-        assert_that(result, is_(False))
+        with self.assertRaises(DataFileCreationError):
+            file_creator.write_data_lines(time_period)

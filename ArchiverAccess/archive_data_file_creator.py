@@ -39,18 +39,19 @@ class TemplateReplacer(object):
     Code to replace templated values
     """
 
-    def __init__(self, pv_values, time_period=None, time=None):
+    def __init__(self, pv_values, start_time=None, time=None):
         """
 
         Args:
-            time_period (ArchiverAccess.archive_time_period.ArchiveTimePeriod): time period
+            start_time (datetime.datetime): time used to replace templated "start_time"
+            time (datetime.datetime): time used to templated "time", e.g. start of logging ime for log filename
             pv_values: values of the pvs in order of keyword
         """
 
         self._pv_values = pv_values
         self._replacements = {}
-        if time_period is not None:
-            self._replacements["start_time"] = time_period.start_time.strftime("%Y-%m-%dT%H_%M_%S")
+        if start_time is not None:
+            self._replacements["start_time"] = start_time.strftime("%Y-%m-%dT%H_%M_%S")
         if time is not None:
             time_as_string = time.strftime("%Y-%m-%dT%H:%M:%S")
             milliseconds = time.microsecond / 1000
@@ -136,29 +137,34 @@ class ArchiveDataFileCreator(object):
         Raises DataFileCreationError: if there is a problem writing the log file
 
         """
-
-        self.write_file_header(time_period)
+        self.write_file_header(time_period.start_time)
         self.write_data_lines(time_period)
+        self.finish_log_file()
+
+    def finish_log_file(self):
+        """
+        Perform any post write tasks on the log file, e.g. make it read only.
+        """
         try:
             self._make_file_readonly_fn(self._filename)
         except Exception as ex:
-            raise DataFileCreationError("Failed to make log file {filename} readonly for time period {time_period}. "
+            raise DataFileCreationError("Failed to make log file {filename} readonly. "
                                         "Error is: '{exception}'"
-                                        .format(time_period=time_period, exception=ex, filename=self._config.filename))
+                                        .format(exception=ex, filename=self._config.filename))
 
-    def write_file_header(self, time_period):
+    def write_file_header(self, start_time):
         """
         Write the file header to a newly created file
         Args:
-            time_period: time period to write the header for
+            start_time: start time of logging
 
         Raises DataFileCreationError: if there is a problem writing the log file
 
         """
         try:
             pv_names_in_header = self._config.pv_names_in_header
-            pv_values = self._archiver_data_source.initial_values(pv_names_in_header, time_period.start_time)
-            template_replacer = TemplateReplacer(pv_values, time_period=time_period)
+            pv_values = self._archiver_data_source.initial_values(pv_names_in_header, start_time)
+            template_replacer = TemplateReplacer(pv_values, start_time=start_time)
 
             self._filename = template_replacer.replace(self._config.filename)
             print_and_log("Writing log file '{0}'".format(self._filename), src="ArchiverAccess")
@@ -171,9 +177,9 @@ class ArchiveDataFileCreator(object):
                 f.write("{0}\n".format(self._config.column_headers))
 
         except Exception as ex:
-            raise DataFileCreationError("Failed to write header in log file {filename} for time period {time_period}. "
+            raise DataFileCreationError("Failed to write header in log file {filename} for start time {time}. "
                                         "Error is: '{exception}'"
-                                        .format(time_period=time_period, exception=ex, filename=self._config.filename))
+                                        .format(time=start_time, exception=ex, filename=self._config.filename))
 
     def write_data_lines(self, time_period):
         """

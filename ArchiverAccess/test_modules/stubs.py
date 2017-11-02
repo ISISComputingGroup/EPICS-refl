@@ -8,6 +8,16 @@ class ArchiverDataStub(ArchiverDataSource):
                  initial_archiver_data_value=None,
                  data_changes=None,
                  sample_ids=None):
+        """
+
+        Args:
+            initial_values: list of values in pv order for at t=0 of data changes
+            values: changes to pv values
+            initial_archiver_data_value:
+            data_changes: returns from calls to the logging_changes_for_sample_id_generator each return is a list of data changes in a list of
+                each data change is a tuple of change time, index and new value
+            sample_ids: sample ids to return
+        """
         super(ArchiverDataStub, self).__init__(None)
         self.from_sample_id = []
         self.to_sample_id = []
