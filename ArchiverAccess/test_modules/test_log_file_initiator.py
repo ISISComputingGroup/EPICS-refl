@@ -41,7 +41,7 @@ class TestLogFileInitiatorForContinousLogging(unittest.TestCase):
 
             log_file_initiator.check_initiated()
 
-            write_file_header_mock.assert_called_once_with(expected_logging_start)
+            write_file_header_mock.assert_called_once_with(expected_logging_start, 'Continuous')
 
     def test_GIVEN_config_with_pv_WHEN_logging_pv_has_swicthed_off_in_changes_THEN_log_file_body_written_and_file_made_readonly(self):
             log_period_in_second = 1
@@ -107,46 +107,12 @@ class TestLogFileInitiatorForContinousLogging(unittest.TestCase):
                                            expected_logging_stop_time2,
                                            expected_period)
 
-    def test_GIVEN_config_with_pv_WHEN_pv_is_on_over_multiple_checks_THEN_one_header_two_data_write_done(self):
-        # start logging
-        # get initial data +1s
-        # get changes +1min
-        # logging turns off +1min 30s
-        # get changes +2min
-        log_period_in_second = 1
-        expected_logging_start1 = datetime(2017, 1, 1, 1, 1, 1)
-        sample_time1 = expected_logging_start1 + timedelta(seconds=1)
-        sample_time2 = expected_logging_start1 + timedelta(minutes=1)
-        sample_time3 = expected_logging_start1 + timedelta(minutes=2)
-        sample_ids = [sample_time1, sample_time2, sample_time3]
-        expected_logging_stop = expected_logging_start1 + timedelta(seconds=90)
-        expected_period = timedelta(seconds=log_period_in_second)
-        data_changes = [[],
-                        [(expected_logging_stop, 0, 0)]]
-        archive_data_source = DataSourceMother.set_up_data_source(initial_pv_values=[1], data_changes=data_changes, sample_times=sample_ids, logging_start_times=[expected_logging_start1])
-
-        write_data_lines_mock = Mock()
-        log_file_initiator, self.log_file_creators = DataSourceMother.create_log_file_intiator(archive_data_source, log_period_in_seconds=[log_period_in_second], write_data_lines_mock=write_data_lines_mock)
-
-        log_file_initiator.check_initiated()
-        log_file_initiator.check_initiated()
-
-        assert_that(write_data_lines_mock.call_count, is_(2), "Write data lines call count")
-        arg_list = write_data_lines_mock.call_args_list
-        logging_time_period1 = arg_list[0][0][0]
-        self.assert_logging_period_correct(logging_time_period1, expected_logging_start1, sample_time2,
-                                           expected_period)
-
-        logging_time_period2 = arg_list[1][0][0]
-        self.assert_logging_period_correct(logging_time_period2, sample_time2,
-                                           expected_logging_stop,
-                                           expected_period)
-
     def assert_logging_period_correct(self, logging_time_period, expected_logging_start, expected_logging_stop_time,
                                       expected_period):
         assert_that(logging_time_period.delta, is_(expected_period), "Delta")
         assert_that(logging_time_period.start_time, is_(expected_logging_start), "Start time")
         assert_that(logging_time_period.end_time, is_(expected_logging_stop_time), "End time")
+
 
 
 class TestLogFileInitiator(unittest.TestCase):

@@ -23,9 +23,16 @@ class ArchiverDataStub(ArchiverDataSource):
         self.to_sample_id = []
         self._initial_values = initial_values
         if values is None:
-            self._values = []
+            self._values = [[]]
         else:
-            self._values = values
+            try:
+                # original value was just a list of values (which was a list of time, pv and value but now we can have
+                # call index too so see which it is.
+                _ = values[0][0][0]
+                self._values = values
+            except TypeError:
+                self._values = [values]
+        self._value_index = 0
 
         self._initial_archiver_data_value = initial_archiver_data_value
         self._data_changes = data_changes
@@ -40,8 +47,9 @@ class ArchiverDataStub(ArchiverDataSource):
         return initial_values
 
     def changes_generator(self, pv_names, time_period):
-        for value in self._values:
+        for value in self._values[self._value_index]:
             yield (value[0], pv_names.index(value[1]), value[2])
+        self._value_index += 1
 
     def get_latest_sample_time(self, time=None):
         self._sample_id_index += 1

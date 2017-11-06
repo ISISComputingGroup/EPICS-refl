@@ -32,9 +32,7 @@ class TestlogFileCreator(TestCase):
                                          config,
                                          time_period=ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10),
                                          initial_values=None,
-                                         values= None):
-        if values is None:
-            values = {}
+                                         values=None):
         if initial_values is None:
             initial_values = {}
         archiver_data_source = ArchiverDataStub(initial_values, values)
@@ -370,3 +368,71 @@ class TestlogFileCreator(TestCase):
 
         with self.assertRaises(DataFileCreationError):
             file_creator.write_data_lines(time_period)
+
+    def test_GIVEN_config_with_3_column_and_full_data_with_header_WHEN_write_header_and_two_check_writes_THEN_contents_is_full_log_file(self):
+        expected_start_time = datetime(2017, 1, 1, 1, 2, 3, 0)
+        break_in_write_time = expected_start_time+timedelta(seconds=5*10)
+        time_period_1 = ArchiveTimePeriod(expected_start_time, timedelta(seconds=10), finish_time=break_in_write_time)
+        time_period_2 = ArchiveTimePeriod(break_in_write_time, timedelta(seconds=10), 5)
+
+        rn0 = 123456
+        rn1 = 123457
+        pos0 = 12.3
+        pos1 = 23.1245
+        pos2 = 34678
+        load0 = 2452.24432343
+        load1 = 23
+        strain0 = 7.98
+        strain1 = 183
+        initial_values = {"IN:PV:CSA.VAL": 2.91, "IN:PV:GLS.VAL": 123.8764, "IN:PV:RBNum.VAL": 123456789,
+                          "RunNumber.VAL": rn0, "POS.VAL": pos0, "Load.VAL": load0, "Strain.VAL": strain0}
+        values = [
+            [  # first call
+                [expected_start_time + timedelta(seconds=35), "RunNumber.VAL", rn1],
+                [expected_start_time + timedelta(seconds=36), "POS.VAL",  pos1],
+                [expected_start_time + timedelta(seconds=41), "POS.VAL", pos2]
+            ],
+            [   # second call
+                [expected_start_time + timedelta(seconds=61), "Load.VAL", load1],
+                [expected_start_time + timedelta(seconds=70), "Strain.VAL", strain1]
+            ]
+        ]
+
+        table_format = "{0}\t{1:6d}\t{2:10.6f}\t{3:10.6f}\t{4:10.6f}"
+        expected_file_contents = [
+            "Cross Sectional Area = 2.910000",
+            "Gauge Length for strain = 123.876400",
+            "RB Number = 123456789",
+            "",
+            "\t".join((TIME_DATE_COLUMN_HEADING, "Run Number",  "Position", "Load", "Strain")),
+            table_format.format("2017-01-01T01:02:03.000", rn0, pos0, load0, strain0),
+            table_format.format("2017-01-01T01:02:13.000", rn0, pos0, load0, strain0),
+            table_format.format("2017-01-01T01:02:23.000", rn0, pos0, load0, strain0),
+            table_format.format("2017-01-01T01:02:33.000", rn0, pos0, load0, strain0),
+            table_format.format("2017-01-01T01:02:43.000", rn1, pos1, load0, strain0),
+            table_format.format("2017-01-01T01:02:53.000", rn1, pos2, load0, strain0),
+            table_format.format("2017-01-01T01:03:03.000", rn1, pos2, load0, strain0),
+            table_format.format("2017-01-01T01:03:13.000", rn1, pos2, load1, strain1),
+            table_format.format("2017-01-01T01:03:23.000", rn1, pos2, load1, strain1),
+            table_format.format("2017-01-01T01:03:33.000", rn1, pos2, load1, strain1)
+        ]
+
+        config = ConfigBuilder("filename.txt") \
+            .header("Cross Sectional Area = {IN:PV:CSA|.6f}") \
+            .header("Gauge Length for strain = {IN:PV:GLS|.6f}") \
+            .header("RB Number = {IN:PV:RBNum|9d}") \
+            .header("") \
+            .table_column("Run Number", "{%s|6d}" % "RunNumber") \
+            .table_column("Position", "{%s|10.6f}" % "POS")  \
+            .table_column("Load", "{%s|10.6f}" % "Load") \
+            .table_column("Strain", "{%s|10.6f}" % "Strain") \
+            .build()
+        file_creator = self._archive_data_file_creator_setup(config, initial_values=initial_values,
+                                                             time_period=time_period_1, values=values)
+
+        file_creator.write_file_header(expected_start_time)
+        file_creator.write_data_lines(time_period_1)
+        file_creator.write_data_lines(time_period_2)
+
+        for index, (actual, expected) in enumerate(zip(FileStub.contents_of_only_file(), expected_file_contents)):
+            assert_that(actual, is_(expected), "Error on line {0}".format(index))

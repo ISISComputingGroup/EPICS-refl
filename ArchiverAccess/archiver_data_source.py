@@ -257,12 +257,12 @@ class ArchiverDataSource(object):
 
 if __name__ == "__main__":
     ads = ArchiverDataSource(SQLAbstraction("archive", "report", "$report"))
-    start_time = datetime(2020, 06, 16, 0, 0, 0)
+    start_time = datetime(2020, 6, 16, 0, 0, 0)
     pv_values = ('TE:NDW1798:TPG26X_01:2:ERROR.VAL', 'TE:NDW1798:EUROTHRM_01:A01:TEMP.VAL')
     period = ArchiveTimePeriod(start_time, timedelta(days=365), 10)
 
     for val in ads.initial_values(pv_values, start_time):
-        print str(val)
+        print(str(val))
 
     for val in ads.changes_generator(pv_values, period):
-        print str(val)
+        print(str(val))

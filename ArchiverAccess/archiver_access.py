@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, signal_handler)
     while not finish:
-        pv_monitor.check_write()
+        pv_monitor.check_initiated()
         try:
             sleep(60)
         except IOError:

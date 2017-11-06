@@ -94,6 +94,7 @@ class LogFileInitiatorOnPVChange(object):
         print_and_log("Checking for logging pvs turning on")
         # TODO what happens if current sample time is less the last sample time
         current_sample_time = self._archive_data_source.get_latest_sample_time()
+        print("changes period {} - {}".format(self._last_sample_time, current_sample_time))
         changes = self._archive_data_source.logging_changes_for_sample_id_generator(
             self._trigger_pvs, self._last_sample_time, current_sample_time)
         self._last_sample_time = current_sample_time
@@ -159,12 +160,11 @@ class ContinualLogger(object):
         continual_logging_last_write = self._last_write_time
         if continual_logging_last_write is None:
             # not continually logging at the moment
-                self._last_write_time = timestamp
-                try:
-                    self._config_and_dependencies.archive_data_file_creator.write_file_header(
-                        timestamp)
-                except DataFileCreationError as e:
-                    print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
+            self._last_write_time = timestamp
+            try:
+                self._config_and_dependencies.archive_data_file_creator.write_file_header(timestamp, "Continuous")
+            except DataFileCreationError as e:
+                print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
 
     def logging_switched_off(self, timestamp):
         """
@@ -202,8 +202,7 @@ class ContinualLogger(object):
         """
         logging_start_time = self._last_write_time
         logging_period_provider = self._config_and_dependencies.config.logging_period_provider
-        logging_period = logging_period_provider.get_logging_period(
-            self._archive_data_source, logging_start_time)
+        logging_period = logging_period_provider.get_logging_period(self._archive_data_source, logging_start_time)
         time_period = ArchiveTimePeriod(logging_start_time, logging_period, finish_time=timestamp)
         try:
             archive_data_file_creator = self._config_and_dependencies.archive_data_file_creator

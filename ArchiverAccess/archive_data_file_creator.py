@@ -126,6 +126,7 @@ class ArchiveDataFileCreator(object):
         self._mkdir_for_file_fn = mkdir_for_file_fn
         self._make_file_readonly_fn = make_file_readonly
         self._filename = None
+        self._first_line_written = False
 
     def write_complete_file(self, time_period):
         """
@@ -152,11 +153,12 @@ class ArchiveDataFileCreator(object):
                                         "Error is: '{exception}'"
                                         .format(exception=ex, filename=self._config.filename))
 
-    def write_file_header(self, start_time):
+    def write_file_header(self, start_time, file_postfix=""):
         """
         Write the file header to a newly created file
         Args:
             start_time: start time of logging
+            file_postfix: extra postfix to add the the file
 
         Raises DataFileCreationError: if there is a problem writing the log file
 
@@ -166,7 +168,7 @@ class ArchiveDataFileCreator(object):
             pv_values = self._archiver_data_source.initial_values(pv_names_in_header, start_time)
             template_replacer = TemplateReplacer(pv_values, start_time=start_time)
 
-            self._filename = template_replacer.replace(self._config.filename)
+            self._filename = template_replacer.replace(self._config.filename + file_postfix)
             print_and_log("Writing log file '{0}'".format(self._filename), src="ArchiverAccess")
             self._mkdir_for_file_fn(self._filename)
             with self._file_access_class(self._filename, mode="w") as f:
@@ -175,6 +177,8 @@ class ArchiveDataFileCreator(object):
                     f.write("{0}\n".format(header_line))
 
                 f.write("{0}\n".format(self._config.column_headers))
+            self._first_line_written = False
+            self._periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
 
         except Exception as ex:
             raise DataFileCreationError("Failed to write header in log file {filename} for start time {time}. "
@@ -183,7 +187,8 @@ class ArchiveDataFileCreator(object):
 
     def write_data_lines(self, time_period):
         """
-        Append data lines to a file for the given time period
+        Append data lines to a file for the given time period. The first data line is appended only on the first call
+        to this.
         Args:
             time_period: the time period to generate data lines for
 
@@ -193,9 +198,10 @@ class ArchiveDataFileCreator(object):
         try:
             assert self._filename is not None, "Called write_data_lines before writing header."
 
-            periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
             with self._file_access_class(self._filename, mode="a") as f:
-                periodic_data = periodic_data_generator.get_generator(self._config.pv_names_in_columns, time_period)
+                periodic_data = self._periodic_data_generator.get_generator(self._config.pv_names_in_columns, time_period)
+                self._ignore_first_line_if_already_written(periodic_data)
+
                 for time, values in periodic_data:
                     table_template_replacer = TemplateReplacer(values, time=time)
                     table_line = table_template_replacer.replace(self._config.table_line)
@@ -205,3 +211,16 @@ class ArchiveDataFileCreator(object):
             raise DataFileCreationError("Failed to write lines in log file {filename} for time period {time_period}. "
                                         "Error is: '{exception}'"
                                         .format(time_period=time_period, exception=ex, filename=self._config.filename))
+
+    def _ignore_first_line_if_already_written(self, periodic_data):
+        """
+        If this is the second call to this function then the first line will have been written as part of the output
+         from the previous call so skip it.
+        Args:
+            periodic_data: periodic data
+
+        """
+        if self._first_line_written:
+            periodic_data.next()
+        else:
+            self._first_line_written = True
