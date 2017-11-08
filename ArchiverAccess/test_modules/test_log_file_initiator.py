@@ -113,6 +113,17 @@ class TestLogFileInitiatorForContinousLogging(unittest.TestCase):
         assert_that(logging_time_period.start_time, is_(expected_logging_start), "Start time")
         assert_that(logging_time_period.end_time, is_(expected_logging_stop_time), "End time")
 
+    def test_GIVEN_config_with_pv_WHEN_logging_pv_is_initially_at_1_THEN_log_file_header_created(self):
+            expected_logging_start = datetime(2017, 1, 1, 1, 1, 2)
+            initial_values = [1]
+            archive_data_source = DataSourceMother.set_up_data_source(initial_pv_values=initial_values,
+                                                                      logging_start_times=[expected_logging_start])
+            write_file_header_mock = Mock()
+            log_file_initiator, self.log_file_creators = DataSourceMother.create_log_file_intiator(archive_data_source, write_file_header_mock=write_file_header_mock)
+
+            log_file_initiator.check_initiated()
+
+            write_file_header_mock.assert_called_once_with(expected_logging_start, 'Continuous')
 
 
 class TestLogFileInitiator(unittest.TestCase):
@@ -302,7 +313,7 @@ class TestLogFileInitiator(unittest.TestCase):
         self.log_file_creators[0].write_complete_file.assert_called_once()
 
 
-class DataSourceMother():
+class DataSourceMother(object):
     @staticmethod
     def set_up_data_source(initial_pv_values=None,
                             final_pv_value=0,

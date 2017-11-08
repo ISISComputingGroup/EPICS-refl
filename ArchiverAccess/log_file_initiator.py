@@ -35,7 +35,7 @@ class ConfigAndDependencies(object):
 
     def __init__(self, config, archive_data_file_creator):
         """
-        Consructor
+        Constructor.
         Args:
             config(ArchiverAccess.configuration.Config): configuration
             archive_data_file_creator(ArchiverAccess.archive_data_file_creator.ArchiveDataFileCreator):
@@ -70,17 +70,16 @@ class LogFileInitiatorOnPVChange(object):
 
         self._loggers_for_pvs = []
         for config_and_dependencies, initial_data_value in zip(config_and_dependencies, initial_data_values):
-            if self._value_is_logging_on(initial_data_value.value):
-                sample_time = initial_data_value.sample_time
-            else:
-                sample_time = None
 
-            cont_logger = ContinualLogger(sample_time, config_and_dependencies, self._archive_data_source,
-                                          self._time_last_active)
-            end_logger = WriteOnLoggingEndLogger(sample_time, config_and_dependencies, self._archive_data_source,
+            cont_logger = ContinualLogger(config_and_dependencies, self._archive_data_source, self._time_last_active)
+            end_logger = WriteOnLoggingEndLogger(config_and_dependencies, self._archive_data_source,
                                                  self._time_last_active)
+            loggers = (cont_logger, end_logger)
 
-            self._loggers_for_pvs.append((cont_logger, end_logger))
+            if self._value_is_logging_on(initial_data_value.value):
+                [logger.logging_switched_on(initial_data_value.sample_time) for logger in loggers]
+
+            self._loggers_for_pvs.append(loggers)
 
     def check_initiated(self):
         """
@@ -92,7 +91,6 @@ class LogFileInitiatorOnPVChange(object):
 
         """
         print_and_log("Checking for logging pvs turning on")
-        # TODO what happens if current sample time is less the last sample time
         current_sample_time = self._archive_data_source.get_latest_sample_time()
         print("changes period {} - {}".format(self._last_sample_time, current_sample_time))
         changes = self._archive_data_source.logging_changes_for_sample_id_generator(
@@ -135,19 +133,18 @@ class ContinualLogger(object):
     A logger that will write the data to the file every period.
     """
 
-    def __init__(self, continual_logging_last_write_time, config_and_dependencies, archive_data_source,
+    def __init__(self, config_and_dependencies, archive_data_source,
                  time_last_active):
         """
         Initializer.
         Args:
-            continual_logging_last_write_time: if the logging is on time it was switched on; None for not switched on
             config_and_dependencies: configuration and dependencies for this logging set
             archive_data_source: data source from the archive
             time_last_active: a object that allows us to say when the pvs were last logged
         """
         self._archive_data_source = archive_data_source
         self._config_and_dependencies = config_and_dependencies
-        self._last_write_time = continual_logging_last_write_time
+        self._last_write_time = None
         self._time_last_active = time_last_active
 
     def logging_switched_on(self, timestamp):
@@ -217,16 +214,15 @@ class WriteOnLoggingEndLogger(object):
     Logger which writes a file when logging ends
     """
 
-    def __init__(self, logging_started, config_and_dependencies, archive_data_source, time_last_active):
+    def __init__(self, config_and_dependencies, archive_data_source, time_last_active):
         """
         Initializer.
         Args:
-            logging_started: when logging started if it is on; None if no logging
             config_and_dependencies: config and dependencies for this logger
             archive_data_source: the archive data source
             time_last_active: module to record the time file were last written
         """
-        self._logging_started = logging_started
+        self._logging_started = None
         self._archive_data_source = archive_data_source
         self._config_and_dependencies = config_and_dependencies
         self._time_last_active = time_last_active
