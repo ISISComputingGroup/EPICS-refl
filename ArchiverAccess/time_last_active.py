@@ -23,8 +23,8 @@ from datetime import datetime, timedelta
 from ArchiverAccess.configuration import DEFAULT_LOG_PATH
 from server_common.utilities import print_and_log, SEVERITY
 
-TIME_LAST_ACTIVE_HEADER = "# File containing two line, time the logger was last active and " \
-                          "maximum number of days use the time last active"
+TIME_LAST_ACTIVE_HEADER = "# File containing two line, 1. time the logger last wrote to file and " \
+                          "maximum number of days that the archiver access should go back to generate log files"
 """Header for the last active file """
 
 TIME_LAST_ACTIVE_FILENAME = os.path.join(DEFAULT_LOG_PATH, "LOG_last_active_time")
@@ -38,7 +38,7 @@ class TimeLastActive(object):
     """
     Allow Getting and Settting of the time last active log was written. This is stored in a file.
     """
-    def __init__(self, file_cls=file, time_now_fn=datetime.now):
+    def __init__(self, file_cls=file, time_now_fn=datetime.utcnow):
         """
         Constructor
         Args:

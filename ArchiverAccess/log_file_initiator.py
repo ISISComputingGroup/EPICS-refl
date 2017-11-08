@@ -16,19 +16,19 @@
 """
 Module for initiator for log file creation.
 """
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from ArchiverAccess.archive_data_file_creator import DataFileCreationError
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from server_common.utilities import print_and_log, SEVERITY
 
-# The delay between the latest sample time in the database and the end of the current logging period. This is so
-# that the archiver has time to write its buffered values into the database before we try to read them out
-LOGGING_DELAY = timedelta(seconds=30)
+# The delay between the current time and what we think should have been archived. This is so if nothing is archived
+# the continous logger will still produce values but will still catch values coming through the system. The values
+# are written every 60s so this is ample time to get the last value
+SAMPLING_BEHIND_REAL_TIME = timedelta(seconds=90)
 
 
 class ConfigAndDependencies(object):
-
     """
     config and its dependencies needed for writting a data file on pv change
     """
@@ -51,22 +51,26 @@ class LogFileInitiatorOnPVChange(object):
     Initiate the writing of a log file based on the change of a PV.
     """
 
-    def __init__(self, config_and_dependencies, archive_data_source, time_last_active):
+    def __init__(self, config_and_dependencies, archive_data_source, time_last_active, get_current_time_fn=datetime.utcnow):
         """
 
         Args:
-            config_and_dependencies(list[ConfigAndDependencies]): list of configs along with their needed dependencies
-            archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource): data source
-            time_last_active: provider for the time from which to search for changes in the logging pv
+            config_and_dependencies(list[ConfigAndDependencies]):
+                list of configs along with their needed dependencies
+            archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource):
+                data source
+            time_last_active(ArchiverAccess.time_last_active.TimeLastActive):
+                provider for the time from which to search for changes in the logging pv
+            get_current_time_fn: function to get the current time
         """
-
+        self._get_current_time_fn = get_current_time_fn
         self._archive_data_source = archive_data_source
         self._trigger_pvs = [cad.config.trigger_pv for cad in config_and_dependencies]
         self._time_last_active = time_last_active
         search_for_change_from = time_last_active.get()
         initial_data_values = archive_data_source.initial_archiver_data_values(
             self._trigger_pvs, search_for_change_from)
-        self._last_sample_time = self._archive_data_source.get_latest_sample_time(search_for_change_from)
+        self._last_sample_time = search_for_change_from
 
         self._loggers_for_pvs = []
         for config_and_dependencies, initial_data_value in zip(config_and_dependencies, initial_data_values):
@@ -91,7 +95,9 @@ class LogFileInitiatorOnPVChange(object):
 
         """
         print_and_log("Checking for logging pvs turning on")
-        current_sample_time = self._archive_data_source.get_latest_sample_time()
+        latest_sample_time = self._archive_data_source.get_latest_sample_time()
+        current_time_with_delay = self._get_current_time_fn() - SAMPLING_BEHIND_REAL_TIME
+        current_sample_time = max(latest_sample_time, current_time_with_delay, self._last_sample_time)
         print("changes period {} - {}".format(self._last_sample_time, current_sample_time))
         changes = self._archive_data_source.logging_changes_for_sample_id_generator(
             self._trigger_pvs, self._last_sample_time, current_sample_time)

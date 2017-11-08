@@ -24,7 +24,8 @@ from ArchiverAccess.archive_data_file_creator import DataFileCreationError
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from ArchiverAccess.archiver_data_source import ArchiverDataValue
 from ArchiverAccess.configuration import ConfigBuilder
-from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange, ConfigAndDependencies, LOGGING_DELAY
+from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange, ConfigAndDependencies, \
+    SAMPLING_BEHIND_REAL_TIME
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub
 
 
@@ -71,7 +72,7 @@ class TestLogFileInitiatorForContinousLogging(unittest.TestCase):
             expected_logging_start = datetime(2017, 1, 1, 1, 1, 1)
             data_changes = [[(expected_logging_start, 0, 1)]]
             archive_data_source = DataSourceMother.set_up_data_source(initial_pv_values=[0], data_changes=data_changes,
-                                                                      logging_start_times=[datetime(2017, 1, 1, 1, 1, 1)], sample_times=[None, expected_end_time])
+                                                                      logging_start_times=[datetime(2017, 1, 1, 1, 1, 1)], sample_times=[expected_end_time])
             write_data_lines_mock = Mock()
             finished_log_file_mock = Mock()
             log_file_initiator, self.log_file_creators = DataSourceMother.create_log_file_intiator(archive_data_source, write_data_lines_mock=write_data_lines_mock, finish_log_file_mock=finished_log_file_mock)
@@ -129,25 +130,27 @@ class TestLogFileInitiatorForContinousLogging(unittest.TestCase):
 class TestLogFileInitiator(unittest.TestCase):
 
     def test_GIVEN_config_with_pv_WHEN_get_data_THEN_correct_sample_ids_asked_for(self):
-        sample_ids = [datetime(2001, 2, 3, 4, 5, 6), datetime(2001, 2, 3, 4, 5, 36)]
+        sample_ids = [datetime(2001, 2, 3, 4, 5, 36)]
+        time_last_active = datetime(2001, 2, 3, 4, 5, 6)
         archive_data_source = DataSourceMother.set_up_data_source(sample_times=sample_ids)
-        log_file_initiator, self.log_file_creators = DataSourceMother.create_log_file_intiator(archive_data_source)
+        log_file_initiator, self.log_file_creators = DataSourceMother.create_log_file_intiator(archive_data_source, time_last_actived=time_last_active)
 
         log_file_initiator.check_initiated()
 
-        assert_that(archive_data_source.from_sample_id, is_([sample_ids[0]]))
-        assert_that(archive_data_source.to_sample_id, is_([sample_ids[1]]))
+        assert_that(archive_data_source.from_sample_id, is_([time_last_active]))
+        assert_that(archive_data_source.to_sample_id, is_([sample_ids[0]]))
 
     def test_GIVEN_config_with_pv_WHEN_check_write_twice_THEN_consecutive_sample_ids_are_used(self):
-        sample_ids = [datetime(2001, 2, 3, 4, 5, 6), datetime(2001, 2, 3, 4, 5, 36), datetime(2001, 2, 3, 4, 6, 6)]
+        time_last_active = datetime(2001, 2, 3, 4, 5, 6)
+        sample_ids = [datetime(2001, 2, 3, 4, 5, 36), datetime(2001, 2, 3, 4, 6, 6)]
         archive_data_source = DataSourceMother.set_up_data_source(sample_times=sample_ids, data_changes=[[], []])
-        log_file_initiator, self.log_file_creators = DataSourceMother.create_log_file_intiator(archive_data_source)
+        log_file_initiator, self.log_file_creators = DataSourceMother.create_log_file_intiator(archive_data_source, time_last_actived=time_last_active)
 
         log_file_initiator.check_initiated()
         log_file_initiator.check_initiated()
 
-        assert_that(archive_data_source.from_sample_id, is_([sample_ids[0], sample_ids[1]]))
-        assert_that(archive_data_source.to_sample_id, is_([sample_ids[1], sample_ids[2]]))
+        assert_that(archive_data_source.from_sample_id, is_([time_last_active, sample_ids[0]]))
+        assert_that(archive_data_source.to_sample_id, is_([sample_ids[0], sample_ids[1]]))
 
     def test_GIVEN_config_with_pv_WHEN_pv_has_changed_from_1_to_0_THEN_log_file_created(self):
         log_period_in_second = 1
@@ -313,6 +316,18 @@ class TestLogFileInitiator(unittest.TestCase):
         self.log_file_creators[0].write_complete_file.assert_called_once()
 
 
+    def test_GIVEN_config_with_pv_WHEN_get_data__and_no_new_sample_id_THEN_sample_id_is_current_time_minus_set_amount(self):
+        last_sample_time = datetime(2001, 2, 3, 4, 5, 6)
+        current_time = datetime(2001, 2, 3, 4, 7, 0)
+        expected_to_sample_id = current_time - SAMPLING_BEHIND_REAL_TIME
+        sample_ids = [last_sample_time, last_sample_time]
+        archive_data_source = DataSourceMother.set_up_data_source(sample_times=sample_ids)
+        log_file_initiator, self.log_file_creators = DataSourceMother.create_log_file_intiator(archive_data_source, current_time=current_time)
+
+        log_file_initiator.check_initiated()
+
+        assert_that(archive_data_source.to_sample_id, is_([expected_to_sample_id]))
+
 class DataSourceMother(object):
     @staticmethod
     def set_up_data_source(initial_pv_values=None,
@@ -338,6 +353,7 @@ class DataSourceMother(object):
             data_changes = [[(logging_stop_time, 0, final_pv_value)]]
         if sample_times is None:
             sample_times = [datetime(2010, 9, 8, 2, 3, 4), datetime(2010, 9, 8, 2, 3, 34)]
+
         archive_data_source = ArchiverDataStub(initial_archiver_data_value=initial_archiver_data_values,
                                                data_changes=data_changes,
                                                sample_ids=sample_times,
@@ -346,7 +362,8 @@ class DataSourceMother(object):
 
     @staticmethod
     def create_log_file_intiator(archive_data_source, log_period_in_seconds=None, log_period_pvs=None, throw_on_write_complete_file=False,
-                                 write_file_header_mock=Mock(), write_data_lines_mock=Mock(), finish_log_file_mock=Mock()):
+                                 write_file_header_mock=Mock(), write_data_lines_mock=Mock(), finish_log_file_mock=Mock(),
+                            current_time=datetime(2000, 1, 1, 1, 1, 2), time_last_actived=datetime(2000, 1, 1, 1, 1, 1)):
         if log_period_in_seconds is None and log_period_pvs is None:
             log_period_in_seconds = [1]
         if log_period_pvs is None:
@@ -373,5 +390,9 @@ class DataSourceMother(object):
             configs_and_their_dependencies.append(ConfigAndDependencies(config, log_file_creator))
             log_file_creators.append(log_file_creator)
         time_last_active = Mock()
-        time_last_active.get = Mock(return_value=datetime.now())
-        return LogFileInitiatorOnPVChange(configs_and_their_dependencies, archive_data_source, time_last_active), log_file_creators
+        time_last_active.get = Mock(return_value=time_last_actived)
+
+        def get_current_time():
+            return current_time
+
+        return LogFileInitiatorOnPVChange(configs_and_their_dependencies, archive_data_source, time_last_active, get_current_time), log_file_creators
