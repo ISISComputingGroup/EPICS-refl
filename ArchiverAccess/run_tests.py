@@ -13,6 +13,9 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+"""
+Run tests for the archive access module.
+"""
 
 # Add root path for access to server_commons
 import os
@@ -25,7 +28,7 @@ import unittest
 import xmlrunner
 import argparse
 
-DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
+DEFAULT_DIRECTORY = os.path.join('..', '..', '..', '..', 'test-reports')
 
 if __name__ == '__main__':
     # get output directory from command line arguments

@@ -127,6 +127,7 @@ class ArchiveDataFileCreator(object):
         self._make_file_readonly_fn = make_file_readonly
         self._filename = None
         self._first_line_written = False
+        self._periodic_data_generator = None
 
     def write_complete_file(self, time_period):
         """
@@ -199,7 +200,8 @@ class ArchiveDataFileCreator(object):
             assert self._filename is not None, "Called write_data_lines before writing header."
 
             with self._file_access_class(self._filename, mode="a") as f:
-                periodic_data = self._periodic_data_generator.get_generator(self._config.pv_names_in_columns, time_period)
+                periodic_data = self._periodic_data_generator.get_generator(
+                    self._config.pv_names_in_columns, time_period)
                 self._ignore_first_line_if_already_written(periodic_data)
 
                 for time, values in periodic_data:

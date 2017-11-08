@@ -51,7 +51,8 @@ class LogFileInitiatorOnPVChange(object):
     Initiate the writing of a log file based on the change of a PV.
     """
 
-    def __init__(self, config_and_dependencies, archive_data_source, time_last_active, get_current_time_fn=datetime.utcnow):
+    def __init__(self, config_and_dependencies, archive_data_source, time_last_active,
+                 get_current_time_fn=datetime.utcnow):
         """
 
         Args:
@@ -94,11 +95,9 @@ class LogFileInitiatorOnPVChange(object):
         Returns:
 
         """
-        print_and_log("Checking for logging pvs turning on")
         latest_sample_time = self._archive_data_source.get_latest_sample_time()
         current_time_with_delay = self._get_current_time_fn() - SAMPLING_BEHIND_REAL_TIME
         current_sample_time = max(latest_sample_time, current_time_with_delay, self._last_sample_time)
-        print("changes period {} - {}".format(self._last_sample_time, current_sample_time))
         changes = self._archive_data_source.logging_changes_for_sample_id_generator(
             self._trigger_pvs, self._last_sample_time, current_sample_time)
         self._last_sample_time = current_sample_time
