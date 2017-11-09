@@ -23,6 +23,9 @@ from datetime import datetime, timedelta
 from ArchiverAccess.configuration import DEFAULT_LOG_PATH
 from server_common.utilities import print_and_log, SEVERITY
 
+TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
+"""Format to write time to file in"""
+
 TIME_LAST_ACTIVE_HEADER = "# File containing two line, 1. time the logger last wrote to file and " \
                           "maximum number of days that the archiver access should go back to generate log files"
 """Header for the last active file """
@@ -71,7 +74,7 @@ class TimeLastActive(object):
         try:
             with self._file(TIME_LAST_ACTIVE_FILENAME, mode="r") as time_last_active_file:
                 time_last_active_file.readline()
-                last_active_time = datetime.strptime(time_last_active_file.readline().strip(), "%Y-%m-%dT%H:%M:%S")
+                last_active_time = datetime.strptime(time_last_active_file.readline().strip(), TIME_FORMAT)
                 max_delta = int(time_last_active_file.readline().strip())
         except (ValueError, TypeError, IOError) as ex:
             print_and_log("Failed to read last active file error '{0}'".format(ex),
@@ -88,7 +91,7 @@ class TimeLastActive(object):
         """
         Write a last active time with a delta to the file
         Args:
-            last_active_time: the time to write
+            last_active_time(datetime): the time to write
             delta: the furthest time back from this moment in days that the last active time should be reported
 
         Returns:
@@ -97,7 +100,7 @@ class TimeLastActive(object):
         try:
             with self._file(TIME_LAST_ACTIVE_FILENAME, mode="w") as time_last_active_file:
                 time_last_active_file.write("{0}\n".format(TIME_LAST_ACTIVE_HEADER))
-                time_last_active_file.write("{0}\n".format(last_active_time.isoformat()))
+                time_last_active_file.write("{0}\n".format(last_active_time.strftime(TIME_FORMAT)))
                 time_last_active_file.write("{0}\n".format(delta))
         except (ValueError, TypeError, IOError)as err:
             print_and_log("Error writing last activity file: '{0}'".format(err))

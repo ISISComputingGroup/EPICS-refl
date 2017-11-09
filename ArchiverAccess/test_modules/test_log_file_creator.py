@@ -47,8 +47,8 @@ class TestlogFileCreator(TestCase):
             self.file_made_readonly_path = path
 
         FileStub.clear()
-        return ArchiveDataFileCreator(config, archiver_data_source, FileStub, mkdir_for_file_fn=mkdir_for_file_stub,
-                                      make_file_readonly=make_file_readonly_fn)
+        return ArchiveDataFileCreator(config, archiver_data_source, config.on_end_logging_filename_template, FileStub,
+                                      mkdir_for_file_fn=mkdir_for_file_stub, make_file_readonly=make_file_readonly_fn,)
 
     def test_GIVEN_config_is_just_constant_header_line_WHEN_write_THEN_values_are_written_to_file(self):
         expected_header_line = "expected_header_line a line of goodness :-)"

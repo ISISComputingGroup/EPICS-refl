@@ -19,17 +19,15 @@ Module for accessing the archiver
 import os
 import signal
 
-
 from time import sleep
 
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
-from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator
 from ArchiverAccess.archiver_data_source import ArchiverDataSource
 from ArchiverAccess.database_config_builder import DatabaseConfigBuilder
-from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange, ConfigAndDependencies
+from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange
 from ArchiverAccess.time_last_active import TimeLastActive
 from server_common.ioc_data import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
@@ -50,13 +48,7 @@ def create_pv_monitor():
     archiver_data_source = ArchiverDataSource(archive_mysql_abstraction_layer)
     ioc_data_source = IocDataSource(ioc_mysql_abstraction_layer)
     configs_from_db = DatabaseConfigBuilder(ioc_data_source).create()
-    config_and_dependencies = []
-    for config in configs_from_db:
-        archive_data_file_creator = ArchiveDataFileCreator(config, archiver_data_source)
-        config_and_dependencies.append(
-            ConfigAndDependencies(config, archive_data_file_creator)
-        )
-    return LogFileInitiatorOnPVChange(config_and_dependencies, archiver_data_source, TimeLastActive())
+    return LogFileInitiatorOnPVChange(configs_from_db, archiver_data_source, TimeLastActive())
 
 
 def signal_handler(signal, frame):

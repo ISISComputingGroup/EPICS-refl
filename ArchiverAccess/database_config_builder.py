@@ -65,12 +65,15 @@ class DatabaseConfigBuilder(object):
         """
 
         configurations = []
-        for ioc_name, logging_items in self._ioc_data_source.get_pv_logging_info().iteritems():
+        for ioc_name, logging_items in self._ioc_data_source.get_pv_logging_info().items():
             print_and_log("Reading config for ioc: {ioc}".format(ioc=ioc_name),
                           severity=SEVERITY.INFO, src="ArchiverAccess")
-            file_name_template = "{ioc_name}_{{start_time}}.dat".format(ioc_name=ioc_name)
-            file_name_template = os.path.join(ioc_name, file_name_template)
-            config_builder = self._create_config_for_ioc(file_name_template, logging_items)
+            one_end_file_name_template = "{ioc_name}_{{start_time}}.dat".format(ioc_name=ioc_name)
+            one_end_file_name_template = os.path.join(ioc_name, one_end_file_name_template)
+            cont_file_name_template = "{ioc_name}_{{start_time}}_continuous.dat".format(ioc_name=ioc_name)
+            cont_file_name_template = os.path.join(ioc_name, cont_file_name_template)
+            config_builder = self._create_config_for_ioc(one_end_file_name_template, cont_file_name_template,
+                                                         logging_items)
 
             config = config_builder.build()
             print_and_log("{0}".format(config.__rep__().replace(" - ", "\n  - ")),
@@ -78,10 +81,11 @@ class DatabaseConfigBuilder(object):
             configurations.append(config)
         return configurations
 
-    def _create_config_for_ioc(self, file_name_template, logging_items):
+    def _create_config_for_ioc(self, on_end_logging_filename_template, continuous_logging_filename_template,
+                               logging_items):
         columns = {}
         all_keys = set()
-        config_builder = ConfigBuilder(file_name_template)
+        config_builder = ConfigBuilder(on_end_logging_filename_template, continuous_logging_filename_template)
         sorted_values = sorted(logging_items, key=lambda x: x[1])
         for pv_name, key, template in sorted_values:
             key_lowered = key.lower()

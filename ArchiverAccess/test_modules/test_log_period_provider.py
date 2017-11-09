@@ -15,14 +15,11 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import unittest
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from hamcrest import *
 from mock import Mock
 
-from ArchiverAccess.archiver_data_source import ArchiverDataValue
-from ArchiverAccess.configuration import ConfigBuilder
-from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange, ConfigAndDependencies
 from ArchiverAccess.logging_period_providers import LoggingPeriodProviderConst, LoggingPeriodProviderPV, \
     MINIMUM_LOGGING_PERIOD
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub

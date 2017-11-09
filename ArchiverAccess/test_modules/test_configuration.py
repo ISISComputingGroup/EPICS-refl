@@ -13,11 +13,11 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
+import os
 from unittest import TestCase
 from hamcrest import *
 
-from ArchiverAccess.configuration import ConfigBuilder
+from ArchiverAccess.configuration import ConfigBuilder, DEFAULT_LOG_PATH
 
 
 class TestConfiguration(TestCase):
@@ -123,7 +123,7 @@ class TestConfiguration(TestCase):
         assert_that(config.pv_names_in_header, contains(expected_pvname))
 
     def test_GIVEN_config_has_header_with_multiple_repeating_pvs_WHEN_get_header_THEN_header_with_template_returned_with_pv(self):
-        pvname1= "pv_name1.VAL"
+        pvname1 = "pv_name1.VAL"
         pvname2 = "pv_name2.VAL"
         pvname3 = "pv_name3.VAL"
         header_line1 = "{pv_name1|5.6f} but plain is {pv_name1}, {pv_name2}"
@@ -137,3 +137,36 @@ class TestConfiguration(TestCase):
 
         assert_that(results, contains(expected_header_line1, expected_header_line2))
         assert_that(config.pv_names_in_header, contains(pvname1, pvname2, pvname3))
+
+    def test_GIVEN_config_has_no_continuous_logging_filename_WHEN_get_filenames_THEN_nothing_returned(self):
+        config = ConfigBuilder("filename.txt").build()
+
+        results = config.continuous_logging_filename_template
+
+        assert_that(results, is_(None))
+
+    def test_GIVEN_config_has_a_continuous_logging_filename_WHEN_get_filenames_THEN_filename_returned(self):
+        expected_filename = "filename.txt"
+        config = ConfigBuilder(continuous_logging_filename_template=expected_filename).build()
+
+        results = config.continuous_logging_filename_template
+
+        assert_that(results, is_(os.path.join(DEFAULT_LOG_PATH,expected_filename)))
+
+    def test_GIVEN_config_has_no_log_on_end_filename_WHEN_get_filenames_THEN_nothing_returned(self):
+        config = ConfigBuilder().build()
+
+        results = config.on_end_logging_filename_template
+
+        assert_that(results, is_(None))
+
+    def test_GIVEN_config_has_an_on_end_logging_filename_WHEN_get_filenames_THEN_filename_returned(self):
+        filename = "filename.txt"
+        config = ConfigBuilder(on_end_logging_filename_template=filename).build()
+
+        results = config.on_end_logging_filename_template
+
+        assert_that(results, is_(os.path.join(DEFAULT_LOG_PATH,filename)))
+
+
+

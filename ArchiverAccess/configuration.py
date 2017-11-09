@@ -42,19 +42,33 @@ class ConfigBuilder(object):
     Configuration builder a way of creating a config step by step
     """
 
-    def __init__(self, filename_template, base_path=DEFAULT_LOG_PATH, default_field="VAL"):
+    def __init__(self, on_end_logging_filename_template=None, continuous_logging_filename_template=None,
+                 base_path=DEFAULT_LOG_PATH, default_field="VAL"):
         """
-        Constuctor
+        Constructor.
         Args:
-            filename_template: the filename template to use; template that are replaced are `{xxx}` where xxx can be
-                 start_time - for start date time of log
+            on_end_logging_filename_template: the filename template to use for the log on end file; None for don't
+                create file template that are replaced are `{xxx}` where xxx can be start_time - for start date time of
+                log
+            continuous_logging_filename_template: the filename template to use for the log continuously file; None for
+                don't create file template that are replaced are `{xxx}`
+                where xxx can be start_time - for start date time of log
             base_path: the base path into which files should be placed
             default_field: the field appended to pvs without field; blank for don't add a field
         """
 
         self._default_field = default_field
         self._create_logs_from = datetime.now()
-        self._filename_template = os.path.join(base_path, filename_template)
+        if on_end_logging_filename_template is None:
+            self._on_end_logging_filename_template = None
+        else:
+            self._on_end_logging_filename_template = os.path.join(base_path, on_end_logging_filename_template)
+
+        if continuous_logging_filename_template is None:
+            self._continuous_logging_filename_template = None
+        else:
+            self._continuous_logging_filename_template = os.path.join(base_path, continuous_logging_filename_template)
+
         self._header_lines = []
         self._columns = []
         self._trigger_pv = None
@@ -85,7 +99,9 @@ class ConfigBuilder(object):
         logging_period_provider = LoggingPeriodProviderConst(DEFAULT_LOGGING_PERIOD_IN_S)
         if self._logging_period_provider is not None:
             logging_period_provider = self._logging_period_provider
-        return Config(self._filename_template, self._header_lines, self._columns, self._trigger_pv,
+        return Config(self._on_end_logging_filename_template,
+                      self._continuous_logging_filename_template,
+                      self._header_lines, self._columns, self._trigger_pv,
                       logging_period_provider, default_field=self._default_field)
 
     def table_column(self, heading, pv_template):
@@ -163,12 +179,18 @@ class Config(object):
     A complete valid configuration object for creating a single log file
     """
 
-    def __init__(self, filename, header_lines, columns, trigger_pv, logging_period_provider, default_field="VAL"):
+    def __init__(self, on_end_logging_filename_template, continuous_logging_filename_template, header_lines, columns,
+                 trigger_pv, logging_period_provider, default_field="VAL"):
         """
         Constructor - this can be built using the builder
 
         Args:
-            filename: filename template to use
+            on_end_logging_filename_template: the filename template to use for the log on end file; None for don't
+                create file template that are replaced are `{xxx}` where xxx can be start_time - for start date time of
+                log
+            continuous_logging_filename_template: the filename template to use for the log continuously file; None for
+                don't create file template that are replaced are `{xxx}`
+                where xxx can be start_time - for start date time of log
             header_lines: header line templates
             columns: column definition
             trigger_pv: pv on which to trigger a log
@@ -182,7 +204,8 @@ class Config(object):
         self._default_field = default_field
 
         self.trigger_pv = add_default_field(trigger_pv, self._default_field)
-        self.filename = filename
+        self.on_end_logging_filename_template = on_end_logging_filename_template
+        self.continuous_logging_filename_template = continuous_logging_filename_template
 
         self._convert_header(header_lines)
         self.column_header_list = [TIME_DATE_COLUMN_HEADING]
@@ -193,7 +216,8 @@ class Config(object):
 
     def __rep__(self):
         rep = "Logging configuration (pvs as read from the archive)"
-        rep += " - file: {0}".format(self.filename)
+        rep += " - file (log on end): {0}".format(self.on_end_logging_filename_template)
+        rep += " - file (continuous): {0}".format(self.continuous_logging_filename_template)
         rep += " - trigger pv: {0}".format(self.trigger_pv)
         rep += " - trigger pv: {0}".format(self.logging_period_provider)
         rep += " - file headers: {0}".format(self.header)

@@ -24,8 +24,7 @@ from ArchiverAccess.archive_data_file_creator import DataFileCreationError
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from ArchiverAccess.archiver_data_source import ArchiverDataValue
 from ArchiverAccess.configuration import ConfigBuilder
-from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange, ConfigAndDependencies, \
-    SAMPLING_BEHIND_REAL_TIME
+from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange, SAMPLING_BEHIND_REAL_TIME
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub
 
 
@@ -42,7 +41,7 @@ class TestLogFileInitiatorForContinousLogging(unittest.TestCase):
 
             log_file_initiator.check_initiated()
 
-            write_file_header_mock.assert_called_once_with(expected_logging_start, 'Continuous')
+            write_file_header_mock.assert_called_once_with(expected_logging_start)
 
     def test_GIVEN_config_with_pv_WHEN_logging_pv_has_swicthed_off_in_changes_THEN_log_file_body_written_and_file_made_readonly(self):
             log_period_in_second = 1
@@ -124,7 +123,7 @@ class TestLogFileInitiatorForContinousLogging(unittest.TestCase):
 
             log_file_initiator.check_initiated()
 
-            write_file_header_mock.assert_called_once_with(expected_logging_start, 'Continuous')
+            write_file_header_mock.assert_called_once_with(expected_logging_start)
 
 
 class TestLogFileInitiator(unittest.TestCase):
@@ -283,8 +282,8 @@ class TestLogFileInitiator(unittest.TestCase):
         assert_that(logging_time_period.start_time, is_(expected_logging_start_config_1))
         assert_that(logging_time_period.end_time, is_(logging_stop_time_config_1))
 
-        self.log_file_creators[1].write_complete_file.assert_called_once()
-        logging_time_period = self.log_file_creators[1].write_complete_file.call_args[0][0]
+        self.log_file_creators[2].write_complete_file.assert_called_once()
+        logging_time_period = self.log_file_creators[2].write_complete_file.call_args[0][0]
         assert_that(logging_time_period.delta, is_(expected_period_config_2))
         assert_that(logging_time_period.start_time, is_(expected_logging_start_config_2))
         assert_that(logging_time_period.end_time, is_(logging_stop_time_config_2))
@@ -371,7 +370,7 @@ class DataSourceMother(object):
         if log_period_in_seconds is None:
             log_period_in_seconds = [None] * len(log_period_pvs)
 
-        configs_and_their_dependencies = []
+        configs = []
         log_file_creators = []
         for log_period_in_second, log_period_pv in zip(log_period_in_seconds, log_period_pvs):
             log_file_creator = Mock()
@@ -387,12 +386,16 @@ class DataSourceMother(object):
                 config = config_builder.logging_period_seconds(log_period_in_second).build()
             else:
                 config = config_builder.logging_period_pv(log_period_pv).build()
-            configs_and_their_dependencies.append(ConfigAndDependencies(config, log_file_creator))
-            log_file_creators.append(log_file_creator)
+            configs.append(config)
+            log_file_creators.append(log_file_creator)  # one for continuous logging
+            log_file_creators.append(log_file_creator)  # one for one end logging
         time_last_active = Mock()
         time_last_active.get = Mock(return_value=time_last_actived)
 
         def get_current_time():
             return current_time
 
-        return LogFileInitiatorOnPVChange(configs_and_their_dependencies, archive_data_source, time_last_active, get_current_time), log_file_creators
+        data_file_creator_factory = Mock()
+        data_file_creator_factory.create = Mock(side_effect=log_file_creators)
+
+        return LogFileInitiatorOnPVChange(configs, archive_data_source, time_last_active, get_current_time, data_file_creator_factory), log_file_creators

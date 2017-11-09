@@ -30,13 +30,14 @@ class TestDatabaseConfigBuilder(TestCase):
     def test_GIVEN_ioc_name_WHEN_generate_THEN_configuration_with_correct_file_name_template_is_created(self):
         ioc_name = "myioc"
         expected_filename_template = os.path.join(DEFAULT_LOG_PATH, "myioc\myioc_{start_time}.dat")
+        expected_continous_filename_template = os.path.join(DEFAULT_LOG_PATH, "myioc\myioc_{start_time}_continuous.dat")
         ioc_data_source = self._create_ioc_data_source(ioc_name=ioc_name)
         db_config_builder = DatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
-        assert_that(config[0].filename, is_(expected_filename_template))
-
+        assert_that(config[0].on_end_logging_filename_template, is_(expected_filename_template))
+        assert_that(config[0].continuous_logging_filename_template, is_(expected_continous_filename_template))
 
     def test_GIVEN_header_line_in_database_WHEN_generate_THEN_configuration_is_created(self):
         expected_header_line = "expected_header_line a line of goodness :-)"

@@ -18,7 +18,7 @@ Module for initiator for log file creation.
 """
 from datetime import timedelta, datetime
 
-from ArchiverAccess.archive_data_file_creator import DataFileCreationError
+from ArchiverAccess.archive_data_file_creator import DataFileCreationError, DataFileCreatorFactory
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from server_common.utilities import print_and_log, SEVERITY
 
@@ -28,57 +28,41 @@ from server_common.utilities import print_and_log, SEVERITY
 SAMPLING_BEHIND_REAL_TIME = timedelta(seconds=90)
 
 
-class ConfigAndDependencies(object):
-    """
-    config and its dependencies needed for writting a data file on pv change
-    """
-
-    def __init__(self, config, archive_data_file_creator):
-        """
-        Constructor.
-        Args:
-            config(ArchiverAccess.configuration.Config): configuration
-            archive_data_file_creator(ArchiverAccess.archive_data_file_creator.ArchiveDataFileCreator):
-                creator of archive data files
-        """
-
-        self.config = config
-        self.archive_data_file_creator = archive_data_file_creator
-
-
 class LogFileInitiatorOnPVChange(object):
     """
     Initiate the writing of a log file based on the change of a PV.
     """
 
-    def __init__(self, config_and_dependencies, archive_data_source, time_last_active,
-                 get_current_time_fn=datetime.utcnow):
+    def __init__(self, configs, archive_data_source, time_last_active,
+                 get_current_time_fn=datetime.utcnow, data_file_creator_factory=DataFileCreatorFactory()):
         """
 
         Args:
-            config_and_dependencies(list[ConfigAndDependencies]):
-                list of configs along with their needed dependencies
+            configs(list[ArchiverAccess.configuration.Config]):
+                list of configs
             archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource):
                 data source
             time_last_active(ArchiverAccess.time_last_active.TimeLastActive):
                 provider for the time from which to search for changes in the logging pv
             get_current_time_fn: function to get the current time
+            data_file_creator_factory(ArchiverAccess.archive_data_file_creator.DataFileCreatorFactory):
+                factory to create data file creator objects
         """
         self._get_current_time_fn = get_current_time_fn
         self._archive_data_source = archive_data_source
-        self._trigger_pvs = [cad.config.trigger_pv for cad in config_and_dependencies]
+        self._trigger_pvs = [config.trigger_pv for config in configs]
         self._time_last_active = time_last_active
         search_for_change_from = time_last_active.get()
-        initial_data_values = archive_data_source.initial_archiver_data_values(
-            self._trigger_pvs, search_for_change_from)
+        initial_data_values = archive_data_source.initial_archiver_data_values(self._trigger_pvs,
+                                                                               search_for_change_from)
         self._last_sample_time = search_for_change_from
 
         self._loggers_for_pvs = []
-        for config_and_dependencies, initial_data_value in zip(config_and_dependencies, initial_data_values):
-
-            cont_logger = ContinualLogger(config_and_dependencies, self._archive_data_source, self._time_last_active)
-            end_logger = WriteOnLoggingEndLogger(config_and_dependencies, self._archive_data_source,
-                                                 self._time_last_active)
+        for config, initial_data_value in zip(configs, initial_data_values):
+            cont_logger = ContinualLogger(config, self._archive_data_source, self._time_last_active,
+                                          data_file_creator_factory)
+            end_logger = WriteOnLoggingEndLogger(config, self._archive_data_source, self._time_last_active,
+                                                 data_file_creator_factory)
             loggers = (cont_logger, end_logger)
 
             if self._value_is_logging_on(initial_data_value.value):
@@ -138,17 +122,23 @@ class ContinualLogger(object):
     A logger that will write the data to the file every period.
     """
 
-    def __init__(self, config_and_dependencies, archive_data_source,
-                 time_last_active):
+    def __init__(self, config, archive_data_source,
+                 time_last_active, data_file_creator_factory):
         """
         Initializer.
         Args:
-            config_and_dependencies: configuration and dependencies for this logging set
-            archive_data_source: data source from the archive
-            time_last_active: a object that allows us to say when the pvs were last logged
+            config(ArchiverAccess.configuration.Config):
+                configuration for this logging set
+            archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource):
+                data source from the archive
+            time_last_active(ArchiverAccess.time_last_active.TimeLastActive):
+                provider for the time from which to search for changes in the logging pv):
+            data_file_creator_factory: factor to allow creation of data files
         """
         self._archive_data_source = archive_data_source
-        self._config_and_dependencies = config_and_dependencies
+        self._config = config
+        self._archive_data_file_creator = data_file_creator_factory.create(config, archive_data_source,
+                                                                           config.continuous_logging_filename_template)
         self._last_write_time = None
         self._time_last_active = time_last_active
 
@@ -164,7 +154,7 @@ class ContinualLogger(object):
             # not continually logging at the moment
             self._last_write_time = timestamp
             try:
-                self._config_and_dependencies.archive_data_file_creator.write_file_header(timestamp, "Continuous")
+                self._archive_data_file_creator.write_file_header(timestamp)
             except DataFileCreationError as e:
                 print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
 
@@ -180,7 +170,7 @@ class ContinualLogger(object):
             self._write_data_lines_for_period(timestamp)
             self._last_write_time = None
             try:
-                self._config_and_dependencies.archive_data_file_creator.finish_log_file()
+                self._archive_data_file_creator.finish_log_file()
             except DataFileCreationError as e:
                 print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
 
@@ -203,11 +193,11 @@ class ContinualLogger(object):
 
         """
         logging_start_time = self._last_write_time
-        logging_period_provider = self._config_and_dependencies.config.logging_period_provider
+        logging_period_provider = self._config.logging_period_provider
         logging_period = logging_period_provider.get_logging_period(self._archive_data_source, logging_start_time)
         time_period = ArchiveTimePeriod(logging_start_time, logging_period, finish_time=timestamp)
         try:
-            archive_data_file_creator = self._config_and_dependencies.archive_data_file_creator
+            archive_data_file_creator = self._archive_data_file_creator
             archive_data_file_creator.write_data_lines(time_period)
         except DataFileCreationError as e:
             print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
@@ -219,17 +209,24 @@ class WriteOnLoggingEndLogger(object):
     Logger which writes a file when logging ends
     """
 
-    def __init__(self, config_and_dependencies, archive_data_source, time_last_active):
+    def __init__(self, config, archive_data_source, time_last_active, data_file_creator_factory):
         """
         Initializer.
         Args:
-            config_and_dependencies: config and dependencies for this logger
-            archive_data_source: the archive data source
-            time_last_active: module to record the time file were last written
+            config(ArchiverAccess.configuration.Config):
+                configuration for this logging set
+            archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource):
+                data source from the archive
+            time_last_active(ArchiverAccess.time_last_active.TimeLastActive):
+                provider for the time from which to search for changes in the logging pv):
+            data_file_creator_factory: factor to allow creation of data files
         """
         self._logging_started = None
         self._archive_data_source = archive_data_source
-        self._config_and_dependencies = config_and_dependencies
+        self._config = config
+        self._archive_data_file_creator = data_file_creator_factory.create(config, archive_data_source,
+                                                                           config.on_end_logging_filename_template)
+
         self._time_last_active = time_last_active
 
     def logging_switched_on(self, timestamp):
@@ -250,11 +247,11 @@ class WriteOnLoggingEndLogger(object):
         if self._logging_started is None:
             return
 
-        logging_period_provider = self._config_and_dependencies.config.logging_period_provider
+        logging_period_provider = self._config.logging_period_provider
         logging_period = logging_period_provider.get_logging_period(self._archive_data_source, self._logging_started)
         time_period = ArchiveTimePeriod(self._logging_started, logging_period, finish_time=timestamp)
         try:
-            self._config_and_dependencies.archive_data_file_creator.write_complete_file(time_period)
+            self._archive_data_file_creator.write_complete_file(time_period)
         except DataFileCreationError as e:
             print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
         self._logging_started = None
