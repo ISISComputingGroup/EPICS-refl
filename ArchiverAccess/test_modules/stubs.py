@@ -7,6 +7,7 @@ class ArchiverDataStub(ArchiverDataSource):
                  values=None,
                  initial_archiver_data_value=None,
                  data_changes=None,
+                 sample_times=None,
                  sample_ids=None):
         """
 
@@ -16,11 +17,13 @@ class ArchiverDataStub(ArchiverDataSource):
             initial_archiver_data_value:
             data_changes: returns from calls to the logging_changes_for_sample_id_generator each return is a list of data changes in a list of
                 each data change is a tuple of change time, index and new value
+            sample_times: sample times to return
             sample_ids: sample ids to return
         """
         super(ArchiverDataStub, self).__init__(None)
+        self.from_sample_time = []
+        self.to_sample_time = []
         self.from_sample_id = []
-        self.to_sample_id = []
         self._initial_values = initial_values
         if values is None:
             self._values = [[]]
@@ -37,8 +40,9 @@ class ArchiverDataStub(ArchiverDataSource):
         self._initial_archiver_data_value = initial_archiver_data_value
         self._data_changes = data_changes
         self._data_change_index = 0
+        self._sample_times = sample_times
         self._sample_ids = sample_ids
-        self._sample_id_index = 0
+        self._sample_time_index = 0
 
     def initial_values(self, pv_names, time):
         initial_values = []
@@ -51,13 +55,14 @@ class ArchiverDataStub(ArchiverDataSource):
             yield (value[0], pv_names.index(value[1]), value[2])
         self._value_index += 1
 
-    def get_latest_sample_time(self, time=None):
-        self._sample_id_index += 1
-        return self._sample_ids[self._sample_id_index - 1]
+    def get_latest_sample_time(self, sample_id=123, time=None):
+        self.from_sample_id.append(sample_id)
+        self._sample_time_index += 1
+        return self._sample_times[self._sample_time_index - 1], self._sample_ids[self._sample_time_index - 1]
 
-    def logging_changes_for_sample_id_generator(self, pv_names, from_sample_id, to_sample_id):
-        self.from_sample_id.append(from_sample_id)
-        self.to_sample_id.append(to_sample_id)
+    def logging_changes_for_sample_id_generator(self, pv_names, from_sample_time, to_sample_time):
+        self.from_sample_time.append(from_sample_time)
+        self.to_sample_time.append(to_sample_time)
         for data_change in self._data_changes[self._data_change_index]:
             yield data_change
         self._data_change_index += 1

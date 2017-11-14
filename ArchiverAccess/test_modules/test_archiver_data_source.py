@@ -166,41 +166,59 @@ class TestArchiverDataSource(unittest.TestCase):
         self.set_up_data_source()
         self.mysql_abstraction_layer.query_returning_cursor = Mock(side_effect=DatabaseError("Problems with accessing the database"))
 
-        gen = self._data_source.changes_generator([channel_name,], ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5), timedelta(seconds=1), 10))
+        gen = self._data_source.changes_generator([channel_name, ], ArchiveTimePeriod(datetime(2017, 1, 2, 3, 4, 5),
+                                                                                      timedelta(seconds=1), 10))
 
         assert_that(calling(gen.next), raises(DatabaseError))
 
     def test_GIVEN_nothing_WHEN_get_latest_sample_time_THEN_latest_sample_id_returned(self):
         self.set_up_data_source()
-        expected_value = datetime(2016, 1, 2, 3, 4, 5)
-        data_row = [expected_value]
+        expected_sample_time = datetime(2016, 1, 2, 3, 4, 5)
+        expected_sample_id = 325
+        expected_sample_id_from = 1, 1
+        data_row = [expected_sample_time, expected_sample_id]
         self.mysql_abstraction_layer.initial_values = [[data_row]]
 
-        result = self._data_source.get_latest_sample_time()
+        result_time, result_id = self._data_source.get_latest_sample_time(expected_sample_id_from)
 
-        assert_that(result, is_(expected_value))
-        assert_that(self.mysql_abstraction_layer.querry_parms[0], is_(none()))
+        assert_that(result_time, is_(expected_sample_time))
+        assert_that(result_id, is_(expected_sample_id))
+        assert_that(self.mysql_abstraction_layer.querry_parms[0], is_((expected_sample_id_from, expected_sample_id_from)))
 
     def test_GIVEN_time_WHEN_get_latest_sample_time_THEN_latest_sample_time_returned(self):
         self.set_up_data_source()
-        expected_value = datetime(2016, 1, 2, 3, 4, 5)
-        data_row = [datetime(2016, 1, 2, 3, 4, 5)]
+        expected_sample_time = datetime(2016, 1, 2, 3, 4, 5)
+        expected_sample_id = 325
+        expected_sample_id_from = 300
+        data_row = [expected_sample_time, expected_sample_id]
         expected_datetime = datetime(2000, 1, 2, 3, 4)
         self.mysql_abstraction_layer.initial_values = [[data_row]]
 
-        result = self._data_source.get_latest_sample_time(expected_datetime)
+        result_time, result_id = self._data_source.get_latest_sample_time(expected_sample_id_from, expected_datetime)
 
-        assert_that(result, is_(expected_value))
-        assert_that(self.mysql_abstraction_layer.querry_parms[0], is_((expected_datetime,)))
+        assert_that(result_time, is_(expected_sample_time))
+        assert_that(result_id, is_(expected_sample_id))
+        assert_that(self.mysql_abstraction_layer.querry_parms[0], is_((expected_sample_id_from, expected_sample_id_from, expected_datetime)))
 
-    def test_GIVEN_no_result_WHEN_get_latest_sample_time_THEN_sample_id_is_1970(self):
+    def test_GIVEN_no_result_WHEN_get_latest_sample_time_THEN_sample_time_is_1970(self):
         self.set_up_data_source()
         expected_value = datetime(1970, 1, 1, 0, 0, 0)
         self.mysql_abstraction_layer.initial_values = [[]]
 
-        result = self._data_source.get_latest_sample_time()
+        result_sample_time, result_sample_id = self._data_source.get_latest_sample_time(1)
 
-        assert_that(result, is_(expected_value))
+        assert_that(result_sample_time, is_(expected_value))
+        assert_that(result_sample_id, is_(0))
+
+    def test_GIVEN_null_results_WHEN_get_latest_sample_time_THEN_sample_time_is_1970(self):
+        self.set_up_data_source()
+        expected_value = datetime(1970, 1, 1, 0, 0, 0)
+        self.mysql_abstraction_layer.initial_values = [[[None, None]]]
+
+        result_sample_time, result_sample_id = self._data_source.get_latest_sample_time(1)
+
+        assert_that(result_sample_time, is_(expected_value))
+        assert_that(result_sample_id, is_(0))
 
     def test_GIVEN_single_integer_pv_requested_WHEN_get_changes_for_logging_THEN_value_returned(self):
         channel_name = "channel name"

@@ -60,9 +60,9 @@ class TimeLastActive(object):
         Returns: the last time that this service was active
 
         """
-        time_last_active = self._get_last_active()
-        print_and_log("Last active: {0}".format(time_last_active.isoformat()), src="ArchiverAccess")
-        return time_last_active
+        time_last_active, sample_id = self._get_last_active()
+        print_and_log("Last active: {0} ({1})".format(time_last_active.isoformat(), sample_id), src="ArchiverAccess")
+        return time_last_active, sample_id
 
     def _get_last_active(self):
         """
@@ -71,27 +71,30 @@ class TimeLastActive(object):
 
         """
         time_now = self._time_now_fn()
+        sample_id = 0
         try:
             with self._file(TIME_LAST_ACTIVE_FILENAME, mode="r") as time_last_active_file:
                 time_last_active_file.readline()
                 last_active_time = datetime.strptime(time_last_active_file.readline().strip(), TIME_FORMAT)
                 max_delta = int(time_last_active_file.readline().strip())
+                sample_id = int(time_last_active_file.readline().strip())
         except (ValueError, TypeError, IOError) as ex:
             print_and_log("Failed to read last active file error '{0}'".format(ex),
                           severity=SEVERITY.MINOR, src="ArchiverAccess")
-            return time_now - timedelta(days=DEFAULT_DELTA)
+            return time_now - timedelta(days=DEFAULT_DELTA), sample_id
         if max_delta < 0:
             max_delta = DEFAULT_DELTA
         earliest_time = time_now - timedelta(days=max_delta)
         if earliest_time > last_active_time:
-            return earliest_time
-        return last_active_time
+            return earliest_time, sample_id
+        return last_active_time, sample_id
 
-    def set(self, last_active_time, delta=DEFAULT_DELTA):
+    def set(self, last_active_time, last_sample_id, delta=DEFAULT_DELTA):
         """
         Write a last active time with a delta to the file
         Args:
             last_active_time(datetime): the time to write
+            last_sample_id: sample id last read from the database
             delta: the furthest time back from this moment in days that the last active time should be reported
 
         Returns:
@@ -102,5 +105,6 @@ class TimeLastActive(object):
                 time_last_active_file.write("{0}\n".format(TIME_LAST_ACTIVE_HEADER))
                 time_last_active_file.write("{0}\n".format(last_active_time.strftime(TIME_FORMAT)))
                 time_last_active_file.write("{0}\n".format(delta))
+                time_last_active_file.write("{0}\n".format(last_sample_id))
         except (ValueError, TypeError, IOError)as err:
             print_and_log("Error writing last activity file: '{0}'".format(err))
