@@ -59,10 +59,8 @@ class LogFileInitiatorOnPVChange(object):
 
         self._loggers_for_pvs = []
         for config, initial_data_value in zip(configs, initial_data_values):
-            cont_logger = ContinualLogger(config, self._archive_data_source, self._time_last_active,
-                                          data_file_creator_factory)
-            end_logger = WriteOnLoggingEndLogger(config, self._archive_data_source, self._time_last_active,
-                                                 data_file_creator_factory)
+            cont_logger = ContinualLogger(config, self._archive_data_source, data_file_creator_factory)
+            end_logger = WriteOnLoggingEndLogger(config, self._archive_data_source, data_file_creator_factory)
             loggers = (cont_logger, end_logger)
 
             if self._value_is_logging_on(initial_data_value.value):
@@ -98,11 +96,13 @@ class LogFileInitiatorOnPVChange(object):
                 print_and_log("Logging stopped for {0} at {1}".format(self._trigger_pvs[pv_index], timestamp),
                               src="ArchiverAccess")
                 for logger in self._loggers_for_pvs[pv_index]:
-                    logger.logging_switched_off(timestamp, self._last_sample_id_for_time)
+                    logger.logging_switched_off(timestamp)
 
         for loggers_for_pv in self._loggers_for_pvs:
             for logger in loggers_for_pv:
-                logger.post_changes(current_sample_time, self._last_sample_id_for_time)
+                logger.post_changes(current_sample_time)
+
+        self._time_last_active.set(current_sample_time, self._last_sample_id_for_time)
 
     def _value_is_logging_on(self, value):
         """
@@ -124,8 +124,7 @@ class ContinualLogger(object):
     A logger that will write the data to the file every period.
     """
 
-    def __init__(self, config, archive_data_source,
-                 time_last_active, data_file_creator_factory):
+    def __init__(self, config, archive_data_source, data_file_creator_factory):
         """
         Initializer.
         Args:
@@ -133,8 +132,6 @@ class ContinualLogger(object):
                 configuration for this logging set
             archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource):
                 data source from the archive
-            time_last_active(ArchiverAccess.time_last_active.TimeLastActive):
-                provider for the time from which to search for changes in the logging pv):
             data_file_creator_factory: factor to allow creation of data files
         """
         self._archive_data_source = archive_data_source
@@ -142,7 +139,6 @@ class ContinualLogger(object):
         self._archive_data_file_creator = data_file_creator_factory.create(config, archive_data_source,
                                                                            config.continuous_logging_filename_template)
         self._last_write_time = None
-        self._time_last_active = time_last_active
 
     def logging_switched_on(self, timestamp):
         """
@@ -160,41 +156,38 @@ class ContinualLogger(object):
             except DataFileCreationError as e:
                 print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
 
-    def logging_switched_off(self, timestamp, sample_id):
+    def logging_switched_off(self, timestamp):
         """
         Do the action for when the logging was switched off so write the rest of the lines to the file.
         Args:
             timestamp: time logging stopped
-            sample_id: sample id for the timestamp
 
         """
         if self._last_write_time is not None:
 
-            self._write_data_lines_for_period(timestamp, sample_id)
+            self._write_data_lines_for_period(timestamp)
             self._last_write_time = None
             try:
                 self._archive_data_file_creator.finish_log_file()
             except DataFileCreationError as e:
                 print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
 
-    def post_changes(self, timestamp, sample_id):
+    def post_changes(self, timestamp):
         """
         Do the action when all changes for the period are processed, in this case write data line to open log files
         Args:
             timestamp: time to which changes have been considered
-            sample_id: sample id for the timestamp
 
         """
         if self._last_write_time is not None:
-            self._write_data_lines_for_period(timestamp, sample_id)
+            self._write_data_lines_for_period(timestamp)
             self._last_write_time = timestamp
 
-    def _write_data_lines_for_period(self, timestamp, sample_id):
+    def _write_data_lines_for_period(self, timestamp):
         """
         Write lines to datafile from last write to timestamp
         Args:
             timestamp: time to write data line to
-            sample_id: sample id for the timestamp
 
         """
         logging_start_time = self._last_write_time
@@ -206,7 +199,6 @@ class ContinualLogger(object):
             archive_data_file_creator.write_data_lines(time_period)
         except DataFileCreationError as e:
             print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
-        self._time_last_active.set(timestamp, sample_id)
 
 
 class WriteOnLoggingEndLogger(object):
@@ -214,7 +206,7 @@ class WriteOnLoggingEndLogger(object):
     Logger which writes a file when logging ends
     """
 
-    def __init__(self, config, archive_data_source, time_last_active, data_file_creator_factory):
+    def __init__(self, config, archive_data_source, data_file_creator_factory):
         """
         Initializer.
         Args:
@@ -222,8 +214,6 @@ class WriteOnLoggingEndLogger(object):
                 configuration for this logging set
             archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource):
                 data source from the archive
-            time_last_active(ArchiverAccess.time_last_active.TimeLastActive):
-                provider for the time from which to search for changes in the logging pv):
             data_file_creator_factory: factor to allow creation of data files
         """
         self._logging_started = None
@@ -231,8 +221,6 @@ class WriteOnLoggingEndLogger(object):
         self._config = config
         self._archive_data_file_creator = data_file_creator_factory.create(config, archive_data_source,
                                                                            config.on_end_logging_filename_template)
-
-        self._time_last_active = time_last_active
 
     def logging_switched_on(self, timestamp):
         """
@@ -243,12 +231,11 @@ class WriteOnLoggingEndLogger(object):
         if self._logging_started is None:
             self._logging_started = timestamp
 
-    def logging_switched_off(self, timestamp, sample_id):
+    def logging_switched_off(self, timestamp):
         """
         Do the action for when the logging was switched off which is to write the complete file.
         Args:
             timestamp: time when logging was switched off
-            sample_id: sample id for the timestamp
         """
         if self._logging_started is None:
             return
@@ -261,14 +248,12 @@ class WriteOnLoggingEndLogger(object):
         except DataFileCreationError as e:
             print_and_log("{}".format(e), severity=SEVERITY.MAJOR, src="ArchiverAccess")
         self._logging_started = None
-        self._time_last_active.set(timestamp, sample_id)
 
-    def post_changes(self, timestamp, sample_id):
+    def post_changes(self, timestamp):
         """
         This does nothing since the log file is only written to at the end.
 
         Args:
             timestamp: time to write data line to
-            sample_id: sample id for the timestamp
         """
         pass
