@@ -83,7 +83,7 @@ pipeline {
 
 def setLatestGeniePath() {
     def basePath = 'P:\\Kits\$\\CompGroup\\ICP\\genie_python\\'
-    def fileContents = new File(basePath + 'LATEST_BUILD.txt').text
+    def fileContents = '155'//new File(basePath + 'LATEST_BUILD.txt').text
     def pythonPath = basePath + "BUILD-" + fileContents + '\\Python'
     env.PYTHON_PATH = pythonPath
 }
