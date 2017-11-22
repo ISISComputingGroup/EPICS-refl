@@ -40,9 +40,7 @@ pipeline {
     }
     
     stage("Test DatabaseServer") {
-      steps {
-        script {
-        
+      steps {        
         bat """
             cd DatabaseServer
             C:\\Python27\\Scripts\\virtualenv.exe my_python
