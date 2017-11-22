@@ -18,7 +18,10 @@ import json
 import os
 import unittest
 
-os.environ['MYPVPREFIX'] = "MYPVPREFIX:"
+# Put defaults for the environment variables
+os.environ['MYPVPREFIX'] = ""
+os.environ['EPICS_KIT_ROOT'] = ""
+os.environ['ICPCONFIGROOT'] = ""
 
 from DatabaseServer.database_server import DatabaseServer
 
