@@ -18,8 +18,6 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
-
 # Standard imports
 from pcaspy import Driver
 from time import sleep
@@ -60,7 +58,6 @@ class DatabaseServer(Driver):
         """
         self._blockserver_prefix = blockserver_prefix
         if test_mode:
-
             ps = MockProcServWrapper()
         else:
             super(DatabaseServer, self).__init__()
