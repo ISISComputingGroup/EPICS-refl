@@ -16,10 +16,12 @@ pipeline {
       steps {
         echo "Branch: ${env.BRANCH_NAME}"
         checkout scm
+        setLatestGeniePath()
+        echo "python path: ${env.PYTHON_PATH}"
       }
     }
     
-    stage("Build") {
+    stage("Test BlockServer") {
       steps {
         script {
             env.GIT_COMMIT = bat(returnStdout: true, script: '@git rev-parse HEAD').trim()
@@ -29,17 +31,37 @@ pipeline {
         
         bat """
             cd BlockServer
-            C:\Python27\Scripts\virtualenv.exe my_python
-            call my_python\Scripts\activate.bat
-            call my_python\Scripts\pip.exe install xmlrunner
-            call my_python\Scripts\pip.exe install six
-            call my_python\Scripts\pip.exe install lxml
-            C:\Python27\python.exe run_tests.py --output_dir ../test-reports
+            set PYTHON_PATH=${env.PYTHON_PATH}
+            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
     
-    stage("Unit Tests") {
+// Commented because the database server tests have dependencies outside of inst_servers.
+// Including being able to create a database.
+// This needs to be unpicked.
+/*    stage("Test DatabaseServer") {
+      steps {        
+        bat """
+            cd DatabaseServer
+            set PYTHON_PATH=${env.PYTHON_PATH}
+            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
+            """
+      }
+    }
+    */
+    
+    stage("Test ArchiverAccess") {
+      steps {        
+        bat """
+            cd ArchiverAccess
+            set PYTHON_PATH=${env.PYTHON_PATH}
+            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
+            """
+      }
+    }
+        
+    stage("Collate Unit Tests") {
       steps {
         junit '**/test-reports/TEST-*.xml'
       }
@@ -60,5 +82,12 @@ pipeline {
     timeout(time: 60, unit: 'MINUTES')
     disableConcurrentBuilds()
   }
+}
+
+def setLatestGeniePath() {
+    def basePath = "P:/Kits\$/CompGroup/ICP/genie_python/"
+    def fileContents = readFile basePath + 'LATEST_BUILD.txt'
+    def pythonPath = basePath + "BUILD-$fileContents"
+    env.PYTHON_PATH = pythonPath
 }
 
