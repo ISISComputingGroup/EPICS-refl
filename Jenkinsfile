@@ -35,7 +35,10 @@ pipeline {
       }
     }
     
-    stage("Test DatabaseServer") {
+// Commented because the database server tests have dependencies outside of inst_servers.
+// Including being able to create a database.
+// This needs to be unpicked.
+/*    stage("Test DatabaseServer") {
       steps {        
         bat """
             cd DatabaseServer
@@ -44,8 +47,19 @@ pipeline {
             """
       }
     }
+    */
     
-    stage("Unit Tests") {
+    stage("Test ArchiverAccess") {
+      steps {        
+        bat """
+            cd ArchiverAccess
+            set PYTHON_PATH=P:\\Kits\$\\CompGroup\\ICP\\genie_python\\BUILD-155\\Python
+            %PYTHON_PATH%\\python.exe run_tests.py --output_dir ../test-reports
+            """
+      }
+    }
+        
+    stage("Collate Unit Tests") {
       steps {
         junit '**/test-reports/TEST-*.xml'
       }
