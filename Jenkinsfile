@@ -31,7 +31,7 @@ pipeline {
         
         bat """
             cd BlockServer
-            ${env.PYTHON_PATH}\\python.exe run_tests.py --output_dir ../test-reports
+            ${env.PYTHON_PATH}\\Python\\python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
@@ -43,7 +43,7 @@ pipeline {
       steps {        
         bat """
             cd DatabaseServer
-            ${env.PYTHON_PATH}\\python.exe run_tests.py --output_dir ../test-reports
+            ${env.PYTHON_PATH}\\Python\\python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
@@ -53,7 +53,7 @@ pipeline {
       steps {        
         bat """
             cd ArchiverAccess
-            ${env.PYTHON_PATH}\\python.exe run_tests.py --output_dir ../test-reports
+            ${env.PYTHON_PATH}\\Python\\python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
@@ -85,6 +85,6 @@ def setLatestGeniePath() {
     def basePath = "P:\\Kits\$\\CompGroup\\ICP\\genie_python\\"
     def fileContents = readFile basePath + 'LATEST_BUILD.txt'
     def pythonPath = basePath + "BUILD-$fileContents"
-    env.PYTHON_PATH = pythonPath + "\\Python"
+    env.PYTHON_PATH = pythonPath
 }
 
