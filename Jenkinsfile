@@ -85,6 +85,6 @@ def setLatestGeniePath() {
     def basePath = "P:\\Kits\$\\CompGroup\\ICP\\genie_python\\"
     def fileContents = readFile basePath + 'LATEST_BUILD.txt'
     def pythonPath = basePath + "BUILD-$fileContents"
-    env.PYTHON_PATH = pythonPath = "\\Python"
+    env.PYTHON_PATH = pythonPath + "\\Python"
 }
 
