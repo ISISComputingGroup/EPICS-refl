@@ -24,10 +24,7 @@ from BlockServer.core.config_holder import ConfigHolder
 from BlockServer.config.configuration import Configuration
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.macros import MACROS
-from BlockServer.mocks.mock_version_control import *
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
-from ConfigVersionControl.version_control_exceptions import *
 
 
 CONFIG_PATH = "./test_configs/"
@@ -68,7 +65,7 @@ def on_rm_error(func, path, exc_info):
 
 
 def create_default_test_config_holder():
-    ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+    ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                       test_config=create_dummy_config())
     return ch
 
@@ -87,7 +84,7 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_getting_blocks_json_with_no_blocks_returns_empty_list(self):
         # arrange
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(), test_config=None)
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(), test_config=None)
         # act
         blocks = ch.get_blocknames()
         # assert
@@ -237,7 +234,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertFalse("TESTCOMPONENT".lower() in comps)
 
     def test_add_block(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
 
         blk = {"name": "TESTBLOCK1", "pv": "PV1", "local": True, "group": "NONE"}
@@ -250,7 +247,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(blk_details["TESTBLOCK1".lower()].local, True)
 
     def test_add_ioc(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
 
         ch._add_ioc("TESTIOC1")
@@ -260,7 +257,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTIOC1" in ioc_details)
 
     def test_add_ioc_component(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
 
         ch.add_component("TESTCOMPONENT", Configuration(MACROS))
@@ -271,7 +268,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue("TESTIOC1" in ioc_details)
 
     def test_get_config_details_empty(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
         details = ch.get_config_details()
 
@@ -305,7 +302,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(details['components']), 0)
 
     def test_get_config_details_add_component(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
         comp = create_dummy_component()
         ch.add_component("TESTCOMPONENT", comp)
@@ -324,7 +321,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(details['components']), 1)
 
     def test_empty_config_save_and_load(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
         ch.save_configuration("TESTCONFIG", False)
         ch.clear_config()
@@ -339,7 +336,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(ch.get_component_names()), 0)
 
     def test_empty_component_save_and_load(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
         ch.save_configuration("TESTCOMPONENT", True)
         ch.clear_config()
@@ -369,7 +366,7 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_save_comp_add_to_config(self):
         # Create and save a component
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=create_dummy_component())
         ch.save_configuration("TESTCOMPONENT", True)
         ch.clear_config()
@@ -387,7 +384,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(ch.get_component_names()), 1)
 
     def test_get_groups_list_from_empty_repo(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager())
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager())
         grps = ch.get_group_details()
         self.assertEqual(len(grps), 0)
 
@@ -484,7 +481,7 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_set_config_details(self):
         # Need component
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
         ch.save_configuration("TESTCOMPONENT", True)
 
@@ -665,7 +662,7 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_default_component_is_loaded(self):
         # Arrange
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
         ch.save_configuration("TESTCONFIG", False)
         ch.clear_config()
@@ -680,7 +677,7 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertTrue(comp_count_with_default > comp_count)
 
     def test_cannot_modify_default(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(), test_config=Configuration(MACROS))
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(), test_config=Configuration(MACROS))
 
         try:
             ch.save_configuration(DEFAULT_COMPONENT, True)
@@ -688,7 +685,7 @@ class TestConfigHolderSequence(unittest.TestCase):
             self.assertEqual(err.message, "Cannot save over default component")
 
     def test_clear_config(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(), test_config=None)
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(), test_config=None)
         add_block(ch, "TESTBLOCK1", "PV1", "GROUP1", True)
         add_block(ch, "TESTBLOCK2", "PV2", "GROUP2", True)
         add_block(ch, "TESTBLOCK3", "PV3", "GROUP2", True)
@@ -700,35 +697,17 @@ class TestConfigHolderSequence(unittest.TestCase):
         self.assertEquals(len(blocks), 0)
 
     def test_cannot_save_with_blank_name(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
         self.assertRaises(Exception, ch.save_configuration, "", False)
 
     def test_cannot_save_with_none_name(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
         self.assertRaises(Exception, ch.save_configuration, None, False)
 
     def test_cannot_save_with_invalid_name(self):
-        ch = ConfigHolder(MACROS, MockVersionControl(), file_manager=MockConfigurationFileManager(),
+        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                           test_config=Configuration(MACROS))
         self.assertRaises(Exception, ch.save_configuration, "This is invalid", False)
         self.assertRaises(Exception, ch.save_configuration, "This_is_invalid!", False)
-
-    def test_on_saving_cannot_add_to_version_control_does_not_raise_specified_exception(self):
-        ch = ConfigHolder(MACROS, FailOnAddMockVersionControl(), file_manager=MockConfigurationFileManager(),
-                          test_config=Configuration(MACROS))
-        try:
-            ch.save_configuration("testname", False)
-        except AddToVersionControlException as err:
-            self.fail("Oops cannot add")
-
-    def test_on_saving_cannot_commit_to_version_control_does_not_raise_specified_exception(self):
-        ch = ConfigHolder(MACROS, FailOnCommitMockVersionControl(), file_manager=MockConfigurationFileManager(),
-                          test_config=Configuration(MACROS))
-        try:
-            ch.save_configuration("testname", False)
-        except CommitToVersionControlException as err:
-            self.fail("Oops cannot commit")
-
-

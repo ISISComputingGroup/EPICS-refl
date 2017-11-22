@@ -23,14 +23,12 @@ from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.config.configuration import Configuration
-from BlockServer.mocks.mock_version_control import *
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 from server_common.utilities import create_pv_name
-from ConfigVersionControl.version_control_exceptions import *
 
 CONFIG_PATH = "./test_configs/"
 SCHEMA_PATH = "./../../../../schema"
@@ -89,14 +87,14 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def setUp(self):
         self.bs = MockBlockServer()
         self.file_manager = MockConfigurationFileManager()
-        self.clm = ConfigListManager(self.bs, SCHEMA_PATH, MockVersionControl(), self.file_manager)
+        self.clm = ConfigListManager(self.bs, SCHEMA_PATH, self.file_manager)
 
     def tearDown(self):
         pass
 
     # Helper methods
     def _create_inactive_config_holder(self):
-        configserver = InactiveConfigHolder(MACROS, MockVersionControl(), self.file_manager)
+        configserver = InactiveConfigHolder(MACROS, self.file_manager)
         return configserver
 
     def _does_pv_exist(self, name):
@@ -296,8 +294,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_delete_active_config_throws(self):
         self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"], self.clm)
-        active = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
-                                    MockVersionControl(), self.file_manager, MockIocControl(""))
+        active = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()), self.file_manager,
+                                    MockIocControl(""))
         active.save_active("TEST_ACTIVE")
         self.clm.update_a_config_in_list(active)
         self.clm.active_config_name = "TEST_ACTIVE"
@@ -312,8 +310,8 @@ class TestInactiveConfigsSequence(unittest.TestCase):
 
     def test_delete_active_component_throws(self):
         self._create_components(["TEST_COMPONENT1", "TEST_COMPONENT2", "TEST_COMPONENT3"])
-        active = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()),
-                                    MockVersionControl(), self.file_manager, MockIocControl(""))
+        active = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()), self.file_manager,
+                                    MockIocControl(""))
         active.add_component("TEST_COMPONENT1", Configuration(MACROS))
         active.save_active("TEST_ACTIVE")
         self.clm.active_config_name = "TEST_ACTIVE"
@@ -570,30 +568,3 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_default_filtered(self):
         comps = self.clm.get_components()
         self.assertTrue(DEFAULT_COMPONENT not in comps)
-
-    def test_on_deleting_cannot_remove_from_version_control_does_not_raise_specified_exception(self):
-        clm = ConfigListManager(self.bs, SCHEMA_PATH, FailOnRemoveMockVersionControl(), self.file_manager)
-
-        self._create_configs(["testconfig"], clm)
-
-        try:
-            clm.delete(["testconfig"])
-        except RemoveFromVersionControlException as err:
-            self.fail("Oops raised on remove")
-
-    def test_on_deleting_cannot_commit_from_version_control_does_not_raise_specified_exception(self):
-        clm = ConfigListManager(self.bs, SCHEMA_PATH, FailOnCommitMockVersionControl(), self.file_manager)
-
-        self._create_configs(["testconfig"], clm)
-
-        try:
-            clm.delete(["testconfig"])
-        except CommitToVersionControlException as err:
-            self.fail("Oops raised on commit")
-
-    def test_on_recover_from_version_control_does_not_raise_specified_exception(self):
-        clm = ConfigListManager(self.bs, SCHEMA_PATH, FailOnUpdateMockVersionControl(), self.file_manager)
-        try:
-            clm.recover_from_version_control()
-        except UpdateFromVersionControlException as err:
-            self.fail("Oops update raised")

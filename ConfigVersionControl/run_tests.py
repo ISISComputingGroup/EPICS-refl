@@ -26,6 +26,7 @@ import xmlrunner
 import argparse
 
 from version_contol_tests import TestVersionControl
+from git_message_provider_tests import TestMessageProvider
 
 DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 
@@ -39,11 +40,13 @@ if __name__ == '__main__':
 
     # Load tests from test suites
     vc_suite = unittest.TestLoader().loadTestsFromTestCase(TestVersionControl)
+    message_provider_suite = unittest.TestLoader().loadTestsFromTestCase(TestMessageProvider)
 
     print "\n\n------ BEGINNING CONFIG VERSION CONTROL UNIT TESTS ------"
 
     ret_vals = list()
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(vc_suite).wasSuccessful())
+    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(message_provider_suite).wasSuccessful())
 
     print "------ CONFIG VERSION CONTROL UNIT TESTS COMPLETE ------\n\n"
     # Return failure exit code if a test failed

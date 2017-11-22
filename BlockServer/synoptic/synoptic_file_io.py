@@ -14,12 +14,17 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 import os
+import time
 from xml.dom import minidom
-from server_common.utilities import print_and_log
+from server_common.utilities import print_and_log, retry
+
+RETRY_MAX_ATTEMPTS = 20
+RETRY_INTERVAL = 0.5
 
 
 class SynopticFileIO(object):
 
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
     def write_synoptic_file(self, name, save_path, xml_data):
         # If save file already exists remove first to avoid case issues
         if os.path.exists(save_path):
@@ -29,11 +34,23 @@ class SynopticFileIO(object):
         with open(save_path, 'w') as synfile:
             pretty_xml = minidom.parseString(xml_data).toprettyxml()
             synfile.write(pretty_xml)
+            return
 
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
     def read_synoptic_file(self, directory, fullname):
-        with open(os.path.join(directory, fullname), 'r') as synfile:
+        path = os.path.join(directory, fullname)
+
+        with open(path, 'r') as synfile:
             data = synfile.read()
+
         return data
+
+    @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, (OSError, IOError))
+    def delete_synoptic(self, directory, fullname):
+        path = os.path.join(directory, fullname)
+
+        if os.path.exists(path):
+            os.remove(path)
 
     def get_list_synoptic_files(self, directory):
         if not os.path.exists(directory):

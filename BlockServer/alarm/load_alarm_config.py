@@ -1,6 +1,8 @@
 import threading
 import time
 
+from server_common.utilities import print_and_log
+
 
 class AlarmConfigLoader(object):
     """
@@ -49,7 +51,7 @@ class AlarmConfigLoader(object):
         """
         with AlarmConfigLoader.lock:
             self._delay_left = AlarmConfigLoader.DELAY
-            print "Alarm server will update in {0} seconds from now\n".format(self._delay_left)
+            print_and_log("Alarm server will update in {0} seconds from now".format(self._delay_left))
 
     def _is_still_delayed(self):
         """

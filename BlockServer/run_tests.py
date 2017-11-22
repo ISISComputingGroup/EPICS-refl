@@ -32,7 +32,6 @@ from BlockServer.test_modules.configuration_json_tests import TestConfigurationJ
 from BlockServer.test_modules.container_tests import TestContainersSequence
 from BlockServer.test_modules.config_holder_tests import TestConfigHolderSequence
 from BlockServer.test_modules.config_list_manager_tests import TestInactiveConfigsSequence
-from BlockServer.test_modules.config_file_event_handler_tests import TestConfigFileEventHandler
 from BlockServer.test_modules.schema_checker_tests import TestSchemaChecker
 from BlockServer.test_modules.synoptic_manager_tests import TestSynopticManagerSequence
 from BlockServer.test_modules.devices_manager_tests import TestDevicesManagerSequence
@@ -62,7 +61,6 @@ if __name__ == '__main__':
     container_suite = unittest.TestLoader().loadTestsFromTestCase(TestContainersSequence)
     config_holder_suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigHolderSequence)
     inactive_config_suite = unittest.TestLoader().loadTestsFromTestCase(TestInactiveConfigsSequence)
-    file_watcher_event_suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigFileEventHandler)
     schema_checker_event_suite = unittest.TestLoader().loadTestsFromTestCase(TestSchemaChecker)
     synoptic_manager_suite = unittest.TestLoader().loadTestsFromTestCase(TestSynopticManagerSequence)
     devices_manager_suite = unittest.TestLoader().loadTestsFromTestCase(TestDevicesManagerSequence)
@@ -85,7 +83,6 @@ if __name__ == '__main__':
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(container_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(config_holder_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(inactive_config_suite).wasSuccessful())
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(file_watcher_event_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(schema_checker_event_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(synoptic_manager_suite).wasSuccessful())
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(ioc_control_suite).wasSuccessful())

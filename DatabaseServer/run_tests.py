@@ -25,9 +25,9 @@ import unittest
 import xmlrunner
 import argparse
 
-from test_modules.options_holder_tests import TestOptionsHolderSequence
-from test_modules.exp_data_test import TestExpData
-from test_modules.database_server_test_mysql import TestDatabaseServer
+from .test_modules.options_holder_tests import TestOptionsHolderSequence
+from .test_modules.exp_data_test import TestExpData
+from .test_modules.database_server_test_mysql import TestDatabaseServer
 
 DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 
@@ -44,12 +44,12 @@ if __name__ == '__main__':
     database_server_suite = unittest.TestLoader().loadTestsFromTestCase(TestDatabaseServer)
     exp_data_suite = unittest.TestLoader().loadTestsFromTestCase(TestExpData)
 
-    print "\n\n------ BEGINNING UNIT TESTS ------"
+    print("\n\n------ BEGINNING UNIT TESTS ------")
     ret_vals = list()
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(options_holder_suite))
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(database_server_suite))
     ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(exp_data_suite))
-    print "------ UNIT TESTS COMPLETE ------\n\n"
+    print("------ UNIT TESTS COMPLETE ------\n\n")
 
     # Return failure exit code if a test failed
     sys.exit(False in ret_vals)

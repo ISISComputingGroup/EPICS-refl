@@ -75,8 +75,8 @@ class RunControlManager(OnTheFlyPvInterface):
         self._pvs_to_read = [RUNCONTROL_GET_PV, RUNCONTROL_OUT_PV]
         self._create_standard_pvs()
         self._channel_access = channel_access
-        print "RUNCONTROL SETTINGS FILE: %s" % self._settings_file
-        print "RUNCONTROL AUTOSAVE DIRECTORY: %s" % self._autosave_dir
+        print_and_log("RUNCONTROL SETTINGS FILE: {}".format(self._settings_file))
+        print_and_log("RUNCONTROL AUTOSAVE DIRECTORY: {}".format(self._autosave_dir))
         self._intialise_runcontrol_ioc()
 
     def read_pv_exists(self, pv):
@@ -148,13 +148,17 @@ class RunControlManager(OnTheFlyPvInterface):
             time_between_tries: Time to wait between checking run control has
                 started
         """
+        print_and_log("Start creating runcontrol PVs")
         self.update_runcontrol_blocks(
             self._active_configholder.get_block_details())
         self.restart_ioc(clear_autosave)
         # Need to wait for RUNCONTROL_IOC to restart
         self.wait_for_ioc_start(time_between_tries)
+        print_and_log("Restoring config settings...")
         self.restore_config_settings(
             self._active_configholder.get_block_details())
+        print_and_log("Finish restoring config settings")
+        print_and_log("Finish creating runcontrol PVs")
 
     def update_runcontrol_blocks(self, blocks):
         """
@@ -174,7 +178,7 @@ class RunControlManager(OnTheFlyPvInterface):
             # Need an extra blank line
             f.write("\n")
         except Exception as err:
-            print err
+            print_and_log(str(err))
         finally:
             if f is not None:
                 f.close()
@@ -261,9 +265,7 @@ class RunControlManager(OnTheFlyPvInterface):
         for key, value in settings.iteritems():
             if key.upper() in TAG_RC_DICT.keys():
                 try:
-                    self._channel_access.caput(self._block_prefix
-                                               + bn + TAG_RC_DICT[key.upper()],
-                                               value)
+                    self._channel_access.caput(self._block_prefix + bn + TAG_RC_DICT[key.upper()], value)
                 except Exception as err:
                     print_and_log("Problem with setting "
                                   "runcontrol for %s: %s"
@@ -279,11 +281,16 @@ class RunControlManager(OnTheFlyPvInterface):
         """
         raw_ioc_time = self._channel_access.caget(self._prefix
                                                       + RC_START_PV)
+
         try:
             frmt = '%m/%d/%Y %H:%M:%S'
             latest_ioc_start = datetime.strptime(raw_ioc_time, frmt)
-        except ValueError:
-            return None
+        except TypeError as e:
+            latest_ioc_start = None
+            print_and_log("Unable to get run control start time, IOC has not started yet", "MINOR")
+        except ValueError as e:
+            latest_ioc_start = None
+            print_and_log("Unable to format ioc start time: {0}".format(e), "MAJOR")
 
         return latest_ioc_start
 
@@ -317,16 +324,17 @@ class RunControlManager(OnTheFlyPvInterface):
         print_and_log("Waiting for runcontrol IOC to start ...")
 
         for loop_count in range(MAX_LOOPS_TO_WAIT_FOR_START):
+
             restart_pending = ioc_restart_pending(self._prefix + RC_IOC_PREFIX,
                                                   self._channel_access)
-            latest_ioc_start = self._get_latest_ioc_start()
 
-            if restart_pending or self._invalid_ioc_start_time(latest_ioc_start):
+            latest_ioc_start = self._get_latest_ioc_start()
+            start_time_invalid = self._invalid_ioc_start_time(latest_ioc_start)
+
+            if restart_pending or start_time_invalid:
                 self._sleep_func(time_between_tries)
             else:
                 self._rc_ioc_start_time = latest_ioc_start
-                print_and_log("... Runcontrol IOC started")
-                self._sleep_func(time_between_tries * 3)
                 break
         else:
             print_and_log("Runcontrol appears not to have started", "MAJOR")

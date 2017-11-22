@@ -36,10 +36,8 @@ from server_common.utilities import compress_and_hex, dehex_and_decompress, prin
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
-from BlockServer.fileIO.config_file_watcher_manager import ConfigFileWatcherManager
 from BlockServer.synoptic.synoptic_manager import SynopticManager
 from BlockServer.devices.devices_manager import DevicesManager
-from BlockServer.fileIO.unclassified_file_manager import UnclassifiedFileManager
 from BlockServer.config.json_converter import ConfigurationJsonConverter
 from ConfigVersionControl.git_version_control import GitVersionControl, RepoFactory
 from ConfigVersionControl.version_control_exceptions import NotUnderVersionControl, VersionControlException
@@ -202,7 +200,6 @@ class BlockServer(Driver):
         self._block_cache = None
         self._syn = None
         self._devices = None
-        self._filewatcher = None
         self.on_the_fly_handlers = list()
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
         self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX + "BLOCKSERVER:")
@@ -226,17 +223,18 @@ class BlockServer(Driver):
             print_and_log("Unable to initialise version control: %s" % err, "MINOR")
             self._vc = MockVersionControl()
 
+
         # Create banner object
         self.banner = Banner(MACROS["$(MYPVPREFIX)"])
 
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(self, SCHEMA_DIR, self._vc, ConfigurationFileManager())
+            self._config_list = ConfigListManager(self, SCHEMA_DIR, ConfigurationFileManager())
         except Exception as err:
             print_and_log(
                 "Error creating inactive config list. Configuration list changes will not be stored " +
                 "in version control: %s " % str(err), "MINOR")
-            self._config_list = ConfigListManager(self, SCHEMA_DIR, MockVersionControl(), ConfigurationFileManager())
+            self._config_list = ConfigListManager(self, SCHEMA_DIR, ConfigurationFileManager())
 
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
@@ -259,7 +257,7 @@ class BlockServer(Driver):
         # This is in a separate method so it can be sent to the thread queue
         arch = ArchiverManager(ARCHIVE_UPLOADER, ARCHIVE_SETTINGS)
 
-        self._active_configserver = ActiveConfigHolder(MACROS, arch, self._vc, ConfigurationFileManager(),
+        self._active_configserver = ActiveConfigHolder(MACROS, arch, ConfigurationFileManager(),
                                                        self._ioc_control)
 
         if facility == "ISIS":
@@ -267,22 +265,21 @@ class BlockServer(Driver):
                                                   MACROS["$(ICPVARDIR)"], self._ioc_control, self._active_configserver,
                                                   self)
             self.on_the_fly_handlers.append(self._run_control)
+            print_and_log("Creating block cache manager...")
             self._block_cache = BlockCacheManager(self._ioc_control)
+            print_and_log("Finished creating block cache manager")
 
         # Import all the synoptic data and create PVs
-        self._syn = SynopticManager(self, SCHEMA_DIR, self._vc, self._active_configserver)
+        print_and_log("Creating synoptic manager...")
+        self._syn = SynopticManager(self, SCHEMA_DIR, self._active_configserver)
         self.on_the_fly_handlers.append(self._syn)
+        print_and_log("Finished creating synoptic manager")
 
         # Import all the devices data and create PVs
-        self._devices = DevicesManager(self, SCHEMA_DIR, self._vc)
+        print_and_log("Creating devices manager...")
+        self._devices = DevicesManager(self, SCHEMA_DIR)
         self.on_the_fly_handlers.append(self._devices)
-
-        # A file manager for any other files
-        self._other_files = UnclassifiedFileManager(self)
-        self.on_the_fly_handlers.append(self._other_files)
-
-        # Start file watcher
-        self._filewatcher = ConfigFileWatcherManager(SCHEMA_DIR, self._config_list, self._syn, self._devices)
+        print_and_log("Finished creating devices manager")
 
         try:
             if self._gateway.exists():
@@ -559,7 +556,7 @@ class BlockServer(Driver):
             as_comp (bool): Whether it is a component or not
         """
         new_details = convert_from_json(json_data)
-        inactive = InactiveConfigHolder(MACROS, self._vc, ConfigurationFileManager())
+        inactive = InactiveConfigHolder(MACROS, ConfigurationFileManager())
 
         history = self._get_inactive_history(new_details["name"], as_comp)
 
@@ -582,7 +579,7 @@ class BlockServer(Driver):
                 self._config_list.update_a_config_in_list(inactive, True)
             print_and_log("Saved")
         except Exception as err:
-            print_and_log("Problem occurred saving configuration: %s" % err)
+            print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
 
         # Reload configuration if a component has changed
         if as_comp and new_details["name"] in self._active_configserver.get_component_names():
@@ -591,7 +588,7 @@ class BlockServer(Driver):
     def _get_inactive_history(self, name, is_component=False):
         # If it already exists load it
         try:
-            inactive = InactiveConfigHolder(MACROS, self._vc, ConfigurationFileManager())
+            inactive = InactiveConfigHolder(MACROS, ConfigurationFileManager())
             inactive.load_inactive(name, is_component)
             # Get previous history
             history = inactive.get_history()
@@ -626,7 +623,7 @@ class BlockServer(Driver):
             self._active_configserver.save_active(name)
             self._config_list.update_a_config_in_list(self._active_configserver)
         except Exception as err:
-            print_and_log("Problem occurred saving configuration: %s" % err)
+            print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
 
     def update_blocks_monitors(self):
         """Updates the monitors for the blocks and groups, so the clients can see any changes.
@@ -683,7 +680,6 @@ class BlockServer(Driver):
         """
         while True:
             while len(self.write_queue) > 0:
-                if self._filewatcher is not None: self._filewatcher.pause()
                 with self.write_lock:
                     cmd, arg, state = self.write_queue.pop(0)
                 self.update_server_status(state)
@@ -697,7 +693,6 @@ class BlockServer(Driver):
                         "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
                         "MAJOR")
                 self.update_server_status("")
-                if self._filewatcher is not None: self._filewatcher.resume()
             sleep(1)
 
     def get_blank_config(self):
@@ -706,7 +701,7 @@ class BlockServer(Driver):
         Returns:
             dict : A dictionary containing all the details of a blank configuration
         """
-        temp_config = InactiveConfigHolder(MACROS, self._vc, ConfigurationFileManager())
+        temp_config = InactiveConfigHolder(MACROS, ConfigurationFileManager())
         return temp_config.get_config_details()
 
     def _check_config_inactive(self, inactive_name, is_component=False):

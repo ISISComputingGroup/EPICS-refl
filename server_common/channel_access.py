@@ -13,6 +13,9 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+import time
+from utilities import print_and_log
+import threading
 
 
 class ChannelAccess(object):
@@ -46,14 +49,16 @@ class ChannelAccess(object):
             name (string): The name of the PV to be set
             value (object): The data to send to the PV
             wait (bool, optional): Wait for the PV t set before returning
-
-        Raises:
-            Exception : If the PV failed to set
         """
-        try:
+        def put_value():
             from genie_python.genie_cachannel_wrapper import CaChannelWrapper
             CaChannelWrapper.set_pv_value(name, value, wait)
-        except Exception as err:
-            print err
-            raise err
 
+        if wait:
+            # If waiting then run in this thread.
+            put_value()
+        else:
+            # If not waiting, run in a different thread.
+            # Even if not waiting genie_python sometimes takes a while to return from a set_pv_value call.
+            thread = threading.Thread(target=put_value)
+            thread.start()
