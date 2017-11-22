@@ -29,7 +29,8 @@ pipeline {
         
         bat """
             cd BlockServer
-            C:\\Python27\\Scripts\\virtualenv.exe my_python
+            set PYTHON_PATH=P:\\Kits$\\CompGroup\\ICP\\genie_python\\BUILD-155\\Python
+            %PYTHON_PATH%\\Scripts\\virtualenv.exe my_python
             call my_python\\Scripts\\activate.bat
             call my_python\\Scripts\\pip.exe install xmlrunner
             call my_python\\Scripts\\pip.exe install six
@@ -43,7 +44,8 @@ pipeline {
       steps {        
         bat """
             cd DatabaseServer
-            C:\\Python27\\Scripts\\virtualenv.exe my_python
+            set PYTHON_PATH=P:\\Kits$\\CompGroup\\ICP\\genie_python\\BUILD-155\\Python
+            %PYTHON_PATH%\\Scripts\\virtualenv.exe my_python
             call my_python\\Scripts\\activate.bat
             call my_python\\Scripts\\pip.exe install xmlrunner
             call my_python\\Scripts\\pip.exe install six
