@@ -16,6 +16,7 @@ pipeline {
       steps {
         echo "Branch: ${env.BRANCH_NAME}"
         checkout scm
+        setLatestGeniePath()
       }
     }
     
@@ -29,8 +30,7 @@ pipeline {
         
         bat """
             cd BlockServer
-            set PYTHON_PATH=P:\\Kits\$\\CompGroup\\ICP\\genie_python\\BUILD-155\\Python
-            %PYTHON_PATH%\\python.exe run_tests.py --output_dir ../test-reports
+            ${env.PYTHON_PATH}\\python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
@@ -42,8 +42,7 @@ pipeline {
       steps {        
         bat """
             cd DatabaseServer
-            set PYTHON_PATH=P:\\Kits\$\\CompGroup\\ICP\\genie_python\\BUILD-155\\Python
-            %PYTHON_PATH%\\python.exe run_tests.py --output_dir ../test-reports
+            ${env.PYTHON_PATH}\\python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
@@ -53,8 +52,7 @@ pipeline {
       steps {        
         bat """
             cd ArchiverAccess
-            set PYTHON_PATH=P:\\Kits\$\\CompGroup\\ICP\\genie_python\\BUILD-155\\Python
-            %PYTHON_PATH%\\python.exe run_tests.py --output_dir ../test-reports
+            ${env.PYTHON_PATH}\\python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
@@ -80,5 +78,12 @@ pipeline {
     timeout(time: 60, unit: 'MINUTES')
     disableConcurrentBuilds()
   }
+}
+
+def setLatestGeniePath() {
+    String basePath = 'P:\\Kits\$\\CompGroup\\ICP\\genie_python\\'
+    String fileContents = new File(basePath + 'LATEST_BUILD.txt').text
+    String pythonPath = basePath + "BUILD-" + fileContents + '\\Python'
+    env.PYTHON_PATH = pythonPath
 }
 
