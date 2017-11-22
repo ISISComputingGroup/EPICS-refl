@@ -29,12 +29,12 @@ pipeline {
         
         bat """
             cd BlockServer
-            C:\Python27\Scripts\virtualenv.exe my_python
-            call my_python\Scripts\activate.bat
-            call my_python\Scripts\pip.exe install xmlrunner
-            call my_python\Scripts\pip.exe install six
-            call my_python\Scripts\pip.exe install lxml
-            C:\Python27\python.exe run_tests.py --output_dir ../test-reports
+            C:\\Python27\\Scripts\\virtualenv.exe my_python
+            call my_python\\Scripts\\activate.bat
+            call my_python\\Scripts\\pip.exe install xmlrunner
+            call my_python\\Scripts\\pip.exe install six
+            call my_python\\Scripts\\pip.exe install lxml
+            python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
@@ -45,12 +45,12 @@ pipeline {
         
         bat """
             cd DatabaseServer
-            C:\Python27\Scripts\virtualenv.exe my_python
-            call my_python\Scripts\activate.bat
-            call my_python\Scripts\pip.exe install xmlrunner
-            call my_python\Scripts\pip.exe install six
-            call my_python\Scripts\pip.exe install lxml
-            C:\Python27\python.exe run_tests.py --output_dir ../test-reports
+            C:\\Python27\\Scripts\\virtualenv.exe my_python
+            call my_python\\Scripts\\activate.bat
+            call my_python\\Scripts\\pip.exe install xmlrunner
+            call my_python\\Scripts\\pip.exe install six
+            call my_python\\Scripts\\pip.exe install lxml
+            python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
