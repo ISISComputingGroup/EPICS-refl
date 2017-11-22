@@ -18,6 +18,8 @@ import json
 import os
 import unittest
 
+os.environ['MYPVPREFIX'] = "MYPVPREFIX:"
+
 from DatabaseServer.database_server import DatabaseServer
 
 from server_common.mocks.mock_ca_server import MockCAServer
