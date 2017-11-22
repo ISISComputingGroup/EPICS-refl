@@ -31,7 +31,8 @@ pipeline {
         
         bat """
             cd BlockServer
-            \\Python\\python.exe run_tests.py --output_dir ../test-reports
+            set PYTHON_PATH=${env.PYTHON_PATH}
+            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
@@ -43,7 +44,7 @@ pipeline {
       steps {        
         bat """
             cd DatabaseServer
-            \\Python\\python.exe run_tests.py --output_dir ../test-reports
+            ${env.PYTHON_PATH}\\Python\\python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
@@ -53,7 +54,7 @@ pipeline {
       steps {        
         bat """
             cd ArchiverAccess
-            \\Python\\python.exe run_tests.py --output_dir ../test-reports
+            ${env.PYTHON_PATH}\\Python\\python.exe run_tests.py --output_dir ../test-reports
             """
       }
     }
