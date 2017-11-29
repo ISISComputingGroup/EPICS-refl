@@ -46,7 +46,7 @@ class Producer:
         except errors.InvalidTopicError:
             print_and_log("Invalid topic, to enable auto creation of topics set"
                           " auto.create.topics.enable to false in broker configuration")
-
+            quit()
 
     def add_config(self, pvs):
         """

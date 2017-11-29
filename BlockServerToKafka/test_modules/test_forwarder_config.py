@@ -82,13 +82,14 @@ class TestForwarderConfig(unittest.TestCase):
             self.assertTrue("channel_provider_type" in stream)
             self.assertEqual("ca", stream["channel_provider_type"])
 
-    def test_GIVEN_using_version_4_WHEN_new_forwarder_config_created_THEN_returns_JSON_containing_streams_with_no_channel_type(self):
+    def test_GIVEN_using_version_4_WHEN_new_forwarder_config_created_THEN_returns_JSON_containing_streams_with_pva_channel_type(self):
         kafka_version_4 = ForwarderConfig(self.test_schema, self.test_topic, True)
         raw_output = kafka_version_4.create_forwarder_configuration(self.config_with_one_block)
         output = json.loads(raw_output)
         self.assertNotEqual(0, len(output["streams"]))
         for stream in output["streams"]:
-            self.assertFalse("channel_provider_type" in stream)
+            self.assertTrue("channel_provider_type" in stream)
+            self.assertEqual("pva", stream["channel_provider_type"])
 
     def test_GIVEN_configuration_with_one_block_WHEN_new_forwarder_config_created_THEN_returns_JSON_containing_one_stream(self):
         raw_output = self.kafka_forwarder.create_forwarder_configuration(self.config_with_one_block)
