@@ -16,13 +16,12 @@
 
 import os
 import sys
+sys.path.insert(0, os.path.abspath(os.getcwd()))
 from argparse import ArgumentParser
 from BlockServerToKafka.block_server_monitor import BlockServerMonitor
 from time import sleep
 from os import environ
 from BlockServerToKafka.kafka_producer import Producer
-
-sys.path.insert(0, os.path.abspath(os.getcwd()))
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -31,7 +30,7 @@ if __name__ == '__main__':
                         default='test_bs_forwarder')
     parser.add_argument('-c', '--config', help='Kafka topic to send forwarder config to', nargs=1, type=str,
                         default='test_bs_forwarder_config')
-    parser.add_argument('-b', '--broker', help='Location of the Kafka brokers (host:port)', nargs=1, type=str,
+    parser.add_argument('-b', '--broker', help='Location of the Kafka brokers (host:port)', nargs='*', type=str,
                         default='sakura.isis.cclrc.ac.uk:9092')
     parser.add_argument('-p', '--pvprefix', help='PV Prefix of the block server', nargs=1, type=str,
                         default=environ["MYPVPREFIX"])
