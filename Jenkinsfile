@@ -60,6 +60,16 @@ pipeline {
             """
       }
     }
+    
+    stage("Test BlockServerToKafka") {
+      steps {        
+        bat """
+            cd BlockServerToKafka
+            set PYTHON_PATH=${env.PYTHON_PATH}
+            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
+            """
+      }
+    }
         
     stage("Collate Unit Tests") {
       steps {
