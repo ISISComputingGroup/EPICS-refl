@@ -53,9 +53,9 @@ class BlocksMonitor(Driver):
         # Holds a list of block names 
         self.block_names = None
         # Holds a dict of monitors 
-        self.block_monitors = dict()
+        self.block_monitors = {}
         # Holds the current values
-        self.curr_values = dict()
+        self.curr_values = {}
         # Flag for stopping thread
         self.stop_thread = False
         # Thread lock for monitors
@@ -94,7 +94,7 @@ class BlocksMonitor(Driver):
             else:
                 return None, None
         values = self._get_curr_values()
-        blks = dict()
+        blks = {}
 
         for b in self.block_names:
             full_name = "%sCS:SB:%s" % (self.prefix, b)
@@ -148,7 +148,7 @@ class BlocksMonitor(Driver):
                     print "disconnecting", bn
                     bv.clear_event()
                     bv.pend_event(PEND_EVENT_TIMEOUT)
-            self.block_monitors = dict()
+            self.block_monitors = {}
         except:
             # Don't care, it is all about releasing the lock
             pass
@@ -269,7 +269,7 @@ class BlocksMonitor(Driver):
         """
         self.curr_lock.acquire()
         try:
-            self.curr_values = dict()
+            self.curr_values = {}
         except:
             # Don't care, it is all about releasing the lock
             # Should not throw anyway
