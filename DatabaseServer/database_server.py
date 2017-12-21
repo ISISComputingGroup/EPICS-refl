@@ -24,10 +24,12 @@ sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 from pcaspy import Driver
 from time import sleep
 import argparse
+from server_common.mysql_abstraction_layer import SQLAbstraction
 from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, dehex_and_decompress
 from server_common.channel_access_server import CAServer
 from server_common.constants import IOCS_NOT_TO_STOP
 from server_common.ioc_data import IOCData
+from server_common.ioc_data_source import IocDataSource
 from exp_data import ExpData
 import json
 from threading import Thread, RLock
@@ -48,10 +50,12 @@ MAJOR_MSG = "MAJOR"
 
 
 class DatabaseServer(Driver):
-    """The class for handling all the static PV access and monitors etc.
+    """
+    The class for handling all the static PV access and monitors etc.
     """
     def __init__(self, ca_server, dbid, options_folder, blockserver_prefix, test_mode=False):
-        """Constructor.
+        """
+        Constructor.
 
         Args:
             ca_server (CAServer): The CA server used for generating PVs on the fly
@@ -72,7 +76,7 @@ class DatabaseServer(Driver):
 
         # Initialise database connection
         try:
-            self._db = IOCData(dbid, ps, MACROS["$(MYPVPREFIX)"])
+            self._db = IOCData(IocDataSource(SQLAbstraction(dbid, dbid, "$" + dbid)), ps, MACROS["$(MYPVPREFIX)"])
             print_and_log("Connected to database", INFO_MSG, LOG_TARGET)
         except Exception as e:
             self._db = None

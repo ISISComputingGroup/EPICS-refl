@@ -23,8 +23,11 @@ from server_common.utilities import compress_and_hex
 
 EDDB = 'exp_data'
 
+
 class user(object):
-    """A user class to allow for easier conversions from database to json"""
+    """
+    A user class to allow for easier conversions from database to json.
+    """
     def __init__(self, name="UNKNOWN", institute="UNKNOWN", role="UNKNOWN"):
         self.name = name
         self.institute = institute
