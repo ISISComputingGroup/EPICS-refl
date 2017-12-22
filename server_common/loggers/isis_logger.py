@@ -32,7 +32,7 @@ class IsisLogger(object):
             src (string, optional): Gives the source of the message. Default source is BLOCKSVR
         """
         if severity not in ['INFO', 'MINOR', 'MAJOR', 'FATAL']:
-            print "write_to_ioc_log: invalid severity ", severity
+            print("write_to_ioc_log: invalid severity ", severity)
             return
         msg_time = datetime.datetime.utcnow()
         msg_time_str = msg_time.isoformat()
@@ -53,7 +53,7 @@ class IsisLogger(object):
             sock.connect((self.ioclog_host, self.ioclog_port))
             sock.sendall(xml)
         except Exception as err:
-            print "Could not send message to IOC log: %s" % err
+            print("Could not send message to IOC log: %s" % err)
         finally:
             if sock is not None:
                 sock.close()
