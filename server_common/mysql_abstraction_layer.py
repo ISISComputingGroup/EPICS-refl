@@ -27,13 +27,16 @@ class DatabaseError(Exception):
 
 
 class SQLAbstraction(object):
-    """A wrapper to connect to MySQL databases"""
+    """
+    A wrapper to connect to MySQL databases.
+    """
 
     # Number of available simultaneous connections to each connection pool
     POOL_SIZE = 16
 
     def __init__(self, dbid, user, password, host="127.0.0.1"):
-        """Constructor
+        """
+        Constructor.
 
         Args:
             dbid (string): The id of the database that holds the required information

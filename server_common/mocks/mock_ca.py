@@ -13,8 +13,9 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-class MockChannelAccess(object):
 
+
+class MockChannelAccess(object):
     def __init__(self, starting_values=dict()):
         self._dict = starting_values
 

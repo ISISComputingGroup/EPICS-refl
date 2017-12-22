@@ -17,59 +17,8 @@
 import unittest
 from DatabaseServer.mocks.mock_procserv_utils import MockProcServWrapper
 from server_common.ioc_data import IOCData
-
-
-TEST_DB = 'test_iocdb'
-HIGH_PV_NAMES = ["HIGH_PV1", "HIGH_PV2", "HIGH_PV3"]
-MEDIUM_PV_NAMES = ["MED_PV1", "MED_PV2", "MED_PV3"]
-FACILITY_PV_NAMES = ["FAC_PV1", "FAC_PV2", "FAC_PV3"]
-BL_PVS = ["PARS:BL:FOEMIRROR", "PARS:BL:A1", "PARS:BL:CHOPEN:ANG"]
-SAMPLE_PVS = ["PARS:SAMPLE:AOI", "PARS:SAMPLE:GEOMETRY", "PARS:SAMPLE:WIDTH"]
-USER_PVS = ["PARS:USER:PV1", "PARS:USER:PV2", "PARS:USER:PV3"]
-
-
-class MockIocDataSource(object):
-    def __init__(self):
-        self.iocs = {
-            "TESTIOC": {"description": "test ioc", "running": False},
-            "SIMPLE1": {"description": "simple ioc 1", "running": False},
-            "SIMPLE2": {"description": "simple ioc 2", "running": False}
-        }
-
-    def get_iocs_and_descriptions(self):
-        return self.iocs
-
-    def get_iocs_and_running_status(self):
-        d = []
-        for k, v in self.iocs.iteritems():
-            d.append((k, v["running"]))
-        return d
-
-    def update_ioc_is_running(self, iocname, running):
-        self.iocs[iocname]["running"] = running
-
-    def get_interesting_pvs(self, level="", ioc=None):
-        # In the real thing each PV is a tuple containing name, ioc, interest level etc.
-        # For testing we don't need to worry about that
-        pvs = []
-        if level == "" or level.lower().startswith('h'):
-            pvs.extend(HIGH_PV_NAMES)
-        if level == "" or level.lower().startswith('m'):
-            pvs.extend(MEDIUM_PV_NAMES)
-        if level == "" or level.lower().startswith('f'):
-            pvs.extend(FACILITY_PV_NAMES)
-        return pvs
-
-    def get_active_pvs(self):
-        return HIGH_PV_NAMES
-
-    def get_pars(self, category):
-        if category == 'BEAMLINEPAR':
-            return BL_PVS
-        elif category == 'SAMPLEPAR':
-            return SAMPLE_PVS
-        elif category == 'USERPAR':
-            return USER_PVS
+from server_common.mocks.mock_ioc_data_source import (MockIocDataSource, HIGH_PV_NAMES, MEDIUM_PV_NAMES,
+                                                      FACILITY_PV_NAMES, SAMPLE_PVS, BL_PVS, USER_PVS)
 
 
 class TestIocDataSequence(unittest.TestCase):
@@ -113,26 +62,26 @@ class TestIocDataSequence(unittest.TestCase):
 
         # Check all pvs are in all names
         for pv in pvs:
-            self.assertTrue(pv in all_names)
+            self.assertTrue(pv[0] in all_names)
 
     def test_get_interesting_pvs_high(self):
         # Get all PVs
         pvs = self.ioc_data.get_interesting_pvs("HIGH")
 
         for pv in pvs:
-            self.assertTrue(pv in HIGH_PV_NAMES)
+            self.assertTrue(pv[0] in HIGH_PV_NAMES)
 
     def test_get_interesting_pvs_medium(self):
         # Get all PVs
         pvs = self.ioc_data.get_interesting_pvs("MEDIUM")
         for pv in pvs:
-            self.assertTrue(pv in MEDIUM_PV_NAMES)
+            self.assertTrue(pv[0] in MEDIUM_PV_NAMES)
 
     def test_get_interesting_pvs_facility(self):
         # Get all PVs
         pvs = self.ioc_data.get_interesting_pvs("FACILITY")
         for pv in pvs:
-            self.assertTrue(pv in FACILITY_PV_NAMES)
+            self.assertTrue(pv[0] in FACILITY_PV_NAMES)
 
     def test_get_active_pvs(self):
         # Get all Active PVs
