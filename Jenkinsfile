@@ -37,10 +37,7 @@ pipeline {
       }
     }
     
-// Commented because the database server tests have dependencies outside of inst_servers.
-// Including being able to create a database.
-// This needs to be unpicked.
-/*    stage("Test DatabaseServer") {
+    stage("Test DatabaseServer") {
       steps {        
         bat """
             cd DatabaseServer
@@ -49,7 +46,6 @@ pipeline {
             """
       }
     }
-    */
     
     stage("Test ArchiverAccess") {
       steps {        
