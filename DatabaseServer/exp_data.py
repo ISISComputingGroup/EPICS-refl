@@ -21,20 +21,77 @@ from server_common.channel_access import ChannelAccess
 from server_common.mysql_abstraction_layer import SQLAbstraction
 from server_common.utilities import compress_and_hex
 
-EDDB = 'exp_data'
 
-class user(object):
-    """A user class to allow for easier conversions from database to json"""
+class User(object):
+    """
+    A user class to allow for easier conversions from database to json.
+    """
     def __init__(self, name="UNKNOWN", institute="UNKNOWN", role="UNKNOWN"):
         self.name = name
         self.institute = institute
         self.role = role
 
 
-class ExpData(object):
-    """A wrapper to connect to the IOC database via MySQL"""
+class ExpDataSource(object):
+    """
+    This is a humble object containing all the code for accessing the database.
+    """
+    def __init__(self):
+        self._db = SQLAbstraction('exp_data', "exp_data", "$exp_data")
 
-    """Constant list of PVs to use"""
+    def get_team(self, experiment_id):
+        """
+        Gets the team members.
+
+        Args:
+            experiment_id (string): the id of the experiment to load related data from
+
+        Returns:
+            team (list): the team data found by the SQL query
+        """
+        try:
+            sqlquery = "SELECT user.name, user.organisation, role.name"
+            sqlquery += " FROM role, user, experimentteams"
+            sqlquery += " WHERE role.roleID = experimentteams.roleID"
+            sqlquery += " AND user.userID = experimentteams.userID"
+            sqlquery += " AND experimentteams.experimentID = %s"
+            sqlquery += " GROUP BY user.userID"
+            sqlquery += " ORDER BY role.priority"
+            team = [list(element) for element in self._db.query(sqlquery, (experiment_id,))]
+            if len(team) == 0:
+                raise Exception("unable to find team details for experiment ID %s" % experiment_id)
+            else:
+                return team
+        except Exception as err:
+            raise Exception("issue getting experimental team: %s" % err)
+
+    def experiment_exists(self, experiment_id):
+        """
+        Gets the experiment.
+
+        Args:
+            experiment_id (string): the id of the experiment to load related data from
+
+        Returns:
+            exists (boolean): TRUE if the experiment exists, FALSE otherwise
+        """
+        try:
+            sqlquery = "SELECT experiment.experimentID"
+            sqlquery += " FROM experiment "
+            sqlquery += " WHERE experiment.experimentID = %s"
+            id = self._db.query(sqlquery, (experiment_id,))
+            if len(id) >= 1:
+                return True
+            else:
+                return False
+        except Exception as err:
+            raise Exception("error finding the experiment: %s" % err)
+
+
+class ExpData(object):
+    """
+    A wrapper to connect to the IOC database via MySQL.
+    """
     EDPV = {
         'ED:RBNUMBER:SP': {
             'type': 'char',
@@ -48,27 +105,17 @@ class ExpData(object):
         },
     }
 
-    def make_ascii_mappings():
-        """create mapping for characters not converted to 7 bit by NFKD"""
-        mappings_in = [ ord(char) for char in u'\xd0\xd7\xd8\xde\xdf\xf0\xf8\xfe' ]
-        mappings_out = u'DXOPBoop'
-        d = dict(zip(mappings_in, mappings_out))
-        d[ord(u'\xc6')] = u'AE'
-        d[ord(u'\xe6')] = u'ae'
-        return d
+    _to_ascii = {}
 
-    _toascii = make_ascii_mappings()
-
-    def __init__(self, prefix, ca=ChannelAccess):
-        """Constructor
+    def __init__(self, prefix, db, ca=ChannelAccess):
+        """
+        Constructor.
 
         Args:
-            dbid (string): The id of the database that holds IOC information
             prefix (string): The pv prefix of the instrument the server is being run on
+            db (ExpDataSource): The source of the experiment data
+            ca (ChannelAccess): The channel access server to use
         """
-        # Set up the database connection
-        self._db = SQLAbstraction('exp_data', "exp_data", "$exp_data")
-
         # Build the PV names to be used
         self._simrbpv = prefix + "ED:SIM:RBNUMBER"
         self._daerbpv = prefix + "ED:RBNUMBER:DAE:SP"
@@ -80,57 +127,27 @@ class ExpData(object):
         # Set the channel access server to use
         self.ca = ca
 
-    # def __open_connection(self):
-    #     return self._db.__open_connection()
+        # Set the data source to use
+        self._db = db
 
-    def _get_team(self, experimentID):
-        """Gets the team members
+        # Create ascii mappings
+        ExpData._to_ascii = self._make_ascii_mappings()
 
-        Args:
-            experimentID (string): the id of the experiment to load related data from
-
-        Returns:
-            team (list): the team data found by the SQL query
+    @staticmethod
+    def _make_ascii_mappings():
         """
-        try:
-            sqlquery = "SELECT user.name, user.organisation, role.name"
-            sqlquery += " FROM role, user, experimentteams"
-            sqlquery += " WHERE role.roleID = experimentteams.roleID"
-            sqlquery += " AND user.userID = experimentteams.userID"
-            sqlquery += " AND experimentteams.experimentID = %s"
-            sqlquery += " GROUP BY user.userID"
-            sqlquery += " ORDER BY role.priority"
-            team = [list(element) for element in self._db.query(sqlquery, (experimentID, ))]
-            if len(team) == 0:
-                raise Exception("unable to find team details for experiment ID %s" % experimentID)
-            else:
-                return team
-        except Exception as err:
-            raise Exception("issue getting experimental team: %s" % err)
-
-    def _experiment_exists(self, experimentID):
-        """ Gets the experiment
-
-        Args:
-            experimentID (string): the id of the experiment to load related data from
-
-        Returns:
-            exists (boolean): TRUE if the experiment exists, FALSE otherwise
+        Create mapping for characters not converted to 7 bit by NFKD.
         """
-        try:
-            sqlquery = "SELECT experiment.experimentID"
-            sqlquery += " FROM experiment "
-            sqlquery += " WHERE experiment.experimentID = %s"
-            id = self._db.query(sqlquery, (experimentID,))
-            if len(id) >= 1:
-                return True
-            else:
-                return False
-        except Exception as err:
-            raise Exception("error finding the experiment: %s" % err)
+        mappings_in = [ ord(char) for char in u'\xd0\xd7\xd8\xde\xdf\xf0\xf8\xfe' ]
+        mappings_out = u'DXOPBoop'
+        d = dict(zip(mappings_in, mappings_out))
+        d[ord(u'\xc6')] = u'AE'
+        d[ord(u'\xe6')] = u'ae'
+        return d
 
-    def encode4return(self, data):
-        """Converts data to JSON, compresses it and converts it to hex.
+    def encode_for_return(self, data):
+        """
+        Converts data to JSON, compresses it and converts it to hex.
 
         Args:
             data (string): The data to encode
@@ -146,11 +163,12 @@ class ExpData(object):
         except:
             return fullname
 
-    def updateExperimentID(self, experimentID):
-        """Updates the associated PVs when an experiment ID is set
+    def update_experiment_id(self, experiment_id):
+        """
+        Updates the associated PVs when an experiment ID is set.
 
         Args:
-            experimentID (string): the id of the experiment to load related data from
+            experiment_id (string): the id of the experiment to load related data from
 
         Returns:
             None specifically, but the following information external to the server is set
@@ -158,44 +176,44 @@ class ExpData(object):
 
         """
         # Update the RB Number for lookup - SIM for testing, DAE for production
-        self.ca.caput(self._simrbpv, experimentID)
-        self.ca.caput(self._daerbpv, experimentID)
+        self.ca.caput(self._simrbpv, experiment_id)
+        self.ca.caput(self._daerbpv, experiment_id)
 
         # Check for the experiment ID
         names = []
         surnames = []
         orgs = []
 
-        if not self._experiment_exists(experimentID):
-            self.ca.caput(self._simnames, self.encode4return(names))
-            self.ca.caput(self._surnamepv, self.encode4return(surnames))
-            self.ca.caput(self._orgspv, self.encode4return(orgs))
-            raise Exception("error finding the experiment: %s" % experimentID)
+        if not self._db.experiment_exists(experiment_id):
+            self.ca.caput(self._simnames, self.encode_for_return(names))
+            self.ca.caput(self._surnamepv, self.encode_for_return(surnames))
+            self.ca.caput(self._orgspv, self.encode_for_return(orgs))
+            raise Exception("error finding the experiment: %s" % experiment_id)
 
         # Get the user information from the database and update the associated PVs
         if self._db is not None:
-            teammembers = self._get_team(experimentID)
-            if teammembers is not None:
-                # Generate the lists/similar for conversion to JSON
-                for member in teammembers:
-                    fullname = unicode(member[0])
-                    org = unicode(member[1])
-                    role = unicode(member[2])
-                    if not role == "Contact":
-                        surnames.append(self._get_surname_from_fullname(fullname))
-                    orgs.append(org)
-                    name = user(fullname, org, role.lower())
-                    names.append(name.__dict__)
+            teammembers = self._db.get_team(experiment_id)
+            # Generate the lists/similar for conversion to JSON
+            for member in teammembers:
+                fullname = unicode(member[0])
+                org = unicode(member[1])
+                role = unicode(member[2])
+                if not role == "Contact":
+                    surnames.append(self._get_surname_from_fullname(fullname))
+                orgs.append(org)
+                name = User(fullname, org, role.lower())
+                names.append(name.__dict__)
             orgs = list(set(orgs))
-            self.ca.caput(self._simnames, self.encode4return(names))
-            self.ca.caput(self._surnamepv, self.encode4return(surnames))
-            self.ca.caput(self._orgspv, self.encode4return(orgs))
+            self.ca.caput(self._simnames, self.encode_for_return(names))
+            self.ca.caput(self._surnamepv, self.encode_for_return(surnames))
+            self.ca.caput(self._orgspv, self.encode_for_return(orgs))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
             self.ca.caput(self._daenamespv, ExpData.make_name_list_ascii(surnames))
 
-    def updateUsername(self, users):
-        """Updates the associated PVs when the User Names are altered
+    def update_username(self, users):
+        """
+        Updates the associated PVs when the User Names are altered.
 
         Args:
             users (string): uncompressed and dehexed json string with the user details
@@ -228,12 +246,12 @@ class ExpData(object):
                 if not role == "Contact":
                     surnames.append(self._get_surname_from_fullname(fullname))
                 orgs.append(org)
-                name = user(fullname, org, role.lower())
+                name = User(fullname, org, role.lower())
                 names.append(name.__dict__)
             orgs = list(set(orgs))
-        self.ca.caput(self._simnames, self.encode4return(names))
-        self.ca.caput(self._surnamepv, self.encode4return(surnames))
-        self.ca.caput(self._orgspv, self.encode4return(orgs))
+        self.ca.caput(self._simnames, self.encode_for_return(names))
+        self.ca.caput(self._surnamepv, self.encode_for_return(surnames))
+        self.ca.caput(self._orgspv, self.encode_for_return(orgs))
         # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
         # this is not available at this time in the ICP
         if not surnames:
@@ -243,17 +261,17 @@ class ExpData(object):
 
     @staticmethod
     def make_name_list_ascii(names):
-        """Takes a unicode list of names and creates a best ascii comma separated list
-            this implementation is a temporary fix until we install the PyPi unidecode module
+        """
+        Takes a unicode list of names and creates a best ascii comma separated list this implementation is a temporary
+        fix until we install the PyPi unidecode module.
         
-            Args:
-                name(list): list of unicode names
-            
-            Returns:
-                comma separated ascii string of names with special characters adjusted
-                
+        Args:
+            name(list): list of unicode names
+
+        Returns:
+            comma separated ascii string of names with special characters adjusted
         """
         nlist = u','.join(names)
         nfkd_form = unicodedata.normalize('NFKD', nlist)
         nlist_no_sc = u''.join([c for c in nfkd_form if not unicodedata.combining(c)])
-        return nlist_no_sc.translate(ExpData._toascii).encode('ascii','ignore')
+        return nlist_no_sc.translate(ExpData._to_ascii).encode('ascii', 'ignore')

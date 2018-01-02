@@ -24,11 +24,13 @@ sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 from pcaspy import Driver
 from time import sleep
 import argparse
+from server_common.mysql_abstraction_layer import SQLAbstraction
 from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, dehex_and_decompress
 from server_common.channel_access_server import CAServer
 from server_common.constants import IOCS_NOT_TO_STOP
 from server_common.ioc_data import IOCData
-from exp_data import ExpData
+from server_common.ioc_data_source import IocDataSource
+from exp_data import ExpData, ExpDataSource
 import json
 from threading import Thread, RLock
 from procserv_utils import ProcServWrapper
@@ -48,45 +50,32 @@ MAJOR_MSG = "MAJOR"
 
 
 class DatabaseServer(Driver):
-    """The class for handling all the static PV access and monitors etc.
     """
-    def __init__(self, ca_server, dbid, options_folder, blockserver_prefix, test_mode=False):
-        """Constructor.
+    The class for handling all the static PV access and monitors etc.
+    """
+    def __init__(self, ca_server, ioc_data, exp_data, options_folder, blockserver_prefix, test_mode=False):
+        """
+        Constructor.
 
         Args:
             ca_server (CAServer): The CA server used for generating PVs on the fly
-            dbid (string): The id of the database that holds IOC information.
+            ioc_data (IOCData): The data source for IOC information
+            exp_data (ExpData): The data source for experiment information
             options_folder (string): The location of the folder containing the config.xml file that holds IOC options
+            blockserver_prefix (string): The PV prefix to use
+            test_mode (bool): Enables starting the server in a mode suitable for unit tests
         """
-        self._blockserver_prefix = blockserver_prefix
-        if test_mode:
-
-            ps = MockProcServWrapper()
-        else:
+        if not test_mode:
             super(DatabaseServer, self).__init__()
-            ps = ProcServWrapper()
+
+        self._blockserver_prefix = blockserver_prefix
         self._ca_server = ca_server
         self._options_holder = OptionsHolder(options_folder, OptionsLoader())
-
         self._pv_info = self._generate_pv_acquisition_info()
+        self._iocs = ioc_data
+        self._ed = exp_data
 
-        # Initialise database connection
-        try:
-            self._db = IOCData(dbid, ps, MACROS["$(MYPVPREFIX)"])
-            print_and_log("Connected to database", INFO_MSG, LOG_TARGET)
-        except Exception as e:
-            self._db = None
-            print_and_log("Problem initialising DB connection: %s" % e, MAJOR_MSG, LOG_TARGET)
-
-        # Initialise experimental database connection
-        try:
-            self._ed = ExpData(MACROS["$(MYPVPREFIX)"])
-            print_and_log("Connected to experimental details database", INFO_MSG, LOG_TARGET)
-        except Exception as e:
-            self._ed = None
-            print_and_log("Problem connecting to experimental details database: %s" % e, MAJOR_MSG, LOG_TARGET)
-
-        if self._db is not None and not test_mode:
+        if self._iocs is not None and not test_mode:
             # Start a background thread for keeping track of running IOCs
             self.monitor_lock = RLock()
             monitor_thread = Thread(target=self._update_ioc_monitors, args=())
@@ -148,7 +137,8 @@ class DatabaseServer(Driver):
         }
 
     def read(self, reason):
-        """A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
+        """
+        A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
 
         Args:
             reason (string): The PV that is being requested (without the PV prefix)
@@ -164,7 +154,8 @@ class DatabaseServer(Driver):
         return encoded_data
 
     def write(self, reason, value):
-        """A method called by SimpleServer when a PV is written to the DatabaseServer over Channel Access.
+        """
+        A method called by SimpleServer when a PV is written to the DatabaseServer over Channel Access.
 
         Args:
             reason (string): The PV that is being requested (without the PV prefix)
@@ -173,27 +164,26 @@ class DatabaseServer(Driver):
         Returns:
             bool : True
         """
-        status = True
         try:
             if reason == 'ED:RBNUMBER:SP':
                 # print_and_log("Updating to use experiment ID: " + value, INFO_MSG, LOG_LOCATION)
-                self._ed.updateExperimentID(value)
+                self._ed.update_experiment_id(value)
             elif reason == 'ED:USERNAME:SP':
-                self._ed.updateUsername(dehex_and_decompress(value))
+                self._ed.update_username(dehex_and_decompress(value))
         except Exception as e:
             value = compress_and_hex(convert_to_json("Error: " + str(e)))
             print_and_log(str(e), MAJOR_MSG)
         # store the values
-        if status:
-            self.setParam(reason, value)
-        return status
+        self.setParam(reason, value)
+        return True
 
     def _update_ioc_monitors(self):
-        """Updates all the PVs that hold information on the IOCS and their associated PVs
+        """
+        Updates all the PVs that hold information on the IOCS and their associated PVs.
         """
         while True:
-            if self._db is not None:
-                self._db.update_iocs_status()
+            if self._iocs is not None:
+                self._iocs.update_iocs_status()
                 for pv in ["IOCS", "PVS:ALL", "PVS:ACTIVE", "PVS:INTEREST:HIGH", "PVS:INTEREST:MEDIUM",
                            "PVS:INTEREST:FACILITY"]:
                     encoded_data = DatabaseServer._encode_for_return(self._pv_info[pv]['get']())
@@ -206,7 +196,7 @@ class DatabaseServer(Driver):
 
     def _check_pv_capacity(self, pv, size, prefix):
         """
-        Check the capacity of a PV and write to the log if it is too small
+        Check the capacity of a PV and write to the log if it is too small.
         
         Args:
             pv (string): The PV that is being requested (without the PV prefix)
@@ -220,7 +210,8 @@ class DatabaseServer(Driver):
 
     @staticmethod
     def _encode_for_return(data):
-        """Converts data to JSON, compresses it and converts it to hex.
+        """
+        Converts data to JSON, compresses it and converts it to hex.
 
         Args:
             data (string): The data to encode
@@ -231,7 +222,7 @@ class DatabaseServer(Driver):
         return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
 
     def _get_iocs_info(self):
-        iocs = self._db.get_iocs()
+        iocs = self._iocs.get_iocs()
         options = self._options_holder.get_config_options()
         for iocname in iocs.keys():
             if iocname in options:
@@ -239,7 +230,7 @@ class DatabaseServer(Driver):
         return iocs
 
     def _get_pvs(self, get_method, replace_pv_prefix, *get_args):
-        if self._db is not None:
+        if self._iocs is not None:
             pv_data = get_method(*get_args)
             if replace_pv_prefix:
                 pv_data = [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in pv_data]
@@ -260,38 +251,43 @@ class DatabaseServer(Driver):
         return self._get_interesting_pvs("")
 
     def _get_interesting_pvs(self, level):
-        return self._get_pvs(self._db.get_interesting_pvs, False, level)
+        return self._get_pvs(self._iocs.get_interesting_pvs, False, level)
 
     def _get_active_pvs(self):
-        return self._get_pvs(self._db.get_active_pvs, False)
+        return self._get_pvs(self._iocs.get_active_pvs, False)
 
     def _get_sample_par_names(self):
-        """Returns the sample parameters from the database, replacing the MYPVPREFIX macro
+        """
+        Returns the sample parameters from the database, replacing the MYPVPREFIX macro.
 
         Returns:
             list : A list of sample parameter names, an empty list if the database does not exist
         """
-        return self._get_pvs(self._db.get_sample_pars, True)
+        return self._get_pvs(self._iocs.get_sample_pars, True)
 
     def _get_beamline_par_names(self):
-        """Returns the beamline parameters from the database, replacing the MYPVPREFIX macro
+        """
+        Returns the beamline parameters from the database, replacing the MYPVPREFIX macro.
 
         Returns:
             list : A list of beamline parameter names, an empty list if the database does not exist
         """
-        return self._get_pvs(self._db.get_beamline_pars, True)
+        return self._get_pvs(self._iocs.get_beamline_pars, True)
 
     def _get_user_par_names(self):
-        """Returns the user parameters from the database, replacing the MYPVPREFIX macro
+        """
+        Returns the user parameters from the database, replacing the MYPVPREFIX macro.
 
         Returns:
             list : A list of user parameter names, an empty list if the database does not exist
         """
-        return self._get_pvs(self._db.get_user_pars, True)
+        return self._get_pvs(self._iocs.get_user_pars, True)
 
     @staticmethod
     def _get_iocs_not_to_stop():
         """
+        Get the IOCs that are not to be stopped.
+
         Returns: 
             list: A list of IOCs not to stop
         """
@@ -333,7 +329,25 @@ if __name__ == '__main__':
     SERVER = CAServer(BLOCKSERVER_PREFIX)
     SERVER.createPV(BLOCKSERVER_PREFIX, DatabaseServer.generate_pv_info())
     SERVER.createPV(MACROS["$(MYPVPREFIX)"], ExpData.EDPV)
-    DRIVER = DatabaseServer(SERVER, "iocdb", OPTIONS_DIR, BLOCKSERVER_PREFIX)
+
+    # Initialise IOC database connection
+    try:
+        ioc_data = IOCData(IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb")), ProcServWrapper(),
+                           MACROS["$(MYPVPREFIX)"])
+        print_and_log("Connected to IOCData database", INFO_MSG, LOG_TARGET)
+    except Exception as e:
+        ioc_data = None
+        print_and_log("Problem initialising IOCData DB connection: %s" % e, MAJOR_MSG, LOG_TARGET)
+
+    # Initialise experimental database connection
+    try:
+        exp_data = ExpData(MACROS["$(MYPVPREFIX)"], ExpDataSource())
+        print_and_log("Connected to experimental details database", INFO_MSG, LOG_TARGET)
+    except Exception as e:
+        exp_data = None
+        print_and_log("Problem connecting to experimental details database: %s" % e, MAJOR_MSG, LOG_TARGET)
+
+    DRIVER = DatabaseServer(SERVER, ioc_data, exp_data, OPTIONS_DIR, BLOCKSERVER_PREFIX)
 
     # Process CA transactions
     while True:

@@ -26,8 +26,8 @@ import xmlrunner
 import argparse
 
 from DatabaseServer.test_modules.options_holder_tests import TestOptionsHolderSequence
-from DatabaseServer.test_modules.exp_data_test import TestExpData
-from DatabaseServer.test_modules.database_server_test_mysql import TestDatabaseServer
+from DatabaseServer.test_modules.exp_data_tests import TestExpData
+from DatabaseServer.test_modules.database_server_tests import TestDatabaseServer
 
 DEFAULT_DIRECTORY = os.path.join('..','..','..','..','test-reports')
 

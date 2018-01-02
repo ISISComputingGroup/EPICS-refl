@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     # Load tests from test suites
     test_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_modules"))
-    test_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
+    test_suite = unittest.TestLoader().discover(test_dir, pattern="*_tests.py")
 
     print "\n\n------ BEGINNING UNIT TESTS ------"
     ret_vals = list()

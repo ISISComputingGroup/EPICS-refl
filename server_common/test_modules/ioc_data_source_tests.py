@@ -15,16 +15,14 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import unittest
-
 from hamcrest import *
 from mock import Mock
 
-from server_common.ioc_data import IocDataSource
+from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import DatabaseError
 
 
 class SQLAbstractionStubForIOC(object):
-
     def __init__(self, query_return):
         self.query_return = []
         for ioc, values in query_return.iteritems():
@@ -34,14 +32,12 @@ class SQLAbstractionStubForIOC(object):
                 self.query_return.append(pv_info)
 
     def query(self, sql, param=None):
-
         return self.query_return
 
 
 class TestIocDataSource(unittest.TestCase):
-
     def test_GIVEN_1_logging_annotations_request_WHEN_get_values_THEN_value_returned_grouped_by_ioc(self):
-        expected_result = {"ioc1": [["pv1", "log_header1", "an intereseting value"]]}
+        expected_result = {"ioc1": [["pv1", "log_header1", "an interesting value"]]}
 
         mysql_abstraction_layer = SQLAbstractionStubForIOC(expected_result)
         data_source = IocDataSource(mysql_abstraction_layer)
@@ -62,11 +58,11 @@ class TestIocDataSource(unittest.TestCase):
 
     def test_GIVEN_multiple_logging_annotations_over_multiple_iocs_WHEN_get_values_THEN_values_returned_grouped_by_ioc(self):
         expected_result = {
-            "ioc1": [["pv1", "log_header1", "an intereseting value"],
-                     ["pv1", "log_header2", "an intereseting value"],
-                     ["pv3", "log_trigger", "an intereseting value"]],
-            "ioc2": [["pv5", "log_header1", "an intereseting value"]],
-            "ioc3": [["pv1", "log_header1", "an intereseting value"]]
+            "ioc1": [["pv1", "log_header1", "an interesting value"],
+                     ["pv1", "log_header2", "an interesting value"],
+                     ["pv3", "log_trigger", "an interesting value"]],
+            "ioc2": [["pv5", "log_header1", "an interesting value"]],
+            "ioc3": [["pv1", "log_header1", "an interesting value"]]
         }
 
         mysql_abstraction_layer = SQLAbstractionStubForIOC(expected_result)
@@ -77,8 +73,6 @@ class TestIocDataSource(unittest.TestCase):
         assert_that(result, is_(expected_result))
 
     def test_GIVEN_database_error_WHEN_get_values_THEN_error(self):
-
-
         mysql_abstraction_layer = SQLAbstractionStubForIOC({})
         mysql_abstraction_layer.query = Mock(side_effect=DatabaseError("DB Error"))
         data_source=IocDataSource(mysql_abstraction_layer)
