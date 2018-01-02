@@ -72,10 +72,10 @@ class DatabaseServer(Driver):
         self._ca_server = ca_server
         self._options_holder = OptionsHolder(options_folder, OptionsLoader())
         self._pv_info = self._generate_pv_acquisition_info()
-        self._db = ioc_data
+        self._iocs = ioc_data
         self._ed = exp_data
 
-        if self._db is not None and not test_mode:
+        if self._iocs is not None and not test_mode:
             # Start a background thread for keeping track of running IOCs
             self.monitor_lock = RLock()
             monitor_thread = Thread(target=self._update_ioc_monitors, args=())
@@ -182,8 +182,8 @@ class DatabaseServer(Driver):
         Updates all the PVs that hold information on the IOCS and their associated PVs.
         """
         while True:
-            if self._db is not None:
-                self._db.update_iocs_status()
+            if self._iocs is not None:
+                self._iocs.update_iocs_status()
                 for pv in ["IOCS", "PVS:ALL", "PVS:ACTIVE", "PVS:INTEREST:HIGH", "PVS:INTEREST:MEDIUM",
                            "PVS:INTEREST:FACILITY"]:
                     encoded_data = DatabaseServer._encode_for_return(self._pv_info[pv]['get']())
@@ -222,7 +222,7 @@ class DatabaseServer(Driver):
         return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
 
     def _get_iocs_info(self):
-        iocs = self._db.get_iocs()
+        iocs = self._iocs.get_iocs()
         options = self._options_holder.get_config_options()
         for iocname in iocs.keys():
             if iocname in options:
@@ -230,7 +230,7 @@ class DatabaseServer(Driver):
         return iocs
 
     def _get_pvs(self, get_method, replace_pv_prefix, *get_args):
-        if self._db is not None:
+        if self._iocs is not None:
             pv_data = get_method(*get_args)
             if replace_pv_prefix:
                 pv_data = [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in pv_data]
@@ -251,10 +251,10 @@ class DatabaseServer(Driver):
         return self._get_interesting_pvs("")
 
     def _get_interesting_pvs(self, level):
-        return self._get_pvs(self._db.get_interesting_pvs, False, level)
+        return self._get_pvs(self._iocs.get_interesting_pvs, False, level)
 
     def _get_active_pvs(self):
-        return self._get_pvs(self._db.get_active_pvs, False)
+        return self._get_pvs(self._iocs.get_active_pvs, False)
 
     def _get_sample_par_names(self):
         """
@@ -263,7 +263,7 @@ class DatabaseServer(Driver):
         Returns:
             list : A list of sample parameter names, an empty list if the database does not exist
         """
-        return self._get_pvs(self._db.get_sample_pars, True)
+        return self._get_pvs(self._iocs.get_sample_pars, True)
 
     def _get_beamline_par_names(self):
         """
@@ -272,7 +272,7 @@ class DatabaseServer(Driver):
         Returns:
             list : A list of beamline parameter names, an empty list if the database does not exist
         """
-        return self._get_pvs(self._db.get_beamline_pars, True)
+        return self._get_pvs(self._iocs.get_beamline_pars, True)
 
     def _get_user_par_names(self):
         """
@@ -281,7 +281,7 @@ class DatabaseServer(Driver):
         Returns:
             list : A list of user parameter names, an empty list if the database does not exist
         """
-        return self._get_pvs(self._db.get_user_pars, True)
+        return self._get_pvs(self._iocs.get_user_pars, True)
 
     @staticmethod
     def _get_iocs_not_to_stop():
