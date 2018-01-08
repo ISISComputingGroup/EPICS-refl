@@ -755,6 +755,7 @@ class BlockServer(Driver):
                     }
                 }
                 self._cas.createPV(BLOCKSERVER_PREFIX, newPV)
+                PVDB[name] = newPV
                 # self.configure_pv_db()
                 data = Data()
                 data.value = manager.pvs[self.port][name].info.value
