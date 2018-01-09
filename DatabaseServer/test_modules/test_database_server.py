@@ -25,7 +25,7 @@ import unittest
 from DatabaseServer.database_server import DatabaseServer
 from server_common.mocks.mock_ca_server import MockCAServer
 from server_common.mocks.mock_ioc_data_source import MockIocDataSource, IOCS
-from server_common.test_modules.ioc_data_tests import HIGH_PV_NAMES, MEDIUM_PV_NAMES, FACILITY_PV_NAMES
+from server_common.test_modules.test_ioc_data import HIGH_PV_NAMES, MEDIUM_PV_NAMES, FACILITY_PV_NAMES
 from server_common.utilities import dehex_and_decompress
 from DatabaseServer.mocks.mock_procserv_utils import MockProcServWrapper
 from server_common.ioc_data import IOCData

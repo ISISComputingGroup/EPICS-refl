@@ -1,5 +1,5 @@
 # This file is part of the ISIS IBEX application.
-# Copyright (C) 2012-2016 Science & Technology Facilities Council.
+# Copyright (C) 2012-2018 Science & Technology Facilities Council.
 # All rights reserved.
 #
 # This program is distributed in the hope that it will be useful.
@@ -14,18 +14,15 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-# Add root path for access to server_commons
+# Standard imports
 import os
 import sys
-# Set MYDIRBLOCK so that example_base can be found
-os.environ["MYDIRBLOCK"] = ".."
-sys.path.insert(0, os.path.abspath(".."))
-# Standard imports
+import glob
 import unittest
 import xmlrunner
 import argparse
 
-DEFAULT_DIRECTORY = os.path.join('..', '..', '..', '..', 'test-reports')
+DEFAULT_DIRECTORY = os.path.join('..', '..', '..', 'test-reports')
 
 if __name__ == '__main__':
     # get output directory from command line arguments
@@ -34,14 +31,18 @@ if __name__ == '__main__':
                         help='The directory to save the test reports')
     args = parser.parse_args()
     xml_dir = args.output_dir[0]
+    ret_vals = list()
 
-    # Load tests from test suites
-    test_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_modules"))
-    test_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
+    for folder in glob.glob(os.path.join(os.path.dirname(__file__), "*", "test_modules")):
+        # Load tests from test suites
+        test_dir = os.path.abspath(folder)
 
-    print("\n\n------ BEGINNING BLOCKSERVER UNIT TESTS ------")
-    ret_vals = xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite)
-    print("------ BLOCKSERVER UNIT TESTS COMPLETE ------\n\n")
 
-    # Return failure exit code if a test failed
-    sys.exit(bool(ret_vals.errors or ret_vals.failures))
+        if "Block" not in folder:
+            test_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
+            print ("\n\n------ BEGINNING {} UNIT TESTS ------".format(folder.split(os.sep)[-2]))
+            ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite))
+            print ("------ UNIT TESTS COMPLETE ------\n\n")
+
+        # Return failure exit code if a test failed
+    sys.exit(False in ret_vals)
