@@ -79,6 +79,7 @@ if __name__ == "__main__":
         inst_dictionary("MERLIN"),
         inst_dictionary("RIKENFE"),
         inst_dictionary("SELAB"),
+        inst_dictionary("EMMA-A"),
     ]
 
     new_value = json.dumps(instruments_list)
