@@ -748,14 +748,14 @@ class BlockServer(Driver):
         if name not in PVDB and name not in manager.pvs[self.port]:
             try:
                 print_and_log("Adding PV %s" % name)
-                newPV = { name : {
+                new_pv = { name : {
                     'type': 'char',
                     'count': count,
                     'value': [0],
                     }
                 }
                 self._cas.createPV(BLOCKSERVER_PREFIX, newPV)
-                PVDB[name] = newPV
+                PVDB[name] = new_pv
                 # self.configure_pv_db()
                 data = Data()
                 data.value = manager.pvs[self.port][name].info.value
