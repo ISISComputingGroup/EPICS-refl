@@ -37,12 +37,10 @@ if __name__ == '__main__':
         # Load tests from test suites
         test_dir = os.path.abspath(folder)
 
-
-        if "Block" not in folder:
-            test_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
-            print ("\n\n------ BEGINNING {} UNIT TESTS ------".format(folder.split(os.sep)[-2]))
-            ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite))
-            print ("------ UNIT TESTS COMPLETE ------\n\n")
+        test_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
+        print ("\n\n------ BEGINNING {} UNIT TESTS ------".format(folder.split(os.sep)[-2]))
+        ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite))
+        print ("------ UNIT TESTS COMPLETE ------\n\n")
 
         # Return failure exit code if a test failed
     sys.exit(False in ret_vals)
