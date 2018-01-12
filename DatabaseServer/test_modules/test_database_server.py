@@ -42,8 +42,8 @@ class TestDatabaseServer(unittest.TestCase):
         self.proc_server = MockProcServWrapper()
         self.exp_data = MockExpData()
         self.ioc_data = IOCData(self.ioc_source, self.proc_server, "")
-        self.db_server = DatabaseServer(self.ms, self.ioc_data, self.exp_data, os.path.abspath('./test_files'),
-                                        "block_prefix", True)
+        test_files_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "test_files")
+        self.db_server = DatabaseServer(self.ms, self.ioc_data, self.exp_data, test_files_dir, "block_prefix", True)
 
     def test_interest_high_pvs_correct(self):
         pv_data = json.loads(dehex_and_decompress(self.db_server.read("PVS:INTEREST:HIGH")))
