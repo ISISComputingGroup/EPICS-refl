@@ -124,6 +124,7 @@ class ActiveConfigHolder(ConfigHolder):
         """
         iocs_to_start = set()
         iocs_to_restart = set()
+        iocs_to_stop = set()
 
         # Check to see if any macros, pvs, pvsets etc. have changed
         for n in self._config.iocs.keys():
@@ -146,4 +147,9 @@ class ActiveConfigHolder(ConfigHolder):
                 for n in cv.iocs.keys():
                     iocs_to_start.add(n)
 
-        return iocs_to_start, iocs_to_restart
+        # Look for any removed IOCs
+        for n in self._cached_config.iocs.keys():
+            if n not in self._config.iocs.keys():
+                iocs_to_stop.add(n)
+
+        return iocs_to_start, iocs_to_restart, iocs_to_stop

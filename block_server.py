@@ -447,7 +447,9 @@ class BlockServer(Driver):
         """
         # First stop all IOCS, then start the ones for the config
         # TODO: Should we stop all configs?
-        iocs_to_start, iocs_to_restart = self._active_configserver.iocs_changed()
+        iocs_to_start, iocs_to_restart, iocs_to_stop = self._active_configserver.iocs_changed()
+
+        self._ioc_control.stop_iocs(iocs_to_stop)
 
         if len(iocs_to_start) > 0 or len(iocs_to_restart) > 0:
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
