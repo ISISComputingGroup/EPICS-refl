@@ -205,9 +205,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         details = ch.get_config_details()
         ch.set_config_details(details)
         # Assert
-        start, restart = ch.iocs_changed()
+        start, restart, stop = ch.iocs_changed()
         self.assertEqual(len(start), 0)
         self.assertEqual(len(restart), 0)
+        self.assertEqual(len(stop), 0)
 
     def test_iocs_changed_ioc_added(self):
         # Arrange
@@ -217,9 +218,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         details['iocs'].append(MockIoc())
         ch.set_config_details(details)
         # Assert
-        start, restart = ch.iocs_changed()
+        start, restart, stop = ch.iocs_changed()
         self.assertEqual(len(start), 1)
         self.assertEqual(len(restart), 0)
+        self.assertEqual(len(stop), 0)
 
     def test_iocs_changed_ioc_removed(self):
         # Arrange
@@ -231,9 +233,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         details['iocs'].pop(0)
         ch.set_config_details(details)
         # Assert
-        start, restart = ch.iocs_changed()
+        start, restart, stop = ch.iocs_changed()
         self.assertEqual(len(start), 0)
         self.assertEqual(len(restart), 0)
+        self.assertEqual(len(stop), 1)
 
     def _test_attribute_changes(self, initial_attrs={}, final_attrs={}, has_changed=True):
         # Take a dict of initial attributes and final attributes and
@@ -256,9 +259,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         details['iocs'][0] = final_ioc
         ch.set_config_details(details)
         # Assert
-        start, restart = ch.iocs_changed()
+        start, restart, stop = ch.iocs_changed()
         self.assertEqual(len(start), 0)
         self.assertEqual(len(restart), 1 if has_changed else 0)
+        self.assertEqual(len(stop), 0)
 
     def test_iocs_changed_macro_added(self):
         self._test_attribute_changes(final_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]})
