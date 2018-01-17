@@ -1,11 +1,22 @@
 from math import radians
 from transform import Transformation
 import os
+import numpy as np
 
 # Config happens here:
 
 # Colors for each body
-colors = [(0.6, 0.6, 0.6), (1, 0, 1), (1, 1, 0), (0, 1, 1), (0, 1, 0), (1, 0.5, 0), (0.2, 0.2, 1), (1, 1, 1)]
+GREY = (0.6, 0.6, 0.6)
+MAGENTA = (1, 0, 1)
+YELLOW = (1, 1, 0)
+CYAN = (0, 1, 1)
+GREEN = (0, 1, 0)
+ORANGE = (1, 0.5, 0)
+LIGHT_BLUE = (0.2, 0.2, 1)
+WHITE = (1, 1, 1)
+
+# Colors for each body
+colors = [GREY, MAGENTA, YELLOW, CYAN, GREEN, ORANGE, LIGHT_BLUE, WHITE]
 
 # PV prefix
 pv_prefix = os.environ["MYPVPREFIX"]
@@ -15,21 +26,21 @@ control_pv = "{}COLLIDE:".format(pv_prefix)
 
 # Define the geometry of the system in mm
 # Coordinate origin at arc centre, with nominal beam height
-z_stage = dict(name="Z_Stage", size=(1000.0, 1000.0, 630.0), color=colors[0])
-rot_stage = dict(name="Rotation", size=(600.0, 600.0, 165.0), color=colors[1])
-bot_arc = dict(name="Bottom_Arc", size=(600.0, 600.0, 120.0), color=colors[2])
-top_arc = dict(name="Top_Arc", size=(600.0, 600.0, 120.0), color=colors[3])
-fine_z = dict(name="Fine_Z", size=(600.0, 600.0, 120.0), color=colors[4])
-y_base = dict(name="Y_Stage", size=(900.0, 1200.0, 50.0), color=colors[4])
-y_stage = dict(name="Y_Carriage", size=(600.0, 300.0, 20.0), color=colors[5])
-x_stage = dict(name="X_Carriage", size=(520.0, 300.0, 20.0), color=colors[6])
-sample = dict(name="Sample", size=(250.0, 250.0, 150.0), color=colors[6])
-snout = dict(name="Snout", position=(-300, 0, 0), size=(500, 70, 70), color=colors[7])
-slits = dict(name="Slits", position=(450, 0, 0), size=(100, 300, 300), color=colors[7])
+# Size is defined x, y, z (x is beam, z is up) TODO: use point
+base = dict(name="Z_Stage", size=(1500.0, 1500.0, 2650.0), color=GREY)  # Initial height is halfway across travel
+carriage = dict(name="Carriage", size=(700.0, 700.0, 40.0), color=YELLOW)
+tom_base = dict(name="Tomography_Base", size=(250.0, 250.0, 233.0), color=CYAN)
+tom_top = dict(name="Tomography_Top", size=(360.0, 360.0, 18.0), color=YELLOW)
 
-# Define some variables to describe the geometry
-centre_arc = 750.0
-beam_ref = 1625.0
+incident_slits = dict(name="Incident_Slits", position=(-1200, 0, 0), size=(80.0, 300.0, 300.0), color=WHITE) # fixed for now
+
+# Stationary objects
+camera = dict(name="Camera", position=(800.0+440.0/2, 0, -392), size=(440.0, 440.0, 1245.0), color=WHITE)
+
+sample = dict(name="Sample", size=(250.0, 250.0, 150.0), color=WHITE)
+
+# Arc centre as distance between the centre of objects and the point about which they rotate
+tom_arc = 76.0
 
 # Define some search parameters
 coarse = 20.0
@@ -38,111 +49,88 @@ fine = 0.5
 # Define the oversized-ness of each body - a global value in mm
 oversize = coarse / 4
 
+# Put them in a list
+geometries = [base, carriage, tom_base, tom_top, sample, incident_slits, camera]
+
 # List of pairs to ignore [0, 1]...[7, 8]
 ignore = []
-for i in range(0, 9):
-    for j in range(i, 9):
+for i in range(0, 5):
+    for j in range(i, 5):
         ignore.append([i, j])
 
-def move_everything(axes):
+
+def moves(axes):
     # Z stage
     t = Transformation()
 
-    size = axes[0] + z_stage['size'][2]
+    initial_base_height = base['size'][2]
 
-    t.translate(z=-beam_ref + size / 2)
+    new_height = axes[6] + initial_base_height
 
-    yield t, dict(z=size)
+    dist_beam_to_base = 3780
 
-    # Rotation
-    t = Transformation()
-    t.translate(z=-beam_ref + axes[0] + z_stage['size'][2] + rot_stage['size'][2] / 2)
-    t.rotate(rz=radians(axes[1]))
+    t.translate(z=-dist_beam_to_base + new_height / 2)
 
-    yield t
+    yield t, dict(z=new_height)
 
-    # Bottom arc
+    # Carriage movement
     t = Transformation()
 
-    t.translate(z=-centre_arc - (bot_arc['size'][2] / 2 + top_arc['size'][2]))
-    t.rotate(ry=radians(axes[2]))
-    t.translate(z=centre_arc + (bot_arc['size'][2] / 2 + top_arc['size'][2]))
+    # Set new height due to base
+    carriage_height = carriage['size'][2]
+    t.translate(z=-dist_beam_to_base + new_height + carriage_height/2)
 
-    t.translate(z=-beam_ref + axes[0] + z_stage['size'][2] + rot_stage['size'][2] + bot_arc['size'][2] / 2)
-    t.rotate(rz=radians(axes[1]))
-
-    yield t
-
-    # Top arc
-    t = Transformation(t)
-
-    t.translate(z=+(centre_arc + top_arc['size'][2] / 2), forward=False)
-    t.rotate(rx=radians(axes[3]), forward=False)
-    t.translate(z=-(centre_arc + top_arc['size'][2] / 2), forward=False)
-
-    t.translate(z=top_arc['size'][2] / 2 + bot_arc['size'][2] / 2, forward=False)
-    yield t
-
-    # Fine Z
-    u = Transformation(t)
-
-    size = axes[4] + fine_z['size'][2]
-
-    u.translate(z=size / 2 + top_arc['size'][2] / 2, forward=False)
-
-    yield u, dict(z=size)
-
-    # Base of Y stage (top of fine Z)
-    t = Transformation(t)
-
-    size = axes[4] + fine_z['size'][2]
-
-    t.translate(z=size + top_arc['size'][2] / 2 + y_base['size'][2] / 2, forward=False)
-
-    yield t
-
-    # Y stage
-    t = Transformation(t)
-
-    t.translate(y=axes[5], z=y_base['size'][2] / 2 + y_stage['size'][2] / 2, forward=False)
-
-    yield t
+    # Rotation of base
+    t.rotate(rz=radians(axes[5]))
 
     # X stage
-    t = Transformation(t)
+    t.translate(x=axes[3], forward=False)
 
-    t.translate(x=axes[6], z=y_stage['size'][2] / 2 + x_stage['size'][2] / 2, forward=False)
-
-    yield t
-
-    # Sample
-    t = Transformation(t)
-
-    t.translate(z=x_stage['size'][2] / 2 + sample['size'][2] / 2, forward=False)
+    # Y stage
+    t.translate(y=axes[4], forward=False)
 
     yield t
 
+    # Tomography base is attached to carriage
+    t = Transformation(t)
 
-moves = move_everything
+    t.translate(z=tom_base['size'][2]/2)
 
-# Put them in a list
-geometries = [z_stage, rot_stage, bot_arc, top_arc, fine_z, y_base, y_stage, x_stage, sample, snout, slits]
+    yield t
+
+    # Tomograghy top
+    u = Transformation()
+
+    u.rotate(rz=radians(axes[0]))
+
+    u.translate(z=-tom_arc)
+    u.rotate(rx=radians(axes[1]))
+    u.rotate(ry=radians(axes[2]))
+    u.translate(z=tom_arc)
+
+    v = Transformation()
+    v.matrix = np.dot(u.matrix, t.matrix) # This may be wrong order or may not be needed if you use t as a starting point for u
+
+    yield v
+
+    # Sample is fixed to the top of the tomography
+    t = Transformation(v)
+
+    t.translate(z=sample['size'][2]/2, forward=False)
+    yield t
+
+
+
+#TODO: Refactor pvs and limits into nicer structure
 
 # Attach monitors to readbacks
-pvs = ["{}MOT:MTR0201",
-       "{}MOT:MTR0202",
-       "{}MOT:MTR0203",
-       "{}MOT:MTR0204",
-       "{}MOT:MTR0205",
-       "{}MOT:MTR0206",
-       "{}MOT:MTR0207"]
+pvs = ["{}MOT:MTR0502", "{}MOT:MTR0503", "{}MOT:MTR0504",  # Tomography Phi, Chi, Theta
+       "{}MOT:MTR0505", "{}MOT:MTR0506",  # Sample Stack X, Y
+       "{}MOT:MTR0901", "{}MOT:MTR0902"  # Beckhoff rot & z
+       ]
 
 pvs = [pv.format(pv_prefix) for pv in pvs]
 
-hardlimits = [[-220, 100],
-              [-180.0, 180.0],
-              [-20, 20.0],
-              [-20.0, 20.0],
-              [0.0, 30.0],
-              [-300, 300],
-              [-37.5, 37.5]]
+hardlimits = [[-90, 270], [-6, 6], [-6, 6],
+              [105, 1005], [105, 1005],
+              [180, -180], [-250, 250]]

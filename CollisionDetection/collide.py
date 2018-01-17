@@ -9,10 +9,15 @@ from genie_python.genie import set_pv
 from move import move_all
 
 
-# This ignores geometries we have said we don't care about
-# As there are only [(len(geometries)-1)!] combinations, and we don't care about some, there isn't much effort saved
-# by using spaces (which do a quicker estimate of collisions first)
 def collide(geometries, ignore):
+    """
+    Calculates which of the given geometries will collide, ignoring geometries that are specified as ignored.
+    As there are only [(len(geometries)-1)!] combinations, and we don't care about some, there isn't much effort saved
+    by using spaces (which do a quicker estimate of collisions first)
+    :param geometries: A list of GeometryBox objects to check for collisions.
+    :param ignore: A list of pairs to ignore. Each pair is represented by a list with two entries.
+    :return: A list of booleans, each corresponding to a geometry by position, True if the geometry has collided.
+    """
     collisions = [False] * len(geometries)
     for i, geom1 in enumerate(geometries):
         for j, geom2 in enumerate(geometries[i:]):
@@ -21,7 +26,6 @@ def collide(geometries, ignore):
                 if contacts:
                     collisions[i] = True
                     collisions[i + j] = True
-    # print collisions
     return collisions
 
 
