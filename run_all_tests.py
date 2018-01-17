@@ -31,16 +31,11 @@ if __name__ == '__main__':
                         help='The directory to save the test reports')
     args = parser.parse_args()
     xml_dir = args.output_dir[0]
-    ret_vals = list()
 
-    for folder in glob.glob(os.path.join(os.path.dirname(__file__), "*", "test_modules")):
-        # Load tests from test suites
-        test_dir = os.path.abspath(folder)
+    test_suite = unittest.TestLoader().discover(os.path.dirname(__file__), pattern="test_*.py")
+    print ("\n\n------ BEGINNING UNIT TESTS ------")
+    ret_vals = xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite)
+    print ("------ UNIT TESTS COMPLETE ------\n\n")
 
-        test_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
-        print ("\n\n------ BEGINNING {} UNIT TESTS ------".format(folder.split(os.sep)[-2]))
-        ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite))
-        print ("------ UNIT TESTS COMPLETE ------\n\n")
-
-        # Return failure exit code if a test failed
-    sys.exit(False in ret_vals)
+    # Return failure exit code if a test errored or failed
+    sys.exit(bool(ret_vals.errors or ret_vals.failures))
