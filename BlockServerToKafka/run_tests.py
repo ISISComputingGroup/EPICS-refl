@@ -24,9 +24,6 @@ import unittest
 import xmlrunner
 import argparse
 
-from BlockServerToKafka.test_modules.test_block_server_monitor import TestBlockServerMonitor
-from BlockServerToKafka.test_modules.test_forwarder_config import TestForwarderConfig
-
 DEFAULT_DIRECTORY = os.path.join('..', '..', '..', '..', 'test-reports')
 
 if __name__ == '__main__':
@@ -38,14 +35,12 @@ if __name__ == '__main__':
     xml_dir = args.output_dir[0]
 
     # Load tests from test suites
-    block_server_monitor_suite = unittest.TestLoader().loadTestsFromTestCase(TestBlockServerMonitor)
-    forwarder_config_suite = unittest.TestLoader().loadTestsFromTestCase(TestForwarderConfig)
+    test_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_modules"))
+    test_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
 
     print("\n\n------ BEGINNING BLOCK_SERVER_TO_KAFKA UNIT TESTS ------")
-    ret_vals = []
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(block_server_monitor_suite))
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(forwarder_config_suite))
+    ret_vals = xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite)
     print("------ BLOCK_SERVER_TO_KAFKA UNIT TESTS COMPLETE ------\n\n")
 
     # Return failure exit code if a test failed
-    sys.exit(False in ret_vals)
+    sys.exit(bool(ret_vals.errors or ret_vals.failures))

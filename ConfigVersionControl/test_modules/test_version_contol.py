@@ -16,7 +16,7 @@
 
 import unittest
 from mock import Mock
-from git_version_control import GitVersionControl, SYSTEM_TEST_PREFIX
+from ConfigVersionControl.git_version_control import GitVersionControl, SYSTEM_TEST_PREFIX
 import socket
 
 

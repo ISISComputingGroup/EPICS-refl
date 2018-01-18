@@ -25,7 +25,7 @@ import unittest
 from DatabaseServer.database_server import DatabaseServer
 from server_common.mocks.mock_ca_server import MockCAServer
 from server_common.mocks.mock_ioc_data_source import MockIocDataSource, IOCS
-from server_common.test_modules.ioc_data_tests import HIGH_PV_NAMES, MEDIUM_PV_NAMES, FACILITY_PV_NAMES
+from server_common.test_modules.test_ioc_data import HIGH_PV_NAMES, MEDIUM_PV_NAMES, FACILITY_PV_NAMES
 from server_common.utilities import dehex_and_decompress
 from DatabaseServer.mocks.mock_procserv_utils import MockProcServWrapper
 from server_common.ioc_data import IOCData
@@ -42,8 +42,8 @@ class TestDatabaseServer(unittest.TestCase):
         self.proc_server = MockProcServWrapper()
         self.exp_data = MockExpData()
         self.ioc_data = IOCData(self.ioc_source, self.proc_server, "")
-        self.db_server = DatabaseServer(self.ms, self.ioc_data, self.exp_data, os.path.abspath('./test_files'),
-                                        "block_prefix", True)
+        test_files_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "test_files")
+        self.db_server = DatabaseServer(self.ms, self.ioc_data, self.exp_data, test_files_dir, "block_prefix", True)
 
     def test_interest_high_pvs_correct(self):
         pv_data = json.loads(dehex_and_decompress(self.db_server.read("PVS:INTEREST:HIGH")))
