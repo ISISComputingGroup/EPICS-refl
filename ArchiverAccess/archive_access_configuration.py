@@ -50,11 +50,12 @@ class ArchiveAccessConfigBuilder(object):
             on_end_logging_filename_template: the filename template to use for the log on end file; None for don't
                 create file template that are replaced are `{xxx}` where xxx can be start_time - for start date time of
                 log
-            continuous_logging_filename_template: the filename template to use for the log continuously file; None for
-                don't create file template that are replaced are `{xxx}`
-                where xxx can be start_time - for start date time of log
+            continuous_logging_filename_template: the filename template to use for the log continuously file; When None
+                don't create file. Curly brackets in teh template are replaced (as per python format) possible values
+                are:
+                    {start_time} - replace with start date time of log
             base_path: the base path into which files should be placed
-            default_field: the field appended to pvs without field; blank for don't add a field
+            default_field: the field appended to pvs without a field e.g. VAL; blank for don't add a field
         """
 
         self._default_field = default_field
@@ -76,7 +77,7 @@ class ArchiveAccessConfigBuilder(object):
 
     def header(self, header_line):
         """
-        Add a templated line to the file header. Templates are similar to python formatters where the name of the
+        Add a templated line to the file header. Templates are similar to python formaters where the name of the
         argument is the pv name and the format can be specified after that using a | to separate it
         (in python it is a :). The value at the start of the log will be used.
 
@@ -188,9 +189,10 @@ class ArchiveAccessConfig(object):
             on_end_logging_filename_template: the filename template to use for the log on end file; None for don't
                 create file template that are replaced are `{xxx}` where xxx can be start_time - for start date time of
                 log
-            continuous_logging_filename_template: the filename template to use for the log continuously file; None for
-                don't create file template that are replaced are `{xxx}`
-                where xxx can be start_time - for start date time of log
+            continuous_logging_filename_template: the filename template to use for the log continuously file; When None
+                don't create file. Curly brackets in teh template are replaced (as per python format) possible values
+                are:
+                    {start_time} - replace with start date time of log
             header_lines: header line templates
             columns: column definition
             trigger_pv: pv on which to trigger a log

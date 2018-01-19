@@ -14,11 +14,19 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 """
-Module for creating a log file
+Script for generating a log file from the archive.
 """
+import argparse
 from datetime import datetime, timedelta
 
-from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator
+import os
+import sys
+
+try:
+    from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator
+except ImportError:
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
+    from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from ArchiverAccess.archiver_data_source import ArchiverDataSource
 from ArchiverAccess.archive_access_configuration import ArchiveAccessConfigBuilder
@@ -26,6 +34,16 @@ from server_common.mysql_abstraction_layer import SQLAbstraction
 
 finish = False
 """Finish the program"""
+
+
+def not_readonly(path):
+    """
+    Final function of the log
+    Args:
+        path: path of file
+
+    """
+    print("Created log file {}".format(path))
 
 
 def create_log(headers, columns, time_period, filename_template="default.log", host="127.0.0.1"):
@@ -45,19 +63,55 @@ def create_log(headers, columns, time_period, filename_template="default.log", h
     for column_header, column_template in columns:
         config_builder.table_column(column_header, column_template)
 
-    adfc = ArchiveDataFileCreator(config_builder.build(), archiver_data_source)
+    adfc = ArchiveDataFileCreator(config_builder.build(), archiver_data_source, filename_template,
+                                  make_file_readonly=not_readonly)
     adfc.write_complete_file(time_period)
 
+
 if __name__ == '__main__':
-    sample_size = 10000000
-    the_time_period = ArchiveTimePeriod(datetime(2017, 9, 8, 15, 00), timedelta(seconds=0.1), sample_size)
-    header_line = ["Test IMAT"]
-    column_defs = [
-        ("MOT 0201", "{IN:LARMOR:MOT:MTR0201.RBV}"),
-        ("MOT 0208", "{IN:LARMOR:MOT:MTR0208.RBV}")]
+    description = "Create a log file from the archive. E.g. python ArchiverAccess\log_file_generator.py " \
+                  "--start_time 2018-01-10T09:00:00 --point_count 1000 --delta_time 1 --host ndximat " \
+                  "--filename_template log{start_time}.csv  " \
+                  "MOT0101 IN:IMAT:MOT:MTR0101.RBV MOT0102 IN:IMAT:MOT:MTR0102.RBV"
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument("--point_count", "-c", type=int, help="Number of sample points", required=True)
+    parser.add_argument("--start_time", "-s", help="Start time for sample iso date, 2018-12-20T16:01:02", required=True)
+    parser.add_argument("--delta_time", "-d", type=float, help="The time between points in seconds", required=True)
+    parser.add_argument("--host", default="localhost", help="Host to get data from defaults to localhost")
+    parser.add_argument("--filename_template", "-f", default="log.log",
+                        help="Filename template to use for the log file.")
+
+    parser.add_argument("header_and_pvs", nargs="+",
+                        help="A header followed by the name for each pv appearing in the data")
+
+    args = parser.parse_args()
+
+    try:
+        data_start_time = datetime.strptime(args.start_time, "%Y-%m-%dT%H:%M:%S")
+    except (ValueError, TypeError) as ex:
+        print("Can not interpret date '{}' error: {}".format(args.start_time, ex))
+        exit(1)
+
+    the_time_period = ArchiveTimePeriod(data_start_time, timedelta(seconds=args.delta_time), args.point_count)
+    header_line = ["Data from {}".format(args.host)]
+
+    column_defs = []
+    header = None
+    for header_and_pv in args.header_and_pvs:
+        if header is None:
+            header = header_and_pv
+        else:
+            column_defs.append((header, "{{{}}}".format(header_and_pv)))
+            header = None
+
+    if header is not None:
+        print("There must be at least one pv and every pv must have a header")
+        exit(2)
+
     create_log(
         header_line,
         column_defs,
         the_time_period,
-        filename_template="larmor_motors.log".format(sample_size),
-        host="ndxlarmor")
+        filename_template=args.filename_template,
+        host=args.host)
