@@ -16,10 +16,11 @@
 """
 Module for initiator for log file creation.
 """
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from ArchiverAccess.archive_data_file_creator import DataFileCreationError, DataFileCreatorFactory
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
+from ArchiverAccess.utilities import utc_time_now
 from server_common.utilities import print_and_log, SEVERITY
 
 # The delay between the current time and what we think should have been archived. This is so if nothing is archived
@@ -34,7 +35,7 @@ class LogFileInitiatorOnPVChange(object):
     """
 
     def __init__(self, configs, archive_data_source, time_last_active,
-                 get_current_time_fn=datetime.utcnow, data_file_creator_factory=DataFileCreatorFactory()):
+                 get_current_time_fn=utc_time_now, data_file_creator_factory=DataFileCreatorFactory()):
         """
 
         Args:

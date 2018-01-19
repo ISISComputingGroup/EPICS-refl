@@ -23,13 +23,16 @@ from time import sleep
 
 import sys
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
+try:
+    from ArchiverAccess.archiver_data_source import ArchiverDataSource
+except ImportError:
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
+    from ArchiverAccess.archiver_data_source import ArchiverDataSource
 
-from ArchiverAccess.archiver_data_source import ArchiverDataSource
 from ArchiverAccess.archive_access_config_builder import ArchiverAccessDatabaseConfigBuilder
 from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange
 from ArchiverAccess.time_last_active import TimeLastActive
-from server_common.ioc_data import IocDataSource
+from server_common.ioc_data_source import IocDataSource
 from server_common.mysql_abstraction_layer import SQLAbstraction
 
 finish = False
@@ -63,6 +66,7 @@ def signal_handler(signal, frame):
     """
     global finish
     finish = True
+
 
 if __name__ == '__main__':
 

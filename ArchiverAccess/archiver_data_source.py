@@ -83,6 +83,7 @@ class ArchiverDataValue:
         return [self.severity_id, self.status_id, self.num_val, self.float_val, self.str_val, self.array_val,
                 self.sample_time]
 
+
 ARCHIVER_DATA_VALUE_QUERY = "severity_id, status_id, num_val, float_val, str_val, array_val, smpl_time"
 """Field which are part of the archiver data value query string"""
 

@@ -17,6 +17,7 @@
 """
 Module with useful utilities in
 """
+from datetime import datetime
 
 
 def add_default_field(pv_name, default_field):
@@ -55,3 +56,10 @@ def truncate(x, d):
     else:
         mult = 10 ** (-d)
         return int(x / mult) * mult
+
+
+def utc_time_now():
+    """
+    Returns: the current time in utc
+    """
+    return datetime.utcnow()

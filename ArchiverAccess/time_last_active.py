@@ -21,6 +21,7 @@ import os
 from datetime import datetime, timedelta
 
 from ArchiverAccess.archive_access_configuration import DEFAULT_LOG_PATH
+from ArchiverAccess.utilities import utc_time_now
 from server_common.utilities import print_and_log, SEVERITY
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
@@ -41,7 +42,7 @@ class TimeLastActive(object):
     """
     Allow Getting and Settting of the time last active log was written. This is stored in a file.
     """
-    def __init__(self, file_cls=file, time_now_fn=datetime.utcnow):
+    def __init__(self, file_cls=file, time_now_fn=utc_time_now):
         """
         Constructor
         Args:

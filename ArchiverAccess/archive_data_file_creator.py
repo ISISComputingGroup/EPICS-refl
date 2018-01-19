@@ -114,7 +114,8 @@ class DataFileCreatorFactory(object):
         """
         Create an instance of a data file creator.
         Args:
-            config(ArchiverAccess.archive_access_configuration.ArchiveAccessConfig):  configuration for the archive data file to create
+            config(ArchiverAccess.archive_access_configuration.ArchiveAccessConfig):
+                configuration for the archive data file to create
             archiver_data_source: archiver data source
             filename_template: template for the filename
             file_access_class: file like object that can be written to
@@ -139,7 +140,8 @@ class ArchiveDataFileCreator(object):
         """
         Constructor
         Args:
-            config(ArchiverAccess.archive_access_configuration.ArchiveAccessConfig):  configuration for the archive data file to create
+            config(ArchiverAccess.archive_access_configuration.ArchiveAccessConfig):
+                configuration for the archive data file to create
             archiver_data_source: archiver data source
             filename_template: template for the filename
             file_access_class: file like object that can be written to
