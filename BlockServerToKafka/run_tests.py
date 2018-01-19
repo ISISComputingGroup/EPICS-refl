@@ -17,9 +17,8 @@
 # Add root path for access to server_commons
 import os
 import sys
-# Set MYDIRBLOCK so that example_base can be found
-os.environ["MYDIRBLOCK"] = ".."
 sys.path.insert(0, os.path.abspath(".."))
+
 # Standard imports
 import unittest
 import xmlrunner
@@ -39,9 +38,9 @@ if __name__ == '__main__':
     test_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_modules"))
     test_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
 
-    print("\n\n------ BEGINNING BLOCKSERVER UNIT TESTS ------")
+    print("\n\n------ BEGINNING BLOCK_SERVER_TO_KAFKA UNIT TESTS ------")
     ret_vals = xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite)
-    print("------ BLOCKSERVER UNIT TESTS COMPLETE ------\n\n")
+    print("------ BLOCK_SERVER_TO_KAFKA UNIT TESTS COMPLETE ------\n\n")
 
     # Return failure exit code if a test failed
     sys.exit(bool(ret_vals.errors or ret_vals.failures))

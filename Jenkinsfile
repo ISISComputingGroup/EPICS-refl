@@ -37,10 +37,7 @@ pipeline {
       }
     }
     
-// Commented because the database server tests have dependencies outside of inst_servers.
-// Including being able to create a database.
-// This needs to be unpicked.
-/*    stage("Test DatabaseServer") {
+    stage("Test DatabaseServer") {
       steps {        
         bat """
             cd DatabaseServer
@@ -49,12 +46,21 @@ pipeline {
             """
       }
     }
-    */
     
     stage("Test ArchiverAccess") {
       steps {        
         bat """
             cd ArchiverAccess
+            set PYTHON_PATH=${env.PYTHON_PATH}
+            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
+            """
+      }
+    }
+    
+    stage("Test BlockServerToKafka") {
+      steps {        
+        bat """
+            cd BlockServerToKafka
             set PYTHON_PATH=${env.PYTHON_PATH}
             %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
             """

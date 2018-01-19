@@ -16,17 +16,43 @@
 
 import unittest
 import json
+import mock
 from server_common.mocks.mock_ca import MockChannelAccess
 from server_common.utilities import dehex_and_decompress
-from exp_data import ExpData
+from DatabaseServer.exp_data import ExpData, ExpDataSource
+
+
+class MockExpDataSource(object):
+    def __init__(self):
+        self.valid_experiments = {"123456": [["Matt", "ESS", "PI"], ["Dom", "ISIS", ""], ["Jack", "ISIS", "Contact"]]}
+
+    def experiment_exists(self, experiment_id):
+        return experiment_id in self.valid_experiments
+
+    def get_team(self, experiment_id):
+        return self.valid_experiments[experiment_id]
+
 
 class TestExpData(unittest.TestCase):
     def setUp(self):
         self.ca = MockChannelAccess()
-        self.exp_data = ExpData("TEST_PREFIX", self.ca)
+        self.mock_data_source = MockExpDataSource()
+        self.exp_data = ExpData("TEST_PREFIX", self.mock_data_source, self.ca)
 
-    def decodepv(self, pv):
+    def decode_pv(self, pv):
         return json.loads(dehex_and_decompress(self.ca.caget(pv)))
+
+    def test_update_experiment_id_set_surnames_if_experiment_exists_but_skips_contact(self):
+        self.exp_data.update_experiment_id("123456")
+        data = self.ca.caget(self.exp_data._daenamespv)
+        self.assertEquals("Matt,Dom", data)
+
+    def test_update_experiment_id_throws_if_experiment_does_not_exists(self):
+        try:
+            self.exp_data.update_experiment_id("000000")
+            self.fail("Setting invalid experiment id did not throw")
+        except:
+            pass
 
     def test_single_surname_returns_surname(self):
         # Arrange
@@ -63,12 +89,12 @@ class TestExpData(unittest.TestCase):
         users = '[{"name":"Tom Jones","institute":"STFC","role":"user"}]'
 
         # Act
-        self.exp_data.updateUsername(users)
+        self.exp_data.update_username(users)
 
         # Assert
-        simnames = self.decodepv(self.exp_data._simnames)
-        surnames = self.decodepv(self.exp_data._surnamepv)
-        orgs = self.decodepv(self.exp_data._orgspv)
+        simnames = self.decode_pv(self.exp_data._simnames)
+        surnames = self.decode_pv(self.exp_data._surnamepv)
+        orgs = self.decode_pv(self.exp_data._orgspv)
 
         self.assertEqual(simnames[0]["name"], "Tom Jones")
         self.assertTrue("Jones" in surnames)
@@ -82,12 +108,12 @@ class TestExpData(unittest.TestCase):
         users += ']'
 
         # Act
-        self.exp_data.updateUsername(users)
+        self.exp_data.update_username(users)
 
         # Assert
-        simnames = self.decodepv(self.exp_data._simnames)
-        surnames = self.decodepv(self.exp_data._surnamepv)
-        orgs = self.decodepv(self.exp_data._orgspv)
+        simnames = self.decode_pv(self.exp_data._simnames)
+        surnames = self.decode_pv(self.exp_data._surnamepv)
+        orgs = self.decode_pv(self.exp_data._orgspv)
 
         self.assertEqual(len(simnames), 2)
         self.assertEqual(len(surnames), 2)
@@ -96,15 +122,15 @@ class TestExpData(unittest.TestCase):
     def test_update_username_for_blank_users(self):
         # Arrange
         users = '[{"name":"Tom Jones","institute":"STFC","role":"user"}]'
-        self.exp_data.updateUsername(users)
+        self.exp_data.update_username(users)
 
         # Act
-        self.exp_data.updateUsername("")
+        self.exp_data.update_username("")
 
         # Assert
-        simnames = self.decodepv(self.exp_data._simnames)
-        surnames = self.decodepv(self.exp_data._surnamepv)
-        orgs = self.decodepv(self.exp_data._orgspv)
+        simnames = self.decode_pv(self.exp_data._simnames)
+        surnames = self.decode_pv(self.exp_data._surnamepv)
+        orgs = self.decode_pv(self.exp_data._orgspv)
 
         self.assertEqual(len(simnames), 0)
         self.assertEqual(len(surnames), 0)

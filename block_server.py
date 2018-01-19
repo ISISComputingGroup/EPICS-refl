@@ -447,7 +447,9 @@ class BlockServer(Driver):
         """
         # First stop all IOCS, then start the ones for the config
         # TODO: Should we stop all configs?
-        iocs_to_start, iocs_to_restart = self._active_configserver.iocs_changed()
+        iocs_to_start, iocs_to_restart, iocs_to_stop = self._active_configserver.iocs_changed()
+
+        self._ioc_control.stop_iocs(iocs_to_stop)
 
         if len(iocs_to_start) > 0 or len(iocs_to_restart) > 0:
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
@@ -748,12 +750,14 @@ class BlockServer(Driver):
         if name not in PVDB and name not in manager.pvs[self.port]:
             try:
                 print_and_log("Adding PV %s" % name)
-                PVDB[name] = {
+                new_pv = { name : {
                     'type': 'char',
                     'count': count,
                     'value': [0],
+                    }
                 }
-                self._cas.createPV(BLOCKSERVER_PREFIX, PVDB)
+                self._cas.createPV(BLOCKSERVER_PREFIX, new_pv)
+                PVDB[name] = new_pv
                 # self.configure_pv_db()
                 data = Data()
                 data.value = manager.pvs[self.port][name].info.value

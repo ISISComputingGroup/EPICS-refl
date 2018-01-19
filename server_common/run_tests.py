@@ -40,10 +40,9 @@ if __name__ == '__main__':
     test_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_modules"))
     test_suite = unittest.TestLoader().discover(test_dir, pattern="test_*.py")
 
-    print "\n\n------ BEGINNING UNIT TESTS ------"
-    ret_vals = list()
-    ret_vals.append(xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite))
-    print "------ UNIT TESTS COMPLETE ------\n\n"
+    print("\n\n------ BEGINNING UNIT TESTS ------")
+    ret_vals = xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite)
+    print("------ UNIT TESTS COMPLETE ------\n\n")
 
     # Return failure exit code if a test failed
-    sys.exit(False in ret_vals)
+    sys.exit(bool(ret_vals.errors or ret_vals.failures))

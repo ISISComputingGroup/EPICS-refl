@@ -16,22 +16,34 @@
 
 import json
 import os
+os.environ['MYDIRBLOCK'] = os.path.abspath('..')
+os.environ['MYPVPREFIX'] = ""
+os.environ['EPICS_KIT_ROOT'] = ""
+os.environ['ICPCONFIGROOT'] = ""
 import unittest
 
-from database_server import DatabaseServer
-
+from DatabaseServer.database_server import DatabaseServer
 from server_common.mocks.mock_ca_server import MockCAServer
-from server_common.test_modules.test_mysql_wrapper import generate_fake_db, TEST_DB, HIGH_PV_NAMES, MEDIUM_PV_NAMES, \
-    FACILITY_PV_NAMES, IOCS
+from server_common.mocks.mock_ioc_data_source import MockIocDataSource, IOCS
+from server_common.test_modules.test_ioc_data import HIGH_PV_NAMES, MEDIUM_PV_NAMES, FACILITY_PV_NAMES
 from server_common.utilities import dehex_and_decompress
-
-generate_fake_db(TEST_DB)
+from DatabaseServer.mocks.mock_procserv_utils import MockProcServWrapper
+from server_common.ioc_data import IOCData
+from server_common.ioc_data_source import IocDataSource
+from DatabaseServer.mocks.mock_exp_data import MockExpData
+from DatabaseServer.exp_data import ExpData, ExpDataSource
+from server_common.mysql_abstraction_layer import SQLAbstraction
 
 
 class TestDatabaseServer(unittest.TestCase):
     def setUp(self):
         self.ms = MockCAServer()
-        self.db_server = DatabaseServer(self.ms, TEST_DB, os.path.abspath('./test_files'), "block_prefix", True)
+        self.ioc_source = MockIocDataSource() # IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
+        self.proc_server = MockProcServWrapper()
+        self.exp_data = MockExpData()
+        self.ioc_data = IOCData(self.ioc_source, self.proc_server, "")
+        test_files_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "test_files")
+        self.db_server = DatabaseServer(self.ms, self.ioc_data, self.exp_data, test_files_dir, "block_prefix", True)
 
     def test_interest_high_pvs_correct(self):
         pv_data = json.loads(dehex_and_decompress(self.db_server.read("PVS:INTEREST:HIGH")))

@@ -20,8 +20,8 @@ import re
 import json
 from xml.etree import ElementTree
 
-from loggers.logger import Logger
-from common_exceptions import  MaxAttemptsExceededException
+from server_common.loggers.logger import Logger
+from server_common.common_exceptions import MaxAttemptsExceededException
 
 
 # Default to base class - does not actually log anything

@@ -43,7 +43,7 @@ class TestConfiguration(TestCase):
         assert_that(results, contains(expected_header_line1, expected_header_line2))
 
     def test_GIVEN_config_has_header_with_template_WHEN_get_header_THEN_header_with_template_returned_with_pv(self):
-        pvname= "pv_name.VAL"
+        pvname = "pv_name.VAL"
         header_line = "{pv_name|5.6f}"
         expected_header_line = "{0:5.6f}"
         config = ConfigBuilder("filename.txt").header(header_line).build()

@@ -15,8 +15,8 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 import os
 import unittest
-from options_holder import OptionsHolder
-from options_loader import OptionsLoader
+from DatabaseServer.options_holder import OptionsHolder
+from DatabaseServer.options_loader import OptionsLoader
 
 OPTIONS_PATH = os.path.join(os.path.dirname(__file__), os.path.pardir,  "test_files")
 

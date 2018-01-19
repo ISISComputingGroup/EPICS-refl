@@ -1,7 +1,7 @@
 import os
 import unittest
 from mock import Mock
-from git_version_control import GitMessageProvider
+from ConfigVersionControl.git_version_control import GitMessageProvider
 
 
 class TestMessageProvider(unittest.TestCase):
