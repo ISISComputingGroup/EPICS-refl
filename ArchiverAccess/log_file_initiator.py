@@ -70,12 +70,8 @@ class LogFileInitiatorOnPVChange(object):
 
     def check_initiated(self):
         """
-        Check whether an initiation event has occurred.
-
-        If it has the archive data file needs creating and writen.
-
-        Returns:
-
+        Check whether logging status has changed. If it has inform the loggers, regardless inform then of
+        processing time.
         """
         latest_sample_time, self._last_sample_id_for_time = \
             self._archive_data_source.get_latest_sample_time(self._last_sample_id_for_time)

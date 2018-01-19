@@ -54,7 +54,7 @@ class PeriodicDataGenerator(object):
 
         :return: Generator for a data point which is a period_data_point tuple
         """
-        if not self._does_new_time_period_start_at_end_of_last_time_period(time_period.start_time):
+        if not self._does_new_time_period_start_at_end_of_last(time_period.start_time):
             self._current_values = self._archiver_data_source.initial_values(pv_names, time_period.start_time)
 
         archiver_changes_generator = self._archiver_data_source.changes_generator(pv_names, time_period)
@@ -93,7 +93,7 @@ class PeriodicDataGenerator(object):
         except StopIteration:
             self._next_change_time = None
 
-    def _does_new_time_period_start_at_end_of_last_time_period(self, start_time):
+    def _does_new_time_period_start_at_end_of_last(self, start_time):
         """
         Does the new time period start at the end of the last time period if there was a last time period
         Args:
