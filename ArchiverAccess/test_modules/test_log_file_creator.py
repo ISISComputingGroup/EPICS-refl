@@ -22,7 +22,7 @@ from hamcrest import *
 from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator, FORMATTER_NOT_APPLIED_MESSAGE, \
     DataFileCreationError
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
-from ArchiverAccess.configuration import ConfigBuilder, TIME_DATE_COLUMN_HEADING
+from ArchiverAccess.archive_access_configuration import ArchiveAccessConfigBuilder, TIME_DATE_COLUMN_HEADING
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub, FileStub
 
 
@@ -52,7 +52,7 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_is_just_constant_header_line_WHEN_write_THEN_values_are_written_to_file(self):
         expected_header_line = "expected_header_line a line of goodness :-)"
-        config = ConfigBuilder("filename.txt").header(expected_header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(expected_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config)
 
         file_creator.write_complete_file(self.time_period)
@@ -61,7 +61,7 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_contains_plain_filename_WHEN_write_THEN_file_is_opened(self):
         expected_filename = "filename.txt"
-        config = ConfigBuilder(expected_filename, base_path="").build()
+        config = ArchiveAccessConfigBuilder(expected_filename, base_path="").build()
         file_creator = self._archive_data_file_creator_setup(config)
 
         file_creator.write_complete_file(self.time_period)
@@ -74,7 +74,7 @@ class TestlogFileCreator(TestCase):
         expected_filename = filename_template.format(start_time="2017-06-10T12_11_10")
         time_period = ArchiveTimePeriod(datetime(2017, 6, 10, 12, 11, 10, 7), timedelta(seconds=10), 10)
 
-        config = ConfigBuilder(filename_template).build()
+        config = ArchiveAccessConfigBuilder(filename_template).build()
         file_creator = self._archive_data_file_creator_setup(config, time_period)
 
         file_creator.write_complete_file(self.time_period)
@@ -84,7 +84,7 @@ class TestlogFileCreator(TestCase):
     def test_GIVEN_config_contains_plain_filename_WHEN_write_THEN_directory_is_created(self):
         expected_filename = "filename.txt"
         expected_base_parth = r"c:\blah"
-        config = ConfigBuilder(expected_filename, base_path=expected_base_parth).build()
+        config = ArchiveAccessConfigBuilder(expected_filename, base_path=expected_base_parth).build()
         file_creator = self._archive_data_file_creator_setup(config)
 
         file_creator.write_complete_file(self.time_period)
@@ -97,7 +97,7 @@ class TestlogFileCreator(TestCase):
         template_header_line = "expected_header_line a line {{{0}}}".format(pvname)
         expected_header_line = "expected_header_line a line " + str(expected_pv_value)
 
-        config = ConfigBuilder("filename.txt").header(template_header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
         file_creator.write_complete_file(self.time_period)
@@ -110,7 +110,7 @@ class TestlogFileCreator(TestCase):
         template_header_line = "expected_header_line a line {{{0}}}".format(pvname)
         expected_header_line = "expected_header_line a line 12.9"
 
-        config = ConfigBuilder("filename.txt").header(template_header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
         file_creator.write_complete_file(self.time_period)
@@ -124,7 +124,7 @@ class TestlogFileCreator(TestCase):
         template_header_line2 = "expected_header_line a line {pvname1} and {pvname2}"
         expected_header_line2 = template_header_line2.format(pvname1=12, pvname2="hi")
 
-        config = ConfigBuilder("filename.txt").header(template_header_line1).header(template_header_line2).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(template_header_line1).header(template_header_line2).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=values)
 
         file_creator.write_complete_file(self.time_period)
@@ -137,7 +137,7 @@ class TestlogFileCreator(TestCase):
         template_header_line = "expected_header_line a line {{{0}|.3f}}".format(pvname)
         expected_header_line = "expected_header_line a line 12.900"
 
-        config = ConfigBuilder("filename.txt").header(template_header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
         file_creator.write_complete_file(self.time_period)
@@ -152,7 +152,7 @@ class TestlogFileCreator(TestCase):
             .format(FORMATTER_NOT_APPLIED_MESSAGE
                    .format("Unknown format code 'f' for object of type 'str'"), value=expected_pv_value)
 
-        config = ConfigBuilder("filename.txt").header(template_header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
         file_creator.write_complete_file(self.time_period)
@@ -165,7 +165,7 @@ class TestlogFileCreator(TestCase):
         template_header_line = "expected_header_line a line {{{0}|.3f}}".format(pvname)
         expected_header_line = "expected_header_line a line Disconnected"
 
-        config = ConfigBuilder("filename.txt").header(template_header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
         file_creator.write_complete_file(self.time_period)
@@ -178,7 +178,7 @@ class TestlogFileCreator(TestCase):
         template_header_line = "expected_header_line a line {{{0}|.3f}}".format(pvname)
         expected_header_line = "expected_header_line a line Archive_Off"
 
-        config = ConfigBuilder("filename.txt").header(template_header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(template_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: expected_pv_value})
 
         file_creator.write_complete_file(self.time_period)
@@ -191,7 +191,7 @@ class TestlogFileCreator(TestCase):
         expected_header = TIME_DATE_COLUMN_HEADING + "\t" + heading
         pvname = "pvname"
 
-        config = ConfigBuilder("filename.txt").table_column(heading, pvname).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").table_column(heading, pvname).build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values=[1.0])
 
         file_creator.write_complete_file(self.time_period)
@@ -203,7 +203,7 @@ class TestlogFileCreator(TestCase):
         expected_heading2 = "PV Heading2"
         expected_heading3 = "PV Heading3"
 
-        config = ConfigBuilder("filename.txt")\
+        config = ArchiveAccessConfigBuilder("filename.txt")\
             .table_column(expected_heading1, "pvname") \
             .table_column(expected_heading2, "pvname2") \
             .table_column(expected_heading3, "pvnam3")\
@@ -219,7 +219,7 @@ class TestlogFileCreator(TestCase):
         pvname = "pvname.VAL"
         initial_value = 2.91
         expected_line = "2017-01-01T01:02:03.000\t{0}".format(initial_value)
-        config = ConfigBuilder("filename.txt")\
+        config = ArchiveAccessConfigBuilder("filename.txt")\
             .table_column("heading", "{%s}" % pvname)\
             .build()
         file_creator = self._archive_data_file_creator_setup(config, initial_values={pvname: initial_value}, time_period=time_period)
@@ -235,7 +235,7 @@ class TestlogFileCreator(TestCase):
         val3 = 5
         initial_values = {"pvname1.VAL": val1, "pvname2.VAL": val2, "pvname3.VAL": val3, "time": ""}
         expected_line = "{0}\t{1}\t{2}\t{3}".format("2017-01-01T01:02:03.000", val1, val2, val3)
-        config = ConfigBuilder("filename.txt") \
+        config = ArchiveAccessConfigBuilder("filename.txt") \
             .table_column("heading1", "{%s}" % "pvname1") \
             .table_column("heading2", "{%s}" % "pvname2")  \
             .table_column("heading3", "{%s}" % "pvname3") \
@@ -289,7 +289,7 @@ class TestlogFileCreator(TestCase):
             table_format.format("2017-01-01T01:03:33.000", rn1, pos2, load1, strain1)
         ]
 
-        config = ConfigBuilder("filename.txt") \
+        config = ArchiveAccessConfigBuilder("filename.txt") \
             .header("Cross Sectional Area = {IN:PV:CSA|.6f}") \
             .header("Gauge Length for strain = {IN:PV:GLS|.6f}") \
             .header("RB Number = {IN:PV:RBNum|9d}") \
@@ -309,7 +309,7 @@ class TestlogFileCreator(TestCase):
     def test_GIVEN_config_file_created_WHEN_write_THEN_file_is_set_as_readonly(self):
         expected_header_line = "expected_header_line a line of goodness :-)"
         expected_filename = "filename.txt"
-        config = ConfigBuilder(expected_filename, base_path="").header(expected_header_line).build()
+        config = ArchiveAccessConfigBuilder(expected_filename, base_path="").header(expected_header_line).build()
         file_creator = self._archive_data_file_creator_setup(config)
 
         file_creator.write_complete_file(self.time_period)
@@ -318,7 +318,7 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_file_creation_raise_error_WHEN_write_THEN_no_crash_and_file_is_not_made_read_only(self):
         expected_filename = "filename.txt"
-        config = ConfigBuilder(expected_filename, base_path="").build()
+        config = ArchiveAccessConfigBuilder(expected_filename, base_path="").build()
         file_creator = self._archive_data_file_creator_setup(config)
         FileStub.raise_on_write[expected_filename] = IOError("Can not write")
 
@@ -331,7 +331,7 @@ class TestlogFileCreator(TestCase):
         initial_value = 2.91
         expected_header_line = "expected_header_line a line of goodness :-)"
 
-        config = ConfigBuilder("filename.txt") \
+        config = ArchiveAccessConfigBuilder("filename.txt") \
             .header(expected_header_line)\
             .table_column("heading", "{%s}" % pvname)\
             .build()
@@ -347,7 +347,7 @@ class TestlogFileCreator(TestCase):
         pvname = "pvname.VAL"
         initial_value = 2.91
         expected_header_line = "expected_header_line a line of goodness :-)"
-        config = ConfigBuilder("filename.txt") \
+        config = ArchiveAccessConfigBuilder("filename.txt") \
             .header(expected_header_line) \
             .table_column("heading", "{%s}" % pvname) \
             .build()
@@ -364,7 +364,7 @@ class TestlogFileCreator(TestCase):
 
         time_period = ArchiveTimePeriod(datetime(2017, 1, 1, 1, 2, 3, 0), timedelta(seconds=10), 10)
 
-        file_creator = self._archive_data_file_creator_setup(ConfigBuilder("filename").build())
+        file_creator = self._archive_data_file_creator_setup(ArchiveAccessConfigBuilder("filename").build())
 
         with self.assertRaises(DataFileCreationError):
             file_creator.write_data_lines(time_period)
@@ -417,7 +417,7 @@ class TestlogFileCreator(TestCase):
             table_format.format("2017-01-01T01:03:33.000", rn1, pos2, load1, strain1)
         ]
 
-        config = ConfigBuilder("filename.txt") \
+        config = ArchiveAccessConfigBuilder("filename.txt") \
             .header("Cross Sectional Area = {IN:PV:CSA|.6f}") \
             .header("Gauge Length for strain = {IN:PV:GLS|.6f}") \
             .header("RB Number = {IN:PV:RBNum|9d}") \

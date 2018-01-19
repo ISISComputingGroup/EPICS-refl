@@ -38,7 +38,7 @@ class LogFileInitiatorOnPVChange(object):
         """
 
         Args:
-            configs(list[ArchiverAccess.configuration.Config]):
+            configs(list[ArchiverAccess.archive_access_configuration.ArchiveAccessConfig]):
                 list of configs
             archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource):
                 data source
@@ -128,7 +128,7 @@ class ContinualLogger(object):
         """
         Initializer.
         Args:
-            config(ArchiverAccess.configuration.Config):
+            config(ArchiverAccess.archive_access_configuration.ArchiveAccessConfig):
                 configuration for this logging set
             archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource):
                 data source from the archive
@@ -210,7 +210,7 @@ class WriteOnLoggingEndLogger(object):
         """
         Initializer.
         Args:
-            config(ArchiverAccess.configuration.Config):
+            config(ArchiverAccess.archive_access_configuration.ArchiveAccessConfig):
                 configuration for this logging set
             archive_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource):
                 data source from the archive

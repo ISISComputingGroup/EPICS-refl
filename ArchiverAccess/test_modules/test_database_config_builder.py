@@ -20,8 +20,8 @@ from datetime import timedelta
 from hamcrest import *
 from mock import Mock
 
-from ArchiverAccess.configuration import DEFAULT_LOGGING_PERIOD_IN_S, DEFAULT_LOG_PATH
-from ArchiverAccess.database_config_builder import DatabaseConfigBuilder
+from ArchiverAccess.archive_access_configuration import DEFAULT_LOGGING_PERIOD_IN_S, DEFAULT_LOG_PATH
+from ArchiverAccess.archive_access_config_builder import ArchiverAccessDatabaseConfigBuilder
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub
 
 
@@ -32,7 +32,7 @@ class TestDatabaseConfigBuilder(TestCase):
         expected_filename_template = os.path.join(DEFAULT_LOG_PATH, "myioc\myioc_{start_time}.dat")
         expected_continous_filename_template = os.path.join(DEFAULT_LOG_PATH, "myioc\myioc_{start_time}_continuous.dat")
         ioc_data_source = self._create_ioc_data_source(ioc_name=ioc_name)
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -42,7 +42,7 @@ class TestDatabaseConfigBuilder(TestCase):
     def test_GIVEN_header_line_in_database_WHEN_generate_THEN_configuration_is_created(self):
         expected_header_line = "expected_header_line a line of goodness :-)"
         ioc_data_source = self._create_ioc_data_source(header_lines=[expected_header_line])
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -55,7 +55,7 @@ class TestDatabaseConfigBuilder(TestCase):
         header_line = "Header line with pv {this_pv}"
         expected_header_line = header_line.format(this_pv="{0}")
         ioc_data_source = self._create_ioc_data_source(header_lines=[header_line], header_pvs=[pv_name])
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -66,7 +66,7 @@ class TestDatabaseConfigBuilder(TestCase):
     def test_GIVEN_multiple_header_line_in_database_WHEN_generate_THEN_configuration_is_created(self):
         expected_header_lines = ["line 1", "line2", "line3"]
         ioc_data_source = self._create_ioc_data_source(header_lines=expected_header_lines)
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -81,7 +81,7 @@ class TestDatabaseConfigBuilder(TestCase):
                                 ("pvname", "LOG_header4", expected_header_lines[2])]
 
         ioc_data_source = self._create_ioc_data_source(header_lines_section=header_lines_section)
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -91,7 +91,7 @@ class TestDatabaseConfigBuilder(TestCase):
     def test_GIVEN_trigger_pv_only_marked_WHEN_generate_THEN_configuration_has_trigger_pv_in(self):
         expected_trigger_pv = "inst:triggerpv.val"
         ioc_data_source = self._create_ioc_data_source(trigger_pv=expected_trigger_pv, trigger_pv_template="")
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -100,7 +100,7 @@ class TestDatabaseConfigBuilder(TestCase):
     def test_GIVEN_trigger_pv_is_templated_WHEN_generate_THEN_configuration_has_trigger_pv_in(self):
         expected_trigger_pv = "inst:triggerpv.val"
         ioc_data_source = self._create_ioc_data_source(trigger_pv=expected_trigger_pv)
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -110,7 +110,7 @@ class TestDatabaseConfigBuilder(TestCase):
         trigger_pv = "diff:triggerpv"
         expected_trigger_pv = trigger_pv + ".VAL"
         ioc_data_source = self._create_ioc_data_source(trigger_pv="blah", trigger_pv_template=trigger_pv)
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -119,7 +119,7 @@ class TestDatabaseConfigBuilder(TestCase):
     def test_GIVEN_logging_period_pv_is_only_marked_WHEN_generate_THEN_configuration_has_logging_period_pv(self):
         period_pv = "diff:triggerpv.VAL"
         ioc_data_source = self._create_ioc_data_source(period_pv=period_pv, period_pv_template="")
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
         log_period = 10
         expected_log_period = timedelta(seconds=log_period)
         archive_data_source = ArchiverDataStub(initial_values={period_pv: log_period})
@@ -132,7 +132,7 @@ class TestDatabaseConfigBuilder(TestCase):
     def test_GIVEN_logging_period_pv_is_templated_WHEN_generate_THEN_configuration_has_logging_period_pv(self):
         period_pv = "diff:triggerpv"
         ioc_data_source = self._create_ioc_data_source(period_pv=period_pv, period_pv_template="this_pv")
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
         log_period = 10
         expected_log_period = timedelta(seconds=log_period)
         archive_data_source = ArchiverDataStub(initial_values={period_pv + ".VAL": log_period})
@@ -145,7 +145,7 @@ class TestDatabaseConfigBuilder(TestCase):
     def test_GIVEN_logging_period_pv_is_explicit_WHEN_generate_THEN_configuration_has_logging_period_pv(self):
         period_pv = "diff:triggerpv.field"
         ioc_data_source = self._create_ioc_data_source(period_pv="blah", period_pv_template=period_pv)
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
         log_period = 10
         expected_log_period = timedelta(seconds=log_period)
         archive_data_source = ArchiverDataStub(initial_values={period_pv: log_period})
@@ -158,7 +158,7 @@ class TestDatabaseConfigBuilder(TestCase):
     def test_GIVEN_logging_period_is_a_constant_WHEN_generate_THEN_configuration_has_correct_logging_period(self):
         expected_log_period = 10
         ioc_data_source = self._create_ioc_data_source(period_constant=expected_log_period)
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -167,7 +167,7 @@ class TestDatabaseConfigBuilder(TestCase):
 
     def test_GIVEN_logging_period_is_a_constant_which_is_invalid_WHEN_generate_THEN_configuration_has_default_logging_period(self):
         ioc_data_source = self._create_ioc_data_source(period_constant="invalid")
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -179,7 +179,7 @@ class TestDatabaseConfigBuilder(TestCase):
         pv_name = "pv:name"
         expected_pv_name = pv_name + ".VAL"
         ioc_data_source = self._create_ioc_data_source(column_headers=[(pv_name, 1, expected_column_header)])
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -193,7 +193,7 @@ class TestDatabaseConfigBuilder(TestCase):
         expected_pv_name = pv_name + ".VAL"
         template = "{" + pv_name + "}"
         ioc_data_source = self._create_ioc_data_source(column_templates=[(pv_name, 1, template)])
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -207,7 +207,7 @@ class TestDatabaseConfigBuilder(TestCase):
         expected_pv_name = pv_name + ".VAL"
         expected_column_header = pv_name
         ioc_data_source = self._create_ioc_data_source(column_templates=[(pv_name, 1, "")])
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -223,7 +223,7 @@ class TestDatabaseConfigBuilder(TestCase):
         ioc_data_source = self._create_ioc_data_source(
             column_templates=[("blah", 1, "{" + pv_name + "}")],
             column_headers=[("blah", 1, expected_column_header)])
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 
@@ -261,7 +261,7 @@ class TestDatabaseConfigBuilder(TestCase):
             ]
         )
 
-        db_config_builder = DatabaseConfigBuilder(ioc_data_source)
+        db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 
         config = db_config_builder.create()
 

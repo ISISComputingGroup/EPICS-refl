@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from ArchiverAccess.archiver_data_source import ArchiverDataSource
-from ArchiverAccess.configuration import ConfigBuilder
+from ArchiverAccess.archive_access_configuration import ArchiveAccessConfigBuilder
 from server_common.mysql_abstraction_layer import SQLAbstraction
 
 finish = False
@@ -38,7 +38,7 @@ def create_log(headers, columns, time_period, filename_template="default.log", h
     archive_mysql_abstraction_layer = SQLAbstraction("archive", "report", "$report", host=host)
     archiver_data_source = ArchiverDataSource(archive_mysql_abstraction_layer)
 
-    config_builder = ConfigBuilder(filename_template)
+    config_builder = ArchiveAccessConfigBuilder(filename_template)
     for header in headers:
         config_builder.header(header)
 

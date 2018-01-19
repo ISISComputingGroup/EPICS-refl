@@ -17,14 +17,14 @@ import os
 from unittest import TestCase
 from hamcrest import *
 
-from ArchiverAccess.configuration import ConfigBuilder, DEFAULT_LOG_PATH
+from ArchiverAccess.archive_access_configuration import ArchiveAccessConfigBuilder, DEFAULT_LOG_PATH
 
 
 class TestConfiguration(TestCase):
 
     def test_GIVEN_config_has_plain_header_WHEN_get_header_THEN_plain_header_returned(self):
         expected_header_line = "expected_header_line a line of goodness :-)"
-        config = ConfigBuilder("filename.txt").header(expected_header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(expected_header_line).build()
 
         results = config.header
 
@@ -33,7 +33,7 @@ class TestConfiguration(TestCase):
     def test_GIVEN_config_has_2_plain_header_WHEN_get_header_THEN_plain_headers_returned(self):
         expected_header_line1 = "expected_header_line a line of goodness :-)"
         expected_header_line2 = "line 2"
-        config = ConfigBuilder("filename.txt")\
+        config = ArchiveAccessConfigBuilder("filename.txt")\
             .header(expected_header_line1) \
             .header(expected_header_line2)\
             .build()
@@ -46,7 +46,7 @@ class TestConfiguration(TestCase):
         pvname = "pv_name.VAL"
         header_line = "{pv_name|5.6f}"
         expected_header_line = "{0:5.6f}"
-        config = ConfigBuilder("filename.txt").header(header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(header_line).build()
 
         results = config.header
 
@@ -57,7 +57,7 @@ class TestConfiguration(TestCase):
         pvname= "pv_name.VAL"
         header_line = "{pv_name}"
         expected_header_line = "{0}"
-        config = ConfigBuilder("filename.txt").header(header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(header_line).build()
 
         results = config.header
 
@@ -68,7 +68,7 @@ class TestConfiguration(TestCase):
         pvname= "pv_name"
         header_line = "{pv_name}"
         expected_header_line = "{0}"
-        config = ConfigBuilder("filename.txt", default_field="").header(header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt", default_field="").header(header_line).build()
 
         results = config.header
 
@@ -81,7 +81,7 @@ class TestConfiguration(TestCase):
         expected_pv = pvname + "." + default_field
         header_line = "{pv_name}"
         expected_header_line = "{0}"
-        config = ConfigBuilder("filename.txt", default_field=default_field).header(header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt", default_field=default_field).header(header_line).build()
 
         results = config.header
 
@@ -93,7 +93,7 @@ class TestConfiguration(TestCase):
         default_field = "FIELD"
         header_line = "{"+ expected_pvname + "}"
         expected_header_line = "{0}"
-        config = ConfigBuilder("filename.txt", default_field=default_field).header(header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt", default_field=default_field).header(header_line).build()
 
         results = config.header
 
@@ -104,7 +104,7 @@ class TestConfiguration(TestCase):
         expected_pvname = "pv_name.VAL"
         header_line = "{pv_name!s|5.6f}"
         expected_header_line = "{0!s:5.6f}"
-        config = ConfigBuilder("filename.txt").header(header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(header_line).build()
 
         results = config.header
 
@@ -115,7 +115,7 @@ class TestConfiguration(TestCase):
         expected_pvname= "pv_name.VAL"
         header_line = "{pv_name!s}"
         expected_header_line = "{0!s}"
-        config = ConfigBuilder("filename.txt").header(header_line).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(header_line).build()
 
         results = config.header
 
@@ -131,7 +131,7 @@ class TestConfiguration(TestCase):
         header_line2 = "{pv_name2} pv_name2 pv_name1 {pv_name3}"
         expected_header_line2 = "{1} pv_name2 pv_name1 {2}"
 
-        config = ConfigBuilder("filename.txt").header(header_line1).header(header_line2).build()
+        config = ArchiveAccessConfigBuilder("filename.txt").header(header_line1).header(header_line2).build()
 
         results = config.header
 
@@ -139,7 +139,7 @@ class TestConfiguration(TestCase):
         assert_that(config.pv_names_in_header, contains(pvname1, pvname2, pvname3))
 
     def test_GIVEN_config_has_no_continuous_logging_filename_WHEN_get_filenames_THEN_nothing_returned(self):
-        config = ConfigBuilder("filename.txt").build()
+        config = ArchiveAccessConfigBuilder("filename.txt").build()
 
         results = config.continuous_logging_filename_template
 
@@ -147,14 +147,14 @@ class TestConfiguration(TestCase):
 
     def test_GIVEN_config_has_a_continuous_logging_filename_WHEN_get_filenames_THEN_filename_returned(self):
         expected_filename = "filename.txt"
-        config = ConfigBuilder(continuous_logging_filename_template=expected_filename).build()
+        config = ArchiveAccessConfigBuilder(continuous_logging_filename_template=expected_filename).build()
 
         results = config.continuous_logging_filename_template
 
         assert_that(results, is_(os.path.join(DEFAULT_LOG_PATH,expected_filename)))
 
     def test_GIVEN_config_has_no_log_on_end_filename_WHEN_get_filenames_THEN_nothing_returned(self):
-        config = ConfigBuilder().build()
+        config = ArchiveAccessConfigBuilder().build()
 
         results = config.on_end_logging_filename_template
 
@@ -162,7 +162,7 @@ class TestConfiguration(TestCase):
 
     def test_GIVEN_config_has_an_on_end_logging_filename_WHEN_get_filenames_THEN_filename_returned(self):
         filename = "filename.txt"
-        config = ConfigBuilder(on_end_logging_filename_template=filename).build()
+        config = ArchiveAccessConfigBuilder(on_end_logging_filename_template=filename).build()
 
         results = config.on_end_logging_filename_template
 

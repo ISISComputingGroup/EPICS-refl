@@ -20,7 +20,7 @@ Module to read and write when logs were last written
 import os
 from datetime import datetime, timedelta
 
-from ArchiverAccess.configuration import DEFAULT_LOG_PATH
+from ArchiverAccess.archive_access_configuration import DEFAULT_LOG_PATH
 from server_common.utilities import print_and_log, SEVERITY
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"

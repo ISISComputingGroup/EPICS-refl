@@ -23,7 +23,7 @@ from mock import Mock
 from ArchiverAccess.archive_data_file_creator import DataFileCreationError
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from ArchiverAccess.archiver_data_source import ArchiverDataValue
-from ArchiverAccess.configuration import ConfigBuilder
+from ArchiverAccess.archive_access_configuration import ArchiveAccessConfigBuilder
 from ArchiverAccess.log_file_initiator import LogFileInitiatorOnPVChange, SAMPLING_BEHIND_REAL_TIME
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub
 
@@ -391,7 +391,7 @@ class DataSourceMother(object):
             log_file_creator.write_file_header = write_file_header_mock
             log_file_creator.write_data_lines = write_data_lines_mock
             log_file_creator.finish_log_file = finish_log_file_mock
-            config_builder = ConfigBuilder("log_file{start_time}").trigger_pv("my_pv")
+            config_builder = ArchiveAccessConfigBuilder("log_file{start_time}").trigger_pv("my_pv")
             if log_period_in_second is not None:
                 config = config_builder.logging_period_seconds(log_period_in_second).build()
             else:

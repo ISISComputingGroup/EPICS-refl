@@ -152,7 +152,7 @@ class ConfigurationFileManager(object):
         configuration.iocs = iocs
         configuration.components = components
         configuration.meta = meta
-        print_and_log("Config loaded.")
+        print_and_log("Archive Access Configuration loaded.")
         return configuration
 
     def _check_againgst_schema(self, xml, filename):

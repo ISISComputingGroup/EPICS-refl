@@ -119,7 +119,7 @@ GET_CHANGES_QUERY = """
 """.format(arc_data_query=ARCHIVER_DATA_VALUE_QUERY, in_clause="{0}")
 """SQL query to get a list of changes between given times for certain pvs"""
 
-GET_LATESTS_SAMPLPE_ID_TEMPLAT = """
+GET_LATEST_SAMPLE_ID_TEMPLATE = """
     SELECT MAX(s.smpl_time), MAX(s.sample_id) 
     FROM archive.sample s
     WHERE s.sample_id >= %s AND 
@@ -130,10 +130,10 @@ GET_LATESTS_SAMPLPE_ID_TEMPLAT = """
 """SQL template to get the largest sample time and from this list largest sample id bigger 
 than a given sample id with optional and clause"""
 
-GET_LATEST_SAMPLE_ID = GET_LATESTS_SAMPLPE_ID_TEMPLAT.format(before_time_clause="")
+GET_LATEST_SAMPLE_ID = GET_LATEST_SAMPLE_ID_TEMPLATE.format(before_time_clause="")
 """Sql to get the latest sample id after a given sample id"""
 
-GET_SAMPLE_ID_BEFORE = GET_LATESTS_SAMPLPE_ID_TEMPLAT.format(before_time_clause="AND s.smpl_time <= %s")
+GET_SAMPLE_ID_BEFORE = GET_LATEST_SAMPLE_ID_TEMPLATE.format(before_time_clause="AND s.smpl_time <= %s")
 """Sql to get the latest sample id after a given sample id and sample time"""
 
 

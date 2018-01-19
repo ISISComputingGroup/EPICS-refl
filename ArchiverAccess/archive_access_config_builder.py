@@ -18,7 +18,7 @@ Module for taking the configuration from the ioc data source and creating a conf
 """
 import os
 
-from ArchiverAccess.configuration import ConfigBuilder
+from ArchiverAccess.archive_access_configuration import ArchiveAccessConfigBuilder
 from server_common.utilities import print_and_log, SEVERITY
 
 HEADER_ANNOTATION_PREFIX = "log_header"
@@ -43,7 +43,7 @@ COLUMN_TEMPLATE_ANNOTATION_PREFIX = "log_column_template"
 """The annotation prefix for a column template, the end is the column index"""
 
 
-class DatabaseConfigBuilder(object):
+class ArchiverAccessDatabaseConfigBuilder(object):
     """
     Create configurations based on the entries in the IOC database.
     """
@@ -60,7 +60,7 @@ class DatabaseConfigBuilder(object):
         """
         Create configurations from the data source
         Returns:
-            list[ArchiverAccess.configuration.Config]: list of configuration
+            list[ArchiverAccess.archive_access_configuration.ArchiveAccessConfig]: list of configuration
 
         """
 
@@ -85,7 +85,8 @@ class DatabaseConfigBuilder(object):
                                logging_items):
         columns = {}
         all_keys = set()
-        config_builder = ConfigBuilder(on_end_logging_filename_template, continuous_logging_filename_template)
+        config_builder = ArchiveAccessConfigBuilder(on_end_logging_filename_template,
+                                                    continuous_logging_filename_template)
         sorted_values = sorted(logging_items, key=lambda x: x[1])
         for pv_name, key, template in sorted_values:
             key_lowered = key.lower()

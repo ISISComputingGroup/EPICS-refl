@@ -37,9 +37,9 @@ DEFAULT_COLUMN_SEPARATOR = "\t"
 """Default separator between columns in the table"""
 
 
-class ConfigBuilder(object):
+class ArchiveAccessConfigBuilder(object):
     """
-    Configuration builder a way of creating a config step by step
+    Configuration builder a way of creating an archive access configuration step by step using a fluid API.
     """
 
     def __init__(self, on_end_logging_filename_template=None, continuous_logging_filename_template=None,
@@ -93,16 +93,16 @@ class ConfigBuilder(object):
     def build(self):
         """
         Build a configuration object from arguments
-        Returns (Config): logging configuration
+        Returns (ArchiveAccessConfig): logging configuration
 
         """
         logging_period_provider = LoggingPeriodProviderConst(DEFAULT_LOGGING_PERIOD_IN_S)
         if self._logging_period_provider is not None:
             logging_period_provider = self._logging_period_provider
-        return Config(self._on_end_logging_filename_template,
-                      self._continuous_logging_filename_template,
-                      self._header_lines, self._columns, self._trigger_pv,
-                      logging_period_provider, default_field=self._default_field)
+        return ArchiveAccessConfig(self._on_end_logging_filename_template,
+                                   self._continuous_logging_filename_template,
+                                   self._header_lines, self._columns, self._trigger_pv,
+                                   logging_period_provider, default_field=self._default_field)
 
     def table_column(self, heading, pv_template):
         """
@@ -174,7 +174,7 @@ class ConfigBuilder(object):
         self._logging_period_provider = logging_period_provider
 
 
-class Config(object):
+class ArchiveAccessConfig(object):
     """
     A complete valid configuration object for creating a single log file
     """
