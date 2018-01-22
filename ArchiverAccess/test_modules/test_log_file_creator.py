@@ -15,7 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 import os
 from datetime import datetime, timedelta
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 from hamcrest import *
 
@@ -24,6 +24,7 @@ from ArchiverAccess.archive_data_file_creator import ArchiveDataFileCreator, FOR
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from ArchiverAccess.archive_access_configuration import ArchiveAccessConfigBuilder, TIME_DATE_COLUMN_HEADING
 from ArchiverAccess.test_modules.stubs import ArchiverDataStub, FileStub
+from server_common.constants import IS_LINUX
 
 
 class TestlogFileCreator(TestCase):
@@ -69,6 +70,7 @@ class TestlogFileCreator(TestCase):
         assert_that(FileStub.file_contents, has_key(expected_filename))
         assert_that(FileStub.file_contents, has_length(1))
 
+    @skipIf(IS_LINUX, "Platform-specific path does not work on Linux")
     def test_GIVEN_config_contains_templated_filename_WHEN_write_THEN_filename_is_correct(self):
         filename_template = os.path.join("C:\\", "log", "filename{start_time}.txt")
         expected_filename = filename_template.format(start_time="2017-06-10T12_11_10")
