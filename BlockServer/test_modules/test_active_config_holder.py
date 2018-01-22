@@ -24,6 +24,7 @@ from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 from BlockServer.mocks.mock_ioc import MockIoc
+from server_common.constants import IS_LINUX
 
 
 CONFIG_PATH = "./test_configs/"
@@ -38,6 +39,7 @@ def quick_block_to_json(name, pv, group, local=True):
 def add_block(cs, data):
     cs.add_block(data)
 
+
 def add_basic_blocks_and_iocs(cs):
     add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
     add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
@@ -46,9 +48,11 @@ def add_basic_blocks_and_iocs(cs):
     cs._add_ioc("SIMPLE1")
     cs._add_ioc("SIMPLE2")
 
+
 def get_groups_and_blocks(jsondata):
     groups = json.loads(jsondata)
     return groups
+
 
 def create_grouping(groups):
     struct = []
@@ -92,14 +96,16 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self.assertTrue("SIMPLE1" in iocs)
         self.assertTrue("SIMPLE2" in iocs)
 
+    @unittest.skipIf(IS_LINUX, "Unable to save config on Linux")
     def test_save_config(self):
         cs = self.activech
         add_basic_blocks_and_iocs(cs)
         try:
             cs.save_active("TEST_CONFIG")
-        except Exception:
-            self.fail("test_save_config raised Exception unexpectedly!")
+        except Exception as e:
+            self.fail("test_save_config raised Exception unexpectedly: {}".format(e))
 
+    @unittest.skipIf(IS_LINUX, "Location of last_config.txt not correctly configured on Linux")
     def test_load_config(self):
         cs = self.activech
         add_basic_blocks_and_iocs(cs)
@@ -128,16 +134,17 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         cs = self.activech
         try:
             cs.save_active("TEST_CONFIG1", as_comp=True)
-        except Exception:
-            self.fail("test_save_as_component raised Exception unexpectedly!")
+        except Exception as e:
+            self.fail("test_save_as_component raised Exception unexpectedly: {}".format(e))
 
+    @unittest.skipIf(IS_LINUX, "Unable to save config on Linux")
     def test_save_config_for_component(self):
         cs = self.activech
         cs.save_active("TEST_CONFIG1", as_comp=True)
         try:
             cs.save_active("TEST_CONFIG1")
-        except Exception:
-            self.fail("test_save_config_for_component raised Exception unexpectedly!")
+        except Exception as e:
+            self.fail("test_save_config_for_component raised Exception unexpectedly: {}".format(e))
 
     def test_load_component_fails(self):
         cs = self.activech
@@ -146,6 +153,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         cs.clear_config()
         self.assertRaises(IOError, lambda: cs.load_active("TEST_COMPONENT"))
 
+    @unittest.skipIf(IS_LINUX, "Location of last_config.txt not correctly configured on Linux")
     def test_load_last_config(self):
         cs = self.activech
         add_basic_blocks_and_iocs(cs)
@@ -182,6 +190,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         load_requests = self.mock_file_manager.get_load_config_history()
         self.assertEquals(len(load_requests), 0)
 
+    @unittest.skipIf(IS_LINUX, "Location of last_config.txt not correctly configured on Linux")
     def test_reloading_current_config_sends_load_request_correctly(self):
         # arrange
         cs = self.activech
@@ -323,6 +332,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self._test_attribute_changes(initial_attrs={'simlevel': 'recsim'},
                                      final_attrs={'simlevel': 'recsim'},
                                      has_changed=False)
+
 
 if __name__ == '__main__':
     # Run tests
