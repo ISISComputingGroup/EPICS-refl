@@ -83,13 +83,13 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_contains_plain_filename_WHEN_write_THEN_directory_is_created(self):
         expected_filename = "filename.txt"
-        expected_base_parth = os.path.join("C:\\", "blah")
-        config = ArchiveAccessConfigBuilder(expected_filename, base_path=expected_base_parth).build()
+        expected_base_path = os.path.join("C:\\", "blah")
+        config = ArchiveAccessConfigBuilder(expected_filename, base_path=expected_base_path).build()
         file_creator = self._archive_data_file_creator_setup(config)
 
         file_creator.write_complete_file(self.time_period)
 
-        assert_that(self.created_file_path, is_(os.path.join(expected_base_parth, expected_filename)))
+        assert_that(self.created_file_path, is_(os.path.join(expected_base_path, expected_filename)))
 
     def test_GIVEN_config_is_line_with_pv_in_WHEN_write_THEN_pv_is_replaced_with_value_at_time(self):
         expected_pv_value = 12.9
