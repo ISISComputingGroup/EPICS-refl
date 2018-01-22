@@ -29,8 +29,9 @@ class TestDatabaseConfigBuilder(TestCase):
 
     def test_GIVEN_ioc_name_WHEN_generate_THEN_configuration_with_correct_file_name_template_is_created(self):
         ioc_name = "myioc"
-        expected_filename_template = os.path.join(DEFAULT_LOG_PATH, "myioc\myioc_{start_time}.dat")
-        expected_continous_filename_template = os.path.join(DEFAULT_LOG_PATH, "myioc\myioc_{start_time}_continuous.dat")
+        expected_filename_template = os.path.join(DEFAULT_LOG_PATH, "myioc", "myioc_{start_time}.dat")
+        expected_continous_filename_template = os.path.join(DEFAULT_LOG_PATH, "myioc",
+                                                            "myioc_{start_time}_continuous.dat")
         ioc_data_source = self._create_ioc_data_source(ioc_name=ioc_name)
         db_config_builder = ArchiverAccessDatabaseConfigBuilder(ioc_data_source)
 

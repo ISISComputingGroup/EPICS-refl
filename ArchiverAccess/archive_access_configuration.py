@@ -24,7 +24,7 @@ from ArchiverAccess.logging_period_providers import LoggingPeriodProviderConst, 
 from ArchiverAccess.utilities import add_default_field
 from server_common.utilities import print_and_log, SEVERITY
 
-DEFAULT_LOG_PATH = "C:\logs"
+DEFAULT_LOG_PATH = os.path.join("C:\\", "logs")
 """Default path where logs should be writen"""
 
 DEFAULT_LOGGING_PERIOD_IN_S = 1

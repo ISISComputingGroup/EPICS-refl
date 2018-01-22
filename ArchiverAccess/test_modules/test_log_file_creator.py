@@ -70,7 +70,7 @@ class TestlogFileCreator(TestCase):
         assert_that(FileStub.file_contents, has_length(1))
 
     def test_GIVEN_config_contains_templated_filename_WHEN_write_THEN_filename_is_correct(self):
-        filename_template = r"c:\log\filename{start_time}.txt"
+        filename_template = os.path.join("C:\\", "log", "filename{start_time}.txt")
         expected_filename = filename_template.format(start_time="2017-06-10T12_11_10")
         time_period = ArchiveTimePeriod(datetime(2017, 6, 10, 12, 11, 10, 7), timedelta(seconds=10), 10)
 
@@ -83,7 +83,7 @@ class TestlogFileCreator(TestCase):
 
     def test_GIVEN_config_contains_plain_filename_WHEN_write_THEN_directory_is_created(self):
         expected_filename = "filename.txt"
-        expected_base_parth = r"c:\blah"
+        expected_base_parth = os.path.join("C:\\", "blah")
         config = ArchiveAccessConfigBuilder(expected_filename, base_path=expected_base_parth).build()
         file_creator = self._archive_data_file_creator_setup(config)
 
