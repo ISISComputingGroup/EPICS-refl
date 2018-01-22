@@ -13,17 +13,19 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+"""
+Run tests for the archive access module.
+"""
 
 # Add root path for access to server_commons
 import os
 import sys
-
-os.environ["MYDIRBLOCK"] = os.path.abspath('..')
-sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
-# Standard imports
 import unittest
 import xmlrunner
 import argparse
+
+os.environ["MYDIRBLOCK"] = os.path.abspath('..')
+sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 DEFAULT_DIRECTORY = os.path.join('..', '..', '..', '..', 'test-reports')
 

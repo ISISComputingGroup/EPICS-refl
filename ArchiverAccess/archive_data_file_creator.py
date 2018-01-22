@@ -22,10 +22,16 @@ from stat import S_IROTH, S_IRGRP, S_IREAD
 from string import Formatter
 
 from ArchiverAccess.periodic_data_generator import PeriodicDataGenerator
-from server_common.utilities import print_and_log, SEVERITY
+from server_common.utilities import print_and_log
 
 FORMATTER_NOT_APPLIED_MESSAGE = " (formatter not applied: `{0}`)"
 """Message when a formatter can not be applied when writing a pv"""
+
+
+class DataFileCreationError(Exception):
+    """
+    Exception that is thrown if the data file could not be created.
+    """
 
 
 class TemplateReplacer(object):
@@ -33,18 +39,19 @@ class TemplateReplacer(object):
     Code to replace templated values
     """
 
-    def __init__(self, pv_values, time_period=None, time=None):
+    def __init__(self, pv_values, start_time=None, time=None):
         """
 
         Args:
-            time_period (ArchiverAccess.archive_time_period.ArchiveTimePeriod): time period
+            start_time (datetime.datetime): time used to replace templated "start_time"
+            time (datetime.datetime): time used to templated "time", e.g. start of logging ime for log filename
             pv_values: values of the pvs in order of keyword
         """
 
         self._pv_values = pv_values
         self._replacements = {}
-        if time_period is not None:
-            self._replacements["start_time"] = time_period.start_time.strftime("%Y-%m-%dT%H_%M_%S")
+        if start_time is not None:
+            self._replacements["start_time"] = start_time.strftime("%Y-%m-%dT%H_%M_%S")
         if time is not None:
             time_as_string = time.strftime("%Y-%m-%dT%H:%M:%S")
             milliseconds = time.microsecond / 1000
@@ -97,18 +104,46 @@ def make_file_readonly_fn(filepath):
     os.chmod(filepath, S_IREAD | S_IRGRP | S_IROTH)
 
 
+class DataFileCreatorFactory(object):
+    """
+    Factory for creating a data file creator
+    """
+
+    def create(self, config, archiver_data_source, filename_template, file_access_class=file,
+               mkdir_for_file_fn=mkdir_for_file, make_file_readonly=make_file_readonly_fn):
+        """
+        Create an instance of a data file creator.
+        Args:
+            config(ArchiverAccess.archive_access_configuration.ArchiveAccessConfig):
+                configuration for the archive data file to create
+            archiver_data_source: archiver data source
+            filename_template: template for the filename
+            file_access_class: file like object that can be written to
+            mkdir_for_file_fn: function for creating the directories needed
+            make_file_readonly: function to make a file readonly
+
+        Returns: ArchiveDataFileCreator
+
+        """
+        return ArchiveDataFileCreator(config, archiver_data_source, filename_template,
+                                      file_access_class=file_access_class, mkdir_for_file_fn=mkdir_for_file_fn,
+                                      make_file_readonly=make_file_readonly)
+
+
 class ArchiveDataFileCreator(object):
     """
     Archive data file creator creates the log file based on the configuration.
     """
 
-    def __init__(self, config, archiver_data_source, file_access_class=file, mkdir_for_file_fn=mkdir_for_file,
-                 make_file_readonly=make_file_readonly_fn):
+    def __init__(self, config, archiver_data_source, filename_template, file_access_class=file,
+                 mkdir_for_file_fn=mkdir_for_file, make_file_readonly=make_file_readonly_fn):
         """
         Constructor
         Args:
-            config(ArchiverAccess.configuration.Config):  configuration for the archive data file to create
+            config(ArchiverAccess.archive_access_configuration.ArchiveAccessConfig):
+                configuration for the archive data file to create
             archiver_data_source: archiver data source
+            filename_template: template for the filename
             file_access_class: file like object that can be written to
             mkdir_for_file_fn: function for creating the directories needed
             make_file_readonly: function to make a file readonly
@@ -118,44 +153,104 @@ class ArchiveDataFileCreator(object):
         self._archiver_data_source = archiver_data_source
         self._mkdir_for_file_fn = mkdir_for_file_fn
         self._make_file_readonly_fn = make_file_readonly
+        self._filename = None
+        self._first_line_written = False
+        self._periodic_data_generator = None
+        self._filename_template = filename_template
 
-    def write(self, time_period):
+    def write_complete_file(self, time_period):
         """
         Write the file to the file object.
 
         Args:
             time_period (ArchiverAccess.archive_time_period.ArchiveTimePeriod): time period
 
-        Returns: True if log file as created and made readonly; False otherwise
+        Raises DataFileCreationError: if there is a problem writing the log file
 
         """
+        self.write_file_header(time_period.start_time)
+        self.write_data_lines(time_period)
+        self.finish_log_file()
 
+    def finish_log_file(self):
+        """
+        Perform any post write tasks on the log file, e.g. make it read only.
+        """
+        try:
+            self._make_file_readonly_fn(self._filename)
+        except Exception as ex:
+            raise DataFileCreationError("Failed to make log file {filename} readonly. "
+                                        "Error is: '{exception}'"
+                                        .format(exception=ex, filename=self._filename))
+
+    def write_file_header(self, start_time):
+        """
+        Write the file header to a newly created file
+        Args:
+            start_time: start time of logging
+
+        Raises DataFileCreationError: if there is a problem writing the log file
+
+        """
         try:
             pv_names_in_header = self._config.pv_names_in_header
-            pv_values = self._archiver_data_source.initial_values(pv_names_in_header, time_period.start_time)
-            template_replacer = TemplateReplacer(pv_values, time_period=time_period)
-            periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
+            pv_values = self._archiver_data_source.initial_values(pv_names_in_header, start_time)
+            template_replacer = TemplateReplacer(pv_values, start_time=start_time)
 
-            filename = template_replacer.replace(self._config.filename)
-            print_and_log("Writing log file '{0}'".format(filename), src="ArchiverAccess")
-            self._mkdir_for_file_fn(filename)
-            with self._file_access_class(filename, mode="w") as f:
+            self._filename = template_replacer.replace(self._filename_template)
+            print_and_log("Writing log file '{0}'".format(self._filename), src="ArchiverAccess")
+            self._mkdir_for_file_fn(self._filename)
+            with self._file_access_class(self._filename, mode="w") as f:
                 for header_template in self._config.header:
                     header_line = template_replacer.replace(header_template)
                     f.write("{0}\n".format(header_line))
 
                 f.write("{0}\n".format(self._config.column_headers))
+            self._first_line_written = False
+            self._periodic_data_generator = PeriodicDataGenerator(self._archiver_data_source)
 
-                periodic_data = periodic_data_generator.get_generator(self._config.pv_names_in_columns, time_period)
+        except Exception as ex:
+            raise DataFileCreationError("Failed to write header in log file {filename} for start time {time}. "
+                                        "Error is: '{exception}'"
+                                        .format(time=start_time, exception=ex, filename=self._filename))
+
+    def write_data_lines(self, time_period):
+        """
+        Append data lines to a file for the given time period. The first data line is appended only on the first call
+        to this.
+        Args:
+            time_period: the time period to generate data lines for
+
+        Raises DataFileCreationError: if there is a problem writing the log file
+
+        """
+        try:
+            assert self._filename is not None, "Called write_data_lines before writing header."
+
+            with self._file_access_class(self._filename, mode="a") as f:
+                periodic_data = self._periodic_data_generator.get_generator(
+                    self._config.pv_names_in_columns, time_period)
+                self._ignore_first_line_if_already_written(periodic_data)
+
                 for time, values in periodic_data:
                     table_template_replacer = TemplateReplacer(values, time=time)
                     table_line = table_template_replacer.replace(self._config.table_line)
                     f.write("{0}\n".format(table_line))
 
-            self._make_file_readonly_fn(filename)
-            return True
         except Exception as ex:
-            print_and_log("Failed to create log file {filename} for time period {time_period}. Error is: '{exception}'"
-                          .format(time_period=time_period, exception=ex, filename=self._config.filename),
-                          severity=SEVERITY.MAJOR, src="ArchiverAccess")
-            return False
+            raise DataFileCreationError("Failed to write lines in log file {filename} for time period {time_period}. "
+                                        "Error is: '{exception}'"
+                                        .format(time_period=time_period, exception=ex, filename=self._filename))
+
+    def _ignore_first_line_if_already_written(self, periodic_data):
+        """
+        If this is the second call to this function then the first line will have been written as part of the output
+         from the previous call so skip it.
+        Args:
+            periodic_data: periodic data
+
+        """
+        if self._first_line_written:
+            periodic_data.next()
+        else:
+            self._first_line_written = True

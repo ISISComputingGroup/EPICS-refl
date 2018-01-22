@@ -18,7 +18,7 @@ Module for taking the configuration from the ioc data source and creating a conf
 """
 import os
 
-from ArchiverAccess.configuration import ConfigBuilder
+from ArchiverAccess.archive_access_configuration import ArchiveAccessConfigBuilder
 from server_common.utilities import print_and_log, SEVERITY
 
 HEADER_ANNOTATION_PREFIX = "log_header"
@@ -43,7 +43,7 @@ COLUMN_TEMPLATE_ANNOTATION_PREFIX = "log_column_template"
 """The annotation prefix for a column template, the end is the column index"""
 
 
-class DatabaseConfigBuilder(object):
+class ArchiverAccessDatabaseConfigBuilder(object):
     """
     Create configurations based on the entries in the IOC database.
     """
@@ -60,17 +60,20 @@ class DatabaseConfigBuilder(object):
         """
         Create configurations from the data source
         Returns:
-            list[ArchiverAccess.configuration.Config]: list of configuration
+            list[ArchiverAccess.archive_access_configuration.ArchiveAccessConfig]: list of configuration
 
         """
 
         configurations = []
-        for ioc_name, logging_items in self._ioc_data_source.get_pv_logging_info().iteritems():
+        for ioc_name, logging_items in self._ioc_data_source.get_pv_logging_info().items():
             print_and_log("Reading config for ioc: {ioc}".format(ioc=ioc_name),
                           severity=SEVERITY.INFO, src="ArchiverAccess")
-            file_name_template = "{ioc_name}_{{start_time}}.dat".format(ioc_name=ioc_name)
-            file_name_template = os.path.join(ioc_name, file_name_template)
-            config_builder = self._create_config_for_ioc(file_name_template, logging_items)
+            one_end_file_name_template = "{ioc_name}_{{start_time}}.dat".format(ioc_name=ioc_name)
+            one_end_file_name_template = os.path.join(ioc_name, one_end_file_name_template)
+            cont_file_name_template = "{ioc_name}_{{start_time}}_continuous.dat".format(ioc_name=ioc_name)
+            cont_file_name_template = os.path.join(ioc_name, cont_file_name_template)
+            config_builder = self._create_config_for_ioc(one_end_file_name_template, cont_file_name_template,
+                                                         logging_items)
 
             config = config_builder.build()
             print_and_log("{0}".format(config.__rep__().replace(" - ", "\n  - ")),
@@ -78,10 +81,12 @@ class DatabaseConfigBuilder(object):
             configurations.append(config)
         return configurations
 
-    def _create_config_for_ioc(self, file_name_template, logging_items):
+    def _create_config_for_ioc(self, on_end_logging_filename_template, continuous_logging_filename_template,
+                               logging_items):
         columns = {}
         all_keys = set()
-        config_builder = ConfigBuilder(file_name_template)
+        config_builder = ArchiveAccessConfigBuilder(on_end_logging_filename_template,
+                                                    continuous_logging_filename_template)
         sorted_values = sorted(logging_items, key=lambda x: x[1])
         for pv_name, key, template in sorted_values:
             key_lowered = key.lower()

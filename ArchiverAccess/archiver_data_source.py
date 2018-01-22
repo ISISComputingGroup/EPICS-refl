@@ -22,6 +22,12 @@ from datetime import timedelta, datetime
 from ArchiverAccess.archive_time_period import ArchiveTimePeriod
 from server_common.mysql_abstraction_layer import SQLAbstraction
 
+SAMPLE_ID_EPOCH = 0
+"""first possible sample id in the database"""
+
+SAMPLE_DATETIME_EPOCH = datetime(1970, 1, 1, 0, 0, 0)
+"""first possible sample date time in the database"""
+
 ERROR_PREFIX = "ERROR: "
 VALUE_WHEN_ERROR_ON_RETRIEVAL = ERROR_PREFIX + "Data value can not be retrieved"
 """Error to put in a cell if the data can not be retrieved"""
@@ -77,6 +83,7 @@ class ArchiverDataValue:
         return [self.severity_id, self.status_id, self.num_val, self.float_val, self.str_val, self.array_val,
                 self.sample_time]
 
+
 ARCHIVER_DATA_VALUE_QUERY = "severity_id, status_id, num_val, float_val, str_val, array_val, smpl_time"
 """Field which are part of the archiver data value query string"""
 
@@ -113,15 +120,22 @@ GET_CHANGES_QUERY = """
 """.format(arc_data_query=ARCHIVER_DATA_VALUE_QUERY, in_clause="{0}")
 """SQL query to get a list of changes between given times for certain pvs"""
 
+GET_LATEST_SAMPLE_ID_TEMPLATE = """
+    SELECT MAX(s.smpl_time), MAX(s.sample_id) 
+    FROM archive.sample s
+    WHERE s.sample_id >= %s AND 
+    s.smpl_time = (
+        SELECT MAX(t.smpl_time)
+          FROM archive.sample t
+         WHERE t.sample_id >= %s {before_time_clause})"""
+"""SQL template to get the largest sample time and from this list largest sample id bigger 
+than a given sample id with optional and clause"""
 
-GET_SAMPLE_ID_NOW = """
-        SELECT max(s.smpl_time)
-          FROM archive.sample s
-"""
+GET_LATEST_SAMPLE_ID = GET_LATEST_SAMPLE_ID_TEMPLATE.format(before_time_clause="")
+"""Sql to get the latest sample id after a given sample id"""
 
-GET_SAMPLE_ID = GET_SAMPLE_ID_NOW + """
-         WHERE s.smpl_time <= %s
-"""
+GET_SAMPLE_ID_BEFORE = GET_LATEST_SAMPLE_ID_TEMPLATE.format(before_time_clause="AND s.smpl_time <= %s")
+"""Sql to get the latest sample id after a given sample id and sample time"""
 
 
 class ArchiverDataSource(object):
@@ -187,25 +201,35 @@ class ArchiverDataSource(object):
         for change in self._changes_generator(query, pv_names, result_bounds):
             yield change
 
-    def get_latest_sample_time(self, time=None):
+    def get_latest_sample_time(self, from_sample_id, time=None):
         """
-        Get the largest sample id taken before a given time
+        Get the largest sample id taken before a given time but after a given sample id. The
+        sample id makes the query more efficient.
 
         Args:
+            from_sample_id: initial sample id to start searching from.
             time: time at which to get the sample id
 
         :return: sample id or 0 if there is no sample id before the given time
         """
         if time is not None:
-            sample_id_result = self._sql_abstraction_layer.query(GET_SAMPLE_ID, (time,))
+            sample_id_result = self._sql_abstraction_layer.query(GET_SAMPLE_ID_BEFORE,
+                                                                 (from_sample_id, from_sample_id, time))
         else:
-            sample_id_result = self._sql_abstraction_layer.query(GET_SAMPLE_ID_NOW)
+            sample_id_result = self._sql_abstraction_layer.query(GET_LATEST_SAMPLE_ID,
+                                                                 (from_sample_id, from_sample_id,))
         if len(sample_id_result) == 1:
-            sample_id = sample_id_result[0][0]
+            sample_time = sample_id_result[0][0]
+            if sample_time is None:
+                sample_time = SAMPLE_DATETIME_EPOCH
+            sample_id = sample_id_result[0][1]
+            if sample_id is None:
+                sample_id = SAMPLE_ID_EPOCH
         else:
-            sample_id = datetime(1970, 1, 1, 0, 0, 0)
+            sample_time = SAMPLE_DATETIME_EPOCH
+            sample_id = SAMPLE_ID_EPOCH
 
-        return sample_id
+        return sample_time, sample_id
 
     def logging_changes_for_sample_id_generator(self, pv_names, from_sample_id, to_sample_id):
         """
@@ -257,12 +281,12 @@ class ArchiverDataSource(object):
 
 if __name__ == "__main__":
     ads = ArchiverDataSource(SQLAbstraction("archive", "report", "$report"))
-    start_time = datetime(2020, 06, 16, 0, 0, 0)
+    start_time = datetime(2020, 6, 16, 0, 0, 0)
     pv_values = ('TE:NDW1798:TPG26X_01:2:ERROR.VAL', 'TE:NDW1798:EUROTHRM_01:A01:TEMP.VAL')
     period = ArchiveTimePeriod(start_time, timedelta(days=365), 10)
 
     for val in ads.initial_values(pv_values, start_time):
-        print str(val)
+        print(str(val))
 
     for val in ads.changes_generator(pv_values, period):
-        print str(val)
+        print(str(val))

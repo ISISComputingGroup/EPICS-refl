@@ -40,6 +40,8 @@ class PeriodicDataGenerator(object):
             archiver_data_source(ArchiverAccess.archiver_data_source.ArchiverDataSource): data source for archive data
         """
         self._archiver_data_source = archiver_data_source
+        self._current_values = None
+        self._current_time = None
 
     def get_generator(self, pv_names, time_period):
         """
@@ -52,16 +54,18 @@ class PeriodicDataGenerator(object):
 
         :return: Generator for a data point which is a period_data_point tuple
         """
+        if not self._does_new_time_period_start_at_end_of_last(time_period.start_time):
+            self._current_values = self._archiver_data_source.initial_values(pv_names, time_period.start_time)
 
         archiver_changes_generator = self._archiver_data_source.changes_generator(pv_names, time_period)
-        current_values = self._archiver_data_source.initial_values(pv_names, time_period.start_time)
         self._set_next_change(archiver_changes_generator)
 
         for current_point_count in range(time_period.point_count):
-            current_time = time_period.get_time_after(current_point_count)
-            current_values = self._get_values_at_time(current_values, current_time, archiver_changes_generator)
+            self._current_time = time_period.get_time_after(current_point_count)
+            self._current_values = self._get_values_at_time(self._current_values, self._current_time,
+                                                            archiver_changes_generator)
 
-            yield period_data_point(current_time, current_values)
+            yield period_data_point(self._current_time, self._current_values)
 
     def _get_values_at_time(self, initial_values, time, _archiver_changes_generator):
         """
@@ -88,3 +92,15 @@ class PeriodicDataGenerator(object):
                 _archiver_changes_generator.next()
         except StopIteration:
             self._next_change_time = None
+
+    def _does_new_time_period_start_at_end_of_last(self, start_time):
+        """
+        Does the new time period start at the end of the last time period if there was a last time period
+        Args:
+            start_time: start time for new period
+
+        Returns: true if it has the same time; false otherwise
+
+        """
+        return not (self._current_values is None or self._current_time is None or
+                    self._current_time != start_time)
