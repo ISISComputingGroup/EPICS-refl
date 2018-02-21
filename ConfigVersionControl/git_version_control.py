@@ -116,7 +116,6 @@ class GitVersionControl:
         """
         num_files_changed = len(self.repo.index.diff("HEAD"))
         if num_files_changed == 0:
-            print_and_log("GIT: Nothing to commit")
             return  # nothing staged for commit
 
         commit_comment = self._message_provider.get_commit_message(self.repo.index.diff("HEAD"))
