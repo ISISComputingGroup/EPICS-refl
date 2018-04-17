@@ -48,6 +48,8 @@ class DevicesManager(OnTheFlyPvInterface):
         self._bs = block_server
         self._data = ""
         self._create_standard_pvs()
+        self._load_current()
+        self.update_monitors()
 
     def _create_standard_pvs(self):
         """ Creates new PVs holding information relevant to the device screens. """
@@ -83,10 +85,9 @@ class DevicesManager(OnTheFlyPvInterface):
             self._bs.setParam(GET_SCREENS, compress_and_hex(self._data))
             self._bs.updatePVs()
 
-    def initialise(self, full_init=False):
-        """ Initialises the device manager by loading the current device screen configuration. """
-        self._load_current()
-        self.update_monitors()
+    def on_config_change(self, full_init=False):
+        # Devices don't need to change with config
+        pass
 
     def _load_current(self):
         """ Gets the devices XML for the current instrument"""

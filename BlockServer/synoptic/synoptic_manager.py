@@ -95,7 +95,7 @@ class SynopticManager(OnTheFlyPvInterface):
             self._bs.updatePVs()
             print_and_log("FINISHED UPDATING SYNOPTIC MONITORS")
 
-    def initialise(self, full_init=False):
+    def on_config_change(self, full_init=False):
         # If the config has a default synoptic then set the PV to that
         default = self._activech.get_config_meta().synoptic
         self.set_default_synoptic(default)

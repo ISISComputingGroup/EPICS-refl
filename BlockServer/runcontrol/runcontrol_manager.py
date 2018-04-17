@@ -41,13 +41,33 @@ RUNCONTROL_GET_PV = BlockserverPVNames.prepend_blockserver('GET_RC_PARS')
 # number of loops to wait for assuming the run control is not going to start
 MAX_LOOPS_TO_WAIT_FOR_START = 60  # roughly 2 minutes at standard time
 
+class _RunControlAutoSaveHelper():
+    def __init__(self):
+        self._autosave_dir = None
+    def clear_autosave_files(self):
+        for fname in os.listdir(self._autosave_dir):
+            file_path = os.path.join(self._autosave_dir, fname)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception as err:
+                print_and_log("Problem deleting autosave files for the "
+                              "run-control IOC: %s"
+                              % str(err), "MAJOR")
+
+    def set_var_dir(self, var_dir):
+        self._autosave_dir = os.path.join(var_dir, AUTOSAVE_DIR,
+                                          RUNCONTROL_IOC)
+        print_and_log("RUNCONTROL AUTOSAVE DIRECTORY: {}".format(self._autosave_dir))
+
 
 class RunControlManager(OnTheFlyPvInterface):
     """A class for taking care of setting up run-control."""
 
     def __init__(self, prefix, config_dir, var_dir, ioc_control,
                  active_configholder, block_server,
-                 channel_access=ChannelAccess(), sleep_func=sleep):
+                 channel_access=ChannelAccess(), sleep_func=sleep,
+                 run_control_auto_save_helper =_RunControlAutoSaveHelper()):
         """
         Constructor.
 
@@ -65,8 +85,6 @@ class RunControlManager(OnTheFlyPvInterface):
         self._rc_ioc_start_time = None
         self._prefix = prefix
         self._settings_file = os.path.join(config_dir, RUNCONTROL_SETTINGS)
-        self._autosave_dir = os.path.join(var_dir, AUTOSAVE_DIR,
-                                          RUNCONTROL_IOC)
         self._block_prefix = prefix + "CS:SB:"
         self._stored_settings = None
         self._ioc_control = ioc_control
@@ -76,8 +94,9 @@ class RunControlManager(OnTheFlyPvInterface):
         self._create_standard_pvs()
         self._channel_access = channel_access
         print_and_log("RUNCONTROL SETTINGS FILE: {}".format(self._settings_file))
-        print_and_log("RUNCONTROL AUTOSAVE DIRECTORY: {}".format(self._autosave_dir))
         self._intialise_runcontrol_ioc()
+        self._run_control_auto_save_helper = run_control_auto_save_helper
+        self._run_control_auto_save_helper.set_var_dir(var_dir)
 
     def read_pv_exists(self, pv):
         """
@@ -119,7 +138,7 @@ class RunControlManager(OnTheFlyPvInterface):
         # No monitors
         pass
 
-    def initialise(self, full_init=False):
+    def on_config_change(self, full_init=False):
         """
         Initilise & create a new set of run control PVs.
         """
@@ -148,17 +167,18 @@ class RunControlManager(OnTheFlyPvInterface):
             time_between_tries: Time to wait between checking run control has
                 started
         """
-        print_and_log("Start creating runcontrol PVs")
-        self.update_runcontrol_blocks(
-            self._active_configholder.get_block_details())
-        self.restart_ioc(clear_autosave)
-        # Need to wait for RUNCONTROL_IOC to restart
-        self.wait_for_ioc_start(time_between_tries)
-        print_and_log("Restoring config settings...")
-        self.restore_config_settings(
-            self._active_configholder.get_block_details())
-        print_and_log("Finish restoring config settings")
-        print_and_log("Finish creating runcontrol PVs")
+        if self._active_configholder.blocks_changed() or clear_autosave:
+            print_and_log("Start creating runcontrol PVs")
+            self.update_runcontrol_blocks(
+                self._active_configholder.get_block_details())
+            self.restart_ioc(clear_autosave)
+            # Need to wait for RUNCONTROL_IOC to restart
+            self.wait_for_ioc_start(time_between_tries)
+            print_and_log("Restoring config settings...")
+            self.restore_config_settings(
+                self._active_configholder.get_block_details())
+            print_and_log("Finish restoring config settings")
+            print_and_log("Finish creating runcontrol PVs")
 
     def update_runcontrol_blocks(self, blocks):
         """
@@ -359,7 +379,7 @@ class RunControlManager(OnTheFlyPvInterface):
         """
         if clear_autosave:
             print_and_log("Removing the run-control autosave files")
-            self._clear_autosave_files()
+            self._run_control_auto_save_helper.clear_autosave_files()
         else:
             print_and_log("Reusing the existing run-control autosave files")
 
@@ -369,13 +389,3 @@ class RunControlManager(OnTheFlyPvInterface):
             print_and_log("Problem with restarting the run-control IOC: %s"
                           % str(err), "MAJOR")
 
-    def _clear_autosave_files(self):
-        for fname in os.listdir(self._autosave_dir):
-            file_path = os.path.join(self._autosave_dir, fname)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-            except Exception as err:
-                print_and_log("Problem deleting autosave files for the "
-                              "run-control IOC: %s"
-                              % str(err), "MAJOR")

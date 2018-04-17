@@ -66,9 +66,13 @@ class ActiveConfigHolder(ConfigHolder):
 
     def update_archiver(self):
         """ Update the archiver configuration.
+
+        Args:
+            blocks_changed (bool): Have the blocks changed?
         """
-        self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX,
-                                              super(ActiveConfigHolder, self).get_block_details().values())
+        if self.blocks_changed():
+            self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX,
+                                                  super(ActiveConfigHolder, self).get_block_details().values())
 
     def set_last_config(self, config):
         """ Save the last configuration used to file.
@@ -153,3 +157,44 @@ class ActiveConfigHolder(ConfigHolder):
                 iocs_to_stop.add(n)
 
         return iocs_to_start, iocs_to_restart, iocs_to_stop
+
+    def blocks_changed(self):
+        """Checks to see if the Blocks have changed on saving."
+
+        It checks for: Blocks added; Blocks removed; Blocks changed; New components
+
+        Returns:
+            bool : True if blocks have changed, False otherwise
+        """
+        blocks_changed = False
+
+        # Check for any new or changed blocks
+        for n in self._config.blocks.keys():
+            # Check to see if there are any new blocks
+            if n not in self._cached_config.blocks.keys():
+                # If not in previously then blocks have been added changed
+                blocks_changed = True
+                return blocks_changed
+
+            cached_block = self._cached_config.blocks[n].to_dict()
+            current_block = self._config.blocks[n].to_dict()
+            # Check for any changed blocks (symmetric difference operation of sets)
+            block_diff = set(cached_block.items()) ^ set(current_block.items())
+            if len(block_diff) is not 0:
+                blocks_changed = True
+                return blocks_changed
+
+        # Look for any new components
+        for cn, cv in self._components.iteritems():
+            if cn not in self._cached_components:
+                if len(cv.blocks.keys()) is not 0:
+                    blocks_changed = True
+                    return blocks_changed
+
+        # Look for any removed Blocks
+        for n in self._cached_config.blocks.keys():
+            if n not in self._config.blocks.keys():
+                blocks_changed = True
+                return blocks_changed
+
+        return blocks_changed
