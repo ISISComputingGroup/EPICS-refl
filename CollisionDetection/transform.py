@@ -2,22 +2,15 @@ import numpy as np
 from math import sin, cos
 
 
-class TransformError(Exception):
-    def __init__(self, description):
-        Exception.__init__(self)
-        self.description = description
-
-    def __str__(self):
-        return self.description
-
-
 class Transformation(object):
     # Initialise the transformation matrix to an identity
     def __init__(self, transform=None):
         self.matrix = None
-        self.identity()
-        if transform is not None:
-            self.matrix[:] = transform.matrix
+
+        if transform is None:
+            self.identity()
+        else:
+            self.matrix = transform.matrix
 
     # Reset the matrix to an identity - clears all transforms
     def identity(self):
@@ -33,7 +26,7 @@ class Transformation(object):
         """
 
         # Rotation about X
-        if rx is not 0:
+        if rx != 0:
             rotate = np.array([[1., 0., 0., 0.],
                                [0., cos(rx), -sin(rx), 0.],
                                [0., sin(rx), cos(rx), 0.],
@@ -44,7 +37,7 @@ class Transformation(object):
                 self.matrix = np.dot(self.matrix, rotate)
 
         # Rotation about Y
-        if ry is not 0:
+        if ry != 0:
             rotate = np.array([[cos(ry), 0., -sin(ry), 0.],
                                [0., 1., 0., 0.],
                                [sin(ry), 0., cos(ry), 0.],
@@ -55,7 +48,7 @@ class Transformation(object):
                 self.matrix = np.dot(self.matrix, rotate)
 
         # Rotation about Z
-        if rz is not 0:
+        if rz != 0:
             rotate = np.array([[cos(rz), -sin(rz), 0., 0.],
                                [sin(rz), cos(rz), 0., 0.],
                                [0., 0., 1., 0.],
@@ -89,16 +82,14 @@ class Transformation(object):
         """
         Scales in x, y and z
         """
-        self.matrix = np.dot(np.array([[x, 0., 0., 0.],
-                                       [0., y, 0., 0.],
-                                       [0., 0., z, 0.],
-                                       [0., 0., 0., 1.]]), self.matrix)
+        self.matrix = np.dot(np.diagflat([x, y, z, 1]), self.matrix)
 
     def evaluate(self, position):
         """
         Given a set of [x, y ,z] coordinates, calculate transformed position
         """
-        x, y, z = position[0:3]
+        assert len(position) == 3
+        x, y, z = position
         position = [x, y, z, 1.0]
 
         result = np.dot(self.matrix, position)
@@ -118,11 +109,11 @@ class Transformation(object):
         """
         Join matrix from rotation and position matrices
         """
+        assert len(position) == 3
+        assert len(rotation) == 9
+
         r = rotation
         p = position
-
-        # self.matrix[0:3, 0:3] = rotation
-        # self.matrix[0:3, 3] = position
 
         self.matrix = np.array([[r[0], r[1], r[2], p[0]],
                                 [r[3], r[4], r[5], p[1]],
@@ -131,14 +122,11 @@ class Transformation(object):
 
         return self.matrix
 
-    def to_opengl(self):
-        """
-        Reshape to the format expected by OpenGL
-        """
-        return np.reshape(self.matrix.T, 16)
-
-    # # Doesn't get the same result as below!
     def get_inverse(self):
+        """
+        Gets the inverse of this transformation (the matrix with opposite effect).
+        :return: The inverted matrix
+        """
         return np.linalg.inv(self.matrix)
 
     def __str__(self):

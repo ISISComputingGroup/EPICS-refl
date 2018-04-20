@@ -104,7 +104,6 @@ class Renderer(threading.Thread):
     def __init__(self, parameters, geometries, colors, monitors, pvs, moves, op_mode):
         threading.Thread.__init__(self, name="Renderer")
 
-        # self.geometries = [copy(geometry) for geometry in geometries]
         self.geometries = geometries
 
         self.colors = colors
@@ -120,7 +119,6 @@ class Renderer(threading.Thread):
         glinit()
         while self.op_mode.close.is_set() is False:
             frozen = [monitor.value() for monitor in self.monitors]
-            # frozen = [DummyMonitor(monitor.value()) for monitor in self.monitors]
             loop(self, frozen)
 
 
