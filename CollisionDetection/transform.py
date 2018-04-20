@@ -21,7 +21,7 @@ class Transformation(object):
 
     # Reset the matrix to an identity - clears all transforms
     def identity(self):
-        self.matrix = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
+        self.matrix = np.identity(4, dtype=float)
 
     def rotate(self, rx=0, ry=0, rz=0, forward=True):
         """
@@ -137,54 +137,9 @@ class Transformation(object):
         """
         return np.reshape(self.matrix.T, 16)
 
-    # Doesn't get the same result as below!
-    # def get_inverse(self):
-    #     return np.linalg.inv(self.matrix)
-
+    # # Doesn't get the same result as below!
     def get_inverse(self):
-
-        """Returns the inverse (matrix with the opposite effect) of this
-        matrix."""
-
-        [[i0, i1, i2, i3], [i4, i5, i6, i7], [i8, i9, i10, i11], [i12, i13, i14, i15]] = self.matrix.T
-
-        negpos = [0., 0.]
-        temp = i0 * i5 * i10
-        negpos[temp > 0.] += temp
-
-        temp = i1 * i6 * i8
-        negpos[temp > 0.] += temp
-
-        temp = i2 * i4 * i9
-        negpos[temp > 0.] += temp
-
-        temp = -i2 * i5 * i8
-        negpos[temp > 0.] += temp
-
-        temp = -i1 * i4 * i10
-        negpos[temp > 0.] += temp
-
-        temp = -i0 * i6 * i9
-        negpos[temp > 0.] += temp
-
-        det_1 = negpos[0] + negpos[1]
-
-        if (det_1 == 0.) or (abs(det_1 / (negpos[1] - negpos[0])) < (2. * 0.00000000000000001)):
-            raise TransformError("This transform can not be inverted")
-
-        det_1 = 1. / det_1
-
-        ret = [(i5 * i10 - i6 * i9) * det_1, -(i1 * i10 - i2 * i9) * det_1, (i1 * i6 - i2 * i5) * det_1, 0.0,
-               -(i4 * i10 - i6 * i8) * det_1, (i0 * i10 - i2 * i8) * det_1, -(i0 * i6 - i2 * i4) * det_1, 0.0,
-               (i4 * i9 - i5 * i8) * det_1, -(i0 * i9 - i1 * i8) * det_1, (i0 * i5 - i1 * i4) * det_1, 0.0,
-               0.0, 0.0, 0.0, 1.0]
-
-        m = ret
-        m[12] = - (i12 * m[0] + i13 * m[4] + i14 * m[8])
-        m[13] = - (i12 * m[1] + i13 * m[5] + i14 * m[9])
-        m[14] = - (i12 * m[2] + i13 * m[6] + i14 * m[10])
-
-        return np.reshape(ret, (4, 4))
+        return np.linalg.inv(self.matrix)
 
     def __str__(self):
         return str(self.matrix)

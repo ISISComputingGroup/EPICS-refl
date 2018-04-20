@@ -44,6 +44,7 @@ for i in range(0, 9):
     for j in range(i, 9):
         ignore.append([i, j])
 
+
 def move_everything(axes):
     # Z stage
     t = Transformation()
@@ -129,13 +130,13 @@ moves = move_everything
 geometries = [z_stage, rot_stage, bot_arc, top_arc, fine_z, y_base, y_stage, x_stage, sample, snout, slits]
 
 # Attach monitors to readbacks
-pvs = ["{}MOT:MTR0201",
-       "{}MOT:MTR0202",
-       "{}MOT:MTR0203",
-       "{}MOT:MTR0204",
-       "{}MOT:MTR0205",
-       "{}MOT:MTR0206",
-       "{}MOT:MTR0207"]
+pvs = ["{}MOT:MTR0101",
+       "{}MOT:MTR0102",
+       "{}MOT:MTR0103",
+       "{}MOT:MTR0104",
+       "{}MOT:MTR0105",
+       "{}MOT:MTR0106",
+       "{}MOT:MTR0107"]
 
 pvs = [pv.format(pv_prefix) for pv in pvs]
 

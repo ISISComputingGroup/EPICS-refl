@@ -1,5 +1,6 @@
 import logging
 import threading
+import itertools
 from time import sleep
 
 import numpy as np
@@ -9,23 +10,26 @@ from genie_python.genie import set_pv
 from move import move_all
 
 
-def collide(geometries, ignore):
+def collide(geometries, ignore, collision_func=ode.collide):
     """
     Calculates which of the given geometries will collide, ignoring geometries that are specified as ignored.
     As there are only [(len(geometries)-1)!] combinations, and we don't care about some, there isn't much effort saved
     by using spaces (which do a quicker estimate of collisions first)
     :param geometries: A list of GeometryBox objects to check for collisions.
     :param ignore: A list of pairs to ignore. Each pair is represented by a list with two entries.
+    :param collision_func: A callable which takes two geometries as input, and returns True iff they are colliding.
     :return: A list of booleans, each corresponding to a geometry by position, True if the geometry has collided.
     """
+
     collisions = [False] * len(geometries)
-    for i, geom1 in enumerate(geometries):
-        for j, geom2 in enumerate(geometries[i:]):
-            if not ([i, i + j] in ignore or [i + j, i] in ignore):
-                contacts = ode.collide(geom1.geom, geom2.geom)
-                if contacts:
-                    collisions[i] = True
-                    collisions[i + j] = True
+    for (ind1, geom1), (ind2, geom2) in itertools.combinations(enumerate(geometries), 2):
+        if [ind1, ind2] in ignore or [ind2, ind1] in ignore:
+            continue
+
+        if collision_func(geom1.geom, geom2.geom):
+            collisions[ind1] = True
+            collisions[ind2] = True
+
     return collisions
 
 
@@ -65,6 +69,9 @@ def detect_collisions(collision_reported, driver, geometries, ignore, is_moving,
 
 
 class CollisionDetector(threading.Thread):
+    """
+    Thread that runs and detects collisions.
+    """
     def __init__(self, driver, geometries, moves, monitors, ignore, is_moving, logger, op_mode, pvs):
         threading.Thread.__init__(self, name="CollisionDetector")
 
@@ -78,9 +85,9 @@ class CollisionDetector(threading.Thread):
         self.op_mode = op_mode
         self.pvs = pvs
 
-        self._lock_message = threading.Lock()
+        self._lock_message = threading.RLock()
         self._message = "Nothing to report!"
-        self._lock_collisions = threading.Lock()
+        self._lock_collisions = threading.RLock()
         self._collisions = [0] * len(geometries)
 
         self.setDaemon(True)
@@ -104,7 +111,7 @@ class CollisionDetector(threading.Thread):
     @collisions.setter
     def collisions(self, collisions):
         with self._lock_collisions:
-            self._collisions = collisions\
+            self._collisions = collisions
 
     @property
     def message(self):
@@ -115,4 +122,3 @@ class CollisionDetector(threading.Thread):
     def message(self, msg):
         with self._lock_message:
             self._message = msg
-

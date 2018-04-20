@@ -13,21 +13,52 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
+from mock import MagicMock
 from CollisionDetection.collide import collide
-
 from unittest import TestCase
 
-from hamcrest import *
+
+class MockGeometry(object):
+    """
+    Object to mock a geometry.
+    """
+    def __init__(self):
+        self.geom = MagicMock()
+
+
+def always_report_collisions(geom1, geom2):
+    """
+    Mocked collision function which always reports that any two geometries have collided.
+    :param geom1: The first geometry to check
+    :param geom2: The second geometry to check
+    :return: True
+    """
+    return True
+
+
+def never_report_collisions(geom1, geom2):
+    """
+    Mocked collision function which never reports that any two geometries have collided.
+    :param geom1: The first geometry to check
+    :param geom2: The second geometry to check
+    :return: False
+    """
+    return False
 
 
 class TestCollide(TestCase):
     def test_GIVEN_no_geometries_WHEN_collide_called_THEN_returns_empty_list(self):
         collisions = collide([], [])
-
-        assert_that(collisions, is_([]))
+        self.assertEqual(collisions, [])
 
     def test_GIVEN_one_geometries_WHEN_collide_called_THEN_returns_list_with_one_false(self):
-        collisions = collide(["GEOMETRY_1"], [])
+        collisions = collide([MockGeometry()], [])
+        self.assertEqual(collisions, [False])
 
-        assert_that(collisions, is_([False]))
+    def test_GIVEN_two_identical_geometries_WHEN_collide_called_and_geometries_colliding_THEN_returns_list_with_one_true(self):
+        collisions = collide([MockGeometry(), MockGeometry()], [], collision_func=always_report_collisions)
+        self.assertTrue(len([x for x in collisions if x is True]) > 0)
+
+    def test_GIVEN_two_identical_geometries_WHEN_collide_called_and_geometries_not_colliding_THEN_returns_list_with_no_collisions(self):
+        collisions = collide([MockGeometry(), MockGeometry()], [], collision_func=never_report_collisions)
+        self.assertTrue(len([x for x in collisions if x is True]) == 0)
