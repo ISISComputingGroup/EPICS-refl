@@ -3,8 +3,14 @@ from math import sin, cos
 
 
 class Transformation(object):
-    # Initialise the transformation matrix to an identity
     def __init__(self, transform=None):
+        """
+        Initializes a transformation.
+
+        Args:
+            transform: the transform to base this transform on. If not supplied, the transform will be initialized
+                to the identity transform.
+        """
         self.matrix = None
 
         if transform is None:
