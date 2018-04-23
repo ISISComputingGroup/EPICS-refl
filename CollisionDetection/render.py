@@ -194,7 +194,7 @@ def check_controls(renderer):
     glLight(GL_LIGHT0, GL_POSITION, (0.0, 0.0, -1.0, 1.0))
 
     # Upload the inverse camera matrix to OpenGL
-    glLoadMatrixd(np.reshape(camera_transform.get_inverse().transpose(), 16))
+    glLoadMatrixd(np.reshape(camera_transform.get_inverse().matrix.transpose(), 16))
 
 
 def square(x, y, w=50, h=50, color=(1, 0, 0)):

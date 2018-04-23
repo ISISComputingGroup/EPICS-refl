@@ -63,8 +63,7 @@ class TransformTests(unittest.TestCase):
 
         transformed_position = t.evaluate(test_position)
 
-        inverse_transform = Transformation()
-        inverse_transform.matrix = t.get_inverse()
+        inverse_transform = t.get_inverse()
 
         # Sanity check that our transform did something.
         self.assertFalse(np.array_equal(test_position, transformed_position))
