@@ -137,7 +137,7 @@ class Transformation(object):
         Returns:
             A 1x3 numpy matrix corresponding to the position of this transform.
         """
-        return np.reshape(self.matrix[0:3, 3], (1, 3))
+        return self.matrix[0:3, 3]
 
     def get_rotation_matrix(self):
         """
@@ -146,7 +146,7 @@ class Transformation(object):
         Returns:
             A 3x3 numpy matrix corresponding to the rotation of this transform.
         """
-        return np.reshape(self.matrix[0:3, 0:3], (3, 3))
+        return self.matrix[0:3, 0:3]
 
     def join(self, rotation, position):
         """

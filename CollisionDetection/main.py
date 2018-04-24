@@ -291,33 +291,21 @@ class OperatingMode(object):
         # Re-calculate limits on demand
         self.calc_limits = threading.Event()
 
-    @property
-    def code(self):
-        code = 0
-        if self.auto_stop.is_set():
-            code |= 0b001
+    def get_operation_mode(self):
+        return self.auto_stop.is_set(), self.set_limits.is_set(), self.close.is_set()
 
-        if self.set_limits.is_set():
-            code |= 0b010
-
-        if self.close.is_set():
-            code |= 0b100
-
-        return code
-
-    @code.setter
-    def code(self, code):
-        if code & 0b001:
+    def set_operation_mode(self, auto_stop, set_limits, close):
+        if auto_stop:
             self.auto_stop.set()
         else:
             self.auto_stop.clear()
 
-        if code & 0b010:
+        if set_limits:
             self.set_limits.set()
         else:
             self.set_limits.clear()
 
-        if code & 0b100:
+        if close:
             self.close.set()
         else:
             self.close.clear()
@@ -351,11 +339,11 @@ def main():
     monitors = []
     is_moving = []
     for pv in pvs:
-        m = Monitor(pv + ".DRBV")
+        m = Monitor(pv + ".RBV")
         m.start()
         monitors.append(m)
 
-        any_moving = Monitor(pv + ".MOVN")
+        any_moving = Monitor(pv + ".DMOV")
         any_moving.start()
         is_moving.append(any_moving)
 

@@ -114,7 +114,8 @@ class MyDriver(Driver):
         if reason == 'RAND':
             value = random.random()
         elif reason == 'MODE':
-            self.setParam(reason, self.op_mode.code)
+            auto_stop, set_limits, close = self.op_mode.get_operation_mode()
+            self.setParam(reason, 0b1 * auto_stop + 0b10 * set_limits + 0b100 * close)
             value = self.getParam(reason)
         elif reason == 'AUTO_STOP':
             value = int(self.op_mode.auto_stop.is_set())
@@ -128,14 +129,17 @@ class MyDriver(Driver):
     def write(self, reason, value):
         status = True
         if reason == 'MODE':
-            self.op_mode.code = int(value)
+            auto_stop = value & 0b1
+            set_limits = value & 0b10
+            close = value & 0b100
+            self.op_mode.set_operation_mode(auto_stop, set_limits, close)
             self.setParam(reason, int(value))
         elif reason == 'AUTO_STOP':
             if value == 1:
                 self.op_mode.auto_stop.set()
             elif value == 0:
                 self.op_mode.auto_stop.clear()
-            self.setParam('MODE', self.op_mode.code)
+            self.setParam('MODE', self.op_mode.op_mode)
         elif reason == 'AUTO_LIMIT':
             if value == 1:
                 self.op_mode.set_limits.set()
