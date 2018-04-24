@@ -27,13 +27,9 @@ def collide(geometries, ignore, collision_func=ode.collide):
 
     collisions = [False] * len(geometries)
     for (ind1, geom1), (ind2, geom2) in itertools.combinations(enumerate(geometries), 2):
-        if [ind1, ind2] in ignore or [ind2, ind1] in ignore:
-            continue
-
-        if collision_func(geom1.geom, geom2.geom):
+        if not ([ind1, ind2] in ignore or [ind2, ind1] in ignore) and collision_func(geom1.geom, geom2.geom):
             collisions[ind1] = True
             collisions[ind2] = True
-
     return collisions
 
 

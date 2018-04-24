@@ -10,7 +10,7 @@ from time import sleep, time
 import ode
 from genie_python.genie_startup import *
 
-import config
+import config_zoom as config
 import pv_server
 import render
 from collide import collide, CollisionDetector
