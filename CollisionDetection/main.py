@@ -1,25 +1,23 @@
 import sys
 import os
-
-sys.path.insert(0, os.path.abspath(os.environ["MYDIRCD"]))
-
+import ode
 import logging
 import threading
 from time import sleep, time
-
-import ode
 from genie_python.genie_startup import *
 
-import config_zoom as config
 import pv_server
 import render
+from configurations import config_zoom as config
 from collide import collide, CollisionDetector
 from geometry import GeometryBox
+from move import move_all
 
-from server_common.loggers.isis_logger import IsisLogger
+sys.path.insert(0, os.path.abspath(os.environ["MYDIRCD"]))
 
 from monitor import Monitor
-from move import move_all
+from server_common.loggers.isis_logger import IsisLogger
+
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s (%(threadName)-2s) %(message)s',
@@ -30,9 +28,7 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
     limit = end_value
     current_value = start_values[axis_index]
 
-    # print "Seek from %f to %f" % (start_values[axis_index], end_value)
     if current_value == end_value:
-        # print "Already there!"
         return end_value
 
     values = start_values[:]
@@ -66,10 +62,7 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
         if not comp(current_value, end_value):
             current_value = end_value
 
-        # print "Moving axis %d to %f" % (axis_index, current_value)
-
         values[axis_index] = current_value
-        # print "Axes at %s" % values
         move_all(geometries, moves, values=values[:])
 
         # Check nothing moved too far
@@ -78,11 +71,8 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
             if old_points is not None:
                 delta = max_delta(geometries, new_points, old_points)
                 if delta > start_step_size:
-                    # print "Max delta %f > %f step size for axis %d" % (delta, start_step_size, axis_index)
-
                     # Work out a new step size
                     step_size *= start_step_size/delta
-                    # print "New step size of %f for axis %d" % (step_size, axis_index)
                     last_value = None
                     continue
                 step_checked = True
@@ -93,12 +83,10 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
         if any(collisions):
             if current_value == start_values[axis_index]:
                 # There was already a collision
-                # print "There was already a collision on axis %d" % axis_index
                 limit = current_value
                 break
             elif fine_step and fine_step < step_size:
                 start_values[axis_index] = last_value
-                # print "Doing fine seek for axis %d" % axis_index
                 limit = auto_seek(fine_step, start_values, current_value, geometries, moves, axis_index, ignore)
             else:
                 limit = last_value
@@ -110,7 +98,7 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
     # print "Found limits for axis %d using step size of %f" % (axis_index, step_size)
 
     if limit is None:
-        print("Null limit")
+        raise ValueError("Null limit")
 
     return limit
 
@@ -193,11 +181,6 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
             # This axis has not finished moving!
             move_complete[i] = False
 
-        # print "Start points:   %s" % start_values
-        # print "Got set points: %s" % set_points
-        # print "Got speeds:     %s" % speeds
-        # print "Got directions: %s" % directions
-
         current_time = 0.
         values = start_values[:]
         old_points = None
@@ -212,16 +195,12 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
             else:
                 current_time += time_step
 
-            # print "Looking %fs into the future!" % current_time
-
             for i in moving:
                 if move_complete[i] is False:
                     values[i] = start_values[i] + (directions[i] * speeds[i] * current_time)
                     comp = compare(directions[i])(values[i], set_points[i])
-                    # print "Axis %d is at set point? %s" % (i, comp)
                     if comp:
                         values[i] = set_points[i]
-                        # move_complete[i] = True
 
             # Move the bodies
             move_all(geometries, moves, values=values)
@@ -234,8 +213,6 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
                     if delta > max_movement:
                         # Reduce the size of the time step
                         time_step *= max_movement/delta
-                        # print "Bodies moved %fmm" % delta
-                        # print "Using a new step of %fs" % time_step
                         # Reset to starting point
                         last_time = None
                         old_points = None
@@ -245,7 +222,6 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
 
             # Check for collisions
             collisions = collide(geometries, ignore)
-            # print "Collisions: %s" % collisions
 
             if any(collisions):
                 if last_time is None:
@@ -266,12 +242,6 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
 # Set the high and low dial limits for each motor
 def set_limits(limits, pvs):
     for limit, pv in zip(limits, pvs):
-        # threading.Thread(target=set_pv, args=(pv + '.DLLM', limit[0]))
-        # threading.Thread(target=set_pv, args=(pv + '.DHLM', limit[1]))
-        # threading.Thread(target=set_pv, args=(pv + '.DLLM', np.min(limit)))
-        # threading.Thread(target=set_pv, args=(pv + '.DHLM', np.max(limit)))
-        # set_pv(pv + '.DLLM', np.min(limit))
-        # set_pv(pv + '.DHLM', np.max(limit))
         set_pv(pv + '.DLLM', limit[0])
         set_pv(pv + '.DHLM', limit[1])
 

@@ -1,7 +1,5 @@
-from math import radians
 from transform import Transformation
 import os
-import numpy as np
 
 # Config happens here:
 
