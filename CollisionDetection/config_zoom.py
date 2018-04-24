@@ -21,8 +21,12 @@ control_pv = "{}COLLIDE:".format(pv_prefix)
 # Define the geometry of the system in mm
 # Coordinate origin at arc centre, with nominal beam height
 # Size is defined x, y, z (x is beam, z is up)
-detector = dict(name="Detector", size=(10.0, 1000.0, 1000.0), color=MAGENTA)  # Initial height is halfway across travel
-baffle = dict(name="Baffle", size=(10.0, 1000.0, 1000.0), color=YELLOW)
+
+detector_x_size = 1000
+baffle_x_size = 1000
+
+detector = dict(name="Detector", size=(detector_x_size, 1000.0, 1000.0), color=MAGENTA)  # Initial height is halfway across travel
+baffle = dict(name="Baffle", size=(baffle_x_size, 1000.0, 1000.0), color=YELLOW)
 
 # Define some search parameters
 coarse = 20.0
@@ -43,13 +47,13 @@ def moves(axes):
 
     # Detector
     t = Transformation()
-    t.translate(x=baffle_to_detector_zero + axes[0])
+    t.translate(x=baffle_to_detector_zero - detector_x_size + axes[0])
 
     yield t
 
     # Baffle
     t = Transformation()
-    t.translate(x=-axes[1])
+    t.translate(x=-axes[1] + baffle_x_size)
 
     yield t
 
