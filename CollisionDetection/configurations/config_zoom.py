@@ -23,7 +23,7 @@ control_pv = "{}COLLIDE:".format(pv_prefix)
 detector_x_size = 1000
 baffle_x_size = 1000
 
-detector = dict(name="Detector", size=(detector_x_size, 1000.0, 1000.0), color=MAGENTA)  # Initial height is halfway across travel
+detector = dict(name="Detector", size=(detector_x_size, 1000.0, 1000.0), color=MAGENTA)
 baffle = dict(name="Baffle", size=(baffle_x_size, 1000.0, 1000.0), color=YELLOW)
 
 # Define some search parameters
