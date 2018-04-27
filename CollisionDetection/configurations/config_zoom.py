@@ -45,25 +45,25 @@ def moves(axes):
 
     # Detector
     t = Transformation()
-    t.translate(x=baffle_to_detector_zero - detector_x_size + axes[0])
+    t.translate(x=baffle_to_detector_zero + detector_x_size / 2 + axes[0])
 
     yield t
 
     # Baffle
     t = Transformation()
-    t.translate(x=-axes[1] + baffle_x_size)
+    t.translate(x=axes[1] - baffle_x_size / 2)
 
     yield t
 
 # Attach monitors to readbacks
 pvs = [
-    "{}MOT:MTR0101",
-    "{}MOT:MTR0102",
+    "{}MOT:MTR0507",
+    "{}MOT:MTR0501",
 ]
 
 pvs = [pv.format(pv_prefix) for pv in pvs]
 
 hardlimits = [
-    [-10000, 10000],
-    [-10000, 10000],
+    [-10000, 20],
+    [-20, 10000],
 ]

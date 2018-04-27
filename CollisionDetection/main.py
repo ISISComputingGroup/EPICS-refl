@@ -309,7 +309,7 @@ def main():
     monitors = []
     is_moving = []
     for pv in pvs:
-        m = Monitor(pv + ".RBV")
+        m = Monitor(pv + ".DRBV")
         m.start()
         monitors.append(m)
 

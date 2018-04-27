@@ -13,13 +13,12 @@ from move import move_all
 def collide(geometries, ignore, collision_func=ode.collide):
     """
     Calculates which of the given geometries will collide, ignoring geometries that are specified as ignored.
-    As there are only [(len(geometries)-1)!] combinations, and we don't care about some, there isn't much effort saved
-    by using spaces (which do a quicker estimate of collisions first)
 
     Args:
         geometries: A list of GeometryBox objects to check for collisions.
         ignore: A list of pairs to ignore. Each pair is represented by a list with two entries.
-        collision_func: A callable which takes two geometries as input, and returns True iff they are colliding.
+        collision_func: A callable which takes two geometries as input, and returns True if and only if they are
+            colliding.
 
     Returns:
         A list of booleans, each corresponding to a geometry by position, True if the geometry has collided.
@@ -57,7 +56,7 @@ def detect_collisions(collision_reported, driver, geometries, ignore, is_moving,
         if op_mode.auto_stop.is_set():
             logging.debug("Stopping motors %s" % [i for i, m in enumerate(is_moving) if m.value()])
             for moving, pv in zip(is_moving, pvs):
-                if moving.value():
+                if not moving.value():  # Invert the logic as we are monitoring DMOV not MOVN
                     set_pv(pv + '.STOP', 1)
     else:
         # driver.setParam('MSG', "No collisions detected.")
