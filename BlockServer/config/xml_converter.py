@@ -16,7 +16,7 @@
 
 from xml.dom import minidom
 
-from BlockServer.spangle_banner.bool_str import BoolStr
+from BlockServer.spangle_banner.bool_str import BannerItem
 from server_common.utilities import *
 
 from BlockServer.config.group import Group
@@ -491,22 +491,10 @@ class ConfigurationXmlConverter(object):
 
         for item in root:
 
-            def state(state_name):
-                state = ConfigurationXmlConverter._find_single_node(item, "banner", state_name)
-
-                return {
-                    "colour": ConfigurationXmlConverter._find_single_node(state, "banner", "colour").text,
-                    "message": ConfigurationXmlConverter._find_single_node(state, "banner", "message").text
-                }
-
-            bumpstrip = BoolStr(
+            bumpstrip = BannerItem(
                 ConfigurationXmlConverter._find_single_node(item, "banner", "name").text,
                 ConfigurationXmlConverter._find_single_node(item, "banner", "pv").text,
             )
-
-            bumpstrip.set_true_state(state("true_state"))
-            bumpstrip.set_false_state(state("false_state"))
-            bumpstrip.set_unknown_state(state("disconnected_state"))
 
             configs.append(bumpstrip)
 

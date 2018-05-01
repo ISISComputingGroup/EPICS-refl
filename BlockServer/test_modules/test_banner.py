@@ -17,7 +17,7 @@
 import unittest
 import json
 from BlockServer.spangle_banner.banner import Banner
-from BlockServer.spangle_banner.bool_str import BoolStr
+from BlockServer.spangle_banner.bool_str import BannerItem
 
 class TestBannerSequence(unittest.TestCase):
     def setUp(self):
@@ -34,17 +34,17 @@ class TestBannerSequence(unittest.TestCase):
             self.fail("Invalid JSON received")
 
     def test_bool_str_constructor_sets_name_and_pv(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         self.assertEqual("test_name", bool_str.get_name())
         self.assertEqual("INSTR:TEST:PV", bool_str.get_pv())
 
     def test_bool_str_define_true_state_throws_if_dictionary_is_empty(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         t_state = dict()
         self.assertRaises(Exception, bool_str.set_true_state, t_state)
 
     def test_bool_str_does_not_throw_if_true_state_completely_defined(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         t_state = dict()
         t_state["message"] = "Test message"
         t_state["colour"] = "RED"
@@ -54,7 +54,7 @@ class TestBannerSequence(unittest.TestCase):
             self.fail("True state not completely defined")
 
     def test_bool_str_set_true_state_and_read_back(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         t_state = dict()
         t_state["message"] = "Test message"
         t_state["colour"] = "RED"
@@ -65,7 +65,7 @@ class TestBannerSequence(unittest.TestCase):
         self.assertEqual("Test message", ans["message"])
 
     def test_bool_str_does_not_throw_if_false_state_completely_defined(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         f_state = dict()
         f_state["message"] = "Test message"
         f_state["colour"] = "RED"
@@ -75,7 +75,7 @@ class TestBannerSequence(unittest.TestCase):
             self.fail("False state not completely defined")
 
     def test_bool_str_set_false_state_and_read_back(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         f_state = dict()
         f_state["message"] = "Test message"
         f_state["colour"] = "RED"
@@ -86,7 +86,7 @@ class TestBannerSequence(unittest.TestCase):
         self.assertEqual("Test message", ans["message"])
 
     def test_bool_str_does_not_throw_if_unknown_state_completely_defined(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         u_state = dict()
         u_state["message"] = "Test message"
         u_state["colour"] = "RED"
@@ -96,7 +96,7 @@ class TestBannerSequence(unittest.TestCase):
             self.fail("Unknown state not completely defined")
 
     def test_bool_str_set_unknown_state_and_read_back(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         u_state = dict()
         u_state["message"] = "Test message"
         u_state["colour"] = "RED"
@@ -107,11 +107,11 @@ class TestBannerSequence(unittest.TestCase):
         self.assertEqual("Test message", ans["message"])
 
     def test_bool_str_returns_false_if_not_completely_defined(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         self.assertFalse(bool_str.is_valid())
 
     def test_bool_str_returns_true_if_completely_defined(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         state = dict()
         state["message"] = "Test message"
         state["colour"] = "RED"
@@ -121,7 +121,7 @@ class TestBannerSequence(unittest.TestCase):
         self.assertTrue(bool_str.is_valid())
 
     def test_bool_str_get_description_equals_what_was_set(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         t_state = {"colour": "true_red", "message": "true"}
         f_state = {"colour": "false_red", "message": "false"}
         u_state = {"colour": "unknown_red", "message": "unknown"}
@@ -137,7 +137,7 @@ class TestBannerSequence(unittest.TestCase):
         self.assertEquals(u_state, description["unknown_state"])
 
     def test_add_to_banner_and_get_json_is_empty_if_bool_str_is_invalid(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         t_state = {"colour": "true_red", "message": "true"}
         f_state = {"colour": "false_red", "message": "false"}
         bool_str.set_true_state(t_state)
@@ -147,7 +147,7 @@ class TestBannerSequence(unittest.TestCase):
         self.assertEquals(list(), json.loads(banner.get_description()))
 
     def test_add_to_banner_and_get_json_description_is_correct_if_bool_str_is_valid(self):
-        bool_str = BoolStr("test_name", "INSTR:TEST:PV")
+        bool_str = BannerItem("test_name", "INSTR:TEST:PV")
         t_state = {"colour": "true_red", "message": "true"}
         f_state = {"colour": "false_red", "message": "false"}
         u_state = {"colour": "unknown_red", "message": "unknown"}
