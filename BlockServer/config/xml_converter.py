@@ -492,7 +492,7 @@ class ConfigurationXmlConverter(object):
         for item in root:
 
             def state(state_name):
-                state = ConfigurationXmlConverter._find_single_node(item, "banner", "true_state")
+                state = ConfigurationXmlConverter._find_single_node(item, "banner", state_name)
 
                 return {
                     "colour": ConfigurationXmlConverter._find_single_node(state, "banner", "colour").text,
