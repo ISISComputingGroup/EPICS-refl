@@ -144,7 +144,7 @@ def auto_seek_limits(geometries, ignore, moves, values, limits, coarse=1.0, fine
 
 def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_movement=1.0, max_time=10., time_step=0.1):
     # Get the indices of the axes currently moving
-    moving = [i for i, m in enumerate(is_moving) if m == 1]
+    moving = [i for i, m in enumerate(is_moving) if m == 0]  # DMOV = 0 when motors not moving
 
     msg = "No collisions predicted in the next %fs" % max_time
     safe_time = max_time
@@ -386,7 +386,7 @@ def main():
         # Check if there have been any changes to the .MOVN monitors
         fresh = any([m.fresh() for m in is_moving])
         # Check if any of the motors monitors are moving
-        moving = [m.value() for m in is_moving]
+        moving = [not m.value() for m in is_moving]  # Invert because DMOV is inverted from MOVN
         any_moving = any(moving)
 
         new_limits = []
