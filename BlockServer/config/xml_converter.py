@@ -15,8 +15,6 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 from xml.dom import minidom
-
-from BlockServer.spangle_banner.bool_str import BannerItem
 from server_common.utilities import *
 
 from BlockServer.config.group import Group
@@ -476,13 +474,14 @@ class ConfigurationXmlConverter(object):
     @staticmethod
     def banner_config_from_xml(root):
         """
-        Parses the banner config XML to produce a banner config object
+        Parses the banner config XML to produce a banner config dictionary
 
         Args:
             root: The root XML node
 
         Returns:
-            A list of banner config objects
+            A list of dictionaries with two properties: name (the name of the banner item) and pv (the pv which this
+            banner item looks at, without any prefix)
         """
         if root is None:
             return []
@@ -491,10 +490,10 @@ class ConfigurationXmlConverter(object):
 
         for item in root:
 
-            bumpstrip = BannerItem(
-                ConfigurationXmlConverter._find_single_node(item, "banner", "name").text,
-                ConfigurationXmlConverter._find_single_node(item, "banner", "pv").text,
-            )
+            bumpstrip = {
+                "name": ConfigurationXmlConverter._find_single_node(item, "banner", "name").text,
+                "pv": ConfigurationXmlConverter._find_single_node(item, "banner", "pv").text,
+            }
 
             configs.append(bumpstrip)
 

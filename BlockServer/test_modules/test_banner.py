@@ -17,7 +17,7 @@
 import unittest
 import json
 from BlockServer.spangle_banner.banner import Banner
-from BlockServer.spangle_banner.bool_str import BannerItem
+from BlockServer.spangle_banner.banner_item import BannerItem
 
 class TestBannerSequence(unittest.TestCase):
     def setUp(self):

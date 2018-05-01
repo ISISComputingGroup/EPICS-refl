@@ -207,7 +207,7 @@ class BlockServer(Driver):
         self.block_rules = BlockRules(self)
         self.group_rules = GroupRules(self)
         self.config_desc = ConfigurationDescriptionRules(self)
-        self.spangle_banner = json.dumps([i.get_description() for i in ConfigurationFileManager.get_bumpstrip_config()])
+        self.spangle_banner = json.dumps(ConfigurationFileManager.get_bumpstrip_config())
 
         # Connect to version control
         try:
