@@ -16,6 +16,7 @@
 
 from xml.dom import minidom
 
+from BlockServer.spangle_banner.bool_str import BoolStr
 from server_common.utilities import *
 
 from BlockServer.config.group import Group
@@ -33,6 +34,7 @@ IOC_SCHEMA = "iocs/1.0"
 BLOCK_SCHEMA = "blocks/1.0"
 GROUP_SCHEMA = "groups/1.0"
 COMPONENT_SCHEMA = "components/1.0"
+BANNER_SCHEMA = "banner/1.0"
 
 TAG_META = "meta"
 TAG_DESC = "description"
@@ -42,11 +44,15 @@ NS_TAG_BLOCK = 'blk'
 NS_TAG_IOC = 'ioc'
 NS_TAG_COMP = 'comp'
 NS_TAG_GROUP = 'grp'
+NS_TAG_BANNER = 'banner'
 
-NAMESPACES = {NS_TAG_BLOCK: SCHEMA_PATH + BLOCK_SCHEMA,
-              NS_TAG_IOC: SCHEMA_PATH + IOC_SCHEMA,
-              NS_TAG_COMP: SCHEMA_PATH + COMPONENT_SCHEMA,
-              NS_TAG_GROUP: SCHEMA_PATH + GROUP_SCHEMA}
+NAMESPACES = {
+    NS_TAG_BLOCK: SCHEMA_PATH + BLOCK_SCHEMA,
+    NS_TAG_IOC: SCHEMA_PATH + IOC_SCHEMA,
+    NS_TAG_COMP: SCHEMA_PATH + COMPONENT_SCHEMA,
+    NS_TAG_GROUP: SCHEMA_PATH + GROUP_SCHEMA,
+    NS_TAG_BANNER: SCHEMA_PATH + BANNER_SCHEMA,
+}
 
 
 class ConfigurationXmlConverter(object):
@@ -466,3 +472,42 @@ class ConfigurationXmlConverter(object):
             # Try without namespace
             node = root.find('%s' % name)
         return node
+
+    @staticmethod
+    def banner_config_from_xml(root):
+        """
+        Parses the banner config XML to produce a banner config object
+
+        Args:
+            root: The root XML node
+
+        Returns:
+            A list of banner config objects
+        """
+        if root is None:
+            return []
+
+        configs = []
+
+        for item in root:
+
+            def state(state_name):
+                state = ConfigurationXmlConverter._find_single_node(item, "banner", "true_state")
+
+                return {
+                    "colour": ConfigurationXmlConverter._find_single_node(state, "banner", "colour").text,
+                    "message": ConfigurationXmlConverter._find_single_node(state, "banner", "message").text
+                }
+
+            bumpstrip = BoolStr(
+                ConfigurationXmlConverter._find_single_node(item, "banner", "name").text,
+                ConfigurationXmlConverter._find_single_node(item, "banner", "pv").text,
+            )
+
+            bumpstrip.set_true_state(state("true_state"))
+            bumpstrip.set_false_state(state("false_state"))
+            bumpstrip.set_unknown_state(state("disconnected_state"))
+
+            configs.append(bumpstrip)
+
+        return configs

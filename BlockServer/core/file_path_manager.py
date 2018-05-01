@@ -60,5 +60,8 @@ class FilePathManager(object):
     def get_synoptic_path(self, synoptic_name):
         return os.path.join(self.synoptic_dir, synoptic_name) + ".xml"
 
+    def get_banner_path(self):
+        return os.path.join(self.config_root_dir, "banner.xml")
+
 # This is the singleton to use
 FILEPATH_MANAGER = FilePathManager()

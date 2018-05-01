@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://epics.isis.rl.ac.uk/schema/banner/1.0"
+  xmlns:banner="http://epics.isis.rl.ac.uk/schema/banner/1.0"
+  elementFormDefault="qualified">
+  <xs:element name="banner">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="banner:item"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="item">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="banner:name"/>
+        <xs:element ref="banner:pv"/>
+        <xs:element ref="banner:true_state"/>
+        <xs:element ref="banner:false_state"/>
+        <xs:element ref="banner:disconnected_state"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="true_state">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="banner:colour"/>
+        <xs:element ref="banner:message"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="false_state">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="banner:colour"/>
+        <xs:element ref="banner:message"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="disconnected_state">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="banner:colour"/>
+        <xs:element ref="banner:message"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="name" type="xs:string"/>
+  <xs:element name="pv" type="xs:string"/>
+  <xs:element name="colour" type="xs:string"/>
+  <xs:element name="message" type="xs:string"/>
+</xs:schema>
