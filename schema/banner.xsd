@@ -15,9 +15,11 @@
       <xs:sequence>
         <xs:element ref="banner:name"/>
         <xs:element ref="banner:pv"/>
+        <xs:element ref="banner:local"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
   <xs:element name="name" type="xs:string"/>
   <xs:element name="pv" type="xs:string"/>
+  <xs:element name="local" type="xs:boolean"/>
 </xs:schema>

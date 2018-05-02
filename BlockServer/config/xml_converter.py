@@ -493,6 +493,7 @@ class ConfigurationXmlConverter(object):
             bumpstrip = {
                 "name": ConfigurationXmlConverter._find_single_node(item, "banner", "name").text,
                 "pv": ConfigurationXmlConverter._find_single_node(item, "banner", "pv").text,
+                "local": ConfigurationXmlConverter._find_single_node(item, "banner", "local").text,
             }
 
             configs.append(bumpstrip)
