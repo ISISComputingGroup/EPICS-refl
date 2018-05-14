@@ -180,14 +180,14 @@ class ActiveConfigHolder(ConfigHolder):
             current_block = self._config.blocks[n].to_dict()
             # Check for any changed blocks (symmetric difference operation of sets)
             block_diff = set(cached_block.items()) ^ set(current_block.items())
-            if len(block_diff) is not 0:
+            if len(block_diff) != 0:
                 blocks_changed = True
                 return blocks_changed
 
         # Look for any new components
         for cn, cv in self._components.iteritems():
             if cn not in self._cached_components:
-                if len(cv.blocks.keys()) is not 0:
+                if len(cv.blocks.keys()) != 0:
                     blocks_changed = True
                     return blocks_changed
 
