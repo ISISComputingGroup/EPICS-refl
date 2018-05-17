@@ -452,7 +452,7 @@ class BlockServer(Driver):
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
 
         # Set up the gateway
-        if self._active_configserver.blocks_changed():
+        if self._active_configserver.blocks_changed() or full_init:
             self._gateway.set_new_aliases(self._active_configserver.get_block_details())
 
         self._config_list.active_config_name = self._active_configserver.get_config_name()
