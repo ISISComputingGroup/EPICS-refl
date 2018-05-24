@@ -488,7 +488,9 @@ class ConfigurationXmlConverter(object):
 
         configs = []
 
-        for item in root:
+        items = ConfigurationXmlConverter._find_single_node(root, "banner", "items")
+
+        for item in items:
 
             bumpstrip = {
                 "name": ConfigurationXmlConverter._find_single_node(item, "banner", "name").text,

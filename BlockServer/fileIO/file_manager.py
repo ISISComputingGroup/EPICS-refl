@@ -304,10 +304,13 @@ class ConfigurationFileManager(object):
         """
         if os.path.exists(FILEPATH_MANAGER.get_banner_path()):
             try:
-                return ConfigurationXmlConverter.banner_config_from_xml(
+                bumpstrip = ConfigurationXmlConverter.banner_config_from_xml(
                     ConfigurationFileManager._attempt_read(FILEPATH_MANAGER.get_banner_path())
                 )
-            except (IOError, ElementTree.ParseError) as ex:
+            except Exception as ex:
                 # XML failed to parse. Log the error and return an empty list
                 print_and_log("Failed to parse banner xml file. Error was {} {}".format(ex.__class__.__name__, ex))
-        return []
+                bumpstrip = []
+        else:
+            bumpstrip = []
+        return bumpstrip

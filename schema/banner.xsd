@@ -6,6 +6,13 @@
   <xs:element name="banner">
     <xs:complexType>
       <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" ref="banner:items"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="items">
+    <xs:complexType>
+      <xs:sequence>
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="banner:item"/>
       </xs:sequence>
     </xs:complexType>
