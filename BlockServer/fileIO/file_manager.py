@@ -293,3 +293,24 @@ class ConfigurationFileManager(object):
             path = os.path.abspath(FILEPATH_MANAGER.get_config_path(name))
 
         return path
+
+    @staticmethod
+    def get_bumpstrip_config():
+        """
+        Parses the bump strip config file into a list of BoolStr objects.
+
+        Returns:
+            XML root node of the file if it exists, empty list if it doesn't exist or fails to parse.
+        """
+        if os.path.exists(FILEPATH_MANAGER.get_banner_path()):
+            try:
+                bumpstrip = ConfigurationXmlConverter.banner_config_from_xml(
+                    ConfigurationFileManager._attempt_read(FILEPATH_MANAGER.get_banner_path())
+                )
+            except Exception as ex:
+                # XML failed to parse. Log the error and return an empty list
+                print_and_log("Failed to parse banner xml file. Error was {} {}".format(ex.__class__.__name__, ex))
+                bumpstrip = []
+        else:
+            bumpstrip = []
+        return bumpstrip

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://epics.isis.rl.ac.uk/schema/banner/1.0"
+  xmlns:banner="http://epics.isis.rl.ac.uk/schema/banner/1.0"
+  elementFormDefault="qualified">
+  <xs:element name="banner">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" ref="banner:items"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="items">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="banner:item"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="item">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="banner:name"/>
+        <xs:element ref="banner:pv"/>
+        <xs:element ref="banner:local"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="name" type="xs:string"/>
+  <xs:element name="pv" type="xs:string"/>
+  <xs:element name="local" type="xs:boolean"/>
+</xs:schema>

@@ -15,6 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 # Add root path for access to server_commons and path for version control module
+import json
 import os
 import sys
 
@@ -50,7 +51,6 @@ from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
 from pcaspy.driver import manager, Data
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
-from BlockServer.spangle_banner.banner import Banner
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from WebServer.simple_webserver import Server
 
@@ -207,6 +207,7 @@ class BlockServer(Driver):
         self.block_rules = BlockRules(self)
         self.group_rules = GroupRules(self)
         self.config_desc = ConfigurationDescriptionRules(self)
+        self.spangle_banner = json.dumps(ConfigurationFileManager.get_bumpstrip_config())
 
         # Connect to version control
         try:
@@ -222,10 +223,6 @@ class BlockServer(Driver):
         except Exception as err:
             print_and_log("Unable to initialise version control: %s" % err, "MINOR")
             self._vc = MockVersionControl()
-
-
-        # Create banner object
-        self.banner = Banner(MACROS["$(MYPVPREFIX)"])
 
         # Import data about all configs
         try:
@@ -317,7 +314,7 @@ class BlockServer(Driver):
             elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE:
                 value = compress_and_hex(self.bumpstrip)
             elif reason == BlockserverPVNames.BANNER_DESCRIPTION:
-                value = compress_and_hex(self.banner.get_description())
+                value = compress_and_hex(self.spangle_banner)
             elif reason == BlockserverPVNames.ALL_COMPONENT_DETAILS:
                 value = compress_and_hex(convert_to_json(self._config_list.all_components.values()))
             else:
@@ -835,6 +832,5 @@ if __name__ == '__main__':
         try:
             SERVER.process(0.1)
         except Exception as err:
-            print_and_log(err,"MAJOR")
+            print_and_log(err, "MAJOR")
             break
-

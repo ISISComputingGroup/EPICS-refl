@@ -15,7 +15,6 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 from xml.dom import minidom
-
 from server_common.utilities import *
 
 from BlockServer.config.group import Group
@@ -33,6 +32,7 @@ IOC_SCHEMA = "iocs/1.0"
 BLOCK_SCHEMA = "blocks/1.0"
 GROUP_SCHEMA = "groups/1.0"
 COMPONENT_SCHEMA = "components/1.0"
+BANNER_SCHEMA = "banner/1.0"
 
 TAG_META = "meta"
 TAG_DESC = "description"
@@ -42,11 +42,15 @@ NS_TAG_BLOCK = 'blk'
 NS_TAG_IOC = 'ioc'
 NS_TAG_COMP = 'comp'
 NS_TAG_GROUP = 'grp'
+NS_TAG_BANNER = 'banner'
 
-NAMESPACES = {NS_TAG_BLOCK: SCHEMA_PATH + BLOCK_SCHEMA,
-              NS_TAG_IOC: SCHEMA_PATH + IOC_SCHEMA,
-              NS_TAG_COMP: SCHEMA_PATH + COMPONENT_SCHEMA,
-              NS_TAG_GROUP: SCHEMA_PATH + GROUP_SCHEMA}
+NAMESPACES = {
+    NS_TAG_BLOCK: SCHEMA_PATH + BLOCK_SCHEMA,
+    NS_TAG_IOC: SCHEMA_PATH + IOC_SCHEMA,
+    NS_TAG_COMP: SCHEMA_PATH + COMPONENT_SCHEMA,
+    NS_TAG_GROUP: SCHEMA_PATH + GROUP_SCHEMA,
+    NS_TAG_BANNER: SCHEMA_PATH + BANNER_SCHEMA,
+}
 
 
 class ConfigurationXmlConverter(object):
@@ -466,3 +470,34 @@ class ConfigurationXmlConverter(object):
             # Try without namespace
             node = root.find('%s' % name)
         return node
+
+    @staticmethod
+    def banner_config_from_xml(root):
+        """
+        Parses the banner config XML to produce a banner config dictionary
+
+        Args:
+            root: The root XML node
+
+        Returns:
+            A list of dictionaries with two properties: name (the name of the banner item) and pv (the pv which this
+            banner item looks at, without any prefix)
+        """
+        if root is None:
+            return []
+
+        configs = []
+
+        items = ConfigurationXmlConverter._find_single_node(root, "banner", "items")
+
+        for item in items:
+
+            bumpstrip = {
+                "name": ConfigurationXmlConverter._find_single_node(item, "banner", "name").text,
+                "pv": ConfigurationXmlConverter._find_single_node(item, "banner", "pv").text,
+                "local": ConfigurationXmlConverter._find_single_node(item, "banner", "local").text,
+            }
+
+            configs.append(bumpstrip)
+
+        return configs
