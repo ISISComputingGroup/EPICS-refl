@@ -16,6 +16,12 @@
 import os
 
 # Set MYPVPREFIX env var
+from mock import Mock
+
+from BlockServer.config.block import Block
+from BlockServer.core.active_config_holder import ActiveConfigHolder
+from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
+
 os.environ['MYPVPREFIX'] = ""
 
 from BlockServer.runcontrol.runcontrol_manager import RunControlManager, RC_START_PV
@@ -62,11 +68,21 @@ def _get_current_time():
 
 class TestRunControlSequence(unittest.TestCase):
     def setUp(self):
-        self.activech = MockActiveConfigHolder(MACROS)
         self.cs = MockChannelAccess()
         self.set_start_time_of_run_control()
-        self.rcm = RunControlManager("", "", "", MockIocControl(""), self.activech, MockBlockServer(), self.cs,
-                                     dummy_sleep_func)
+        self.activech, details, ioc_control, self.rcm, rcash = self._create_initial_runcontrol_manager()
+
+    def _create_initial_runcontrol_manager(self):
+        prefix = ""
+        ioc_control = MockIocControl("")
+        ch = ActiveConfigHolder(MACROS, None, MockConfigurationFileManager(), ioc_control)
+        rcash = Mock()
+        rcm = RunControlManager(prefix, "", "",
+                                ioc_control, ch,
+                                MockBlockServer(), self.cs, dummy_sleep_func, run_control_auto_save_helper=rcash)
+        details = ch.get_config_details()
+        ch.set_config_details(details)
+        return ch, details, ioc_control, rcm, rcash
 
     def set_start_time_of_run_control(self, start_time=_get_current_time()):
         PVS[MACROS["$(MYPVPREFIX)"] + RC_START_PV] = start_time
@@ -130,34 +146,64 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertEqual(ans["TESTBLOCK1"]["LOW"], 0)
 
     def test_GIVEN_non_restarting_runcontrol_WHEN_create_PVs_THAT_code_is_not_stuck_in_loop(self):
-        prefix = ""
-        rc_pv = prefix + RC_START_PV
+        rc_pv = RC_START_PV
 
         now = datetime.now()
         with ChannelAccessEnv({rc_pv: [_get_relative_time(now, minutes=-3)]}) as channel:
-            rcm = RunControlManager(prefix, "", "",
-                                    MockIocControl(""), self.activech,
-                                    MockBlockServer(), self.cs, dummy_sleep_func)
+            self._create_initial_runcontrol_manager()
             self.assertEqual(channel.get_call_count(rc_pv), 1)
 
     def test_GIVEN_already_started_runcontrol_WHEN_restart_THAT_code_is_not_stuck_in_loop(self):
-        prefix = ""
-        rc_pv = prefix + RC_START_PV
+        rc_pv = RC_START_PV
 
         now = datetime.now()
         env = {rc_pv: [_get_relative_time(now, minutes=-3), "", _get_relative_time(now, minutes=-2)]}
         with ChannelAccessEnv(env) as channel:
-            rcm = RunControlManager(prefix, "", "",
-                                    MockIocControl(""), self.activech,
-                                    MockBlockServer(), self.cs, dummy_sleep_func)
-            rcm.create_runcontrol_pvs(False, 0)
+            ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
+            rcm.create_runcontrol_pvs(True, 0)
             self.assertEqual(channel.get_call_count(rc_pv), 3)
 
     def test_GIVEN_nonsense_runcontrol_start_time_WHEN_restart_runcontrol_THAT_code_loops_to_restart_runcontrol(self):
-        prefix = ""
-        rc_pv = "" + RC_START_PV
+        rc_pv = RC_START_PV
         with ChannelAccessEnv({rc_pv: [""] * 60}) as channel:
-            rcm = RunControlManager(prefix, "", "",
-                                    MockIocControl(""), self.activech,
-                                    MockBlockServer(), self.cs, dummy_sleep_func)
+            self._create_initial_runcontrol_manager()
             self.assertEqual(channel.get_call_count(rc_pv), 60)
+
+    def test_GIVEN_blocks_unchanged_and_not_full_init_WHEN_initialised_THEN_runcontrol_doesnt_restart_and_autosave_files_not_deleted(self):
+        ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
+        ch.set_config_details(details)
+
+        rcm.on_config_change(False)
+
+        self.assertNotIn("RUNCTRL_01", ioc_control.restarted_iocs)
+        self.assertFalse(rcash.clear_autosave_files.called)
+
+    def test_GIVEN_blocks_changed_and_not_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_not_deleted(self):
+        ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
+        details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
+        ch.set_config_details(details)
+
+        rcm.on_config_change(False)
+
+        self.assertIn("RUNCTRL_01", ioc_control.restarted_iocs)
+        self.assertFalse(rcash.clear_autosave_files.called)
+
+    def test_GIVEN_blocks_unchanged_and_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_deleted(self):
+        ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
+        ch.set_config_details(details)
+
+        rcm.on_config_change(True)
+
+        self.assertIn("RUNCTRL_01", ioc_control.restarted_iocs)
+        self.assertTrue(rcash.clear_autosave_files.called)
+
+    def test_GIVEN_blocks_changed_and_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_deleted(self):
+        ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
+        details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
+        ch.set_config_details(details)
+
+        rcm.on_config_change(True)
+
+        self.assertIn("RUNCTRL_01", ioc_control.restarted_iocs)
+        self.assertTrue(rcash.clear_autosave_files.called)
+

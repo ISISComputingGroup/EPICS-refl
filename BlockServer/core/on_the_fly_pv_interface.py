@@ -78,7 +78,7 @@ class OnTheFlyPvInterface(object):
         pass
 
     @abstractmethod
-    def initialise(self, full_init=False):
+    def on_config_change(self, full_init=False):
         """ Performs any tasks that need to be carried out on initialisation.
 
         For example: on loading a new configuration.

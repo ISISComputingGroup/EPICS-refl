@@ -433,25 +433,23 @@ class BlockServer(Driver):
         self.save_active_config(self._active_configserver.get_config_name())
         self._initialise_config()
 
-    def _initialise_config(self, init_gateway=True, full_init=False):
+    def _initialise_config(self, full_init=False):
         """Responsible for initialising the configuration.
         Sets all the monitors, initialises the gateway, etc.
 
         Args:
-            init_gateway (bool, optional): whether to initialise the gateway
             full_init (bool, optional): whether this requires a full initialisation, e.g. on loading a new
                 configuration
         """
-        # First stop all IOCS, then start the ones for the config
-        # TODO: Should we stop all configs?
         iocs_to_start, iocs_to_restart, iocs_to_stop = self._active_configserver.iocs_changed()
 
         self._ioc_control.stop_iocs(iocs_to_stop)
 
         if len(iocs_to_start) > 0 or len(iocs_to_restart) > 0:
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
+
         # Set up the gateway
-        if init_gateway:
+        if self._active_configserver.blocks_changed() or full_init:
             self._gateway.set_new_aliases(self._active_configserver.get_block_details())
 
         self._config_list.active_config_name = self._active_configserver.get_config_name()
@@ -462,9 +460,8 @@ class BlockServer(Driver):
 
         self.update_get_details_monitors()
         self._active_configserver.update_archiver()
-
         for h in self.on_the_fly_handlers:
-            h.initialise(full_init)
+                h.on_config_change(full_init)
 
         # Update Web Server text
         self.server.set_config(convert_to_json(self._active_configserver.get_config_details()))

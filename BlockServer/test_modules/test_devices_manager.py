@@ -124,17 +124,11 @@ class TestDevicesManagerSequence(unittest.TestCase):
         self.assertEquals(expected, result)
 
     def test_when_devices_screens_file_does_not_exist_then_current_uses_blank_devices_data(self):
-        # Arrange
-        self.dm.initialise()
-
         # Assert
         self.assertTrue(len(self.file_io.files) == 0)
         self.assertEquals(self.bs.pvs[GET_SCREENS], compress_and_hex(self.dm.get_blank_devices()))
 
     def test_given_invalid_devices_data_when_device_xml_saved_then_not_saved(self):
-        # Arrange:
-        self.dm.initialise()
-
         # Act: Save invalid new data to file
         self.dm.save_devices_xml(INVALID_DEVICES)
 
@@ -143,9 +137,6 @@ class TestDevicesManagerSequence(unittest.TestCase):
         self.assertEquals(self.dm.get_blank_devices(), dehex_and_decompress(self.bs.pvs[GET_SCREENS]))
 
     def test_given_valid_devices_data_when_device_xml_saved_then_saved(self):
-        # Arrange:
-        self.dm.initialise()
-
         # Act: Save the new data to file
         self.dm.save_devices_xml(EXAMPLE_DEVICES)
 

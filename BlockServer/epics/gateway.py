@@ -157,6 +157,7 @@ class Gateway(object):
 
         Args:
             blocks (OrderedDict): The blocks that belong to the configuration
+            blocks_changed (bool): Have the blocks changed?
         """
         self._generate_alias_file(blocks)
         self._reload()

@@ -17,6 +17,10 @@
 import unittest
 import json
 
+from mock import Mock
+
+from BlockServer.config.block import Block
+from BlockServer.config.configuration import Configuration
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
@@ -65,6 +69,14 @@ def create_grouping(groups):
     return ans
 
 
+def create_dummy_component():
+    config = Configuration(MACROS)
+    config.add_block("COMPBLOCK1", "PV1", "GROUP1", True)
+    config.add_block("COMPBLOCK2", "PV2", "COMPGROUP", True)
+    config.add_ioc("COMPSIMPLE1")
+    return config
+
+
 # Note that the ActiveConfigServerManager contains an instance of the Configuration class and hands a lot of
 #   work off to this object. Rather than testing whether the functionality in the configuration class works
 #   correctly (e.g. by checking that a block has been edited properly after calling configuration.edit_block),
@@ -75,7 +87,8 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def setUp(self):
         # Note: All configurations are saved in memory
-        self.mock_archive = ArchiverManager(None, None, MockArchiverWrapper())
+        self.mock_archive = Mock()
+        self.mock_archive.update_archiver = Mock()
         self.mock_file_manager = MockConfigurationFileManager()
         self.activech = ActiveConfigHolder(MACROS, self.mock_archive, self.mock_file_manager, MockIocControl(""))
 
@@ -246,6 +259,93 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(start), 0)
         self.assertEqual(len(restart), 0)
         self.assertEqual(len(stop), 1)
+
+    def test_given_empty_config_when_block_added_then_blocks_changed_returns_true(self):
+        # Arrange
+        ch = self.create_ach()
+        details = ch.get_config_details()
+        # Act
+        details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
+        ch.set_config_details(details)
+        # Assert
+        self.assertTrue(ch.blocks_changed())
+
+    def test_given_config_when_block_params_changed_then_blocks_changed_returns_true(self):
+        # Arrange
+        ch = self.create_ach()
+        details = ch.get_config_details()
+        details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
+        ch.set_config_details(details)
+        # Act
+        details['blocks'][0]['local'] = False
+        ch.set_config_details(details)
+        # Assert
+        self.assertTrue(ch.blocks_changed())
+
+    def test_given_config_with_one_block_when_block_removed_then_blocks_changed_returns_true(self):
+        # Arrange
+        ch = self.create_ach()
+        details = ch.get_config_details()
+        details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
+        ch.set_config_details(details)
+        # Act
+        details['blocks'].pop(0)
+        ch.set_config_details(details)
+        # Assert
+        self.assertTrue(ch.blocks_changed())
+
+    def test_given_empty_config_when_component_added_then_blocks_changed_returns_true(self):
+        # Arrange
+        ch = self.create_ach()
+        # Act
+        ch.add_component(name="TESTCOMPONENT", component=create_dummy_component())
+        # Assert
+        self.assertTrue(ch.blocks_changed())
+
+    def test_given_empty_config_when_no_change_then_blocks_changed_returns_false(self):
+        # Arrange
+        ch = self.create_ach()
+        details = ch.get_config_details()
+        # Act
+        ch.set_config_details(details)
+        # Assert
+        self.assertFalse(ch.blocks_changed())
+
+    def test_given_config_when_no_change_then_blocks_changed_returns_false(self):
+        # Arrange
+        ch = self.create_ach()
+        details = ch.get_config_details()
+        details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
+        ch.set_config_details(details)
+        # Act
+        ch.set_config_details(details)
+        # Assert
+        self.assertFalse(ch.blocks_changed())
+
+    def test_given_no_blocks_changed_when_update_archiver_archiver_not_restarted(self):
+        # Arrange
+        ch = self.create_ach()
+        details = ch.get_config_details()
+        details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
+        ch.set_config_details(details)
+        # Act
+        ch.set_config_details(details)
+        ch.update_archiver()
+        # Assert
+        self.assertFalse(self.mock_archive.update_archiver.called)
+
+    def test_given_blocks_changed_when_update_archiver_archiver_is_restarted(self):
+        # Arrange
+        ch = self.create_ach()
+        details = ch.get_config_details()
+        details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
+        ch.set_config_details(details)
+        # Act
+        details['blocks'].append(Block(name="TESTNAME2", pv="TESTPV2").to_dict())
+        ch.set_config_details(details)
+        ch.update_archiver()
+        # Assert
+        self.assertTrue(self.mock_archive.update_archiver.called)
 
     def _test_attribute_changes(self, initial_attrs={}, final_attrs={}, has_changed=True):
         # Take a dict of initial attributes and final attributes and
