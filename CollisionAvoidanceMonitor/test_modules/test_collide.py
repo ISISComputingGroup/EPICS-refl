@@ -14,7 +14,7 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 from mock import MagicMock
-from CollisionDetection.collide import collide
+from CollisionAvoidanceMonitor.collide import collide
 from unittest import TestCase
 
 

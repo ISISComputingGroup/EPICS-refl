@@ -1,7 +1,7 @@
 REM @echo off
 
 set MYDIRCDSVR=%~dp0
-call %MYDIRCDSVR%stop_collision_detection.bat
+call %MYDIRCDSVR%stop_collision_avoidance_monitor.bat
 set CYGWIN=nodosfilewarning
 call %MYDIRCDSVR%..\..\..\config_env_base.bat
 
@@ -13,8 +13,8 @@ for /F "usebackq" %%I in (`cygpath %IOCLOGROOT%`) do SET IOCCYGLOGROOT=%%I
 
 set CDSVR_CONSOLEPORT=9013
 
-@echo Starting collision detection (console port %CDSVR_CONSOLEPORT%)
-set CDSVR_CMD=%MYDIRCDSVR%start_collision_detection_cmd.bat
+@echo Starting collision avoidance monitor (console port %CDSVR_CONSOLEPORT%)
+set CDSVR_CMD=%MYDIRCDSVR%start_collision_avoidance_monitor_cmd.bat
 
 REM Unlike IOC we are not using "--noautorestart --wait" so gateway will start immediately and also automatically restart on exit
 

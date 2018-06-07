@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from CollisionDetection.transform import Transformation
+from CollisionAvoidanceMonitor.transform import Transformation
 
 
 class TransformTests(unittest.TestCase):
