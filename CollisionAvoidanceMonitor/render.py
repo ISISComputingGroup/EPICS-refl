@@ -104,7 +104,6 @@ class Renderer(threading.Thread):
     def __init__(self, parameters, geometries, colors, monitors, pvs, moves, op_mode):
         threading.Thread.__init__(self, name="Renderer")
 
-        # self.geometries = [copy(geometry) for geometry in geometries]
         self.geometries = geometries
 
         self.colors = colors
@@ -120,7 +119,6 @@ class Renderer(threading.Thread):
         glinit()
         while self.op_mode.close.is_set() is False:
             frozen = [monitor.value() for monitor in self.monitors]
-            # frozen = [DummyMonitor(monitor.value()) for monitor in self.monitors]
             loop(self, frozen)
 
 
@@ -196,7 +194,7 @@ def check_controls(renderer):
     glLight(GL_LIGHT0, GL_POSITION, (0.0, 0.0, -1.0, 1.0))
 
     # Upload the inverse camera matrix to OpenGL
-    glLoadMatrixd(np.reshape(camera_transform.get_inverse(), 16))
+    glLoadMatrixd(np.reshape(camera_transform.get_inverse().matrix.transpose(), 16))
 
 
 def square(x, y, w=50, h=50, color=(1, 0, 0)):

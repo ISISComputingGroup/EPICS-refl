@@ -1,26 +1,23 @@
+import sys
+import os
+import ode
 import logging
 import threading
 from time import sleep, time
-import os
-import os.path
-import sys
-
-import ode
 from genie_python.genie_startup import *
-import numpy as np
 
-import config
 import pv_server
 import render
+from configurations import config_zoom as config
 from collide import collide, CollisionDetector
 from geometry import GeometryBox
-
-from server_common.loggers.isis_logger import IsisLogger
-
-from monitor import Monitor
 from move import move_all
 
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRCD"]))
+
+from monitor import Monitor
+from server_common.loggers.isis_logger import IsisLogger
+
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s (%(threadName)-2s) %(message)s',
@@ -31,9 +28,7 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
     limit = end_value
     current_value = start_values[axis_index]
 
-    # print "Seek from %f to %f" % (start_values[axis_index], end_value)
     if current_value == end_value:
-        # print "Already there!"
         return end_value
 
     values = start_values[:]
@@ -67,10 +62,7 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
         if not comp(current_value, end_value):
             current_value = end_value
 
-        # print "Moving axis %d to %f" % (axis_index, current_value)
-
         values[axis_index] = current_value
-        # print "Axes at %s" % values
         move_all(geometries, moves, values=values[:])
 
         # Check nothing moved too far
@@ -79,11 +71,8 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
             if old_points is not None:
                 delta = max_delta(geometries, new_points, old_points)
                 if delta > start_step_size:
-                    # print "Max delta %f > %f step size for axis %d" % (delta, start_step_size, axis_index)
-
                     # Work out a new step size
                     step_size *= start_step_size/delta
-                    # print "New step size of %f for axis %d" % (step_size, axis_index)
                     last_value = None
                     continue
                 step_checked = True
@@ -94,12 +83,10 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
         if any(collisions):
             if current_value == start_values[axis_index]:
                 # There was already a collision
-                # print "There was already a collision on axis %d" % axis_index
                 limit = current_value
                 break
             elif fine_step and fine_step < step_size:
                 start_values[axis_index] = last_value
-                # print "Doing fine seek for axis %d" % axis_index
                 limit = auto_seek(fine_step, start_values, current_value, geometries, moves, axis_index, ignore)
             else:
                 limit = last_value
@@ -111,7 +98,7 @@ def auto_seek(start_step_size, start_values, end_value, geometries, moves, axis_
     # print "Found limits for axis %d using step size of %f" % (axis_index, step_size)
 
     if limit is None:
-        print "Null limit"
+        raise ValueError("Null limit")
 
     return limit
 
@@ -157,7 +144,7 @@ def auto_seek_limits(geometries, ignore, moves, values, limits, coarse=1.0, fine
 
 def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_movement=1.0, max_time=10., time_step=0.1):
     # Get the indices of the axes currently moving
-    moving = [i for i, m in enumerate(is_moving) if m == 1]
+    moving = [i for i, m in enumerate(is_moving) if m == 0]  # DMOV = 0 when motors not moving
 
     msg = "No collisions predicted in the next %fs" % max_time
     safe_time = max_time
@@ -194,11 +181,6 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
             # This axis has not finished moving!
             move_complete[i] = False
 
-        # print "Start points:   %s" % start_values
-        # print "Got set points: %s" % set_points
-        # print "Got speeds:     %s" % speeds
-        # print "Got directions: %s" % directions
-
         current_time = 0.
         values = start_values[:]
         old_points = None
@@ -213,16 +195,12 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
             else:
                 current_time += time_step
 
-            # print "Looking %fs into the future!" % current_time
-
             for i in moving:
                 if move_complete[i] is False:
                     values[i] = start_values[i] + (directions[i] * speeds[i] * current_time)
                     comp = compare(directions[i])(values[i], set_points[i])
-                    # print "Axis %d is at set point? %s" % (i, comp)
                     if comp:
                         values[i] = set_points[i]
-                        # move_complete[i] = True
 
             # Move the bodies
             move_all(geometries, moves, values=values)
@@ -235,8 +213,6 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
                     if delta > max_movement:
                         # Reduce the size of the time step
                         time_step *= max_movement/delta
-                        # print "Bodies moved %fmm" % delta
-                        # print "Using a new step of %fs" % time_step
                         # Reset to starting point
                         last_time = None
                         old_points = None
@@ -246,7 +222,6 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
 
             # Check for collisions
             collisions = collide(geometries, ignore)
-            # print "Collisions: %s" % collisions
 
             if any(collisions):
                 if last_time is None:
@@ -267,12 +242,6 @@ def look_ahead(start_values, pvs, is_moving, geometries, moves, ignore, max_move
 # Set the high and low dial limits for each motor
 def set_limits(limits, pvs):
     for limit, pv in zip(limits, pvs):
-        # threading.Thread(target=set_pv, args=(pv + '.DLLM', limit[0]))
-        # threading.Thread(target=set_pv, args=(pv + '.DHLM', limit[1]))
-        # threading.Thread(target=set_pv, args=(pv + '.DLLM', np.min(limit)))
-        # threading.Thread(target=set_pv, args=(pv + '.DHLM', np.max(limit)))
-        # set_pv(pv + '.DLLM', np.min(limit))
-        # set_pv(pv + '.DHLM', np.max(limit))
         set_pv(pv + '.DLLM', limit[0])
         set_pv(pv + '.DHLM', limit[1])
 
@@ -292,33 +261,21 @@ class OperatingMode(object):
         # Re-calculate limits on demand
         self.calc_limits = threading.Event()
 
-    @property
-    def code(self):
-        code = 0
-        if self.auto_stop.is_set():
-            code |= 0b001
+    def get_operation_mode(self):
+        return self.auto_stop.is_set(), self.set_limits.is_set(), self.close.is_set()
 
-        if self.set_limits.is_set():
-            code |= 0b010
-
-        if self.close.is_set():
-            code |= 0b100
-
-        return code
-
-    @code.setter
-    def code(self, code):
-        if code & 0b001:
+    def set_operation_mode(self, auto_stop, set_limits, close):
+        if auto_stop:
             self.auto_stop.set()
         else:
             self.auto_stop.clear()
 
-        if code & 0b010:
+        if set_limits:
             self.set_limits.set()
         else:
             self.set_limits.clear()
 
-        if code & 0b100:
+        if close:
             self.close.set()
         else:
             self.close.clear()
@@ -356,7 +313,7 @@ def main():
         m.start()
         monitors.append(m)
 
-        any_moving = Monitor(pv + ".MOVN")
+        any_moving = Monitor(pv + ".DMOV")
         any_moving.start()
         is_moving.append(any_moving)
 
@@ -429,7 +386,7 @@ def main():
         # Check if there have been any changes to the .MOVN monitors
         fresh = any([m.fresh() for m in is_moving])
         # Check if any of the motors monitors are moving
-        moving = [m.value() for m in is_moving]
+        moving = [not m.value() for m in is_moving]  # Invert because DMOV is inverted from MOVN
         any_moving = any(moving)
 
         new_limits = []

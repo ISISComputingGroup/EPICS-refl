@@ -35,7 +35,7 @@ class GeometryBox(object):
     # Set the transform for the geometry
     def set_transform(self, transform):
         # Get the rotation and position elements from the transformation matrix
-        rot, pos = transform.split()
+        rot, pos = transform.get_rotation_matrix(), transform.get_position_matrix()
 
         # Reshape the rotation matrix into a ODE friendly format
         rot = np.reshape(rot, 9)

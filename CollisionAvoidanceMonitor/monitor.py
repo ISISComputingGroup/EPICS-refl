@@ -4,7 +4,7 @@ import ca
 import threading
 import time
 
-from utilities import print_and_log
+from server_common.utilities import print_and_log
 
 
 class Monitor(object):
