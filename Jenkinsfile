@@ -67,10 +67,10 @@ pipeline {
       }
     }
 	
-	stage("Test Collision detection") {
+	stage("Test Collision Avoidance Monitor") {
       steps {        
         bat """
-            cd CollisionDetection
+            cd CollisionAvoidanceMonitor
             set PYTHON_PATH=${env.PYTHON_PATH}
             %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
             """
