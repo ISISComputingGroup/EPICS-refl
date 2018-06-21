@@ -28,17 +28,21 @@ from archiver_wrapper import ArchiverWrapper
 class ArchiverManager(object):
     """This class is responsible for updating the EPICS Archiver that is responsible for logging the blocks."""
 
-    def __init__(self, uploader_path, settings_path, archiver=ArchiverWrapper()):
+    RUN_CONTROL_PVS=["LOW", "HIGH", "INRANGE", "ENABLE"]
+
+    def __init__(self, uploader_path, settings_path, archiver=ArchiverWrapper(), file_access_class=open):
         """Constructor.
 
         Args:
             uploader_path (string): The filepath for the program that uploads the archiver settings.
             settings_path (string): The filepath for the settings to be writen to.
             archiver (ArchiverWrapper): The instance used to access the Archiver.
+            file_access_class (open): The class to use when creating files.
         """
         self._uploader_path = uploader_path
         self._settings_path = settings_path
         self._archive_wrapper = archiver
+        self._file_access_class = file_access_class
 
     def update_archiver(self, block_prefix, blocks):
         """Update the archiver to log the blocks specified.
@@ -73,7 +77,7 @@ class ArchiverManager(object):
             # Append prefix for the archiver
             self._generate_archive_channel(group, block_prefix, block, dataweb)
 
-        with open(self._settings_path, 'w') as f:
+        with self._file_access_class(self._settings_path, 'w') as f:
             xml = minidom.parseString(eTree.tostring(root)).toprettyxml()
             f.write(xml)
 
@@ -103,9 +107,16 @@ class ArchiverManager(object):
                 monitor.text = str(block.log_deadband)
         else:
             # Blocks that aren't logged, but are needed for the dataweb view
-            channel = eTree.SubElement(dataweb, 'channel')
-            name = eTree.SubElement(channel, 'name')
-            name.text = block_prefix + block.name
-            period = eTree.SubElement(channel, 'period')
-            period.text = str(datetime.timedelta(seconds=300))
-            eTree.SubElement(channel, 'scan')
+            self._add_block_to_dataweb(block_prefix, block, "", dataweb)
+
+        for run_control_pv in ArchiverManager.RUN_CONTROL_PVS:
+            suffix = ":{}.VAL".format(run_control_pv)
+            self._add_block_to_dataweb(block_prefix, block, suffix, dataweb)
+
+    def _add_block_to_dataweb(self, block_prefix, block, block_suffix, dataweb):
+        channel = eTree.SubElement(dataweb, 'channel')
+        name = eTree.SubElement(channel, 'name')
+        name.text = block_prefix + block.name + block_suffix
+        period = eTree.SubElement(channel, 'period')
+        period.text = str(datetime.timedelta(seconds=300))
+        eTree.SubElement(channel, 'scan')
