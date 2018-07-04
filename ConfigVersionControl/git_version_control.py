@@ -16,6 +16,7 @@
 
 import os
 import socket
+import six
 from git import *
 from version_control_exceptions import *
 from threading import Thread, RLock
@@ -26,6 +27,7 @@ from server_common.common_exceptions import MaxAttemptsExceededException
 
 SYSTEM_TEST_PREFIX = "rcptt_"
 GIT_REMOTE_LOCATION = 'http://control-svcs.isis.cclrc.ac.uk/gitroot/instconfigs/test.git'
+ERROR_PREFIX = "Unable to commit to version control"
 PUSH_BASE_INTERVAL = 300
 PUSH_RETRY_INTERVAL = 10
 RETRY_INTERVAL = 0.1
@@ -43,6 +45,19 @@ class RepoFactory:
             raise NotUnderVersionControl(working_directory)
 
 
+def check_branch_allowed(func):
+    """
+    Decorator which only runs the function if the branch is allowed
+    """
+    @six.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if self.branch_allowed(str(self.repo.active_branch)):
+            func(self, *args, **kwargs)
+        else:
+            raise NotUnderAllowedBranchException("Access to branch {} is not allowed".format(self.repo.active_branch))
+    return wrapper
+
+
 class GitVersionControl:
     """Version Control class for dealing with git file operations"""
     def __init__(self, working_directory, repo, is_local=False):
@@ -56,31 +71,10 @@ class GitVersionControl:
 
         self._push_lock = RLock()
 
-    def setup(self):
-        """ Call when first starting the version control.
-        Do startup actions here rather than in constructor to allow for easier testing
-        """
-        if not self.branch_allowed(str(self.repo.active_branch)):
-            raise NotUnderAllowedBranchException("Access to branch %s not allowed" % self.repo.active_branch)
-
-        try:
-            self._unlock()
-        except MaxAttemptsExceededException:
-            print_and_log("Unable to remove lock from version control repository, maximum tries exceeded", "MINOR")
-
-        config_writer = self.repo.config_writer()
-        # Set git repository to ignore file permissions otherwise will reset to read only
-        config_writer.set_value("core", "filemode", False)
-        self._add_all_files()
-
-        # Start a background thread for pushing
-        push_thread = Thread(target=self._commit_and_push, args=())
-        push_thread.daemon = True  # Daemonise thread
-        push_thread.start()
-
     @staticmethod
     def branch_allowed(branch_name):
-        """Checks that the branch is allowed to be pushed
+        """
+        Checks that the branch is allowed to be pushed
 
         Args:
             branch_name (string): The name of the current branch
@@ -98,18 +92,35 @@ class GitVersionControl:
 
         return True
 
+    def setup(self):
+        """ Call when first starting the version control.
+        Do startup actions here rather than in constructor to allow for easier testing
+        """
+        try:
+            self._unlock()
+        except MaxAttemptsExceededException:
+            print_and_log("Unable to remove lock from version control repository, maximum tries exceeded", "MINOR")
+
+        config_writer = self.repo.config_writer()
+        # Set git repository to ignore file permissions otherwise will reset to read only
+        config_writer.set_value("core", "filemode", False)
+
+        # Start a background thread for pushing
+        push_thread = Thread(target=self._commit_and_push, args=())
+        push_thread.daemon = True  # Daemonise thread
+        push_thread.start()
+
     @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, OSError)
     def _unlock(self):
         """ Removes index.lock if it exists, and it's not being used
         """
         lock_file_path = os.path.join(self.repo.git_dir, "index.lock")
         if os.path.exists(lock_file_path):
-            print_and_log(
-                "Found lock for version control repository, trying to remove: {path}".format(path=lock_file_path),
-                "INFO")
+            print_and_log("Found lock for version control repository, trying to remove: {}".format(lock_file_path))
             os.remove(lock_file_path)
-            print_and_log("Lock removed from version control repository", "INFO")
+            print_and_log("Lock removed from version control repository")
 
+    @check_branch_allowed
     @retry(RETRY_MAX_ATTEMPTS, RETRY_INTERVAL, GitCommandError)
     def _commit(self):
         """ Commit changes to a repository
@@ -137,18 +148,20 @@ class GitVersionControl:
                     first_failure = True
 
                 except MaxAttemptsExceededException:
-                    print_and_log("Could not commit changes to version control, maximum tries exceeded.")
+                    print_and_log("{}, maximum tries exceeded.".format(ERROR_PREFIX))
 
                 except GitCommandError as e:
                     # Most likely issue connecting to server, increase timeout, notify if it's the first time
                     push_interval = PUSH_RETRY_INTERVAL
                     if first_failure:
-                        print_and_log("Unable to push config changes, will retry in {interval} seconds".format(
-                            interval=PUSH_RETRY_INTERVAL), "MINOR")
+                        print_and_log("{}, will retry in {} seconds".format(ERROR_PREFIX, PUSH_RETRY_INTERVAL), "MINOR")
                         first_failure = False
+                except NotUnderAllowedBranchException as e:
+                    print_and_log("{}, {}".format(ERROR_PREFIX, e.message))
 
             sleep(push_interval)
 
+    @check_branch_allowed
     def _add_all_files(self):
         """
         Does a 'git add -A' which adds all files in the repository.
