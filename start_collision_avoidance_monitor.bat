@@ -1,5 +1,5 @@
 REM @echo off
-
+setlocal
 set MYDIRCDSVR=%~dp0
 call %MYDIRCDSVR%stop_collision_avoidance_monitor.bat
 set CYGWIN=nodosfilewarning
