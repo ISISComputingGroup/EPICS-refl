@@ -13,6 +13,9 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+"""
+Utilities for running block server and related ioc's.
+"""
 
 import time
 import zlib
@@ -29,6 +32,9 @@ LOGGER = Logger()
 
 
 class SEVERITY(object):
+    """
+    Standard message severities.
+    """
     INFO = "INFO"
     MINOR = "MINOR"
     MAJOR = "MAJOR"
@@ -44,10 +50,11 @@ def set_logger(logger):
     LOGGER = logger
 
 
-def print_and_log(message, severity="INFO", src="BLOCKSVR"):
+def print_and_log(message, severity=SEVERITY.INFO, src="BLOCKSVR"):
     """Prints the specified message to the console and writes it to the log.
 
     Args:
+        message (string): The message to log
         severity (string, optional): Gives the severity of the message. Expected serverities are MAJOR, MINOR and INFO.
                                     Default severity is INFO.
         src (string, optional): Gives the source of the message. Default source is BLOCKSVR.
@@ -127,21 +134,22 @@ def parse_boolean(string):
         raise ValueError(str(string) + ': Attribute must be "true" or "false"')
 
 
-def value_list_to_xml(list, grp, group_tag, item_tag):
+def value_list_to_xml(value_list, grp, group_tag, item_tag):
     """Converts a list of values to corresponding xml.
 
     Args:
-        list (list): The list of values given in the format of [name, {parameter : value, parameter : value}]
+        value_list (dist[str, dict[object, object]]): The dictionary of names and their values, values are in turn a
+            dictonary of names and value {name: {parameter : value, parameter : value}}
         grp (ElementTree.SubElement): The SubElement object to append the list on to
         group_tag (string): The tag that corresponds to the group for the items given in the list e.g. macros
         item_tag (string): The tag that corresponds to each item in the list e.g. macro
     """
     xml_list = ElementTree.SubElement(grp, group_tag)
-    if len(list) > 0:
-        for n, c in list.iteritems():
+    if len(value_list) > 0:
+        for n, c in value_list.items():
             xml_item = ElementTree.SubElement(xml_list, item_tag)
             xml_item.set("name", n)
-            for cn, cv in c.iteritems():
+            for cn, cv in c.items():
                 xml_item.set(str(cn), str(cv))
 
 
@@ -177,9 +185,8 @@ def create_pv_name(name, current_pvs, default_pv, limit=6):
     if re.search(r"[^0-9_]", pv_text) is None or pv_text == '':
         pv_text = default_pv
 
-    # Ensure PVs aren't too long for the 60 character limit
-    if pv_text > limit:
-        pv_text = pv_text[0:limit]
+    # Cut down pvs to limit
+    pv_text = pv_text[0:limit]
 
     # Make sure PVs are unique
     i = 1
@@ -212,6 +219,13 @@ def parse_xml_removing_namespace(file_path):
 
 
 def waveform_to_string(data):
+    """
+    Args:
+        data: waveform as null terminated string
+
+    Returns: waveform as a sting
+
+    """
     output = ""
     for i in data:
         if i == 0:
@@ -246,16 +260,16 @@ def retry(max_attempts, interval, exception):
         The input function wrapped in a retry loop
 
     """
-    def tags_decorator(function):
-        def wrapper(*args, **kwargs):
+    def _tags_decorator(func):
+        def _wrapper(*args, **kwargs):
             attempts = 0
             while attempts < max_attempts:
                 try:
-                    return function(*args, **kwargs)
+                    return func(*args, **kwargs)
                 except exception:
                     attempts += 1
                     time.sleep(interval)
 
             raise MaxAttemptsExceededException()
-        return wrapper
-    return tags_decorator
+        return _wrapper
+    return _tags_decorator
