@@ -1,3 +1,4 @@
+"""
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -13,11 +14,11 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+"""
 
 import os
 import datetime
 import time
-import urllib2
 from subprocess import Popen
 import xml.etree.ElementTree as eTree
 from xml.dom import minidom
@@ -28,7 +29,7 @@ from archiver_wrapper import ArchiverWrapper
 class ArchiverManager(object):
     """This class is responsible for updating the EPICS Archiver that is responsible for logging the blocks."""
 
-    RUN_CONTROL_PVS=["LOW", "HIGH", "INRANGE", "ENABLE"]
+    RUN_CONTROL_PVS = ["LOW", "HIGH", "INRANGE", "ENABLE"]
 
     def __init__(self, uploader_path, settings_path, archiver=ArchiverWrapper(), file_access_class=open):
         """Constructor.
@@ -110,7 +111,7 @@ class ArchiverManager(object):
             self._add_block_to_dataweb(block_prefix, block, "", dataweb)
 
         for run_control_pv in ArchiverManager.RUN_CONTROL_PVS:
-            suffix = ":{}.VAL".format(run_control_pv)
+            suffix = ":RC:{}.VAL".format(run_control_pv)
             self._add_block_to_dataweb(block_prefix, block, suffix, dataweb)
 
     def _add_block_to_dataweb(self, block_prefix, block, block_suffix, dataweb):
