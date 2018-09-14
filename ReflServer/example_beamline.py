@@ -31,7 +31,7 @@ def create_beamline():
         [nr_mode])
     beamline.set_incoming_beam(beam_start)
 
-    beamline.active_mode = nr_mode
+    beamline.active_mode = nr_mode.name
 
     return beamline
 

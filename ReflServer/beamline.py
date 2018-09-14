@@ -16,9 +16,9 @@ class BeamlineMode(object):
             name (str): name of the beam line mode
             beamline_parameters_to_calculate (list[str]): Beamline parameters in this mode
                 which should be automatically moved to whenever a preceding parameter is changed
-            sp_inits: The initial beamline parameter values that should be set when switching to this mode
+            sp_inits (dict[str, object]): The initial beamline parameter values that should be set when switching to this mode
         """
-        self.name = name.upper()
+        self.name = name
         self._beamline_parameters_to_calculate = beamline_parameters_to_calculate
         if sp_inits is None:
             self._sp_inits = {}
@@ -65,6 +65,23 @@ class BeamlineMode(object):
         """
         return self._sp_inits
 
+    def validate_parameters(self, beamline_parameters):
+        """
+        Validate the parameters in the mode against beamline parameters.
+        Args:
+            beamline_parameters: the beamline parameters
+        Raises KeyError: If sp init or mode parameters name is not in list
+
+        """
+        for beamline_parameter in self._beamline_parameters_to_calculate:
+            if beamline_parameter not in beamline_parameters:
+                raise KeyError("Beamline parameter '{}' in mode '{}' not in beamline".format(
+                    beamline_parameters, self.name))
+
+        for sp_init in self._sp_inits.keys():
+            if sp_init not in beamline_parameters:
+                raise KeyError("SP Init '{}' in mode '{}' not in beamline".format(sp_init, self.name))
+
 
 class Beamline(object):
     """
@@ -85,9 +102,6 @@ class Beamline(object):
         self._components = components
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
-        self._modes = OrderedDict()
-        for mode in modes:
-            self._modes[mode.name] = mode
 
         for beamline_parameter in beamline_parameters:
             if beamline_parameter.name in self._beamline_parameters:
@@ -98,6 +112,11 @@ class Beamline(object):
 
         for component in components:
             component.after_beam_path_update_listener = self.update_beam_path
+
+        self._modes = OrderedDict()
+        for mode in modes:
+            self._modes[mode.name] = mode
+            mode.validate_parameters(self._beamline_parameters.keys())
 
         self.incoming_beam = None
         self._active_mode = None
@@ -123,19 +142,22 @@ class Beamline(object):
     @property
     def active_mode(self):
         """
-        Returns: the current modes
+        Returns: the name of the current modes
         """
-        return self._active_mode
+        return self._active_mode.name
 
     @active_mode.setter
     def active_mode(self, mode):
         """
         Set the current mode (setting presets as expected)
         Args:
-            mode (BeamlineMode): mode to set
+            mode (str): mode to set
         """
-        self._active_mode = mode
-        self.init_setpoints()
+        try:
+            self._active_mode = self._modes[mode]
+            self.init_setpoints()
+        except KeyError:
+            raise ValueError("Not a valid mode name: '{}'".format(mode))
 
     @property
     def move(self):
@@ -239,7 +261,7 @@ class Beamline(object):
         """
         Applies the initial values set in the current beamline mode to the relevant beamline parameter setpoints.
         """
-        for key, value in self._active_mode.initial_setpoints.iteritems():
+        for key, value in self._active_mode.initial_setpoints.items():
             self._beamline_parameters[key].sp_no_move = value
 
     def _move_drivers(self, move_duration):

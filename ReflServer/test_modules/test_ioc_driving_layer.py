@@ -182,7 +182,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         mode = BeamlineMode("mode name", [smangle.name, slit_2_pos.name, slit_3_pos.name, det_pos.name])
         beamline = Beamline(components, beamline_parameters, drivers, [mode])
 
-        beamline.active_mode = mode
+        beamline.active_mode = mode.name
 
         beam_start = PositionAndAngle(0.0, 0.0, 0.0)
         beamline.set_incoming_beam(beam_start)

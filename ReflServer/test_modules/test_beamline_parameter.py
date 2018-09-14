@@ -160,7 +160,7 @@ class TestBeamlineModes(unittest.TestCase):
         beam = PositionAndAngle(0, 0, -45)
         beamline = Beamline(components, parameters, [], [DataMother.BEAMLINE_MODE_NEUTRON_REFLECTION])
         beamline.set_incoming_beam(beam)
-        beamline.active_mode = DataMother.BEAMLINE_MODE_NEUTRON_REFLECTION
+        beamline.active_mode = DataMother.BEAMLINE_MODE_NEUTRON_REFLECTION.name
         beamline.parameter("theta").sp_no_move = 45
         beamline.parameter("height").sp_no_move = 0
         beamline.parameter("slit2height").sp_no_move = 0
@@ -182,7 +182,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         theta.sp_no_move = angle_to_set
         beamline.set_incoming_beam(beam)
-        beamline.active_mode = beamline_mode
+        beamline.active_mode = beamline_mode.name
         beamline.move = 1
 
         assert_that(ideal_sample_point.angle, is_(angle_to_set))
@@ -201,7 +201,7 @@ class TestBeamlineModes(unittest.TestCase):
         theta.sp_no_move = angle_to_set
         smangle.sp_no_move = 0
         beamline.set_incoming_beam(beam)
-        beamline.active_mode = beamline_mode
+        beamline.active_mode = beamline_mode.name
         beamline.move = 1
 
         smangle_to_set = -10
@@ -221,13 +221,13 @@ class TestBeamlineModes(unittest.TestCase):
         beamline = Beamline([super_mirror], [smangle], [], [beamline_mode])
         beamline.set_incoming_beam(PositionAndAngle(0, 0, 0))
 
-        beamline.active_mode = beamline_mode
+        beamline.active_mode = beamline_mode.name
 
         assert_that(smangle.sp, is_(sm_angle_to_set))
         assert_that(smangle.sp_changed, is_(True))
         assert_that(super_mirror.angle, is_(sm_angle))
 
-    def test_GIVEN_mode_has_initial_value_for_param_not_in_beamline_WHEN_setting_mode_THEN_keyerror_raised(self):
+    def test_GIVEN_mode_has_initial_value_for_param_not_in_beamline_WHEN_initialize_mode_THEN_keyerror_raised(self):
         sm_angle = 0.0
         super_mirror = ReflectingComponent("super mirror", LinearMovement(z_position=10, y_position=0, angle=90))
         super_mirror.angle = sm_angle
@@ -235,10 +235,9 @@ class TestBeamlineModes(unittest.TestCase):
         smangle.sp_no_move = sm_angle
         sp_inits = {"nonsense name": sm_angle}
         beamline_mode = BeamlineMode("mode name", [smangle.name], sp_inits)
-        beamline = Beamline([super_mirror], [smangle], [], [beamline_mode])
 
         with self.assertRaises(KeyError):
-            beamline.active_mode = beamline_mode
+            Beamline([super_mirror], [smangle], [], [beamline_mode])
 
     def test_GIVEN_parameter_not_in_mode_and_not_changed_and_no_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_unchanged(self):
         initial_s2_height = 0.0
@@ -252,7 +251,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         beamline = Beamline([super_mirror, s2], [sm_angle,slit2_pos], [], [empty_mode])
         beamline.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        beamline.active_mode = empty_mode
+        beamline.active_mode = empty_mode.name
 
         beamline.move = 1
 
@@ -270,7 +269,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         beamline = Beamline([super_mirror, s2], [sm_angle, slit2_pos], [], [mode])
         beamline.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        beamline.active_mode = mode
+        beamline.active_mode = mode.name
         sm_angle.sp_no_move = 10.0
 
         beamline.move = 1
@@ -289,7 +288,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         beamline = Beamline([super_mirror, s2], [sm_angle, slit2_pos], [], [mode])
         beamline.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        beamline.active_mode = mode
+        beamline.active_mode = mode.name
 
         beamline.move = 1
 
@@ -308,7 +307,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         beamline = Beamline([super_mirror, s2], [sm_angle, slit2_pos], [], [empty_mode])
         beamline.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        beamline.active_mode = empty_mode
+        beamline.active_mode = empty_mode.name
 
         slit2_pos.sp_no_move = target_s2_height
         beamline.move = 1
@@ -329,7 +328,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         beamline = Beamline([super_mirror, s2], [sm_angle, slit2_pos], [], [empty_mode])
         beamline.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        beamline.active_mode = empty_mode
+        beamline.active_mode = empty_mode.name
 
         sm_angle.sp_no_move = 22.5
         slit2_pos.sp_no_move = 1.0
@@ -351,7 +350,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         beamline = Beamline([super_mirror, s2], [sm_angle, slit2_pos], [], [mode])
         beamline.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        beamline.active_mode = mode
+        beamline.active_mode = mode.name
 
         slit2_pos.sp_no_move = target_s2_height
         beamline.move = 1
@@ -392,7 +391,7 @@ class TestBeamlineOnMove(unittest.TestCase):
 
     def test_GIVEN_three_beamline_parameters_and_1_and_3_in_mode_WHEN_move_1st_THEN_parameters_in_the_mode_move(self):
         beamline_parameters, beamline = DataMother.beamline_with_3_empty_parameters()
-        beamline.active_mode = BeamlineMode("all", [beamline_parameters[0].name, beamline_parameters[2].name])
+        beamline.active_mode = "components1and3"
 
         beamline_parameters[0].move = 1
         moves = [beamline_parameter.move_component_count for beamline_parameter in beamline_parameters]
@@ -401,7 +400,7 @@ class TestBeamlineOnMove(unittest.TestCase):
 
     def test_GIVEN_three_beamline_parameters_and_3_in_mode_WHEN_move_1st_THEN_only_2nd_parameter_moved(self):
         beamline_parameters, beamline = DataMother.beamline_with_3_empty_parameters()
-        beamline.active_mode = BeamlineMode("all", [beamline_parameters[2].name])
+        beamline.active_mode = "just2"
 
         beamline_parameters[0].move = 1
         moves = [beamline_parameter.move_component_count for beamline_parameter in beamline_parameters]

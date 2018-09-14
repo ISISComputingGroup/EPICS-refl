@@ -63,5 +63,5 @@ def create_beamline_from_configuration():
     # init beamline
     bl = Beamline(comps, params, [], modes)
     bl.set_incoming_beam(beam_start)
-    bl.active_mode = nr_mode
+    bl.active_mode = nr_mode.name
     return bl

@@ -14,9 +14,11 @@ class ReflectometryDriver(Driver):
     def __init__(self, server, beamline, pv_manager):
         """
         The Constructor.
-        :param server: The PCASpy server.
-        :param beamline: The beamline configuration.
-        :param pv_manager: The manager mapping PVs to objects in the beamline.
+        Args:
+            server: The PCASpy server.
+            beamline(ReflServer.beamline.Beamline): The beamline configuration.
+            pv_manager(ReflServer.ChannelAccess.pv_manager.PVManager): The manager mapping PVs to objects in the
+                beamline.
         """
         super(ReflectometryDriver, self).__init__()
 
@@ -67,9 +69,8 @@ class ReflectometryDriver(Driver):
             self._beamline.move = 1
         elif reason == BEAMLINE_MODE:
             try:
-                mode_to_set = self._beamline.get_mode_by_index(value)
-                self._beamline.active_mode = mode_to_set
-            except KeyError:
+                self._beamline.active_mode = value
+            except ValueError:
                 print("Invalid value entered for mode. (Possible modes: {})".format(
                     ",".join(self._beamline.mode_names)))
                 status = False
