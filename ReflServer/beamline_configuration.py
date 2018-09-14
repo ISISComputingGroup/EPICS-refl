@@ -1,26 +1,17 @@
-from pcaspy import SimpleServer
-from src.ChannelAccess.macros import *
-from src.components import *
-from src.beamline import Beamline, BeamlineMode
-from src.parameters import *
-from src.ChannelAccess.pv_server import ReflectometryDriver
-from src.ChannelAccess.pv_manager import PVManager
-from src.movement_strategy import LinearMovement
-
-STATUS_PV_FIELDS = {'type': 'enum', 'enums': ["OUT", "IN"]}
-FLOAT_PV_FIELDS = {'type': 'float', 'prec': 3, 'value': 0.0}
-PARAMS_FIELDS = {"smenabled": STATUS_PV_FIELDS,
-                 "smangle": FLOAT_PV_FIELDS,
-                 "slit2pos": FLOAT_PV_FIELDS,
-                 "samplepos": FLOAT_PV_FIELDS,
-                 "theta": FLOAT_PV_FIELDS,
-                 "slit3pos": FLOAT_PV_FIELDS,
-                 "slit4pos": FLOAT_PV_FIELDS,
-                 "detpos": FLOAT_PV_FIELDS,
-                 }
+"""
+Objects to Create a beamline from the configuration.
+"""
+from ReflServer.components import *
+from ReflServer.beamline import Beamline, BeamlineMode
+from ReflServer.parameters import *
+from ReflServer.movement_strategy import LinearMovement
 
 
-def create_beamline():
+def create_beamline_from_configuration():
+    """
+    Returns: Beamline, should be from configuration but is just from a hard coded beamline
+
+    """
     beam_angle_natural = -45
     beam_start = PositionAndAngle(0.0, 0.0, beam_angle_natural)
     perp_to_floor = 90.0
@@ -63,8 +54,8 @@ def create_beamline():
     nr_inits = {"smenabled": False, "smangle": 0.0}
     pnr_inits = {"smenabled": True, "smangle": 0.5}
 
-    nr_mode = BeamlineMode("nr", [param for param in PARAMS_FIELDS.keys() if param is not "smangle"], nr_inits)
-    pnr_mode = BeamlineMode("pnr", PARAMS_FIELDS.keys(), pnr_inits)
+    nr_mode = BeamlineMode("nr", [param.name for param in params if param.name is not "smangle"], nr_inits)
+    pnr_mode = BeamlineMode("pnr", [param.name for param in params], pnr_inits)
     disabled_mode = BeamlineMode("disabled", [])
 
     modes = [nr_mode, pnr_mode, disabled_mode]
@@ -73,23 +64,4 @@ def create_beamline():
     bl = Beamline(comps, params, [], modes)
     bl.set_incoming_beam(beam_start)
     bl.active_mode = nr_mode
-    return bl, modes
-
-
-beamline, modes = create_beamline()
-
-pv_db = PVManager(PARAMS_FIELDS, [mode.name for mode in modes])
-SERVER = SimpleServer()
-print("Prefix: {}".format(REFLECTOMETRY_PREFIX))
-for pv_name in pv_db.PVDB.keys():
-    print("creating pv: {}".format(pv_name))
-SERVER.createPV(REFLECTOMETRY_PREFIX, pv_db.PVDB)
-DRIVER = ReflectometryDriver(SERVER, beamline, pv_db)
-
-# Process CA transactions
-while True:
-    try:
-        SERVER.process(0.1)
-    except Exception as err:
-        print(err)
-        break
+    return bl

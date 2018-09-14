@@ -1,6 +1,15 @@
 """
 Parameters that the user would interact with
 """
+from enum import Enum
+
+
+class BeamlineParameterType(Enum):
+    """
+    Types of beamline parameters
+    """
+    FLOAT = 0
+    IN_OUT = 1
 
 
 class BeamlineParameter(object):
@@ -18,6 +27,7 @@ class BeamlineParameter(object):
         self._sp_is_changed = False
         self._name = name
         self.after_move_listener = lambda x: None
+        self.parameter_type = BeamlineParameterType.FLOAT
 
     @property
     def sp_rbv(self):
@@ -178,6 +188,7 @@ class ComponentEnabled(BeamlineParameter):
         """
         super(ComponentEnabled, self).__init__(name, sim, init)
         self._component = component
+        self.parameter_type = BeamlineParameterType.IN_OUT
 
     def _move_component(self):
         self._component.enabled = self._set_point

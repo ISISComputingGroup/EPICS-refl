@@ -1,5 +1,8 @@
-import re
-
+"""
+Reflectometry pv manager
+"""
+from ReflServer.parameters import BeamlineParameterType
+from server_common.utilities import create_pv_name
 
 PARAM_PREFIX = "PARAM:"
 BEAMLINE_MODE = "BL:MODE"
@@ -10,15 +13,21 @@ MOVE_SUFFIX = ":MOVE"
 CHANGED_SUFFIX = ":CHANGED"
 SET_AND_MOVE_SUFFIX = ":SETANDMOVE"
 
+PARAMS_FIELDS = {
+    BeamlineParameterType.IN_OUT: {'enums': ["OUT", "IN"]},
+    BeamlineParameterType.FLOAT: {'prec': 3, 'value': 0.0}}
+
 
 class PVManager:
     """
     Holds reflectometry PVs and associated utilities.
     """
-    def __init__(self, params_fields, modes):
+    def __init__(self, param_types, mode_names):
         """
         The constructor.
-        :param params_fields: The parameters for which to create PVs and their PV fields.
+        Args:
+            param_types (dict[str, str]): The types for which to create PVs, keyed by name.
+            mode_names: names of the modes
         """
         self.PVDB = {
             BEAMLINE_MOVE: {
@@ -28,13 +37,16 @@ class PVManager:
             },
             BEAMLINE_MODE: {
                 'type': 'enum',
-                'enums': modes
+                'enums': mode_names
             }
         }
 
         self._pv_lookup = {}
-        for param, fields in params_fields.iteritems():
-            self._add_parameter_pvs(param, **fields)
+        for param, param_type in param_types.items():
+            self._add_parameter_pvs(param, **PARAMS_FIELDS[param_type])
+
+        for pv_name in self.PVDB.keys():
+            print("creating pv: {}".format(pv_name))
 
     def _add_parameter_pvs(self, param_name, **fields):
         """
@@ -44,7 +56,7 @@ class PVManager:
         :param fields: The fields of the parameter PV
         """
         try:
-            param_alias = self.create_pv_alias(param_name, "PARAM")
+            param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM")
             prepended_alias = PARAM_PREFIX + param_alias
             self.PVDB[prepended_alias] = fields
             self.PVDB[prepended_alias + SP_SUFFIX] = fields
@@ -59,41 +71,6 @@ class PVManager:
             self._pv_lookup[param_alias] = param_name
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
-
-    # TODO get this from blockserver utilities instead
-    def create_pv_alias(self, name, default_pv, limit=6):
-        """Uses the given name as a basis for a valid PV limited to a number of characters.
-
-        Args:
-            name (string): The basis for the PV
-            default_pv (string): Basis for the PV if name is unreasonable, must be a valid PV name
-            limit (integer): Character limit for the PV
-
-        Returns:
-            string : A valid PV
-        """
-        pv_text = name.upper().replace(" ", "_")
-        pv_text = re.sub(r'\W', '', pv_text)
-        # Check some edge cases of unreasonable names
-        if re.search(r"[^0-9_]", pv_text) is None or pv_text == '':
-            pv_text = default_pv
-
-        # Ensure PVs aren't too long for the 60 character limit
-        if pv_text > limit:
-            pv_text = pv_text[0:limit]
-
-        # Make sure PVs are unique
-        i = 1
-        pv = pv_text
-
-        # Append a number if the PV already exists
-        while pv in self.PVDB.keys():
-            if len(pv) > limit - 2:
-                pv = pv[0:limit - 2]
-            pv += format(i, '02d')
-            i += 1
-
-        return pv
 
     def get_param_name_from_pv(self, pv):
         """

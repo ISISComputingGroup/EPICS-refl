@@ -103,6 +103,24 @@ class Beamline(object):
         self._active_mode = None
 
     @property
+    def parameter_types(self):
+        """
+        Returns:
+            dict[str, ReflServer.parameters.BeamlineParameterType]:a dictionary of parmeter type, keyed by their name
+        """
+        types = {}
+        for beamline_parameter in self._beamline_parameters.values():
+            types[beamline_parameter.name] = beamline_parameter.parameter_type
+        return types
+
+    @property
+    def mode_names(self):
+        """
+        Returns: the names of all the modes
+        """
+        return self._modes.keys()
+
+    @property
     def active_mode(self):
         """
         Returns: the current modes

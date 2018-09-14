@@ -1,8 +1,8 @@
-from src.beamline import Beamline, BeamlineMode
-from src.components import Component, ReflectingComponent
-from src.movement_strategy import LinearMovement
-from src.gemoetry import PositionAndAngle
-from src.parameters import Theta
+from ReflServer.beamline import Beamline, BeamlineMode
+from ReflServer.components import Component, ReflectingComponent
+from ReflServer.movement_strategy import LinearMovement
+from ReflServer.gemoetry import PositionAndAngle
+from ReflServer.parameters import Theta
 
 
 def create_beamline():
@@ -23,12 +23,15 @@ def create_beamline():
     detector = Component("detector", movement_strategy=LinearMovement(0, 10, perp_to_floor))
 
     theta = Theta("theta", ideal_sample_point)
+    nr_mode = BeamlineMode("NR", ["theta"])
     beamline = Beamline(
         [s0, s1, frame_overlap_mirror, polarising_mirror, s2, ideal_sample_point, s3, analyser, s4, detector],
         [theta],
-        [])
+        [],
+        [nr_mode])
     beamline.set_incoming_beam(beam_start)
-    beamline.active_mode = BeamlineMode("NR", ["theta"])
+
+    beamline.active_mode = nr_mode
 
     return beamline
 

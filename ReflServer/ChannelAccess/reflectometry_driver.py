@@ -1,5 +1,8 @@
+"""
+Driver for the reflectometry server.
+"""
+
 from pcaspy import Driver
-from threading import RLock
 from pv_manager import *
 
 
@@ -67,7 +70,8 @@ class ReflectometryDriver(Driver):
                 mode_to_set = self._beamline.get_mode_by_index(value)
                 self._beamline.active_mode = mode_to_set
             except KeyError:
-                print("Invalid value entered for mode.")  # TODO print list of options
+                print("Invalid value entered for mode. (Possible modes: {})".format(
+                    ",".join(self._beamline.mode_names)))
                 status = False
 
         if status:
