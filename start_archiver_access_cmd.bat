@@ -1,4 +1,4 @@
-REM @echo off
+
 setlocal
 set MYDIRBLOCK=%~dp0
 call %MYDIRBLOCK%..\..\..\config_env_base.bat
@@ -10,4 +10,4 @@ set EPICS_CAS_BEACON_ADDR_LIST=127.255.255.255
 
 set PYTHONUNBUFFERED=TRUE
 
-%PYTHONW% %MYDIRBLOCK%ArchiverAccess\archiver_access.py
+%PYTHON% %MYDIRBLOCK%ArchiverAccess\archiver_access.py
