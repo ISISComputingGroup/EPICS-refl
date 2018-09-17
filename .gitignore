@@ -16,3 +16,20 @@ relPaths.sh
 /.idea
 .project
 *.py.bak
+
+# PyCharm files
+.idea/
+misc.xml
+modules.xml
+workspace.xml
+*.iml
+.name
+vcs.xml
+
+# Test reports
+/test-reports
+NULL
+
+# File generated during test-reports
+last_config.txt
+rc_settings.cmd
