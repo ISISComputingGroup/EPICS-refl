@@ -1,8 +1,8 @@
-from ReflServer.beamline import Beamline, BeamlineMode
-from ReflServer.components import Component, ReflectingComponent
-from ReflServer.movement_strategy import LinearMovement
-from ReflServer.gemoetry import PositionAndAngle
-from ReflServer.parameters import Theta
+from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.components import Component, ReflectingComponent
+from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.gemoetry import PositionAndAngle
+from ReflectometryServer.parameters import Theta
 
 
 def create_beamline():

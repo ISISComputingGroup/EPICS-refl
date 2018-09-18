@@ -1,5 +1,5 @@
-from ReflServer.beamline import BeamlineMode, Beamline
-from ReflServer.parameters import BeamlineParameter
+from ReflectometryServer.beamline import BeamlineMode, Beamline
+from ReflectometryServer.parameters import BeamlineParameter
 
 
 class EmptyBeamlineParameter(BeamlineParameter):

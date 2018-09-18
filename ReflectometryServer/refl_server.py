@@ -7,14 +7,14 @@ import os
 from pcaspy import SimpleServer
 
 try:
-    from ReflServer.ChannelAccess.reflectometry_driver import ReflectometryDriver
+    from ReflectometryServer.ChannelAccess.reflectometry_driver import ReflectometryDriver
 except ImportError:
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
-    from ReflServer.ChannelAccess.reflectometry_driver import ReflectometryDriver
+    from ReflectometryServer.ChannelAccess.reflectometry_driver import ReflectometryDriver
 
-from ReflServer.beamline_configuration import create_beamline_from_configuration
-from ReflServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX
-from ReflServer.ChannelAccess.pv_manager import PVManager
+from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
+from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX
+from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 
 
 beamline = create_beamline_from_configuration()

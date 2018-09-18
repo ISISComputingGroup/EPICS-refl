@@ -255,7 +255,7 @@ class Beamline(object):
         Args:
             key: key of parameter to return
 
-        Returns (ReflServer.parameters.BeamlineParameter):
+        Returns (ReflectometryServer.parameters.BeamlineParameter):
             the beamline parameter with the given key
         """
         return self._modes[key]

@@ -2,11 +2,11 @@ import unittest
 
 from hamcrest import *
 
-from ReflServer.components import ReflectingComponent, Component
-from ReflServer.movement_strategy import LinearMovement
-from ReflServer.gemoetry import PositionAndAngle
-from ReflServer.beamline import Beamline, BeamlineMode
-from ReflServer.parameters import Theta, ReflectionAngle
+from ReflectometryServer.components import ReflectingComponent, Component
+from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.gemoetry import PositionAndAngle
+from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.parameters import Theta, ReflectionAngle
 
 
 class TestComponentBeamline(unittest.TestCase):

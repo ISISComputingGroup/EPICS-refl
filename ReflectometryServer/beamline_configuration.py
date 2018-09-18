@@ -1,10 +1,10 @@
 """
 Objects to Create a beamline from the configuration.
 """
-from ReflServer.components import *
-from ReflServer.beamline import Beamline, BeamlineMode
-from ReflServer.parameters import *
-from ReflServer.movement_strategy import LinearMovement
+from ReflectometryServer.components import *
+from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.parameters import *
+from ReflectometryServer.movement_strategy import LinearMovement
 
 
 def create_beamline_from_configuration():

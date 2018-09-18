@@ -165,7 +165,7 @@ class TrackingPosition(BeamlineParameter):
 
         Args:
             name: Name of the variable
-            component (ReflServer.components.PassiveComponent): component that the tracking is based on
+            component (ReflectometryServer.components.PassiveComponent): component that the tracking is based on
         """
         super(TrackingPosition, self).__init__(name, sim, init)
         self._component = component
@@ -184,7 +184,7 @@ class ComponentEnabled(BeamlineParameter):
         Initializer.
         Args:
             name (str): Name of the enabled parameter
-            component (ReflServer.components.PassiveComponent): the component to be enabled or disabled
+            component (ReflectometryServer.components.PassiveComponent): the component to be enabled or disabled
         """
         super(ComponentEnabled, self).__init__(name, sim, init)
         self._component = component

@@ -1,7 +1,7 @@
 """
 Reflectometry pv manager
 """
-from ReflServer.parameters import BeamlineParameterType
+from ReflectometryServer.parameters import BeamlineParameterType
 from server_common.utilities import create_pv_name
 
 PARAM_PREFIX = "PARAM:"

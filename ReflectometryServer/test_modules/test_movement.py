@@ -4,8 +4,8 @@ from math import tan, radians, sqrt
 from hamcrest import *
 from parameterized import parameterized
 
-from ReflServer.movement_strategy import LinearMovement, ANGULAR_TOLERANCE
-from ReflServer.gemoetry import Position, PositionAndAngle
+from ReflectometryServer.movement_strategy import LinearMovement, ANGULAR_TOLERANCE
+from ReflectometryServer.gemoetry import Position, PositionAndAngle
 from utils import position_and_angle, position
 
 

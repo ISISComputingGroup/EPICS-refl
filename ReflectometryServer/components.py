@@ -2,7 +2,7 @@
 Components on a beam
 """
 
-from ReflServer.gemoetry import PositionAndAngle
+from ReflectometryServer.gemoetry import PositionAndAngle
 
 
 class Component(object):

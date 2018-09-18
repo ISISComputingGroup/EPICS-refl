@@ -35,8 +35,8 @@ class HeightDriver(IocDriver):
     def __init__(self, component, height_axis):
         """
         Constructor.
-        :param component (ReflServer.components.PassiveComponent): The component providing the values for the axes
-        :param height_axis (ReflServer.motor_pv_wrapper.MotorPVWrapper): The PV that this driver controls.
+        :param component (ReflectometryServer.components.PassiveComponent): The component providing the values for the axes
+        :param height_axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV that this driver controls.
         """
         super(HeightDriver, self).__init__(component)
         self._height_axis = height_axis
@@ -71,9 +71,9 @@ class HeightAndTiltDriver(HeightDriver):
     def __init__(self, component, height_axis, tilt_axis):
         """
         Constructor.
-        :param component (ReflServer.components.TiltingJaws): The component providing the values for the axes
-        :param height_axis (ReflServer.motor_pv_wrapper.MotorPVWrapper): The PV for the height motor axis
-        :param tilt_axis (ReflServer.motor_pv_wrapper.MotorPVWrapper): The PV for the tilt motor axis
+        :param component (ReflectometryServer.components.TiltingJaws): The component providing the values for the axes
+        :param height_axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV for the height motor axis
+        :param tilt_axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV for the tilt motor axis
         """
         super(HeightAndTiltDriver, self).__init__(component, height_axis)
         self._tilt_axis = tilt_axis
@@ -108,9 +108,9 @@ class HeightAndAngleDriver(HeightDriver):
     def __init__(self, component, height_axis, angle_axis):
         """
         Constructor.
-        :param component (ReflServer.components.ActiveComponent): The component providing the values for the axes
-        :param height_axis(ReflServer.motor_pv_wrapper.MotorPVWrapper): The PV for the height motor axis
-        :param angle_axis(ReflServer.motor_pv_wrapper.MotorPVWrapper): The PV for the angle motor axis
+        :param component (ReflectometryServer.components.ActiveComponent): The component providing the values for the axes
+        :param height_axis(ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV for the height motor axis
+        :param angle_axis(ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV for the angle motor axis
         """
         super(HeightAndAngleDriver, self).__init__(component, height_axis)
         self._angle_axis = angle_axis

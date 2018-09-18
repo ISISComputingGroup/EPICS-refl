@@ -2,12 +2,12 @@ import unittest
 
 from hamcrest import *
 
-from ReflServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.beamline import Beamline, BeamlineMode
 
-from ReflServer.components import ReflectingComponent, Component
-from ReflServer.movement_strategy import LinearMovement
-from ReflServer.gemoetry import Position, PositionAndAngle
-from ReflServer.parameters import Theta, ReflectionAngle, TrackingPosition, ComponentEnabled
+from ReflectometryServer.components import ReflectingComponent, Component
+from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.gemoetry import Position, PositionAndAngle
+from ReflectometryServer.parameters import Theta, ReflectionAngle, TrackingPosition, ComponentEnabled
 from data_mother import DataMother, EmptyBeamlineParameter
 from utils import position, DEFAULT_TEST_TOLERANCE
 

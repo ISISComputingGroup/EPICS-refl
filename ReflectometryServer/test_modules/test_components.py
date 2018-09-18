@@ -4,9 +4,9 @@ from math import tan, radians, sqrt
 from hamcrest import *
 from parameterized import parameterized
 
-from ReflServer.components import Component, ReflectingComponent, TiltingJaws
-from ReflServer.movement_strategy import LinearMovement
-from ReflServer.gemoetry import Position, PositionAndAngle
+from ReflectometryServer.components import Component, ReflectingComponent, TiltingJaws
+from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.gemoetry import Position, PositionAndAngle
 from utils import position_and_angle, position
 
 

@@ -4,7 +4,7 @@ Classes and objects decribing the movement of items
 
 from math import fabs, tan, radians, sin, cos
 
-from ReflServer.gemoetry import PositionAndAngle, Position
+from ReflectometryServer.gemoetry import PositionAndAngle, Position
 
 # Tolerance to use when comparing an angle with another angle
 ANGULAR_TOLERANCE = 1e-12

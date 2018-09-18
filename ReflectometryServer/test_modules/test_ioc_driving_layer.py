@@ -3,12 +3,12 @@ from math import fabs
 from mock import MagicMock, PropertyMock, patch
 from hamcrest import *
 
-from ReflServer.beamline import Beamline, BeamlineMode
-from ReflServer.components import TiltingJaws, Component, ReflectingComponent
-from ReflServer.movement_strategy import LinearMovement
-from ReflServer.gemoetry import PositionAndAngle
-from ReflServer.ioc_driver import HeightDriver, HeightAndTiltDriver, HeightAndAngleDriver
-from ReflServer.parameters import ReflectionAngle, TrackingPosition
+from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.components import TiltingJaws, Component, ReflectingComponent
+from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.gemoetry import PositionAndAngle
+from ReflectometryServer.ioc_driver import HeightDriver, HeightAndTiltDriver, HeightAndAngleDriver
+from ReflectometryServer.parameters import ReflectionAngle, TrackingPosition
 
 FLOAT_TOLERANCE = 1e-9
 

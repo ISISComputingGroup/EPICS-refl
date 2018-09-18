@@ -3,10 +3,10 @@ import unittest
 from math import tan, radians
 from hamcrest import *
 
-from ReflServer.components import ReflectingComponent, Component
-from ReflServer.movement_strategy import LinearMovement
-from ReflServer.gemoetry import PositionAndAngle
-from ReflServer.beamline import Beamline
+from ReflectometryServer.components import ReflectingComponent, Component
+from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.gemoetry import PositionAndAngle
+from ReflectometryServer.beamline import Beamline
 from utils import position_and_angle
 
 
