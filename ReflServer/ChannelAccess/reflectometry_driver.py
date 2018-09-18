@@ -44,7 +44,8 @@ class ReflectometryDriver(Driver):
             else:
                 return self.getParam(reason)  # TODO return actual RBV
         elif reason.endswith("BL:MODE"):
-            return self._beamline.active_mode.name
+            beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
+            return beamline_mode_enums.index(self._beamline.active_mode)
         else:
             return self.getParam(reason)
 
@@ -69,7 +70,8 @@ class ReflectometryDriver(Driver):
             self._beamline.move = 1
         elif reason == BEAMLINE_MODE:
             try:
-                self._beamline.active_mode = value
+                beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
+                self._beamline.active_mode = beamline_mode_enums[value]
             except ValueError:
                 print("Invalid value entered for mode. (Possible modes: {})".format(
                     ",".join(self._beamline.mode_names)))

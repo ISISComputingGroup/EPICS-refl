@@ -144,6 +144,7 @@ class Beamline(object):
         """
         Returns: the name of the current modes
         """
+        print(self._active_mode)
         return self._active_mode.name
 
     @active_mode.setter
@@ -151,10 +152,12 @@ class Beamline(object):
         """
         Set the current mode (setting presets as expected)
         Args:
-            mode (str): mode to set
+            mode (str): name of the mode to set
         """
         try:
+            print(mode)
             self._active_mode = self._modes[mode]
+            print(self._active_mode)
             self.init_setpoints()
         except KeyError:
             raise ValueError("Not a valid mode name: '{}'".format(mode))
