@@ -28,7 +28,7 @@ class BeamlineMode(object):
     def has_beamline_parameter(self, beamline_parameter):
         """
         Args:
-            beamline_parameter(ReflServer.parameters.BeamlineParameter): the beamline parameter
+            beamline_parameter(ReflectometryServer.parameters.BeamlineParameter): the beamline parameter
 
         Returns: True if beamline_parameter is in this mode.
         """
@@ -39,9 +39,9 @@ class BeamlineMode(object):
         Returns, in order, all those parameters which are in this mode. Starting with the parameter after the first
         parameter
         Args:
-            beamline_parameters(list[ReflServer.parameters.BeamlineParameter]): the beamline parameters which
+            beamline_parameters(list[ReflectometryServer.parameters.BeamlineParameter]): the beamline parameters which
                 maybe in the mode
-            first_parameter(ReflServer.parameters.BeamlineParameter): the parameter after which to include parameters;
+            first_parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter after which to include parameters;
                 None for include all
 
         Returns: a list of parameters after the first parameter which are in this mode
@@ -92,10 +92,10 @@ class Beamline(object):
         """
         The initializer.
         Args:
-            components (list[ReflServer.components.Component]): The collection of beamline components
-            beamline_parameters (list[ReflServer.parameters.BeamlineParameter]): a dictionary of parameters that
+            components (list[ReflectometryServer.components.Component]): The collection of beamline components
+            beamline_parameters (list[ReflectometryServer.parameters.BeamlineParameter]): a dictionary of parameters that
                 characterise the beamline
-            drivers(list[ReflServer.ioc_driver.IocDriver]): a list of motor drivers linked to a component in the
+            drivers(list[ReflectometryServer.ioc_driver.IocDriver]): a list of motor drivers linked to a component in the
                 beamline
             modes(list[BeamlineMode])
         """
@@ -122,15 +122,12 @@ class Beamline(object):
         self._active_mode = None
 
     @property
-    def parameter_types(self):
+    def parameters(self):
         """
         Returns:
-            dict[str, ReflServer.parameters.BeamlineParameterType]:a dictionary of parmeter type, keyed by their name
+            dict[str, ReflectometryServer.parameters.BeamlineParameterType]:a dictionary of parmeter type, keyed by their name
         """
-        types = {}
-        for beamline_parameter in self._beamline_parameters.values():
-            types[beamline_parameter.name] = beamline_parameter.parameter_type
-        return types
+        return self._beamline_parameters
 
     @property
     def mode_names(self):
@@ -230,7 +227,7 @@ class Beamline(object):
             key (str): key of parameter to return
 
         Returns:
-            ReflServer.parameters.BeamlineParameter: the beamline parameter with the given key
+            ReflectometryServer.parameters.BeamlineParameter: the beamline parameter with the given key
         """
         return self._beamline_parameters[key]
 

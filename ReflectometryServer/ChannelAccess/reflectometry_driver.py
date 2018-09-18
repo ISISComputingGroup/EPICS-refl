@@ -4,6 +4,7 @@ Driver for the reflectometry server.
 
 from pcaspy import Driver
 from pv_manager import *
+from server_common.utilities import compress_and_hex
 
 
 class ReflectometryDriver(Driver):
@@ -16,8 +17,8 @@ class ReflectometryDriver(Driver):
         The Constructor.
         Args:
             server: The PCASpy server.
-            beamline(ReflServer.beamline.Beamline): The beamline configuration.
-            pv_manager(ReflServer.ChannelAccess.pv_manager.PVManager): The manager mapping PVs to objects in the
+            beamline(ReflectometryServer.beamline.Beamline): The beamline configuration.
+            pv_manager(ReflectometryServer.ChannelAccess.pv_manager.PVManager): The manager mapping PVs to objects in the
                 beamline.
         """
         super(ReflectometryDriver, self).__init__()
@@ -25,6 +26,8 @@ class ReflectometryDriver(Driver):
         self._beamline = beamline
         self._ca_server = server
         self._pv_manager = pv_manager
+
+        self.update_monitors()
 
     def read(self, reason):
         """
@@ -43,9 +46,11 @@ class ReflectometryDriver(Driver):
                 return param.sp_changed
             else:
                 return self.getParam(reason)  # TODO return actual RBV
-        elif reason.endswith("BL:MODE"):
+        elif reason == BEAMLINE_MODE:
             beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
             return beamline_mode_enums.index(self._beamline.active_mode)
+        elif reason == TRACKING_AXES:
+            return compress_and_hex(self.getParam(reason))
         else:
             return self.getParam(reason)
 
@@ -76,6 +81,9 @@ class ReflectometryDriver(Driver):
                 print("Invalid value entered for mode. (Possible modes: {})".format(
                     ",".join(self._beamline.mode_names)))
                 status = False
+        else:
+            print("Error: PV is read only")
+            status = False
 
         if status:
             self.setParam(reason, value)

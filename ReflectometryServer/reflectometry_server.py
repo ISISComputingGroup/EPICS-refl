@@ -19,7 +19,7 @@ from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 
 beamline = create_beamline_from_configuration()
 
-pv_db = PVManager(beamline.parameter_types, beamline.mode_names)
+pv_db = PVManager(beamline.parameters.values(), beamline.mode_names)
 SERVER = SimpleServer()
 
 print("Prefix: {}".format(REFLECTOMETRY_PREFIX))

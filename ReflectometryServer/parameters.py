@@ -129,7 +129,7 @@ class ReflectionAngle(BeamlineParameter):
         Initializer.
         Args:
             name (str): Name of the reflection angle
-            reflection_component (ReflServer.components.ReflectingComponent): the active component at the
+            reflection_component (ReflectometryServer.components.ReflectingComponent): the active component at the
                 reflection point
         """
         super(ReflectionAngle, self).__init__(name, sim, init)
@@ -150,7 +150,7 @@ class Theta(ReflectionAngle):
         Initializer.
         Args:
             name (str): name of theta
-            ideal_sample_point (ReflServer.components.ReflectingComponent): the ideal sample point active component
+            ideal_sample_point (ReflectometryServer.components.ReflectingComponent): the ideal sample point active component
         """
         super(Theta, self).__init__(name, ideal_sample_point, sim, init)
 
