@@ -206,30 +206,27 @@ class Beamline(object):
             component.set_incoming_beam(outgoing)
             outgoing = component.get_outgoing_beam()
 
-    def update_beamline_parameters(self, source=None):
+    def update_beamline_parameters(self):
         """
-        Updates the beamline parameters in the current mode. If given a source in the mode start from this one instead
-        of from the beginning of the beamline. If the source is not in the mode then don't update the beamline.
-        Args:
-            source: source to start the update from; None start from the beginning.
+        Updates the beamline parameters to the latest set point value if they have changed, or resets the last setpoint
+        if they have not but are in the mode.
         """
-        if source is None or self._active_mode.has_beamline_parameter(source):
-            parameters = self._beamline_parameters.values()
-            parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, source)
+        parameters = self._beamline_parameters.values()
+        parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
 
-            for beamline_parameter in parameters:
-                if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
-                    beamline_parameter.move_no_callback()
+        for beamline_parameter in parameters:
+            if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
+                beamline_parameter.move_no_callback()
 
-    def reset_beamline_parameters(self, source=None):
+    def reset_beamline_parameters(self, source):
         """
-        Resets the beamline parameters in the current mode to their last setpoint. If given a source in the mode start
-        from this one instead of from the beginning of the beamline. If the source is not in the mode then don't update
+        Resets the beamline parameters in the current mode to their last setpoint starting from a given source. If the
+        source is not in the mode then don't update
         the beamline.
         Args:
             source: source to start the update from; None start from the beginning.
         """
-        if source is None or self._active_mode.has_beamline_parameter(source):
+        if self._active_mode.has_beamline_parameter(source):
             parameters = self._beamline_parameters.values()
             parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, source)
 
