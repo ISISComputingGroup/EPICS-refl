@@ -108,7 +108,7 @@ class Beamline(object):
                 raise ValueError("Beamline parameters must be uniquely named. Duplicate '{}'".format(
                     beamline_parameter.name))
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
-            beamline_parameter.after_move_listener = self.update_beamline_parameters
+            beamline_parameter.after_move_listener = self.reset_beamline_parameters
 
         for component in components:
             component.after_beam_path_update_listener = self.update_beam_path
@@ -212,9 +212,6 @@ class Beamline(object):
         of from the beginning of the beamline. If the source is not in the mode then don't update the beamline.
         Args:
             source: source to start the update from; None start from the beginning.
-
-        Returns:
-
         """
         if source is None or self._active_mode.has_beamline_parameter(source):
             parameters = self._beamline_parameters.values()
@@ -223,6 +220,21 @@ class Beamline(object):
             for beamline_parameter in parameters:
                 if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
                     beamline_parameter.move_no_callback()
+
+    def reset_beamline_parameters(self, source=None):
+        """
+        Resets the beamline parameters in the current mode to their last setpoint. If given a source in the mode start
+        from this one instead of from the beginning of the beamline. If the source is not in the mode then don't update
+        the beamline.
+        Args:
+            source: source to start the update from; None start from the beginning.
+        """
+        if source is None or self._active_mode.has_beamline_parameter(source):
+            parameters = self._beamline_parameters.values()
+            parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, source)
+
+            for beamline_parameter in parameters_in_mode:
+                beamline_parameter.move_no_callback_reset()
 
     def parameter(self, key):
         """

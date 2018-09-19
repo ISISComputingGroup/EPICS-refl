@@ -10,7 +10,7 @@ class EmptyBeamlineParameter(BeamlineParameter):
         super(EmptyBeamlineParameter, self).__init__(name)
         self.move_component_count = 0
 
-    def _move_component(self):
+    def _move_component(self, value):
         self.move_component_count += 1
 
 

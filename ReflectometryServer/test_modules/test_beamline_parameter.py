@@ -357,6 +357,73 @@ class TestBeamlineModes(unittest.TestCase):
 
         assert_that(s2.sp_position().y, is_(target_s2_height))
 
+    def test_GIVEN_two_changed_parameters_in_mode_WHEN_first_parameter_moved_to_SP_THEN_second_parameter_moved_to_SP_RBV(self):
+        beam_start = PositionAndAngle(0, 0, 0)
+        s4_height_initial = 0.0
+        s4_height_sp = 1.0
+        bounced_beam_angle = 45.0
+        sample_z = 10.0
+        sample_to_s4_z = 10.0
+        sample_point = ReflectingComponent("sm", LinearMovement(0, sample_z, 90))
+        s4 = Component("s4", LinearMovement(s4_height_initial, sample_z + sample_to_s4_z, 90))
+        theta = Theta("theta", sample_point, True)
+        slit4_pos = TrackingPosition("slit4pos", s4, True)
+        mode = BeamlineMode("both_params", [theta.name, slit4_pos.name])
+        beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
+        beamline.set_incoming_beam(beam_start)
+        beamline.active_mode = mode.name
+
+        theta.sp_no_move = bounced_beam_angle / 2
+        slit4_pos.sp_no_move = s4_height_sp
+        theta.move = 1
+
+        assert_that(s4.sp_position().y, is_(close_to(sample_to_s4_z + s4_height_initial, DEFAULT_TEST_TOLERANCE)))
+
+    def test_GIVEN_two_changed_parameters_with_second_not_in_mode_WHEN_first_parameter_moved_to_SP_THEN_second_parameter_unchanged(self):
+        beam_start = PositionAndAngle(0, 0, 0)
+        s4_height_initial = 0.0
+        s4_height_sp = 1.0
+        bounced_beam_angle = 45.0
+        sample_z = 10.0
+        sample_to_s4_z = 10.0
+        sample_point = ReflectingComponent("sm", LinearMovement(0, sample_z, 90))
+        s4 = Component("s4", LinearMovement(s4_height_initial, sample_z + sample_to_s4_z, 90))
+        theta = Theta("theta", sample_point, True)
+        slit4_pos = TrackingPosition("slit4pos", s4, True)
+        mode = BeamlineMode("first_param", [theta.name])
+        beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
+        beamline.set_incoming_beam(beam_start)
+        beamline.active_mode = mode.name
+
+        theta.sp_no_move = bounced_beam_angle / 2
+        slit4_pos.sp_no_move = s4_height_sp
+        theta.move = 1
+
+        assert_that(s4.sp_position().y, is_(s4_height_initial))
+
+    def test_GIVEN_two_changed_parameters_with_first_not_in_mode_WHEN_first_parameter_moved_to_SP_THEN_second_parameter_unchanged(
+            self):
+        beam_start = PositionAndAngle(0, 0, 0)
+        s4_height_initial = 0.0
+        s4_height_sp = 1.0
+        bounced_beam_angle = 45.0
+        sample_z = 10.0
+        sample_to_s4_z = 10.0
+        sample_point = ReflectingComponent("sm", LinearMovement(0, sample_z, 90))
+        s4 = Component("s4", LinearMovement(s4_height_initial, sample_z + sample_to_s4_z, 90))
+        theta = Theta("theta", sample_point, True)
+        slit4_pos = TrackingPosition("slit4pos", s4, True)
+        mode = BeamlineMode("second_params", [slit4_pos.name])
+        beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
+        beamline.set_incoming_beam(beam_start)
+        beamline.active_mode = mode.name
+
+        theta.sp_no_move = bounced_beam_angle / 2
+        slit4_pos.sp_no_move = s4_height_sp
+        theta.move = 1
+
+        assert_that(s4.sp_position().y, is_(s4_height_initial))
+
 class TestBeamlineOnMove(unittest.TestCase):
 
     def test_GIVEN_two_beamline_parameters_with_same_name_WHEN_construct_THEN_error(self):

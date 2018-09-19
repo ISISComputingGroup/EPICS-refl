@@ -24,6 +24,7 @@ class BeamlineParameter(object):
             self._set_point_rbv = init
         else:
             self._set_point = None
+            self._set_point_rbv = None
         self._sp_is_changed = False
         self._name = name
         self.after_move_listener = lambda x: None
@@ -93,9 +94,15 @@ class BeamlineParameter(object):
         """
         Move the component but don't call a callback indicating a move has been performed.
         """
-        self._move_component()
+        self._move_component(self._set_point)
         self._set_point_rbv = self._set_point
         self._sp_is_changed = False
+
+    def move_no_callback_reset(self):
+        """
+        Repeat the move to the last set point.
+        """
+        self._move_component(self._set_point_rbv)
 
     @property
     def name(self):
@@ -111,7 +118,7 @@ class BeamlineParameter(object):
         """
         return self._sp_is_changed
 
-    def _move_component(self):
+    def _move_component(self, value):
         """
         Moves the component(s) associated with this parameter to the setpoint.
         """
@@ -135,8 +142,8 @@ class ReflectionAngle(BeamlineParameter):
         super(ReflectionAngle, self).__init__(name, sim, init)
         self._reflection_component = reflection_component
 
-    def _move_component(self):
-        self._reflection_component.set_angle_relative_to_beam(self._set_point)
+    def _move_component(self, value):
+        self._reflection_component.set_angle_relative_to_beam(value)
 
 
 class Theta(ReflectionAngle):
@@ -170,8 +177,8 @@ class TrackingPosition(BeamlineParameter):
         super(TrackingPosition, self).__init__(name, sim, init)
         self._component = component
 
-    def _move_component(self):
-        self._component.set_position_relative_to_beam(self._set_point)
+    def _move_component(self, value):
+        self._component.set_position_relative_to_beam(value)
 
 
 class ComponentEnabled(BeamlineParameter):
@@ -190,5 +197,5 @@ class ComponentEnabled(BeamlineParameter):
         self._component = component
         self.parameter_type = BeamlineParameterType.IN_OUT
 
-    def _move_component(self):
-        self._component.enabled = self._set_point
+    def _move_component(self, value):
+        self._component.enabled = value
