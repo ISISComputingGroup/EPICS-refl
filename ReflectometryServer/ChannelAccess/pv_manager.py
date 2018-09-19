@@ -42,12 +42,12 @@ class PVManager:
         }
 
         self._pv_lookup = {}
-        self._position_params = {}
+        self._tracking_positions = {}
         for param in parameters:
             self._add_parameter_pvs(param, **PARAMS_FIELDS[param.parameter_type])
         self.PVDB[TRACKING_AXES] = {'type': 'char',
                                     'count': 300,
-                                    'value': json.dumps(self._position_params)
+                                    'value': json.dumps(self._tracking_positions)
                                     }
         for pv_name in self.PVDB.keys():
             print("creating pv: {}".format(pv_name))
@@ -71,7 +71,7 @@ class PVManager:
             self.PVDB[prepended_alias + MOVE_SUFFIX] = TRIGGER_FIELDS
             self._pv_lookup[param_alias] = param.name
             if type(param) is TrackingPosition:
-                self._position_params[param_alias] = param.name
+                self._tracking_positions[param_alias] = param.name
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
 
