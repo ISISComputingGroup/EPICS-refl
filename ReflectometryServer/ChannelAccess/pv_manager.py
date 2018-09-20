@@ -7,6 +7,7 @@ from server_common.utilities import create_pv_name
 PARAM_PREFIX = "PARAM:"
 BEAMLINE_MODE = "BL:MODE"
 BEAMLINE_MOVE = "BL:MOVE"
+BEAMLINE_ERROR = "BL:ERROR"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
 MOVE_SUFFIX = ":MOVE"
@@ -38,6 +39,9 @@ class PVManager:
             BEAMLINE_MODE: {
                 'type': 'enum',
                 'enums': mode_names
+            },
+            BEAMLINE_ERROR: {
+                'type': 'string'
             }
         }
 

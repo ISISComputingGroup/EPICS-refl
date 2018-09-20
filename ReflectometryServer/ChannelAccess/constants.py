@@ -10,3 +10,5 @@ def _get_env_var(name):
 
 # Prefix for all PVs in the server
 REFLECTOMETRY_PREFIX = "{}REFL:".format(_get_env_var('MYPVPREFIX'))
+REFL_CONFIG_PATH = "{}".format(_get_env_var('ICPCONFIGROOT'))
+

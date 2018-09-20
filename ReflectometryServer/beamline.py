@@ -102,6 +102,7 @@ class Beamline(object):
         self._components = components
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
+        self.error = None
 
         for beamline_parameter in beamline_parameters:
             if beamline_parameter.name in self._beamline_parameters:
