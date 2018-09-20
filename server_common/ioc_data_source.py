@@ -236,7 +236,6 @@ class IocDataSource(object):
                 For example: {'pv name': {'info_field': {'archive': '', 'INTEREST': 'HIGH'}, 'type': 'float'}}
             prefix: prefix for the pv server
         """
-        print(pv_database)
         self._remove_ioc_from_db(ioc_name)
         self._add_ioc_start_to_db(exe_path, ioc_name, pid)
 
