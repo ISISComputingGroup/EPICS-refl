@@ -2,6 +2,7 @@
 Reflectometry pv manager
 """
 from ReflectometryServer.parameters import BeamlineParameterType
+from server_common.ioc_data_source import PV_INFO_FIELD_NAME
 from server_common.utilities import create_pv_name
 
 PARAM_PREFIX = "PARAM:"
@@ -15,7 +16,17 @@ SET_AND_MOVE_SUFFIX = ":SETANDMOVE"
 
 PARAMS_FIELDS = {
     BeamlineParameterType.IN_OUT: {'enums': ["OUT", "IN"]},
-    BeamlineParameterType.FLOAT: {'prec': 3, 'value': 0.0}}
+    BeamlineParameterType.FLOAT: {'type': 'float', 'prec': 3, 'value': 0.0}}
+
+
+ARCHIVED = {
+    "archive": "",
+}
+
+INTERESTING_AND_ARCHIVED = {
+    "archive": "",
+    "INTEREST": "HIGH"
+}
 
 
 class PVManager:
@@ -29,6 +40,7 @@ class PVManager:
             param_types (dict[str, str]): The types for which to create PVs, keyed by name.
             mode_names: names of the modes
         """
+
         self.PVDB = {
             BEAMLINE_MOVE: {
                 'type': 'int',
@@ -37,7 +49,8 @@ class PVManager:
             },
             BEAMLINE_MODE: {
                 'type': 'enum',
-                'enums': mode_names
+                'enums': mode_names,
+                PV_INFO_FIELD_NAME: INTERESTING_AND_ARCHIVED
             }
         }
 
@@ -58,8 +71,12 @@ class PVManager:
         try:
             param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM")
             prepended_alias = PARAM_PREFIX + param_alias
-            self.PVDB[prepended_alias] = fields
-            self.PVDB[prepended_alias + SP_SUFFIX] = fields
+            field_with_intrest_and_archiving = fields.copy()
+            field_with_intrest_and_archiving[PV_INFO_FIELD_NAME] = INTERESTING_AND_ARCHIVED
+            fields_with_archiving = fields.copy()
+            fields_with_archiving[PV_INFO_FIELD_NAME] = ARCHIVED
+            self.PVDB[prepended_alias] = field_with_intrest_and_archiving
+            self.PVDB[prepended_alias + SP_SUFFIX] = fields_with_archiving
             self.PVDB[prepended_alias + SP_RBV_SUFFIX] = fields
             self.PVDB[prepended_alias + SET_AND_MOVE_SUFFIX] = fields
             self.PVDB[prepended_alias + CHANGED_SUFFIX] = {'type': 'enum',
