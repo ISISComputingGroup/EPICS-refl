@@ -4,6 +4,15 @@ Resources at a beamline level
 from collections import OrderedDict
 
 
+class STATUS(object):
+    """
+    Beamline States.
+    """
+    OKAY = "OKAY"
+    CONFIG_ERROR = "CONFIG_ERROR"
+    ERROR = "ERROR"
+
+
 class BeamlineMode(object):
     """
     Beamline mode definition; which components and parameters are calculated on move.
@@ -102,7 +111,8 @@ class Beamline(object):
         self._components = components
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
-        self.error = None
+        self.status = None  # Need list of possible values? e.g. OK, CONFIG_ERROR, etc.? Then it's extensible?
+        self.message = None
 
         for beamline_parameter in beamline_parameters:
             if beamline_parameter.name in self._beamline_parameters:
