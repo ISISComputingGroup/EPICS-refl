@@ -2,8 +2,9 @@
 Driver for the reflectometry server.
 """
 
-from pcaspy import Driver
+from pcaspy import Driver, Alarm, Severity
 from pv_manager import *
+from server_common.utilities import remove_from_end
 
 
 class ReflectometryDriver(Driver):
@@ -26,26 +27,32 @@ class ReflectometryDriver(Driver):
         self._ca_server = server
         self._pv_manager = pv_manager
 
+        for reason in self._pv_manager.PVDB.keys():
+            self.setParamStatus(reason, severity=Severity.NO_ALARM, alarm=Alarm.NO_ALARM)
+
     def read(self, reason):
         """
         Processes an incoming caget request.
         :param reason: The PV that is being read.
         :return: The value associated to this PV
         """
-        if reason.startswith(PARAM_PREFIX):
-            param_name = self._pv_manager.get_param_name_from_pv(reason)
+        reason_no_val = remove_from_end(reason, ".VAL")
+        if reason_no_val.startswith(PARAM_PREFIX):
+            param_name = self._pv_manager.get_param_name_from_pv(reason_no_val)
             param = self._beamline.parameter(param_name)
-            if reason.endswith(SP_SUFFIX):
+            if reason_no_val.endswith(SP_SUFFIX):
                 return param.sp
-            elif reason.endswith(SP_RBV_SUFFIX):
+            elif reason_no_val.endswith(SP_RBV_SUFFIX):
                 return param.sp_rbv
-            elif reason.endswith(CHANGED_SUFFIX):
+            elif reason_no_val.endswith(CHANGED_SUFFIX):
                 return param.sp_changed
             else:
                 return self.getParam(reason)  # TODO return actual RBV
-        elif reason.endswith("BL:MODE"):
+        elif reason_no_val == BEAMLINE_MODE or reason_no_val == BEAMLINE_MODE + SP_SUFFIX:
             beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
             return beamline_mode_enums.index(self._beamline.active_mode)
+        elif reason_no_val == BEAMLINE_MOVE:
+            return self._beamline.move
         else:
             return self.getParam(reason)
 
@@ -56,19 +63,20 @@ class ReflectometryDriver(Driver):
         :param value: The value being written to the PV
         """
         status = True
-        if reason.startswith(PARAM_PREFIX):
-            param_name = self._pv_manager.get_param_name_from_pv(reason)
+        reason_no_val = remove_from_end(reason, ".VAL")
+        if reason_no_val.startswith(PARAM_PREFIX):
+            param_name = self._pv_manager.get_param_name_from_pv(reason_no_val)
             param = self._beamline.parameter(param_name)
-            if reason.endswith(MOVE_SUFFIX):
+            if reason_no_val.endswith(MOVE_SUFFIX):
                 param.move = 1
-            elif reason.endswith(SP_SUFFIX):
+            elif reason_no_val.endswith(SP_SUFFIX):
                 param.sp_no_move = value
-                self.setParam(reason+":RBV", param.sp_rbv)
-            elif reason.endswith(SET_AND_MOVE_SUFFIX):
+                self.setParam(reason_no_val+":RBV", param.sp_rbv)
+            elif reason_no_val.endswith(SET_AND_MOVE_SUFFIX):
                 param.sp = value
-        elif reason == BEAMLINE_MOVE:
+        elif reason_no_val == BEAMLINE_MOVE:
             self._beamline.move = 1
-        elif reason == BEAMLINE_MODE:
+        elif reason_no_val == BEAMLINE_MODE or reason_no_val == BEAMLINE_MODE + SP_SUFFIX:
             try:
                 beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
                 self._beamline.active_mode = beamline_mode_enums[value]
@@ -78,7 +86,8 @@ class ReflectometryDriver(Driver):
                 status = False
 
         if status:
-            self.setParam(reason, value)
+            self.setParam(reason_no_val, value)
+            self.setParam(reason_no_val + ".VAL", value)
             self.update_monitors()
         return status
 
