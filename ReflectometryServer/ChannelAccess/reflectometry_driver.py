@@ -46,8 +46,8 @@ class ReflectometryDriver(Driver):
         elif reason.endswith(BEAMLINE_MODE):
             beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
             return beamline_mode_enums.index(self._beamline.active_mode)
-        elif reason == BEAMLINE_ERROR:
-            return self._beamline.error
+        elif reason == BEAMLINE_STATUS:
+            return self._beamline.status
 
         else:
             return self.getParam(reason)
