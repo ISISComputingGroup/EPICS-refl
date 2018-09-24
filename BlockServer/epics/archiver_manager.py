@@ -31,19 +31,17 @@ class ArchiverManager(object):
 
     RUN_CONTROL_PVS = ["LOW", "HIGH", "INRANGE", "ENABLE"]
 
-    def __init__(self, uploader_path, settings_path, archiver=ArchiverWrapper(), file_access_class=open):
+    def __init__(self, uploader_path, settings_path, archiver=ArchiverWrapper()):
         """Constructor.
 
         Args:
             uploader_path (string): The filepath for the program that uploads the archiver settings.
             settings_path (string): The filepath for the settings to be writen to.
             archiver (ArchiverWrapper): The instance used to access the Archiver.
-            file_access_class (open): The class to use when creating files.
         """
         self._uploader_path = uploader_path
         self._settings_path = settings_path
         self._archive_wrapper = archiver
-        self._file_access_class = file_access_class
 
     def update_archiver(self, block_prefix, blocks):
         """Update the archiver to log the blocks specified.
@@ -78,7 +76,7 @@ class ArchiverManager(object):
             # Append prefix for the archiver
             self._generate_archive_channel(group, block_prefix, block, dataweb)
 
-        with self._file_access_class(self._settings_path, 'w') as f:
+        with open(self._settings_path, 'w') as f:
             xml = minidom.parseString(eTree.tostring(root)).toprettyxml()
             f.write(xml)
 
