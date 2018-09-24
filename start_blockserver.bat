@@ -1,5 +1,5 @@
 REM @echo off
-
+setlocal
 set MYDIRBLOCK=%~dp0
 call %MYDIRBLOCK%stop_blockserver.bat
 set CYGWIN=nodosfilewarning
