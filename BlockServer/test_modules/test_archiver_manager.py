@@ -122,44 +122,44 @@ class TestArchiveManager(unittest.TestCase):
         assert_that(FileStub.file_contents[self._setting_path], has_items(*block_str.splitlines()))
 
     def test_GIVEN_one_blocks_WHEN_update_THEN_xml_for_archiver_contains_runcontrl_low_value_block_in_dataweb_group(self):
-        expected_name="block"
+        expected_name = "block"
         expected_pv = "pv"
         blocks = [Block(expected_name, expected_pv, log_periodic=True, log_rate=0, log_deadband=1)]
         prefix = "prefix"
-        block_str_rc_low = SCAN_BLOCK.format(prefix=prefix, block_name=expected_name + ":LOW.VAL", period_s=0, period_min=5)
+        block_str_rc_low = SCAN_BLOCK.format(prefix=prefix, block_name=expected_name + ":RC:LOW.VAL", period_s=0, period_min=5)
 
         self.archiver_manager.update_archiver(prefix, blocks)
 
         assert_that(FileStub.file_contents[self._setting_path], has_items(*block_str_rc_low.splitlines()))
 
     def test_GIVEN_one_blocks_WHEN_update_THEN_xml_for_archiver_contains_runcontrl_high_value_block_in_dataweb_group(self):
-        expected_name="block"
+        expected_name = "block"
         expected_pv = "pv"
         blocks = [Block(expected_name, expected_pv, log_periodic=True, log_rate=0, log_deadband=1)]
         prefix = "prefix"
-        block_str_rc_low = SCAN_BLOCK.format(prefix=prefix, block_name=expected_name + ":HIGH.VAL", period_s=0, period_min=5)
+        block_str_rc_low = SCAN_BLOCK.format(prefix=prefix, block_name=expected_name + ":RC:HIGH.VAL", period_s=0, period_min=5)
 
         self.archiver_manager.update_archiver(prefix, blocks)
 
         assert_that(FileStub.file_contents[self._setting_path], has_items(*block_str_rc_low.splitlines()))
 
     def test_GIVEN_one_blocks_WHEN_update_THEN_xml_for_archiver_contains_runcontrl_inrange_block_in_dataweb_group(self):
-        expected_name="block"
+        expected_name = "block"
         expected_pv = "pv"
         blocks = [Block(expected_name, expected_pv, log_periodic=True, log_rate=0, log_deadband=1)]
         prefix = "prefix"
-        block_str_rc_low = SCAN_BLOCK.format(prefix=prefix, block_name=expected_name + ":INRANGE.VAL", period_s=0, period_min=5)
+        block_str_rc_low = SCAN_BLOCK.format(prefix=prefix, block_name=expected_name + ":RC:INRANGE.VAL", period_s=0, period_min=5)
 
         self.archiver_manager.update_archiver(prefix, blocks)
 
         assert_that(FileStub.file_contents[self._setting_path], has_items(*block_str_rc_low.splitlines()))
 
     def test_GIVEN_one_blocks_WHEN_update_THEN_xml_for_archiver_contains_runcontrl_enabled_block_in_dataweb_group(self):
-        expected_name="block"
+        expected_name = "block"
         expected_pv = "pv"
         blocks = [Block(expected_name, expected_pv, log_periodic=True, log_rate=0, log_deadband=1)]
         prefix = "prefix"
-        block_str_rc_low = SCAN_BLOCK.format(prefix=prefix, block_name=expected_name + ":ENABLE.VAL", period_s=0, period_min=5)
+        block_str_rc_low = SCAN_BLOCK.format(prefix=prefix, block_name=expected_name + ":RC:ENABLE.VAL", period_s=0, period_min=5)
 
         self.archiver_manager.update_archiver(prefix, blocks)
 
