@@ -36,6 +36,7 @@ def create_beamline_from_configuration():
     # BEAMLINE PARAMETERS
     sm_enabled = ComponentEnabled("smenabled", super_mirror, True)
     sm_angle = ReflectionAngle("smangle", super_mirror, True)
+    sm_pos = TrackingPosition("smpos", super_mirror, True)
     slit2_pos = TrackingPosition("slit2pos", s2, True)
     sample_pos = TrackingPosition("samplepos", sample, True)
     theta = Theta("theta", sample, True)
@@ -44,6 +45,7 @@ def create_beamline_from_configuration():
     det = TrackingPosition("detpos", point_det, True)
     params = [sm_enabled,
               sm_angle,
+              sm_pos,
               slit2_pos,
               sample_pos,
               theta,
