@@ -24,7 +24,7 @@ class PVManager:
     """
     Holds reflectometry PVs and associated utilities.
     """
-    def __init__(self, param_types, mode_names):
+    def __init__(self, param_types, mode_names, status_codes):
         """
         The constructor.
         Args:
@@ -42,7 +42,8 @@ class PVManager:
                 'enums': mode_names
             },
             BEAMLINE_STATUS: {
-                'type': 'string'
+                'type': 'enum',
+                'enums': status_codes
             },
             BEAMLINE_MESSAGE: {
                 'type': 'string'

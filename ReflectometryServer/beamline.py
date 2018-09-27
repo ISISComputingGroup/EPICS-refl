@@ -2,9 +2,10 @@
 Resources at a beamline level
 """
 from collections import OrderedDict
+from enum import Enum
 
 
-class STATUS(object):
+class STATUS(Enum):
     """
     Beamline States.
     """
@@ -111,8 +112,8 @@ class Beamline(object):
         self._components = components
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
-        self.status = None  # Need list of possible values? e.g. OK, CONFIG_ERROR, etc.? Then it's extensible?
-        self.message = None
+        self._status = None  # Need list of possible values? e.g. OK, CONFIG_ERROR, etc.? Then it's extensible?
+        self._message = None
 
         for beamline_parameter in beamline_parameters:
             if beamline_parameter.name in self._beamline_parameters:
@@ -124,13 +125,13 @@ class Beamline(object):
         for component in components:
             component.after_beam_path_update_listener = self.update_beam_path
 
-        self._modes = OrderedDict()
+        self._modes = OrderedDict([("", [])])
         for mode in modes:
             self._modes[mode.name] = mode
             mode.validate_parameters(self._beamline_parameters.keys())
 
         self.incoming_beam = None
-        self._active_mode = None
+        self._active_mode = self._modes[""]  # Select blank mode as default
 
     @property
     def parameter_types(self):
@@ -149,6 +150,13 @@ class Beamline(object):
         Returns: the names of all the modes
         """
         return self._modes.keys()
+
+    @property
+    def status_codes(self):
+        """
+        Returns: the status codes
+        """
+        return self._status.keys()
 
     @property
     def active_mode(self):

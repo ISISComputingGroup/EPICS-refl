@@ -19,11 +19,14 @@ def create_beamline_from_configuration():
         from configuration import get_beamline
 
         beamline = get_beamline()
-        beamline.active_mode = "nr"  #TODO initialise in init (future ticket)
+        beamline.active_mode = "nr"  # TODO initialise in init (future ticket)
+        beamline.status = STATUS.OKAY
     except ImportError as error:
         print_and_log(error.__class__.__name__ + ": " + error.message, SEVERITY.MAJOR, src="REFL")
         beamline = Beamline([], [], [], [])
         beamline.status = STATUS.CONFIG_ERROR
         beamline.message = "Can not read configuration, see ioc log for more information."
+        beamline.incoming_beam = (0, 0, 0)
+        beamline.active_mode = ""
 
     return beamline
