@@ -11,6 +11,7 @@ class STATUS(Enum):
     """
     OKAY = "OKAY"
     CONFIG_ERROR = "CONFIG_ERROR"
+    CONFIG_IMPORT_ERROR = "CONFIG_IMPORT_ERROR"
     ERROR = "ERROR"
 
 
@@ -125,13 +126,13 @@ class Beamline(object):
         for component in components:
             component.after_beam_path_update_listener = self.update_beam_path
 
-        self._modes = OrderedDict([("", [])])
+        self._modes = OrderedDict()
         for mode in modes:
             self._modes[mode.name] = mode
             mode.validate_parameters(self._beamline_parameters.keys())
 
         self.incoming_beam = None
-        self._active_mode = self._modes[""]  # Select blank mode as default
+        self._active_mode = None
 
     @property
     def parameter_types(self):
