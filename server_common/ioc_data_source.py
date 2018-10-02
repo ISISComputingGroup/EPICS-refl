@@ -7,6 +7,9 @@ from server_common.utilities import print_and_log
 PV_INFO_FIELD_NAME = "info_field"
 """name of the info field on a pv to express its interest level and archive status"""
 
+PV_DESCRIPTION_NAME = "description"
+"""name of the description field on a pv"""
+
 GET_PV_INFO_QUERY = """
 SELECT s.iocname, p.pvname, lower(p.infoname), p.value
   FROM pvinfo p
@@ -274,7 +277,7 @@ class IocDataSource(object):
         """
         try:
             pv_type = pv.get('type', "float")
-            description = pv.get("description", "")
+            description = pv.get(PV_DESCRIPTION_NAME, "")
             self.mysql_abstraction_layer.update(INSERT_PV_DETAILS, (pv_fullname, pv_type, description, ioc_name))
         except DatabaseError as err:
             print_and_log("Failed to insert pv data for pv '{pvname}' with contents '{pv}': {error}"

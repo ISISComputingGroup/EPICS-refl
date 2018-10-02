@@ -4,7 +4,7 @@ Reflectometry pv manager
 from enum import Enum
 
 from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
-from server_common.ioc_data_source import PV_INFO_FIELD_NAME
+from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
 from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY
 import json
 
@@ -156,7 +156,7 @@ class PVManager:
 
         """
         pv_fields = pv_fields.copy()
-        pv_fields["description"] = description + PvSort.what(param_sort)
+        pv_fields[PV_DESCRIPTION_NAME] = description + PvSort.what(param_sort)
 
         pv_fields_mod = pv_fields.copy()
         pv_fields_mod[PV_INFO_FIELD_NAME] = {}

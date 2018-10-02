@@ -119,9 +119,10 @@ class TestIocDataSource(unittest.TestCase):
         prefix = "prefix"
         pv_name_1 = "pv_name_1"
         pv_name_2 = "pv_name_2"
+        description = "desc1"
         expected_name1 = "{}{}".format(prefix, pv_name_1)
         expected_name2 = "{}{}".format(prefix, pv_name_2)
-        pvs = {pv_name_1: {"type": expected_type1},
+        pvs = {pv_name_1: {"type": expected_type1, "description": description},
                pv_name_2: {}}
 
         iocname = "name"
@@ -131,7 +132,7 @@ class TestIocDataSource(unittest.TestCase):
             assert_that(sql, contains_string("INSERT INTO pvs"))
 
         assert_that(mysql_abstraction_layer.sql_param[3:5], contains_inanyorder(
-                (expected_name1, expected_type1, "", iocname),
+                (expected_name1, expected_type1, description, iocname),
                 (expected_name2, expected_type2, "", iocname)))
 
     def test_GIVEN_ioc_with_pvs_with_pv_info_WHEN_pvdump_THEN_calls_are_made_to_add_pv_info_with_correct_pv_names_info_names_and_values(self):
