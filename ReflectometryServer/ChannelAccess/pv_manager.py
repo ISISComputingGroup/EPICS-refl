@@ -58,7 +58,8 @@ class PVManager:
         """
         The constructor.
         Args:
-            param_types (dict[str, str]): The types for which to create PVs, keyed by name.
+            param_types (dict[str, (str, str, str)]): The type, group name and description for which to create PVs,
+                keyed by name.
             mode_names: names of the modes
         """
 
@@ -74,8 +75,8 @@ class PVManager:
 
         self._params_pv_lookup = {}
         self._tracking_positions = {}
-        for param, (param_type, group_names) in param_types.items():
-            self._add_parameter_pvs(param, group_names, **PARAMS_FIELDS_BEAMLINE_TYPES[param_type])
+        for param, (param_type, group_names, description) in param_types.items():
+            self._add_parameter_pvs(param, group_names, description, **PARAMS_FIELDS_BEAMLINE_TYPES[param_type])
         self.PVDB[TRACKING_AXES] = {'type': 'char',
                                     'count': 300,
                                     'value': json.dumps(self._tracking_positions)
@@ -83,7 +84,7 @@ class PVManager:
         for pv_name in self.PVDB.keys():
             print("creating pv: {}".format(pv_name))
 
-    def _add_parameter_pvs(self, param_name, group_names, **fields):
+    def _add_parameter_pvs(self, param_name, group_names, description, **fields):
         """
         Adds all PVs needed for one beamline parameter to the PV database.
 
@@ -91,12 +92,17 @@ class PVManager:
             param_name: The name of the beamline parameter
             fields: The fields of the parameter PV
             group_names: list fo groups to which this parameter belong
+            description: description of the pv
         """
         try:
             param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM")
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
             if BeamlineParameterGroup.TRACKING in group_names:
                 self._tracking_positions[prepended_alias] = param_name
+
+            self.PVDB["{}.DESC".format(prepended_alias)] = {'type': 'string',
+                                                            'value': description
+                                                            }
 
             field_with_intrest_and_archiving = fields.copy()
             field_with_intrest_and_archiving[PV_INFO_FIELD_NAME] = INTERESTING_AND_ARCHIVED

@@ -1,6 +1,8 @@
 """
 Objects to Create a beamline from the configuration.
 """
+from hamcrest.core import description
+
 from ReflectometryServer.components import *
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.parameters import *
@@ -35,7 +37,7 @@ def create_beamline_from_configuration():
 
     # BEAMLINE PARAMETERS
     sm_enabled = ComponentEnabled("smenabled", super_mirror, True)
-    sm_angle = ReflectionAngle("smangle", super_mirror, True)
+    sm_angle = ReflectionAngle("smangle", super_mirror, True, description="super mirror angle")
     sm_pos = TrackingPosition("smpos", super_mirror, True)
     slit2_pos = TrackingPosition("slit2pos", s2, True)
     sample_pos = TrackingPosition("samplepos", sample, True)
