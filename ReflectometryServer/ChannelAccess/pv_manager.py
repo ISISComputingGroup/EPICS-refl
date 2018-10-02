@@ -5,7 +5,7 @@ from enum import Enum
 
 from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME
-from server_common.utilities import create_pv_name, remove_from_end
+from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY
 import json
 
 PARAM_PREFIX = "PARAM"
@@ -21,21 +21,11 @@ VAL_FIELD = ".VAL"
 
 PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
 
-PARAM_FIELDS_MOVE = {'type': 'int', 'count': 1, 'value': 0, }
-TRIGGER_FIELDS = {'type': 'int', 'count': 1, 'value': 0}
+PARAM_FIELDS_MOVE = {'type': 'int', 'count': 1, 'value': 0}
 
 PARAMS_FIELDS_BEAMLINE_TYPES = {
     BeamlineParameterType.IN_OUT: {'enums': ["OUT", "IN"]},
     BeamlineParameterType.FLOAT: {'type': 'float', 'prec': 3, 'value': 0.0}}
-
-ARCHIVED = {
-    "archive": "VAL",
-}
-
-INTERESTING_AND_ARCHIVED = {
-    "archive": "VAL",
-    "INTEREST": "HIGH"
-}
 
 
 class PvSort(Enum):
@@ -48,6 +38,30 @@ class PvSort(Enum):
     SP = 3
     SET_AND_MOVE = 4
     CHANGED = 6
+
+    @staticmethod
+    def what(pv_sort):
+        """
+        Args:
+            pv_sort: pv sort to determin
+
+        Returns: what the pv sort does
+        """
+        if pv_sort == PvSort.RBV:
+            return ""
+        elif pv_sort == PvSort.MOVE:
+            return "(Do move)"
+        elif pv_sort == PvSort.SP_RBV:
+            return "(Set point readback)"
+        elif pv_sort == PvSort.SP:
+            return "(Set point)"
+        elif pv_sort == PvSort.SET_AND_MOVE:
+            return "(Set point and then move)"
+        elif pv_sort == PvSort.CHANGED:
+            return "(is changed)"
+        else:
+            print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
+            return "(unknown)"
 
 
 class PVManager:
@@ -62,16 +76,14 @@ class PVManager:
                 keyed by name.
             mode_names: names of the modes
         """
+        self.PVDB = {}
+        self._add_pv_with_val(BEAMLINE_MOVE, None, PARAM_FIELDS_MOVE, "Move the beam line", PvSort.RBV, archive=True,
+                              interest="HIGH")
 
-        mode_fields = {'type': 'enum', 'enums': mode_names, PV_INFO_FIELD_NAME: INTERESTING_AND_ARCHIVED}
-        self.PVDB = {
-            BEAMLINE_MOVE: PARAM_FIELDS_MOVE,
-            BEAMLINE_MOVE + VAL_FIELD: PARAM_FIELDS_MOVE,
-            BEAMLINE_MODE: mode_fields,
-            BEAMLINE_MODE + VAL_FIELD: mode_fields,
-            BEAMLINE_MODE + SP_SUFFIX: mode_fields,
-            BEAMLINE_MODE + SP_SUFFIX + VAL_FIELD: mode_fields
-        }
+        mode_fields = {'type': 'enum', 'enums': mode_names}
+        self._add_pv_with_val(BEAMLINE_MODE, None, mode_fields, "Beamline mode", PvSort.RBV, archive=True,
+                              interest="HIGH")
+        self._add_pv_with_val(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
 
         self._params_pv_lookup = {}
         self._tracking_positions = {}
@@ -104,40 +116,60 @@ class PVManager:
                                                             'value': description
                                                             }
 
-            field_with_intrest_and_archiving = fields.copy()
-            field_with_intrest_and_archiving[PV_INFO_FIELD_NAME] = INTERESTING_AND_ARCHIVED
-
-            field_with_intrest_and_archiving[PV_INFO_FIELD_NAME + VAL_FIELD] = fields
-            fields_with_archiving = fields.copy()
-            fields_with_archiving[PV_INFO_FIELD_NAME] = ARCHIVED
             # Readback PV
-            self._add_pv_with_val(prepended_alias, param_name, field_with_intrest_and_archiving, fields, PvSort.RBV)
+            self._add_pv_with_val(prepended_alias, param_name, fields, description, PvSort.RBV, archive=True,
+                                  interest="HIGH")
 
             # Setpoint PV
-            self._add_pv_with_val(prepended_alias + SP_SUFFIX, param_name, fields_with_archiving, fields, PvSort.SP)
+            self._add_pv_with_val(prepended_alias + SP_SUFFIX, param_name, fields, description, PvSort.SP, archive=True)
 
             # Setpoint readback PV
-            self._add_pv_with_val(prepended_alias + SP_RBV_SUFFIX, param_name, fields, fields, PvSort.SP_RBV)
+            self._add_pv_with_val(prepended_alias + SP_RBV_SUFFIX, param_name, fields, description, PvSort.SP_RBV)
 
             # Set value and move PV
-            self._add_pv_with_val(prepended_alias + SET_AND_MOVE_SUFFIX, param_name,
-                                  fields, fields, PvSort.SET_AND_MOVE)
+            self._add_pv_with_val(prepended_alias + SET_AND_MOVE_SUFFIX, param_name, fields, description,
+                                  PvSort.SET_AND_MOVE)
 
             # Changed PV
-            self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name,
-                                  PARAM_FIELDS_CHANGED, PARAM_FIELDS_CHANGED, PvSort.CHANGED)
+            self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_CHANGED, description,
+                                  PvSort.CHANGED)
 
             # Move  PV
-            self._add_pv_with_val(prepended_alias + MOVE_SUFFIX, param_name,
-                                  PARAM_FIELDS_MOVE, PARAM_FIELDS_MOVE, PvSort.MOVE)
+            self._add_pv_with_val(prepended_alias + MOVE_SUFFIX, param_name, PARAM_FIELDS_MOVE, description,
+                                  PvSort.MOVE)
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
 
-    def _add_pv_with_val(self, pv_name, param_name, pv_fields, pv_with_val_fields, param_sort):
-        self.PVDB[pv_name] = pv_fields
-        self.PVDB[pv_name + VAL_FIELD] = pv_with_val_fields
-        self._params_pv_lookup[pv_name] = (param_name, param_sort)
+    def _add_pv_with_val(self, pv_name, param_name, pv_fields, description, param_sort, archive=False, interest=None):
+        """
+        Add param to pv list with .val and correct fields and to parm look up
+        Args:
+            pv_name: name of the pv
+            param_name: name of the parameter; None for not a parameter
+            pv_fields: pv fields to use
+            param_sort: sort of parameter it is
+            archive: True if it should be archived
+            interest: level of interest; None is not interesting
+
+        Returns:
+
+        """
+        pv_fields = pv_fields.copy()
+        pv_fields["description"] = description + PvSort.what(param_sort)
+
+        pv_fields_mod = pv_fields.copy()
+        pv_fields_mod[PV_INFO_FIELD_NAME] = {}
+        if interest is not None:
+            pv_fields_mod[PV_INFO_FIELD_NAME]["INTEREST"] = interest
+        if archive:
+            pv_fields_mod[PV_INFO_FIELD_NAME]["archive"] = "VAL"
+
+        self.PVDB[pv_name] = pv_fields_mod
+        self.PVDB[pv_name + VAL_FIELD] = pv_fields
+
+        if param_name is not None:
+            self._params_pv_lookup[pv_name] = (param_name, param_sort)
 
     def param_names_pvnames_and_sort(self):
         """

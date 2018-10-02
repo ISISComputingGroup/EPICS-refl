@@ -274,7 +274,8 @@ class IocDataSource(object):
         """
         try:
             pv_type = pv.get('type', "float")
-            self.mysql_abstraction_layer.update(INSERT_PV_DETAILS, (pv_fullname, pv_type, "", ioc_name))
+            description = pv.get("description", "")
+            self.mysql_abstraction_layer.update(INSERT_PV_DETAILS, (pv_fullname, pv_type, description, ioc_name))
         except DatabaseError as err:
             print_and_log("Failed to insert pv data for pv '{pvname}' with contents '{pv}': {error}"
                           .format(ioc_name=ioc_name, pvname=pv_fullname, pv=pv, error=err), "MAJOR", "DBSVR")
