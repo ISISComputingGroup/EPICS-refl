@@ -1,13 +1,17 @@
 """
 Reflectometry pv manager
 """
-from ReflectometryServer.parameters import BeamlineParameterType
-from server_common.ioc_data_source import PV_INFO_FIELD_NAME
-from server_common.utilities import create_pv_name
+from enum import Enum
 
-PARAM_PREFIX = "PARAM:"
+from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
+from server_common.ioc_data_source import PV_INFO_FIELD_NAME
+from server_common.utilities import create_pv_name, remove_from_end
+import json
+
+PARAM_PREFIX = "PARAM"
 BEAMLINE_MODE = "BL:MODE"
 BEAMLINE_MOVE = "BL:MOVE"
+TRACKING_AXES = "TRACKING_AXES"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
 MOVE_SUFFIX = ":MOVE"
@@ -18,6 +22,7 @@ VAL_FIELD = ".VAL"
 PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
 
 PARAM_FIELDS_MOVE = {'type': 'int', 'count': 1, 'value': 0, }
+TRIGGER_FIELDS = {'type': 'int', 'count': 1, 'value': 0}
 
 PARAMS_FIELDS_BEAMLINE_TYPES = {
     BeamlineParameterType.IN_OUT: {'enums': ["OUT", "IN"]},
@@ -31,6 +36,18 @@ INTERESTING_AND_ARCHIVED = {
     "archive": "VAL",
     "INTEREST": "HIGH"
 }
+
+
+class PvSort(Enum):
+    """
+    Enum for the type of PV
+    """
+    RBV = 0
+    MOVE = 1
+    SP_RBV = 2
+    SP = 3
+    SET_AND_MOVE = 4
+    CHANGED = 6
 
 
 class PVManager:
@@ -55,25 +72,32 @@ class PVManager:
             BEAMLINE_MODE + SP_SUFFIX + VAL_FIELD: mode_fields
         }
 
-        self._pv_lookup = {}
-        for param, param_type in param_types.items():
-            self._add_parameter_pvs(param, "", **PARAMS_FIELDS_BEAMLINE_TYPES[param_type])
-
+        self._params_pv_lookup = {}
+        self._tracking_positions = {}
+        for param, (param_type, group_names) in param_types.items():
+            self._add_parameter_pvs(param, group_names, **PARAMS_FIELDS_BEAMLINE_TYPES[param_type])
+        self.PVDB[TRACKING_AXES] = {'type': 'char',
+                                    'count': 300,
+                                    'value': json.dumps(self._tracking_positions)
+                                    }
         for pv_name in self.PVDB.keys():
             print("creating pv: {}".format(pv_name))
 
-    def _add_parameter_pvs(self, param_name, field_name, **fields):
+    def _add_parameter_pvs(self, param_name, group_names, **fields):
         """
         Adds all PVs needed for one beamline parameter to the PV database.
 
-        :param param_name: The name of the beamline parameter
-        :param fields: The fields of the parameter PV
+        Args:
+            param_name: The name of the beamline parameter
+            fields: The fields of the parameter PV
+            group_names: list fo groups to which this parameter belong
         """
         try:
             param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM")
-            self._pv_lookup[param_alias + field_name] = param_name
+            prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
+            if BeamlineParameterGroup.TRACKING in group_names:
+                self._tracking_positions[prepended_alias] = param_name
 
-            prepended_alias = PARAM_PREFIX + param_alias
             field_with_intrest_and_archiving = fields.copy()
             field_with_intrest_and_archiving[PV_INFO_FIELD_NAME] = INTERESTING_AND_ARCHIVED
 
@@ -81,46 +105,87 @@ class PVManager:
             fields_with_archiving = fields.copy()
             fields_with_archiving[PV_INFO_FIELD_NAME] = ARCHIVED
             # Readback PV
-            self.PVDB[prepended_alias + field_name] = field_with_intrest_and_archiving
-            self.PVDB[prepended_alias + field_name + VAL_FIELD] = fields
+            self._add_pv_with_val(prepended_alias, param_name, field_with_intrest_and_archiving, fields, PvSort.RBV)
 
             # Setpoint PV
-            self.PVDB[prepended_alias + SP_SUFFIX + field_name] = fields_with_archiving
-            self.PVDB[prepended_alias + SP_SUFFIX + field_name + VAL_FIELD] = fields
+            self._add_pv_with_val(prepended_alias + SP_SUFFIX, param_name, fields_with_archiving, fields, PvSort.SP)
 
             # Setpoint readback PV
-            self.PVDB[prepended_alias + SP_RBV_SUFFIX + field_name] = fields
-            self.PVDB[prepended_alias + SP_RBV_SUFFIX + field_name + VAL_FIELD] = fields
+            self._add_pv_with_val(prepended_alias + SP_RBV_SUFFIX, param_name, fields, fields, PvSort.SP_RBV)
 
             # Set value and move PV
-            self.PVDB[prepended_alias + SET_AND_MOVE_SUFFIX + field_name] = fields
-            self.PVDB[prepended_alias + SET_AND_MOVE_SUFFIX + field_name + VAL_FIELD] = fields
+            self._add_pv_with_val(prepended_alias + SET_AND_MOVE_SUFFIX, param_name,
+                                  fields, fields, PvSort.SET_AND_MOVE)
 
             # Changed PV
-            self.PVDB[prepended_alias + CHANGED_SUFFIX + field_name] = PARAM_FIELDS_CHANGED
-            self.PVDB[prepended_alias + CHANGED_SUFFIX + field_name + VAL_FIELD] = PARAM_FIELDS_CHANGED
+            self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name,
+                                  PARAM_FIELDS_CHANGED, PARAM_FIELDS_CHANGED, PvSort.CHANGED)
 
             # Move  PV
-            self.PVDB[prepended_alias + MOVE_SUFFIX + field_name] = PARAM_FIELDS_MOVE
-            self.PVDB[prepended_alias + MOVE_SUFFIX + field_name + VAL_FIELD] = PARAM_FIELDS_MOVE
+            self._add_pv_with_val(prepended_alias + MOVE_SUFFIX, param_name,
+                                  PARAM_FIELDS_MOVE, PARAM_FIELDS_MOVE, PvSort.MOVE)
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
 
-    def get_param_name_from_pv(self, pv):
-        """
-        Extracts the name of a beamline parameter based on its PV address.
-        :param pv: The PV address
-        :return: The parameter associated to the PV
-        """
-        param_alias = pv.split(":")[1]
-        try:
-            return self._pv_lookup[param_alias]
-        except KeyError:
-            print("Error: Could not find beamline parameter for alias " + param_alias)
+    def _add_pv_with_val(self, pv_name, param_name, pv_fields, pv_with_val_fields, param_sort):
+        self.PVDB[pv_name] = pv_fields
+        self.PVDB[pv_name + VAL_FIELD] = pv_with_val_fields
+        self._params_pv_lookup[pv_name] = (param_name, param_sort)
 
-    def parameter_pvs(self):
+    def param_names_pvnames_and_sort(self):
         """
         :return: The list of PVs of all beamline parameters.
         """
-        return [PARAM_PREFIX + pv_alias for pv_alias in self._pv_lookup.keys()]
+        return self._params_pv_lookup.items()
+
+    def is_param(self, pv_name):
+        """
+
+        Args:
+            pv_name: name of the pv
+
+        Returns:
+            True if the pv is a pv for beamline parameter
+        """
+        return remove_from_end(pv_name, VAL_FIELD) in self._params_pv_lookup
+
+    def get_param_name_and_suffix_from_pv(self, pv_name):
+        """
+        Args:
+            pv_name: name of pv to find
+
+        Returns:
+            (str, PvSort): parameter name and sort for the given pv
+        """
+        return self._params_pv_lookup[remove_from_end(pv_name, VAL_FIELD)]
+
+    def is_beamline_mode(self, pv_name):
+        """
+        Args:
+            pv_name: name of the pv
+
+        Returns: True if this the beamline mode pv
+        """
+        pvname_no_val = remove_from_end(pv_name, VAL_FIELD)
+        return pvname_no_val == BEAMLINE_MODE or pvname_no_val == BEAMLINE_MODE + SP_SUFFIX
+
+    def is_beamline_move(self, pv_name):
+        """
+        Args:
+            pv_name: name of the pv
+
+        Returns: True if this the beamline move pv
+        """
+        pvname_no_val = remove_from_end(pv_name, VAL_FIELD)
+        return pvname_no_val == BEAMLINE_MOVE
+
+    def is_tracking_axis(self, pv_name):
+        """
+        Args:
+            pv_name: name of the pv
+
+        Returns: True if this the beamline tracking axis pv
+        """
+        pvname_no_val = remove_from_end(pv_name, VAL_FIELD)
+        return pvname_no_val == TRACKING_AXES

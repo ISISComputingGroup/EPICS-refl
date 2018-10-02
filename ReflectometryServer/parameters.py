@@ -12,6 +12,13 @@ class BeamlineParameterType(Enum):
     IN_OUT = 1
 
 
+class BeamlineParameterGroup(Enum):
+    """
+    Types of groups a parameter can belong to
+    """
+    TRACKING = 1
+
+
 class BeamlineParameter(object):
     """
     General beamline parameter that can be set. Subclass must implement _calc_move to decide what to do with the
@@ -28,6 +35,7 @@ class BeamlineParameter(object):
         self._name = name
         self.after_move_listener = lambda x: None
         self.parameter_type = BeamlineParameterType.FLOAT
+        self.group_names = []
 
     @property
     def sp_rbv(self):
@@ -129,7 +137,7 @@ class ReflectionAngle(BeamlineParameter):
         Initializer.
         Args:
             name (str): Name of the reflection angle
-            reflection_component (ReflServer.components.ReflectingComponent): the active component at the
+            reflection_component (ReflectometryServer.components.ReflectingComponent): the active component at the
                 reflection point
         """
         super(ReflectionAngle, self).__init__(name, sim, init)
@@ -150,7 +158,7 @@ class Theta(ReflectionAngle):
         Initializer.
         Args:
             name (str): name of theta
-            ideal_sample_point (ReflServer.components.ReflectingComponent): the ideal sample point active component
+            ideal_sample_point (ReflectometryServer.components.ReflectingComponent): the ideal sample point active component
         """
         super(Theta, self).__init__(name, ideal_sample_point, sim, init)
 
@@ -169,6 +177,7 @@ class TrackingPosition(BeamlineParameter):
         """
         super(TrackingPosition, self).__init__(name, sim, init)
         self._component = component
+        self.group_names.append(BeamlineParameterGroup.TRACKING)
 
     def _move_component(self):
         self._component.set_position_relative_to_beam(self._set_point)
