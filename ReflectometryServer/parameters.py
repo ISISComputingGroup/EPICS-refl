@@ -24,6 +24,7 @@ class BeamlineParameter(object):
             self._set_point_rbv = init
         else:
             self._set_point = None
+            self._set_point_rbv = None
         self._sp_is_changed = False
         self._name = name
         self.after_move_listener = lambda x: None
@@ -86,16 +87,22 @@ class BeamlineParameter(object):
         """
         Move to the setpoint, no matter what the value passed is.
         """
-        self.move_no_callback()
+        self.move_to_sp_no_callback()
         self.after_move_listener(self)
 
-    def move_no_callback(self):
+    def move_to_sp_no_callback(self):
         """
         Move the component but don't call a callback indicating a move has been performed.
         """
-        self._move_component()
         self._set_point_rbv = self._set_point
+        self._move_component()
         self._sp_is_changed = False
+
+    def move_to_sp_rbv_no_callback(self):
+        """
+        Repeat the move to the last set point.
+        """
+        self._move_component()
 
     @property
     def name(self):
@@ -136,7 +143,7 @@ class ReflectionAngle(BeamlineParameter):
         self._reflection_component = reflection_component
 
     def _move_component(self):
-        self._reflection_component.set_angle_relative_to_beam(self._set_point)
+        self._reflection_component.set_angle_relative_to_beam(self._set_point_rbv)
 
 
 class Theta(ReflectionAngle):
@@ -171,7 +178,7 @@ class TrackingPosition(BeamlineParameter):
         self._component = component
 
     def _move_component(self):
-        self._component.set_position_relative_to_beam(self._set_point)
+        self._component.set_position_relative_to_beam(self._set_point_rbv)
 
 
 class ComponentEnabled(BeamlineParameter):
@@ -191,4 +198,4 @@ class ComponentEnabled(BeamlineParameter):
         self.parameter_type = BeamlineParameterType.IN_OUT
 
     def _move_component(self):
-        self._component.enabled = self._set_point
+        self._component.enabled = self._set_point_rbv
