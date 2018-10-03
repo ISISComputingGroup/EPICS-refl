@@ -1,4 +1,4 @@
-# Instrumennt Servers
+# Instrument Servers
 
 Channel access servers which help run the isntrument. They are written in python and share some code. Many are based on [pcaspy](https://pypi.org/project/pcaspy/).
 
