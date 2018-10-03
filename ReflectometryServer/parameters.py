@@ -87,22 +87,22 @@ class BeamlineParameter(object):
         """
         Move to the setpoint, no matter what the value passed is.
         """
-        self.move_no_callback()
+        self.move_to_sp_no_callback()
         self.after_move_listener(self)
 
-    def move_no_callback(self):
+    def move_to_sp_no_callback(self):
         """
         Move the component but don't call a callback indicating a move has been performed.
         """
-        self._move_component(self._set_point)
         self._set_point_rbv = self._set_point
+        self._move_component()
         self._sp_is_changed = False
 
-    def move_no_callback_reset(self):
+    def move_to_sp_rbv_no_callback(self):
         """
         Repeat the move to the last set point.
         """
-        self._move_component(self._set_point_rbv)
+        self._move_component()
 
     @property
     def name(self):
@@ -118,7 +118,7 @@ class BeamlineParameter(object):
         """
         return self._sp_is_changed
 
-    def _move_component(self, value):
+    def _move_component(self):
         """
         Moves the component(s) associated with this parameter to the setpoint.
         """
@@ -142,8 +142,8 @@ class ReflectionAngle(BeamlineParameter):
         super(ReflectionAngle, self).__init__(name, sim, init)
         self._reflection_component = reflection_component
 
-    def _move_component(self, value):
-        self._reflection_component.set_angle_relative_to_beam(value)
+    def _move_component(self):
+        self._reflection_component.set_angle_relative_to_beam(self._set_point_rbv)
 
 
 class Theta(ReflectionAngle):
@@ -177,8 +177,8 @@ class TrackingPosition(BeamlineParameter):
         super(TrackingPosition, self).__init__(name, sim, init)
         self._component = component
 
-    def _move_component(self, value):
-        self._component.set_position_relative_to_beam(value)
+    def _move_component(self):
+        self._component.set_position_relative_to_beam(self._set_point_rbv)
 
 
 class ComponentEnabled(BeamlineParameter):
@@ -197,5 +197,5 @@ class ComponentEnabled(BeamlineParameter):
         self._component = component
         self.parameter_type = BeamlineParameterType.IN_OUT
 
-    def _move_component(self, value):
-        self._component.enabled = value
+    def _move_component(self):
+        self._component.enabled = self._set_point_rbv

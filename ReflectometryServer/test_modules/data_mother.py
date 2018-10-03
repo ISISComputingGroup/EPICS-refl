@@ -1,3 +1,6 @@
+"""
+Test data and classes.
+"""
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.parameters import BeamlineParameter
 
@@ -10,7 +13,7 @@ class EmptyBeamlineParameter(BeamlineParameter):
         super(EmptyBeamlineParameter, self).__init__(name)
         self.move_component_count = 0
 
-    def _move_component(self, value):
+    def _move_component(self):
         self.move_component_count += 1
 
 

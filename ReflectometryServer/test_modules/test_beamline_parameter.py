@@ -424,6 +424,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         assert_that(s4.sp_position().y, is_(s4_height_initial))
 
+
 class TestBeamlineOnMove(unittest.TestCase):
 
     def test_GIVEN_two_beamline_parameters_with_same_name_WHEN_construct_THEN_error(self):
