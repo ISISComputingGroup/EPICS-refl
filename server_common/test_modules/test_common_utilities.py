@@ -1,5 +1,5 @@
 import unittest
-from server_common.utilities import create_pv_name
+from server_common.utilities import create_pv_name, remove_from_end
 
 
 class TestCreatePVName(unittest.TestCase):
@@ -92,3 +92,47 @@ class TestCreatePVName(unittest.TestCase):
         # Assert
         self.assertEquals(pv_01, "CONFIG")
         self.assertEquals(pv_02, "CONF01")
+
+    def test_WHEN_string_contains_ending_THEN_ending_removed(self):
+        # Arrange
+        ending = "END"
+        text = "text"
+
+        # Act
+        result = remove_from_end(text + ending, ending)
+
+        # Assert
+        self.assertEquals(text, result)
+
+    def test_WHEN_string_does_not_contains_ending_THEN_text_returned(self):
+        # Arrange
+        ending = "END"
+        text = "text"
+
+        # Act
+        result = remove_from_end(text, ending)
+
+        # Assert
+        self.assertEquals(text, result)
+
+    def test_WHEN_string_is_empty_THEN_empty_text_returned(self):
+        # Arrange
+        ending = "END"
+        text = ""
+
+        # Act
+        result = remove_from_end(text, ending)
+
+        # Assert
+        self.assertEquals(text, result)
+
+    def test_WHEN_string_is_None_THEN_None_returned(self):
+        # Arrange
+        ending = "END"
+        text = None
+
+        # Act
+        result = remove_from_end(text, ending)
+
+        # Assert
+        self.assertIsNone(result)

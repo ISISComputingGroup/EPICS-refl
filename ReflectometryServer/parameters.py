@@ -12,13 +12,20 @@ class BeamlineParameterType(Enum):
     IN_OUT = 1
 
 
+class BeamlineParameterGroup(Enum):
+    """
+    Types of groups a parameter can belong to
+    """
+    TRACKING = 1
+
+
 class BeamlineParameter(object):
     """
     General beamline parameter that can be set. Subclass must implement _calc_move to decide what to do with the
     value that is set.
     """
 
-    def __init__(self, name, sim=False, init=None):
+    def __init__(self, name, sim=False, init=None, description=None):
         if sim:
             self._set_point = init
             self._set_point_rbv = init
@@ -29,6 +36,11 @@ class BeamlineParameter(object):
         self._name = name
         self.after_move_listener = lambda x: None
         self.parameter_type = BeamlineParameterType.FLOAT
+        if description is None:
+            self.description = name
+        else:
+            self.description = description
+        self.group_names = []
 
     @property
     def sp_rbv(self):
@@ -131,15 +143,18 @@ class ReflectionAngle(BeamlineParameter):
     Angle is measure with +ve in the anti-clockwise direction)
     """
 
-    def __init__(self, name, reflection_component, sim=False, init=0):
+    def __init__(self, name, reflection_component, sim=False, init=0, description=None):
         """
         Initializer.
         Args:
             name (str): Name of the reflection angle
             reflection_component (ReflectometryServer.components.ReflectingComponent): the active component at the
                 reflection point
+            description (str): description
         """
-        super(ReflectionAngle, self).__init__(name, sim, init)
+        if description is None:
+            description = "{} angle".format(name)
+        super(ReflectionAngle, self).__init__(name, sim, init, description)
         self._reflection_component = reflection_component
 
     def _move_component(self):
@@ -157,9 +172,11 @@ class Theta(ReflectionAngle):
         Initializer.
         Args:
             name (str): name of theta
-            ideal_sample_point (ReflectometryServer.components.ReflectingComponent): the ideal sample point active component
+            ideal_sample_point (ReflectometryServer.components.ReflectingComponent): the ideal sample point active
+                component
         """
-        super(Theta, self).__init__(name, ideal_sample_point, sim, init)
+        description = "Detector/reflector angle"
+        super(Theta, self).__init__(name, ideal_sample_point, sim, init, description=description)
 
 
 class TrackingPosition(BeamlineParameter):
@@ -167,15 +184,19 @@ class TrackingPosition(BeamlineParameter):
     Component which tracks the position of the beam with a single degree of freedom. E.g. slit set on a height stage
     """
 
-    def __init__(self, name, component, sim=False, init=0):
+    def __init__(self, name, component, sim=False, init=0, description=None):
         """
 
         Args:
             name: Name of the variable
             component (ReflectometryServer.components.PassiveComponent): component that the tracking is based on
+            description (str): description
         """
-        super(TrackingPosition, self).__init__(name, sim, init)
+        if description is None:
+            description = "{} tracking position".format(name)
+        super(TrackingPosition, self).__init__(name, sim, init, description=description)
         self._component = component
+        self.group_names.append(BeamlineParameterGroup.TRACKING)
 
     def _move_component(self):
         self._component.set_position_relative_to_beam(self._set_point_rbv)
@@ -186,14 +207,17 @@ class ComponentEnabled(BeamlineParameter):
     Parameter which sets whether a given device is enabled (i.e. parked in beam) on the beamline.
     """
 
-    def __init__(self, name, component, sim=False, init=False):
+    def __init__(self, name, component, sim=False, init=False, description=None):
         """
         Initializer.
         Args:
             name (str): Name of the enabled parameter
             component (ReflectometryServer.components.PassiveComponent): the component to be enabled or disabled
+            description (str): description
         """
-        super(ComponentEnabled, self).__init__(name, sim, init)
+        if description is None:
+            description = "{} component is in the beam".format(name)
+        super(ComponentEnabled, self).__init__(name, sim, init, description=description)
         self._component = component
         self.parameter_type = BeamlineParameterType.IN_OUT
 

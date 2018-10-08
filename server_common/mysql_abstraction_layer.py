@@ -1,3 +1,6 @@
+"""
+Abstracting out the sql connection.
+"""
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -26,7 +29,71 @@ class DatabaseError(Exception):
         self.message = message
 
 
-class SQLAbstraction(object):
+class AbstratSQLCommands(object):
+    """
+    Abstract base class for sql commands for testing
+    """
+    @staticmethod
+    def generate_in_binding(parameter_count):
+        """
+        Generate a list of python sql bindings for use in a sql in clause. One binding for each parameter.
+        i.e. %s, %s, %s for 3 parameters.
+
+        Args:
+            parameter_count: number of items in the in clause
+
+        Returns: in binding
+
+        """
+        return ", ".join(["%s"] * parameter_count)
+
+    def query_returning_cursor(self, command, bound_variables):
+        """
+        Generator which returns rows from query.
+        Args:
+            command: command to run
+            bound_variables: any bound variables
+
+        Yields: a row from the querry
+
+        """
+        raise NotImplemented()
+
+    def _execute_command(self, command, is_query, bound_variables):
+        """Executes a command on the database, and returns all values
+
+        Args:
+            command (string): the SQL command to run
+            is_query (boolean): is this a query (i.e. do we expect return values)
+
+        Returns:
+            values (list): list of all rows returned. None if not is_query
+        """
+        raise NotImplementedError()
+
+    def query(self, command, bound_variables=None):
+        """Executes a query on the database, and returns all values
+
+        Args:
+            command (string): the SQL command to run
+            bound_variables (tuple|dict): a tuple of parameters to bind into the query; Default no parameters to bind
+
+        Returns:
+            values (list): list of all rows returned
+        """
+        return self._execute_command(command, True, bound_variables)
+
+    def update(self, command, bound_variables=None):
+        """Executes an update on the database, and returns all values
+
+        Args:
+            command (string): the SQL command to run
+            bound_variables (tuple|dict): a tuple of parameters to bind into the query; Default no parameters to bind
+        """
+        self._execute_command(command, False, bound_variables)
+
+
+class SQLAbstraction(AbstratSQLCommands):
     """
     A wrapper to connect to MySQL databases.
     """
@@ -44,6 +111,7 @@ class SQLAbstraction(object):
             password (string): The password to use to connect to the database
             host (string): The host address to use, defaults to local host
         """
+        super(SQLAbstraction, self).__init__()
         self._dbid = dbid
         self._user = user
         self._password = password
@@ -120,6 +188,16 @@ class SQLAbstraction(object):
         return values
 
     def query_returning_cursor(self, command, bound_variables):
+        """
+        Generator which returns rows from query.
+        Args:
+            command: command to run
+            bound_variables: any bound variables
+
+        Yields: a row from the querry
+
+        """
+
         conn = None
         curs = None
         try:
@@ -141,38 +219,3 @@ class SQLAbstraction(object):
                 curs.close()
             if conn is not None:
                 conn.close()
-
-    def query(self, command, bound_variables=None):
-        """Executes a query on the database, and returns all values
-
-        Args:
-            command (string): the SQL command to run
-            bound_variables (tuple|dict): a tuple of parameters to bind into the query; Default no parameters to bind
-
-        Returns:
-            values (list): list of all rows returned
-        """
-        return SQLAbstraction._execute_command(self, command, True, bound_variables)
-
-    def update(self, command, bound_variables=None):
-        """Executes an update on the database, and returns all values
-
-        Args:
-            command (string): the SQL command to run
-            bound_variables (tuple|dict): a tuple of parameters to bind into the query; Default no parameters to bind
-        """
-        SQLAbstraction._execute_command(self, command, False, bound_variables)
-
-    @staticmethod
-    def generate_in_binding(parameter_count):
-        """
-        Generate a list of python sql bindings for use in a sql in clause. One binding for each parameter.
-        i.e. %s, %s, %s for 3 parameters.
-
-        Args:
-            parameter_count: number of items in the in clause
-
-        Returns: in binding
-
-        """
-        return ", ".join(["%s"] * parameter_count)

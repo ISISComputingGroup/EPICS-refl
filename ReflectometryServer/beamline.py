@@ -123,12 +123,17 @@ class Beamline(object):
         self._active_mode = None
 
     @property
-    def parameters(self):
+    def parameter_types(self):
         """
         Returns:
-            dict[str, ReflectometryServer.parameters.BeamlineParameterType]:a dictionary of parmeter type, keyed by their name
+            dict[str, ReflServer.parameters.BeamlineParameterType, str]:a dictionary of parameter type, group names
+                and description keyed by their name
         """
-        return self._beamline_parameters
+        types = {}
+        for beamline_parameter in self._beamline_parameters.values():
+            types[beamline_parameter.name] = (beamline_parameter.parameter_type, beamline_parameter.group_names,
+                                              beamline_parameter.description)
+        return types
 
     @property
     def mode_names(self):

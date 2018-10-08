@@ -1,5 +1,14 @@
+"""
+Data source for ioc data
+"""
+from server_common.mysql_abstraction_layer import DatabaseError
 from server_common.utilities import print_and_log
 
+PV_INFO_FIELD_NAME = "info_field"
+"""name of the info field on a pv to express its interest level and archive status"""
+
+PV_DESCRIPTION_NAME = "description"
+"""name of the description field on a pv"""
 
 GET_PV_INFO_QUERY = """
 SELECT s.iocname, p.pvname, lower(p.infoname), p.value
@@ -49,6 +58,25 @@ GET_IOCS_AND_RUNNING_STATUS = """
    WHERE iocname NOT LIKE 'PSCTRL_%'"""
 """Sql query for getting iocnames and their running status"""
 
+UPDATE_IOC_IS_RUNNING = "UPDATE iocrt SET running=%s WHERE iocname=%s"
+"""Update whether an ioc is running"""
+
+UPDATE_PV_INFO = "INSERT INTO pvinfo (pvname, infoname, value) VALUES (%s,%s,%s)"
+"""Update the pv info"""
+
+INSERT_PV_DETAILS = "INSERT INTO pvs (pvname, record_type, record_desc, iocname) VALUES (%s,%s,%s,%s)"
+"""Insert PV details into the pvs table"""
+
+INSERT_IOC_STARTED_DETAILS = "INSERT INTO iocrt (iocname, pid, start_time, stop_time, running, exe_path) " \
+                 "VALUES (%s,%s,NOW(),'0000-00-00 00:00:00',1,%s)"
+"""Insert details about the start of an IOC"""
+
+DELETE_IOC_RUN_STATE = "DELETE FROM iocrt WHERE iocname=%s"
+"""Delete ioc run state"""
+
+DELETE_IOC_PV_DETAILS = "DELETE FROM pvs WHERE iocname=%s"
+"""Delete ioc pv details, this cascades to pv info details"""
+
 
 class IocDataSource(object):
     """
@@ -59,7 +87,7 @@ class IocDataSource(object):
         Constructor.
 
         Args:
-            mysql_abstraction_layer: contact database with sql
+            mysql_abstraction_layer(server_common.mysql_abstraction_layer.AbstratSQLCommands): contact database with sql
         """
         self.mysql_abstraction_layer = mysql_abstraction_layer
 
@@ -194,7 +222,95 @@ class IocDataSource(object):
             running: the new running state
         """
         try:
-            self.mysql_abstraction_layer.update("UPDATE iocrt SET running=%s WHERE iocname=%s", (running, ioc_name))
+            self.mysql_abstraction_layer.update(UPDATE_IOC_IS_RUNNING, (running, ioc_name))
         except Exception as err:
             print_and_log("Failed to update ioc running state in database ({ioc_name},{running}): {error}"
                           .format(ioc_name=ioc_name, running=running, error=err), "MAJOR", "DBSVR")
+
+    def insert_ioc_start(self, ioc_name, pid, exe_path, pv_database, prefix):
+        """
+        Insert ioc start information into the database. This does a similar task to pvdump but for python server.
+        Args:
+            ioc_name: name of the ioc
+            pid: process id of the program
+            exe_path: executable's path
+            pv_database: pv database used to construct the pv. To add a pv info field use entries in the pv for
+                PV_INFO_FIELD_NAME.
+                For example: {'pv name': {'info_field': {'archive': '', 'INTEREST': 'HIGH'}, 'type': 'float'}}
+            prefix: prefix for the pv server
+        """
+        self._remove_ioc_from_db(ioc_name)
+        self._add_ioc_start_to_db(exe_path, ioc_name, pid)
+
+        for pvname, pv in pv_database.items():
+            pv_fullname = "{}{}".format(prefix, pvname)
+            self._add_pv_to_db(ioc_name, pv, pv_fullname)
+
+            for info_field_name, info_field_value in pv.get(PV_INFO_FIELD_NAME, {}).items():
+                self._add_pv_info_to_db(info_field_name, info_field_value, pv_fullname)
+
+    def _add_pv_info_to_db(self, info_field_name, info_field_value, pv_fullname):
+        """
+        Add pv info to the database.
+        Args:
+            info_field_name: name of the info field
+            info_field_value: value of the info field
+            pv_fullname: full pv name with prefix
+
+        Returns:
+
+        """
+        try:
+            self.mysql_abstraction_layer.update(UPDATE_PV_INFO, (pv_fullname, info_field_name, info_field_value))
+        except Exception as err:
+            print_and_log("Failed to insert pv info for pv '{pvname}' with name '{name}' and value "
+                          "'{value}': {error}".format(pvname=pv_fullname, name=info_field_name,
+                                                      value=info_field_value, error=err), "MAJOR", "DBSVR")
+
+    def _add_pv_to_db(self, ioc_name, pv, pv_fullname):
+        """
+        Add a pv to the database
+        Args:
+            ioc_name: name of the ioc
+            pv: pv information
+            pv_fullname: pv's full name
+        """
+        try:
+            pv_type = pv.get('type', "float")
+            description = pv.get(PV_DESCRIPTION_NAME, "")
+            self.mysql_abstraction_layer.update(INSERT_PV_DETAILS, (pv_fullname, pv_type, description, ioc_name))
+        except DatabaseError as err:
+            print_and_log("Failed to insert pv data for pv '{pvname}' with contents '{pv}': {error}"
+                          .format(ioc_name=ioc_name, pvname=pv_fullname, pv=pv, error=err), "MAJOR", "DBSVR")
+
+    def _add_ioc_start_to_db(self, exe_path, ioc_name, pid):
+        """
+        Add the ioc start to the database
+        Args:
+            exe_path: the path to the executab;e
+            ioc_name: the ioc name
+            pid: the process id
+        """
+        try:
+
+            self.mysql_abstraction_layer.update(INSERT_IOC_STARTED_DETAILS, (ioc_name, pid, exe_path))
+        except DatabaseError as err:
+            print_and_log("Failed to insert ioc into database ({ioc_name},{pid},{exepath}): {error}"
+                          .format(ioc_name=ioc_name, pid=pid, exepath=exe_path, error=err), "MAJOR", "DBSVR")
+
+    def _remove_ioc_from_db(self, ioc_name):
+        """
+        Remove the ioc data from the database
+        Args:
+            ioc_name: name of the ioc
+        """
+        try:
+            self.mysql_abstraction_layer.update(DELETE_IOC_RUN_STATE, (ioc_name,))
+        except DatabaseError as err:
+            print_and_log("Failed to delete ioc, '{ioc_name}', from iocrt: {error}"
+                          .format(ioc_name=ioc_name, error=err), "MAJOR", "DBSVR")
+        try:
+            self.mysql_abstraction_layer.update(DELETE_IOC_PV_DETAILS, (ioc_name,))
+        except DatabaseError as err:
+            print_and_log("Failed to delete ioc, '{ioc_name}', from pvs: {error}"
+                          .format(ioc_name=ioc_name, error=err), "MAJOR", "DBSVR")
