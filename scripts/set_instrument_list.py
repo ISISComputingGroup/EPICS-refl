@@ -43,19 +43,30 @@ def set_env():
     print epics_ca_addr_list + " = " + str(os.environ.get(epics_ca_addr_list))
 
 
-def inst_dictionary(instrument_name, hostname_prefix="NDX"):
+def inst_dictionary(instrument_name, hostname_prefix="NDX", hostname=None, pv_prefix=None):
     """
     Generate the instrument dictionary for the instrument list
     Args:
         instrument_name: instrument name
         hostname_prefix: prefix for hostname (defaults to NDX)
+        hostname: whole host name overrides prefix, defaults to hostname_prefix + instrument name
+        pv_prefix: the pv prefeix; default to IN:instrument_name
 
     Returns: dictionary for instrument
 
     """
+    if hostname is not None:
+        hostname_to_use = hostname
+    else:
+        hostname_to_use = hostname_prefix + instrument_name
+    if pv_prefix is not None:
+        pv_prefix_to_use = pv_prefix
+    else:
+        pv_prefix_to_use = "IN:{0}:".format(instrument_name)
     return {"name": instrument_name,
-            "hostName": hostname_prefix + instrument_name,
-            "pvPrefix": "IN:{0}:".format(instrument_name)}
+            "hostName": hostname_to_use,
+            "pv_prefix": pv_prefix_to_use}
+
 
 if __name__ == "__main__":
     set_env()
@@ -72,6 +83,7 @@ if __name__ == "__main__":
         inst_dictionary("MUONFE", hostname_prefix="NDE"),
         inst_dictionary("ZOOM"),
         inst_dictionary("IRIS"),
+        inst_dictionary("IRIS_SETUP", pv_prefix="IN:IRIS_S29:"),
         inst_dictionary("HRPD"),
         inst_dictionary("POLARIS"),
         inst_dictionary("VESUVIO"),
@@ -93,11 +105,11 @@ if __name__ == "__main__":
     result_compr = ca.caget(pv_address, True)
     result = dehex_and_decompress(result_compr)
 
-    print result
+    print(result)
 
     if result != new_value:
-        print "Warning! Entered value does not match new value."
-        print "Entered value: " + new_value
-        print "Actual value: " + result
+        print("Warning! Entered value does not match new value.")
+        print("Entered value: " + new_value)
+        print("Actual value: " + result)
     else:
-        print "Success! The PV now reads: {0}".format(result)
+        print("Success! The PV now reads: {0}".format(result))
