@@ -40,7 +40,7 @@ def set_env():
     environment keys """
     if not epics_ca_addr_list in os.environ.keys():
         os.environ[epics_ca_addr_list] = "127.255.255.255 130.246.51.255"
-    print epics_ca_addr_list + " = " + str(os.environ.get(epics_ca_addr_list))
+    print(epics_ca_addr_list + " = " + str(os.environ.get(epics_ca_addr_list)))
 
 
 def inst_dictionary(instrument_name, hostname_prefix="NDX", hostname=None, pv_prefix=None):
@@ -65,7 +65,7 @@ def inst_dictionary(instrument_name, hostname_prefix="NDX", hostname=None, pv_pr
         pv_prefix_to_use = "IN:{0}:".format(instrument_name)
     return {"name": instrument_name,
             "hostName": hostname_to_use,
-            "pv_prefix": pv_prefix_to_use}
+            "pvPrefix": pv_prefix_to_use}
 
 
 if __name__ == "__main__":
