@@ -43,7 +43,7 @@ def set_env():
     print(epics_ca_addr_list + " = " + str(os.environ.get(epics_ca_addr_list)))
 
 
-def inst_dictionary(instrument_name, hostname_prefix="NDX", hostname=None, pv_prefix=None):
+def inst_dictionary(instrument_name, hostname_prefix="NDX", hostname=None, pv_prefix=None, is_scheduled=True):
     """
     Generate the instrument dictionary for the instrument list
     Args:
@@ -51,6 +51,7 @@ def inst_dictionary(instrument_name, hostname_prefix="NDX", hostname=None, pv_pr
         hostname_prefix: prefix for hostname (defaults to NDX)
         hostname: whole host name overrides prefix, defaults to hostname_prefix + instrument name
         pv_prefix: the pv prefeix; default to IN:instrument_name
+        is_scheduled: whether the instrument has scheduled users and so should have user details written to it; default to True
 
     Returns: dictionary for instrument
 
@@ -65,7 +66,8 @@ def inst_dictionary(instrument_name, hostname_prefix="NDX", hostname=None, pv_pr
         pv_prefix_to_use = "IN:{0}:".format(instrument_name)
     return {"name": instrument_name,
             "hostName": hostname_to_use,
-            "pvPrefix": pv_prefix_to_use}
+            "pvPrefix": pv_prefix_to_use,
+            "isScheduled": is_scheduled}
 
 
 if __name__ == "__main__":
@@ -78,20 +80,20 @@ if __name__ == "__main__":
     instruments_list = [
         inst_dictionary("LARMOR"),
         inst_dictionary("ALF"),
-        inst_dictionary("DEMO"),
+        inst_dictionary("DEMO", is_scheduled=False),
         inst_dictionary("IMAT"),
-        inst_dictionary("MUONFE", hostname_prefix="NDE"),
+        inst_dictionary("MUONFE", hostname_prefix="NDE", is_scheduled=False),
         inst_dictionary("ZOOM"),
         inst_dictionary("IRIS"),
-        inst_dictionary("IRIS_SETUP", pv_prefix="IN:IRIS_S29:"),
+        inst_dictionary("IRIS_SETUP", pv_prefix="IN:IRIS_S29:", is_scheduled=False),
         inst_dictionary("HRPD"),
         inst_dictionary("POLARIS"),
         inst_dictionary("VESUVIO"),
         inst_dictionary("ENGINX"),
         inst_dictionary("MERLIN"),
-        inst_dictionary("RIKENFE"),
-        inst_dictionary("SELAB"),
-        inst_dictionary("EMMA-A"),
+        inst_dictionary("RIKENFE", is_scheduled=False),
+        inst_dictionary("SELAB", is_scheduled=False),
+        inst_dictionary("EMMA-A", is_scheduled=False),
         inst_dictionary("SANDALS"),
         inst_dictionary("GEM"),
         inst_dictionary("MAPS"),
