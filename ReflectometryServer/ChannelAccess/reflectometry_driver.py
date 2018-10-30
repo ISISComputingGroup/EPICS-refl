@@ -16,8 +16,8 @@ class ReflectometryDriver(Driver):
         The Constructor.
         Args:
             server: The PCASpy server.
-            beamline(ReflServer.beamline.Beamline): The beamline configuration.
-            pv_manager(ReflServer.ChannelAccess.pv_manager.PVManager): The manager mapping PVs to objects in the
+            beamline(ReflectometryServer.beamline.Beamline): The beamline configuration.
+            pv_manager(ReflectometryServer.ChannelAccess.pv_manager.PVManager): The manager mapping PVs to objects in the
                 beamline.
         """
         super(ReflectometryDriver, self).__init__()

@@ -26,5 +26,4 @@ class TestConfiguration(unittest.TestCase):
         beamline_configuration.REFL_CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config"))
         beamline = beamline_configuration.create_beamline_from_configuration()
         #  Check Status PV
-        self.assertEqual(beamline.status, STATUS.CONFIG_IMPORT_ERROR)
-
+        self.assertEqual(beamline.status, STATUS.CONFIG_ERROR)

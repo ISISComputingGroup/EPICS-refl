@@ -11,8 +11,7 @@ class STATUS(Enum):
     """
     OKAY = "OKAY"
     CONFIG_ERROR = "CONFIG_ERROR"
-    CONFIG_IMPORT_ERROR = "CONFIG_IMPORT_ERROR"
-    ERROR = "ERROR"
+    GENERAL_ERROR = "ERROR"
 
 
 class BeamlineMode(object):
@@ -27,7 +26,8 @@ class BeamlineMode(object):
             name (str): name of the beam line mode
             beamline_parameters_to_calculate (list[str]): Beamline parameters in this mode
                 which should be automatically moved to whenever a preceding parameter is changed
-            sp_inits (dict[str, object]): The initial beamline parameter values that should be set when switching to this mode
+            sp_inits (dict[str, object]): The initial beamline parameter values that should be set when switching to
+                this mode
         """
         self.name = name
         self._beamline_parameters_to_calculate = beamline_parameters_to_calculate
@@ -39,7 +39,7 @@ class BeamlineMode(object):
     def has_beamline_parameter(self, beamline_parameter):
         """
         Args:
-            beamline_parameter(ReflServer.parameters.BeamlineParameter): the beamline parameter
+            beamline_parameter(ReflectometryServer.parameters.BeamlineParameter): the beamline parameter
 
         Returns: True if beamline_parameter is in this mode.
         """
@@ -50,10 +50,10 @@ class BeamlineMode(object):
         Returns, in order, all those parameters which are in this mode. Starting with the parameter after the first
         parameter
         Args:
-            beamline_parameters(list[ReflServer.parameters.BeamlineParameter]): the beamline parameters which
+            beamline_parameters(list[ReflectometryServer.parameters.BeamlineParameter]): the beamline parameters which
                 maybe in the mode
-            first_parameter(ReflServer.parameters.BeamlineParameter): the parameter after which to include parameters;
-                None for include all
+            first_parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter after which to include
+                parameters; None for include all
 
         Returns: a list of parameters after the first parameter which are in this mode
 
@@ -103,18 +103,18 @@ class Beamline(object):
         """
         The initializer.
         Args:
-            components (list[ReflServer.components.Component]): The collection of beamline components
-            beamline_parameters (list[ReflServer.parameters.BeamlineParameter]): a dictionary of parameters that
-                characterise the beamline
-            drivers(list[ReflServer.ioc_driver.IocDriver]): a list of motor drivers linked to a component in the
-                beamline
+            components (list[ReflectometryServer.components.Component]): The collection of beamline components
+            beamline_parameters (list[ReflectometryServer.parameters.BeamlineParameter]): a dictionary of parameters
+                that characterise the beamline
+            drivers(list[ReflectometryServer.ioc_driver.IocDriver]): a list of motor drivers linked to a component in
+                the beamline
             modes(list[BeamlineMode])
         """
         self._components = components
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
-        self._status = None  # Need list of possible values? e.g. OK, CONFIG_ERROR, etc.? Then it's extensible?
-        self._message = None
+        self._status = STATUS.OKAY
+        self._message = ""
 
         for beamline_parameter in beamline_parameters:
             if beamline_parameter.name in self._beamline_parameters:
@@ -138,7 +138,8 @@ class Beamline(object):
     def parameter_types(self):
         """
         Returns:
-            dict[str, ReflServer.parameters.BeamlineParameterType]:a dictionary of parmeter type, keyed by their name
+            dict[str, ReflectometryServer.parameters.BeamlineParameterType]: a dictionary of parameter type,
+                keyed by their name
         """
         types = {}
         for beamline_parameter in self._beamline_parameters.values():
@@ -151,13 +152,6 @@ class Beamline(object):
         Returns: the names of all the modes
         """
         return self._modes.keys()
-
-    @property
-    def status_codes(self):
-        """
-        Returns: the status codes
-        """
-        return self._status.keys()
 
     @property
     def active_mode(self):
@@ -250,32 +244,9 @@ class Beamline(object):
             key (str): key of parameter to return
 
         Returns:
-            ReflServer.parameters.BeamlineParameter: the beamline parameter with the given key
+            ReflectometryServer.parameters.BeamlineParameter: the beamline parameter with the given key
         """
         return self._beamline_parameters[key]
-
-    def get_mode_by_index(self, index):
-        """
-        Get the mode by the mode name
-        Args:
-            index(str): name of mode to return
-
-        Returns:
-            BeamlineMode: the beamline mode associated with the key
-
-        """
-        key = self._modes.keys()[index]
-        return self.mode(key)
-
-    def mode(self, key):
-        """
-        Args:
-            key: key of parameter to return
-
-        Returns (ReflectometryServer.parameters.BeamlineParameter):
-            the beamline parameter with the given key
-        """
-        return self._modes[key]
 
     def init_setpoints(self):
         """
@@ -294,3 +265,43 @@ class Beamline(object):
             max_move_duration = max(max_move_duration, driver.get_max_move_duration())
 
         return max_move_duration
+
+    def set_status(self, status, message):
+        """
+        Set the status and message of the beamline.
+
+        Args:
+            status: status code
+            message: message reflecting the status
+
+        """
+        self._status = status
+        self._message = message
+
+    def set_status_okay(self):
+        """
+        Convenience method to set a status of okay.
+        """
+        self.set_status(STATUS.OKAY, "")
+
+    @property
+    def status(self):
+        """
+        Returns:
+            (STATUS): status code
+        """
+        return self._status
+
+    @property
+    def message(self):
+        """
+        Returns: the message which has been set
+        """
+        return self._message
+
+    @property
+    def status_codes(self):
+        """
+        Returns: the status codes
+        """
+        return [status.value for status in STATUS]
