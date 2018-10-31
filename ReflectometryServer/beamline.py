@@ -26,8 +26,8 @@ class BeamlineMode(object):
             name (str): name of the beam line mode
             beamline_parameters_to_calculate (list[str]): Beamline parameters in this mode
                 which should be automatically moved to whenever a preceding parameter is changed
-            sp_inits (dict[str, object]): The initial beamline parameter values that should be set when switching to
-                this mode
+            sp_inits (dict[str, object]): The initial beamline parameter values that should be set when switching
+                to this mode
         """
         self.name = name
         self._beamline_parameters_to_calculate = beamline_parameters_to_calculate
@@ -121,7 +121,7 @@ class Beamline(object):
                 raise ValueError("Beamline parameters must be uniquely named. Duplicate '{}'".format(
                     beamline_parameter.name))
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
-            beamline_parameter.after_move_listener = self.update_beamline_parameters
+            beamline_parameter.after_move_listener = self._move_for_single_beamline_parameters
 
         for component in components:
             component.after_beam_path_update_listener = self.update_beam_path
@@ -143,7 +143,8 @@ class Beamline(object):
         """
         types = {}
         for beamline_parameter in self._beamline_parameters.values():
-            types[beamline_parameter.name] = beamline_parameter.parameter_type
+            types[beamline_parameter.name] = (beamline_parameter.parameter_type, beamline_parameter.group_names,
+                                              beamline_parameter.description)
         return types
 
     @property
@@ -156,9 +157,12 @@ class Beamline(object):
     @property
     def active_mode(self):
         """
-        Returns: the name of the current modes
+        Returns: the name of the current modes; None for no active mode
         """
-        return self._active_mode.name
+        try:
+            return self._active_mode.name
+        except AttributeError:
+            return None
 
     @active_mode.setter
     def active_mode(self, mode):
@@ -188,7 +192,7 @@ class Beamline(object):
         Args:
             _: dummy can be anything
         """
-        self.update_beamline_parameters()
+        self._move_for_all_beamline_parameters()
         self._move_drivers(self._get_max_move_duration())
 
     def __getitem__(self, item):
@@ -220,23 +224,31 @@ class Beamline(object):
             component.set_incoming_beam(outgoing)
             outgoing = component.get_outgoing_beam()
 
-    def update_beamline_parameters(self, source=None):
+    def _move_for_all_beamline_parameters(self):
         """
-        Updates the beamline parameters in the current mode. If given a source in the mode start from this one instead
-        of from the beginning of the beamline. If the source is not in the mode then don't update the beamline.
+        Updates the beamline parameters to the latest set point value; reapplies if they are in the mode.
+        """
+        parameters = self._beamline_parameters.values()
+        parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
+
+        for beamline_parameter in parameters:
+            if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
+                beamline_parameter.move_to_sp_no_callback()
+
+    def _move_for_single_beamline_parameters(self, source):
+        """
+        Moves starts from a single beamline parameter and move is to parameters sp read backs. If the
+        source is not in the mode then don't update any other parameters.
+        the beamline.
         Args:
             source: source to start the update from; None start from the beginning.
-
-        Returns:
-
         """
-        if source is None or self._active_mode.has_beamline_parameter(source):
+        if self._active_mode.has_beamline_parameter(source):
             parameters = self._beamline_parameters.values()
             parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, source)
 
-            for beamline_parameter in parameters:
-                if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
-                    beamline_parameter.move_no_callback()
+            for beamline_parameter in parameters_in_mode:
+                beamline_parameter.move_to_sp_rbv_no_callback()
 
     def parameter(self, key):
         """

@@ -1,3 +1,6 @@
+"""
+Test data and classes.
+"""
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.parameters import BeamlineParameter
 

@@ -28,9 +28,9 @@ class TestComponentBeamline(unittest.TestCase):
         s4 = Component("s4", movement_strategy=LinearMovement(0, 8, 90))
         detector = Component("detector", movement_strategy=LinearMovement(0, 10, 90))
 
-        theta = Theta("theta", self.ideal_sample_point)
+        theta = Theta("theta", self.ideal_sample_point, sim=True)
         theta.sp_no_move = 0
-        smangle = ReflectionAngle("smangle", self.polarising_mirror)
+        smangle = ReflectionAngle("smangle", self.polarising_mirror, sim=True)
         smangle.sp_no_move = 0
 
         self.nr_mode = BeamlineMode("NR Mode", [theta.name])

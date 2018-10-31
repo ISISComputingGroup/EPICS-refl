@@ -273,3 +273,18 @@ def retry(max_attempts, interval, exception):
             raise MaxAttemptsExceededException()
         return _wrapper
     return _tags_decorator
+
+
+def remove_from_end(string, text_to_remove):
+    """
+    Remove a String from the end of a string if it exists
+    Args:
+        string (str): string to edit
+        text_to_remove (str): the text to remove
+
+    Returns: the string with the text removed
+
+    """
+    if string is not None and string.endswith(text_to_remove):
+        return string[:-len(text_to_remove)]
+    return string
