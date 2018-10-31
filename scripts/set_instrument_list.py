@@ -98,6 +98,7 @@ if __name__ == "__main__":
         inst_dictionary("GEM"),
         inst_dictionary("MAPS"),
         inst_dictionary("OSIRIS"),
+        inst_dictionary("INES"),
     ]
 
     new_value = json.dumps(instruments_list)
