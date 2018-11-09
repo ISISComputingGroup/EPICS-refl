@@ -2,6 +2,16 @@
 Resources at a beamline level
 """
 from collections import OrderedDict
+from enum import Enum
+
+
+class STATUS(Enum):
+    """
+    Beamline States.
+    """
+    OKAY = "OKAY"
+    CONFIG_ERROR = "CONFIG_ERROR"
+    GENERAL_ERROR = "ERROR"
 
 
 class BeamlineMode(object):
@@ -42,8 +52,8 @@ class BeamlineMode(object):
         Args:
             beamline_parameters(list[ReflectometryServer.parameters.BeamlineParameter]): the beamline parameters which
                 maybe in the mode
-            first_parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter after which to include parameters;
-                None for include all
+            first_parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter after which to include
+                parameters; None for include all
 
         Returns: a list of parameters after the first parameter which are in this mode
 
@@ -94,15 +104,17 @@ class Beamline(object):
         The initializer.
         Args:
             components (list[ReflectometryServer.components.Component]): The collection of beamline components
-            beamline_parameters (list[ReflectometryServer.parameters.BeamlineParameter]): a dictionary of parameters that
-                characterise the beamline
-            drivers(list[ReflectometryServer.ioc_driver.IocDriver]): a list of motor drivers linked to a component in the
-                beamline
+            beamline_parameters (list[ReflectometryServer.parameters.BeamlineParameter]): a dictionary of parameters
+                that characterise the beamline
+            drivers(list[ReflectometryServer.ioc_driver.IocDriver]): a list of motor drivers linked to a component in
+                the beamline
             modes(list[BeamlineMode])
         """
         self._components = components
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
+        self._status = STATUS.OKAY
+        self._message = ""
 
         for beamline_parameter in beamline_parameters:
             if beamline_parameter.name in self._beamline_parameters:
@@ -126,8 +138,8 @@ class Beamline(object):
     def parameter_types(self):
         """
         Returns:
-            dict[str, ReflServer.parameters.BeamlineParameterType, str]:a dictionary of parameter type, group names
-                and description keyed by their name
+            dict[str, ReflectometryServer.parameters.BeamlineParameterType]: a dictionary of parameter type,
+                keyed by their name
         """
         types = {}
         for beamline_parameter in self._beamline_parameters.values():
@@ -145,9 +157,12 @@ class Beamline(object):
     @property
     def active_mode(self):
         """
-        Returns: the name of the current modes
+        Returns: the name of the current modes; None for no active mode
         """
-        return self._active_mode.name
+        try:
+            return self._active_mode.name
+        except AttributeError:
+            return None
 
     @active_mode.setter
     def active_mode(self, mode):
@@ -245,29 +260,6 @@ class Beamline(object):
         """
         return self._beamline_parameters[key]
 
-    def get_mode_by_index(self, index):
-        """
-        Get the mode by the mode name
-        Args:
-            index(str): name of mode to return
-
-        Returns:
-            BeamlineMode: the beamline mode associated with the key
-
-        """
-        key = self._modes.keys()[index]
-        return self.mode(key)
-
-    def mode(self, key):
-        """
-        Args:
-            key: key of parameter to return
-
-        Returns (ReflectometryServer.parameters.BeamlineParameter):
-            the beamline parameter with the given key
-        """
-        return self._modes[key]
-
     def init_setpoints(self):
         """
         Applies the initial values set in the current beamline mode to the relevant beamline parameter setpoints.
@@ -285,3 +277,43 @@ class Beamline(object):
             max_move_duration = max(max_move_duration, driver.get_max_move_duration())
 
         return max_move_duration
+
+    def set_status(self, status, message):
+        """
+        Set the status and message of the beamline.
+
+        Args:
+            status: status code
+            message: message reflecting the status
+
+        """
+        self._status = status
+        self._message = message
+
+    def set_status_okay(self):
+        """
+        Convenience method to set a status of okay.
+        """
+        self.set_status(STATUS.OKAY, "")
+
+    @property
+    def status(self):
+        """
+        Returns:
+            (STATUS): status code
+        """
+        return self._status
+
+    @property
+    def message(self):
+        """
+        Returns: the message which has been set
+        """
+        return self._message
+
+    @property
+    def status_codes(self):
+        """
+        Returns: the status codes
+        """
+        return [status.value for status in STATUS]

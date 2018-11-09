@@ -8,9 +8,12 @@ from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAM
 from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY
 import json
 
+
 PARAM_PREFIX = "PARAM"
 BEAMLINE_MODE = "BL:MODE"
 BEAMLINE_MOVE = "BL:MOVE"
+BEAMLINE_STATUS = "BL:STAT"
+BEAMLINE_MESSAGE = "BL:MSG"
 TRACKING_AXES = "TRACKING_AXES"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
@@ -68,7 +71,7 @@ class PVManager:
     """
     Holds reflectometry PVs and associated utilities.
     """
-    def __init__(self, param_types, mode_names):
+    def __init__(self, param_types, mode_names, status_codes):
         """
         The constructor.
         Args:
@@ -76,6 +79,7 @@ class PVManager:
                 keyed by name.
             mode_names: names of the modes
         """
+
         self.PVDB = {}
         self._add_pv_with_val(BEAMLINE_MOVE, None, PARAM_FIELDS_MOVE, "Move the beam line", PvSort.RBV, archive=True,
                               interest="HIGH")
@@ -83,7 +87,14 @@ class PVManager:
         mode_fields = {'type': 'enum', 'enums': mode_names}
         self._add_pv_with_val(BEAMLINE_MODE, None, mode_fields, "Beamline mode", PvSort.RBV, archive=True,
                               interest="HIGH")
+
         self._add_pv_with_val(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
+
+        status_fields = {'type': 'enum', 'enums': status_codes}
+        self._add_pv_with_val(BEAMLINE_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV, archive=True,
+                              interest="HIGH")
+        self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'string'}, "Message about the beamline", PvSort.RBV,
+                              archive=True, interest="HIGH")
 
         self._params_pv_lookup = {}
         self._tracking_positions = {}
@@ -215,8 +226,7 @@ class PVManager:
 
         Returns: True if this the beamline move pv
         """
-        pvname_no_val = remove_from_end(pv_name, VAL_FIELD)
-        return pvname_no_val == BEAMLINE_MOVE
+        return self._is_pv_name_this_field(BEAMLINE_MOVE, pv_name)
 
     def is_tracking_axis(self, pv_name):
         """
@@ -225,5 +235,35 @@ class PVManager:
 
         Returns: True if this the beamline tracking axis pv
         """
+        return self._is_pv_name_this_field(TRACKING_AXES, pv_name)
+
+    def is_beamline_status(self, pv_name):
+        """
+        Args:
+            pv_name: name of the beamline status
+
+        Returns: True if this the beamline status axis pv
+        """
+        return self._is_pv_name_this_field(BEAMLINE_STATUS, pv_name)
+
+    def is_beamline_message(self, pv_name):
+        """
+        Args:
+            pv_name: name of the beamline status
+
+        Returns: True if this the beamline message pv
+        """
+        return self._is_pv_name_this_field(BEAMLINE_MESSAGE, pv_name)
+
+    def _is_pv_name_this_field(self, field_name, pv_name):
+        """
+
+        Args:
+            field_name: field name to match
+            pv_name: pv name to match
+
+        Returns: True if field name is pv name (with oe without VAL  field)
+
+        """
         pvname_no_val = remove_from_end(pv_name, VAL_FIELD)
-        return pvname_no_val == TRACKING_AXES
+        return pvname_no_val == field_name

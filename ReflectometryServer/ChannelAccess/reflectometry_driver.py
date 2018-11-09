@@ -4,7 +4,7 @@ Driver for the reflectometry server.
 
 from pcaspy import Driver, Alarm, Severity
 
-from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD
+from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS
 from server_common.utilities import compress_and_hex
 
 
@@ -49,13 +49,20 @@ class ReflectometryDriver(Driver):
                 return param.sp_changed
             else:
                 return self.getParam(reason)  # TODO return actual RBV
+
         elif self._pv_manager.is_beamline_mode(reason):
+
             beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
             return beamline_mode_enums.index(self._beamline.active_mode)
         elif self._pv_manager.is_beamline_move(reason):
             return self._beamline.move
         elif self._pv_manager.is_tracking_axis(reason):
             return compress_and_hex(self.getParam(reason))
+        elif self._pv_manager.is_beamline_status(reason):
+            beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
+            return beamline_status_enums.index(self._beamline.status.name)
+        elif self._pv_manager.is_beamline_message(reason):
+            return self._beamline.message
         else:
             return self.getParam(reason)
 

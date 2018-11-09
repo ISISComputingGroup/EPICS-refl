@@ -21,7 +21,7 @@ from server_common.mysql_abstraction_layer import SQLAbstraction
 
 beamline = create_beamline_from_configuration()
 
-pv_db = PVManager(beamline.parameter_types, beamline.mode_names)
+pv_db = PVManager(beamline.parameter_types, beamline.mode_names, beamline.status_codes)
 SERVER = SimpleServer()
 
 print("Prefix: {}".format(REFLECTOMETRY_PREFIX))
