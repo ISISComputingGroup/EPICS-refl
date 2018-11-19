@@ -151,5 +151,57 @@ class TestActiveComponents(unittest.TestCase):
     #     assert_that(result, is_(position(expected_position)))
 
 
+class TestObservationOfComponentReadback(unittest.TestCase):
+    """
+    Tests for items observing changes in readbacks
+    """
+
+    def setUp(self):
+        self._value = None
+        self._value2 = None
+        movement_strategy = LinearMovement(0, 0, 90)
+        self.component = Component("test component", movement_strategy)
+
+        self.component.set_incoming_beam_for_rbv(PositionAndAngle(0, 0, 0))
+
+    def listen_for_value(self, value):
+        self._value = value
+
+    def listen_for_value2(self, value):
+        self._value2 = value
+
+    def test_GIVEN_listener_WHEN_readback_changes_THEN_listener_is_informed(self):
+        expected_value = 10
+        self.component.add_rbv_relative_to_beam_listener(self.listen_for_value)
+        self.component.set_rbv(expected_value)
+
+        assert_that(self._value, is_(expected_value))
+
+    def test_GIVEN_two_listeners_WHEN_readback_changes_THEN_listener_is_informed(self):
+        expected_value = 10
+        self.component.add_rbv_relative_to_beam_listener(self.listen_for_value)
+        self.component.add_rbv_relative_to_beam_listener(self.listen_for_value2)
+        self.component.set_rbv(expected_value)
+
+        assert_that(self._value, is_(expected_value))
+        assert_that(self._value2, is_(expected_value))
+
+    def test_GIVEN_no_listener_WHEN_readback_changes_THEN_no_listeners_are_informed(self):
+        expected_value = 10
+        self.component.set_rbv(expected_value)
+
+        assert_that(self._value, none())
+
+    def test_GIVEN_listener_WHEN_beam_changes_THEN_listener_is_informed(self):
+        expected_value = 10
+        self.component.add_rbv_relative_to_beam_listener(self.listen_for_value)
+        beam_y = 1
+        self.component.set_rbv(expected_value + beam_y)
+
+        self.component.set_incoming_beam_for_rbv(PositionAndAngle(beam_y, 0, 0))
+
+        assert_that(self._value, is_(expected_value))
+
+
 if __name__ == '__main__':
     unittest.main()

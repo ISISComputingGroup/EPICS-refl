@@ -19,7 +19,9 @@ class Component(object):
                 interception between the movement of the
             component and the incoming beam
         """
+        self._rbv_listeners = set()
         self.incoming_beam = None
+        self._incoming_beam_for_rbv = None
         self._movement_strategy = movement_strategy
         self.after_beam_path_update_listener = lambda x: None
         self._enabled = True
@@ -51,7 +53,7 @@ class Component(object):
 
     def set_incoming_beam(self, incoming_beam):
         """
-        Set the incoming beam for the component
+        Set the incoming beam for the component setpoint calulcation
         Args:
             incoming_beam(PositionAndAngle): incoming beam
         """
@@ -72,21 +74,63 @@ class Component(object):
         """
         return self._movement_strategy.calculate_interception(self.incoming_beam)
 
-    def set_position_relative_to_beam(self, value):
+    def set_position_relative_to_beam(self, displacement):
         """
         Set the position of the component relative to the beam for the given value based on its movement strategy.
         For instance this could set the height above the beam for a vertically moving component
         Args:
-            value: the value to set away from the beam, e.g. height
+            displacement: the value to set away from the beam, e.g. height
         """
 
-        self._movement_strategy.set_position_relative_to_beam(self.incoming_beam, value)
+        self._movement_strategy.set_position_relative_to_beam(self.incoming_beam, displacement)
 
     def sp_position(self):
         """
         Returns (Position): The set point position of this component.
         """
         return self._movement_strategy.sp_position()
+
+    def add_rbv_relative_to_beam_listener(self, listen_for_value):
+        """
+        Add a listener for changes in rbv relative to the beam.
+
+        Listeners are called if beam or rbv are set (even if values don't change)
+        Args:
+            listen_for_value: function
+
+        Returns:
+
+        """
+        self._rbv_listeners.add(listen_for_value)
+
+    def set_rbv(self, displacement):
+        """
+
+        Args:
+            displacement:
+
+        Returns:
+
+        """
+        self._movement_strategy.set_rbv(displacement)
+        self._calc_rbv_relative_to_beam()
+
+    def _calc_rbv_relative_to_beam(self):
+        """
+        Perform rbv relative to beam calulations and triggers listeners
+        """
+        rbv_relative_to_beam = self._movement_strategy.get_rbv_relative_to_beam(self._incoming_beam_for_rbv)
+        for listener in self._rbv_listeners:
+            listener(rbv_relative_to_beam)
+
+    def set_incoming_beam_for_rbv(self, beam):
+        """
+        Set the incoming beam for use in the rbv calculation. Also triggers rbv listeners
+        Args:
+            beam: beam to use
+        """
+        self._incoming_beam_for_rbv = beam
+        self._calc_rbv_relative_to_beam()
 
 
 class TiltingJaws(Component):
@@ -123,7 +167,7 @@ class ReflectingComponent(Component):
             movement_strategy: strategy encapsulating movement of the component
         """
         super(ReflectingComponent, self).__init__(name, movement_strategy)
-        self._angle = 0
+        self._angle = 0.0
 
     @property
     def angle(self):
