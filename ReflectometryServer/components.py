@@ -15,7 +15,8 @@ class Component(object):
         Initializer.
         Args:
             name (str): name of the component
-            movement_strategy (VerticalMovement): strategy for calculating the interception between the movement of the
+            movement_strategy (ReflectometryServer.movement_strategy.LinearMovement): strategy for calculating the
+                interception between the movement of the
             component and the incoming beam
         """
         self.incoming_beam = None
@@ -79,7 +80,7 @@ class Component(object):
             value: the value to set away from the beam, e.g. height
         """
 
-        self._movement_strategy.set_position_relative_to_beam(self.calculate_beam_interception(), value)
+        self._movement_strategy.set_position_relative_to_beam(self.incoming_beam, value)
 
     def sp_position(self):
         """

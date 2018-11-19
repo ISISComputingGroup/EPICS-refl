@@ -189,7 +189,7 @@ class TrackingPosition(BeamlineParameter):
 
         Args:
             name: Name of the variable
-            component (ReflectometryServer.components.PassiveComponent): component that the tracking is based on
+            component (ReflectometryServer.components.Component): component that the tracking is based on
             description (str): description
         """
         if description is None:

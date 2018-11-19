@@ -153,21 +153,21 @@ class BeamlineMoveDurationTest(unittest.TestCase):
     def test_GIVEN_multiple_components_in_beamline_WHEN_triggering_move_THEN_components_move_at_speed_of_slowest_axis(self):
         sm_angle = 0.0
         sm_angle_to_set = 22.5
-        supermirror = ReflectingComponent("supermirror", movement_strategy=LinearMovement(y_position=0.0, z_position=10.0, angle=90.0))
+        supermirror = ReflectingComponent("supermirror", movement_strategy=LinearMovement(t_at_zero=0.0, z_at_zero=10.0, angle=90.0))
         sm_height_axis = create_mock_axis("SM:HEIGHT", 0.0, 10.0)
         sm_angle_axis = create_mock_axis("SM:ANGLE", sm_angle, 10.0)
         supermirror.angle = sm_angle
         supermirror_driver = HeightAndAngleDriver(supermirror, sm_height_axis, sm_angle_axis)
 
-        slit_2 = Component("slit_2", movement_strategy=LinearMovement(y_position=0.0, z_position=20.0, angle=90.0))
+        slit_2 = Component("slit_2", movement_strategy=LinearMovement(t_at_zero=0.0, z_at_zero=20.0, angle=90.0))
         slit_2_height_axis = create_mock_axis("SLIT2:HEIGHT", 0.0, 10.0)
         slit_2_driver = HeightDriver(slit_2, slit_2_height_axis)
 
-        slit_3 = Component("slit_3", movement_strategy=LinearMovement(y_position=0.0, z_position=30.0, angle=90.0))
+        slit_3 = Component("slit_3", movement_strategy=LinearMovement(t_at_zero=0.0, z_at_zero=30.0, angle=90.0))
         slit_3_height_axis = create_mock_axis("SLIT3:HEIGHT", 0.0, 10.0)
         slit_3_driver = HeightDriver(slit_3, slit_3_height_axis)
 
-        detector = TiltingJaws("jaws", movement_strategy=LinearMovement(y_position=0.0, z_position=40.0, angle=90.0))
+        detector = TiltingJaws("jaws", movement_strategy=LinearMovement(t_at_zero=0.0, z_at_zero=40.0, angle=90.0))
         detector_height_axis = create_mock_axis("DETECTOR:HEIGHT", 0.0, 10.0)
         detector_tilt_axis = create_mock_axis("DETECTOR:TILT", 0.0, 10.0)
         detector_driver = HeightAndTiltDriver(detector, detector_height_axis, detector_tilt_axis)
