@@ -53,9 +53,7 @@ def get_beamline():
     disabled_mode = BeamlineMode("disabled", [])
     modes = [nr_mode, pnr_mode, disabled_mode]
 
-    bl = Beamline(comps, params, [], modes)
-
     beam_start = PositionAndAngle(0.0, 0.0, beam_angle_natural)
-    bl.set_incoming_beam(beam_start)
+    bl = Beamline(comps, params, [], modes, beam_start)
 
     return bl

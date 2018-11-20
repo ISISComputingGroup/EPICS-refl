@@ -6,7 +6,7 @@ from hamcrest import *
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.components import TiltingJaws, Component, ReflectingComponent
 from ReflectometryServer.movement_strategy import LinearMovement
-from ReflectometryServer.gemoetry import PositionAndAngle
+from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import HeightDriver, HeightAndTiltDriver, HeightAndAngleDriver
 from ReflectometryServer.parameters import ReflectionAngle, TrackingPosition
 
@@ -185,7 +185,6 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         beamline.active_mode = mode.name
 
         beam_start = PositionAndAngle(0.0, 0.0, 0.0)
-        beamline.set_incoming_beam(beam_start)
         slit_2_pos.sp_no_move = 0.0
         slit_3_pos.sp_no_move = 0.0
         det_pos.sp_no_move = 0.0

@@ -5,7 +5,7 @@ from hamcrest import *
 from parameterized import parameterized
 
 from ReflectometryServer.movement_strategy import LinearMovement, ANGULAR_TOLERANCE
-from ReflectometryServer.gemoetry import Position, PositionAndAngle
+from ReflectometryServer.geometry import Position, PositionAndAngle
 from utils import position_and_angle, position
 
 

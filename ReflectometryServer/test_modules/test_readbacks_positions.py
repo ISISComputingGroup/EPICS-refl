@@ -9,7 +9,7 @@ from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.parameters import Theta, ReflectionAngle
 
 
-class TestComponentBeamline(unittest.TestCase):
+class TestReadbacks(unittest.TestCase):
 
     def setUp(self):
         beam_start = PositionAndAngle(y=0, z=0, angle=2.5)
@@ -43,6 +43,7 @@ class TestComponentBeamline(unittest.TestCase):
             [self.nr_mode, self.polarised_mode],
             beam_start
         )
+
 
     def test_GIVEN_beam_line_contains_multiple_component_WHEN_set_theta_THEN_angle_between_incoming_and_outgoing_beam_is_correct(self):
         self.beamline.active_mode = self.nr_mode.name

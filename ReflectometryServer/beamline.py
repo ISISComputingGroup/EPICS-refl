@@ -4,6 +4,8 @@ Resources at a beamline level
 from collections import OrderedDict
 from enum import Enum
 
+from ReflectometryServer.geometry import PositionAndAngle
+
 
 class STATUS(Enum):
     """
@@ -99,7 +101,7 @@ class Beamline(object):
     The collection of all beamline components.
     """
 
-    def __init__(self, components, beamline_parameters, drivers, modes):
+    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=PositionAndAngle(0, 0, 0)):
         """
         The initializer.
         Args:
@@ -109,6 +111,7 @@ class Beamline(object):
             drivers(list[ReflectometryServer.ioc_driver.IocDriver]): a list of motor drivers linked to a component in
                 the beamline
             modes(list[BeamlineMode])
+            incoming_beam (ReflectometryServer.geometry.PositionAndAngle): the incoming beam point
         """
         self._components = components
         self._beamline_parameters = OrderedDict()
@@ -131,8 +134,9 @@ class Beamline(object):
             self._modes[mode.name] = mode
             mode.validate_parameters(self._beamline_parameters.keys())
 
-        self.incoming_beam = None
+        self._incoming_beam = incoming_beam
         self._active_mode = None
+        self.update_beam_path(None)
 
     @property
     def parameter_types(self):
@@ -204,22 +208,13 @@ class Beamline(object):
         """
         return self._components[item]
 
-    def set_incoming_beam(self, incoming_beam):
-        """
-        Set the incoming beam for the component
-        Args:
-            incoming_beam: incoming beam
-        """
-        self.incoming_beam = incoming_beam
-        self.update_beam_path(None)
-
     def update_beam_path(self, source_component):
         """
         Updates the beam path for all components
         Args:
             source_component: source component of the update or None for not from component change
         """
-        outgoing = self.incoming_beam
+        outgoing = self._incoming_beam
         for component in self._components:
             component.set_incoming_beam(outgoing)
             outgoing = component.get_outgoing_beam()

@@ -1,7 +1,7 @@
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.components import Component, ReflectingComponent
 from ReflectometryServer.movement_strategy import LinearMovement
-from ReflectometryServer.gemoetry import PositionAndAngle
+from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.parameters import Theta
 
 
@@ -28,8 +28,7 @@ def create_beamline():
         [s0, s1, frame_overlap_mirror, polarising_mirror, s2, ideal_sample_point, s3, analyser, s4, detector],
         [theta],
         [],
-        [nr_mode])
-    beamline.set_incoming_beam(beam_start)
+        [nr_mode], beam_start)
 
     beamline.active_mode = nr_mode.name
 

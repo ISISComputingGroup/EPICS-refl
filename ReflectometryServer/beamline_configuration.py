@@ -18,7 +18,6 @@ def _create_beamline_in_error(error_message):
     """
     error_mode = BeamlineMode("No modes", [])
     beamline = Beamline([], [], [], [error_mode])
-    beamline.incoming_beam = (0, 0, 0)
     beamline.set_status(STATUS.CONFIG_ERROR, error_message)
     return beamline
 

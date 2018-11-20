@@ -25,6 +25,8 @@ class DataMother(object):
         "Neutron reflection",
         ["slit2height", "height", "theta", "detectorheight"])
 
+    BEAMLINE_MODE_EMPTY = BeamlineMode("Empty", [])
+
     @staticmethod
     def beamline_with_3_empty_parameters():
         """

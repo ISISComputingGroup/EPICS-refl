@@ -2,11 +2,13 @@ import unittest
 
 from math import tan, radians
 from hamcrest import *
+from mock import Mock
 
 from ReflectometryServer.components import ReflectingComponent, Component
 from ReflectometryServer.movement_strategy import LinearMovement
-from ReflectometryServer.gemoetry import PositionAndAngle
+from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.beamline import Beamline
+from ReflectometryServer.test_modules.data_mother import DataMother
 from utils import position_and_angle
 
 
@@ -17,15 +19,13 @@ class TestComponentBeamline(unittest.TestCase):
         mirror = ReflectingComponent("mirror", movement_strategy=LinearMovement(0, mirror_position, 90))
         mirror.angle = initial_mirror_angle
         jaws3 = Component("jaws3", movement_strategy=LinearMovement(0, 20, 90))
-        beamline = Beamline([jaws, mirror, jaws3], [], [], [])
-        beamline.set_incoming_beam(beam_start)
+        beamline = Beamline([jaws, mirror, jaws3], [], [], [], beam_start)
         return beamline, mirror
 
     def test_GIVEN_beam_line_contains_one_passive_component_WHEN_beam_set_THEN_component_has_beam_out_same_as_beam_in(self):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         jaws = Component("jaws", movement_strategy=LinearMovement(0, 2, 90))
-        beamline = Beamline([jaws], [], [], [])
-        beamline.set_incoming_beam(beam_start)
+        beamline = Beamline([jaws], [], [], [], beam_start)
 
         result = beamline[0].get_outgoing_beam()
 
@@ -75,6 +75,20 @@ class TestComponentBeamline(unittest.TestCase):
 
         for index, (result, expected_beam) in enumerate(zip(results, expected_beams)):
             assert_that(result, position_and_angle(expected_beam), "in component index {}".format(index))
+
+
+class TestComponentBeamlineReadbacks(unittest.TestCase):
+
+    def test_GIVEN_components_in_beamline_WHEN_readback_changed_THEN_components_after_changed_component_updatereadbacks(self):
+        comp1 = Component("comp1", LinearMovement(0, 1, 90))
+        comp2 = Component("comp2", LinearMovement(0, 2, 90))
+        comp2.set_incoming_beam_for_rbv = Mock()
+        beamline = Beamline([comp1, comp2], [], [], [DataMother.BEAMLINE_MODE_EMPTY])
+
+        comp1.set_rbv(1.0)
+
+        assert_that(comp2.set_incoming_beam_for_rbv.called, is_(True))
+
 
 if __name__ == '__main__':
     unittest.main()
