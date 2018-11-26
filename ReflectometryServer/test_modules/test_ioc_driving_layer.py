@@ -29,14 +29,14 @@ class TestHeightDriver(unittest.TestCase):
         self.height_axis = create_mock_axis("JAWS:HEIGHT", start_position, max_velocity)
 
         self.jaws = Component("component", movement_strategy=LinearMovement(0.0, 10.0, 90.0))
-        self.jaws.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+        self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
 
         self.jaws_driver = HeightDriver(self.jaws, self.height_axis)
 
     def test_GIVEN_component_with_height_setpoint_above_current_position_WHEN_calculating_move_duration_THEN_returned_duration_is_correct(self):
         target_position = 20.0
         expected = 2.0
-        self.jaws.set_position_relative_to_beam(target_position)
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(target_position)
 
         result = self.jaws_driver.get_max_move_duration()
 
@@ -45,7 +45,7 @@ class TestHeightDriver(unittest.TestCase):
     def test_GIVEN_component_with_height_setpoint_below_current_position_WHEN_calculating_move_duration_THEN_returned_duration_is_correct(self):
         target_position = -20.0
         expected = 2.0
-        self.jaws.set_position_relative_to_beam(target_position)
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(target_position)
 
         result = self.jaws_driver.get_max_move_duration()
 
@@ -55,7 +55,7 @@ class TestHeightDriver(unittest.TestCase):
         target_position = 20.0
         target_duration = 4.0
         expected_velocity = 5.0
-        self.jaws.set_position_relative_to_beam(target_position)
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(target_position)
 
         self.jaws_driver.perform_move(target_duration)
 
@@ -81,7 +81,7 @@ class TestHeightAndTiltDriver(unittest.TestCase):
         beam_angle = 45.0
         expected = 4.5
         beam = PositionAndAngle(0.0, 0.0, beam_angle)
-        self.tilting_jaws.set_incoming_beam(beam)
+        self.tilting_jaws.beam_path_set_point.set_incoming_beam(beam)
 
         result = self.tilting_jaws_driver.get_max_move_duration()
 
@@ -95,8 +95,8 @@ class TestHeightAndTiltDriver(unittest.TestCase):
         target_position_height = 10.0
         expected_velocity_tilt = 4.5
         target_position_tilt = 135.0
-        self.tilting_jaws.set_incoming_beam(beam)
-        self.tilting_jaws.set_position_relative_to_beam(0.0)  # move component into beam
+        self.tilting_jaws.beam_path_set_point.set_incoming_beam(beam)
+        self.tilting_jaws.beam_path_set_point.set_position_relative_to_beam(0.0)  # move component into beam
 
         self.tilting_jaws_driver.perform_move(target_duration)
 
@@ -116,16 +116,16 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         max_velocity_angle = 10.0
         self.angle_axis = create_mock_axis("SM:ANGLE", start_position_angle, max_velocity_angle)
 
-        self.supermirror = Component("component", movement_strategy=LinearMovement(0.0, 10.0, 90.0))
-        self.supermirror.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+        self.supermirror = ReflectingComponent("component", movement_strategy=LinearMovement(0.0, 10.0, 90.0))
+        self.supermirror.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
 
         self.supermirror_driver = HeightAndAngleDriver(self.supermirror, self.height_axis, self.angle_axis)
 
     def test_GIVEN_multiple_axes_need_to_move_WHEN_computing_move_duration_THEN_maximum_duration_is_returned(self):
         target_angle = 30.0
         expected = 3.0
-        self.supermirror.angle = target_angle
-        self.supermirror.set_position_relative_to_beam(10.0)
+        self.supermirror.beam_path_set_point.angle = target_angle
+        self.supermirror.beam_path_set_point.set_position_relative_to_beam(10.0)
 
         result = self.supermirror_driver.get_max_move_duration()
 
@@ -138,8 +138,8 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         target_position_height = 10.0
         expected_velocity_angle = 3.0
         target_position_angle = 30.0
-        self.supermirror.angle = 30.0
-        self.supermirror.set_position_relative_to_beam(10.0)  # move component into beam
+        self.supermirror.beam_path_set_point.angle = 30.0
+        self.supermirror.beam_path_set_point.set_position_relative_to_beam(10.0)  # move component into beam
 
         self.supermirror_driver.perform_move(target_duration)
 
@@ -156,7 +156,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         supermirror = ReflectingComponent("supermirror", movement_strategy=LinearMovement(t_at_zero=0.0, z_at_zero=10.0, angle=90.0))
         sm_height_axis = create_mock_axis("SM:HEIGHT", 0.0, 10.0)
         sm_angle_axis = create_mock_axis("SM:ANGLE", sm_angle, 10.0)
-        supermirror.angle = sm_angle
+        supermirror.beam_path_set_point.angle = sm_angle
         supermirror_driver = HeightAndAngleDriver(supermirror, sm_height_axis, sm_angle_axis)
 
         slit_2 = Component("slit_2", movement_strategy=LinearMovement(t_at_zero=0.0, z_at_zero=20.0, angle=90.0))

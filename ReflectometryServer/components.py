@@ -5,27 +5,104 @@ Components on a beam
 from ReflectometryServer.geometry import PositionAndAngle
 
 
-class Component(object):
+class BeamPathCalc(object):
     """
-    Base object for all components that can sit on a beam line
+    Calculator for the beam path.
     """
 
-    def __init__(self, name, movement_strategy):
+    def __init__(self, movement_strategy):
         """
-        Initializer.
+        Initialiser.
         Args:
-            name (str): name of the component
             movement_strategy (ReflectometryServer.movement_strategy.LinearMovement): strategy for calculating the
                 interception between the movement of the
-            component and the incoming beam
         """
-        self._rbv_listeners = set()
-        self.incoming_beam = None
-        self._incoming_beam_for_rbv = None
-        self._movement_strategy = movement_strategy
-        self.after_beam_path_update_listener = lambda x: None
+        self._incoming_beam = None
+        self._after_beam_path_update_listener = set()
         self._enabled = True
-        self._name = name
+        self._movement_strategy = movement_strategy
+
+    def add_after_beam_path_update_listener(self, listen_for_value):
+        """
+        Add a listener which is triggered if the beam path is changed. For example if displacement is set or incoming
+        beam is changed.
+        Args:
+            listen_for_value: listener with a single argument which is the calling calculation.
+        """
+        self._after_beam_path_update_listener.add(listen_for_value)
+
+    def _trigger_after_beam_path_update(self):
+        """
+        Runs all the current listeners because something about the beam path has changed.
+        """
+        for listener in self._after_beam_path_update_listener:
+            listener(self)
+
+    def set_incoming_beam(self, incoming_beam):
+        """
+        Set the incoming beam for the component setpoint calculation
+        Args:
+            incoming_beam(PositionAndAngle): incoming beam
+        """
+        self._incoming_beam = incoming_beam
+        self._trigger_after_beam_path_update()
+
+    def get_outgoing_beam(self):
+        """
+        Returns the outgoing beam. This class is overridden by components which affect the beam angle.
+        Returns (PositionAndAngle): the outgoing beam based on the incoming beam and any interaction with the component
+        """
+        return self._incoming_beam
+
+    def calculate_beam_interception(self):
+        """
+        Returns: the position at the point where the components possible movement intercepts the beam
+
+        """
+        return self._movement_strategy.calculate_interception(self._incoming_beam)
+
+    def set_position_relative_to_beam(self, displacement):
+        """
+        Set the position of the component relative to the beam for the given value based on its movement strategy.
+        For instance this could set the height above the beam for a vertically moving component
+        Args:
+            displacement: the value to set away from the beam, e.g. height
+        """
+
+        self._movement_strategy.set_position_relative_to_beam(self._incoming_beam, displacement)
+        self._trigger_after_beam_path_update()
+
+    def get_position_relative_to_beam(self):
+        """
+
+        Returns: the displacement of the component relative to the beam, E.g. The distance along the movement
+            axis of the component from the intercept with the beam.
+
+        """
+        return self._movement_strategy.get_displacement_relative_to_beam(self._incoming_beam)
+
+    def set_displacement(self, displacement):
+        """
+        Set the displacement of the component from the zero position, E.g. The distance along the movement
+            axis of the component from the set zero position.
+        Args:
+            displacement: the displacement to set
+        """
+        self._movement_strategy.set_displacement(displacement)
+        self._trigger_after_beam_path_update()
+
+    def get_displacement(self):
+        """
+        Returns: The displacement of the component from the zero position, E.g. The distance along the movement
+            axis of the component from the set zero position.
+        """
+        return self._movement_strategy.get_displacement()
+
+    def sp_position(self):
+        """
+        Returns (Position): The set point position of this component in mantid coordinates.
+        """
+        return self._movement_strategy.sp_position()
 
     @property
     def enabled(self):
@@ -42,7 +119,26 @@ class Component(object):
             enabled: The modified enabled status
         """
         self._enabled = enabled
-        self.after_beam_path_update_listener(self)
+        self._trigger_after_beam_path_update()
+
+
+class Component(object):
+    """
+    Base object for all components that can sit on a beam line
+    """
+
+    def __init__(self, name, movement_strategy, beam_path_calc_clazz=BeamPathCalc):
+        """
+        Initializer.
+        Args:
+            name (str): name of the component
+            movement_strategy (ReflectometryServer.movement_strategy.LinearMovement): strategy for calculating the
+                interception between the movement of the
+            component and the incoming beam
+        """
+        self._name = name
+        self._beam_path_set_point = beam_path_calc_clazz(movement_strategy.copy())
+        self._beam_path_rbv = beam_path_calc_clazz(movement_strategy.copy())
 
     @property
     def name(self):
@@ -51,93 +147,45 @@ class Component(object):
         """
         return self._name
 
-    def set_incoming_beam(self, incoming_beam):
+    @property
+    def beam_path_set_point(self):
         """
-        Set the incoming beam for the component setpoint calulcation
-        Args:
-            incoming_beam(PositionAndAngle): incoming beam
-        """
-        self.incoming_beam = incoming_beam
-
-    def get_outgoing_beam(self):
-        """
-        Returns the outgoing beam. This class is overiden by components which affect the beam angle.
-        Returns (PositionAndAngle): the outgoing beam based on the incoming beam and any interaction with the component
-        """
-        return self.incoming_beam
-
-    def calculate_beam_interception(self):
-        """
-
-        Returns: the position at the point where the components possible movement intercepts the beam
+        The beam path calculation for the set points. This is readonly and can only be set during construction
+        Returns: beam path calculation for set points
 
         """
-        return self._movement_strategy.calculate_interception(self.incoming_beam)
+        return self._beam_path_set_point
 
-    def set_position_relative_to_beam(self, displacement):
+    @property
+    def beam_path_rbv(self):
         """
-        Set the position of the component relative to the beam for the given value based on its movement strategy.
-        For instance this could set the height above the beam for a vertically moving component
-        Args:
-            displacement: the value to set away from the beam, e.g. height
+        The beam path calculation for the read backs. This is readonly and can only be set during construction
+        Returns: beam path calculation for read backs
         """
+        return self._beam_path_rbv
 
-        self._movement_strategy.set_position_relative_to_beam(self.incoming_beam, displacement)
 
-    def sp_position(self):
+class BeamPathTiltingJaws(BeamPathCalc):
+    """
+    A beam path which includes a jaw which will title at 90 degrees to the jaw
+    """
+    component_to_beam_angle = 90
+
+    def __init__(self, movement_strategy):
+        super(BeamPathTiltingJaws, self).__init__(movement_strategy)
+        self._angle = 0.0
+
+    def calculate_tilt_angle(self):
         """
-        Returns (Position): The set point position of this component.
+        Returns: the angle to tilt so the jaws are perpendicular to the beam.
         """
-        return self._movement_strategy.sp_position()
-
-    def add_rbv_relative_to_beam_listener(self, listen_for_value):
-        """
-        Add a listener for changes in rbv relative to the beam.
-
-        Listeners are called if beam or rbv are set (even if values don't change)
-        Args:
-            listen_for_value: function
-
-        Returns:
-
-        """
-        self._rbv_listeners.add(listen_for_value)
-
-    def set_rbv(self, displacement):
-        """
-
-        Args:
-            displacement:
-
-        Returns:
-
-        """
-        self._movement_strategy.set_rbv(displacement)
-        self._calc_rbv_relative_to_beam()
-
-    def _calc_rbv_relative_to_beam(self):
-        """
-        Perform rbv relative to beam calulations and triggers listeners
-        """
-        rbv_relative_to_beam = self._movement_strategy.get_rbv_relative_to_beam(self._incoming_beam_for_rbv)
-        for listener in self._rbv_listeners:
-            listener(rbv_relative_to_beam)
-
-    def set_incoming_beam_for_rbv(self, beam):
-        """
-        Set the incoming beam for use in the rbv calculation. Also triggers rbv listeners
-        Args:
-            beam: beam to use
-        """
-        self._incoming_beam_for_rbv = beam
-        self._calc_rbv_relative_to_beam()
+        return self._incoming_beam.angle + self.component_to_beam_angle
 
 
 class TiltingJaws(Component):
     """
     Jaws which can tilt.
     """
-    component_to_beam_angle = 90
 
     def __init__(self, name, movement_strategy):
         """
@@ -146,27 +194,15 @@ class TiltingJaws(Component):
             name (str): name of the component
             movement_strategy: strategy encapsulating movement of the component
         """
-        super(TiltingJaws, self).__init__(name, movement_strategy)
-
-    def calculate_tilt_angle(self):
-        """
-        Returns: the angle to tilt so the jaws are perpendicular to the beam.
-        """
-        return self.get_outgoing_beam().angle + self.component_to_beam_angle
+        super(TiltingJaws, self).__init__(name, movement_strategy, BeamPathTiltingJaws)
 
 
-class ReflectingComponent(Component):
+class BeamPathCalcAngle(BeamPathCalc):
     """
-    Components which reflects the beam from an reflecting surface at an angle.
+    A beam path calculation which includes an angle of the component, e.g. a reflecting mirror.
     """
-    def __init__(self, name, movement_strategy):
-        """
-        Initializer.
-        Args:
-            name (str): name of the component
-            movement_strategy: strategy encapsulating movement of the component
-        """
-        super(ReflectingComponent, self).__init__(name, movement_strategy)
+    def __init__(self, movement_strategy):
+        super(BeamPathCalcAngle, self).__init__(movement_strategy)
         self._angle = 0.0
 
     @property
@@ -183,19 +219,27 @@ class ReflectingComponent(Component):
         Args:
             angle: The modified angle
         """
+        self._set_angle(angle)
+
+    def _set_angle(self, angle):
+        """
+        Set the angle
+        Args:
+            angle: angle to set
+        """
         self._angle = angle
-        self.after_beam_path_update_listener(self)
+        self._trigger_after_beam_path_update()
 
     def get_outgoing_beam(self):
         """
         Returns: the outgoing beam based on the last set incoming beam and any interaction with the component
         """
         if not self._enabled:
-            return self.incoming_beam
+            return self._incoming_beam
 
         target_position = self.calculate_beam_interception()
-        angle_between_beam_and_component = (self._angle - self.incoming_beam.angle)
-        angle = angle_between_beam_and_component * 2 + self.incoming_beam.angle
+        angle_between_beam_and_component = (self._angle - self._incoming_beam.angle)
+        angle = angle_between_beam_and_component * 2 + self._incoming_beam.angle
         return PositionAndAngle(target_position.y, target_position.z, angle)
 
     def set_angle_relative_to_beam(self, angle):
@@ -204,7 +248,21 @@ class ReflectingComponent(Component):
         Args:
             angle: angle to set the component at
         """
-        self.angle = angle + self.incoming_beam.angle
+        self._set_angle(angle + self._incoming_beam.angle)
+
+
+class ReflectingComponent(Component):
+    """
+    Components which reflects the beam from an reflecting surface at an angle.
+    """
+    def __init__(self, name, movement_strategy):
+        """
+        Initializer.
+        Args:
+            name (str): name of the component
+            movement_strategy: strategy encapsulating movement of the component
+        """
+        super(ReflectingComponent, self).__init__(name, movement_strategy, BeamPathCalcAngle)
 
 
 # class Bench(Component):

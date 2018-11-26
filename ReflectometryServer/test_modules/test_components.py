@@ -16,9 +16,9 @@ class TestComponent(unittest.TestCase):
         jaws_z_position = 10
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         jaws = Component("component", movement_strategy=LinearMovement(0, jaws_z_position, 90))
-        jaws.set_incoming_beam(beam_start)
+        jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
-        result = jaws.get_outgoing_beam()
+        result = jaws.beam_path_set_point.get_outgoing_beam()
 
         assert_that(result, is_(position_and_angle(beam_start)))
 
@@ -27,9 +27,9 @@ class TestComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         expected_position = Position(y=0, z=jaws_z_position)
         jaws = Component("component", movement_strategy=LinearMovement(0, jaws_z_position, 90))
-        jaws.set_incoming_beam(beam_start)
+        jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
-        result = jaws.calculate_beam_interception()
+        result = jaws.beam_path_set_point.calculate_beam_interception()
 
         assert_that(result, is_(position(expected_position)))
 
@@ -39,9 +39,9 @@ class TestComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
         expected_position = Position(y=tan(radians(beam_angle)) * jaws_z_position, z=jaws_z_position)
         jaws = Component("component", movement_strategy=LinearMovement(0, jaws_z_position, 90))
-        jaws.set_incoming_beam(beam_start)
+        jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
-        result = jaws.calculate_beam_interception()
+        result = jaws.beam_path_set_point.calculate_beam_interception()
 
         assert_that(result, is_(position(expected_position)))
 
@@ -54,9 +54,9 @@ class TestComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=start_y, z=start_z, angle=beam_angle)
         expected_position = Position(y=tan(radians(beam_angle)) * distance_between + start_y, z=jaws_z_position)
         jaws = Component("component", movement_strategy=LinearMovement(0, jaws_z_position, 90))
-        jaws.set_incoming_beam(beam_start)
+        jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
-        result = jaws.calculate_beam_interception()
+        result = jaws.beam_path_set_point.calculate_beam_interception()
 
         assert_that(result, is_(position(expected_position)))
 
@@ -65,9 +65,9 @@ class TestComponent(unittest.TestCase):
         expected_angle = 60.0 + 90.0
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
         jaws = TiltingJaws("tilting jaws", movement_strategy=LinearMovement(0, 20, 90))
-        jaws.set_incoming_beam(beam_start)
+        jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
-        result = jaws.calculate_tilt_angle()
+        result = jaws.beam_path_set_point.calculate_tilt_angle()
 
         assert_that(result, is_(expected_angle))
 
@@ -81,11 +81,11 @@ class TestActiveComponents(unittest.TestCase):
         expected = beam_start
 
         mirror = ReflectingComponent("component", movement_strategy=LinearMovement(0, mirror_z_position, 90))
-        mirror.angle = mirror_angle
-        mirror.set_incoming_beam(beam_start)
-        mirror.enabled = False
+        mirror.beam_path_set_point.angle = mirror_angle
+        mirror.beam_path_set_point.set_incoming_beam(beam_start)
+        mirror.beam_path_set_point.enabled = False
 
-        result = mirror.get_outgoing_beam()
+        result = mirror.beam_path_set_point.get_outgoing_beam()
 
         assert_that(result, is_(position_and_angle(expected)))
 
@@ -97,10 +97,10 @@ class TestActiveComponents(unittest.TestCase):
         expected = PositionAndAngle(y=0, z=mirror_z_position, angle=2 * mirror_angle)
 
         mirror = ReflectingComponent("component", movement_strategy=LinearMovement(0, mirror_z_position, 90))
-        mirror.angle = mirror_angle
-        mirror.set_incoming_beam(beam_start)
+        mirror.beam_path_set_point.angle = mirror_angle
+        mirror.beam_path_set_point.set_incoming_beam(beam_start)
 
-        result = mirror.get_outgoing_beam()
+        result = mirror.beam_path_set_point.get_outgoing_beam()
 
         assert_that(result, is_(position_and_angle(expected)))
 
@@ -116,10 +116,10 @@ class TestActiveComponents(unittest.TestCase):
         expected = PositionAndAngle(y=0, z=0, angle=outgoing_angle)
 
         mirror = ReflectingComponent("component", movement_strategy=LinearMovement(0, 0, 90))
-        mirror.angle = mirror_angle
-        mirror.set_incoming_beam(beam_start)
+        mirror.beam_path_set_point.angle = mirror_angle
+        mirror.beam_path_set_point.set_incoming_beam(beam_start)
 
-        result = mirror.get_outgoing_beam()
+        result = mirror.beam_path_set_point.get_outgoing_beam()
 
         assert_that(result, is_(position_and_angle(expected)),
                     "beam_angle: {}, mirror_angle: {}".format(beam_angle, mirror_angle))
@@ -132,7 +132,7 @@ class TestActiveComponents(unittest.TestCase):
     #     beam_start = PositionAndAngle(z=0, y=0, angle=0)
     #     expected_position = Position(z=bench_center_of_rotation.z + bench_radius, y=0)
     #     bench = Component("component", movement_strategy=ArcMovement(bench_center_of_rotation, bench_radius))
-    #     bench.set_incoming_beam(beam_start)
+    #     bench.beam_path_set_point.set_incoming_beam(beam_start)
     #
     #     result = bench.calculate_beam_interception()
     #
@@ -144,7 +144,7 @@ class TestActiveComponents(unittest.TestCase):
     #     beam_start = PositionAndAngle(z=0, y=0, angle=0)
     #     expected_position = Position(z=(bench_center_of_rotation.z + bench_radius) * sqrt(2), y=(bench_center_of_rotation.z + bench_radius) * sqrt(2))
     #     bench = Component("component", movement_strategy=ArcMovement(bench_center_of_rotation, bench_radius))
-    #     bench.set_incoming_beam(beam_start)
+    #     bench.beam_path_set_point.set_incoming_beam(beam_start)
     #
     #     result = bench.calculate_beam_interception()
     #
@@ -157,50 +157,57 @@ class TestObservationOfComponentReadback(unittest.TestCase):
     """
 
     def setUp(self):
-        self._value = None
-        self._value2 = None
+        self._value = 0
+        self._value2 = 0
         movement_strategy = LinearMovement(0, 0, 90)
         self.component = Component("test component", movement_strategy)
 
-        self.component.set_incoming_beam_for_rbv(PositionAndAngle(0, 0, 0))
+        self.component.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
 
-    def listen_for_value(self, value):
-        self._value = value
+    def listen_for_value(self, source):
+        self._value += 1
 
-    def listen_for_value2(self, value):
-        self._value2 = value
+    def listen_for_value2(self, source):
+        self._value2 += 1
 
     def test_GIVEN_listener_WHEN_readback_changes_THEN_listener_is_informed(self):
         expected_value = 10
-        self.component.add_rbv_relative_to_beam_listener(self.listen_for_value)
-        self.component.set_rbv(expected_value)
+        self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value)
+        self.component.beam_path_rbv.set_displacement(1)
 
-        assert_that(self._value, is_(expected_value))
+        result = self.component.beam_path_rbv.get_displacement()
+
+        assert_that(self._value, is_(1))
+        assert_that(result, expected_value)
 
     def test_GIVEN_two_listeners_WHEN_readback_changes_THEN_listener_is_informed(self):
         expected_value = 10
-        self.component.add_rbv_relative_to_beam_listener(self.listen_for_value)
-        self.component.add_rbv_relative_to_beam_listener(self.listen_for_value2)
-        self.component.set_rbv(expected_value)
+        self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value)
+        self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value2)
+        self.component.beam_path_rbv.set_displacement(1)
 
-        assert_that(self._value, is_(expected_value))
-        assert_that(self._value2, is_(expected_value))
+        result = self.component.beam_path_rbv.get_displacement()
+
+        assert_that(self._value, is_(1))
+        assert_that(self._value2, is_(1))
+        assert_that(result, expected_value)
 
     def test_GIVEN_no_listener_WHEN_readback_changes_THEN_no_listeners_are_informed(self):
-        expected_value = 10
-        self.component.set_rbv(expected_value)
+        self.component.beam_path_rbv.set_displacement(1)
 
-        assert_that(self._value, none())
+        assert_that(self._value, is_(0))
 
     def test_GIVEN_listener_WHEN_beam_changes_THEN_listener_is_informed(self):
         expected_value = 10
-        self.component.add_rbv_relative_to_beam_listener(self.listen_for_value)
+        self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value)
         beam_y = 1
-        self.component.set_rbv(expected_value + beam_y)
+        self.component.beam_path_rbv.set_displacement(expected_value + beam_y)
 
-        self.component.set_incoming_beam_for_rbv(PositionAndAngle(beam_y, 0, 0))
+        self.component.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_y, 0, 0))
+        result = self.component.beam_path_rbv.get_displacement()
 
-        assert_that(self._value, is_(expected_value))
+        assert_that(self._value, is_(2))
+        assert_that(result, expected_value)
 
 
 if __name__ == '__main__':

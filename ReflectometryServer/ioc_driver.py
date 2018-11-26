@@ -10,6 +10,11 @@ class IocDriver(object):
     Drives an actual motor IOC based on a component in the beamline model.
     """
     def __init__(self, component):
+        """
+        Drive the IOC based on a component
+        Args:
+            component (ReflectometryServer.components.Component):
+        """
         self._component = component
 
     def get_max_move_duration(self):
@@ -35,7 +40,8 @@ class HeightDriver(IocDriver):
     def __init__(self, component, height_axis):
         """
         Constructor.
-        :param component (ReflectometryServer.components.PassiveComponent): The component providing the values for the axes
+        :param component (ReflectometryServer.components.PassiveComponent):
+            The component providing the values for the axes
         :param height_axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV that this driver controls.
         """
         super(HeightDriver, self).__init__(component)
@@ -45,7 +51,7 @@ class HeightDriver(IocDriver):
         """
         :return: The distance between the target component position and the actual motor position in y.
         """
-        return math.fabs(self._height_axis.value - self._component.sp_position().y)
+        return math.fabs(self._height_axis.value - self._component.beam_path_set_point.get_displacement())
 
     def get_max_move_duration(self):
         """
@@ -59,7 +65,7 @@ class HeightDriver(IocDriver):
         :param move_duration: The desired duration of the move.
         """
         self._height_axis.velocity = self._get_distance_height() / move_duration
-        self._height_axis.value = self._component.sp_position().y
+        self._height_axis.value = self._component.beam_path_set_point.get_displacement()
 
 
 class HeightAndTiltDriver(HeightDriver):
@@ -79,7 +85,7 @@ class HeightAndTiltDriver(HeightDriver):
         self._tilt_axis = tilt_axis
 
     def _target_angle_perpendicular(self):
-        return self._component.calculate_tilt_angle() - self.ANGULAR_OFFSET
+        return self._component.beam_path_set_point.calculate_tilt_angle() - self.ANGULAR_OFFSET
 
     def get_max_move_duration(self):
         """
@@ -97,8 +103,8 @@ class HeightAndTiltDriver(HeightDriver):
         """
         self._height_axis.velocity = self._get_distance_height() / move_duration
         self._tilt_axis.velocity = math.fabs(self._tilt_axis.value - self._target_angle_perpendicular()) / move_duration
-        self._height_axis.value = self._component.sp_position().y
-        self._tilt_axis.value = self._component.calculate_tilt_angle()
+        self._height_axis.value = self._component.beam_path_set_point.get_displacement()
+        self._tilt_axis.value = self._component.beam_path_set_point.calculate_tilt_angle()
 
 
 class HeightAndAngleDriver(HeightDriver):
@@ -108,7 +114,8 @@ class HeightAndAngleDriver(HeightDriver):
     def __init__(self, component, height_axis, angle_axis):
         """
         Constructor.
-        :param component (ReflectometryServer.components.ActiveComponent): The component providing the values for the axes
+        :param component (ReflectometryServer.components.ReflectingComponent):
+            The component providing the values for the axes
         :param height_axis(ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV for the height motor axis
         :param angle_axis(ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV for the angle motor axis
         """
@@ -119,9 +126,9 @@ class HeightAndAngleDriver(HeightDriver):
         """
         :return: The expected duration of a move based on move distance and axis speed for the slowest axis.
         """
-        height_to_move = math.fabs(self._height_axis.value - self._component.sp_position().y)
+        height_to_move = math.fabs(self._height_axis.value - self._component.beam_path_set_point.sp_position().y)
         vertical_move_duration = height_to_move / self._height_axis.max_velocity
-        angle_to_move = math.fabs(self._angle_axis.value - self._component.angle)
+        angle_to_move = math.fabs(self._angle_axis.value - self._component.beam_path_set_point.angle)
         angular_move_duration = angle_to_move / self._angle_axis.max_velocity
         return max(vertical_move_duration, angular_move_duration)
 
@@ -130,8 +137,9 @@ class HeightAndAngleDriver(HeightDriver):
         Tells the height and angle axes to move to the setpoint within a given time frame.
         :param move_duration: The desired duration of the move.
         """
-        height_to_move = math.fabs(self._height_axis.value - self._component.sp_position().y)
+        height_to_move = math.fabs(self._height_axis.value - self._component.beam_path_set_point.get_displacement())
         self._height_axis.velocity = height_to_move / move_duration
-        self._angle_axis.velocity = math.fabs(self._angle_axis.value - self._component.angle) / move_duration
-        self._height_axis.value = self._component.sp_position().y
-        self._angle_axis.value = self._component.angle
+        angle_to_move_through = self._angle_axis.value - self._component.beam_path_set_point.angle
+        self._angle_axis.velocity = math.fabs(angle_to_move_through) / move_duration
+        self._height_axis.value = self._component.beam_path_set_point.get_displacement()
+        self._angle_axis.value = self._component.beam_path_set_point.angle

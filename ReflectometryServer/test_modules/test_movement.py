@@ -246,9 +246,9 @@ class TestMovementValueObserver(unittest.TestCase):
         movement = LinearMovement(0, 0, 90)
         beam = PositionAndAngle(0, 0, 0)
         self._value = None
-        movement.set_rbv(expected_value)
+        movement.set_displacement(expected_value)
 
-        result = movement.get_rbv_relative_to_beam(beam)
+        result = movement.get_displacement_relative_to_beam(beam)
 
         assert_that(result, is_(expected_value))
 

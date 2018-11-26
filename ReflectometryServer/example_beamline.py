@@ -11,14 +11,14 @@ def create_beamline():
     s0 = Component("s0", movement_strategy=LinearMovement(0, 0, perp_to_floor))
     s1 = Component("s1", movement_strategy=LinearMovement(0, 1, perp_to_floor))
     frame_overlap_mirror = ReflectingComponent("FOM", movement_strategy=LinearMovement(0, 2, perp_to_floor))
-    frame_overlap_mirror.enabled = False
+    frame_overlap_mirror.beam_path_set_point.enabled = False
     polarising_mirror = ReflectingComponent("Polarising mirror", movement_strategy=LinearMovement(0, 3, perp_to_floor))
-    polarising_mirror.enabled = False
+    polarising_mirror.beam_path_set_point.enabled = False
     s2 = Component("s2", movement_strategy=LinearMovement(0, 4, perp_to_floor))
     ideal_sample_point = ReflectingComponent("Ideal Sample Point", movement_strategy=LinearMovement(0, 5, perp_to_floor))
     s3 = Component("s3", movement_strategy=LinearMovement(0, 6, perp_to_floor))
     analyser = ReflectingComponent("analyser", movement_strategy=LinearMovement(0, 7, perp_to_floor))
-    analyser.enabled = False
+    analyser.beam_path_set_point.enabled = False
     s4 = Component("s4", movement_strategy=LinearMovement(0, 8, perp_to_floor))
     detector = Component("detector", movement_strategy=LinearMovement(0, 10, perp_to_floor))
 
@@ -48,9 +48,9 @@ def generate_theta_movement():
         positions_y.insert(0, "theta {}".format(theta))
         positions.append(positions_y)
 
-    beamline[3].enabled = True
+    beamline[3].beam_path_set_point.enabled = True
     sm_angle = 5
-    beamline[3].angle = sm_angle
+    beamline[3].beam_path_set_point.angle = sm_angle
     for theta in range(0, 20, 1):
         beamline.parameter("theta").sp_move = theta * 1.0
         positions_y = [component.calculate_beam_interception().y for component in beamline]

@@ -17,21 +17,28 @@ class LinearMovement(object):
     the straight through beam
     """
 
-    def __init__(self, t_at_zero, z_at_zero, angle, initial_set_point_position=0, initial_rbv=0):
+    def __init__(self, t_at_zero, z_at_zero, angle):
         """
         Initialiser.
         Args:
             t_at_zero: the y position in mantid coordinates of the component when it has moved zero direction
             z_at_zero: the z position in mantid coordinates of the component when it has moved zero direction
             angle: the angle of the movement in mantid coordinates
-            initial_set_point_position: the set point position of the item measured along its axis of movement.
-            initial_rbv: the initial read back value
         """
         self._listeners = []
         self._angle = angle
         self._position_at_zero = Position(t_at_zero, z_at_zero)
-        self._set_point_position = initial_set_point_position
-        self._rbv = initial_rbv
+        self._displacement = 0
+
+    def copy(self):
+        """
+
+        Returns: Copy of this linear movement without listeners
+
+        """
+        movement = LinearMovement(self._position_at_zero.y, self._position_at_zero.z, self._angle)
+        movement._displacement = self._displacement
+        return movement
 
     def calculate_interception(self, beam):
         """
@@ -98,16 +105,16 @@ class LinearMovement(object):
         z = z_zero
         return y, z
 
-    def set_position_relative_to_beam(self, beam, value):
+    def set_position_relative_to_beam(self, beam, displacement):
         """
         Set the position of the component relative to the beam for the given value based on its movement strategy.
         For instance this could set the height above the beam for a vertically moving component
         Args:
             beam: the current beam ray to set relative to
-            value: the value to set away from the beam, e.g. height
+            displacement: the value to set away from the beam, e.g. height
         """
 
-        self._set_point_position = value + self._dist_along_axis_from_zero_to_beam_intercept(beam)
+        self._displacement = displacement + self._dist_along_axis_from_zero_to_beam_intercept(beam)
 
     def _dist_along_axis_from_zero_to_beam_intercept(self, beam):
         """
@@ -135,21 +142,21 @@ class LinearMovement(object):
         """
         Returns (Position): The set point position of this component in mantid coordinates.
         """
-        y_value = self._position_at_zero.y + self._set_point_position * sin(radians(self._angle))
-        z_value = self._position_at_zero.z + self._set_point_position * cos(radians(self._angle))
+        y_value = self._position_at_zero.y + self._displacement * sin(radians(self._angle))
+        z_value = self._position_at_zero.z + self._displacement * cos(radians(self._angle))
 
         return Position(y_value, z_value)
 
-    def set_rbv(self, displacement):
+    def set_displacement(self, displacement):
         """
         Set the read back value for the movement. The is the displacement along the axis from the zero point to the
         actual position of the component, in the direction of the axis.
         Args:
             displacement: value along the axis, -ve for before the zero point
         """
-        self._rbv = displacement
+        self._displacement = displacement
 
-    def get_rbv_relative_to_beam(self, beam):
+    def get_displacement_relative_to_beam(self, beam):
         """
         Given a beam get the actual displacement of the component along the axis of movement from the intercept of the
         beam with the axis of movement.
@@ -159,8 +166,15 @@ class LinearMovement(object):
         Returns: displacement from the beam to the component
 
         """
-        return self._rbv - self._dist_along_axis_from_zero_to_beam_intercept(beam)
+        return self._displacement - self._dist_along_axis_from_zero_to_beam_intercept(beam)
 
+    def get_displacement(self):
+        """
+
+        Returns: displacement along a axis from the zero position.
+
+        """
+        return self._displacement
 
 # class ArcMovement(LinearMovement):
 #     """

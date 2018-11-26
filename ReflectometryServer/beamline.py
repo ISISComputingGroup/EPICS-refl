@@ -2,6 +2,8 @@
 Resources at a beamline level
 """
 from collections import OrderedDict
+from functools import partial
+
 from enum import Enum
 
 from ReflectometryServer.geometry import PositionAndAngle
@@ -114,6 +116,8 @@ class Beamline(object):
             incoming_beam (ReflectometryServer.geometry.PositionAndAngle): the incoming beam point
         """
         self._components = components
+        self._beam_path_calcs_set_point = []
+        self._beam_path_calcs_rbv = []
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
         self._status = STATUS.OKAY
@@ -127,7 +131,12 @@ class Beamline(object):
             beamline_parameter.after_move_listener = self._move_for_single_beamline_parameters
 
         for component in components:
-            component.after_beam_path_update_listener = self.update_beam_path
+            self._beam_path_calcs_set_point.append(component.beam_path_set_point)
+            self._beam_path_calcs_rbv.append(component.beam_path_rbv)
+            component.beam_path_set_point.add_after_beam_path_update_listener(
+                partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_set_point))
+            component.beam_path_rbv.add_after_beam_path_update_listener(
+                partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_rbv))
 
         self._modes = OrderedDict()
         for mode in modes:
@@ -136,7 +145,8 @@ class Beamline(object):
 
         self._incoming_beam = incoming_beam
         self._active_mode = None
-        self.update_beam_path(None)
+        self.update_next_beam_component(None, self._beam_path_calcs_set_point)
+        self.update_next_beam_component(None, self._beam_path_calcs_rbv)
 
     @property
     def parameter_types(self):
@@ -208,16 +218,26 @@ class Beamline(object):
         """
         return self._components[item]
 
-    def update_beam_path(self, source_component):
+    def update_next_beam_component(self, source_component, calc_path_list):
         """
-        Updates the beam path for all components
+        Updates the next component in the beamline.
         Args:
-            source_component: source component of the update or None for not from component change
+            source_component(None|ReflectometryServer.components.BeamPathCalc): source component of the update or
+                None for not from component change
+            calc_path_list(List[ReflectometryServer.components.BeamPathCalc]): list of beam calcs order in the same
+                order as components
         """
-        outgoing = self._incoming_beam
-        for component in self._components:
-            component.set_incoming_beam(outgoing)
-            outgoing = component.get_outgoing_beam()
+        if source_component is None:
+            outgoing = self._incoming_beam
+            comp_index = -1
+        else:
+            outgoing = source_component.get_outgoing_beam()
+            comp_index = calc_path_list.index(source_component)
+
+        try:
+            calc_path_list[comp_index + 1].set_incoming_beam(outgoing)
+        except IndexError:
+            pass  # no more components to update
 
     def _move_for_all_beamline_parameters(self):
         """
