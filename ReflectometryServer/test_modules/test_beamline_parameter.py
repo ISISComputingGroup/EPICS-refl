@@ -5,7 +5,7 @@ from hamcrest import *
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 
 from ReflectometryServer.components import ReflectingComponent, Component
-from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.geometry import Position, PositionAndAngle
 from ReflectometryServer.parameters import Theta, ReflectionAngle, TrackingPosition, ComponentEnabled
 from data_mother import DataMother, EmptyBeamlineParameter
@@ -16,7 +16,7 @@ class TestBeamlineParameter(unittest.TestCase):
 
     def test_GIVEN_theta_WHEN_set_set_point_THEN_sample_hasnt_moved(self):
         theta_set = 10.0
-        sample = ReflectingComponent("sample", movement_strategy=LinearMovement(0, 0, 90))
+        sample = ReflectingComponent("sample", setup=LinearSetup(0, 0, 90))
         mirror_pos = -100
         sample.beam_path_set_point.angle = mirror_pos
         theta = Theta("theta", sample)
@@ -30,7 +30,7 @@ class TestBeamlineParameter(unittest.TestCase):
 
         theta_set = 10.0
         expected_sample_angle = 10.0
-        sample = ReflectingComponent("sample", movement_strategy=LinearMovement(0, 0, 90))
+        sample = ReflectingComponent("sample", setup=LinearSetup(0, 0, 90))
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         mirror_pos = -100
         sample.beam_path_set_point.angle = mirror_pos
@@ -47,7 +47,7 @@ class TestBeamlineParameter(unittest.TestCase):
 
         original_theta = 1.0
         theta_set = 10.0
-        sample = ReflectingComponent("sample", movement_strategy=LinearMovement(0, 0, 90))
+        sample = ReflectingComponent("sample", setup=LinearSetup(0, 0, 90))
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         mirror_pos = -100
         sample.beam_path_set_point.angle = mirror_pos
@@ -63,7 +63,7 @@ class TestBeamlineParameter(unittest.TestCase):
     def test_GIVEN_theta_and_a_set_but_no_move_WHEN_get_changed_THEN_changed_is_true(self):
 
         theta_set = 10.0
-        sample = ReflectingComponent("sample", movement_strategy=LinearMovement(0, 0, 90))
+        sample = ReflectingComponent("sample", setup=LinearSetup(0, 0, 90))
         theta = Theta("theta",sample)
 
         theta.sp_no_move = theta_set
@@ -74,7 +74,7 @@ class TestBeamlineParameter(unittest.TestCase):
     def test_GIVEN_theta_and_a_set_and_move_WHEN_get_changed_THEN_changed_is_false(self):
 
         theta_set = 10.0
-        sample = ReflectingComponent("sample", movement_strategy=LinearMovement(0, 0, 90))
+        sample = ReflectingComponent("sample", setup=LinearSetup(0, 0, 90))
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         theta = Theta("theta",sample)
 
@@ -88,7 +88,7 @@ class TestBeamlineParameter(unittest.TestCase):
 
         angle_set = 10.0
         expected_sample_angle = 10.0
-        sample = ReflectingComponent("sample", movement_strategy=LinearMovement(0, 0, 90))
+        sample = ReflectingComponent("sample", setup=LinearSetup(0, 0, 90))
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         mirror_pos = -100
         sample.beam_path_set_point.angle = mirror_pos
@@ -107,7 +107,7 @@ class TestBeamlineParameter(unittest.TestCase):
         beam_height = 5
         expected_height = beam_height + height_set
         jaws_z = 5.0
-        jaws = Component("jaws", movement_strategy=LinearMovement(0, jaws_z, 90))
+        jaws = Component("jaws", setup=LinearSetup(0, jaws_z, 90))
         jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
         tracking_height = TrackingPosition("theta", jaws)
 
@@ -120,7 +120,7 @@ class TestBeamlineParameter(unittest.TestCase):
         assert_that(jaws.beam_path_set_point.sp_position().z, is_(close_to(jaws_z, DEFAULT_TEST_TOLERANCE)))
 
     def test_GIVEN_component_parameter_enabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_enabled(self):
-        super_mirror = ReflectingComponent("super mirror", LinearMovement(z_at_zero=10, t_at_zero=0, angle=90))
+        super_mirror = ReflectingComponent("super mirror", LinearSetup(z_at_zero=10, t_at_zero=0, angle=90))
         super_mirror.beam_path_set_point.enabled = False
         sm_enabled = ComponentEnabled("smenabled", super_mirror)
         enabled_sp = True
@@ -132,7 +132,7 @@ class TestBeamlineParameter(unittest.TestCase):
         assert_that(super_mirror.beam_path_set_point.enabled, is_(enabled_sp))
 
     def test_GIVEN_component_parameter_disabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_disabled(self):
-        super_mirror = ReflectingComponent("super mirror", LinearMovement(z_at_zero=10, t_at_zero=0, angle=90))
+        super_mirror = ReflectingComponent("super mirror", LinearSetup(z_at_zero=10, t_at_zero=0, angle=90))
         super_mirror.beam_path_set_point.enabled = True
         sm_enabled = ComponentEnabled("smenabled", super_mirror)
         enabled_sp = False
@@ -146,9 +146,9 @@ class TestBeamlineParameter(unittest.TestCase):
 class TestBeamlineModes(unittest.TestCase):
 
     def test_GIVEN_unpolarised_mode_and_beamline_parameters_are_set_WHEN_move_THEN_components_move_onto_beam_line(self):
-        slit2 = Component("s2", LinearMovement(0, z_at_zero=10, angle=90))
-        ideal_sample_point = ReflectingComponent("ideal_sample_point", LinearMovement(0, z_at_zero=20, angle=90))
-        detector = Component("detector", LinearMovement(0, z_at_zero=30, angle=90))
+        slit2 = Component("s2", LinearSetup(0, z_at_zero=10, angle=90))
+        ideal_sample_point = ReflectingComponent("ideal_sample_point", LinearSetup(0, z_at_zero=20, angle=90))
+        detector = Component("detector", LinearSetup(0, z_at_zero=30, angle=90))
         components = [slit2, ideal_sample_point, detector]
 
         parameters = [
@@ -173,7 +173,7 @@ class TestBeamlineModes(unittest.TestCase):
 
     def test_GIVEN_a_mode_with_a_single_beamline_parameter_in_WHEN_move_THEN_beamline_parameter_is_calculated_on_move(self):
         angle_to_set = 45.0
-        ideal_sample_point = ReflectingComponent("ideal_sample_point", LinearMovement(t_at_zero=0, z_at_zero=20, angle=90))
+        ideal_sample_point = ReflectingComponent("ideal_sample_point", LinearSetup(t_at_zero=0, z_at_zero=20, angle=90))
         theta = Theta("theta", ideal_sample_point)
         beamline_mode = BeamlineMode("mode name", [theta.name])
         beamline = Beamline([ideal_sample_point], [theta], [], [beamline_mode])
@@ -187,9 +187,9 @@ class TestBeamlineModes(unittest.TestCase):
 
     def test_GIVEN_a_mode_with_a_two_beamline_parameter_in_WHEN_move_first_THEN_second_beamline_parameter_is_calculated_and_moved_to(self):
         angle_to_set = 45.0
-        ideal_sample_point = ReflectingComponent("ideal_sample_point", LinearMovement(t_at_zero=0, z_at_zero=20, angle=90))
+        ideal_sample_point = ReflectingComponent("ideal_sample_point", LinearSetup(t_at_zero=0, z_at_zero=20, angle=90))
         theta = Theta("theta", ideal_sample_point)
-        super_mirror = ReflectingComponent("super mirror", LinearMovement(t_at_zero=0, z_at_zero=10, angle=90))
+        super_mirror = ReflectingComponent("super mirror", LinearSetup(t_at_zero=0, z_at_zero=10, angle=90))
         smangle = ReflectionAngle("smangle", super_mirror)
 
         beamline_mode = BeamlineMode("mode name", [theta.name, smangle.name])
@@ -207,7 +207,7 @@ class TestBeamlineModes(unittest.TestCase):
     def test_GIVEN_mode_has_initial_parameter_value_WHEN_setting_mode_THEN_component_sp_updated_but_rbv_unchanged(self):
         sm_angle = 0.0
         sm_angle_to_set = 45.0
-        super_mirror = ReflectingComponent("super mirror", LinearMovement(z_at_zero=10, t_at_zero=0, angle=90))
+        super_mirror = ReflectingComponent("super mirror", LinearSetup(z_at_zero=10, t_at_zero=0, angle=90))
         super_mirror.beam_path_set_point.angle = sm_angle
         smangle = ReflectionAngle("smangle", super_mirror)
         smangle.sp_no_move = sm_angle
@@ -223,7 +223,7 @@ class TestBeamlineModes(unittest.TestCase):
 
     def test_GIVEN_mode_has_initial_value_for_param_not_in_beamline_WHEN_initialize_mode_THEN_keyerror_raised(self):
         sm_angle = 0.0
-        super_mirror = ReflectingComponent("super mirror", LinearMovement(z_at_zero=10, t_at_zero=0, angle=90))
+        super_mirror = ReflectingComponent("super mirror", LinearSetup(z_at_zero=10, t_at_zero=0, angle=90))
         super_mirror.beam_path_set_point.angle = sm_angle
         smangle = ReflectionAngle("smangle", super_mirror)
         smangle.sp_no_move = sm_angle
@@ -235,8 +235,8 @@ class TestBeamlineModes(unittest.TestCase):
 
     def test_GIVEN_parameter_not_in_mode_and_not_changed_and_no_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_unchanged(self):
         initial_s2_height = 0.0
-        super_mirror = ReflectingComponent("sm", LinearMovement(0.0, 10, 90.0))
-        s2 = Component("s2", LinearMovement(initial_s2_height, 20, 90.0))
+        super_mirror = ReflectingComponent("sm", LinearSetup(0.0, 10, 90.0))
+        s2 = Component("s2", LinearSetup(initial_s2_height, 20, 90.0))
 
         sm_angle = ReflectionAngle("smangle", super_mirror)
         slit2_pos = TrackingPosition("slit2pos", s2)
@@ -252,8 +252,8 @@ class TestBeamlineModes(unittest.TestCase):
 
     def test_GIVEN_parameter_not_in_mode_and_not_changed_and_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_unchanged(self):
         initial_s2_height = 0.0
-        super_mirror = ReflectingComponent("sm", LinearMovement(0.0, 10, 90.0))
-        s2 = Component("s2", LinearMovement(initial_s2_height, 20, 90.0))
+        super_mirror = ReflectingComponent("sm", LinearSetup(0.0, 10, 90.0))
+        s2 = Component("s2", LinearSetup(initial_s2_height, 20, 90.0))
 
         sm_angle = ReflectionAngle("smangle", super_mirror)
         slit2_pos = TrackingPosition("slit2pos", s2)
@@ -270,8 +270,8 @@ class TestBeamlineModes(unittest.TestCase):
 
     def test_GIVEN_parameter_in_mode_and_not_changed_and_no_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_unchanged(self):
         initial_s2_height = 0.0
-        super_mirror = ReflectingComponent("sm", LinearMovement(0.0, 10, 90.0))
-        s2 = Component("s2", LinearMovement(initial_s2_height, 20, 90.0))
+        super_mirror = ReflectingComponent("sm", LinearSetup(0.0, 10, 90.0))
+        s2 = Component("s2", LinearSetup(initial_s2_height, 20, 90.0))
 
         sm_angle = ReflectionAngle("smangle", super_mirror, True)
         slit2_pos = TrackingPosition("slit2pos", s2, True)
@@ -288,8 +288,8 @@ class TestBeamlineModes(unittest.TestCase):
     def test_GIVEN_parameter_changed_and_not_in_mode_and_no_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_moved_to_sp(self):
         initial_s2_height = 0.0
         target_s2_height = 1.0
-        super_mirror = ReflectingComponent("sm", LinearMovement(0.0, 10, 90.0))
-        s2 = Component("s2", LinearMovement(initial_s2_height, 20, 90.0))
+        super_mirror = ReflectingComponent("sm", LinearSetup(0.0, 10, 90.0))
+        s2 = Component("s2", LinearSetup(initial_s2_height, 20, 90.0))
 
         sm_angle = ReflectionAngle("smangle", super_mirror)
         slit2_pos = TrackingPosition("slit2pos", s2)
@@ -308,8 +308,8 @@ class TestBeamlineModes(unittest.TestCase):
             self):
         initial_s2_height = 0.0
         target_s2_height = 11.0
-        super_mirror = ReflectingComponent("sm", LinearMovement(0.0, 10, 90.0))
-        s2 = Component("s2", LinearMovement(initial_s2_height, 20, 90.0))
+        super_mirror = ReflectingComponent("sm", LinearSetup(0.0, 10, 90.0))
+        s2 = Component("s2", LinearSetup(initial_s2_height, 20, 90.0))
 
         sm_angle = ReflectionAngle("smangle", super_mirror)
         slit2_pos = TrackingPosition("slit2pos", s2)
@@ -329,8 +329,8 @@ class TestBeamlineModes(unittest.TestCase):
             self):
         initial_s2_height = 0.0
         target_s2_height = 1.0
-        super_mirror = ReflectingComponent("sm", LinearMovement(0.0, 10, 90.0))
-        s2 = Component("s2", LinearMovement(initial_s2_height, 20, 90.0))
+        super_mirror = ReflectingComponent("sm", LinearSetup(0.0, 10, 90.0))
+        s2 = Component("s2", LinearSetup(initial_s2_height, 20, 90.0))
 
         sm_angle = ReflectionAngle("smangle", super_mirror, True)
         slit2_pos = TrackingPosition("slit2pos", s2, True)
@@ -352,8 +352,8 @@ class TestBeamlineModes(unittest.TestCase):
         bounced_beam_angle = 45.0
         sample_z = 10.0
         sample_to_s4_z = 10.0
-        sample_point = ReflectingComponent("sm", LinearMovement(0, sample_z, 90))
-        s4 = Component("s4", LinearMovement(s4_height_initial, sample_z + sample_to_s4_z, 90))
+        sample_point = ReflectingComponent("sm", LinearSetup(0, sample_z, 90))
+        s4 = Component("s4", LinearSetup(s4_height_initial, sample_z + sample_to_s4_z, 90))
         theta = Theta("theta", sample_point, True)
         slit4_pos = TrackingPosition("slit4pos", s4, True)
         mode = BeamlineMode("both_params", [theta.name, slit4_pos.name])
@@ -373,8 +373,8 @@ class TestBeamlineModes(unittest.TestCase):
         bounced_beam_angle = 45.0
         sample_z = 10.0
         sample_to_s4_z = 10.0
-        sample_point = ReflectingComponent("sm", LinearMovement(0, sample_z, 90))
-        s4 = Component("s4", LinearMovement(s4_height_initial, sample_z + sample_to_s4_z, 90))
+        sample_point = ReflectingComponent("sm", LinearSetup(0, sample_z, 90))
+        s4 = Component("s4", LinearSetup(s4_height_initial, sample_z + sample_to_s4_z, 90))
         theta = Theta("theta", sample_point, True)
         slit4_pos = TrackingPosition("slit4pos", s4, True)
         mode = BeamlineMode("first_param", [theta.name])
@@ -395,8 +395,8 @@ class TestBeamlineModes(unittest.TestCase):
         bounced_beam_angle = 45.0
         sample_z = 10.0
         sample_to_s4_z = 10.0
-        sample_point = ReflectingComponent("sm", LinearMovement(0, sample_z, 90))
-        s4 = Component("s4", LinearMovement(s4_height_initial, sample_z + sample_to_s4_z, 90))
+        sample_point = ReflectingComponent("sm", LinearSetup(0, sample_z, 90))
+        s4 = Component("s4", LinearSetup(s4_height_initial, sample_z + sample_to_s4_z, 90))
         theta = Theta("theta", sample_point, True)
         slit4_pos = TrackingPosition("slit4pos", s4, True)
         mode = BeamlineMode("second_params", [slit4_pos.name])

@@ -41,15 +41,22 @@ class MotorPVWrapper(object):
     @property
     def velocity(self):
         """
-        Returns: the value of the underlying PV
+        Returns: the value of the underlying velocity PV
         """
-        return CaChannelWrapper.get_pv_value(self._pv_name + ".VMAX")
+        return CaChannelWrapper.get_pv_value(self._pv_name + ".VELO")
 
     @velocity.setter
     def velocity(self, value):
         """
-        Writes a value to the underlying PV's VAL field.
+        Writes a value to the underlying velocity PV's VAL field.
         Args:
             value: The value to set
         """
         CaChannelWrapper.set_pv_value(self._pv_name + ".VELO", value)
+
+    @property
+    def max_velocity(self):
+        """
+        Returns: the value of the underlying max velocity PV
+        """
+        return CaChannelWrapper.get_pv_value(self._pv_name + ".VMAX")

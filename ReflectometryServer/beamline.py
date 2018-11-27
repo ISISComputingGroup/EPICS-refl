@@ -222,8 +222,8 @@ class Beamline(object):
         """
         Updates the next component in the beamline.
         Args:
-            source_component(None|ReflectometryServer.components.BeamPathCalc): source component of the update or
-                None for not from component change
+            source_component(None|ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): source component of the
+                update or None for not from component change
             calc_path_list(List[ReflectometryServer.components.BeamPathCalc]): list of beam calcs order in the same
                 order as components
         """

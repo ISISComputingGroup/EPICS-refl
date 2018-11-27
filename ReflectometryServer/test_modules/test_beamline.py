@@ -5,7 +5,7 @@ from hamcrest import *
 from mock import Mock
 
 from ReflectometryServer.components import ReflectingComponent, Component
-from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.beamline import Beamline
 from ReflectometryServer.test_modules.data_mother import DataMother
@@ -15,16 +15,16 @@ from utils import position_and_angle
 class TestComponentBeamline(unittest.TestCase):
 
     def setup_beamline(self, initial_mirror_angle, mirror_position, beam_start):
-        jaws = Component("jaws", movement_strategy=LinearMovement(0, 0, 90))
-        mirror = ReflectingComponent("mirror", movement_strategy=LinearMovement(0, mirror_position, 90))
+        jaws = Component("jaws", setup=LinearSetup(0, 0, 90))
+        mirror = ReflectingComponent("mirror", setup=LinearSetup(0, mirror_position, 90))
         mirror.beam_path_set_point.angle = initial_mirror_angle
-        jaws3 = Component("jaws3", movement_strategy=LinearMovement(0, 20, 90))
+        jaws3 = Component("jaws3", setup=LinearSetup(0, 20, 90))
         beamline = Beamline([jaws, mirror, jaws3], [], [], [], beam_start)
         return beamline, mirror
 
     def test_GIVEN_beam_line_contains_one_passive_component_WHEN_beam_set_THEN_component_has_beam_out_same_as_beam_in(self):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        jaws = Component("jaws", movement_strategy=LinearMovement(0, 2, 90))
+        jaws = Component("jaws", setup=LinearSetup(0, 2, 90))
         beamline = Beamline([jaws], [], [], [], beam_start)
 
         result = beamline[0].beam_path_set_point.get_outgoing_beam()
@@ -80,8 +80,8 @@ class TestComponentBeamline(unittest.TestCase):
 class TestComponentBeamlineReadbacks(unittest.TestCase):
 
     def test_GIVEN_components_in_beamline_WHEN_readback_changed_THEN_components_after_changed_component_updatereadbacks(self):
-        comp1 = Component("comp1", LinearMovement(0, 1, 90))
-        comp2 = Component("comp2", LinearMovement(0, 2, 90))
+        comp1 = Component("comp1", LinearSetup(0, 1, 90))
+        comp2 = Component("comp2", LinearSetup(0, 2, 90))
         beamline = Beamline([comp1, comp2], [], [], [DataMother.BEAMLINE_MODE_EMPTY])
 
         callback = Mock()

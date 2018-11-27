@@ -1,26 +1,31 @@
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.components import Component, ReflectingComponent
-from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.parameters import Theta
 
 
 def create_beamline():
+    """
+
+    Returns: example beamline
+
+    """
     perp_to_floor = 90.0
     beam_start = PositionAndAngle(y=0, z=0, angle=-2.5)
-    s0 = Component("s0", movement_strategy=LinearMovement(0, 0, perp_to_floor))
-    s1 = Component("s1", movement_strategy=LinearMovement(0, 1, perp_to_floor))
-    frame_overlap_mirror = ReflectingComponent("FOM", movement_strategy=LinearMovement(0, 2, perp_to_floor))
+    s0 = Component("s0", setup=LinearSetup(0, 0, perp_to_floor))
+    s1 = Component("s1", setup=LinearSetup(0, 1, perp_to_floor))
+    frame_overlap_mirror = ReflectingComponent("FOM", setup=LinearSetup(0, 2, perp_to_floor))
     frame_overlap_mirror.beam_path_set_point.enabled = False
-    polarising_mirror = ReflectingComponent("Polarising mirror", movement_strategy=LinearMovement(0, 3, perp_to_floor))
+    polarising_mirror = ReflectingComponent("Polarising mirror", setup=LinearSetup(0, 3, perp_to_floor))
     polarising_mirror.beam_path_set_point.enabled = False
-    s2 = Component("s2", movement_strategy=LinearMovement(0, 4, perp_to_floor))
-    ideal_sample_point = ReflectingComponent("Ideal Sample Point", movement_strategy=LinearMovement(0, 5, perp_to_floor))
-    s3 = Component("s3", movement_strategy=LinearMovement(0, 6, perp_to_floor))
-    analyser = ReflectingComponent("analyser", movement_strategy=LinearMovement(0, 7, perp_to_floor))
+    s2 = Component("s2", setup=LinearSetup(0, 4, perp_to_floor))
+    ideal_sample_point = ReflectingComponent("Ideal Sample Point", setup=LinearSetup(0, 5, perp_to_floor))
+    s3 = Component("s3", setup=LinearSetup(0, 6, perp_to_floor))
+    analyser = ReflectingComponent("analyser", setup=LinearSetup(0, 7, perp_to_floor))
     analyser.beam_path_set_point.enabled = False
-    s4 = Component("s4", movement_strategy=LinearMovement(0, 8, perp_to_floor))
-    detector = Component("detector", movement_strategy=LinearMovement(0, 10, perp_to_floor))
+    s4 = Component("s4", setup=LinearSetup(0, 8, perp_to_floor))
+    detector = Component("detector", setup=LinearSetup(0, 10, perp_to_floor))
 
     theta = Theta("theta", ideal_sample_point)
     nr_mode = BeamlineMode("NR", ["theta"])

@@ -5,7 +5,7 @@ from hamcrest import *
 from parameterized import parameterized
 
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingJaws
-from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.geometry import Position, PositionAndAngle
 from utils import position_and_angle, position
 
@@ -15,7 +15,7 @@ class TestComponent(unittest.TestCase):
     def test_GIVEN_jaw_input_beam_is_at_0_deg_and_z0_y0_WHEN_get_beam_out_THEN_beam_output_is_same_as_beam_input(self):
         jaws_z_position = 10
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        jaws = Component("component", movement_strategy=LinearMovement(0, jaws_z_position, 90))
+        jaws = Component("component", setup=LinearSetup(0, jaws_z_position, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = jaws.beam_path_set_point.get_outgoing_beam()
@@ -26,7 +26,7 @@ class TestComponent(unittest.TestCase):
         jaws_z_position = 10
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         expected_position = Position(y=0, z=jaws_z_position)
-        jaws = Component("component", movement_strategy=LinearMovement(0, jaws_z_position, 90))
+        jaws = Component("component", setup=LinearSetup(0, jaws_z_position, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = jaws.beam_path_set_point.calculate_beam_interception()
@@ -38,7 +38,7 @@ class TestComponent(unittest.TestCase):
         beam_angle = 60.0
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
         expected_position = Position(y=tan(radians(beam_angle)) * jaws_z_position, z=jaws_z_position)
-        jaws = Component("component", movement_strategy=LinearMovement(0, jaws_z_position, 90))
+        jaws = Component("component", setup=LinearSetup(0, jaws_z_position, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = jaws.beam_path_set_point.calculate_beam_interception()
@@ -53,7 +53,7 @@ class TestComponent(unittest.TestCase):
         jaws_z_position = distance_between + start_z
         beam_start = PositionAndAngle(y=start_y, z=start_z, angle=beam_angle)
         expected_position = Position(y=tan(radians(beam_angle)) * distance_between + start_y, z=jaws_z_position)
-        jaws = Component("component", movement_strategy=LinearMovement(0, jaws_z_position, 90))
+        jaws = Component("component", setup=LinearSetup(0, jaws_z_position, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = jaws.beam_path_set_point.calculate_beam_interception()
@@ -64,7 +64,7 @@ class TestComponent(unittest.TestCase):
         beam_angle = 60.0
         expected_angle = 60.0 + 90.0
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
-        jaws = TiltingJaws("tilting jaws", movement_strategy=LinearMovement(0, 20, 90))
+        jaws = TiltingJaws("tilting jaws", setup=LinearSetup(0, 20, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = jaws.beam_path_set_point.calculate_tilt_angle()
@@ -80,7 +80,7 @@ class TestActiveComponents(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         expected = beam_start
 
-        mirror = ReflectingComponent("component", movement_strategy=LinearMovement(0, mirror_z_position, 90))
+        mirror = ReflectingComponent("component", setup=LinearSetup(0, mirror_z_position, 90))
         mirror.beam_path_set_point.angle = mirror_angle
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
         mirror.beam_path_set_point.enabled = False
@@ -96,7 +96,7 @@ class TestActiveComponents(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         expected = PositionAndAngle(y=0, z=mirror_z_position, angle=2 * mirror_angle)
 
-        mirror = ReflectingComponent("component", movement_strategy=LinearMovement(0, mirror_z_position, 90))
+        mirror = ReflectingComponent("component", setup=LinearSetup(0, mirror_z_position, 90))
         mirror.beam_path_set_point.angle = mirror_angle
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
 
@@ -115,7 +115,7 @@ class TestActiveComponents(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
         expected = PositionAndAngle(y=0, z=0, angle=outgoing_angle)
 
-        mirror = ReflectingComponent("component", movement_strategy=LinearMovement(0, 0, 90))
+        mirror = ReflectingComponent("component", setup=LinearSetup(0, 0, 90))
         mirror.beam_path_set_point.angle = mirror_angle
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
 
@@ -159,7 +159,7 @@ class TestObservationOfComponentReadback(unittest.TestCase):
     def setUp(self):
         self._value = 0
         self._value2 = 0
-        movement_strategy = LinearMovement(0, 0, 90)
+        movement_strategy = LinearSetup(0, 0, 90)
         self.component = Component("test component", movement_strategy)
 
         self.component.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))

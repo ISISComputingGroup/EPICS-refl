@@ -40,9 +40,9 @@ class HeightDriver(IocDriver):
     def __init__(self, component, height_axis):
         """
         Constructor.
-        :param component (ReflectometryServer.components.PassiveComponent):
-            The component providing the values for the axes
-        :param height_axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV that this driver controls.
+        Args:
+            component (ReflectometryServer.components.Component): The component providing the values for the axes
+            height_axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV that this driver controls.
         """
         super(HeightDriver, self).__init__(component)
         self._height_axis = height_axis

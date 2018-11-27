@@ -10,13 +10,10 @@ from ReflectometryServer.geometry import PositionAndAngle, Position
 ANGULAR_TOLERANCE = 1e-12
 
 
-class LinearMovement(object):
+class LinearSetup:
     """
-    A strategy for calculating the interception of the beam with a component that can only move linearly in the Z Y
-    plain. E.g. a slit moving vertically to the floor, the position at zero is usually the position of the slit on
-    the straight through beam
+    Setup parameters of a linear movement calculation.
     """
-
     def __init__(self, t_at_zero, z_at_zero, angle):
         """
         Initialiser.
@@ -25,20 +22,28 @@ class LinearMovement(object):
             z_at_zero: the z position in mantid coordinates of the component when it has moved zero direction
             angle: the angle of the movement in mantid coordinates
         """
+        self.t_at_zero = t_at_zero
+        self.z_at_zero = z_at_zero
+        self.angle = angle
+
+
+class LinearMovementCalc(object):
+    """
+    A strategy for calculating the interception of the beam with a component that can only move linearly in the Z Y
+    plain. E.g. a slit moving vertically to the floor, the position at zero is usually the position of the slit on
+    the straight through beam
+    """
+
+    def __init__(self, setup):
+        """
+
+        Args:
+            setup:
+        """
         self._listeners = []
-        self._angle = angle
-        self._position_at_zero = Position(t_at_zero, z_at_zero)
+        self._angle = setup.angle
+        self._position_at_zero = Position(setup.t_at_zero, setup.z_at_zero)
         self._displacement = 0
-
-    def copy(self):
-        """
-
-        Returns: Copy of this linear movement without listeners
-
-        """
-        movement = LinearMovement(self._position_at_zero.y, self._position_at_zero.z, self._angle)
-        movement._displacement = self._displacement
-        return movement
 
     def calculate_interception(self, beam):
         """
@@ -176,7 +181,7 @@ class LinearMovement(object):
         """
         return self._displacement
 
-# class ArcMovement(LinearMovement):
+# class ArcMovement(LinearSetup):
 #     """
 #     A strategy for calculating the interception of the beam with a component that can only move on a radius
 #     """

@@ -3,7 +3,7 @@ import unittest
 from hamcrest import *
 
 from ReflectometryServer.components import ReflectingComponent, Component
-from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.parameters import Theta, ReflectionAngle
@@ -13,20 +13,20 @@ class TestReadbacks(unittest.TestCase):
 
     def setUp(self):
         beam_start = PositionAndAngle(y=0, z=0, angle=2.5)
-        s0 = Component("s0", movement_strategy=LinearMovement(0, 0, 90))
-        s1 = Component("s1", movement_strategy=LinearMovement(0, 1, 90))
-        frame_overlap_mirror = ReflectingComponent("FOM", movement_strategy=LinearMovement(0, 2, 90))
+        s0 = Component("s0", setup=LinearSetup(0, 0, 90))
+        s1 = Component("s1", setup=LinearSetup(0, 1, 90))
+        frame_overlap_mirror = ReflectingComponent("FOM", setup=LinearSetup(0, 2, 90))
         frame_overlap_mirror.beam_path_set_point.enabled = False
-        self.polarising_mirror = ReflectingComponent("Polariser", movement_strategy=LinearMovement(0, 3, 90))
+        self.polarising_mirror = ReflectingComponent("Polariser", setup=LinearSetup(0, 3, 90))
         self.polarising_mirror.beam_path_set_point.enabled = False
         self.polarising_mirror.angle = 0
-        s2 = Component("s2", movement_strategy=LinearMovement(0, 4, 90))
-        self.ideal_sample_point = ReflectingComponent("ideal sample point", movement_strategy=LinearMovement(0, 5, 90))
-        s3 = Component("s3", movement_strategy=LinearMovement(0, 6, 90))
-        analyser = ReflectingComponent("analyser", movement_strategy=LinearMovement(0, 7, 90))
+        s2 = Component("s2", setup=LinearSetup(0, 4, 90))
+        self.ideal_sample_point = ReflectingComponent("ideal sample point", setup=LinearSetup(0, 5, 90))
+        s3 = Component("s3", setup=LinearSetup(0, 6, 90))
+        analyser = ReflectingComponent("analyser", setup=LinearSetup(0, 7, 90))
         analyser.beam_path_set_point.enabled = False
-        s4 = Component("s4", movement_strategy=LinearMovement(0, 8, 90))
-        detector = Component("detector", movement_strategy=LinearMovement(0, 10, 90))
+        s4 = Component("s4", setup=LinearSetup(0, 8, 90))
+        detector = Component("detector", setup=LinearSetup(0, 10, 90))
 
         theta = Theta("theta", self.ideal_sample_point, sim=True)
         theta.sp_no_move = 0
