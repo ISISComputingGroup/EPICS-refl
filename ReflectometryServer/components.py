@@ -1,7 +1,8 @@
 """
 Components on a beam
 """
-from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, BeamPathTiltingJaws, BeamPathCalcAngle
+from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, BeamPathTiltingJaws, BeamPathCalcAngle, \
+    BeamPathCalcTheta
 from ReflectometryServer.movement_strategy import LinearMovementCalc
 
 
@@ -84,6 +85,28 @@ class ReflectingComponent(Component):
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = BeamPathCalcAngle(LinearMovementCalc(setup))
         self._beam_path_rbv = BeamPathCalcAngle(LinearMovementCalc(setup))
+
+
+class ThetaComponent(ReflectingComponent):
+    """
+    Components which reflects the beam from an reflecting surface at an angle.
+    """
+
+    def __init__(self, name, setup, angle_to):
+        """
+        Initializer.
+        Args:
+            name (str): name of the component
+            setup (ReflectometryServer.movement_strategy.LinearSetup): initial setup for the component
+            angle_to (list[ReflectometryServer.components.Component]): list of components that the readback
+                angle should be to
+        """
+        super(ReflectingComponent, self).__init__(name, setup)
+        self._beam_path_rbv = BeamPathCalcTheta(LinearMovementCalc(setup), [comp.beam_path_rbv for comp in angle_to])
+
+    def _init_beam_path_calcs(self, setup):
+        self._beam_path_set_point = BeamPathCalcAngle(LinearMovementCalc(setup))
+
 
 # class Bench(Component):
 #     """

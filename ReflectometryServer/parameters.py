@@ -41,6 +41,14 @@ class BeamlineParameter(object):
         else:
             self.description = description
         self.group_names = []
+        self._rbv_change_listeners = set()
+
+    @property
+    def rbv(self):
+        """
+        Returns: the read back value
+        """
+        return self._rbv()
 
     @property
     def sp_rbv(self):
@@ -122,6 +130,25 @@ class BeamlineParameter(object):
         """
         self._move_component()
 
+    def add_rbv_change_listener(self, listener):
+        """
+        Add a listener which should be called if the rbv value changes.
+        Args:
+            listener: the function to call with one argument which is the new rbv value
+        """
+        self._rbv_change_listeners.add(listener)
+
+    def _trigger_rbv_listeners(self, source):
+        """
+        Trigger all rbv listeners
+
+        Args:
+            source: source of change which is not used
+        """
+        rbv = self._rbv()
+        for listener in self._rbv_change_listeners:
+            listener(rbv)
+
     @property
     def name(self):
         """
@@ -139,6 +166,12 @@ class BeamlineParameter(object):
     def _move_component(self):
         """
         Moves the component(s) associated with this parameter to the setpoint.
+        """
+        raise NotImplemented("This must be implement in the sub class")
+
+    def _rbv(self):
+        """
+        Returns: the read back value
         """
         raise NotImplemented("This must be implement in the sub class")
 
@@ -162,9 +195,13 @@ class ReflectionAngle(BeamlineParameter):
             description = "{} angle".format(name)
         super(ReflectionAngle, self).__init__(name, sim, init, description)
         self._reflection_component = reflection_component
+        self._reflection_component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
 
     def _move_component(self):
         self._reflection_component.beam_path_set_point.set_angle_relative_to_beam(self._set_point_rbv)
+
+    def _rbv(self):
+        return self._reflection_component.beam_path_rbv.get_angle_relative_to_beam()
 
 
 class Theta(ReflectionAngle):
@@ -184,6 +221,9 @@ class Theta(ReflectionAngle):
         description = "Detector/reflector angle"
         super(Theta, self).__init__(name, ideal_sample_point, sim, init, description=description)
 
+    def _rbv(self):
+        return self._reflection_component.beam_path_rbv.angle
+
 
 class TrackingPosition(BeamlineParameter):
     """
@@ -202,10 +242,17 @@ class TrackingPosition(BeamlineParameter):
             description = "{} tracking position".format(name)
         super(TrackingPosition, self).__init__(name, sim, init, description=description)
         self._component = component
+        self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
         self.group_names.append(BeamlineParameterGroup.TRACKING)
 
     def _move_component(self):
         self._component.beam_path_set_point.set_position_relative_to_beam(self._set_point_rbv)
+
+    def _rbv(self):
+        """
+        Returns: readback value for the tracking displacement above the beam
+        """
+        return self._component.beam_path_rbv.get_position_relative_to_beam()
 
 
 class ComponentEnabled(BeamlineParameter):
@@ -218,14 +265,18 @@ class ComponentEnabled(BeamlineParameter):
         Initializer.
         Args:
             name (str): Name of the enabled parameter
-            component (ReflectometryServer.components.PassiveComponent): the component to be enabled or disabled
+            component (ReflectometryServer.components.Component): the component to be enabled or disabled
             description (str): description
         """
         if description is None:
             description = "{} component is in the beam".format(name)
         super(ComponentEnabled, self).__init__(name, sim, init, description=description)
         self._component = component
+        self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
         self.parameter_type = BeamlineParameterType.IN_OUT
 
     def _move_component(self):
         self._component.beam_path_set_point.enabled = self._set_point_rbv
+
+    def _rbv(self):
+        return self._component.beam_path_rbv.enabled

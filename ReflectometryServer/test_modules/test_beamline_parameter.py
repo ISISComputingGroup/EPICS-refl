@@ -1,13 +1,15 @@
 import unittest
+from math import isnan
 
 from hamcrest import *
+from mock import Mock
 
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 
-from ReflectometryServer.components import ReflectingComponent, Component
+from ReflectometryServer.components import ReflectingComponent, Component, ThetaComponent
 from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.geometry import Position, PositionAndAngle
-from ReflectometryServer.parameters import Theta, ReflectionAngle, TrackingPosition, ComponentEnabled
+from ReflectometryServer.parameters import Theta, ReflectionAngle, TrackingPosition, ComponentEnabled, BeamlineParameter
 from data_mother import DataMother, EmptyBeamlineParameter
 from utils import position, DEFAULT_TEST_TOLERANCE
 
@@ -468,6 +470,69 @@ class TestBeamlineOnMove(unittest.TestCase):
         moves = [beamline_parameter.move_component_count for beamline_parameter in beamline_parameters]
 
         assert_that(moves, contains(1, 1, 1), "beamline parameter move counts")
+
+
+class TestBeamlineParameterReadback(unittest.TestCase):
+
+    def test_GIVEN_tracking_parameter_WHEN_set_readback_on_component_THEN_readback_is_changed(self):
+
+        sample = ReflectingComponent("sample", setup=LinearSetup(0, 10, 90))
+        displacement = 3.0
+        beam_height = 1.0
+        sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
+        beamline_position = TrackingPosition("param", sample)
+        sample.beam_path_rbv.set_displacement(displacement)
+
+        result = beamline_position.rbv
+
+        assert_that(result, is_(displacement - beam_height))
+
+    def test_GIVEN_tracking_parameter_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
+
+        sample = ReflectingComponent("sample", setup=LinearSetup(0, 10, 90))
+        displacement = 3.0
+        beam_height = 1.0
+        sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
+        beamline_position = TrackingPosition("param", sample)
+        listener = Mock()
+        beamline_position.add_rbv_change_listener(listener)
+        sample.beam_path_rbv.set_displacement(displacement)
+
+        listener.assert_called_once_with(displacement - beam_height)
+
+    def test_GIVEN_reflection_angle_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
+
+        sample = ReflectingComponent("sample", setup=LinearSetup(0, 10, 90))
+        angle = 3.0
+        beam_angle = 1.0
+        sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, beam_angle))
+        beamline_position = ReflectionAngle("param", sample)
+        listener = Mock()
+        beamline_position.add_rbv_change_listener(listener)
+        sample.beam_path_rbv.angle = angle
+
+        listener.assert_called_once_with(angle-beam_angle)
+
+    def test_GIVEN_component_enabled_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
+
+        sample = ReflectingComponent("sample", setup=LinearSetup(0, 10, 90))
+        state = True
+
+        beamline_position = ComponentEnabled("param", sample)
+        listener = Mock()
+        beamline_position.add_rbv_change_listener(listener)
+        sample.beam_path_rbv.enabled = state
+
+        listener.assert_called_once_with(state)
+
+    def test_GIVEN_theta_WHEN_no_next_component_THEN_value_is_nan(self):
+
+        sample = ThetaComponent("sample", setup=LinearSetup(0, 10, 90), angle_to=[])
+        theta = Theta("param", sample)
+
+        result = theta.rbv
+
+        assert_that(isnan(result), is_(True), "Should be nan because there is no next component")
 
 
 if __name__ == '__main__':

@@ -159,7 +159,7 @@ class LinearMovementCalc(object):
         Args:
             displacement: value along the axis, -ve for before the zero point
         """
-        self._displacement = displacement
+        self._displacement = float(displacement)
 
     def get_displacement_relative_to_beam(self, beam):
         """

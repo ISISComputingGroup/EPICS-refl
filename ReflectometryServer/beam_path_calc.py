@@ -2,6 +2,8 @@
 Objects to help with calculating the beam path when interacting with a component. This is used for instance for the
 set points or readbacks etc.
 """
+from math import degrees, atan2
+
 from ReflectometryServer.geometry import PositionAndAngle
 
 
@@ -139,29 +141,14 @@ class BeamPathTiltingJaws(TrackingBeamPathCalc):
         return self._incoming_beam.angle + self.component_to_beam_angle
 
 
-class BeamPathCalcAngle(TrackingBeamPathCalc):
+class _BeamPathCalcAngle(TrackingBeamPathCalc):
     """
-    A beam path calculation which includes an angle of the component, e.g. a reflecting mirror.
+    A beam path calculation which includes an angle of the component, but not a way of setting the angle externally.
+    This is used for theta and reflecting component.
     """
     def __init__(self, movement_strategy):
-        super(BeamPathCalcAngle, self).__init__(movement_strategy)
-        self._angle = 0.0
-
-    @property
-    def angle(self):
-        """
-        Returns: the angle of the component measured clockwise from the horizon in the incoming beam direction.
-        """
-        return self._angle
-
-    @angle.setter
-    def angle(self, angle):
-        """
-        Updates the component angle and notifies the beam path update listener
-        Args:
-            angle: The modified angle
-        """
-        self._set_angle(angle)
+        super(_BeamPathCalcAngle, self).__init__(movement_strategy)
+        self._angle = None
 
     def _set_angle(self, angle):
         """
@@ -191,3 +178,85 @@ class BeamPathCalcAngle(TrackingBeamPathCalc):
             angle: angle to set the component at
         """
         self._set_angle(angle + self._incoming_beam.angle)
+
+    def get_angle_relative_to_beam(self):
+        """
+        Returns: the angle of the component relative to the beamline
+        """
+        return self._angle - self._incoming_beam.angle
+
+
+class BeamPathCalcAngle(_BeamPathCalcAngle):
+    """
+    A beam path calculation which includes an angle of the component, e.g. a reflecting mirror.
+    """
+    def __init__(self, movement_strategy):
+        super(BeamPathCalcAngle, self).__init__(movement_strategy)
+        self._angle = 0.0
+
+    @property
+    def angle(self):
+        """
+        Returns: the angle of the component measured clockwise from the horizon in the incoming beam direction.
+        """
+        return self._angle
+
+    @angle.setter
+    def angle(self, angle):
+        """
+        Updates the component angle and notifies the beam path update listener
+        Args:
+            angle: The modified angle
+        """
+        self._set_angle(angle)
+
+
+class BeamPathCalcTheta(_BeamPathCalcAngle):
+    """
+    A beam path calculator which has a read only angle based on the angle to a list of beam path calculations. This is
+    used for example for Theta where the angle is the angle to the next enabled component
+    """
+    def __init__(self, movement_strategy, angle_to):
+        """
+        Initialiser.
+        Args:
+            movement_strategy: movement strategy to use
+            angle_to (list[ReflectometryServer.beam_path_calc.TrackingBeamPathCalc]):
+                beam path calc on which to base the angle
+        """
+        super(BeamPathCalcTheta, self).__init__(movement_strategy)
+        self._angle_to = angle_to
+        self._angle = self._calc_angle_from_next_component()
+        for readback_beam_path_calc in self._angle_to:
+            readback_beam_path_calc.add_after_beam_path_update_listener(self._update_angle)
+
+    def _update_angle(self, source):
+        """
+        A listener for the beam update from another beam calc.
+        Args:
+            source: the beam calc that changed
+        """
+        self._set_angle(self._calc_angle_from_next_component())
+
+    def _calc_angle_from_next_component(self):
+        """
+        Returns: the angle to the next enabled beam path calc, or nan if there isn't one.
+        """
+        for readback_beam_path_calc in self._angle_to:
+            if readback_beam_path_calc.enabled:
+                other_pos = readback_beam_path_calc.sp_position()
+                this_pos = self.sp_position()
+                opp = other_pos.y - this_pos.y
+                adj = other_pos.z - this_pos.z
+                angle = degrees(atan2(opp, adj))
+                break
+        else:
+            angle = float("NaN")
+        return angle
+
+    @property
+    def angle(self):
+        """
+        Returns: the angle of the component measured clockwise from the horizon in the incoming beam direction.
+        """
+        return self._angle
