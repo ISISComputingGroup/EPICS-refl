@@ -12,6 +12,8 @@ INTER_SLIT2_POS = 1923
 INTER_SAMPLE_POS = 2287
 INTER_SLIT3_POS = 3007.5
 INTER_SLIT4_POS = 4986.5
+INTER_LAMBDA_MIN = 2
+INTER_LAMBDA_MAX = 17
 
 DEFAULT_GAPS = {S1: 40,
                 S2: 30,
@@ -33,7 +35,9 @@ class TestFootprintCalc(unittest.TestCase):
                                         INTER_SLIT2_POS,
                                         INTER_SLIT3_POS,
                                         INTER_SLIT4_POS,
-                                        INTER_SAMPLE_POS)
+                                        INTER_SAMPLE_POS,
+                                        INTER_LAMBDA_MIN,
+                                        INTER_LAMBDA_MAX)
 
         for key, value in DEFAULT_GAPS.iteritems():
             self.calc.set_gap(key, value)
@@ -103,7 +107,7 @@ class TestFootprintCalc(unittest.TestCase):
                            (90, 43.25013001),
                            (135, 61.16492043)])
     def test_GIVEN_variable_theta_value_WHEN_calculating_penumbra_at_sample_THEN_result_is_correct(self, theta, expected):
-        actual = self.calc.calc_penumbra(theta)
+        actual = self.calc.calc_footprint_penumbra(theta)
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
 
@@ -113,7 +117,7 @@ class TestFootprintCalc(unittest.TestCase):
 
         with patch.object(self.calc, 'calc_equivalent_gap_by_sample_size') as mock_sample, \
                 patch.object(self.calc, 'calc_equivalent_gap_by_penumbra') as mock_sample_penumbra, \
-                patch.object(self.calc, 'calc_penumbra', return_value=penumbra_size):
+                patch.object(self.calc, 'calc_footprint_penumbra', return_value=penumbra_size):
             self.calc.get_sample_slit_gap_equivalent(theta)
 
             mock_sample_penumbra.assert_not_called()
@@ -125,7 +129,7 @@ class TestFootprintCalc(unittest.TestCase):
 
         with patch.object(self.calc, 'calc_equivalent_gap_by_sample_size') as mock_sample, \
                 patch.object(self.calc, 'calc_equivalent_gap_by_penumbra') as mock_sample_penumbra, \
-                patch.object(self.calc, 'calc_penumbra', return_value=penumbra_size):
+                patch.object(self.calc, 'calc_footprint_penumbra', return_value=penumbra_size):
             self.calc.get_sample_slit_gap_equivalent(theta)
 
             mock_sample.assert_not_called()
@@ -156,8 +160,18 @@ class TestFootprintCalc(unittest.TestCase):
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
 
-    def test_calculate_right_footprint(self):
-        pass
+    @parameterized.expand([(0.1, 0.001290144, 0.010966222),
+                           (0.5, 0.00645064, 0.05483044),
+                           (1.0, 0.012900789, 0.109656704),
+                           (10, 0.128360433, 1.091063679),
+                           (45, 0.52269211, 4.442882938),
+                           (90, 0.739198271, 6.283185307),
+                           (135, 0.52269211, 4.442882938)])
+    def test_GIVEN_variable_theta_WHEN_calculating_Q_range_THEN_returns_correct_range(self, theta, qmin_expected, qmax_expected):
+        qmin_actual, qmax_actual = self.calc.calc_q_range(theta)
+
+        assert_that(qmin_actual, is_(close_to(qmin_expected, TEST_TOLERANCE)))
+        assert_that(qmax_actual, is_(close_to(qmax_expected, TEST_TOLERANCE)))
 
 if __name__ == '__main__':
     unittest.main()
