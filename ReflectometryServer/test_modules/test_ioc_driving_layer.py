@@ -1,7 +1,7 @@
 import unittest
 from math import fabs
 
-from CaChannel._ca import AlarmSeverity, AlarmCondition
+
 from mock import MagicMock, PropertyMock, patch
 from hamcrest import *
 
@@ -11,6 +11,7 @@ from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import HeightDriver, HeightAndTiltDriver, HeightAndAngleDriver
 from ReflectometryServer.parameters import ReflectionAngle, TrackingPosition
+from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
 
 FLOAT_TOLERANCE = 1e-9
 
@@ -78,7 +79,7 @@ class TestHeightDriver(unittest.TestCase):
         expected_value = 10.1
         self.height_axis.value = expected_value
         alarm_severity = AlarmSeverity.No
-        alarm_status = AlarmCondition.No
+        alarm_status = AlarmStatus.No
 
         for value_change_listener in self.height_axis.after_value_change_listener:
 

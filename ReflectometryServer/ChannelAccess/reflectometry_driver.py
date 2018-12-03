@@ -1,6 +1,7 @@
 """
 Driver for the reflectometry server.
 """
+from functools import partial
 
 from pcaspy import Driver, Alarm, Severity
 
@@ -30,7 +31,10 @@ class ReflectometryDriver(Driver):
 
         for reason in self._pv_manager.PVDB.keys():
             self.setParamStatus(reason, severity=Severity.NO_ALARM, alarm=Alarm.NO_ALARM)
+
         self.update_monitors()
+
+        self.add_rbv_param_listeners()
 
     def read(self, reason):
         """
@@ -39,20 +43,9 @@ class ReflectometryDriver(Driver):
         :return: The value associated to this PV
         """
         if self._pv_manager.is_param(reason):
-            param_name, param_suffix = self._pv_manager.get_param_name_and_suffix_from_pv(reason)
+            param_name, param_sort = self._pv_manager.get_param_name_and_suffix_from_pv(reason)
             param = self._beamline.parameter(param_name)
-            if param_suffix == PvSort.SP:
-                return param.sp
-            if param_suffix == PvSort.SET_AND_NO_MOVE:
-                return param.sp_no_move
-            elif param_suffix == PvSort.SP_RBV:
-                return param.sp_rbv
-            elif param_suffix == PvSort.CHANGED:
-                return param.sp_changed
-            elif param_suffix == PvSort.RBV:
-                return param.rbv
-            else:
-                return self.getParam(reason)
+            return param_sort.get_from_parameter(param)
 
         elif self._pv_manager.is_beamline_mode(reason):
 
@@ -109,21 +102,36 @@ class ReflectometryDriver(Driver):
         Updates the PV values for each parameter so that changes are visible to monitors.
         """
         # with self.monitor_lock:
+        for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
+            parameter = self._beamline.parameter(param_name)
+            self._update_param(pv_name, param_sort.get_from_parameter(parameter))
+        self.updatePVs()
+
+    def _update_param(self, pv_name, value):
+        """
+        Update a parameter value (both it and .VAL)
+        Args:
+            pv_name: name of the pv
+            value: value of the parameter
+        """
+        self.setParam(pv_name, value)
+        self.setParam(pv_name + VAL_FIELD, value)
+
+    def _update_param_rbv_listener(self, pv_name, value):
+        """
+        Listener for responding to rbv updates from the command line parameter
+        Args:
+            pv_name: name of the pv
+            value: new value
+        """
+        self._update_param(pv_name, value)
+        self.updatePVs()
+
+    def add_rbv_param_listeners(self):
+        """
+        Add listeners to beam line parameter readback changes, which update parameters in server
+        """
         for pv_name, (param_name, param_suffix) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
-            if param_suffix == PvSort.SP:
-                self.setParam(pv_name, parameter.sp)
-                self.setParam(pv_name + VAL_FIELD, parameter.sp)
-            elif param_suffix == PvSort.SP_RBV:
-                self.setParam(pv_name, parameter.sp_rbv)
-                self.setParam(pv_name + VAL_FIELD, parameter.sp_rbv)
-            elif param_suffix == PvSort.CHANGED:
-                self.setParam(pv_name, parameter.sp_changed)
-                self.setParam(pv_name + VAL_FIELD, parameter.sp_changed)
-            elif param_suffix == PvSort.SET_AND_NO_MOVE:
-                self.setParam(pv_name, parameter.sp_no_move)
-                self.setParam(pv_name + VAL_FIELD, parameter.sp_changed)
-            elif param_suffix == PvSort.RBV:
-                self.setParam(pv_name, parameter.rbv)
-                self.setParam(pv_name + VAL_FIELD, parameter.sp_changed)
-        self.updatePVs()
+            if param_suffix == PvSort.RBV:
+                parameter.add_rbv_change_listener(partial(self._update_param_rbv_listener, pv_name))

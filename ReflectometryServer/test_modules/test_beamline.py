@@ -10,6 +10,7 @@ from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.beamline import Beamline
 from ReflectometryServer.test_modules.data_mother import DataMother
 from utils import position_and_angle
+from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
 
 
 class TestComponentBeamline(unittest.TestCase):
@@ -86,7 +87,7 @@ class TestComponentBeamlineReadbacks(unittest.TestCase):
 
         callback = Mock()
         comp2.beam_path_rbv.set_incoming_beam = callback
-        comp1.beam_path_rbv.set_displacement(1.0)
+        comp1.beam_path_rbv.set_displacement(1.0, AlarmSeverity.No, AlarmStatus.No)
 
         assert_that(callback.called, is_(True))
 

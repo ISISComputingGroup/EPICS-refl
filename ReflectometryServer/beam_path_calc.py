@@ -91,8 +91,8 @@ class TrackingBeamPathCalc(object):
             axis of the component from the set zero position.
         Args:
             displacement: the displacement to set
-            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
-            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+            alarm_severity (ReflectometryServer.motor_pv_wrapper.AlarmSeverity): severity of any alarm
+            alarm_status (ReflectometryServer.motor_pv_wrapper.AlarmCondition): the alarm status
         """
         self._movement_strategy.set_displacement(displacement)
         self._trigger_after_beam_path_update()

@@ -66,6 +66,28 @@ class PvSort(Enum):
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
 
+    def get_from_parameter(self, parameter):
+        """
+        Get the value of the correct sort from a parameter
+        Args:
+            parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter to get the value from
+
+        Returns: the value of the parameter of the correct sort
+        """
+        if self == PvSort.SP:
+            return parameter.sp
+        elif self == PvSort.SP_RBV:
+            return parameter.sp_rbv
+        elif self == PvSort.CHANGED:
+            return parameter.sp_changed
+        elif self == PvSort.SET_AND_NO_MOVE:
+            return parameter.sp_no_move
+        elif self == PvSort.RBV:
+            return parameter.rbv
+        elif self == PvSort.MOVE:
+            return parameter.move
+        return None
+
 
 class PVManager:
     """
@@ -184,7 +206,10 @@ class PVManager:
 
     def param_names_pvnames_and_sort(self):
         """
-        :return: The list of PVs of all beamline parameters.
+
+        Returns:
+            (list[str, tuple[str, PvSort]]): The list of PVs of all beamline parameters.
+
         """
         return self._params_pv_lookup.items()
 
