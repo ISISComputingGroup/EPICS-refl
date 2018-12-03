@@ -3,6 +3,9 @@ The driving layer communicates between the component layer and underlying pvs.
 """
 
 import math
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class IocDriver(object):
@@ -46,6 +49,18 @@ class HeightDriver(IocDriver):
         """
         super(HeightDriver, self).__init__(component)
         self._height_axis = height_axis
+        self._height_axis.add_after_value_change_listener(self._trigger_after_height_change_listeners)
+
+    def _trigger_after_height_change_listeners(self, new_height, alarm_severity, alarm_status):
+        """
+        Trigger all listeners after a height change.
+        Args:
+            new_height: new height that is given
+            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
+            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+        """
+
+        self._component.beam_path_rbv.set_displacement(new_height, alarm_severity, alarm_status)
 
     def _get_distance_height(self):
         """
@@ -64,7 +79,10 @@ class HeightDriver(IocDriver):
         Tells the height axis to move to the setpoint within a given time frame.
         :param move_duration: The desired duration of the move.
         """
-        self._height_axis.velocity = self._get_distance_height() / move_duration
+        logger.debug("Moving axis {}".format(self._get_distance_height()))
+        if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
+            self._height_axis.velocity = self._get_distance_height() / move_duration
+
         self._height_axis.value = self._component.beam_path_set_point.get_displacement()
 
 

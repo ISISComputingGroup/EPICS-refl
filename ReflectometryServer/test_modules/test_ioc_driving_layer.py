@@ -1,5 +1,7 @@
 import unittest
 from math import fabs
+
+from CaChannel._ca import AlarmSeverity, AlarmCondition
 from mock import MagicMock, PropertyMock, patch
 from hamcrest import *
 
@@ -19,7 +21,14 @@ def create_mock_axis(name, init_position, max_velocity):
     axis.value = init_position
     axis.max_velocity = max_velocity
     axis.velocity = None
+    axis.after_value_change_listener = set()
+    def add_after_value_change_listener(listener):
+        axis.after_value_change_listener.add(listener)
+
+    axis.add_after_value_change_listener = add_after_value_change_listener
+
     return axis
+
 
 
 class TestHeightDriver(unittest.TestCase):
@@ -62,6 +71,21 @@ class TestHeightDriver(unittest.TestCase):
 
         assert_that(self.height_axis.velocity, is_(expected_velocity))
         assert_that(self.height_axis.value, is_(target_position))
+
+    def test_GIVEN_displacement_changed_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered(self):
+        listener = MagicMock()
+        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        expected_value = 10.1
+        self.height_axis.value = expected_value
+        alarm_severity = AlarmSeverity.No
+        alarm_status = AlarmCondition.No
+
+        for value_change_listener in self.height_axis.after_value_change_listener:
+
+            value_change_listener(self.height_axis.value, alarm_severity, alarm_status)
+
+        listener.assert_called_once()
+        assert_that(self.jaws.beam_path_rbv.get_displacement(), is_(expected_value))
 
 
 class TestHeightAndTiltDriver(unittest.TestCase):

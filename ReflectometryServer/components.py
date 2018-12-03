@@ -4,6 +4,9 @@ Components on a beam
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, BeamPathTiltingJaws, BeamPathCalcAngle, \
     BeamPathCalcTheta
 from ReflectometryServer.movement_strategy import LinearMovementCalc
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Component(object):

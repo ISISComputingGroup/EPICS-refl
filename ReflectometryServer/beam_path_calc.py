@@ -5,6 +5,9 @@ set points or readbacks etc.
 from math import degrees, atan2
 
 from ReflectometryServer.geometry import PositionAndAngle
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TrackingBeamPathCalc(object):
@@ -70,7 +73,6 @@ class TrackingBeamPathCalc(object):
         Args:
             displacement: the value to set away from the beam, e.g. height
         """
-
         self._movement_strategy.set_position_relative_to_beam(self._incoming_beam, displacement)
         self._trigger_after_beam_path_update()
 
@@ -83,12 +85,14 @@ class TrackingBeamPathCalc(object):
         """
         return self._movement_strategy.get_displacement_relative_to_beam(self._incoming_beam)
 
-    def set_displacement(self, displacement):
+    def set_displacement(self, displacement, alarm_severity, alarm_status):
         """
         Set the displacement of the component from the zero position, E.g. The distance along the movement
             axis of the component from the set zero position.
         Args:
             displacement: the displacement to set
+            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
+            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
         """
         self._movement_strategy.set_displacement(displacement)
         self._trigger_after_beam_path_update()

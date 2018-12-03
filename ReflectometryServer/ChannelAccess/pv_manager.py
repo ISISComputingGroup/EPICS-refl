@@ -19,7 +19,7 @@ SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
 MOVE_SUFFIX = ":MOVE"
 CHANGED_SUFFIX = ":CHANGED"
-SET_AND_MOVE_SUFFIX = ":SETANDMOVE"
+SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
 VAL_FIELD = ".VAL"
 
 PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
@@ -39,7 +39,7 @@ class PvSort(Enum):
     MOVE = 1
     SP_RBV = 2
     SP = 3
-    SET_AND_MOVE = 4
+    SET_AND_NO_MOVE = 4
     CHANGED = 6
 
     @staticmethod
@@ -58,8 +58,8 @@ class PvSort(Enum):
             return "(Set point readback)"
         elif pv_sort == PvSort.SP:
             return "(Set point)"
-        elif pv_sort == PvSort.SET_AND_MOVE:
-            return "(Set point and then move)"
+        elif pv_sort == PvSort.SET_AND_NO_MOVE:
+            return "(Set point with no move afterwards)"
         elif pv_sort == PvSort.CHANGED:
             return "(is changed)"
         else:
@@ -138,8 +138,8 @@ class PVManager:
             self._add_pv_with_val(prepended_alias + SP_RBV_SUFFIX, param_name, fields, description, PvSort.SP_RBV)
 
             # Set value and move PV
-            self._add_pv_with_val(prepended_alias + SET_AND_MOVE_SUFFIX, param_name, fields, description,
-                                  PvSort.SET_AND_MOVE)
+            self._add_pv_with_val(prepended_alias + SET_AND_NO_MOVE_SUFFIX, param_name, fields, description,
+                                  PvSort.SET_AND_NO_MOVE)
 
             # Changed PV
             self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_CHANGED, description,

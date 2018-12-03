@@ -43,12 +43,16 @@ class ReflectometryDriver(Driver):
             param = self._beamline.parameter(param_name)
             if param_suffix == PvSort.SP:
                 return param.sp
+            if param_suffix == PvSort.SET_AND_NO_MOVE:
+                return param.sp_no_move
             elif param_suffix == PvSort.SP_RBV:
                 return param.sp_rbv
             elif param_suffix == PvSort.CHANGED:
                 return param.sp_changed
+            elif param_suffix == PvSort.RBV:
+                return param.rbv
             else:
-                return self.getParam(reason)  # TODO return actual RBV
+                return self.getParam(reason)
 
         elif self._pv_manager.is_beamline_mode(reason):
 
@@ -79,9 +83,9 @@ class ReflectometryDriver(Driver):
             if param_suffix == PvSort.MOVE:
                 param.move = 1
             elif param_suffix == PvSort.SP:
-                param.sp_no_move = value
-            elif param_suffix == PvSort.SET_AND_MOVE:
                 param.sp = value
+            elif param_suffix == PvSort.SET_AND_NO_MOVE:
+                param.sp_no_move = value
         elif self._pv_manager.is_beamline_move(reason):
             self._beamline.move = 1
         elif self._pv_manager.is_beamline_mode(reason):
@@ -116,5 +120,10 @@ class ReflectometryDriver(Driver):
             elif param_suffix == PvSort.CHANGED:
                 self.setParam(pv_name, parameter.sp_changed)
                 self.setParam(pv_name + VAL_FIELD, parameter.sp_changed)
-            # TODO RBV
+            elif param_suffix == PvSort.SET_AND_NO_MOVE:
+                self.setParam(pv_name, parameter.sp_no_move)
+                self.setParam(pv_name + VAL_FIELD, parameter.sp_changed)
+            elif param_suffix == PvSort.RBV:
+                self.setParam(pv_name, parameter.rbv)
+                self.setParam(pv_name + VAL_FIELD, parameter.sp_changed)
         self.updatePVs()
