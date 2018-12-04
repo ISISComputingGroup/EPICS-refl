@@ -10,7 +10,7 @@ from ReflectometryServer.components import TiltingJaws, Component, ReflectingCom
 from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import HeightDriver, HeightAndTiltDriver, HeightAndAngleDriver
-from ReflectometryServer.parameters import ReflectionAngle, TrackingPosition
+from ReflectometryServer.parameters import AngleParameter, TrackingPosition
 from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
 
 FLOAT_TOLERANCE = 1e-9
@@ -174,6 +174,20 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         assert_that(fabs(self.angle_axis.velocity - expected_velocity_angle) <= FLOAT_TOLERANCE)
         assert_that(fabs(self.angle_axis.value - target_position_angle) <= FLOAT_TOLERANCE)
 
+    def test_GIVEN_angle_changed_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered(self):
+        listener = MagicMock()
+        self.supermirror.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        expected_value = 10.1
+        self.angle_axis.value = expected_value
+        alarm_severity = AlarmSeverity.No
+        alarm_status = AlarmStatus.No
+
+        for value_change_listener in self.angle_axis.after_value_change_listener:
+
+            value_change_listener(self.angle_axis.value, alarm_severity, alarm_status)
+
+        listener.assert_called_once()
+        assert_that(self.supermirror.beam_path_rbv.angle, is_(expected_value))
 
 class BeamlineMoveDurationTest(unittest.TestCase):
     def test_GIVEN_multiple_components_in_beamline_WHEN_triggering_move_THEN_components_move_at_speed_of_slowest_axis(self):
@@ -198,7 +212,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         detector_tilt_axis = create_mock_axis("DETECTOR:TILT", 0.0, 10.0)
         detector_driver = HeightAndTiltDriver(detector, detector_height_axis, detector_tilt_axis)
 
-        smangle = ReflectionAngle("smangle", supermirror)
+        smangle = AngleParameter("smangle", supermirror)
         slit_2_pos = TrackingPosition("s2_pos", slit_2)
         slit_3_pos = TrackingPosition("s3_pos", slit_3)
         det_pos = TrackingPosition("det_pos", detector)

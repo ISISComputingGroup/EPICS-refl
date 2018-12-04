@@ -51,16 +51,16 @@ class HeightDriver(IocDriver):
         self._height_axis = height_axis
         self._height_axis.add_after_value_change_listener(self._trigger_after_height_change_listeners)
 
-    def _trigger_after_height_change_listeners(self, new_height, alarm_severity, alarm_status):
+    def _trigger_after_height_change_listeners(self, new_value, alarm_severity, alarm_status):
         """
         Trigger all listeners after a height change.
         Args:
-            new_height: new height that is given
+            new_value: new height that is given
             alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
             alarm_status (CaChannel._ca.AlarmCondition): the alarm status
         """
 
-        self._component.beam_path_rbv.set_displacement(new_height, alarm_severity, alarm_status)
+        self._component.beam_path_rbv.set_displacement(new_value, alarm_severity, alarm_status)
 
     def _get_distance_height(self):
         """
@@ -139,6 +139,18 @@ class HeightAndAngleDriver(HeightDriver):
         """
         super(HeightAndAngleDriver, self).__init__(component, height_axis)
         self._angle_axis = angle_axis
+        self._angle_axis.add_after_value_change_listener(self._trigger_after_angle_change_listeners)
+
+    def _trigger_after_angle_change_listeners(self, new_value, alarm_severity, alarm_status):
+        """
+        Trigger all listeners after a angle change.
+        Args:
+            new_value: new angle given
+            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
+            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+        """
+
+        self._component.beam_path_rbv.angle = new_value
 
     def get_max_move_duration(self):
         """

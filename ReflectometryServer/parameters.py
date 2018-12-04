@@ -176,9 +176,10 @@ class BeamlineParameter(object):
         raise NotImplemented("This must be implement in the sub class")
 
 
-class ReflectionAngle(BeamlineParameter):
+class AngleParameter(BeamlineParameter):
     """
-    The angle of the mirror measured from the incoming beam.
+    The angle of the component measured from the incoming beam, this could be theta, or the supermirror angle or
+        title jaws angle.
     Angle is measure with +ve in the anti-clockwise direction)
     """
 
@@ -193,7 +194,7 @@ class ReflectionAngle(BeamlineParameter):
         """
         if description is None:
             description = "{} angle".format(name)
-        super(ReflectionAngle, self).__init__(name, sim, init, description)
+        super(AngleParameter, self).__init__(name, sim, init, description)
         self._reflection_component = reflection_component
         self._reflection_component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
 
@@ -202,27 +203,6 @@ class ReflectionAngle(BeamlineParameter):
 
     def _rbv(self):
         return self._reflection_component.beam_path_rbv.get_angle_relative_to_beam()
-
-
-class Theta(ReflectionAngle):
-    """
-    Twice the angle between the incoming beam and outgoing beam at the ideal sample point.
-    Angle is measure with +ve in the anti-clockwise direction (opposite of room coordinates)
-    """
-
-    def __init__(self, name, ideal_sample_point, sim=False, init=0):
-        """
-        Initializer.
-        Args:
-            name (str): name of theta
-            ideal_sample_point (ReflectometryServer.components.ReflectingComponent): the ideal sample point active
-                component
-        """
-        description = "Detector/reflector angle"
-        super(Theta, self).__init__(name, ideal_sample_point, sim, init, description=description)
-
-    def _rbv(self):
-        return self._reflection_component.beam_path_rbv.angle
 
 
 class TrackingPosition(BeamlineParameter):

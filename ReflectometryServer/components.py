@@ -39,7 +39,10 @@ class Component(object):
     def beam_path_set_point(self):
         """
         The beam path calculation for the set points. This is readonly and can only be set during construction
-        Returns: beam path calculation for set points
+        Returns:
+            (TrackingBeamPathCalc|BeamPathTiltingJaws|BeamPathCalcTheta|BeamPathCalcAngle): set points beam path
+                calculation
+
 
         """
         return self._beam_path_set_point
@@ -48,7 +51,10 @@ class Component(object):
     def beam_path_rbv(self):
         """
         The beam path calculation for the read backs. This is readonly and can only be set during construction
-        Returns: beam path calculation for read backs
+        Returns:
+            (TrackingBeamPathCalc|BeamPathTiltingJaws|BeamPathCalcTheta|BeamPathCalcAngle): read backs beam path
+                calculation
+
         """
         return self._beam_path_rbv
 

@@ -29,10 +29,10 @@ def get_beamline():
 
     # BEAMLINE PARAMETERS
     sm_enabled = ComponentEnabled("smenabled", super_mirror, True)
-    sm_angle = ReflectionAngle("smangle", super_mirror, True)
+    sm_angle = AngleParameter("smangle", super_mirror, True)
     slit2_pos = TrackingPosition("slit2pos", s2, True)
     sample_pos = TrackingPosition("samplepos", sample, True)
-    theta = Theta("theta", sample, True)
+    theta = AngleParameter("theta", sample, True)
     slit3_pos = TrackingPosition("slit3pos", s3, True)
     slit4_pos = TrackingPosition("slit4pos", s4, True)
     det = TrackingPosition("detpos", point_det, True)

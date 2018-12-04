@@ -2,7 +2,7 @@ from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.components import Component, ReflectingComponent
 from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.geometry import PositionAndAngle
-from ReflectometryServer.parameters import Theta
+from ReflectometryServer.parameters import AngleParameter
 
 
 def create_beamline():
@@ -27,7 +27,7 @@ def create_beamline():
     s4 = Component("s4", setup=LinearSetup(0, 8, perp_to_floor))
     detector = Component("detector", setup=LinearSetup(0, 10, perp_to_floor))
 
-    theta = Theta("theta", ideal_sample_point)
+    theta = AngleParameter("theta", ideal_sample_point)
     nr_mode = BeamlineMode("NR", ["theta"])
     beamline = Beamline(
         [s0, s1, frame_overlap_mirror, polarising_mirror, s2, ideal_sample_point, s3, analyser, s4, detector],
