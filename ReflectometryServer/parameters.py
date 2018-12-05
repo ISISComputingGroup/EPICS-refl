@@ -43,6 +43,10 @@ class BeamlineParameter(object):
         self.group_names = []
         self._rbv_change_listeners = set()
 
+    def __repr__(self):
+        return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
+                                                                      self._set_point_rbv, self.rbv, self.sp_changed)
+
     @property
     def rbv(self):
         """
@@ -188,7 +192,7 @@ class AngleParameter(BeamlineParameter):
         Initializer.
         Args:
             name (str): Name of the reflection angle
-            reflection_component (ReflectometryServer.components.ReflectingComponent): the active component at the
+            reflection_component (ReflectometryServer.components.Component): the active component at the
                 reflection point
             description (str): description
         """

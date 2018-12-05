@@ -24,6 +24,7 @@ class TrackingBeamPathCalc(object):
         """
         self._incoming_beam = None
         self._after_beam_path_update_listener = set()
+        self._after_physical_move_listener = set()
         self._enabled = True
         self._movement_strategy = movement_strategy
 
@@ -96,6 +97,7 @@ class TrackingBeamPathCalc(object):
         """
         self._movement_strategy.set_displacement(displacement)
         self._trigger_after_beam_path_update()
+        self._trigger_after_physical_move_listener()
 
     def get_displacement(self):
         """
@@ -126,33 +128,27 @@ class TrackingBeamPathCalc(object):
         """
         self._enabled = enabled
         self._trigger_after_beam_path_update()
+        self._trigger_after_physical_move_listener()
+
+    def add_after_physical_move_listener(self, listener):
+        """
+        Add a listener which is called when a move is generated from a location change not from a incoming beam path
+        change. For example when a height is increased by the motor. This is used by the Theta readback to determine if
+        a component has changed height.
+        Args:
+            listener: listener takes the source of the change
+        """
+        self._after_physical_move_listener.add(listener)
+
+    def _trigger_after_physical_move_listener(self):
+        for listener in self._after_physical_move_listener:
+            listener(self)
 
 
-class BeamPathTiltingJaws(TrackingBeamPathCalc):
-    """
-    A beam path which includes a jaw which will title at 90 degrees to the jaw
-    """
-    component_to_beam_angle = 90
-
+class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
     def __init__(self, movement_strategy):
-        super(BeamPathTiltingJaws, self).__init__(movement_strategy)
+        super(_BeamPathCalcWithAngle, self).__init__(movement_strategy)
         self._angle = 0.0
-
-    def calculate_tilt_angle(self):
-        """
-        Returns: the angle to tilt so the jaws are perpendicular to the beam.
-        """
-        return self._incoming_beam.angle + self.component_to_beam_angle
-
-
-class _BeamPathCalcAngle(TrackingBeamPathCalc):
-    """
-    A beam path calculation which includes an angle of the component, but not a way of setting the angle externally.
-    This is used for theta and reflecting component.
-    """
-    def __init__(self, movement_strategy):
-        super(_BeamPathCalcAngle, self).__init__(movement_strategy)
-        self._angle = None
 
     def _set_angle(self, angle):
         """
@@ -162,18 +158,6 @@ class _BeamPathCalcAngle(TrackingBeamPathCalc):
         """
         self._angle = angle
         self._trigger_after_beam_path_update()
-
-    def get_outgoing_beam(self):
-        """
-        Returns: the outgoing beam based on the last set incoming beam and any interaction with the component
-        """
-        if not self._enabled:
-            return self._incoming_beam
-
-        target_position = self.calculate_beam_interception()
-        angle_between_beam_and_component = (self._angle - self._incoming_beam.angle)
-        angle = angle_between_beam_and_component * 2 + self._incoming_beam.angle
-        return PositionAndAngle(target_position.y, target_position.z, angle)
 
     def set_angle_relative_to_beam(self, angle):
         """
@@ -190,12 +174,59 @@ class _BeamPathCalcAngle(TrackingBeamPathCalc):
         return self._angle - self._incoming_beam.angle
 
 
-class BeamPathCalcAngle(_BeamPathCalcAngle):
+class BeamPathTilting(_BeamPathCalcWithAngle):
     """
-    A beam path calculation which includes an angle of the component, e.g. a reflecting mirror.
+    A beam path calculation which includes an angle it can tilt at. Beam path is unaffected by the angle.
     """
     def __init__(self, movement_strategy):
-        super(BeamPathCalcAngle, self).__init__(movement_strategy)
+        super(BeamPathTilting, self).__init__(movement_strategy)
+
+    @property
+    def angle(self):
+        """
+        Returns: the angle of the component measured clockwise from the horizon in the incoming beam direction.
+        """
+        return self._angle
+
+    @angle.setter
+    def angle(self, angle):
+        """
+        Updates the component angle and notifies the beam path update listener
+        Args:
+            angle: The modified angle
+        """
+        self._set_angle(angle)
+        self._trigger_after_physical_move_listener()
+
+
+class _BeamPathCalcReflecting(_BeamPathCalcWithAngle):
+    """
+    A beam path calculation which includes an angle of the component and that reflects the beam from that angle.
+    This is used for theta and reflecting component.
+    """
+    def __init__(self, movement_strategy):
+        super(_BeamPathCalcReflecting, self).__init__(movement_strategy)
+
+    def get_outgoing_beam(self):
+        """
+        Returns: the outgoing beam based on the last set incoming beam and any interaction with the component
+        """
+        if not self._enabled:
+            return self._incoming_beam
+
+        target_position = self.calculate_beam_interception()
+        angle_between_beam_and_component = (self._angle - self._incoming_beam.angle)
+        angle = angle_between_beam_and_component * 2 + self._incoming_beam.angle
+        return PositionAndAngle(target_position.y, target_position.z, angle)
+
+
+class BeamPathCalcAngleReflecting(_BeamPathCalcReflecting):
+    """
+    A reflecting beam path calculation which includes an angle of the component that can be set,
+    e.g. a reflecting mirror.
+    """
+    def __init__(self, movement_strategy):
+        super(BeamPathCalcAngleReflecting, self).__init__(movement_strategy)
         self._angle = 0.0
 
     @property
@@ -213,12 +244,13 @@ class BeamPathCalcAngle(_BeamPathCalcAngle):
             angle: The modified angle
         """
         self._set_angle(angle)
+        self._trigger_after_physical_move_listener()
 
 
-class BeamPathCalcTheta(_BeamPathCalcAngle):
+class BeamPathCalcTheta(_BeamPathCalcReflecting):
     """
-    A beam path calculator which has a read only angle based on the angle to a list of beam path calculations. This is
-    used for example for Theta where the angle is the angle to the next enabled component
+    A reflecting beam path calculator which has a read only angle based on the angle to a list of beam path
+    calculations. This is used for example for Theta where the angle is the angle to the next enabled component
     """
     def __init__(self, movement_strategy, angle_to):
         """
@@ -230,9 +262,8 @@ class BeamPathCalcTheta(_BeamPathCalcAngle):
         """
         super(BeamPathCalcTheta, self).__init__(movement_strategy)
         self._angle_to = angle_to
-        self._angle = self._calc_angle_from_next_component()
         for readback_beam_path_calc in self._angle_to:
-            readback_beam_path_calc.add_after_beam_path_update_listener(self._update_angle)
+            readback_beam_path_calc.add_after_physical_move_listener(self._update_angle)
 
     def _update_angle(self, source):
         """
@@ -240,11 +271,13 @@ class BeamPathCalcTheta(_BeamPathCalcAngle):
         Args:
             source: the beam calc that changed
         """
-        self._set_angle(self._calc_angle_from_next_component())
+        self._set_angle(self._calc_angle_from_next_component(self._incoming_beam))
 
-    def _calc_angle_from_next_component(self):
+    def _calc_angle_from_next_component(self, incoming_beam):
         """
-        Returns: the angle to the next enabled beam path calc, or nan if there isn't one.
+        Calculates the angle needed for a mirror to be position to reflect the incoming beam to the components position.
+
+        Returns: half the angle to the next enabled beam path calc, or nan if there isn't one.
         """
         for readback_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.enabled:
@@ -252,11 +285,25 @@ class BeamPathCalcTheta(_BeamPathCalcAngle):
                 this_pos = self.sp_position()
                 opp = other_pos.y - this_pos.y
                 adj = other_pos.z - this_pos.z
-                angle = degrees(atan2(opp, adj))
+                # x = degrees(atan2(opp, adj)) is angle in room co-ords to component
+                # x = x - incoming_beam.angle : is 2 theta
+                # x = x / 2.0: is theta
+                # x + incoming_beam.angle: angle of sample in room coordinate
+
+                angle = (degrees(atan2(opp, adj)) - incoming_beam.angle) / 2.0 + incoming_beam.angle
                 break
         else:
             angle = float("NaN")
         return angle
+
+    def set_incoming_beam(self, incoming_beam):
+        """
+        Set the incoming beam for the component setpoint calculation
+        Args:
+            incoming_beam(PositionAndAngle): incoming beam
+        """
+        self._angle = self._calc_angle_from_next_component(incoming_beam)
+        super(BeamPathCalcTheta, self).set_incoming_beam(incoming_beam)
 
     @property
     def angle(self):

@@ -1,7 +1,10 @@
 """
 Test data and classes.
 """
+from mock import MagicMock
+
 from ReflectometryServer.beamline import BeamlineMode, Beamline
+from ReflectometryServer.motor_pv_wrapper import MotorPVWrapper
 from ReflectometryServer.parameters import BeamlineParameter
 
 
@@ -47,3 +50,38 @@ class DataMother(object):
         beamline.active_mode = mode.name
 
         return beamline_parameters, beamline
+
+
+def create_mock_axis(name, init_position, max_velocity):
+    """
+    Create a mock axis
+    Args:
+        name: pv name of axis
+        init_position: initial position
+        max_velocity: maximum velocity of the axis
+
+    Returns:
+            mocked axis
+    """
+    class MockAxis():
+        def __init__(self, pv_name):
+            self.name = name
+            self._value = init_position
+            self.max_velocity = max_velocity
+            self.velocity = None
+            self.after_value_change_listener = set()
+
+        def add_after_value_change_listener(self, listener):
+            self.after_value_change_listener.add(listener)
+
+        @property
+        def value(self):
+            return self._value
+
+        @value.setter
+        def value(self, value):
+            self._value = value
+            for listener in self.after_value_change_listener:
+                listener(value, None, None)
+
+    return MockAxis(name)

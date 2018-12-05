@@ -140,7 +140,7 @@ class PVManager:
             description: description of the pv
         """
         try:
-            param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM")
+            param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM", limit=10)
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
             if BeamlineParameterGroup.TRACKING in group_names:
                 self._tracking_positions[prepended_alias] = param_name

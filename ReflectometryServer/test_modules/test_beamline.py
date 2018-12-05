@@ -4,13 +4,17 @@ from math import tan, radians
 from hamcrest import *
 from mock import Mock
 
-from ReflectometryServer.components import ReflectingComponent, Component
+from ReflectometryServer.components import ReflectingComponent, Component, TiltingComponent, ThetaComponent
+from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.geometry import PositionAndAngle
-from ReflectometryServer.beamline import Beamline
-from ReflectometryServer.test_modules.data_mother import DataMother
+from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.parameters import TrackingPosition, AngleParameter
+from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis
 from utils import position_and_angle
-from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
+from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus, MotorPVWrapper
+
+
 
 
 class TestComponentBeamline(unittest.TestCase):
@@ -90,6 +94,66 @@ class TestComponentBeamlineReadbacks(unittest.TestCase):
         comp1.beam_path_rbv.set_displacement(1.0, AlarmSeverity.No, AlarmStatus.No)
 
         assert_that(callback.called, is_(True))
+
+
+class TestRealistic(unittest.TestCase):
+
+    def test_GIVEN_weird_WHEN_seup_HEN_ok(self):
+        SPACING = 2.0
+
+        # components
+        s1 = Component("s1", LinearSetup(0.0, 1*SPACING, 90))
+        s3 = Component("s3", LinearSetup(0.0, 3*SPACING, 90))
+        detector = TiltingComponent("Detector", LinearSetup(0.0, 4*SPACING, 90))
+        theta = ThetaComponent("ThetaComp", LinearSetup(0.0, 2*SPACING, 90), [detector])
+        comps = [s1, theta, s3, detector]
+
+        # BEAMLINE PARAMETERS
+        slit1_pos = TrackingPosition("s1_pos", s1, True)
+        slit3_pos = TrackingPosition("s3_pos", s3, True)
+        theta_ang = AngleParameter("Theta", theta, True)
+        detector_position = TrackingPosition("det_pos", detector, True)
+        detector_angle = AngleParameter("det_angle", detector, True)
+
+        params = [slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle]
+
+        # DRIVES
+        s1_axis = create_mock_axis("MOT:MTR0101", 0, 1)
+        s3_axis = create_mock_axis("MOT:MTR0102", 0, 1)
+        det_axis = create_mock_axis("MOT:MTR0104", 0, 1)
+        det_angle_axis = create_mock_axis("MOT:MTR0105", 0, 1)
+        drives = [DisplacementDriver(s1, s1_axis),
+                  DisplacementDriver(s3, s3_axis),
+                  DisplacementDriver(detector, det_axis),
+                  AngleDriver(detector, det_angle_axis)]
+
+        # MODES
+        nr_inits = {}
+        nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
+        modes = [nr_mode]
+
+        beam_start = PositionAndAngle(0.0, 0.0, 0.0)
+        bl = Beamline(comps, params, drives, modes, beam_start)
+        bl.active_mode = nr_mode.name
+
+        slit1_pos.sp = 0
+        slit3_pos.sp = 0
+        detector_position.sp = 0
+        detector_angle.sp = 0
+
+        theta_angle = 2
+        theta_ang.sp = theta_angle
+        bl.move = 1
+
+        assert_that(s1_axis.value, is_(0))
+
+        expected_s3_value = SPACING * tan(radians(theta_angle * 2.0))
+        assert_that(s3_axis.value, is_(expected_s3_value))
+
+        expected_det_value = 2 * SPACING * tan(radians(theta_angle * 2.0))
+        assert_that(det_axis.value, is_(expected_det_value))
+
+        assert_that(det_angle_axis.value, is_(2*theta_angle))
 
 
 if __name__ == '__main__':

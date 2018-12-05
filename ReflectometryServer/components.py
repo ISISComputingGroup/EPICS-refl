@@ -1,7 +1,7 @@
 """
 Components on a beam
 """
-from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, BeamPathTiltingJaws, BeamPathCalcAngle, \
+from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, BeamPathTilting, BeamPathCalcAngleReflecting, \
     BeamPathCalcTheta
 from ReflectometryServer.movement_strategy import LinearMovementCalc
 import logging
@@ -40,7 +40,7 @@ class Component(object):
         """
         The beam path calculation for the set points. This is readonly and can only be set during construction
         Returns:
-            (TrackingBeamPathCalc|BeamPathTiltingJaws|BeamPathCalcTheta|BeamPathCalcAngle): set points beam path
+            (TrackingBeamPathCalc|BeamPathTilting|BeamPathCalcTheta|BeamPathCalcAngleReflecting): set points beam path
                 calculation
 
 
@@ -52,14 +52,14 @@ class Component(object):
         """
         The beam path calculation for the read backs. This is readonly and can only be set during construction
         Returns:
-            (TrackingBeamPathCalc|BeamPathTiltingJaws|BeamPathCalcTheta|BeamPathCalcAngle): read backs beam path
+            (TrackingBeamPathCalc|BeamPathTilting|BeamPathCalcTheta|BeamPathCalcAngleReflecting): read backs beam path
                 calculation
 
         """
         return self._beam_path_rbv
 
 
-class TiltingJaws(Component):
+class TiltingComponent(Component):
     """
     Jaws which can tilt.
     """
@@ -71,11 +71,11 @@ class TiltingJaws(Component):
             name (str): name of the component
             setup (ReflectometryServer.movement_strategy.LinearSetup): initial setup for the component
         """
-        super(TiltingJaws, self).__init__(name, setup)
+        super(TiltingComponent, self).__init__(name, setup)
 
     def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = BeamPathTiltingJaws(LinearMovementCalc(setup))
-        self._beam_path_rbv = BeamPathTiltingJaws(LinearMovementCalc(setup))
+        self._beam_path_set_point = BeamPathTilting(LinearMovementCalc(setup))
+        self._beam_path_rbv = BeamPathTilting(LinearMovementCalc(setup))
 
 
 class ReflectingComponent(Component):
@@ -92,8 +92,8 @@ class ReflectingComponent(Component):
         super(ReflectingComponent, self).__init__(name, setup)
 
     def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = BeamPathCalcAngle(LinearMovementCalc(setup))
-        self._beam_path_rbv = BeamPathCalcAngle(LinearMovementCalc(setup))
+        self._beam_path_set_point = BeamPathCalcAngleReflecting(LinearMovementCalc(setup))
+        self._beam_path_rbv = BeamPathCalcAngleReflecting(LinearMovementCalc(setup))
 
 
 class ThetaComponent(ReflectingComponent):
@@ -114,7 +114,7 @@ class ThetaComponent(ReflectingComponent):
         self._beam_path_rbv = BeamPathCalcTheta(LinearMovementCalc(setup), [comp.beam_path_rbv for comp in angle_to])
 
     def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = BeamPathCalcAngle(LinearMovementCalc(setup))
+        self._beam_path_set_point = BeamPathCalcAngleReflecting(LinearMovementCalc(setup))
 
 
 # class Bench(Component):

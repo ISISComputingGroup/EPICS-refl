@@ -539,6 +539,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
     def test_GIVEN_theta_with_45_deg_beam_WHEN_next_component_is_along_beam_THEN_value_is_0(self):
 
         s3 = Component("s3", setup=LinearSetup(20, 20, 135))
+        s3.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 45))
         sample = ThetaComponent("sample", setup=LinearSetup(10, 10, 135), angle_to=[s3])
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 45))
         theta = AngleParameter("param", sample)
@@ -547,7 +548,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         assert_that(result, is_(0))
 
-    def test_GIVEN_theta_with_0_deg_beam_WHEN_next_component_is_at_45_THEN_value_is_45(self):
+    def test_GIVEN_theta_with_0_deg_beam_WHEN_next_component_is_at_45_THEN_value_is_22_5(self):
 
         s3 = Component("s3", setup=LinearSetup(20, 10, 90))
         sample = ThetaComponent("sample", setup=LinearSetup(10, 0, 90), angle_to=[s3])
@@ -556,7 +557,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         result = theta.rbv
 
-        assert_that(result, is_(45))
+        assert_that(result, is_(45/2.0))
 
 
 if __name__ == '__main__':
