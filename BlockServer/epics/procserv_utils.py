@@ -13,8 +13,6 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-import time
-
 from server_common.channel_access import ChannelAccess
 from server_common.utilities import print_and_log, ioc_restart_pending, retry
 
