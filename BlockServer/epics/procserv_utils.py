@@ -13,9 +13,8 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
 from server_common.channel_access import ChannelAccess
-from server_common.utilities import print_and_log, ioc_restart_pending
+from server_common.utilities import print_and_log, ioc_restart_pending, retry
 
 
 class ProcServWrapper(object):
@@ -102,6 +101,7 @@ class ProcServWrapper(object):
         print_and_log("Toggling auto-restart for IOC {}".format(ioc))
         ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":TOGGLE", 1)
 
+    @retry(50, 0.1, ValueError)  # Retry for 5 seconds to get a valid value on failure
     def get_autorestart(self, prefix, ioc):
         """Gets the current auto-restart setting of the specified IOC.
 
@@ -113,12 +113,9 @@ class ProcServWrapper(object):
             bool : Whether auto-restart is enabled
         """
         ioc_prefix = self.generate_prefix(prefix, ioc)
-        ans = ChannelAccess.caget(ioc_prefix + ":AUTORESTART", as_string=True)
-        if ans is None:
-            raise Exception("Could not find IOC (%s)" % ioc_prefix)
-        elif ans == "On":
-            return True
-        elif ans == "Off":
-            return False
-        else:
-            raise Exception("Could not get auto-restart property for IOC ({0}) got '{1}'".format(ioc_prefix, ans))
+
+        ans = ChannelAccess.caget("{}:AUTORESTART".format(ioc_prefix), as_string=True)
+        if ans not in ["On", "Off"]:
+            raise ValueError("Could not get auto-restart property for IOC {}, got '{}'".format(ioc_prefix, ans))
+
+        return ans == "On"
