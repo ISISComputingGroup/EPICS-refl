@@ -98,62 +98,65 @@ class TestComponentBeamlineReadbacks(unittest.TestCase):
 
 class TestRealistic(unittest.TestCase):
 
-    def test_GIVEN_weird_WHEN_seup_HEN_ok(self):
-        SPACING = 2.0
+    def test_GIVEN_beam_line_where_all_items_track_WHEN_set_theta_THEN_motors_move_to_be_on_the_beam(self):
+        spacing = 2.0
 
-        # components
-        s1 = Component("s1", LinearSetup(0.0, 1*SPACING, 90))
-        s3 = Component("s3", LinearSetup(0.0, 3*SPACING, 90))
-        detector = TiltingComponent("Detector", LinearSetup(0.0, 4*SPACING, 90))
-        theta = ThetaComponent("ThetaComp", LinearSetup(0.0, 2*SPACING, 90), [detector])
-        comps = [s1, theta, s3, detector]
+        bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
 
-        # BEAMLINE PARAMETERS
-        slit1_pos = TrackingPosition("s1_pos", s1, True)
-        slit3_pos = TrackingPosition("s3_pos", s3, True)
-        theta_ang = AngleParameter("Theta", theta, True)
-        detector_position = TrackingPosition("det_pos", detector, True)
-        detector_angle = AngleParameter("det_angle", detector, True)
-
-        params = [slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle]
-
-        # DRIVES
-        s1_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        s3_axis = create_mock_axis("MOT:MTR0102", 0, 1)
-        det_axis = create_mock_axis("MOT:MTR0104", 0, 1)
-        det_angle_axis = create_mock_axis("MOT:MTR0105", 0, 1)
-        drives = [DisplacementDriver(s1, s1_axis),
-                  DisplacementDriver(s3, s3_axis),
-                  DisplacementDriver(detector, det_axis),
-                  AngleDriver(detector, det_angle_axis)]
-
-        # MODES
-        nr_inits = {}
-        nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
-        modes = [nr_mode]
-
-        beam_start = PositionAndAngle(0.0, 0.0, 0.0)
-        bl = Beamline(comps, params, drives, modes, beam_start)
-        bl.active_mode = nr_mode.name
-
-        slit1_pos.sp = 0
-        slit3_pos.sp = 0
-        detector_position.sp = 0
-        detector_angle.sp = 0
+        bl.parameter("s1").sp = 0
+        bl.parameter("s3").sp = 0
+        bl.parameter("det").sp = 0
+        bl.parameter("det_angle").sp = 0
 
         theta_angle = 2
-        theta_ang.sp = theta_angle
+        bl.parameter("theta").sp = theta_angle
         bl.move = 1
 
-        assert_that(s1_axis.value, is_(0))
+        assert_that(drives["s1_axis"].value, is_(0))
 
-        expected_s3_value = SPACING * tan(radians(theta_angle * 2.0))
-        assert_that(s3_axis.value, is_(expected_s3_value))
+        expected_s3_value = spacing * tan(radians(theta_angle * 2.0))
+        assert_that(drives["s3_axis"].value, is_(expected_s3_value))
 
-        expected_det_value = 2 * SPACING * tan(radians(theta_angle * 2.0))
-        assert_that(det_axis.value, is_(expected_det_value))
+        expected_det_value = 2 * spacing * tan(radians(theta_angle * 2.0))
+        assert_that(drives["det_axis"].value, is_(expected_det_value))
 
-        assert_that(det_angle_axis.value, is_(2*theta_angle))
+        assert_that(drives["det_angle_axis"].value, is_(2*theta_angle))
+
+
+    #TODO get question answered and then correct this test
+    # def test_GIVEN_beam_line_where_items_no_on_track_WHEN_set_theta_THEN_motors_move_to_be_correct_distance_from_the_beam(self):
+    #     spacing = 2.0
+    #
+    #     bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
+    #
+    #     s1_offset = 1
+    #     bl.parameter("s1").sp = s1_offset
+    #     s3_offset = 2
+    #     bl.parameter("s3").sp = s3_offset
+    #     det_offset = 3
+    #     bl.parameter("det").sp = det_offset
+    #     det_ang_offset = 4
+    #     bl.parameter("det_angle").sp = det_ang_offset
+    #
+    #     theta_angle = 2
+    #     bl.parameter("theta").sp = theta_angle
+    #     bl.move = 1
+    #
+    #     assert_that(drives["s1_axis"].value, is_(s1_offset))
+    #     assert_that(bl.parameter("s1").rbv, is_(s1_offset))
+    #
+    #     expected_s3_value = spacing * tan(radians(theta_angle * 2.0)) + s3_offset
+    #     assert_that(drives["s3_axis"].value, is_(expected_s3_value))
+    #     assert_that(bl.parameter("s3").rbv, is_(s3_offset))
+    #
+    #     expected_det_value = 2 * spacing * tan(radians(theta_angle * 2.0)) + det_offset
+    #     assert_that(drives["det_axis"].value, is_(expected_det_value))
+    #     assert_that(bl.parameter("det").rbv, is_(det_offset))
+    #
+    #     assert_that(drives["det_angle_axis"].value, is_(2*theta_angle + det_ang_offset))
+    #     assert_that(bl.parameter("det_angle").rbv, is_(det_ang_offset))
+    #
+    #     assert_that(bl.parameter("theta").rbv, is_(theta_angle))
 
 
 if __name__ == '__main__':

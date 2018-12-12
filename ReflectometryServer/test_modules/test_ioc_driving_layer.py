@@ -62,13 +62,8 @@ class TestHeightDriver(unittest.TestCase):
         listener = MagicMock()
         self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
         expected_value = 10.1
+
         self.height_axis.value = expected_value
-        alarm_severity = AlarmSeverity.No
-        alarm_status = AlarmStatus.No
-
-        for value_change_listener in self.height_axis.after_value_change_listener:
-
-            value_change_listener(self.height_axis.value, alarm_severity, alarm_status)
 
         listener.assert_called_once()
         assert_that(self.jaws.beam_path_rbv.get_displacement(), is_(expected_value))
@@ -171,13 +166,8 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         listener = MagicMock()
         self.supermirror.beam_path_rbv.add_after_beam_path_update_listener(listener)
         expected_value = 10.1
+
         self.angle_axis.value = expected_value
-        alarm_severity = AlarmSeverity.No
-        alarm_status = AlarmStatus.No
-
-        for value_change_listener in self.angle_axis.after_value_change_listener:
-
-            value_change_listener(self.angle_axis.value, alarm_severity, alarm_status)
 
         listener.assert_called_once()
         assert_that(self.supermirror.beam_path_rbv.angle, is_(expected_value))
