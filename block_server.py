@@ -53,7 +53,7 @@ from pcaspy.driver import manager, Data
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from WebServer.simple_webserver import Server
-from collections import deque
+from Queue import Queue
 
 
 # For documentation on these commands see the wiki
@@ -96,8 +96,7 @@ class BlockServer(Driver):
 
         # Threading stuff
         self.monitor_lock = RLock()
-        self.write_lock = RLock()
-        self.write_queue = list()
+        self.write_queue = Queue()
 
         FILEPATH_MANAGER.initialise(CONFIG_DIR, SCRIPT_DIR, SCHEMA_DIR)
 
@@ -144,8 +143,7 @@ class BlockServer(Driver):
         write_thread.daemon = True  # Daemonise thread
         write_thread.start()
 
-        with self.write_lock:
-            self.write_queue.append((self.initialise_configserver, (FACILITY,), "INITIALISING"))
+        self.write_queue.put((self.initialise_configserver, (FACILITY,), "INITIALISING"))
 
         # Starts the Web Server
         self.server = Server()
@@ -237,9 +235,6 @@ class BlockServer(Driver):
         """A method called by SimpleServer when a PV is written to the BlockServer over Channel Access. The write
             commands are queued as Channel Access is single-threaded.
 
-            Note that the filewatcher is disabled as part of the write queue so any operations that intend to modify
-            files should use the write queue.
-
         Args:
             reason (string): The PV that is being requested (without the PV prefix)
             value (string): The data being written to the 'reason' PV
@@ -248,42 +243,37 @@ class BlockServer(Driver):
             string : "OK" in compressed and hexed JSON if function succeeds. Otherwise returns the Exception in
             compressed and hexed JSON.
         """
-
-        def append_to_write_queue(data):
-            with self.write_lock:
-                self.write_queue.append(data)
-
         status = True
         try:
             data = dehex_and_decompress(value).strip('"')
             if reason == BlockserverPVNames.LOAD_CONFIG:
-                append_to_write_queue((self.load_config, (data,), "LOADING_CONFIG"))
+                self.write_queue.put((self.load_config, (data,), "LOADING_CONFIG"))
             elif reason == BlockserverPVNames.SAVE_CONFIG:
-                append_to_write_queue((self.save_active_config, (data,), "SAVING_CONFIG"))
+                self.write_queue.put((self.save_active_config, (data,), "SAVING_CONFIG"))
             elif reason == BlockserverPVNames.RELOAD_CURRENT_CONFIG:
-                append_to_write_queue((self.reload_current_config, (), "RELOAD_CURRENT_CONFIG"))
+                self.write_queue.put((self.reload_current_config, (), "RELOAD_CURRENT_CONFIG"))
             elif reason == BlockserverPVNames.START_IOCS:
-                append_to_write_queue((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
+                self.write_queue.put((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
             elif reason == BlockserverPVNames.STOP_IOCS:
-                append_to_write_queue((self._ioc_control.stop_iocs, (convert_from_json(data),), "STOP_IOCS"))
+                self.write_queue.put((self._ioc_control.stop_iocs, (convert_from_json(data),), "STOP_IOCS"))
             elif reason == BlockserverPVNames.RESTART_IOCS:
-                append_to_write_queue((self._ioc_control.restart_iocs, (convert_from_json(data), True), "RESTART_IOCS"))
+                self.write_queue.put((self._ioc_control.restart_iocs, (convert_from_json(data), True), "RESTART_IOCS"))
             elif reason == BlockserverPVNames.SET_CURR_CONFIG_DETAILS:
-                append_to_write_queue((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
+                self.write_queue.put((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
             elif reason == BlockserverPVNames.SAVE_NEW_CONFIG:
-                append_to_write_queue((self.save_inactive_config, (data,), "SAVING_NEW_CONFIG"))
+                self.write_queue.put((self.save_inactive_config, (data,), "SAVING_NEW_CONFIG"))
             elif reason == BlockserverPVNames.SAVE_NEW_COMPONENT:
-                append_to_write_queue((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
+                self.write_queue.put((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
             elif reason == BlockserverPVNames.DELETE_CONFIGS:
-                append_to_write_queue((self._config_list.delete, (convert_from_json(data),), "DELETE_CONFIGS"))
+                self.write_queue.put((self._config_list.delete, (convert_from_json(data),), "DELETE_CONFIGS"))
             elif reason == BlockserverPVNames.DELETE_COMPONENTS:
-                append_to_write_queue((self._config_list.delete, (convert_from_json(data), True), "DELETE_COMPONENTS"))
+                self.write_queue.put((self._config_list.delete, (convert_from_json(data), True), "DELETE_COMPONENTS"))
             else:
                 status = False
                 # Check to see if it is a on-the-fly PV
-                for h in self.on_the_fly_handlers:
-                    if h.write_pv_exists(reason):
-                        append_to_write_queue((h.handle_pv_write, (reason, data), "SETTING_CONFIG"))
+                for handler in self.on_the_fly_handlers:
+                    if handler.write_pv_exists(reason):
+                        self.write_queue.put((handler.handle_pv_write, (reason, data), "SETTING_CONFIG"))
                         status = True
                         break
 
@@ -509,17 +499,15 @@ class BlockServer(Driver):
             print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
 
     def update_blocks_monitors(self):
-        """Updates the monitors for the blocks and groups, so the clients can see any changes.
+        """Updates the PV monitors for the blocks and groups, so the clients can see any changes.
         """
         with self.monitor_lock:
-            # Blocks
-            bn = convert_to_json(self._active_configserver.get_blocknames())
-            self.setParam(BlockserverPVNames.BLOCKNAMES, compress_and_hex(bn))
-            # Groups
-            # Update the PV, so that groupings are updated for any CA monitors
-            grps = ConfigurationJsonConverter.groups_to_json(self._active_configserver.get_group_details())
-            self.setParam(BlockserverPVNames.GROUPS, compress_and_hex(grps))
-            # Update them
+            block_names = convert_to_json(self._active_configserver.get_blocknames())
+            self.setParam(BlockserverPVNames.BLOCKNAMES, compress_and_hex(block_names))
+
+            groups = ConfigurationJsonConverter.groups_to_json(self._active_configserver.get_group_details())
+            self.setParam(BlockserverPVNames.GROUPS, compress_and_hex(groups))
+
             self.updatePVs()
 
     def update_server_status(self, status=""):
@@ -529,8 +517,7 @@ class BlockServer(Driver):
             status (string): The status to set
         """
         if self._active_configserver is not None:
-            d = dict()
-            d['status'] = status
+            d = {'status': status}
             with self.monitor_lock:
                 self.setParam(BlockserverPVNames.SERVER_STATUS, compress_and_hex(convert_to_json(d)))
                 self.updatePVs()
@@ -539,8 +526,8 @@ class BlockServer(Driver):
         """Updates the monitor for the active configuration, so the clients can see any changes.
         """
         with self.monitor_lock:
-            js = convert_to_json(self._active_configserver.get_config_details())
-            self.setParam(BlockserverPVNames.GET_CURR_CONFIG_DETAILS, compress_and_hex(js))
+            config_details_json = convert_to_json(self._active_configserver.get_config_details())
+            self.setParam(BlockserverPVNames.GET_CURR_CONFIG_DETAILS, compress_and_hex(config_details_json))
             self.updatePVs()
 
     def consume_write_queue(self):
@@ -553,18 +540,15 @@ class BlockServer(Driver):
             self.load_config, ("configname",), "LOADING_CONFIG")
         """
         while True:
-            while len(self.write_queue) > 0:
-                with self.write_lock:
-                    cmd, arg, state = self.write_queue.pop(0)
-                self.update_server_status(state)
-                try:
-                    cmd(*arg) if arg is not None else cmd()
-                except Exception as err:
-                    print_and_log(
-                        "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
-                        "MAJOR")
-                self.update_server_status("")
-            sleep(1)
+            cmd, arg, state = self.write_queue.get(block=True)
+            self.update_server_status(state)
+            try:
+                cmd(*arg) if arg is not None else cmd()
+            except Exception as err:
+                print_and_log(
+                    "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
+                    "MAJOR")
+            self.update_server_status("")
 
     def get_blank_config(self):
         """Get a blank configuration which can be used to create a new configuration from scratch.
@@ -612,16 +596,14 @@ class BlockServer(Driver):
             del manager.pvs[self.port][name]
             del manager.pvf[fullname]
             del self.pvDB[name]
-            del PVDB[name]
 
     def add_string_pv_to_db(self, name, count=1000):
         # Check name not already in PVDB and that a PV does not already exist
-        if name not in PVDB and name not in manager.pvs[self.port]:
+        if name not in manager.pvs[self.port]:
             try:
                 print_and_log("Adding PV {}".format(name))
                 new_pv = {name: char_waveform(count)}
                 self._cas.createPV(BLOCKSERVER_PREFIX, new_pv)
-                PVDB[name] = new_pv
                 data = Data()
                 data.value = manager.pvs[self.port][name].info.value
                 self.pvDB[name] = data
