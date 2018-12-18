@@ -60,7 +60,10 @@ class ReflectometryDriver(Driver):
             return compress_and_hex(self.getParam(reason))
         elif self._pv_manager.is_beamline_status(reason):
             beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
-            return beamline_status_enums.index(self._beamline.status.name)
+            new_value = beamline_status_enums.index(self._beamline.status.name)
+            #  Set the value so that the error condition is set
+            self.setParam(reason, new_value)
+            return new_value
         elif self._pv_manager.is_beamline_message(reason):
             return self._beamline.message
         else:

@@ -1,17 +1,34 @@
 """
 Resources at a beamline level
 """
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from enum import Enum
+from pcaspy import Severity
+
+BeamlineStatus = namedtuple("Status", ['display_string', 'alarm_severity'])
 
 
 class STATUS(Enum):
     """
     Beamline States.
     """
-    OKAY = "OKAY"
-    CONFIG_ERROR = "CONFIG_ERROR"
-    GENERAL_ERROR = "ERROR"
+    OKAY = BeamlineStatus("OKAY", Severity.NO_ALARM)
+    CONFIG_ERROR = BeamlineStatus("CONFIG_ERROR", Severity.MAJOR_ALARM)
+    GENERAL_ERROR = BeamlineStatus("ERROR", Severity.MAJOR_ALARM)
+
+    @property
+    def display_string(self):
+        """
+        Returns: display string for the enum
+        """
+        return self.value.display_string
+
+    @property
+    def alarm_severity(self):
+        """
+        Returns: Alarm severity of beamline status
+        """
+        return self.value.alarm_severity
 
 
 class BeamlineMode(object):
@@ -314,6 +331,6 @@ class Beamline(object):
     @property
     def status_codes(self):
         """
-        Returns: the status codes
+        Returns: the status codes which have display properties and alarm severities
         """
         return [status.value for status in STATUS]
