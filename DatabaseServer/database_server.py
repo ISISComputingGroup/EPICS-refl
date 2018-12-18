@@ -99,16 +99,15 @@ class DatabaseServer(Driver):
             enhanced_info[pv]['get'] = get_function
 
         add_get_method(DbPVNames.IOCS, self._get_iocs_info)
-        add_get_method(DbPVNames.HIGH_INTEREST, self._get_high_interest_pvs)
-        add_get_method(DbPVNames.MEDIUM_INTEREST, self._get_medium_interest_pvs)
-        add_get_method(DbPVNames.FACILITY, self._get_facility_pvs)
+        add_get_method(DbPVNames.HIGH_INTEREST, partial(self._get_interesting_pvs, "HIGH"))
+        add_get_method(DbPVNames.MEDIUM_INTEREST, partial(self._get_interesting_pvs, "MEDIUM"))
+        add_get_method(DbPVNames.FACILITY, partial(self._get_interesting_pvs, "FACILITY"))
         add_get_method(DbPVNames.ACTIVE_PVS, self._get_active_pvs)
-        add_get_method(DbPVNames.ALL_PVS, self._get_all_pvs)
+        add_get_method(DbPVNames.ALL_PVS, partial(self._get_interesting_pvs, ""))
         add_get_method(DbPVNames.SAMPLE_PARS, self._get_sample_par_names)
         add_get_method(DbPVNames.BEAMLINE_PARS, self._get_beamline_par_names)
         add_get_method(DbPVNames.USER_PARS, self._get_user_par_names)
         add_get_method(DbPVNames.IOCS_NOT_TO_STOP, DatabaseServer._get_iocs_not_to_stop)
-
         return enhanced_info
 
     @staticmethod
@@ -229,18 +228,6 @@ class DatabaseServer(Driver):
             return pv_data
         else:
             return list()
-
-    def _get_high_interest_pvs(self):
-        return self._get_interesting_pvs("HIGH")
-
-    def _get_medium_interest_pvs(self):
-        return self._get_interesting_pvs("MEDIUM")
-
-    def _get_facility_pvs(self):
-        return self._get_interesting_pvs("FACILITY")
-
-    def _get_all_pvs(self):
-        return self._get_interesting_pvs("")
 
     def _get_interesting_pvs(self, level):
         return self._get_pvs(self._iocs.get_interesting_pvs, False, level)

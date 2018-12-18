@@ -31,7 +31,4 @@ class OptionsHolder(object):
         Returns:
             dict : IOCs and their associated options as a dictionary
         """
-        iocs = {}
-        for k, v in self._config_options.iteritems():
-            iocs[k] = v.to_dict()
-        return iocs
+        return {name: options.to_dict() for name, options in self._config_options.iteritems()}

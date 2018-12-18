@@ -16,34 +16,18 @@
 
 
 class IocOptions(object):
-    """Contains the possible macros and pvsets of an IOC"""
-    def __init__(self, name, macros=None, pvsets=None, pvs=None):
+    """Contains the possible macros and pvsets of an IOC."""
+
+    macros = dict()  # The possible macros for the IOC, along with a list of parameters (description, pattern etc.)
+    pvsets = dict()  # The possible pvsets for the IOC, along with a list of parameters (description etc.)
+    pvs = dict()  # The possible pvs for the IOC, along with a list of associated parameters (description etc.)
+
+    def __init__(self, name):
         """Constructor
 
         Args:
             name (string): The name of the IOC the options are associated with
-            macros (dict, optional): A dict of the possible macros for the IOC, along with a list of associated
-                                      parameters (description, pattern etc.)
-            pvsets (dict, optional): A dict of the possible pvsets for the IOC, along with a list of associated
-                                      parameters (description etc.)
-            pvs (dict, optional): A dict of the possible pvs for the IOC, along with a list of associated parameters
-                                   (description etc.)
         """
-        if macros is None:
-            self.macros = dict()
-        else:
-            self.macros = macros
-
-        if pvsets is None:
-            self.pvsets = dict()
-        else:
-            self.pvsets = pvsets
-
-        if pvs is None:
-            self.pvs = dict()
-        else:
-            self.pvs = pvs
-
         self.name = name
 
     def _dict_to_list(self, in_dict):
