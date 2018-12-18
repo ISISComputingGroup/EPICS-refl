@@ -77,8 +77,6 @@ PVDB = {
     BlockserverPVNames.DELETE_COMPONENTS: char_waveform(64000),
     BlockserverPVNames.BLANK_CONFIG: char_waveform(64000),
     BlockserverPVNames.ALL_COMPONENT_DETAILS: char_waveform(64000),
-    BlockserverPVNames.BUMPSTRIP_AVAILABLE: char_waveform(16000),
-    BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP: char_waveform(16000),
     BlockserverPVNames.BANNER_DESCRIPTION: char_waveform(16000)
 }
 
@@ -111,7 +109,6 @@ class BlockServer(Driver):
         self._devices = None
         self.on_the_fly_handlers = list()
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
-        self.bumpstrip = "No"
         self.block_rules = BlockRules(self)
         self.group_rules = GroupRules(self)
         self.config_desc = ConfigurationDescriptionRules(self)
@@ -219,8 +216,6 @@ class BlockServer(Driver):
             elif reason == BlockserverPVNames.BLANK_CONFIG:
                 js = convert_to_json(self.get_blank_config())
                 value = compress_and_hex(js)
-            elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE:
-                value = compress_and_hex(self.bumpstrip)
             elif reason == BlockserverPVNames.BANNER_DESCRIPTION:
                 value = compress_and_hex(self.spangle_banner)
             elif reason == BlockserverPVNames.ALL_COMPONENT_DETAILS:
@@ -252,56 +247,42 @@ class BlockServer(Driver):
             string : "OK" in compressed and hexed JSON if function succeeds. Otherwise returns the Exception in
             compressed and hexed JSON.
         """
+
+        def append_to_write_queue(data):
+            with self.write_lock:
+                self.write_queue.append(data)
+
         status = True
         try:
             data = dehex_and_decompress(value).strip('"')
             if reason == BlockserverPVNames.LOAD_CONFIG:
-                with self.write_lock:
-                    self.write_queue.append((self.load_config, (data,), "LOADING_CONFIG"))
+                append_to_write_queue((self.load_config, (data,), "LOADING_CONFIG"))
             elif reason == BlockserverPVNames.SAVE_CONFIG:
-                with self.write_lock:
-                    self.write_queue.append((self.save_active_config, (data,), "SAVING_CONFIG"))
+                append_to_write_queue((self.save_active_config, (data,), "SAVING_CONFIG"))
             elif reason == BlockserverPVNames.RELOAD_CURRENT_CONFIG:
-                with self.write_lock:
-                    self.write_queue.append((self.reload_current_config, (), "RELOAD_CURRENT_CONFIG"))
+                append_to_write_queue((self.reload_current_config, (), "RELOAD_CURRENT_CONFIG"))
             elif reason == BlockserverPVNames.START_IOCS:
-                with self.write_lock:
-                    self.write_queue.append((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
+                append_to_write_queue((self.start_iocs, (convert_from_json(data),), "START_IOCS"))
             elif reason == BlockserverPVNames.STOP_IOCS:
-                with self.write_lock:
-                    self.write_queue.append((self._ioc_control.stop_iocs, (convert_from_json(data),), "STOP_IOCS"))
+                append_to_write_queue((self._ioc_control.stop_iocs, (convert_from_json(data),), "STOP_IOCS"))
             elif reason == BlockserverPVNames.RESTART_IOCS:
-                with self.write_lock:
-                    self.write_queue.append((self._ioc_control.restart_iocs, (convert_from_json(data), True),
-                                             "RESTART_IOCS"))
+                append_to_write_queue((self._ioc_control.restart_iocs, (convert_from_json(data), True), "RESTART_IOCS"))
             elif reason == BlockserverPVNames.SET_CURR_CONFIG_DETAILS:
-                with self.write_lock:
-                    self.write_queue.append((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
+                append_to_write_queue((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
             elif reason == BlockserverPVNames.SAVE_NEW_CONFIG:
-                with self.write_lock:
-                    self.write_queue.append((self.save_inactive_config, (data,), "SAVING_NEW_CONFIG"))
+                append_to_write_queue((self.save_inactive_config, (data,), "SAVING_NEW_CONFIG"))
             elif reason == BlockserverPVNames.SAVE_NEW_COMPONENT:
-                with self.write_lock:
-                    self.write_queue.append((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
+                append_to_write_queue((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
             elif reason == BlockserverPVNames.DELETE_CONFIGS:
-                with self.write_lock:
-                    self.write_queue.append((self._config_list.delete, (convert_from_json(data),),
-                                             "DELETE_CONFIGS"))
+                append_to_write_queue((self._config_list.delete, (convert_from_json(data),), "DELETE_CONFIGS"))
             elif reason == BlockserverPVNames.DELETE_COMPONENTS:
-                with self.write_lock:
-                    self.write_queue.append((self._config_list.delete, (convert_from_json(data), True),
-                                             "DELETE_COMPONENTS"))
-            elif reason == BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP:
-                self.bumpstrip = data
-                with self.write_lock:
-                    self.write_queue.append((self.update_bumpstrip_availability, None, "UPDATE_BUMPSTRIP"))
+                append_to_write_queue((self._config_list.delete, (convert_from_json(data), True), "DELETE_COMPONENTS"))
             else:
                 status = False
                 # Check to see if it is a on-the-fly PV
                 for h in self.on_the_fly_handlers:
                     if h.write_pv_exists(reason):
-                        with self.write_lock:
-                            self.write_queue.append((h.handle_pv_write, (reason, data), "SETTING_CONFIG"))
+                        append_to_write_queue((h.handle_pv_write, (reason, data), "SETTING_CONFIG"))
                         status = True
                         break
 
@@ -559,15 +540,6 @@ class BlockServer(Driver):
         with self.monitor_lock:
             js = convert_to_json(self._active_configserver.get_config_details())
             self.setParam(BlockserverPVNames.GET_CURR_CONFIG_DETAILS, compress_and_hex(js))
-            self.updatePVs()
-
-    def update_bumpstrip_availability(self):
-        """Updates the monitor for the configurations, so the clients can see any changes.
-            """
-        with self.monitor_lock:
-            # set the available configs
-            self.setParam(BlockserverPVNames.BUMPSTRIP_AVAILABLE, compress_and_hex(self.bumpstrip))
-            # Update them
             self.updatePVs()
 
     def consume_write_queue(self):

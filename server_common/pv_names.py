@@ -68,8 +68,6 @@ class BlockserverPVNames:
     SET_SCREENS = prepend_blockserver('SET_SCREENS')
     BANNER_DESCRIPTION = prepend_blockserver('BANNER_DESCRIPTION')
     SCREENS_SCHEMA = prepend_blockserver('SCREENS_SCHEMA')
-    BUMPSTRIP_AVAILABLE = prepend_blockserver('BUMPSTRIP_AVAILABLE')
-    BUMPSTRIP_AVAILABLE_SP = prepend_blockserver('BUMPSTRIP_AVAILABLE:SP')
     
     @staticmethod
     def get_config_details_pv(pv_key):
