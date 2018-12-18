@@ -130,12 +130,10 @@ class RunControlManager(OnTheFlyPvInterface):
         """
         if pv == RUNCONTROL_GET_PV:
             js = convert_to_json(self.get_current_settings())
-            value = compress_and_hex(js)
-            return value
+            return compress_and_hex(js)
         elif pv == RUNCONTROL_OUT_PV:
             js = convert_to_json(self.get_out_of_range_pvs())
-            value = compress_and_hex(js)
-            return value
+            return compress_and_hex(js)
         return ""
 
     def update_monitors(self):
@@ -195,20 +193,16 @@ class RunControlManager(OnTheFlyPvInterface):
             blocks (OrderedDict): The blocks that are part of the current
                 configuration
         """
-        f = None
         try:
-            f = open(self._settings_file, 'w')
-            for bn, blk in blocks.iteritems():
-                f.write('dbLoadRecords("$(RUNCONTROL)/db/runcontrol.db",'
-                        '"P=$(MYPVPREFIX),PV=$(MYPVPREFIX)CS:SB:%s")\n'
-                        % blk.name)
-            # Need an extra blank line
-            f.write("\n")
+            with open(self._settings_file, 'w') as f:
+                for bn, blk in blocks.iteritems():
+                    f.write('dbLoadRecords("$(RUNCONTROL)/db/runcontrol.db",'
+                            '"P=$(MYPVPREFIX),PV=$(MYPVPREFIX)CS:SB:%s")\n'
+                            % blk.name)
+                # Need an extra blank line
+                f.write("\n")
         except Exception as err:
             print_and_log(str(err))
-        finally:
-            if f is not None:
-                f.close()
 
     def get_out_of_range_pvs(self):
         """
@@ -225,11 +219,7 @@ class RunControlManager(OnTheFlyPvInterface):
                                          True).strip()
         raw = raw.split(" ")
         if raw is not None and len(raw) > 0:
-            ans = list()
-            for i in raw:
-                if len(i) > 0:
-                    ans.append(i)
-            return ans
+            return [pv for pv in raw if len(pv) > 0]
         else:
             return list()
 
@@ -250,11 +240,8 @@ class RunControlManager(OnTheFlyPvInterface):
                                               blk.name + TAG_RC_HIGH)
             enable = self._channel_access.caget(self._block_prefix +
                                                 blk.name + TAG_RC_ENABLE, True)
-            if enable == "YES":
-                enable = True
-            else:
-                enable = False
-            settings[blk.name] = {"LOW": low, "HIGH": high, "ENABLE": enable}
+
+            settings[blk.name] = {"LOW": low, "HIGH": high, "ENABLE": enable == "YES"}
         return settings
 
     def restore_config_settings(self, blocks):
@@ -284,19 +271,15 @@ class RunControlManager(OnTheFlyPvInterface):
             data (dict): The new run-control settings to set (dictionary of
                 dictionaries)
         """
-        for bn, settings in data.iteritems():
-            if settings is not None:
-                self._set_rc_values(bn, settings)
+        [self._set_rc_values(block_name, settings) for block_name, settings in data.iteritems() if settings is not None]
 
-    def _set_rc_values(self, bn, settings):
+    def _set_rc_values(self, block_name, settings):
         for key, value in settings.iteritems():
             if key.upper() in TAG_RC_DICT.keys():
                 try:
-                    self._channel_access.caput(self._block_prefix + bn + TAG_RC_DICT[key.upper()], value)
+                    self._channel_access.caput(self._block_prefix + block_name + TAG_RC_DICT[key.upper()], value)
                 except Exception as err:
-                    print_and_log("Problem with setting "
-                                  "runcontrol for %s: %s"
-                                  % (bn, err))
+                    print_and_log("Problem with setting runcontrol for {}: {}".format(block_name, err))
 
     def _get_latest_ioc_start(self):
         """
@@ -306,8 +289,7 @@ class RunControlManager(OnTheFlyPvInterface):
             latest_ioc_start (datetime): the latest IOC start time
 
         """
-        raw_ioc_time = self._channel_access.caget(self._prefix
-                                                      + RC_START_PV)
+        raw_ioc_time = self._channel_access.caget(self._prefix + RC_START_PV)
 
         try:
             frmt = '%m/%d/%Y %H:%M:%S'
