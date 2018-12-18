@@ -26,7 +26,7 @@ from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from server_common.utilities import print_and_log, compress_and_hex, \
     convert_to_json, ioc_restart_pending
 from server_common.channel_access import ChannelAccess
-from BlockServer.core.pv_names import BlockserverPVNames
+from server_common.pv_names import BlockserverPVNames
 
 TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
 RC_IOC_PREFIX = "CS:PS:RUNCTRL_01"

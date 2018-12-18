@@ -16,7 +16,7 @@
 
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.site_specific.default.general_rules import GroupRules
-from BlockServer.core.pv_names import BlockserverPVNames
+from server_common.pv_names import BlockserverPVNames
 import unittest
 import json
 import re

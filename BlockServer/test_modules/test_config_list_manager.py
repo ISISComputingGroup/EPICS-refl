@@ -18,7 +18,7 @@ import unittest
 
 from BlockServer.core.config_list_manager import ConfigListManager, InvalidDeleteException
 from BlockServer.core.active_config_holder import ActiveConfigHolder
-from BlockServer.core.pv_names import BlockserverPVNames
+from server_common.pv_names import BlockserverPVNames
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import DEFAULT_COMPONENT
