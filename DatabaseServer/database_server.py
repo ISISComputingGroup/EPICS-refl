@@ -21,6 +21,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 # Standard imports
+from functools import partial
 from pcaspy import Driver
 from time import sleep
 import argparse
@@ -38,6 +39,8 @@ from threading import Thread, RLock
 from procserv_utils import ProcServWrapper
 from options_holder import OptionsHolder
 from options_loader import OptionsLoader
+from server_common.loggers.isis_logger import IsisLogger
+set_logger(IsisLogger())
 
 MACROS = {
     "$(MYPVPREFIX)": os.environ['MYPVPREFIX'],
@@ -293,16 +296,7 @@ if __name__ == '__main__':
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration options(default=current directory)')
 
-    parser.add_argument('-f', '--facility', nargs=1, type=str, default=['ISIS'],
-                        help='Which facility is this being run for (default=ISIS)')
-
     args = parser.parse_args()
-
-    FACILITY = args.facility[0]
-    if FACILITY == "ISIS":
-        from server_common.loggers.isis_logger import IsisLogger
-        set_logger(IsisLogger())
-    print_and_log("FACILITY = %s" % FACILITY, INFO_MSG, LOG_TARGET)
 
     BLOCKSERVER_PREFIX = args.blockserver_prefix[0]
     if not BLOCKSERVER_PREFIX.endswith(':'):

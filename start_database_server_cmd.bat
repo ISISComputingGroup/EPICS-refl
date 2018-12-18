@@ -10,5 +10,5 @@ set EPICS_CAS_BEACON_ADDR_LIST=127.255.255.255
 
 set PYTHONUNBUFFERED=TRUE
 
-%PYTHONW% %MYDIRBLOCK%DatabaseServer\database_server.py -od %MYDIRBLOCK%..\..\..\iocstartup -f ISIS
+%PYTHONW% %MYDIRBLOCK%DatabaseServer\database_server.py -od %MYDIRBLOCK%..\..\..\iocstartup
 

@@ -14,5 +14,5 @@ export EPICS_CAS_BEACON_ADDR_LIST="127.255.255.255"
 
 export PYTHONUNBUFFERED="TRUE"
 
-python "$MYDIRBLOCK/DatabaseServer/database_server.py" -od "$MYDIRBLOCK/../../../iocstartup" -f ISIS
+python "$MYDIRBLOCK/DatabaseServer/database_server.py" -od "$MYDIRBLOCK/../../../iocstartup"
 
