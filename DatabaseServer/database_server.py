@@ -25,7 +25,8 @@ from pcaspy import Driver
 from time import sleep
 import argparse
 from server_common.mysql_abstraction_layer import SQLAbstraction
-from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, dehex_and_decompress
+from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, dehex_and_decompress, \
+    char_waveform
 from server_common.channel_access_server import CAServer
 from server_common.constants import IOCS_NOT_TO_STOP
 from server_common.ioc_data import IOCData
@@ -36,7 +37,6 @@ from threading import Thread, RLock
 from procserv_utils import ProcServWrapper
 from options_holder import OptionsHolder
 from options_loader import OptionsLoader
-from mocks.mock_procserv_utils import MockProcServWrapper
 
 MACROS = {
     "$(MYPVPREFIX)": os.environ['MYPVPREFIX'],
@@ -119,21 +119,17 @@ class DatabaseServer(Driver):
         pv_size_64k = 64000
         pv_size_10k = 10000
 
-        # Helper to consistently create pvs
-        def create_pvdb_entry(count):
-            return {'type': 'char', 'count': count, 'value': [0]}
-
         return {
-            'IOCS': create_pvdb_entry(pv_size_64k),
-            'PVS:INTEREST:HIGH': create_pvdb_entry(pv_size_64k),
-            'PVS:INTEREST:MEDIUM': create_pvdb_entry(pv_size_64k),
-            'PVS:INTEREST:FACILITY': create_pvdb_entry(pv_size_64k),
-            'PVS:ACTIVE': create_pvdb_entry(pv_size_64k),
-            'PVS:ALL': create_pvdb_entry(pv_size_64k),
-            'SAMPLE_PARS': create_pvdb_entry(pv_size_10k),
-            'BEAMLINE_PARS': create_pvdb_entry(pv_size_10k),
-            'USER_PARS': create_pvdb_entry(pv_size_10k),
-            'IOCS_NOT_TO_STOP': create_pvdb_entry(pv_size_64k),
+            'IOCS': char_waveform(pv_size_64k),
+            'PVS:INTEREST:HIGH': char_waveform(pv_size_64k),
+            'PVS:INTEREST:MEDIUM': char_waveform(pv_size_64k),
+            'PVS:INTEREST:FACILITY': char_waveform(pv_size_64k),
+            'PVS:ACTIVE': char_waveform(pv_size_64k),
+            'PVS:ALL': char_waveform(pv_size_64k),
+            'SAMPLE_PARS': char_waveform(pv_size_10k),
+            'BEAMLINE_PARS': char_waveform(pv_size_10k),
+            'USER_PARS': char_waveform(pv_size_10k),
+            'IOCS_NOT_TO_STOP': char_waveform(pv_size_64k),
         }
 
     def read(self, reason):
@@ -166,7 +162,6 @@ class DatabaseServer(Driver):
         """
         try:
             if reason == 'ED:RBNUMBER:SP':
-                # print_and_log("Updating to use experiment ID: " + value, INFO_MSG, LOG_LOCATION)
                 self._ed.update_experiment_id(value)
             elif reason == 'ED:USERNAME:SP':
                 self._ed.update_username(dehex_and_decompress(value))

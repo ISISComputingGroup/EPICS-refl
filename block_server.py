@@ -33,7 +33,7 @@ from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
-    convert_to_json, convert_from_json
+    convert_to_json, convert_from_json, char_waveform
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
 from BlockServer.core.pv_names import BlockserverPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
@@ -54,123 +54,32 @@ from BlockServer.site_specific.default.general_rules import GroupRules, Configur
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from WebServer.simple_webserver import Server
 
+
 # For documentation on these commands see the wiki
 PVDB = {
-    BlockserverPVNames.BLOCKNAMES: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.BLOCK_DETAILS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.GROUPS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.COMPS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.LOAD_CONFIG: {
-        'type': 'char',
-        'count': 1000,
-        'value': [0],
-    },
-    BlockserverPVNames.SAVE_CONFIG: {
-        'type': 'char',
-        'count': 1000,
-        'value': [0],
-    },
-    BlockserverPVNames.RELOAD_CURRENT_CONFIG: {
-        'type': 'char',
-        'count': 100,
-        'value': [0],
-    },
-    BlockserverPVNames.START_IOCS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.STOP_IOCS: {
-        'type': 'char',
-        'count': 1000,
-        'value': [0],
-    },
-    BlockserverPVNames.RESTART_IOCS: {
-        'type': 'char',
-        'count': 1000,
-        'value': [0],
-    },
-    BlockserverPVNames.CONFIGS: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.GET_CURR_CONFIG_DETAILS: {
-        'type': 'char',
-        'count': 64000,
-        'value': [0],
-    },
-    BlockserverPVNames.SET_CURR_CONFIG_DETAILS: {
-        'type': 'char',
-        'count': 64000,
-        'value': [0],
-    },
-    BlockserverPVNames.SAVE_NEW_CONFIG: {
-        'type': 'char',
-        'count': 64000,
-        'value': [0],
-    },
-    BlockserverPVNames.SAVE_NEW_COMPONENT: {
-        'type': 'char',
-        'count': 64000,
-        'value': [0],
-    },
-    BlockserverPVNames.SERVER_STATUS: {
-        'type': 'char',
-        'count': 1000,
-        'value': [0],
-    },
-    BlockserverPVNames.DELETE_CONFIGS: {
-        'type': 'char',
-        'count': 64000,
-        'value': [0],
-    },
-    BlockserverPVNames.DELETE_COMPONENTS: {
-        'type': 'char',
-        'count': 64000,
-        'value': [0],
-    },
-    BlockserverPVNames.BLANK_CONFIG: {
-        'type': 'char',
-        'count': 64000,
-        'value': [0],
-    },
-    BlockserverPVNames.ALL_COMPONENT_DETAILS: {
-        'type': 'char',
-        'count': 64000,
-        'value': [0],
-    },
-    BlockserverPVNames.BUMPSTRIP_AVAILABLE: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    },
-    BlockserverPVNames.BANNER_DESCRIPTION: {
-        'type': 'char',
-        'count': 16000,
-        'value': [0],
-    }
+    BlockserverPVNames.BLOCKNAMES: char_waveform(16000),
+    BlockserverPVNames.BLOCK_DETAILS: char_waveform(16000),
+    BlockserverPVNames.GROUPS: char_waveform(16000),
+    BlockserverPVNames.COMPS: char_waveform(16000),
+    BlockserverPVNames.LOAD_CONFIG: char_waveform(1000),
+    BlockserverPVNames.SAVE_CONFIG: char_waveform(1000),
+    BlockserverPVNames.RELOAD_CURRENT_CONFIG: char_waveform(100),
+    BlockserverPVNames.START_IOCS: char_waveform(16000),
+    BlockserverPVNames.STOP_IOCS: char_waveform(1000),
+    BlockserverPVNames.RESTART_IOCS: char_waveform(1000),
+    BlockserverPVNames.CONFIGS: char_waveform(16000),
+    BlockserverPVNames.GET_CURR_CONFIG_DETAILS: char_waveform(64000),
+    BlockserverPVNames.SET_CURR_CONFIG_DETAILS: char_waveform(64000),
+    BlockserverPVNames.SAVE_NEW_CONFIG: char_waveform(64000),
+    BlockserverPVNames.SAVE_NEW_COMPONENT: char_waveform(64000),
+    BlockserverPVNames.SERVER_STATUS: char_waveform(1000),
+    BlockserverPVNames.DELETE_CONFIGS: char_waveform(64000),
+    BlockserverPVNames.DELETE_COMPONENTS: char_waveform(64000),
+    BlockserverPVNames.BLANK_CONFIG: char_waveform(64000),
+    BlockserverPVNames.ALL_COMPONENT_DETAILS: char_waveform(64000),
+    BlockserverPVNames.BUMPSTRIP_AVAILABLE: char_waveform(16000),
+    BlockserverPVNames.BUMPSTRIP_AVAILABLE_SP: char_waveform(16000),
+    BlockserverPVNames.BANNER_DESCRIPTION: char_waveform(16000)
 }
 
 
@@ -743,21 +652,15 @@ class BlockServer(Driver):
         # Check name not already in PVDB and that a PV does not already exist
         if name not in PVDB and name not in manager.pvs[self.port]:
             try:
-                print_and_log("Adding PV %s" % name)
-                new_pv = { name : {
-                    'type': 'char',
-                    'count': count,
-                    'value': [0],
-                    }
-                }
+                print_and_log("Adding PV {}".format(name))
+                new_pv = {name: char_waveform(count)}
                 self._cas.createPV(BLOCKSERVER_PREFIX, new_pv)
                 PVDB[name] = new_pv
-                # self.configure_pv_db()
                 data = Data()
                 data.value = manager.pvs[self.port][name].info.value
                 self.pvDB[name] = data
             except Exception as err:
-                print_and_log("Unable to add PV %S" % name,"MAJOR")
+                print_and_log("Unable to add PV {}".format(name), "MAJOR")
 
 
 if __name__ == '__main__':
