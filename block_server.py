@@ -32,10 +32,11 @@ from BlockServer.epics.gateway import Gateway
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.channel_access_server import CAServer
+from server_common.channel_access import ChannelAccess
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
     convert_to_json, convert_from_json, char_waveform
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
-from server_common.pv_names import BlockserverPVNames
+from server_common.pv_names import BlockserverPVNames, DatabasePVNames
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.synoptic.synoptic_manager import SynopticManager
 from BlockServer.devices.devices_manager import DevicesManager
@@ -44,7 +45,6 @@ from ConfigVersionControl.git_version_control import GitVersionControl, RepoFact
 from ConfigVersionControl.version_control_exceptions import NotUnderVersionControl, VersionControlException
 from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.ioc_control import IocControl
-from BlockServer.core.database_server_client import DatabaseServerClient
 from BlockServer.runcontrol.runcontrol_manager import RunControlManager
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.block_cache_manager import BlockCacheManager
@@ -111,7 +111,6 @@ class BlockServer(Driver):
         self._devices = None
         self.on_the_fly_handlers = list()
         self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
-        self._db_client = DatabaseServerClient(BLOCKSERVER_PREFIX + "BLOCKSERVER:")
         self.bumpstrip = "No"
         self.block_rules = BlockRules(self)
         self.group_rules = GroupRules(self)
@@ -392,36 +391,33 @@ class BlockServer(Driver):
         # Start the IOCs, if they are available and if they are flagged for autostart
         # Note: autostart means the IOC is started when the config is loaded,
         # restart means the IOC should automatically restart if it stops for some reason (e.g. it crashes)
-        for n, ioc in self._active_configserver.get_all_ioc_details().iteritems():
+        for name, ioc in self._active_configserver.get_all_ioc_details().iteritems():
             try:
                 # IOCs are restarted if and only if auto start is True. Note that auto restart instructs proc serv to
                 # restart an IOC if it terminates unexpectedly and does not apply here.
                 if ioc.autostart:
                     # Throws if IOC does not exist
-                    running = self._ioc_control.get_ioc_status(n)
-                    if running == "RUNNING":
-                        # Restart it
-                        self._ioc_control.restart_ioc(n)
-                    else:
-                        # Start it
-                        self._ioc_control.start_ioc(n)
+                    self._ioc_control.restart_ioc(name) \
+                        if self._ioc_control.get_ioc_status(name) == "RUNNING" \
+                        else self._ioc_control.start_ioc(name)
             except Exception as err:
-                print_and_log("Could not (re)start IOC %s: %s" % (n, str(err)), "MAJOR")
+                print_and_log("Could not (re)start IOC {}: {}".format(name, err), "MAJOR")
 
         # Give it time to start as IOC has to be running to be able to set restart property
         sleep(2)
-        for n, ioc in self._active_configserver.get_all_ioc_details().iteritems():
+        for name, ioc in self._active_configserver.get_all_ioc_details().iteritems():
             if ioc.autostart:
                 # Set the restart property
-                print_and_log("Setting IOC %s's auto-restart to %s" % (n, ioc.restart))
-                self._ioc_control.set_autorestart(n, ioc.restart)
+                print_and_log("Setting IOC %s's auto-restart to %s" % (name, ioc.restart))
+                self._ioc_control.set_autorestart(name, ioc.restart)
 
-    def _get_iocs(self, include_running=False):
+    def _get_iocs(self):
         # Get IOCs from DatabaseServer
         try:
-            return self._db_client.get_iocs()
+            rawjson = dehex_and_decompress(ChannelAccess.caget(DatabasePVNames.IOCS))
+            return json.loads(rawjson).keys()
         except Exception as err:
-            print_and_log("Could not retrieve IOC list: %s" % str(err), "MAJOR")
+            print_and_log("Could not retrieve IOC list: {}".format(err), "MAJOR")
             return []
 
     def load_config(self, config, is_component=False):
@@ -589,10 +585,7 @@ class BlockServer(Driver):
                     cmd, arg, state = self.write_queue.pop(0)
                 self.update_server_status(state)
                 try:
-                    if arg is not None:
-                        cmd(*arg)
-                    else:
-                        cmd()
+                    cmd(*arg) if arg is not None else cmd()
                 except Exception as err:
                     print_and_log(
                         "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
@@ -631,7 +624,7 @@ class BlockServer(Driver):
         for i in iocs:
             if i in conf_iocs and conf_iocs[i].restart:
                 # Give it time to start as IOC has to be running to be able to set restart property
-                print "Re-applying auto-restart setting to %s" % i
+                print("Re-applying auto-restart setting to {}".format(i))
                 self._ioc_control.waitfor_running(i)
                 self._ioc_control.set_autorestart(i, True)
 

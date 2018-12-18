@@ -26,7 +26,7 @@ from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from server_common.utilities import print_and_log, compress_and_hex, \
     convert_to_json, ioc_restart_pending
 from server_common.channel_access import ChannelAccess
-from server_common.pv_names import BlockserverPVNames
+from server_common.pv_names import prepend_blockserver
 
 TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
 RC_IOC_PREFIX = "CS:PS:RUNCTRL_01"
@@ -35,8 +35,8 @@ RUNCONTROL_SETTINGS = "rc_settings.cmd"
 AUTOSAVE_DIR = "autosave"
 RUNCONTROL_IOC = "RUNCTRL_01"
 
-RUNCONTROL_OUT_PV = BlockserverPVNames.prepend_blockserver('GET_RC_OUT')
-RUNCONTROL_GET_PV = BlockserverPVNames.prepend_blockserver('GET_RC_PARS')
+RUNCONTROL_OUT_PV = prepend_blockserver('GET_RC_OUT')
+RUNCONTROL_GET_PV = prepend_blockserver('GET_RC_PARS')
 
 # number of loops to wait for assuming the run control is not going to start
 MAX_LOOPS_TO_WAIT_FOR_START = 60  # roughly 2 minutes at standard time

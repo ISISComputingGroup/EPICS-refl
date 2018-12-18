@@ -18,7 +18,7 @@ import unittest
 
 from BlockServer.core.config_list_manager import ConfigListManager, InvalidDeleteException
 from BlockServer.core.active_config_holder import ActiveConfigHolder
-from server_common.pv_names import BlockserverPVNames
+from server_common.pv_names import BlockserverPVNames, prepend_blockserver
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import DEFAULT_COMPONENT
@@ -102,7 +102,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         return self.bs.does_pv_exist(fullname)
 
     def _correct_pv_name(self, name):
-        return BlockserverPVNames.prepend_blockserver(name)
+        return prepend_blockserver(name)
 
     def _create_configs(self, names, clm):
         configserver = self._create_inactive_config_holder()
