@@ -68,7 +68,7 @@ class RunControlManager(OnTheFlyPvInterface):
 
     def __init__(self, prefix, config_dir, var_dir, ioc_control,
                  active_configholder, block_server,
-                 channel_access=ChannelAccess(), sleep_func=sleep,
+                 channel_access=ChannelAccess(),
                  run_control_auto_save_helper=None):
         """
         Constructor.
@@ -85,12 +85,10 @@ class RunControlManager(OnTheFlyPvInterface):
             run_control_auto_save_helper (_RunControlAutoSaveHelper) : RunControlAutoSaveHelper
             instance, leave as None for normal operation.
         """
-        self._sleep_func = sleep_func
         self._rc_ioc_start_time = None
         self._prefix = prefix
         self._settings_file = os.path.join(config_dir, RUNCONTROL_SETTINGS)
         self._block_prefix = prefix + "CS:SB:"
-        self._stored_settings = None
         self._ioc_control = ioc_control
         self._active_configholder = active_configholder
         self._bs = block_server
@@ -107,7 +105,7 @@ class RunControlManager(OnTheFlyPvInterface):
 
     def read_pv_exists(self, pv):
         """
-        Check is a PV exists.
+        Check if a PV exists.
         """
         return pv in self._pvs_to_read
 
@@ -341,7 +339,7 @@ class RunControlManager(OnTheFlyPvInterface):
             start_time_invalid = self._invalid_ioc_start_time(latest_ioc_start)
 
             if restart_pending or start_time_invalid:
-                self._sleep_func(time_between_tries)
+                sleep(time_between_tries)
             else:
                 self._rc_ioc_start_time = latest_ioc_start
                 break

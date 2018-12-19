@@ -26,17 +26,11 @@ os.environ['MYPVPREFIX'] = ""
 
 from BlockServer.runcontrol.runcontrol_manager import RunControlManager, RC_START_PV
 from BlockServer.mocks.mock_block_server import MockBlockServer
-from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.mocks.mock_channel_access import MockChannelAccess, PVS, ChannelAccessEnv
-from BlockServer.mocks.mock_active_config_holder import MockActiveConfigHolder
-from BlockServer.config.configuration import Configuration
-from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.mocks.mock_ioc_control import MockIocControl
-from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
-from BlockServer.epics.archiver_manager import ArchiverManager
-from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 import unittest
 from datetime import datetime, timedelta
+from mock import patch
 
 
 MACROS = {
@@ -79,7 +73,7 @@ class TestRunControlSequence(unittest.TestCase):
         rcash = Mock()
         rcm = RunControlManager(prefix, "", "",
                                 ioc_control, ch,
-                                MockBlockServer(), self.cs, dummy_sleep_func, run_control_auto_save_helper=rcash)
+                                MockBlockServer(), self.cs, run_control_auto_save_helper=rcash)
         details = ch.get_config_details()
         ch.set_config_details(details)
         return ch, details, ioc_control, rcm, rcash
@@ -93,7 +87,8 @@ class TestRunControlSequence(unittest.TestCase):
         ans = self.rcm.get_current_settings()
         self.assertTrue(len(ans) == 0)
 
-    def test_get_runcontrol_settings_blocks(self):
+    @patch("BlockServer.runcontrol.runcontrol_manager.sleep")
+    def test_get_runcontrol_settings_blocks(self, sleep_patch):
         add_block(self.activech, quick_block_to_json(
             "TESTBLOCK1", "PV1", "GROUP1", True))
         add_block(self.activech, quick_block_to_json(
@@ -119,7 +114,8 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertTrue("LOW" in ans["TESTBLOCK4"])
         self.assertTrue("ENABLE" in ans["TESTBLOCK4"])
 
-    def test_get_runcontrol_settings_blocks_limits(self):
+    @patch("BlockServer.runcontrol.runcontrol_manager.sleep")
+    def test_get_runcontrol_settings_blocks_limits(self, sleep_patch):
         data = {'name': "TESTBLOCK1", 'pv': "PV1",
                 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
         add_block(self.activech, data)
@@ -130,7 +126,8 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertTrue(ans["TESTBLOCK1"]["HIGH"] == 5)
         self.assertTrue(ans["TESTBLOCK1"]["LOW"] == -5)
 
-    def test_set_runcontrol_settings_limits(self):
+    @patch("BlockServer.runcontrol.runcontrol_manager.sleep")
+    def test_set_runcontrol_settings_limits(self, sleep_patch):
         data = {'name': "TESTBLOCK1", 'pv': "PV1",
                 'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
         add_block(self.activech, data)
@@ -153,7 +150,8 @@ class TestRunControlSequence(unittest.TestCase):
             self._create_initial_runcontrol_manager()
             self.assertEqual(channel.get_call_count(rc_pv), 1)
 
-    def test_GIVEN_already_started_runcontrol_WHEN_restart_THAT_code_is_not_stuck_in_loop(self):
+    @patch("BlockServer.runcontrol.runcontrol_manager.sleep")
+    def test_GIVEN_already_started_runcontrol_WHEN_restart_THAT_code_is_not_stuck_in_loop(self, sleep_patch):
         rc_pv = RC_START_PV
 
         now = datetime.now()
@@ -163,7 +161,8 @@ class TestRunControlSequence(unittest.TestCase):
             rcm.create_runcontrol_pvs(True, 0)
             self.assertEqual(channel.get_call_count(rc_pv), 3)
 
-    def test_GIVEN_nonsense_runcontrol_start_time_WHEN_restart_runcontrol_THAT_code_loops_to_restart_runcontrol(self):
+    @patch("BlockServer.runcontrol.runcontrol_manager.sleep")
+    def test_GIVEN_nonsense_runcontrol_start_time_WHEN_restart_runcontrol_THAT_code_loops_to_restart_runcontrol(self, sleep_patch):
         rc_pv = RC_START_PV
         with ChannelAccessEnv({rc_pv: [""] * 60}) as channel:
             self._create_initial_runcontrol_manager()
@@ -178,7 +177,8 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertNotIn("RUNCTRL_01", ioc_control.restarted_iocs)
         self.assertFalse(rcash.clear_autosave_files.called)
 
-    def test_GIVEN_blocks_changed_and_not_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_not_deleted(self):
+    @patch("BlockServer.runcontrol.runcontrol_manager.sleep")
+    def test_GIVEN_blocks_changed_and_not_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_not_deleted(self, sleep_patch):
         ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
         ch.set_config_details(details)
@@ -188,7 +188,8 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertIn("RUNCTRL_01", ioc_control.restarted_iocs)
         self.assertFalse(rcash.clear_autosave_files.called)
 
-    def test_GIVEN_blocks_unchanged_and_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_deleted(self):
+    @patch("BlockServer.runcontrol.runcontrol_manager.sleep")
+    def test_GIVEN_blocks_unchanged_and_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_deleted(self, sleep_patch):
         ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
         ch.set_config_details(details)
 
@@ -197,7 +198,8 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertIn("RUNCTRL_01", ioc_control.restarted_iocs)
         self.assertTrue(rcash.clear_autosave_files.called)
 
-    def test_GIVEN_blocks_changed_and_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_deleted(self):
+    @patch("BlockServer.runcontrol.runcontrol_manager.sleep")
+    def test_GIVEN_blocks_changed_and_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_deleted(self, sleep_patch):
         ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
         ch.set_config_details(details)
