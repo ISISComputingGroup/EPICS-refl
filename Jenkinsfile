@@ -15,10 +15,10 @@ pipeline {
     stage("Checkout") {
       steps {
         echo "Branch: ${env.BRANCH_NAME}"
-        final scmVars = checkout scm
         setLatestGeniePath()
         echo "python path: ${env.PYTHON_PATH}"
         script {
+            final scmVars = checkout scm
             env.GIT_COMMIT = bat(returnStdout: true, script: '@git rev-parse HEAD').trim()
             echo "git commit: ${env.GIT_COMMIT}"
             echo "git branch: ${env.BRANCH_NAME}"
