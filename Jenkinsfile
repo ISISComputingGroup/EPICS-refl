@@ -50,7 +50,7 @@ pipeline {
     }
 
     stage("PR Coverage to Github") {
-        when { not { branch 'master' }} }
+        when { not { branch 'master' }}
         steps {
             step([$class: 'CompareCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
         }
