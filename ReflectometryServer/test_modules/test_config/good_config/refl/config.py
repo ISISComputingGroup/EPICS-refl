@@ -2,36 +2,38 @@
 # Valid configuration script for a refelctometry beamline
 
 from ReflectometryServer.components import *
+from ReflectometryServer.geometry import *
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.parameters import *
-from ReflectometryServer.movement_strategy import LinearMovement
+from ReflectometryServer.geometry import PositionAndAngle
+
 
 def get_beamline():
     beam_angle_natural = -45
     perp_to_floor = 90.0
     # COMPONENTS
-    # s1 = Component("s1", LinearMovement(0.0, 7.3025, perp_to_beam_angle))
-    # s2 = Component("s2", LinearMovement(0.0, 9.6885, perp_to_beam_angle))
-    # s3 = Component("s3", LinearMovement(0.0, 10.651, perp_to_beam_angle))
-    # s4 = Component("s4", LinearMovement(0.0, 11.983, perp_to_beam_angle))
-    # super_mirror = ReflectingComponent("sm", LinearMovement(0.0, 7.7685, perp_to_beam_angle))
-    # sample = ReflectingComponent("sample", LinearMovement(0.0, 10.25, perp_to_beam_angle))
-    # point_det = TiltingJaws("pdet", LinearMovement(0.0, 12.113, perp_to_beam_angle))
-    s1 = Component("s1", LinearMovement(0.0, 1, perp_to_floor))
-    super_mirror = ReflectingComponent("sm", LinearMovement(0.0, 5, perp_to_floor))
-    s2 = Component("s2", LinearMovement(0.0, 9, perp_to_floor))
-    sample = ReflectingComponent("sample", LinearMovement(0.0, 10, perp_to_floor))
-    s3 = Component("s3", LinearMovement(0.0, 15, perp_to_floor))
-    s4 = Component("s4", LinearMovement(0.0, 19, perp_to_floor))
-    point_det = TiltingJaws("det", LinearMovement(0.0, 20, perp_to_floor))
+    # s1 = Component("s1", PositionAndAngle(0.0, 7.3025, perp_to_beam_angle))
+    # s2 = Component("s2", PositionAndAngle(0.0, 9.6885, perp_to_beam_angle))
+    # s3 = Component("s3", PositionAndAngle(0.0, 10.651, perp_to_beam_angle))
+    # s4 = Component("s4", PositionAndAngle(0.0, 11.983, perp_to_beam_angle))
+    # super_mirror = ReflectingComponent("sm", PositionAndAngle(0.0, 7.7685, perp_to_beam_angle))
+    # sample = ReflectingComponent("sample", PositionAndAngle(0.0, 10.25, perp_to_beam_angle))
+    # point_det = TiltingComponent("pdet", PositionAndAngle(0.0, 12.113, perp_to_beam_angle))
+    s1 = Component("s1", PositionAndAngle(0.0, 1, perp_to_floor))
+    super_mirror = ReflectingComponent("sm", PositionAndAngle(0.0, 5, perp_to_floor))
+    s2 = Component("s2", PositionAndAngle(0.0, 9, perp_to_floor))
+    sample = ReflectingComponent("sample", PositionAndAngle(0.0, 10, perp_to_floor))
+    s3 = Component("s3", PositionAndAngle(0.0, 15, perp_to_floor))
+    s4 = Component("s4", PositionAndAngle(0.0, 19, perp_to_floor))
+    point_det = TiltingComponent("det", PositionAndAngle(0.0, 20, perp_to_floor))
     comps = [s1, super_mirror, s2, sample, s3, s4, point_det]
 
     # BEAMLINE PARAMETERS
     sm_enabled = ComponentEnabled("smenabled", super_mirror, True)
-    sm_angle = ReflectionAngle("smangle", super_mirror, True)
+    sm_angle = AngleParameter("smangle", super_mirror, True)
     slit2_pos = TrackingPosition("slit2pos", s2, True)
     sample_pos = TrackingPosition("samplepos", sample, True)
-    theta = Theta("theta", sample, True)
+    theta = AngleParameter("theta", sample, True)
     slit3_pos = TrackingPosition("slit3pos", s3, True)
     slit4_pos = TrackingPosition("slit4pos", s4, True)
     det = TrackingPosition("detpos", point_det, True)
@@ -52,9 +54,7 @@ def get_beamline():
     disabled_mode = BeamlineMode("disabled", [])
     modes = [nr_mode, pnr_mode, disabled_mode]
 
-    bl = Beamline(comps, params, [], modes)
-
     beam_start = PositionAndAngle(0.0, 0.0, beam_angle_natural)
-    bl.set_incoming_beam(beam_start)
+    bl = Beamline(comps, params, [], modes, beam_start)
 
     return bl

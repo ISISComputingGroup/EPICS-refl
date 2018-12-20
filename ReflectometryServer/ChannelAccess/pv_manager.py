@@ -20,7 +20,7 @@ SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
 MOVE_SUFFIX = ":MOVE"
 CHANGED_SUFFIX = ":CHANGED"
-SET_AND_MOVE_SUFFIX = ":SETANDMOVE"
+SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
 VAL_FIELD = ".VAL"
 
 PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
@@ -40,7 +40,7 @@ class PvSort(Enum):
     MOVE = 1
     SP_RBV = 2
     SP = 3
-    SET_AND_MOVE = 4
+    SET_AND_NO_MOVE = 4
     CHANGED = 6
 
     @staticmethod
@@ -59,13 +59,35 @@ class PvSort(Enum):
             return "(Set point readback)"
         elif pv_sort == PvSort.SP:
             return "(Set point)"
-        elif pv_sort == PvSort.SET_AND_MOVE:
-            return "(Set point and then move)"
+        elif pv_sort == PvSort.SET_AND_NO_MOVE:
+            return "(Set point with no move afterwards)"
         elif pv_sort == PvSort.CHANGED:
             return "(is changed)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
+
+    def get_from_parameter(self, parameter):
+        """
+        Get the value of the correct sort from a parameter
+        Args:
+            parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter to get the value from
+
+        Returns: the value of the parameter of the correct sort
+        """
+        if self == PvSort.SP:
+            return parameter.sp
+        elif self == PvSort.SP_RBV:
+            return parameter.sp_rbv
+        elif self == PvSort.CHANGED:
+            return parameter.sp_changed
+        elif self == PvSort.SET_AND_NO_MOVE:
+            return parameter.sp_no_move
+        elif self == PvSort.RBV:
+            return parameter.rbv
+        elif self == PvSort.MOVE:
+            return parameter.move
+        return None
 
 
 class PVManager:
@@ -122,7 +144,7 @@ class PVManager:
             description: description of the pv
         """
         try:
-            param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM")
+            param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM", limit=10)
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
             if BeamlineParameterGroup.TRACKING in group_names:
                 self._tracking_positions[prepended_alias] = param_name
@@ -142,8 +164,8 @@ class PVManager:
             self._add_pv_with_val(prepended_alias + SP_RBV_SUFFIX, param_name, fields, description, PvSort.SP_RBV)
 
             # Set value and move PV
-            self._add_pv_with_val(prepended_alias + SET_AND_MOVE_SUFFIX, param_name, fields, description,
-                                  PvSort.SET_AND_MOVE)
+            self._add_pv_with_val(prepended_alias + SET_AND_NO_MOVE_SUFFIX, param_name, fields, description,
+                                  PvSort.SET_AND_NO_MOVE)
 
             # Changed PV
             self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_CHANGED, description,
@@ -192,7 +214,10 @@ class PVManager:
 
     def param_names_pvnames_and_sort(self):
         """
-        :return: The list of PVs of all beamline parameters.
+
+        Returns:
+            (list[str, tuple[str, PvSort]]): The list of PVs of all beamline parameters.
+
         """
         return self._params_pv_lookup.items()
 
@@ -207,7 +232,7 @@ class PVManager:
         """
         return remove_from_end(pv_name, VAL_FIELD) in self._params_pv_lookup
 
-    def get_param_name_and_suffix_from_pv(self, pv_name):
+    def get_param_name_and_sort_from_pv(self, pv_name):
         """
         Args:
             pv_name: name of pv to find
