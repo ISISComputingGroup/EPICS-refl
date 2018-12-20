@@ -7,8 +7,7 @@ from hamcrest import *
 
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.components import TiltingComponent, Component, ReflectingComponent
-from ReflectometryServer.movement_strategy import LinearSetup
-from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.parameters import AngleParameter, TrackingPosition
 from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
@@ -24,7 +23,7 @@ class TestHeightDriver(unittest.TestCase):
         max_velocity = 10.0
         self.height_axis = create_mock_axis("JAWS:HEIGHT", start_position, max_velocity)
 
-        self.jaws = Component("component", setup=LinearSetup(0.0, 10.0, 90.0))
+        self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
 
         self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis)
@@ -79,7 +78,7 @@ class TestHeightAndTiltDriver(unittest.TestCase):
         max_velocity_tilt = 10.0
         self.tilt_axis = create_mock_axis("JAWS:TILT", start_position_tilt, max_velocity_tilt)
 
-        self.tilting_jaws = TiltingComponent("component", setup=LinearSetup(0.0, 10.0, 90.0))
+        self.tilting_jaws = TiltingComponent("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
 
         self.tilting_jaws_driver_disp = DisplacementDriver(self.tilting_jaws, self.height_axis)
         self.tilting_jaws_driver_ang = AngleDriver(self.tilting_jaws, self.tilt_axis)
@@ -127,7 +126,7 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         max_velocity_angle = 10.0
         self.angle_axis = create_mock_axis("SM:ANGLE", start_position_angle, max_velocity_angle)
 
-        self.supermirror = ReflectingComponent("component", setup=LinearSetup(0.0, 10.0, 90.0))
+        self.supermirror = ReflectingComponent("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
         self.supermirror.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
 
         self.supermirror_driver_disp = DisplacementDriver(self.supermirror, self.height_axis)
@@ -176,22 +175,22 @@ class BeamlineMoveDurationTest(unittest.TestCase):
     def test_GIVEN_multiple_components_in_beamline_WHEN_triggering_move_THEN_components_move_at_speed_of_slowest_axis(self):
         sm_angle = 0.0
         sm_angle_to_set = 22.5
-        supermirror = ReflectingComponent("supermirror", setup=LinearSetup(t_at_zero=0.0, z_at_zero=10.0, angle=90.0))
+        supermirror = ReflectingComponent("supermirror", setup=PositionAndAngle(y=0.0, z=10.0, angle=90.0))
         sm_height_axis = create_mock_axis("SM:HEIGHT", 0.0, 10.0)
         sm_angle_axis = create_mock_axis("SM:ANGLE", sm_angle, 10.0)
         supermirror.beam_path_set_point.angle = sm_angle
         supermirror_driver_disp = DisplacementDriver(supermirror, sm_height_axis)
         supermirror_driver_ang = AngleDriver(supermirror, sm_angle_axis)
 
-        slit_2 = Component("slit_2", setup=LinearSetup(t_at_zero=0.0, z_at_zero=20.0, angle=90.0))
+        slit_2 = Component("slit_2", setup=PositionAndAngle(y=0.0, z=20.0, angle=90.0))
         slit_2_height_axis = create_mock_axis("SLIT2:HEIGHT", 0.0, 10.0)
         slit_2_driver = DisplacementDriver(slit_2, slit_2_height_axis)
 
-        slit_3 = Component("slit_3", setup=LinearSetup(t_at_zero=0.0, z_at_zero=30.0, angle=90.0))
+        slit_3 = Component("slit_3", setup=PositionAndAngle(y=0.0, z=30.0, angle=90.0))
         slit_3_height_axis = create_mock_axis("SLIT3:HEIGHT", 0.0, 10.0)
         slit_3_driver = DisplacementDriver(slit_3, slit_3_height_axis)
 
-        detector = TiltingComponent("jaws", setup=LinearSetup(t_at_zero=0.0, z_at_zero=40.0, angle=90.0))
+        detector = TiltingComponent("jaws", setup=PositionAndAngle(y=0.0, z=40.0, angle=90.0))
         detector_height_axis = create_mock_axis("DETECTOR:HEIGHT", 0.0, 10.0)
         detector_tilt_axis = create_mock_axis("DETECTOR:TILT", 0.0, 10.0)
         detector_driver_disp = DisplacementDriver(detector, detector_height_axis)

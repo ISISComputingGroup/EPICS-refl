@@ -5,10 +5,9 @@ from mock import MagicMock
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent
-from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.motor_pv_wrapper import MotorPVWrapper
-from ReflectometryServer.movement_strategy import LinearSetup
 from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter
 
 
@@ -66,10 +65,10 @@ class DataMother(object):
 
         """
         # components
-        s1 = Component("s1_comp", LinearSetup(0.0, 1 * spacing, 90))
-        s3 = Component("s3_comp", LinearSetup(0.0, 3 * spacing, 90))
-        detector = TiltingComponent("Detector_comp", LinearSetup(0.0, 4 * spacing, 90))
-        theta = ThetaComponent("ThetaComp_comp", LinearSetup(0.0, 2 * spacing, 90), [detector])
+        s1 = Component("s1_comp", PositionAndAngle(0.0, 1 * spacing, 90))
+        s3 = Component("s3_comp", PositionAndAngle(0.0, 3 * spacing, 90))
+        detector = TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90))
+        theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90), [detector])
         comps = [s1, theta, s3, detector]
         # BEAMLINE PARAMETERS
         slit1_pos = TrackingPosition("s1", s1, True)

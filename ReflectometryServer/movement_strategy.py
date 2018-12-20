@@ -10,23 +10,6 @@ from ReflectometryServer.geometry import PositionAndAngle, Position
 ANGULAR_TOLERANCE = 1e-12
 
 
-class LinearSetup:
-    """
-    Setup parameters of a linear movement calculation.
-    """
-    def __init__(self, t_at_zero, z_at_zero, angle):
-        """
-        Initialiser.
-        Args:
-            t_at_zero: the y position in mantid coordinates of the component when it has moved zero direction
-            z_at_zero: the z position in mantid coordinates of the component when it has moved zero direction
-            angle: the angle of the movement in mantid coordinates
-        """
-        self.t_at_zero = t_at_zero
-        self.z_at_zero = z_at_zero
-        self.angle = angle
-
-
 class LinearMovementCalc(object):
     """
     A strategy for calculating the interception of the beam with a component that can only move linearly in the Z Y
@@ -38,11 +21,11 @@ class LinearMovementCalc(object):
         """
 
         Args:
-            setup:
+            setup (ReflectometryServer.geometry.PositionAndAngle):
         """
         self._listeners = []
         self._angle = setup.angle
-        self._position_at_zero = Position(setup.t_at_zero, setup.z_at_zero)
+        self._position_at_zero = Position(setup.y, setup.z)
         self._displacement = 0
 
     def calculate_interception(self, beam):
@@ -110,16 +93,16 @@ class LinearMovementCalc(object):
         z = z_zero
         return y, z
 
-    def set_position_relative_to_beam(self, beam, displacement):
+    def set_distance_relative_to_beam(self, beam, position):
         """
         Set the position of the component relative to the beam for the given value based on its movement strategy.
         For instance this could set the height above the beam for a vertically moving component
         Args:
             beam: the current beam ray to set relative to
-            displacement: the value to set away from the beam, e.g. height
+            position: the position relative to the beam that the component should be, e.g. height
         """
 
-        self._displacement = displacement + self._dist_along_axis_from_zero_to_beam_intercept(beam)
+        self._displacement = position + self._dist_along_axis_from_zero_to_beam_intercept(beam)
 
     def _dist_along_axis_from_zero_to_beam_intercept(self, beam):
         """
@@ -161,14 +144,14 @@ class LinearMovementCalc(object):
         """
         self._displacement = float(displacement)
 
-    def get_displacement_relative_to_beam(self, beam):
+    def get_distance_relative_to_beam(self, beam):
         """
-        Given a beam get the actual displacement of the component along the axis of movement from the intercept of the
+        Given a beam get the distance of the component along the axis of movement from the intercept of the
         beam with the axis of movement.
         Args:
             beam: beam that the rbv is relative to
 
-        Returns: displacement from the beam to the component
+        Returns: distance of the component from the beam along the axis of movement
 
         """
         return self._displacement - self._dist_along_axis_from_zero_to_beam_intercept(beam)
@@ -181,7 +164,7 @@ class LinearMovementCalc(object):
         """
         return self._displacement
 
-# class ArcMovement(LinearSetup):
+# class ArcMovement(PositionAndAngle):
 #     """
 #     A strategy for calculating the interception of the beam with a component that can only move on a radius
 #     """

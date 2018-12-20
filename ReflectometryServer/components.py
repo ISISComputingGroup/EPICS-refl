@@ -19,7 +19,7 @@ class Component(object):
         Initializer.
         Args:
             name (str): name of the component
-            setup (ReflectometryServer.movement_strategy.LinearSetup): initial setup for the component
+            setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
         """
         self._name = name
         self._init_beam_path_calcs(setup)
@@ -61,7 +61,7 @@ class Component(object):
 
 class TiltingComponent(Component):
     """
-    Jaws which can tilt.
+    Component which can tilt.
     """
 
     def __init__(self, name, setup):
@@ -69,7 +69,7 @@ class TiltingComponent(Component):
         Initializer.
         Args:
             name (str): name of the component
-            setup (ReflectometryServer.movement_strategy.LinearSetup): initial setup for the component
+            setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
         """
         super(TiltingComponent, self).__init__(name, setup)
 
@@ -87,7 +87,7 @@ class ReflectingComponent(Component):
         Initializer.
         Args:
             name (str): name of the component
-            setup (ReflectometryServer.movement_strategy.LinearSetup): initial setup for the component
+            setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
         """
         super(ReflectingComponent, self).__init__(name, setup)
 
@@ -106,9 +106,9 @@ class ThetaComponent(ReflectingComponent):
         Initializer.
         Args:
             name (str): name of the component
-            setup (ReflectometryServer.movement_strategy.LinearSetup): initial setup for the component
+            setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
             angle_to (list[ReflectometryServer.components.Component]): list of components that the readback
-                angle should be to
+                angle should calculated to, ordered by preference. First enabled component is used.
         """
         super(ReflectingComponent, self).__init__(name, setup)
         self._beam_path_rbv = BeamPathCalcTheta(LinearMovementCalc(setup), [comp.beam_path_rbv for comp in angle_to])

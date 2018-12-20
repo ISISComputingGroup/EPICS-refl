@@ -60,7 +60,7 @@ class IocDriver(object):
         """
         Trigger all listeners after an axis value change.
         Args:
-            new_value: new acis value that is given
+            new_value: new axis value that is given
             alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
             alarm_status (CaChannel._ca.AlarmCondition): the alarm status
         """

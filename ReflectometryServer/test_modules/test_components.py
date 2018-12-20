@@ -6,8 +6,7 @@ from mock import Mock
 from parameterized import parameterized
 
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
-from ReflectometryServer.movement_strategy import LinearSetup
-from ReflectometryServer.geometry import Position, PositionAndAngle
+from ReflectometryServer.geometry import Position, PositionAndAngle, PositionAndAngle
 from utils import position_and_angle, position
 from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
 
@@ -17,7 +16,7 @@ class TestComponent(unittest.TestCase):
     def test_GIVEN_jaw_input_beam_is_at_0_deg_and_z0_y0_WHEN_get_beam_out_THEN_beam_output_is_same_as_beam_input(self):
         jaws_z_position = 10
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        jaws = Component("component", setup=LinearSetup(0, jaws_z_position, 90))
+        jaws = Component("component", setup=PositionAndAngle(0, jaws_z_position, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = jaws.beam_path_set_point.get_outgoing_beam()
@@ -28,7 +27,7 @@ class TestComponent(unittest.TestCase):
         jaws_z_position = 10
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         expected_position = Position(y=0, z=jaws_z_position)
-        jaws = Component("component", setup=LinearSetup(0, jaws_z_position, 90))
+        jaws = Component("component", setup=PositionAndAngle(0, jaws_z_position, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = jaws.beam_path_set_point.calculate_beam_interception()
@@ -40,7 +39,7 @@ class TestComponent(unittest.TestCase):
         beam_angle = 60.0
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
         expected_position = Position(y=tan(radians(beam_angle)) * jaws_z_position, z=jaws_z_position)
-        jaws = Component("component", setup=LinearSetup(0, jaws_z_position, 90))
+        jaws = Component("component", setup=PositionAndAngle(0, jaws_z_position, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = jaws.beam_path_set_point.calculate_beam_interception()
@@ -55,7 +54,7 @@ class TestComponent(unittest.TestCase):
         jaws_z_position = distance_between + start_z
         beam_start = PositionAndAngle(y=start_y, z=start_z, angle=beam_angle)
         expected_position = Position(y=tan(radians(beam_angle)) * distance_between + start_y, z=jaws_z_position)
-        jaws = Component("component", setup=LinearSetup(0, jaws_z_position, 90))
+        jaws = Component("component", setup=PositionAndAngle(0, jaws_z_position, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = jaws.beam_path_set_point.calculate_beam_interception()
@@ -67,7 +66,7 @@ class TestTiltingJaws(unittest.TestCase):
     def test_GIVEN_tilting_jaw_input_beam_is_at_60_deg_WHEN_set_angle_THEN_beam_no_altered(self):
         beam_angle = 60.0
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
-        jaws = TiltingComponent("tilting jaws", setup=LinearSetup(0, 20, 90))
+        jaws = TiltingComponent("tilting jaws", setup=PositionAndAngle(0, 20, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
         jaws.beam_path_set_point.angle = 123
 
@@ -84,7 +83,7 @@ class TestActiveComponents(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         expected = beam_start
 
-        mirror = ReflectingComponent("component", setup=LinearSetup(0, mirror_z_position, 90))
+        mirror = ReflectingComponent("component", setup=PositionAndAngle(0, mirror_z_position, 90))
         mirror.beam_path_set_point.angle = mirror_angle
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
         mirror.beam_path_set_point.enabled = False
@@ -100,7 +99,7 @@ class TestActiveComponents(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         expected = PositionAndAngle(y=0, z=mirror_z_position, angle=2 * mirror_angle)
 
-        mirror = ReflectingComponent("component", setup=LinearSetup(0, mirror_z_position, 90))
+        mirror = ReflectingComponent("component", setup=PositionAndAngle(0, mirror_z_position, 90))
         mirror.beam_path_set_point.angle = mirror_angle
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
 
@@ -119,7 +118,7 @@ class TestActiveComponents(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
         expected = PositionAndAngle(y=0, z=0, angle=outgoing_angle)
 
-        mirror = ReflectingComponent("component", setup=LinearSetup(0, 0, 90))
+        mirror = ReflectingComponent("component", setup=PositionAndAngle(0, 0, 90))
         mirror.beam_path_set_point.angle = mirror_angle
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
 
@@ -163,7 +162,7 @@ class TestObservationOfComponentReadback(unittest.TestCase):
     def setUp(self):
         self._value = 0
         self._value2 = 0
-        movement_strategy = LinearSetup(0, 0, 90)
+        movement_strategy = PositionAndAngle(0, 0, 90)
         self.component = Component("test component", movement_strategy)
 
         self.component.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
@@ -219,7 +218,7 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_no_next_component_WHEN_get_read_back_THEN_nan_returned(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        theta = ThetaComponent("theta", setup=LinearSetup(0, 10, 90), angle_to=[])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 10, 90), angle_to=[])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
@@ -229,9 +228,9 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_disabled_WHEN_get_read_back_THEN_nan_returned(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        next_component = Component("comp", setup=LinearSetup(0, 10, 90))
+        next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = False
-        theta = ThetaComponent("theta", setup=LinearSetup(0, 5, 90), angle_to=[next_component])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
@@ -241,10 +240,10 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_enabled_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        next_component = Component("comp", setup=LinearSetup(0, 10, 90))
+        next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = True
         next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
-        theta = ThetaComponent("theta", setup=LinearSetup(0, 5, 90), angle_to=[next_component])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
@@ -254,10 +253,10 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_enabled_and_at_45_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        next_component = Component("comp", setup=LinearSetup(0, 10, 90))
+        next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = True
         next_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
-        theta = ThetaComponent("theta", setup=LinearSetup(0, 5, 90), angle_to=[next_component])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
@@ -267,10 +266,10 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_enabled_and_at_90_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        next_component = Component("comp", setup=LinearSetup(0, 5, 90))
+        next_component = Component("comp", setup=PositionAndAngle(0, 5, 90))
         next_component.beam_path_rbv.enabled = True
         next_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
-        theta = ThetaComponent("theta", setup=LinearSetup(0, 5, 90), angle_to=[next_component])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
@@ -280,13 +279,13 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_disabled_and_next_component_but_one_is_enabled_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        next_component = Component("comp1", setup=LinearSetup(0, 10, 90))
+        next_component = Component("comp1", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = False
 
-        next_but_one_component = Component("comp", setup=LinearSetup(0, 10, 90))
+        next_but_one_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_but_one_component.beam_path_rbv.enabled = True
         next_but_one_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
-        theta = ThetaComponent("theta", setup=LinearSetup(0, 5, 90), angle_to=[next_component, next_but_one_component])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
@@ -296,10 +295,10 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_enabled_WHEN_set_next_component_displacement_THEN_change_in_beam_path_triggered(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        next_component = Component("comp", setup=LinearSetup(0, 10, 90))
+        next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = True
         next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
-        theta = ThetaComponent("theta", setup=LinearSetup(0, 5, 90), angle_to=[next_component])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
         listener = Mock()
         theta.beam_path_rbv.add_after_beam_path_update_listener(listener)
@@ -311,10 +310,10 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_enabled_WHEN_set_next_component_incoming_beam_THEN_change_in_beam_path_is_not_triggered(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        next_component = Component("comp", setup=LinearSetup(0, 10, 90))
+        next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = True
         next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
-        theta = ThetaComponent("theta", setup=LinearSetup(0, 5, 90), angle_to=[next_component])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
         listener = Mock()
         theta.beam_path_rbv.add_after_beam_path_update_listener(listener)

@@ -43,7 +43,7 @@ class ReflectometryDriver(Driver):
         :return: The value associated to this PV
         """
         if self._pv_manager.is_param(reason):
-            param_name, param_sort = self._pv_manager.get_param_name_and_suffix_from_pv(reason)
+            param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
             param = self._beamline.parameter(param_name)
             return param_sort.get_from_parameter(param)
 
@@ -71,13 +71,13 @@ class ReflectometryDriver(Driver):
         """
         status = True
         if self._pv_manager.is_param(reason):
-            param_name, param_suffix = self._pv_manager.get_param_name_and_suffix_from_pv(reason)
+            param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
             param = self._beamline.parameter(param_name)
-            if param_suffix == PvSort.MOVE:
+            if param_sort == PvSort.MOVE:
                 param.move = 1
-            elif param_suffix == PvSort.SP:
+            elif param_sort == PvSort.SP:
                 param.sp = value
-            elif param_suffix == PvSort.SET_AND_NO_MOVE:
+            elif param_sort == PvSort.SET_AND_NO_MOVE:
                 param.sp_no_move = value
         elif self._pv_manager.is_beamline_move(reason):
             self._beamline.move = 1
@@ -131,7 +131,7 @@ class ReflectometryDriver(Driver):
         """
         Add listeners to beam line parameter readback changes, which update parameters in server
         """
-        for pv_name, (param_name, param_suffix) in self._pv_manager.param_names_pvnames_and_sort():
+        for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
-            if param_suffix == PvSort.RBV:
+            if param_sort == PvSort.RBV:
                 parameter.add_rbv_change_listener(partial(self._update_param_rbv_listener, pv_name))

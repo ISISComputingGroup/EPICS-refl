@@ -224,7 +224,7 @@ class PVManager:
         """
         return remove_from_end(pv_name, VAL_FIELD) in self._params_pv_lookup
 
-    def get_param_name_and_suffix_from_pv(self, pv_name):
+    def get_param_name_and_sort_from_pv(self, pv_name):
         """
         Args:
             pv_name: name of pv to find

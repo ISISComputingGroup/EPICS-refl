@@ -20,28 +20,28 @@ class TrackingBeamPathCalc(object):
         Initialiser.
         Args:
             movement_strategy (ReflectometryServer.movement_strategy.LinearMovementCalc): strategy for calculating the
-                interception between the movement of the
+                interception between the movement of the component and the beam.
         """
         self._incoming_beam = None
-        self._after_beam_path_update_listener = set()
-        self._after_physical_move_listener = set()
+        self._after_beam_path_update_listeners = set()
+        self._after_physical_move_listeners = set()
         self._enabled = True
         self._movement_strategy = movement_strategy
 
-    def add_after_beam_path_update_listener(self, listen_for_value):
+    def add_after_beam_path_update_listener(self, listener):
         """
         Add a listener which is triggered if the beam path is changed. For example if displacement is set or incoming
         beam is changed.
         Args:
-            listen_for_value: listener with a single argument which is the calling calculation.
+            listener: listener with a single argument which is the calling calculation.
         """
-        self._after_beam_path_update_listener.add(listen_for_value)
+        self._after_beam_path_update_listeners.add(listener)
 
     def _trigger_after_beam_path_update(self):
         """
         Runs all the current listeners because something about the beam path has changed.
         """
-        for listener in self._after_beam_path_update_listener:
+        for listener in self._after_beam_path_update_listeners:
             listener(self)
 
     def set_incoming_beam(self, incoming_beam):
@@ -74,7 +74,7 @@ class TrackingBeamPathCalc(object):
         Args:
             displacement: the value to set away from the beam, e.g. height
         """
-        self._movement_strategy.set_position_relative_to_beam(self._incoming_beam, displacement)
+        self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, displacement)
         self._trigger_after_beam_path_update()
 
     def get_position_relative_to_beam(self):
@@ -84,7 +84,7 @@ class TrackingBeamPathCalc(object):
             axis of the component from the intercept with the beam.
 
         """
-        return self._movement_strategy.get_displacement_relative_to_beam(self._incoming_beam)
+        return self._movement_strategy.get_distance_relative_to_beam(self._incoming_beam)
 
     def set_displacement(self, displacement, alarm_severity, alarm_status):
         """
@@ -138,10 +138,10 @@ class TrackingBeamPathCalc(object):
         Args:
             listener: listener takes the source of the change
         """
-        self._after_physical_move_listener.add(listener)
+        self._after_physical_move_listeners.add(listener)
 
     def _trigger_after_physical_move_listener(self):
-        for listener in self._after_physical_move_listener:
+        for listener in self._after_physical_move_listeners:
             listener(self)
 
 

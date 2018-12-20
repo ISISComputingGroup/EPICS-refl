@@ -28,10 +28,10 @@ class MotorPVWrapper(object):
 
         rbv_pv = "{}.RBV".format(self._pv_name)
         logger.debug("Monitoring {} for changes.".format(rbv_pv))
-        CaChannelWrapper.add_monitor(rbv_pv, self._trigger_after_height_change_listeners)
+        CaChannelWrapper.add_monitor(rbv_pv, self._trigger_after_value_change_listeners)
 
-    def _trigger_after_height_change_listeners(self, new_value, alarm_severity, alarm_status):
-        logger.debug("Triggered after height change listeners {}.".format(new_value))
+    def _trigger_after_value_change_listeners(self, new_value, alarm_severity, alarm_status):
+        logger.debug("Triggered after value change listeners {}.".format(new_value))
         for value_change_listener in self._after_value_change_listeners:
             value_change_listener(new_value, alarm_severity, alarm_status)
 
