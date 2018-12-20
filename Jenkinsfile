@@ -33,6 +33,7 @@ pipeline {
             %PYTHON_PATH%\\Python\\Scripts\\coverage run run_tests.py --output_dir ./test-reports
             %PYTHON_PATH%\\Python\\Scripts\\coverage xml -o ./test-reports/coverage.xml
          """
+      }
     }
         
     stage("Collate Unit Tests") {
