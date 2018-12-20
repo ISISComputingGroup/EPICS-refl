@@ -45,6 +45,9 @@ pipeline {
     stage("Record Coverage") {
         when { branch 'master' }
         steps {
+            script {
+                currentBuild.result = 'SUCCESS'
+            }
             step([$class: 'MasterCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
         }
     }
@@ -52,6 +55,9 @@ pipeline {
     stage("PR Coverage to Github") {
         when { not { branch 'master' }}
         steps {
+            script {
+                currentBuild.result = 'SUCCESS'
+            }
             step([$class: 'CompareCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
         }
     }
