@@ -15,7 +15,7 @@ pipeline {
     stage("Checkout") {
       steps {
         echo "Branch: ${env.BRANCH_NAME}"
-        checkout scm
+        scmVars = checkout scm
         setLatestGeniePath()
         echo "python path: ${env.PYTHON_PATH}"
         script {
