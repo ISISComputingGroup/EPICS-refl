@@ -45,7 +45,6 @@ pipeline {
     }
 
     stage("Record Coverage") {
-        when { branch 'master' }
         steps {
             script {
                 currentBuild.result = 'SUCCESS'
