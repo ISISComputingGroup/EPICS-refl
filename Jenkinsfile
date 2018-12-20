@@ -4,7 +4,7 @@ pipeline {
 
   // agent defines where the pipeline will run.
   agent {  
-    label "ndw1757||ndwvegas"
+    label "windows"
   }
   
   triggers {
@@ -30,7 +30,7 @@ pipeline {
       steps {
         bat """
             set PYTHON_PATH=${env.PYTHON_PATH}
-            %PYTHON_PATH%\\Python\\Scripts\\coverage run run_tests.py --output_dir ./test-reports
+            %PYTHON_PATH%\\Python\\Scripts\\coverage run run_all_tests.py --output_dir ./test-reports
             %PYTHON_PATH%\\Python\\Scripts\\coverage xml -o ./test-reports/coverage.xml
          """
       }
