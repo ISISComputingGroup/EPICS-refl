@@ -2,6 +2,7 @@
 Reflectometry pv manager
 """
 from enum import Enum
+from pcaspy import Severity
 
 from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
@@ -78,6 +79,7 @@ class PVManager:
             param_types (dict[str, (str, str, str)]): The type, group name and description for which to create PVs,
                 keyed by name.
             mode_names: names of the modes
+            status_codes (list[ReflectometryServer.beamline.STATUS]): status codes of Beam line with severities
         """
 
         self.PVDB = {}
@@ -90,9 +92,11 @@ class PVManager:
 
         self._add_pv_with_val(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
 
-        status_fields = {'type': 'enum', 'enums': status_codes}
+        status_fields = {'type': 'enum',
+                         'enums': [code.display_string for code in status_codes],
+                         'states': [code.alarm_severity for code in status_codes]}
         self._add_pv_with_val(BEAMLINE_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV, archive=True,
-                              interest="HIGH")
+                              interest="HIGH", alarm=True)
         self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'string'}, "Message about the beamline", PvSort.RBV,
                               archive=True, interest="HIGH")
 
@@ -152,7 +156,8 @@ class PVManager:
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
 
-    def _add_pv_with_val(self, pv_name, param_name, pv_fields, description, param_sort, archive=False, interest=None):
+    def _add_pv_with_val(self, pv_name, param_name, pv_fields, description, param_sort, archive=False, interest=None,
+                         alarm=False):
         """
         Add param to pv list with .val and correct fields and to parm look up
         Args:
@@ -162,6 +167,7 @@ class PVManager:
             param_sort: sort of parameter it is
             archive: True if it should be archived
             interest: level of interest; None is not interesting
+            alarm: True if this pv represents the alarm state of the IOC; false otherwise
 
         Returns:
 
@@ -175,6 +181,8 @@ class PVManager:
             pv_fields_mod[PV_INFO_FIELD_NAME]["INTEREST"] = interest
         if archive:
             pv_fields_mod[PV_INFO_FIELD_NAME]["archive"] = "VAL"
+        if alarm:
+            pv_fields_mod[PV_INFO_FIELD_NAME]["alarm"] = "Reflectometry IOC (REFL)"
 
         self.PVDB[pv_name] = pv_fields_mod
         self.PVDB[pv_name + VAL_FIELD] = pv_fields
