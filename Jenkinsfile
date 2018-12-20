@@ -39,10 +39,22 @@ pipeline {
       steps {
         junit '**/test-reports/TEST-*.xml'
         cobertura coberturaReportFile: '**/test-reports/coverage.xml'
-        step([$class: 'MasterCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
       }
     }
-    
+
+    stage("Record Coverage") {
+        when { branch 'master' }
+        steps {
+            step([$class: 'MasterCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
+        }
+    }
+
+    stage("PR Coverage to Github") {
+        when { allOf {not { branch 'master' }; expression { return env.CHANGE_ID != null }} }
+        steps {
+            step([$class: 'CompareCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
+        }
+    }
     
   }
   
