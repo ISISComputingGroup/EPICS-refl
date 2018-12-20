@@ -40,7 +40,7 @@ pipeline {
     stage("Collate Unit Tests") {
       steps {
         junit '**/test-reports/TEST-*.xml'
-        cobertura coberturaReportFile: '**/test-reports/coverage.xml'
+        cobertura coberturaReportFile: '**/cobertura.xml'
       }
     }
 

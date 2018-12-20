@@ -45,7 +45,7 @@ if __name__ == '__main__':
     print ("------ INST SERVERS UNIT TESTS COMPLETE ------\n\n")
     cov.report()
     print("------  SAVING COVERAGE REPORTS ------ ")
-    cov.xml_report(outfile=os.path.join(xml_dir, 'coverage.xml'))
+    cov.xml_report(outfile=os.path.join(".", 'cobertura.xml'))
 
     # Return failure exit code if a test errored or failed
     sys.exit(bool(ret_vals.errors or ret_vals.failures))
