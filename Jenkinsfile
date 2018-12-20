@@ -58,7 +58,7 @@ pipeline {
             script {
                 currentBuild.result = 'SUCCESS'
             }
-            step([$class: 'CompareCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
+            step([$class: 'CompareCoverageAction'])
         }
     }
     
