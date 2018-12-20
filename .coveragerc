@@ -1,0 +1,10 @@
+[run]
+#Ensures that files that are not run at all are still counted
+source = .
+
+[report]
+omit =
+    *test*
+    *mock*
+    *__init__.py
+
