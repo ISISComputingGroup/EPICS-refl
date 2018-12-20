@@ -15,12 +15,15 @@ pipeline {
     stage("Checkout") {
       steps {
         echo "Branch: ${env.BRANCH_NAME}"
+        checkout scm
         setLatestGeniePath()
         echo "python path: ${env.PYTHON_PATH}"
         script {
-            env.scmVars = checkout scm
-            echo "git commit: ${env.scmVars.GIT_COMMIT}"
-            echo "git branch: ${env.scmVars.BRANCH_NAME}"
+            env.GIT_COMMIT = bat(returnStdout: true, script: '@git rev-parse HEAD').trim()
+            echo "git commit: ${env.GIT_COMMIT}"
+            echo "git branch: ${env.BRANCH_NAME}"
+            echo "git change id: ${env.CHANGE_ID}"
+            echo "git change url: ${env.CHANGE_URL}"
         }
       }
     }
@@ -57,7 +60,7 @@ pipeline {
             script {
                 currentBuild.result = 'SUCCESS'
             }
-            step([$class: 'CompareCoverageAction', scmVars: [env.scmVars]])
+            step([$class: 'CompareCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
         }
     }
     
