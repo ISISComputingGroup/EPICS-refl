@@ -50,7 +50,7 @@ pipeline {
     }
 
     stage("PR Coverage to Github") {
-        when { allOf {not { branch 'master' }; expression { return env.CHANGE_ID != null }} }
+        when { not { branch 'master' }} }
         steps {
             step([$class: 'CompareCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
         }
