@@ -39,6 +39,7 @@ pipeline {
       steps {
         junit '**/test-reports/TEST-*.xml'
         cobertura coberturaReportFile: '**/test-reports/coverage.xml'
+        step([$class: 'MasterCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
       }
     }
     
