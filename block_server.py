@@ -355,7 +355,7 @@ class BlockServer(Driver):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
         # iocs_to_start, iocs_to_restart are not used at the moment, but longer term they could be used
         # for only restarting IOCs for which the setting have changed.
-        non_conf_iocs = [x for x in get_iocs() if x not in self._active_configserver.get_ioc_names()]
+        non_conf_iocs = [x for x in get_iocs(BLOCKSERVER_PREFIX) if x not in self._active_configserver.get_ioc_names()]
         self._ioc_control.stop_iocs(non_conf_iocs)
         self._start_config_iocs()
 
