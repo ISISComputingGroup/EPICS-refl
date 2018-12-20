@@ -18,10 +18,6 @@
 class IocOptions(object):
     """Contains the possible macros and pvsets of an IOC."""
 
-    macros = dict()  # The possible macros for the IOC, along with a list of parameters (description, pattern etc.)
-    pvsets = dict()  # The possible pvsets for the IOC, along with a list of parameters (description etc.)
-    pvs = dict()  # The possible pvs for the IOC, along with a list of associated parameters (description etc.)
-
     def __init__(self, name):
         """Constructor
 
@@ -29,6 +25,11 @@ class IocOptions(object):
             name (string): The name of the IOC the options are associated with
         """
         self.name = name
+
+        # The possible macros, pvsets and pvs for an IOC, along with associated parameters such as description
+        self.macros = dict()
+        self.pvsets = dict()
+        self.pvs = dict()
 
     def _dict_to_list(self, in_dict):
         # Convert into format for better GUI parsing (I know it's messy but it's what the GUI wants)

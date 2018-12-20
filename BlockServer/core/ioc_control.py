@@ -25,15 +25,13 @@ from server_common.constants import IOCS_NOT_TO_STOP
 
 class IocControl(object):
     """A class for starting, stopping and restarting IOCs"""
-    def __init__(self, prefix, proc=ProcServWrapper()):
+    def __init__(self, prefix):
         """Constructor.
 
         Args:
             prefix (string): The PV prefix for the instrument
-            proc (ProcServWrapper, optional): The underlying object for talking to ProcServ
         """
-        self._prefix = prefix
-        self._proc = proc
+        self._proc = ProcServWrapper(prefix)
 
     def start_ioc(self, ioc):
         """Start an IOC.
@@ -42,7 +40,7 @@ class IocControl(object):
             ioc (string): The name of the IOC
         """
         try:
-            self._proc.start_ioc(self._prefix, ioc)
+            self._proc.start_ioc(ioc)
             if ioc != "ALARM":
                 AlarmConfigLoader.restart_alarm_server(self)
         except Exception as err:
@@ -62,8 +60,8 @@ class IocControl(object):
         if not force and ioc.startswith(IOCS_NOT_TO_STOP):
             return
         try:
-            auto = self._proc.get_autorestart(self._prefix, ioc)
-            self._proc.restart_ioc(self._prefix, ioc)
+            auto = self._proc.get_autorestart(ioc)
+            self._proc.restart_ioc(ioc)
             if ioc != "ALARM":
                 AlarmConfigLoader.restart_alarm_server(self)
         except Exception as err:
@@ -80,7 +78,7 @@ class IocControl(object):
         if not force and ioc.startswith(IOCS_NOT_TO_STOP):
             return
         try:
-            self._proc.stop_ioc(self._prefix, ioc)
+            self._proc.stop_ioc(ioc)
             if ioc != "ALARM":
                 AlarmConfigLoader.restart_alarm_server(self)
         except Exception as err:
@@ -95,7 +93,7 @@ class IocControl(object):
         Returns:
             string : The status of the IOC (RUNNING or SHUTDOWN)
         """
-        return self._proc.get_ioc_status(self._prefix, ioc)
+        return self._proc.get_ioc_status(ioc)
 
     def ioc_restart_pending(self, ioc):
         """Tests if the IOC has a pending restart
@@ -106,7 +104,7 @@ class IocControl(object):
         Returns:
             bool : Whether a restart is pending
         """
-        return self._proc.ioc_restart_pending(self._prefix, ioc)
+        return self._proc.ioc_restart_pending(ioc)
 
     def start_iocs(self, iocs):
         """ Start a number of IOCs.
@@ -169,10 +167,10 @@ class IocControl(object):
         try:
             if self.get_ioc_status(ioc) == "RUNNING":
                 # Get current auto-restart status
-                curr = self._proc.get_autorestart(self._prefix, ioc)
+                curr = self._proc.get_autorestart(ioc)
                 if curr != enable:
                     # If different to requested then change it
-                    self._proc.toggle_autorestart(self._prefix, ioc)
+                    self._proc.toggle_autorestart(ioc)
                     return
                 print_and_log("Auto-restart for IOC %s unchanged as value has not changed" % ioc)
             else:
@@ -190,7 +188,7 @@ class IocControl(object):
             bool : Whether auto-restart is enabled
         """
         try:
-            return self._proc.get_autorestart(self._prefix, ioc)
+            return self._proc.get_autorestart(ioc)
         except Exception as err:
             print_and_log("Could not get auto-restart setting for IOC %s: %s" % (ioc, str(err)), "MAJOR")
 

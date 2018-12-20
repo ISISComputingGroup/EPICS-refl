@@ -17,50 +17,47 @@
 
 class MockProcServWrapper(object):
 
-    def __init__(self):
+    def __init__(self, prefix):
         self.ps_status = dict()
         self.ps_status["simple1"] = "SHUTDOWN"
         self.ps_status["simple2"] = "SHUTDOWN"
         self.ps_status["testioc"] = "SHUTDOWN"
         self.autorestart = False
         self.restarting = False
+        self.prefix = prefix + "CS:PS:"
 
-    @staticmethod
-    def generate_prefix(prefix, ioc):
-        return "%sCS:PS:%s" % (prefix, ioc)
-
-    def start_ioc(self, prefix, ioc):
+    def start_ioc(self, ioc):
         self.ps_status[ioc.lower()] = "RUNNING"
 
-    def stop_ioc(self, prefix, ioc):
+    def stop_ioc(self, ioc):
         """Stops the specified IOC"""
         self.ps_status[ioc.lower()] = "SHUTDOWN"
 
-    def ioc_restart_pending(self, prefix, ioc):
+    def ioc_restart_pending(self, ioc):
         """Return the currently restarting state then complete the pending restart"""
         restarting = self.restarting
         self.restarting = False
         return restarting
 
-    def restart_ioc(self, prefix, ioc):
+    def restart_ioc(self, ioc):
         self.restarting = True
         self.ps_status[ioc.lower()] = "RUNNING"
 
-    def get_ioc_status(self, prefix, ioc):
+    def get_ioc_status(self, ioc):
         if not ioc.lower() in self.ps_status.keys():
-            raise Exception("Could not find IOC (%s)" % self.generate_prefix(prefix, ioc))
+            raise Exception("Could not find IOC ({})".format(self.prefix + ioc))
         else:
             return self.ps_status[ioc.lower()]
 
-    def ioc_exists(self, prefix, ioc):
+    def ioc_exists(self, ioc):
         try:
-            self.get_ioc_status(prefix, ioc)
+            self.get_ioc_status(ioc)
             return True
         except:
             return False
 
-    def get_autorestart(self, prefix, ioc):
+    def get_autorestart(self, ioc):
         return self.autorestart
 
-    def toggle_autorestart(self, prefix, ioc):
+    def toggle_autorestart(self, ioc):
         self.autorestart = not self.autorestart

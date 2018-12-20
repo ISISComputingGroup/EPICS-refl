@@ -32,11 +32,10 @@ from BlockServer.epics.gateway import Gateway
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.channel_access_server import CAServer
-from server_common.channel_access import ChannelAccess
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
     convert_to_json, convert_from_json, char_waveform
 from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
-from server_common.pv_names import BlockserverPVNames, DatabasePVNames
+from server_common.pv_names import BlockserverPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.synoptic.synoptic_manager import SynopticManager
 from BlockServer.devices.devices_manager import DevicesManager
@@ -53,11 +52,12 @@ from pcaspy.driver import manager, Data
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from WebServer.simple_webserver import Server
+from BlockServer.core.database_client import get_iocs
 from Queue import Queue
 
 
 # For documentation on these commands see the wiki
-PVDB = {
+initial_dbs = {
     BlockserverPVNames.BLOCKNAMES: char_waveform(16000),
     BlockserverPVNames.BLOCK_DETAILS: char_waveform(16000),
     BlockserverPVNames.GROUPS: char_waveform(16000),
@@ -355,7 +355,7 @@ class BlockServer(Driver):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
         # iocs_to_start, iocs_to_restart are not used at the moment, but longer term they could be used
         # for only restarting IOCs for which the setting have changed.
-        non_conf_iocs = [x for x in self._get_iocs() if x not in self._active_configserver.get_ioc_names()]
+        non_conf_iocs = [x for x in get_iocs() if x not in self._active_configserver.get_ioc_names()]
         self._ioc_control.stop_iocs(non_conf_iocs)
         self._start_config_iocs()
 
@@ -369,9 +369,10 @@ class BlockServer(Driver):
                 # restart an IOC if it terminates unexpectedly and does not apply here.
                 if ioc.autostart:
                     # Throws if IOC does not exist
-                    self._ioc_control.restart_ioc(name) \
-                        if self._ioc_control.get_ioc_status(name) == "RUNNING" \
-                        else self._ioc_control.start_ioc(name)
+                    if self._ioc_control.get_ioc_status(name) == "RUNNING":
+                        self._ioc_control.restart_ioc(name)
+                    else:
+                        self._ioc_control.start_ioc(name)
             except Exception as err:
                 print_and_log("Could not (re)start IOC {}: {}".format(name, err), "MAJOR")
 
@@ -382,15 +383,6 @@ class BlockServer(Driver):
                 # Set the restart property
                 print_and_log("Setting IOC %s's auto-restart to %s" % (name, ioc.restart))
                 self._ioc_control.set_autorestart(name, ioc.restart)
-
-    def _get_iocs(self):
-        # Get IOCs from DatabaseServer
-        try:
-            rawjson = dehex_and_decompress(ChannelAccess.caget(DatabasePVNames.IOCS))
-            return json.loads(rawjson).keys()
-        except Exception as err:
-            print_and_log("Could not retrieve IOC list: {}".format(err), "MAJOR")
-            return []
 
     def load_config(self, config, is_component=False):
         """Load a configuration.
@@ -672,7 +664,7 @@ if __name__ == '__main__':
 
     print_and_log("BLOCKSERVER PREFIX = %s" % BLOCKSERVER_PREFIX)
     SERVER = SimpleServer()
-    SERVER.createPV(BLOCKSERVER_PREFIX, PVDB)
+    SERVER.createPV(BLOCKSERVER_PREFIX, initial_dbs)
     DRIVER = BlockServer(SERVER)
 
     # Process CA transactions
