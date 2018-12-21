@@ -20,10 +20,10 @@ Run all inst server tests
 # Standard imports
 import os
 import sys
-import glob
 import unittest
 import xmlrunner
 import argparse
+from coverage import Coverage
 
 DEFAULT_DIRECTORY = os.path.join('..', '..', '..', 'test-reports')
 
@@ -35,10 +35,17 @@ if __name__ == '__main__':
     args = parser.parse_args()
     xml_dir = args.output_dir[0]
 
+    cov = Coverage()
+
     test_suite = unittest.TestLoader().discover(os.path.dirname(__file__), pattern="test_*.py")
     print ("\n\n------ BEGINNING INST SERVERS UNIT TESTS ------")
+    cov.start()
     ret_vals = xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite)
+    cov.stop()
     print ("------ INST SERVERS UNIT TESTS COMPLETE ------\n\n")
+    cov.report()
+    print("------  SAVING COVERAGE REPORTS ------ ")
+    cov.xml_report(outfile=os.path.join(".", 'cobertura.xml'))
 
     # Return failure exit code if a test errored or failed
     sys.exit(bool(ret_vals.errors or ret_vals.failures))

@@ -4,7 +4,7 @@ pipeline {
 
   // agent defines where the pipeline will run.
   agent {  
-    label "ndw1757"
+    label "windows"
   }
   
   triggers {
@@ -18,71 +18,51 @@ pipeline {
         checkout scm
         setLatestGeniePath()
         echo "python path: ${env.PYTHON_PATH}"
-      }
-    }
-    
-    stage("Test BlockServer") {
-      steps {
         script {
             env.GIT_COMMIT = bat(returnStdout: true, script: '@git rev-parse HEAD').trim()
             echo "git commit: ${env.GIT_COMMIT}"
             echo "git branch: ${env.BRANCH_NAME}"
+            echo "git change id: ${env.CHANGE_ID}"
+            echo "git change url: ${env.CHANGE_URL}"
         }
-        
-        bat """
-            cd BlockServer
-            set PYTHON_PATH=${env.PYTHON_PATH}
-            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
-            """
       }
     }
     
-    stage("Test DatabaseServer") {
-      steps {        
+    stage("Run All Tests") {
+      steps {
         bat """
-            cd DatabaseServer
             set PYTHON_PATH=${env.PYTHON_PATH}
-            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
-            """
-      }
-    }
-    
-    stage("Test ArchiverAccess") {
-      steps {        
-        bat """
-            cd ArchiverAccess
-            set PYTHON_PATH=${env.PYTHON_PATH}
-            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
-            """
-      }
-    }
-    
-    stage("Test BlockServerToKafka") {
-      steps {        
-        bat """
-            cd BlockServerToKafka
-            set PYTHON_PATH=${env.PYTHON_PATH}
-            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
-            """
-      }
-    }
-	
-	stage("Test Collision Avoidance Monitor") {
-      steps {        
-        bat """
-            cd CollisionAvoidanceMonitor
-            set PYTHON_PATH=${env.PYTHON_PATH}
-            %PYTHON_PATH%\\Python\\python.exe run_tests.py --output_dir ../test-reports
-            """
+            %PYTHON_PATH%\\Python\\python run_all_tests.py --output_dir ./test-reports
+         """
       }
     }
         
     stage("Collate Unit Tests") {
       steps {
         junit '**/test-reports/TEST-*.xml'
+        cobertura coberturaReportFile: '**/cobertura.xml'
       }
     }
-    
+
+    stage("Record Coverage") {
+        steps {
+            when { branch 'master' }
+            script {
+                currentBuild.result = 'SUCCESS'
+            }
+            step([$class: 'MasterCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
+        }
+    }
+
+    stage("PR Coverage to Github") {
+        when { not { branch 'master' }}
+        steps {
+            script {
+                currentBuild.result = 'SUCCESS'
+            }
+            step([$class: 'CompareCoverageAction', scmVars: [GIT_URL: env.GIT_URL]])
+        }
+    }
     
   }
   
