@@ -40,6 +40,19 @@ class SEVERITY(object):
     MAJOR = "MAJOR"
 
 
+def char_waveform(length):
+    """
+    Helper function for creating a char waveform PV.
+
+    Args:
+        length: The length of the array.
+
+    Return:
+        The dictionary to add to the PVDB.
+    """
+    return {'type': 'char', 'count': length, 'value': [0]}
+
+
 def set_logger(logger):
     """Sets the logger used by the print_and_log function.
 

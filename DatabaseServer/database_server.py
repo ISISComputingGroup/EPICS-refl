@@ -21,22 +21,26 @@ import sys
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 # Standard imports
+from functools import partial
 from pcaspy import Driver
 from time import sleep
 import argparse
 from server_common.mysql_abstraction_layer import SQLAbstraction
-from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, dehex_and_decompress
+from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, dehex_and_decompress, \
+    char_waveform
 from server_common.channel_access_server import CAServer
 from server_common.constants import IOCS_NOT_TO_STOP
 from server_common.ioc_data import IOCData
 from server_common.ioc_data_source import IocDataSource
+from server_common.pv_names import DatabasePVNames as DbPVNames
 from exp_data import ExpData, ExpDataSource
 import json
 from threading import Thread, RLock
 from procserv_utils import ProcServWrapper
 from options_holder import OptionsHolder
 from options_loader import OptionsLoader
-from mocks.mock_procserv_utils import MockProcServWrapper
+from server_common.loggers.isis_logger import IsisLogger
+set_logger(IsisLogger())
 
 MACROS = {
     "$(MYPVPREFIX)": os.environ['MYPVPREFIX'],
@@ -94,17 +98,16 @@ class DatabaseServer(Driver):
         def add_get_method(pv, get_function):
             enhanced_info[pv]['get'] = get_function
 
-        add_get_method('IOCS', self._get_iocs_info)
-        add_get_method('PVS:INTEREST:HIGH', self._get_high_interest_pvs)
-        add_get_method('PVS:INTEREST:MEDIUM', self._get_medium_interest_pvs)
-        add_get_method('PVS:INTEREST:FACILITY', self._get_facility_pvs)
-        add_get_method('PVS:ACTIVE', self._get_active_pvs)
-        add_get_method('PVS:ALL', self._get_all_pvs)
-        add_get_method('SAMPLE_PARS', self._get_sample_par_names)
-        add_get_method('BEAMLINE_PARS', self._get_beamline_par_names)
-        add_get_method('USER_PARS', self._get_user_par_names)
-        add_get_method('IOCS_NOT_TO_STOP', DatabaseServer._get_iocs_not_to_stop)
-
+        add_get_method(DbPVNames.IOCS, self._get_iocs_info)
+        add_get_method(DbPVNames.HIGH_INTEREST, partial(self._get_interesting_pvs, "HIGH"))
+        add_get_method(DbPVNames.MEDIUM_INTEREST, partial(self._get_interesting_pvs, "MEDIUM"))
+        add_get_method(DbPVNames.FACILITY, partial(self._get_interesting_pvs, "FACILITY"))
+        add_get_method(DbPVNames.ACTIVE_PVS, self._get_active_pvs)
+        add_get_method(DbPVNames.ALL_PVS, partial(self._get_interesting_pvs, ""))
+        add_get_method(DbPVNames.SAMPLE_PARS, self._get_sample_par_names)
+        add_get_method(DbPVNames.BEAMLINE_PARS, self._get_beamline_par_names)
+        add_get_method(DbPVNames.USER_PARS, self._get_user_par_names)
+        add_get_method(DbPVNames.IOCS_NOT_TO_STOP, DatabaseServer._get_iocs_not_to_stop)
         return enhanced_info
 
     @staticmethod
@@ -118,23 +121,31 @@ class DatabaseServer(Driver):
         """
         pv_size_64k = 64000
         pv_size_10k = 10000
+        pv_info = {}
 
-        # Helper to consistently create pvs
-        def create_pvdb_entry(count):
-            return {'type': 'char', 'count': count, 'value': [0]}
+        for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.FACILITY,
+                   DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS, DbPVNames.IOCS_NOT_TO_STOP]:
+            pv_info[pv] = char_waveform(pv_size_64k)
 
-        return {
-            'IOCS': create_pvdb_entry(pv_size_64k),
-            'PVS:INTEREST:HIGH': create_pvdb_entry(pv_size_64k),
-            'PVS:INTEREST:MEDIUM': create_pvdb_entry(pv_size_64k),
-            'PVS:INTEREST:FACILITY': create_pvdb_entry(pv_size_64k),
-            'PVS:ACTIVE': create_pvdb_entry(pv_size_64k),
-            'PVS:ALL': create_pvdb_entry(pv_size_64k),
-            'SAMPLE_PARS': create_pvdb_entry(pv_size_10k),
-            'BEAMLINE_PARS': create_pvdb_entry(pv_size_10k),
-            'USER_PARS': create_pvdb_entry(pv_size_10k),
-            'IOCS_NOT_TO_STOP': create_pvdb_entry(pv_size_64k),
-        }
+        for pv in [DbPVNames.SAMPLE_PARS, DbPVNames.BEAMLINE_PARS, DbPVNames.USER_PARS]:
+            pv_info[pv] = char_waveform(pv_size_10k)
+
+        return pv_info
+
+    def get_data_for_pv(self, pv):
+        """
+        Get the data for the given pv name.
+
+        Args:
+            The name of the PV to get the data for.
+
+        Return:
+            The data, compressed and hexed.
+        """
+        data = self._pv_info[pv]['get']()
+        data = compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
+        self._check_pv_capacity(pv, len(data), self._blockserver_prefix)
+        return data
 
     def read(self, reason):
         """
@@ -146,12 +157,7 @@ class DatabaseServer(Driver):
         Returns:
             string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
-        if reason in self._pv_info.keys():
-            encoded_data = DatabaseServer._encode_for_return(self._pv_info[reason]['get']())
-            self._check_pv_capacity(reason, len(encoded_data), self._blockserver_prefix)
-        else:
-            encoded_data = self.getParam(reason)
-        return encoded_data
+        return self.get_data_for_pv(reason) if reason in self._pv_info.keys() else self.getParam(reason)
 
     def write(self, reason, value):
         """
@@ -166,7 +172,6 @@ class DatabaseServer(Driver):
         """
         try:
             if reason == 'ED:RBNUMBER:SP':
-                # print_and_log("Updating to use experiment ID: " + value, INFO_MSG, LOG_LOCATION)
                 self._ed.update_experiment_id(value)
             elif reason == 'ED:USERNAME:SP':
                 self._ed.update_username(dehex_and_decompress(value))
@@ -184,10 +189,9 @@ class DatabaseServer(Driver):
         while True:
             if self._iocs is not None:
                 self._iocs.update_iocs_status()
-                for pv in ["IOCS", "PVS:ALL", "PVS:ACTIVE", "PVS:INTEREST:HIGH", "PVS:INTEREST:MEDIUM",
-                           "PVS:INTEREST:FACILITY"]:
-                    encoded_data = DatabaseServer._encode_for_return(self._pv_info[pv]['get']())
-                    self._check_pv_capacity(pv, len(encoded_data), self._blockserver_prefix)
+                for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.FACILITY,
+                            DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS]:
+                    encoded_data = self.get_data_for_pv(pv)
                     self.setParam(pv, encoded_data)
                 # Update them
                 with self.monitor_lock:
@@ -208,19 +212,6 @@ class DatabaseServer(Driver):
                           .format(prefix + pv, self._pv_info[pv]['count'], size),
                           MAJOR_MSG, LOG_TARGET)
 
-    @staticmethod
-    def _encode_for_return(data):
-        """
-        Converts data to JSON, compresses it and converts it to hex.
-
-        Args:
-            data (string): The data to encode
-
-        Returns:
-            string : The encoded data
-        """
-        return compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
-
     def _get_iocs_info(self):
         iocs = self._iocs.get_iocs()
         options = self._options_holder.get_config_options()
@@ -237,18 +228,6 @@ class DatabaseServer(Driver):
             return pv_data
         else:
             return list()
-
-    def _get_high_interest_pvs(self):
-        return self._get_interesting_pvs("HIGH")
-
-    def _get_medium_interest_pvs(self):
-        return self._get_interesting_pvs("MEDIUM")
-
-    def _get_facility_pvs(self):
-        return self._get_interesting_pvs("FACILITY")
-
-    def _get_all_pvs(self):
-        return self._get_interesting_pvs("")
 
     def _get_interesting_pvs(self, level):
         return self._get_pvs(self._iocs.get_interesting_pvs, False, level)
@@ -293,26 +272,18 @@ class DatabaseServer(Driver):
         """
         return IOCS_NOT_TO_STOP
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-bs', '--blockserver_prefix', nargs=1, type=str,
-                        default=[MACROS["$(MYPVPREFIX)"]+'CS:BLOCKSERVER:'],
-                        help='The prefix for PVs served by the blockserver(default=%MYPVPREFIX%CS:BLOCKSERVER:)')
+                        default=[MACROS["$(MYPVPREFIX)"]+'CS:'],
+                        help='The prefix for PVs served by the blockserver(default=%MYPVPREFIX%CS:)')
 
     parser.add_argument('-od', '--options_dir', nargs=1, type=str, default=['.'],
                         help='The directory from which to load the configuration options(default=current directory)')
 
-    parser.add_argument('-f', '--facility', nargs=1, type=str, default=['ISIS'],
-                        help='Which facility is this being run for (default=ISIS)')
-
     args = parser.parse_args()
-
-    FACILITY = args.facility[0]
-    if FACILITY == "ISIS":
-        from server_common.loggers.isis_logger import IsisLogger
-        set_logger(IsisLogger())
-    print_and_log("FACILITY = %s" % FACILITY, INFO_MSG, LOG_TARGET)
 
     BLOCKSERVER_PREFIX = args.blockserver_prefix[0]
     if not BLOCKSERVER_PREFIX.endswith(':'):

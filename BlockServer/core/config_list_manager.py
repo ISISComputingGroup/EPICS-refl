@@ -24,7 +24,7 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
 from server_common.common_exceptions import MaxAttemptsExceededException
 from BlockServer.core.constants import DEFAULT_COMPONENT
-from BlockServer.core.pv_names import BlockserverPVNames
+from server_common.pv_names import BlockserverPVNames
 from config_list_manager_exceptions import InvalidDeleteException
 
 

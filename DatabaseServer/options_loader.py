@@ -21,16 +21,19 @@ from ioc_options import IocOptions
 
 TAG_NAME = 'name'
 TAG_VALUE = 'value'
-TAG_MACRO = 'macro'
-TAG_PV = 'pv'
-TAG_PVSET = 'pvset'
 TAG_IOC_CONFIG = 'ioc_config'
 CONFIG_PART = 'config_part'
 TAG_PATTERN = 'pattern'
 TAG_DESCRIPTION = 'description'
-TAG_MACROS = 'macros'
-TAG_PVS = 'pvs'
-TAG_PVSETS = 'pvsets'
+
+
+def create_xpath_search(group, individual):
+    return "./{}/{}/{}".format(CONFIG_PART, group, individual)
+
+
+MACROS = create_xpath_search('macros', 'macro')
+PVS = create_xpath_search('pvs', 'pv')
+PVSETS = create_xpath_search('pvsets', 'pvset')
 
 
 class OptionsLoader(object):
@@ -55,24 +58,19 @@ class OptionsLoader(object):
     @staticmethod
     def _options_from_xml(root_xml, iocs):
         """Populates the supplied list of iocs based on an XML tree within a config.xml file"""
-        iocs_xml = root_xml.findall("./" + TAG_IOC_CONFIG)
-        for i in iocs_xml:
-            n = i.attrib[TAG_NAME]
-            if n is not None and n != "":
-                iocs[n.upper()] = IocOptions(n.upper())
-
+        for ioc in root_xml.findall("./" + TAG_IOC_CONFIG):
+            name = ioc.attrib[TAG_NAME]
+            if name is not None and name != "":
+                iocs[name.upper()] = IocOptions(name.upper())
                 # Get any macros
-                macros_xml = i.findall("./" + CONFIG_PART + "/" + TAG_MACROS + "/" + TAG_MACRO)
-                for m in macros_xml:
-                    iocs[n.upper()].macros[m.attrib[TAG_NAME]] = {TAG_DESCRIPTION: m.attrib[TAG_DESCRIPTION],
-                                                                  TAG_PATTERN: m.attrib.get(TAG_PATTERN)}
+                for macro in ioc.findall(MACROS):
+                    iocs[name.upper()].macros[macro.attrib[TAG_NAME]] = {TAG_DESCRIPTION: macro.attrib[TAG_DESCRIPTION],
+                                                                            TAG_PATTERN: macro.attrib.get(TAG_PATTERN)}
 
                 # Get any pvsets
-                pvsets_xml = i.findall("./" + CONFIG_PART + "/" + TAG_PVSETS + "/" + TAG_PVSET)
-                for p in pvsets_xml:
-                    iocs[n.upper()].pvsets[p.attrib[TAG_NAME]] = {TAG_DESCRIPTION: p.attrib[TAG_DESCRIPTION]}
+                for pvset in ioc.findall(PVSETS):
+                    iocs[name.upper()].pvsets[pvset.attrib[TAG_NAME]] = {TAG_DESCRIPTION: pvset.attrib[TAG_DESCRIPTION]}
 
                 # Get any pvs
-                pvs_xml = i.findall("./" + CONFIG_PART + "/" + TAG_PVS + "/" + TAG_PV)
-                for p in pvs_xml:
-                    iocs[n.upper()].pvs[p.attrib[TAG_NAME]] = {TAG_DESCRIPTION: p.attrib[TAG_DESCRIPTION]}
+                for pv in ioc.findall(PVS):
+                    iocs[name.upper()].pvs[pv.attrib[TAG_NAME]] = {TAG_DESCRIPTION: pv.attrib[TAG_DESCRIPTION]}

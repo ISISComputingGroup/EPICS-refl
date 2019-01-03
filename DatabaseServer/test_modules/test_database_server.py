@@ -31,6 +31,8 @@ from DatabaseServer.mocks.mock_procserv_utils import MockProcServWrapper
 from server_common.ioc_data import IOCData
 from DatabaseServer.mocks.mock_exp_data import MockExpData
 from server_common.constants import IS_LINUX
+from server_common.pv_names import DatabasePVNames
+
 
 class TestDatabaseServer(unittest.TestCase):
     def setUp(self):
@@ -44,7 +46,7 @@ class TestDatabaseServer(unittest.TestCase):
 
     @unittest.skipIf(IS_LINUX, "DB server not configured to run properly on Linux build")
     def test_interest_high_pvs_correct(self):
-        pv_data = json.loads(dehex_and_decompress(self.db_server.read("PVS:INTEREST:HIGH")))
+        pv_data = json.loads(dehex_and_decompress(self.db_server.read(DatabasePVNames.HIGH_INTEREST)))
         pv_names = []
         for item in pv_data:
             if len(item) > 0:
@@ -54,7 +56,7 @@ class TestDatabaseServer(unittest.TestCase):
 
     @unittest.skipIf(IS_LINUX, "DB server not configured to run properly on Linux build")
     def test_interest_medium_pvs_correct(self):
-        pv_data = json.loads(dehex_and_decompress(self.db_server.read("PVS:INTEREST:MEDIUM")))
+        pv_data = json.loads(dehex_and_decompress(self.db_server.read(DatabasePVNames.MEDIUM_INTEREST)))
         pv_names = []
         for item in pv_data:
             if len(item) > 0:
@@ -64,7 +66,7 @@ class TestDatabaseServer(unittest.TestCase):
 
     @unittest.skipIf(IS_LINUX, "DB server not configured to run properly on Linux build")
     def test_interest_facility_pvs_correct(self):
-        pv_data = json.loads(dehex_and_decompress(self.db_server.read("PVS:INTEREST:FACILITY")))
+        pv_data = json.loads(dehex_and_decompress(self.db_server.read(DatabasePVNames.FACILITY)))
         pv_names = []
         for item in pv_data:
             if len(item) > 0:
@@ -74,7 +76,7 @@ class TestDatabaseServer(unittest.TestCase):
 
     @unittest.skipIf(IS_LINUX, "DB server not configured to run properly on Linux build")
     def test_iocs_pvs_correct(self):
-        pv_data = json.loads(dehex_and_decompress(self.db_server.read("IOCS")))
+        pv_data = json.loads(dehex_and_decompress(self.db_server.read(DatabasePVNames.IOCS)))
         for name in IOCS:
             self.assertTrue(name in pv_data, msg="{name} in {pv_names}".format(name=name, pv_names=pv_data))
 

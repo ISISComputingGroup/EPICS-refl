@@ -19,7 +19,7 @@ Set of shared utilities and constants for rules
 """
 
 from server_common.utilities import compress_and_hex
-from BlockServer.core.pv_names import BlockserverPVNames
+from server_common.pv_names import BlockserverPVNames
 import json
 
 """Standard Regex in Java for PV like names,

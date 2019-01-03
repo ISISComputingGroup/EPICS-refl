@@ -19,7 +19,7 @@ import unicodedata
 
 from server_common.channel_access import ChannelAccess
 from server_common.mysql_abstraction_layer import SQLAbstraction
-from server_common.utilities import compress_and_hex
+from server_common.utilities import compress_and_hex, char_waveform
 
 
 class User(object):
@@ -93,16 +93,8 @@ class ExpData(object):
     A wrapper to connect to the IOC database via MySQL.
     """
     EDPV = {
-        'ED:RBNUMBER:SP': {
-            'type': 'char',
-            'count': 16000,
-            'value': [0],
-        },
-        'ED:USERNAME:SP': {
-            'type': 'char',
-            'count': 16000,
-            'value': [0],
-        },
+        'ED:RBNUMBER:SP': char_waveform(16000),
+        'ED:USERNAME:SP': char_waveform(16000)
     }
 
     _to_ascii = {}
@@ -138,7 +130,7 @@ class ExpData(object):
         """
         Create mapping for characters not converted to 7 bit by NFKD.
         """
-        mappings_in = [ ord(char) for char in u'\xd0\xd7\xd8\xde\xdf\xf0\xf8\xfe' ]
+        mappings_in = [ord(char) for char in u'\xd0\xd7\xd8\xde\xdf\xf0\xf8\xfe']
         mappings_out = u'DXOPBoop'
         d = dict(zip(mappings_in, mappings_out))
         d[ord(u'\xc6')] = u'AE'

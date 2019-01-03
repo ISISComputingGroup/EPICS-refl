@@ -20,29 +20,28 @@ from BlockServer.mocks.mock_procserv_utils import MockProcServWrapper
 class MockIocControl(object):
 
     def __init__(self, prefix):
-        self._prefix = prefix
-        self._proc = MockProcServWrapper()
+        self._proc = MockProcServWrapper(prefix)
         self.restarted_iocs = []
 
     def start_ioc(self, ioc):
-        self._proc.start_ioc(self._prefix, ioc)
+        self._proc.start_ioc(ioc)
 
     def restart_ioc(self, ioc, force):
-        self._proc.restart_ioc(self._prefix, ioc)
+        self._proc.restart_ioc(ioc)
         self.restarted_iocs.append(ioc)
 
     def stop_ioc(self, ioc):
-        self._proc.stop_ioc(self._prefix, ioc)
+        self._proc.stop_ioc(ioc)
 
     def get_ioc_status(self, ioc):
-        return self._proc.get_ioc_status(self._prefix, ioc)
+        return self._proc.get_ioc_status(ioc)
 
     def ioc_restart_pending(self, ioc):
-        return self._proc.ioc_restart_pending(self._prefix, ioc)
+        return self._proc.ioc_restart_pending(ioc)
 
     def start_iocs(self, iocs):
         for ioc in iocs:
-            self._proc.start_ioc(self._prefix, ioc)
+            self._proc.start_ioc(ioc)
 
     def restart_iocs(self, iocs, reapply_auto):
         for ioc in iocs:
@@ -56,11 +55,11 @@ class MockIocControl(object):
             # Check it is okay to stop it
             if ioc.startswith(IOCS_NOT_TO_STOP):
                 continue
-            self._proc.stop_ioc(self._prefix, ioc)
+            self._proc.stop_ioc(ioc)
 
     def ioc_exists(self, ioc):
         try:
-            self.get_ioc_status(self._prefix, ioc)
+            self.get_ioc_status(ioc)
             return True
         except:
             return False

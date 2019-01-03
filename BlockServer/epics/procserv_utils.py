@@ -20,77 +20,66 @@ from server_common.utilities import print_and_log, ioc_restart_pending, retry
 class ProcServWrapper(object):
     """A wrapper for accessing some of the functionality of ProcServ."""
 
-    @staticmethod
-    def generate_prefix(prefix, ioc):
-        """Generate the PV prefix for an IOCs ProcServ.
-
+    def __init__(self, prefix):
+        """Constructor.
         Args:
             prefix (string): The prefix for the instrument
-            ioc (string): The name of the IOC
-
-        Returns:
-            string : The PV prefix
         """
-        return "%sCS:PS:%s" % (prefix, ioc)
+        self.procserv_prefix = "{}CS:PS:".format(prefix)
 
-    def start_ioc(self, prefix, ioc):
+    def start_ioc(self, ioc):
         """Starts the specified IOC.
 
         Args:
-            prefix (string): The prefix for the instrument
             ioc (string): The name of the IOC
         """
         print_and_log("Starting IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":START", 1)
+        ChannelAccess.caput(self.procserv_prefix + ioc + ":START", 1)
 
-    def stop_ioc(self, prefix, ioc):
+    def stop_ioc(self, ioc):
         """Stops the specified IOC.
 
         Args:
-            prefix (string): The prefix for the instrument
             ioc (string): The name of the IOC
         """
         print_and_log("Stopping IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":STOP", 1)
+        ChannelAccess.caput(self.procserv_prefix + ioc + ":STOP", 1)
 
-    def restart_ioc(self, prefix, ioc):
+    def restart_ioc(self, ioc):
         """Restarts the specified IOC.
 
         Args:
-            prefix (string): The prefix for the instrument
             ioc (string): The name of the IOC
         """
         print_and_log("Restarting IOC %s" % ioc)
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1)
+        ChannelAccess.caput(self.procserv_prefix + ioc + ":RESTART", 1)
 
-    def ioc_restart_pending(self, prefix, ioc):
+    def ioc_restart_pending(self, ioc):
         """Tests to see if an IOC restart is pending
 
         Args:
-            prefix (string): The prefix for the instrument
             ioc (string): The name of the IOC
 
         Returns:
             bool: Whether a restart is pending
         """
-        return ioc_restart_pending(self.generate_prefix(prefix, ioc), ChannelAccess)
+        return ioc_restart_pending(self.procserv_prefix + ioc, ChannelAccess)
 
-    def get_ioc_status(self, prefix, ioc):
+    def get_ioc_status(self, ioc):
         """Gets the status of the specified IOC.
 
         Args:
-            prefix (string): The prefix for the instrument
             ioc (string): The name of the IOC
 
         Returns:
             string : The status
         """
-        ans = ChannelAccess.caget(self.generate_prefix(prefix, ioc) + ":STATUS", as_string=True)
+        ans = ChannelAccess.caget(self.procserv_prefix + ioc + ":STATUS", as_string=True)
         if ans is None:
-            raise Exception("Could not find IOC ({})".format(self.generate_prefix(prefix, ioc)))
+            raise Exception("Could not find IOC ({})".format(self.procserv_prefix + ioc))
         return ans.upper()
 
-    def toggle_autorestart(self, prefix, ioc):
+    def toggle_autorestart(self, ioc):
         """Toggles the auto-restart property.
 
         Args:
@@ -99,20 +88,19 @@ class ProcServWrapper(object):
         """
         # Check IOC is running, otherwise command is ignored
         print_and_log("Toggling auto-restart for IOC {}".format(ioc))
-        ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":TOGGLE", 1)
+        ChannelAccess.caput(self.procserv_prefix + ioc + ":TOGGLE", 1)
 
     @retry(50, 0.1, ValueError)  # Retry for 5 seconds to get a valid value on failure
-    def get_autorestart(self, prefix, ioc):
+    def get_autorestart(self, ioc):
         """Gets the current auto-restart setting of the specified IOC.
 
         Args:
-            prefix (string): The prefix for the instrument
             ioc (string): The name of the IOC
 
         Returns:
             bool : Whether auto-restart is enabled
         """
-        ioc_prefix = self.generate_prefix(prefix, ioc)
+        ioc_prefix = self.procserv_prefix + ioc
 
         ans = ChannelAccess.caget("{}:AUTORESTART".format(ioc_prefix), as_string=True)
         if ans not in ["On", "Off"]:
