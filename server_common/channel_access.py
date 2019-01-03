@@ -37,7 +37,7 @@ class ChannelAccess(object):
             return CaChannelWrapper.get_pv_value(name, as_string)
         except Exception as err:
             # Probably has timed out
-            print(err)
+            print_and_log(str(err))
             return None
 
     @staticmethod

@@ -86,6 +86,7 @@ if __name__ == "__main__":
         inst_dictionary("ZOOM"),
         inst_dictionary("IRIS"),
         inst_dictionary("IRIS_SETUP", pv_prefix="IN:IRIS_S29:", is_scheduled=False),
+        inst_dictionary("ENGINX_SETUP", pv_prefix="IN:ENGINX49:", is_scheduled=False),
         inst_dictionary("HRPD"),
         inst_dictionary("POLARIS"),
         inst_dictionary("VESUVIO"),
@@ -99,7 +100,8 @@ if __name__ == "__main__":
         inst_dictionary("MAPS"),
         inst_dictionary("OSIRIS"),
         inst_dictionary("INES"),
-        inst_dictionary("TOSCA")
+        inst_dictionary("TOSCA"),
+        inst_dictionary("LOQ")
     ]
 
     new_value = json.dumps(instruments_list)

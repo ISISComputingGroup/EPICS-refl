@@ -2,32 +2,36 @@ import unittest
 
 from math import tan, radians
 from hamcrest import *
+from mock import Mock
 
-from ReflectometryServer.components import ReflectingComponent, Component
-from ReflectometryServer.movement_strategy import LinearMovement
-from ReflectometryServer.gemoetry import PositionAndAngle
-from ReflectometryServer.beamline import Beamline
+from ReflectometryServer.components import ReflectingComponent, Component, TiltingComponent, ThetaComponent
+from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
+from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
+from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.parameters import TrackingPosition, AngleParameter
+from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis
 from utils import position_and_angle
+from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus, MotorPVWrapper
+
+
 
 
 class TestComponentBeamline(unittest.TestCase):
 
     def setup_beamline(self, initial_mirror_angle, mirror_position, beam_start):
-        jaws = Component("jaws", movement_strategy=LinearMovement(0, 0, 90))
-        mirror = ReflectingComponent("mirror", movement_strategy=LinearMovement(0, mirror_position, 90))
-        mirror.angle = initial_mirror_angle
-        jaws3 = Component("jaws3", movement_strategy=LinearMovement(0, 20, 90))
-        beamline = Beamline([jaws, mirror, jaws3], [], [], [])
-        beamline.set_incoming_beam(beam_start)
+        jaws = Component("jaws", setup=PositionAndAngle(0, 0, 90))
+        mirror = ReflectingComponent("mirror", setup=PositionAndAngle(0, mirror_position, 90))
+        mirror.beam_path_set_point.angle = initial_mirror_angle
+        jaws3 = Component("jaws3", setup=PositionAndAngle(0, 20, 90))
+        beamline = Beamline([jaws, mirror, jaws3], [], [], [], beam_start)
         return beamline, mirror
 
     def test_GIVEN_beam_line_contains_one_passive_component_WHEN_beam_set_THEN_component_has_beam_out_same_as_beam_in(self):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        jaws = Component("jaws", movement_strategy=LinearMovement(0, 2, 90))
-        beamline = Beamline([jaws], [], [], [])
-        beamline.set_incoming_beam(beam_start)
+        jaws = Component("jaws", setup=PositionAndAngle(0, 2, 90))
+        beamline = Beamline([jaws], [], [], [], beam_start)
 
-        result = beamline[0].get_outgoing_beam()
+        result = beamline[0].beam_path_set_point.get_outgoing_beam()
 
         assert_that(result, is_(position_and_angle(beam_start)))
 
@@ -39,7 +43,7 @@ class TestComponentBeamline(unittest.TestCase):
         bounced_beam = PositionAndAngle(y=0, z=mirror_position, angle=initial_mirror_angle * 2)
         expected_beams = [beam_start, bounced_beam, bounced_beam]
 
-        results = [component.get_outgoing_beam() for component in beamline]
+        results = [component.beam_path_set_point.get_outgoing_beam() for component in beamline]
 
         for index, (result, expected_beam) in enumerate(zip(results, expected_beams)):
             assert_that(result, position_and_angle(expected_beam), "in component {}".format(index))
@@ -56,8 +60,8 @@ class TestComponentBeamline(unittest.TestCase):
         bounced_beam = PositionAndAngle(y=0, z=mirror_position, angle=mirror_final_angle * 2)
         expected_beams = [beam_start, bounced_beam, bounced_beam]
 
-        mirror.angle = mirror_final_angle
-        results = [component.get_outgoing_beam() for component in beamline]
+        mirror.beam_path_set_point.angle = mirror_final_angle
+        results = [component.beam_path_set_point.get_outgoing_beam() for component in beamline]
 
         for index, (result, expected_beam) in enumerate(zip(results, expected_beams)):
             assert_that(result, position_and_angle(expected_beam), "in component index {}".format(index))
@@ -70,11 +74,89 @@ class TestComponentBeamline(unittest.TestCase):
         beamline, mirror = self.setup_beamline(initial_mirror_angle, mirror_position, beam_start)
         expected_beams = [beam_start, beam_start, beam_start]
 
-        mirror.enabled = False
-        results = [component.get_outgoing_beam() for component in beamline]
+        mirror.beam_path_set_point.enabled = False
+        results = [component.beam_path_set_point.get_outgoing_beam() for component in beamline]
 
         for index, (result, expected_beam) in enumerate(zip(results, expected_beams)):
             assert_that(result, position_and_angle(expected_beam), "in component index {}".format(index))
+
+
+class TestComponentBeamlineReadbacks(unittest.TestCase):
+
+    def test_GIVEN_components_in_beamline_WHEN_readback_changed_THEN_components_after_changed_component_updatereadbacks(self):
+        comp1 = Component("comp1", PositionAndAngle(0, 1, 90))
+        comp2 = Component("comp2", PositionAndAngle(0, 2, 90))
+        beamline = Beamline([comp1, comp2], [], [], [DataMother.BEAMLINE_MODE_EMPTY])
+
+        callback = Mock()
+        comp2.beam_path_rbv.set_incoming_beam = callback
+        comp1.beam_path_rbv.set_displacement(1.0, AlarmSeverity.No, AlarmStatus.No)
+
+        assert_that(callback.called, is_(True))
+
+
+class TestRealistic(unittest.TestCase):
+
+    def test_GIVEN_beam_line_where_all_items_track_WHEN_set_theta_THEN_motors_move_to_be_on_the_beam(self):
+        spacing = 2.0
+
+        bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
+
+        bl.parameter("s1").sp = 0
+        bl.parameter("s3").sp = 0
+        bl.parameter("det").sp = 0
+        bl.parameter("det_angle").sp = 0
+
+        theta_angle = 2
+        bl.parameter("theta").sp = theta_angle
+        bl.move = 1
+
+        assert_that(drives["s1_axis"].value, is_(0))
+
+        expected_s3_value = spacing * tan(radians(theta_angle * 2.0))
+        assert_that(drives["s3_axis"].value, is_(expected_s3_value))
+
+        expected_det_value = 2 * spacing * tan(radians(theta_angle * 2.0))
+        assert_that(drives["det_axis"].value, is_(expected_det_value))
+
+        assert_that(drives["det_angle_axis"].value, is_(2*theta_angle))
+
+
+    #TODO get question answered and then correct this test
+    # def test_GIVEN_beam_line_where_items_no_on_track_WHEN_set_theta_THEN_motors_move_to_be_correct_distance_from_the_beam(self):
+    #     spacing = 2.0
+    #
+    #     bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
+    #
+    #     s1_offset = 1
+    #     bl.parameter("s1").sp = s1_offset
+    #     s3_offset = 2
+    #     bl.parameter("s3").sp = s3_offset
+    #     det_offset = 3
+    #     bl.parameter("det").sp = det_offset
+    #     det_ang_offset = 4
+    #     bl.parameter("det_angle").sp = det_ang_offset
+    #
+    #     theta_angle = 2
+    #     bl.parameter("theta").sp = theta_angle
+    #     bl.move = 1
+    #
+    #     assert_that(drives["s1_axis"].value, is_(s1_offset))
+    #     assert_that(bl.parameter("s1").rbv, is_(s1_offset))
+    #
+    #     expected_s3_value = spacing * tan(radians(theta_angle * 2.0)) + s3_offset
+    #     assert_that(drives["s3_axis"].value, is_(expected_s3_value))
+    #     assert_that(bl.parameter("s3").rbv, is_(s3_offset))
+    #
+    #     expected_det_value = 2 * spacing * tan(radians(theta_angle * 2.0)) + det_offset
+    #     assert_that(drives["det_axis"].value, is_(expected_det_value))
+    #     assert_that(bl.parameter("det").rbv, is_(det_offset))
+    #
+    #     assert_that(drives["det_angle_axis"].value, is_(2*theta_angle + det_ang_offset))
+    #     assert_that(bl.parameter("det_angle").rbv, is_(det_ang_offset))
+    #
+    #     assert_that(bl.parameter("theta").rbv, is_(theta_angle))
+
 
 if __name__ == '__main__':
     unittest.main()

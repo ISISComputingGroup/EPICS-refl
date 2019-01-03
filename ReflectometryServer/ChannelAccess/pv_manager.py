@@ -2,6 +2,7 @@
 Reflectometry pv manager
 """
 from enum import Enum
+from pcaspy import Severity
 
 from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
@@ -22,7 +23,7 @@ SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
 MOVE_SUFFIX = ":MOVE"
 CHANGED_SUFFIX = ":CHANGED"
-SET_AND_MOVE_SUFFIX = ":SETANDMOVE"
+SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
 VAL_FIELD = ".VAL"
 
 PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
@@ -42,7 +43,7 @@ class PvSort(Enum):
     MOVE = 1
     SP_RBV = 2
     SP = 3
-    SET_AND_MOVE = 4
+    SET_AND_NO_MOVE = 4
     CHANGED = 6
 
     @staticmethod
@@ -61,13 +62,35 @@ class PvSort(Enum):
             return "(Set point readback)"
         elif pv_sort == PvSort.SP:
             return "(Set point)"
-        elif pv_sort == PvSort.SET_AND_MOVE:
-            return "(Set point and then move)"
+        elif pv_sort == PvSort.SET_AND_NO_MOVE:
+            return "(Set point with no move afterwards)"
         elif pv_sort == PvSort.CHANGED:
             return "(is changed)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
+
+    def get_from_parameter(self, parameter):
+        """
+        Get the value of the correct sort from a parameter
+        Args:
+            parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter to get the value from
+
+        Returns: the value of the parameter of the correct sort
+        """
+        if self == PvSort.SP:
+            return parameter.sp
+        elif self == PvSort.SP_RBV:
+            return parameter.sp_rbv
+        elif self == PvSort.CHANGED:
+            return parameter.sp_changed
+        elif self == PvSort.SET_AND_NO_MOVE:
+            return parameter.sp_no_move
+        elif self == PvSort.RBV:
+            return parameter.rbv
+        elif self == PvSort.MOVE:
+            return parameter.move
+        return None
 
 
 class PVManager:
@@ -81,6 +104,7 @@ class PVManager:
             param_types (dict[str, (str, str, str)]): The type, group name and description for which to create PVs,
                 keyed by name.
             mode_names: names of the modes
+            status_codes (list[ReflectometryServer.beamline.STATUS]): status codes of Beam line with severities
         """
 
         self.PVDB = {}
@@ -93,9 +117,11 @@ class PVManager:
 
         self._add_pv_with_val(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
 
-        status_fields = {'type': 'enum', 'enums': status_codes}
+        status_fields = {'type': 'enum',
+                         'enums': [code.display_string for code in status_codes],
+                         'states': [code.alarm_severity for code in status_codes]}
         self._add_pv_with_val(BEAMLINE_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV, archive=True,
-                              interest="HIGH")
+                              interest="HIGH", alarm=True)
         self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'string'}, "Message about the beamline", PvSort.RBV,
                               archive=True, interest="HIGH")
 
@@ -121,7 +147,7 @@ class PVManager:
             description: description of the pv
         """
         try:
-            param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM")
+            param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM", limit=10)
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
             if BeamlineParameterGroup.TRACKING in group_names:
                 self._tracking_positions[prepended_alias] = param_name
@@ -141,8 +167,8 @@ class PVManager:
             self._add_pv_with_val(prepended_alias + SP_RBV_SUFFIX, param_name, fields, description, PvSort.SP_RBV)
 
             # Set value and move PV
-            self._add_pv_with_val(prepended_alias + SET_AND_MOVE_SUFFIX, param_name, fields, description,
-                                  PvSort.SET_AND_MOVE)
+            self._add_pv_with_val(prepended_alias + SET_AND_NO_MOVE_SUFFIX, param_name, fields, description,
+                                  PvSort.SET_AND_NO_MOVE)
 
             # Changed PV
             self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_CHANGED, description,
@@ -155,7 +181,8 @@ class PVManager:
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
 
-    def _add_pv_with_val(self, pv_name, param_name, pv_fields, description, param_sort, archive=False, interest=None):
+    def _add_pv_with_val(self, pv_name, param_name, pv_fields, description, param_sort, archive=False, interest=None,
+                         alarm=False):
         """
         Add param to pv list with .val and correct fields and to parm look up
         Args:
@@ -165,6 +192,7 @@ class PVManager:
             param_sort: sort of parameter it is
             archive: True if it should be archived
             interest: level of interest; None is not interesting
+            alarm: True if this pv represents the alarm state of the IOC; false otherwise
 
         Returns:
 
@@ -178,6 +206,8 @@ class PVManager:
             pv_fields_mod[PV_INFO_FIELD_NAME]["INTEREST"] = interest
         if archive:
             pv_fields_mod[PV_INFO_FIELD_NAME]["archive"] = "VAL"
+        if alarm:
+            pv_fields_mod[PV_INFO_FIELD_NAME]["alarm"] = "Reflectometry IOC (REFL)"
 
         self.PVDB[pv_name] = pv_fields_mod
         self.PVDB[pv_name + VAL_FIELD] = pv_fields
@@ -187,7 +217,10 @@ class PVManager:
 
     def param_names_pvnames_and_sort(self):
         """
-        :return: The list of PVs of all beamline parameters.
+
+        Returns:
+            (list[str, tuple[str, PvSort]]): The list of PVs of all beamline parameters.
+
         """
         return self._params_pv_lookup.items()
 
@@ -202,7 +235,7 @@ class PVManager:
         """
         return remove_from_end(pv_name, VAL_FIELD) in self._params_pv_lookup
 
-    def get_param_name_and_suffix_from_pv(self, pv_name):
+    def get_param_name_and_sort_from_pv(self, pv_name):
         """
         Args:
             pv_name: name of pv to find

@@ -35,9 +35,6 @@ class TestConfigurationSequence(unittest.TestCase):
         self.json_converter = MockConfigurationJsonConverter()
         self.config = Configuration(MACROS)
 
-    def tearDown(self):
-        pass
-
     def test_new_config_has_blank_name(self):
         # assert
         self.assertEqual(self.config.get_name(), "")
