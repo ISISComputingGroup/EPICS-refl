@@ -224,7 +224,6 @@ class Beamline(object):
             _: dummy can be anything
         """
         self._move_for_all_beamline_parameters()
-        self._move_drivers(self._get_max_move_duration())
 
     def __getitem__(self, item):
         """
@@ -258,7 +257,8 @@ class Beamline(object):
 
     def _move_for_all_beamline_parameters(self):
         """
-        Updates the beamline parameters to the latest set point value; reapplies if they are in the mode.
+        Updates the beamline parameters to the latest set point value; reapplies if they are in the mode. Then moves to
+        latest postions.
         """
         parameters = self._beamline_parameters.values()
         parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
@@ -266,11 +266,13 @@ class Beamline(object):
         for beamline_parameter in parameters:
             if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
                 beamline_parameter.move_to_sp_no_callback()
+        self._move_drivers(self._get_max_move_duration())
 
     def _move_for_single_beamline_parameters(self, source):
         """
         Moves starts from a single beamline parameter and move is to parameters sp read backs. If the
-        source is not in the mode then don't update any other parameters.
+        source is not in the mode then don't update any other parameters. Move to latest position.
+
         the beamline.
         Args:
             source: source to start the update from; None start from the beginning.
@@ -281,6 +283,7 @@ class Beamline(object):
 
             for beamline_parameter in parameters_in_mode:
                 beamline_parameter.move_to_sp_rbv_no_callback()
+        self._move_drivers(self._get_max_move_duration())
 
     def parameter(self, key):
         """

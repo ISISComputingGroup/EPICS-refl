@@ -322,6 +322,19 @@ class TestThetaComponent(unittest.TestCase):
 
         listener.assert_not_called()
 
+    def test_GIVEN_next_component_is_enabled_and_at_45_degrees_and_not_on_axis_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
+
+        beam_start = PositionAndAngle(y=10, z=0, angle=0)
+        next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
+        next_component.beam_path_rbv.enabled = True
+        next_component.beam_path_rbv.set_displacement(15, AlarmSeverity.No, AlarmStatus.No)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta.beam_path_rbv.set_incoming_beam(beam_start)
+
+        result = theta.beam_path_rbv.angle
+
+        assert_that(result, is_(close_to(45.0/2.0, 1e-6)))
+
 
 if __name__ == '__main__':
     unittest.main()

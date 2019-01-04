@@ -549,7 +549,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
     def test_GIVEN_theta_with_0_deg_beam_WHEN_next_component_is_at_45_THEN_value_is_22_5(self):
 
-        s3 = Component("s3", setup=PositionAndAngle(20, 10, 90))
+        s3 = Component("s3", setup=PositionAndAngle(10, 10, 90))
         sample = ThetaComponent("sample", setup=PositionAndAngle(10, 0, 90), angle_to=[s3])
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
         theta = AngleParameter("param", sample)

@@ -57,7 +57,7 @@ class BeamlineParameter(object):
     @property
     def sp_rbv(self):
         """
-        Returns: the set point read back value, i.e. where the last move was instructed to go
+        Returns: the set point read back value, i.e. wherethe last move was instructed to go
         """
         return self._set_point_rbv
 
