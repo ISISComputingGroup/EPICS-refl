@@ -282,7 +282,8 @@ class BeamPathCalcTheta(_BeamPathCalcReflecting):
         for readback_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.enabled:
                 other_pos = readback_beam_path_calc.sp_position()
-                this_pos = self.sp_position()
+                this_pos = self._movement_strategy.calculate_interception(incoming_beam)
+
                 opp = other_pos.y - this_pos.y
                 adj = other_pos.z - this_pos.z
                 # x = degrees(atan2(opp, adj)) is angle in room co-ords to component

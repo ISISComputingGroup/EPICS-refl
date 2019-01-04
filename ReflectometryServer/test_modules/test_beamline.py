@@ -109,7 +109,6 @@ class TestRealistic(unittest.TestCase):
 
         theta_angle = 2
         bl.parameter("theta").sp = theta_angle
-        bl.move = 1
 
         assert_that(drives["s1_axis"].value, is_(0))
 
@@ -157,6 +156,29 @@ class TestRealistic(unittest.TestCase):
     #
     #     assert_that(bl.parameter("theta").rbv, is_(theta_angle))
 
+    def test_GIVEN_beam_line_where_all_items_track_WHEN_set_theta_no_move_and_move_beamline_THEN_motors_move_to_be_on_the_beam(self):
+        spacing = 2.0
+
+        bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
+
+        bl.parameter("s1").sp = 0
+        bl.parameter("s3").sp = 0
+        bl.parameter("det").sp = 0
+        bl.parameter("det_angle").sp = 0
+
+        theta_angle = 2
+        bl.parameter("theta").sp_no_move = theta_angle
+        bl.move = 1
+
+        assert_that(drives["s1_axis"].value, is_(0))
+
+        expected_s3_value = spacing * tan(radians(theta_angle * 2.0))
+        assert_that(drives["s3_axis"].value, is_(expected_s3_value))
+
+        expected_det_value = 2 * spacing * tan(radians(theta_angle * 2.0))
+        assert_that(drives["det_axis"].value, is_(expected_det_value))
+
+        assert_that(drives["det_angle_axis"].value, is_(2*theta_angle))
 
 if __name__ == '__main__':
     unittest.main()
