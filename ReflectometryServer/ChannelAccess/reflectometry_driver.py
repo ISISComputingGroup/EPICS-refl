@@ -6,6 +6,7 @@ from functools import partial
 from pcaspy import Driver, Alarm, Severity
 
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS
+from ReflectometryServer.ChannelAccess.pv_manager import BEAMLINE_FP, BEAMLINE_DQQ, BEAMLINE_QMIN, BEAMLINE_QMAX
 from server_common.utilities import compress_and_hex
 
 
@@ -108,7 +109,15 @@ class ReflectometryDriver(Driver):
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
             self._update_param(pv_name, param_sort.get_from_parameter(parameter))
+        self._update_footprint()
         self.updatePVs()
+
+    def _update_footprint(self):
+        print("\n\n\nUPDATING FP\n\n\n")
+        self._update_param(BEAMLINE_FP, self._beamline.beam_footprint)
+        self._update_param(BEAMLINE_DQQ, self._beamline.beam_resolution)
+        self._update_param(BEAMLINE_QMIN, self._beamline.beam_q_range[0])
+        self._update_param(BEAMLINE_QMAX, self._beamline.beam_q_range[1])
 
     def _update_param(self, pv_name, value):
         """

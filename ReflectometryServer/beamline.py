@@ -8,6 +8,7 @@ from enum import Enum
 from pcaspy import Severity
 
 from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer.footprint_calc import BaseFootprintCalculator
 
 BeamlineStatus = namedtuple("Status", ['display_string', 'alarm_severity'])
 
@@ -120,7 +121,8 @@ class Beamline(object):
     The collection of all beamline components.
     """
 
-    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=PositionAndAngle(0, 0, 0)):
+    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=PositionAndAngle(0, 0, 0),
+                 footprint_calc=BaseFootprintCalculator()):
         """
         The initializer.
         Args:
@@ -135,6 +137,7 @@ class Beamline(object):
         self._components = components
         self._beam_path_calcs_set_point = []
         self._beam_path_calcs_rbv = []
+        self._footprint_calc = footprint_calc
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
         self._status = STATUS.OKAY
@@ -146,6 +149,7 @@ class Beamline(object):
                     beamline_parameter.name))
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
             beamline_parameter.after_move_listener = self._move_for_single_beamline_parameters
+            beamline_parameter.add_rbv_change_listener(self._footprint_calc.update_footprint)
 
         for component in components:
             self._beam_path_calcs_set_point.append(component.beam_path_set_point)
@@ -225,6 +229,18 @@ class Beamline(object):
         """
         self._move_for_all_beamline_parameters()
         self._move_drivers(self._get_max_move_duration())
+
+    @property
+    def beam_footprint(self):
+        return self._footprint_calc.calc_footprint_penumbra()
+
+    @property
+    def beam_resolution(self):
+        return self._footprint_calc.calc_min_resolution()
+
+    @property
+    def beam_q_range(self):
+        return self._footprint_calc.calc_q_range()
 
     def __getitem__(self, item):
         """

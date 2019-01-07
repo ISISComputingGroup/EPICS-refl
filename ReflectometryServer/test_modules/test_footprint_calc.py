@@ -1,8 +1,7 @@
 import unittest
 
-from math import tan, radians, sqrt, trunc
 from hamcrest import *
-from mock import patch, mock
+from mock import patch
 from parameterized import parameterized
 
 from ReflectometryServer.footprint_calc import *
@@ -26,8 +25,8 @@ TEST_TOLERANCE = 1e-5
 
 class TestFootprintCalc(unittest.TestCase):
     """
-    Test the output of the beam footprint calculator. Verifies the code against values from the excel spreadsheet the
-    scientists previously used.
+    Test the output of the beam footprint calculator. Verifies the results against values from the spreadsheet the
+    scientists used previously.
     """
 
     def setUp(self):
@@ -39,6 +38,7 @@ class TestFootprintCalc(unittest.TestCase):
                                         INTER_LAMBDA_MIN,
                                         INTER_LAMBDA_MAX)
 
+        self.calc.theta = 0.25
         for key, value in DEFAULT_GAPS.iteritems():
             self.calc.set_gap(key, value)
 
@@ -75,7 +75,8 @@ class TestFootprintCalc(unittest.TestCase):
                            (90, 200),
                            (135, 141.4213562)])
     def test_GIVEN_fixed_sample_size_and_variable_theta_value_WHEN_calculating_equivalent_slit_size_of_sample_THEN_result_is_correct(self, theta, expected):
-        actual = self.calc.calc_equivalent_gap_by_sample_size(theta)
+        self.calc.theta = theta
+        actual = self.calc.calc_equivalent_gap_by_sample_size()
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
 
@@ -85,10 +86,10 @@ class TestFootprintCalc(unittest.TestCase):
                            (200, 0.872661857),
                            (500, 2.181654642)])
     def test_GIVEN_variable_sample_size_and_fixed_theta_value_WHEN_calculating_equivalent_slit_size_of_sample_THEN_result_is_correct(self, sample_size, expected):
-        theta = 0.25
+
         self.calc.set_gap(SA, sample_size)
 
-        actual = self.calc.calc_equivalent_gap_by_sample_size(theta)
+        actual = self.calc.calc_equivalent_gap_by_sample_size()
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
 
@@ -106,31 +107,31 @@ class TestFootprintCalc(unittest.TestCase):
                            (45, 61.16492043),
                            (90, 43.25013001),
                            (135, 61.16492043)])
-    def test_GIVEN_variable_theta_value_WHEN_calculating_penumbra_at_sample_THEN_result_is_correct(self, theta, expected):
-        actual = self.calc.calc_footprint_penumbra(theta)
+    def test_GIVEN_variable_theta_value_WHEN_calculating_penumbra_footprint_at_sample_THEN_result_is_correct(self, theta, expected):
+        self.calc.theta = theta
+
+        actual = self.calc.calc_footprint_penumbra()
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
 
     def test_GIVEN_sample_size_smaller_than_penumbra_size_WHEN_getting_slit_gap_equivalent_to_sample_THEN_return_sample_size_value(self):
-        theta = 0.25
         penumbra_size = 300
 
         with patch.object(self.calc, 'calc_equivalent_gap_by_sample_size') as mock_sample, \
                 patch.object(self.calc, 'calc_equivalent_gap_by_penumbra') as mock_sample_penumbra, \
                 patch.object(self.calc, 'calc_footprint_penumbra', return_value=penumbra_size):
-            self.calc.get_sample_slit_gap_equivalent(theta)
+            self.calc.get_sample_slit_gap_equivalent()
 
             mock_sample_penumbra.assert_not_called()
             mock_sample.assert_called_once()
 
     def test_GIVEN_penumbra_size_smaller_than_sample_size_WHEN_getting_slit_gap_equivalent_to_sample_THEN_return_sample_penumbra_value(self):
-        theta = 0.25
         penumbra_size = 100
 
         with patch.object(self.calc, 'calc_equivalent_gap_by_sample_size') as mock_sample, \
                 patch.object(self.calc, 'calc_equivalent_gap_by_penumbra') as mock_sample_penumbra, \
                 patch.object(self.calc, 'calc_footprint_penumbra', return_value=penumbra_size):
-            self.calc.get_sample_slit_gap_equivalent(theta)
+            self.calc.get_sample_slit_gap_equivalent()
 
             mock_sample.assert_not_called()
             mock_sample_penumbra.assert_called_once()
@@ -146,17 +147,14 @@ class TestFootprintCalc(unittest.TestCase):
                            (SA, S4, 173.4867372),
                            (S3, S4, 405.1548997)])
     def test_GIVEN_beam_segment_WHEN_calculating_resolution_THEN_result_is_correct(self, comp1, comp2, expected):
-        theta = 0.25
-
-        actual = self.calc.calc_resolution(comp1, comp2, theta)
+        actual = self.calc.calc_resolution(comp1, comp2)
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
 
     def test_GIVEN_a_theta_value_WHEN_calculating_minimum_resolution_of_all_beamline_segments_THEN_result_is_minimum(self):
-        theta = 0.25
         expected = 173.4867372
 
-        actual = self.calc.calc_min_resolution(theta)
+        actual = self.calc.calc_min_resolution()
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
 
@@ -168,7 +166,9 @@ class TestFootprintCalc(unittest.TestCase):
                            (90, 0.739198271, 6.283185307),
                            (135, 0.52269211, 4.442882938)])
     def test_GIVEN_variable_theta_WHEN_calculating_Q_range_THEN_returns_correct_range(self, theta, qmin_expected, qmax_expected):
-        qmin_actual, qmax_actual = self.calc.calc_q_range(theta)
+        self.calc.theta = theta
+
+        qmin_actual, qmax_actual = self.calc.calc_q_range()
 
         assert_that(qmin_actual, is_(close_to(qmin_expected, TEST_TOLERANCE)))
         assert_that(qmax_actual, is_(close_to(qmax_expected, TEST_TOLERANCE)))
