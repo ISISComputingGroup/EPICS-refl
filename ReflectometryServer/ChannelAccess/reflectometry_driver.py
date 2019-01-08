@@ -94,11 +94,14 @@ class ReflectometryDriver(Driver):
                 print("Invalid value entered for mode. (Possible modes: {})".format(
                     ",".join(self._beamline.mode_names)))
                 status = False
+        elif self._pv_manager.is_sample_length(reason):
+            self._footprint_manager.set_sample_length(value)
         else:
             print("Error: PV is read only")
             status = False
 
         if status:
+            self._update_param(reason, value)
             self.update_monitors()
         return status
 

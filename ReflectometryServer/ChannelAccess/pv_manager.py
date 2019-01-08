@@ -303,20 +303,29 @@ class PVManager:
     def is_beamline_status(self, pv_name):
         """
         Args:
-            pv_name: name of the beamline status
+            pv_name: name of the pv
 
-        Returns: True if this the beamline status axis pv
+        Returns: True if this the beamline status pv
         """
         return self._is_pv_name_this_field(BEAMLINE_STATUS, pv_name)
 
     def is_beamline_message(self, pv_name):
         """
         Args:
-            pv_name: name of the beamline status
+            pv_name: name of the pv
 
         Returns: True if this the beamline message pv
         """
         return self._is_pv_name_this_field(BEAMLINE_MESSAGE, pv_name)
+
+    def is_sample_length(self, pv_name):
+        """
+        Args:
+            pv_name: name of the pv
+
+        Returns: True if this the sample length pv
+        """
+        return self._is_pv_name_this_field(SAMPLE_LENGTH, pv_name)
 
     def _is_pv_name_this_field(self, field_name, pv_name):
         """
