@@ -7,36 +7,33 @@ S3 = "POS_S3"
 S4 = "POS_S4"
 SA = "POS_SA"
 
+NOT_A_NUMBER = "NaN"
 
-class BaseFootprintCalculator(object):
-    def __init__(self):
-        self.positions = {}
-        self.gaps = {}
-        self.nan_value = "NaN"
 
+class BlankFootprintCalculator(object):
     def update_footprint(self, _):
         pass
 
-    def calc_min_resolution(self):
-        return self.nan_value
-
     def calc_footprint_penumbra(self):
-        return self.nan_value
+        return NOT_A_NUMBER
+
+    def calc_min_resolution(self):
+        return NOT_A_NUMBER
 
     def calc_q_range(self):
-        return self.nan_value, self.nan_value
+        return NOT_A_NUMBER
 
 
-class FootprintCalculator(BaseFootprintCalculator):
+class FootprintCalculator(BlankFootprintCalculator):
     """
     Calculator for the beam footprint and resolution.
     """
 
-    def __init__(self, pos_s1, pos_s2, pos_s3, pos_s4, pos_sa, lambda_min, lambda_max):
+    def __init__(self, pos_s1, pos_s2, pos_s3, pos_s4, pos_sa, lambda_min, lambda_max, theta):
         super(FootprintCalculator, self).__init__()
-        self._lambda_min = lambda_min
-        self._lambda_max = lambda_max
-        self._theta = 0.0
+        self._lambda_min = float(lambda_min)
+        self._lambda_max = float(lambda_max)
+        self._theta = theta
         self.positions = {S1: 0.0,
                           S2: float(pos_s2 - pos_s1),
                           S3: float(pos_s3 - pos_s1),
@@ -49,14 +46,6 @@ class FootprintCalculator(BaseFootprintCalculator):
                      S4: 40.0,
                      SA: 200.0,
                      }
-
-    @property
-    def theta(self):
-        return self._theta
-
-    @theta.setter
-    def theta(self, value):
-        self._theta = value
 
     def distance(self, comp1, comp2):
         """
@@ -80,7 +69,7 @@ class FootprintCalculator(BaseFootprintCalculator):
 
         Returns: The equivalent slit gap size in mm
         """
-        return self.gaps[SA] * sin(radians(self._theta))
+        return self.gaps[SA] * sin(radians(self._theta.sp_rbv))
 
     def calc_equivalent_gap_by_penumbra(self):
         """
@@ -102,7 +91,10 @@ class FootprintCalculator(BaseFootprintCalculator):
 
         Returns: The penumbra footprint in mm
         """
-        return self.calc_equivalent_gap_by_penumbra() / sin(radians(self._theta))
+        if self._theta.sp_rbv:
+            return self.calc_equivalent_gap_by_penumbra() / sin(radians(self._theta.sp_rbv))
+        else:
+            return NOT_A_NUMBER
 
     def calc_footprint_umbra(self):
         """
@@ -113,7 +105,7 @@ class FootprintCalculator(BaseFootprintCalculator):
 
         Returns: The umbra footprint in mm
         """
-        return self.gaps[S2] / sin(radians(self._theta))
+        return self.gaps[S2] / sin(radians(self._theta.sp_rbv))
 
     def get_sample_slit_gap_equivalent(self):
         """
@@ -170,17 +162,34 @@ class FootprintCalculator(BaseFootprintCalculator):
         comp1_gap = self.get_gap(comp1)
         comp2_gap = self.get_gap(comp2)
         res = atan((comp1_gap + comp2_gap) / self.distance(comp1, comp2))
-        return (res / (2 * tan(radians(self._theta)))) * 100
+        return (res / (2 * tan(radians(self._theta.sp_rbv)))) * 100
 
     def calc_min_resolution(self):
-        result = []
-        for i in range(len(self.positions.keys())-1):
-            start_comp = self.positions.keys()[i]
-            end_comps = self.positions.keys()[i+1:]
-            component_pairs = itertools.product([start_comp], end_comps)
-            for pair in component_pairs:
-                result.append(self.calc_resolution(pair[0], pair[1]))
-        return min(result)
+        if self._theta.sp_rbv:
+            result = []
+            for i in range(len(self.positions.keys())-1):
+                start_comp = self.positions.keys()[i]
+                end_comps = self.positions.keys()[i+1:]
+                component_pairs = itertools.product([start_comp], end_comps)
+                for pair in component_pairs:
+                    result.append(self.calc_resolution(pair[0], pair[1]))
+            return min(result)
+        else:
+            return NOT_A_NUMBER
+
+    def calc_q_range(self):
+        """
+        Calculate the range of Q that can be measured with the current beamline setup.
+
+        :param theta: The incident beam angle
+        :return: the minimum and maximum Q that can be measured
+        """
+        if self._theta.sp_rbv:
+            q_min = 4 * pi * sin(radians(self._theta.sp_rbv)) / self._lambda_max
+            q_max = 4 * pi * sin(radians(self._theta.sp_rbv)) / self._lambda_min
+            return q_min, q_max
+        else:
+            return NOT_A_NUMBER, NOT_A_NUMBER
 
     # TODO check this is right
     def calc_gaps(self, theta_rad, resolution, footprint):
@@ -198,14 +207,3 @@ class FootprintCalculator(BaseFootprintCalculator):
         sv1 = 2 * self.distance(S1, SA) * tan(resolution * theta_deg) - footprint * sin(theta_deg)
         sv2 = self.distance(S1, S2) * (footprint * sin(theta_deg)) / self.distance(S1, SA) - sv1
         return sv1, sv2
-
-    def calc_q_range(self):
-        """
-        Calculate the range of Q that can be measured with the current beamline setup.
-
-        :param theta: The incident beam angle
-        :return: the minimum and maximum Q that can be measured
-        """
-        q_min = 4 * pi * sin(radians(self._theta)) / self._lambda_max
-        q_max = 4 * pi * sin(radians(self._theta)) / self._lambda_min
-        return q_min, q_max

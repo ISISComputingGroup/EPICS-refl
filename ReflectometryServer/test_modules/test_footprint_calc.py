@@ -1,7 +1,7 @@
 import unittest
 
 from hamcrest import *
-from mock import patch
+from mock import patch, Mock
 from parameterized import parameterized
 
 from ReflectometryServer.footprint_calc import *
@@ -30,13 +30,16 @@ class TestFootprintCalc(unittest.TestCase):
     """
 
     def setUp(self):
+        self.theta = Mock()
+        self.theta.sp_rbv = 0.25
         self.calc = FootprintCalculator(INTER_SLIT1_POS,
                                         INTER_SLIT2_POS,
                                         INTER_SLIT3_POS,
                                         INTER_SLIT4_POS,
                                         INTER_SAMPLE_POS,
                                         INTER_LAMBDA_MIN,
-                                        INTER_LAMBDA_MAX)
+                                        INTER_LAMBDA_MAX,
+                                        self.theta)
 
         self.calc.theta = 0.25
         for key, value in DEFAULT_GAPS.iteritems():
@@ -75,7 +78,7 @@ class TestFootprintCalc(unittest.TestCase):
                            (90, 200),
                            (135, 141.4213562)])
     def test_GIVEN_fixed_sample_size_and_variable_theta_value_WHEN_calculating_equivalent_slit_size_of_sample_THEN_result_is_correct(self, theta, expected):
-        self.calc.theta = theta
+        self.theta.sp_rbv = theta
         actual = self.calc.calc_equivalent_gap_by_sample_size()
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
@@ -86,7 +89,6 @@ class TestFootprintCalc(unittest.TestCase):
                            (200, 0.872661857),
                            (500, 2.181654642)])
     def test_GIVEN_variable_sample_size_and_fixed_theta_value_WHEN_calculating_equivalent_slit_size_of_sample_THEN_result_is_correct(self, sample_size, expected):
-
         self.calc.set_gap(SA, sample_size)
 
         actual = self.calc.calc_equivalent_gap_by_sample_size()
@@ -108,8 +110,7 @@ class TestFootprintCalc(unittest.TestCase):
                            (90, 43.25013001),
                            (135, 61.16492043)])
     def test_GIVEN_variable_theta_value_WHEN_calculating_penumbra_footprint_at_sample_THEN_result_is_correct(self, theta, expected):
-        self.calc.theta = theta
-
+        self.theta.sp_rbv = theta
         actual = self.calc.calc_footprint_penumbra()
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
@@ -147,6 +148,7 @@ class TestFootprintCalc(unittest.TestCase):
                            (SA, S4, 173.4867372),
                            (S3, S4, 405.1548997)])
     def test_GIVEN_beam_segment_WHEN_calculating_resolution_THEN_result_is_correct(self, comp1, comp2, expected):
+
         actual = self.calc.calc_resolution(comp1, comp2)
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
@@ -166,12 +168,38 @@ class TestFootprintCalc(unittest.TestCase):
                            (90, 0.739198271, 6.283185307),
                            (135, 0.52269211, 4.442882938)])
     def test_GIVEN_variable_theta_WHEN_calculating_Q_range_THEN_returns_correct_range(self, theta, qmin_expected, qmax_expected):
-        self.calc.theta = theta
+        self.theta.sp_rbv = theta
 
         qmin_actual, qmax_actual = self.calc.calc_q_range()
 
         assert_that(qmin_actual, is_(close_to(qmin_expected, TEST_TOLERANCE)))
         assert_that(qmax_actual, is_(close_to(qmax_expected, TEST_TOLERANCE)))
+
+    def test_GIVEN_theta_is_not_initialised_WHEN_calculating_footprint_THEN_result_is_NaN(self):
+        self.theta.sp_rbv = None
+        expected = "NaN"
+
+        actual = self.calc.calc_footprint_penumbra()
+
+        self.assertEqual(expected, actual)
+
+    def test_GIVEN_theta_is_not_initialised_WHEN_calculating_resolution_THEN_result_is_NaN(self):
+        self.theta.sp_rbv = None
+        expected = "NaN"
+
+        actual = self.calc.calc_min_resolution()
+
+        self.assertEqual(expected, actual)
+
+    def test_GIVEN_theta_is_not_initialised_WHEN_calculating_qrange_THEN_result_is_NaN(self):
+        self.theta.sp_rbv = None
+        expected = "NaN"
+
+        actual_qmin, actual_qmax = self.calc.calc_q_range()
+
+        self.assertEqual(expected, actual_qmin)
+        self.assertEqual(expected, actual_qmax)
+
 
 if __name__ == '__main__':
     unittest.main()
