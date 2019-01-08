@@ -6,7 +6,7 @@ from functools import partial
 from pcaspy import Driver, Alarm, Severity
 
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS
-from ReflectometryServer.ChannelAccess.pv_manager import BEAMLINE_FP, BEAMLINE_DQQ, BEAMLINE_QMIN, BEAMLINE_QMAX, BEAMLINE_FOOTPRINT_SUFFIXES
+from ReflectometryServer.ChannelAccess.pv_manager import FP, DQQ, QMIN, QMAX, FOOTPRINT_SUFFIXES
 from server_common.utilities import compress_and_hex
 
 
@@ -29,6 +29,7 @@ class ReflectometryDriver(Driver):
         self._beamline = beamline
         self._ca_server = server
         self._pv_manager = pv_manager
+        self._footprint_manager = beamline.footprint_manager
 
         for reason in self._pv_manager.PVDB.keys():
             self.setParamStatus(reason, severity=Severity.NO_ALARM, alarm=Alarm.NO_ALARM)
@@ -113,20 +114,14 @@ class ReflectometryDriver(Driver):
         self.updatePVs()
 
     def _update_footprints(self):
-        for suffix in BEAMLINE_FOOTPRINT_SUFFIXES:
+        for suffix in FOOTPRINT_SUFFIXES:
             self._update_footprint(suffix)
 
     def _update_footprint(self, suffix):
-        if suffix is "_SP":
-            footprint_calc = self._beamline.footprint_calc_sp
-        elif suffix is "_SP_RBV":
-            footprint_calc = self._beamline.footprint_calc_sp_rbv
-        else:
-            footprint_calc = self._beamline.footprint_calc_rbv
-        self._update_param(BEAMLINE_FP + suffix, footprint_calc.calc_footprint())
-        self._update_param(BEAMLINE_DQQ + suffix, footprint_calc.calc_min_resolution())
-        self._update_param(BEAMLINE_QMIN + suffix, footprint_calc.calc_q_min())
-        self._update_param(BEAMLINE_QMAX + suffix, footprint_calc.calc_q_max())
+        self._update_param(FP + suffix, self._footprint_manager.get_footprint(suffix))
+        self._update_param(DQQ + suffix, self._footprint_manager.get_resolution(suffix))
+        self._update_param(QMIN + suffix, self._footprint_manager.get_q_min(suffix))
+        self._update_param(QMAX + suffix, self._footprint_manager.get_q_max(suffix))
 
     def _update_param(self, pv_name, value):
         """

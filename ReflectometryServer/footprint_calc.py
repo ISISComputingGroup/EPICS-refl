@@ -7,8 +7,6 @@ S3 = "POS_S3"
 S4 = "POS_S4"
 SA = "POS_SA"
 
-NOT_A_NUMBER = "NaN"
-
 
 class FootprintSetup(object):
     def __init__(self, pos_s1, pos_s2, pos_s3, pos_s4, pos_sa, lambda_min, lambda_max, theta):
@@ -91,10 +89,7 @@ class FootprintCalculator(object):
 
         Returns: The penumbra footprint in mm
         """
-        if self.theta():
-            return self.calc_equivalent_gap_by_penumbra() / sin(radians(self.theta()))
-        else:
-            return NOT_A_NUMBER
+        return self.calc_equivalent_gap_by_penumbra() / sin(radians(self.theta()))
 
     def calc_footprint_umbra(self):
         """
@@ -111,10 +106,7 @@ class FootprintCalculator(object):
 
         Returns: The equivalent slit size of the sample reflection
         """
-        if self.setup.gaps[SA] < self.calc_footprint():
-            return self.calc_equivalent_gap_by_sample_size()
-        else:
-            return self.calc_equivalent_gap_by_penumbra()
+        return self.calc_equivalent_gap_by_sample_size()
 
     def get_gap(self, comp):
         """
@@ -126,10 +118,7 @@ class FootprintCalculator(object):
             
         Returns: The gap size of the component or its equivalent for the sample reflection.
         """
-        if comp is SA:
-            return self.get_sample_slit_gap_equivalent()
-        else:
-            return self.setup.gaps[comp]
+        return self.get_sample_slit_gap_equivalent()
 
     def set_gap(self, comp, val):
         """
@@ -159,17 +148,14 @@ class FootprintCalculator(object):
         return (res / (2 * tan(radians(self.theta())))) * 100
 
     def calc_min_resolution(self):
-        if self.theta():
-            result = []
-            for i in range(len(self.setup.positions.keys())-1):
-                start_comp = self.setup.positions.keys()[i]
-                end_comps = self.setup.positions.keys()[i+1:]
-                component_pairs = itertools.product([start_comp], end_comps)
-                for pair in component_pairs:
-                    result.append(self.calc_resolution(pair[0], pair[1]))
-            return min(result)
-        else:
-            return NOT_A_NUMBER
+        result = []
+        for i in range(len(self.setup.positions.keys())-1):
+            start_comp = self.setup.positions.keys()[i]
+            end_comps = self.setup.positions.keys()[i+1:]
+            component_pairs = itertools.product([start_comp], end_comps)
+            for pair in component_pairs:
+                result.append(self.calc_resolution(pair[0], pair[1]))
+        return min(result)
 
     def calc_q_min(self):
         """
@@ -178,11 +164,8 @@ class FootprintCalculator(object):
         :param theta: The incident beam angle
         :return: the minimum and maximum Q that can be measured
         """
-        if self.theta():
-            q_min = 4 * pi * sin(radians(self.theta())) / self.setup.lambda_max
-            return q_min
-        else:
-            return NOT_A_NUMBER
+        q_min = 4 * pi * sin(radians(self.theta())) / self.setup.lambda_max
+        return q_min
 
     def calc_q_max(self):
         """
@@ -191,11 +174,8 @@ class FootprintCalculator(object):
         :param theta: The incident beam angle
         :return: the minimum and maximum Q that can be measured
         """
-        if self.theta():
-            q_max = 4 * pi * sin(radians(self.theta())) / self.setup.lambda_min
-            return q_max
-        else:
-            return NOT_A_NUMBER
+        q_max = 4 * pi * sin(radians(self.theta())) / self.setup.lambda_min
+        return q_max
 
     # TODO check this is right
     def calc_gaps(self, theta_rad, resolution, footprint):
