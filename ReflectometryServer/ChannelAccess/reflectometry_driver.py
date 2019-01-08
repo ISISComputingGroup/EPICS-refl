@@ -5,7 +5,7 @@ from functools import partial
 
 from pcaspy import Driver, Alarm, Severity
 
-from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS
+from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, SP_SUFFIX
 from ReflectometryServer.parameters import BeamlineParameterType
 from server_common.utilities import compress_and_hex
 
@@ -36,6 +36,7 @@ class ReflectometryDriver(Driver):
         self.update_monitors()
 
         self.add_rbv_param_listeners()
+        self.add_trigger_active_mode_change_listener()
 
     def read(self, reason):
         """
@@ -53,8 +54,7 @@ class ReflectometryDriver(Driver):
                 return value
 
         elif self._pv_manager.is_beamline_mode(reason):
-            beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
-            return beamline_mode_enums.index(self._beamline.active_mode)
+            return self._beamline_mode_value(self._beamline.active_mode)
 
         elif self._pv_manager.is_beamline_move(reason):
             return self._beamline.move
@@ -74,6 +74,10 @@ class ReflectometryDriver(Driver):
 
         else:
             return self.getParam(reason)
+
+    def _beamline_mode_value(self, mode):
+        beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
+        return beamline_mode_enums.index(mode)
 
     def write(self, reason, value):
         """
@@ -97,6 +101,7 @@ class ReflectometryDriver(Driver):
             try:
                 beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
                 self._beamline.active_mode = beamline_mode_enums[value]
+                self._update_param(reason, value)
             except ValueError:
                 print("Invalid value entered for mode. (Possible modes: {})".format(
                     ",".join(self._beamline.mode_names)))
@@ -147,3 +152,14 @@ class ReflectometryDriver(Driver):
             parameter = self._beamline.parameter(param_name)
             if param_sort == PvSort.RBV:
                 parameter.add_rbv_change_listener(partial(self._update_param_rbv_listener, pv_name))
+
+    def add_trigger_active_mode_change_listener(self):
+        """
+        Adds the monitor on the active mode, if this changes a monitor is posted.
+        """
+        def _bl_mode_change(mode):
+            mode_value = self._beamline_mode_value(mode)
+            self._update_param(BEAMLINE_MODE, mode_value)
+            self._update_param(BEAMLINE_MODE + SP_SUFFIX, mode_value)
+            self.updatePVs()
+        self._beamline.add_active_mode_change_listener(_bl_mode_change)

@@ -132,6 +132,7 @@ class Beamline(object):
             modes(list[BeamlineMode])
             incoming_beam (ReflectometryServer.geometry.PositionAndAngle): the incoming beam point
         """
+
         self._components = components
         self._beam_path_calcs_set_point = []
         self._beam_path_calcs_rbv = []
@@ -139,6 +140,7 @@ class Beamline(object):
         self._drivers = drivers
         self._status = STATUS.OKAY
         self._message = ""
+        self._active_mode_change_listeners = set()
 
         for beamline_parameter in beamline_parameters:
             if beamline_parameter.name in self._beamline_parameters:
@@ -205,6 +207,7 @@ class Beamline(object):
         try:
             self._active_mode = self._modes[mode]
             self.init_setpoints()
+            self._trigger_active_mode_change()
         except KeyError:
             raise ValueError("Not a valid mode name: '{}'".format(mode))
 
@@ -352,3 +355,20 @@ class Beamline(object):
         Returns: the status codes which have display properties and alarm severities
         """
         return [status.value for status in STATUS]
+
+    def _trigger_active_mode_change(self):
+        """
+        Triggers all listeners after a mode change.
+
+        """
+        for listener in self._active_mode_change_listeners:
+            listener(self.active_mode)
+
+    def add_active_mode_change_listener(self, listener):
+        """
+        Add the listener for mode changes to this beamline
+        Args:
+            listener: the listener to add function with mode as new mode
+
+        """
+        self._active_mode_change_listeners.add(listener)
