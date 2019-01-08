@@ -6,6 +6,7 @@ from functools import partial
 from pcaspy import Driver, Alarm, Severity
 
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS
+from ReflectometryServer.parameters import BeamlineParameterType
 from server_common.utilities import compress_and_hex
 
 
@@ -45,24 +46,32 @@ class ReflectometryDriver(Driver):
         if self._pv_manager.is_param(reason):
             param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
             param = self._beamline.parameter(param_name)
-            return param_sort.get_from_parameter(param)
+            value = param_sort.get_from_parameter(param)
+            if param.parameter_type == BeamlineParameterType.IN_OUT:
+                return 1 if value else 0
+            else:
+                return value
 
         elif self._pv_manager.is_beamline_mode(reason):
-
             beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
             return beamline_mode_enums.index(self._beamline.active_mode)
+
         elif self._pv_manager.is_beamline_move(reason):
             return self._beamline.move
+
         elif self._pv_manager.is_tracking_axis(reason):
             return compress_and_hex(self.getParam(reason))
+
         elif self._pv_manager.is_beamline_status(reason):
             beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
             new_value = beamline_status_enums.index(self._beamline.status.name)
             #  Set the value so that the error condition is set
             self.setParam(reason, new_value)
             return new_value
+
         elif self._pv_manager.is_beamline_message(reason):
             return self._beamline.message
+
         else:
             return self.getParam(reason)
 

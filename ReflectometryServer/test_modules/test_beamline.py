@@ -180,5 +180,6 @@ class TestRealistic(unittest.TestCase):
 
         assert_that(drives["det_angle_axis"].value, is_(2*theta_angle))
 
+
 if __name__ == '__main__':
     unittest.main()
