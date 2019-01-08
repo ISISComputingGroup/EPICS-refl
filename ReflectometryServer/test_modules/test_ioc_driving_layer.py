@@ -8,7 +8,7 @@ from hamcrest import *
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.components import TiltingComponent, Component, ReflectingComponent
 from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
-from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
+from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver, TOLERANCE_ON_OUT_OF_BEAM_POSITION
 from ReflectometryServer.parameters import AngleParameter, TrackingPosition
 from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
@@ -170,6 +170,71 @@ class TestHeightAndAngleDriver(unittest.TestCase):
 
         listener.assert_called_once()
         assert_that(self.supermirror.beam_path_rbv.angle, is_(expected_value))
+
+
+class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
+
+    def setUp(self):
+        self.start_position = 0.0
+        self.max_velocity = 10.0
+        self.out_of_beam_position = -20
+        self.height_axis = create_mock_axis("JAWS:HEIGHT", self.start_position, self.max_velocity)
+
+        self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
+        self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+
+        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis, out_of_beam_position=self.out_of_beam_position)
+
+    def test_GIVEN_component_which_is_disabled_WHEN_calculating_move_duration_THEN_returned_duration_is_time_taken_to_move_to_out_of_beam_position(self):
+
+        expected = - self.out_of_beam_position / self.max_velocity
+        self.jaws.beam_path_set_point.is_in_beam = False
+
+        result = self.jaws_driver.get_max_move_duration()
+
+        assert_that(result, is_(expected))
+
+    def test_GIVEN_component_which_is_disabled_WHEN_moving_axis_THEN_computed_axis_velocity_is_correct_and_setpoint_set(self):
+        expected_position = self.out_of_beam_position
+        target_duration = 4.0
+        expected_velocity = - expected_position / 4.0
+        self.jaws.beam_path_set_point.is_in_beam = False
+
+        self.jaws_driver.perform_move(target_duration)
+
+        assert_that(self.height_axis.velocity, is_(expected_velocity))
+        assert_that(self.height_axis.value, is_(expected_position))
+
+    def test_GIVEN_displacement_changed_to_out_of_beam_position_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_false(self):
+        listener = MagicMock()
+        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        expected_value = False
+
+        self.height_axis.value = self.out_of_beam_position
+
+        listener.assert_called()
+        assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
+
+    def test_GIVEN_displacement_changed_to_an_in_beam_position_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_true(self):
+        listener = MagicMock()
+        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        expected_value = True
+
+        self.height_axis.value = self.out_of_beam_position + 2 * TOLERANCE_ON_OUT_OF_BEAM_POSITION
+
+        listener.assert_called()
+        assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
+
+    def test_GIVEN_displacement_changed_to_out_of_beam_position_within_tolerance_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_false(self):
+        listener = MagicMock()
+        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        expected_value = False
+
+        self.height_axis.value = self.out_of_beam_position + TOLERANCE_ON_OUT_OF_BEAM_POSITION * 0.9
+
+        listener.assert_called()
+        assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
+
 
 class BeamlineMoveDurationTest(unittest.TestCase):
     def test_GIVEN_multiple_components_in_beamline_WHEN_triggering_move_THEN_components_move_at_speed_of_slowest_axis(self):

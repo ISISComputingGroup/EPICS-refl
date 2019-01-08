@@ -25,7 +25,7 @@ class TrackingBeamPathCalc(object):
         self._incoming_beam = None
         self._after_beam_path_update_listeners = set()
         self._after_physical_move_listeners = set()
-        self._enabled = True
+        self._is_in_beam = True
         self._movement_strategy = movement_strategy
 
     def add_after_beam_path_update_listener(self, listener):
@@ -113,20 +113,20 @@ class TrackingBeamPathCalc(object):
         return self._movement_strategy.sp_position()
 
     @property
-    def enabled(self):
+    def is_in_beam(self):
         """
         Returns: the enabled status
         """
-        return self._enabled
+        return self._is_in_beam
 
-    @enabled.setter
-    def enabled(self, enabled):
+    @is_in_beam.setter
+    def is_in_beam(self, is_in_beam):
         """
-        Updates the component enabled status and notifies the beam path update listener
+        Updates the components in_beam status and notifies the beam path update listener
         Args:
-            enabled: The modified enabled status
+            is_in_beam: True if set the component to be in the beam; False otherwise
         """
-        self._enabled = enabled
+        self._is_in_beam = is_in_beam
         self._trigger_after_beam_path_update()
         self._trigger_after_physical_move_listener()
 
@@ -211,7 +211,7 @@ class _BeamPathCalcReflecting(_BeamPathCalcWithAngle):
         """
         Returns: the outgoing beam based on the last set incoming beam and any interaction with the component
         """
-        if not self._enabled:
+        if not self._is_in_beam:
             return self._incoming_beam
 
         target_position = self.calculate_beam_interception()
@@ -280,7 +280,7 @@ class BeamPathCalcTheta(_BeamPathCalcReflecting):
         Returns: half the angle to the next enabled beam path calc, or nan if there isn't one.
         """
         for readback_beam_path_calc in self._angle_to:
-            if readback_beam_path_calc.enabled:
+            if readback_beam_path_calc.is_in_beam:
                 other_pos = readback_beam_path_calc.sp_position()
                 this_pos = self._movement_strategy.calculate_interception(incoming_beam)
 

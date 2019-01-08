@@ -123,7 +123,7 @@ class TestBeamlineParameter(unittest.TestCase):
 
     def test_GIVEN_component_parameter_enabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_enabled(self):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
-        super_mirror.beam_path_set_point.enabled = False
+        super_mirror.beam_path_set_point.is_in_beam = False
         sm_enabled = ComponentEnabled("smenabled", super_mirror)
         enabled_sp = True
 
@@ -131,11 +131,11 @@ class TestBeamlineParameter(unittest.TestCase):
         sm_enabled.move = 1
 
         assert_that(sm_enabled.sp_rbv, is_(enabled_sp))
-        assert_that(super_mirror.beam_path_set_point.enabled, is_(enabled_sp))
+        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(enabled_sp))
 
     def test_GIVEN_component_parameter_disabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_disabled(self):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
-        super_mirror.beam_path_set_point.enabled = True
+        super_mirror.beam_path_set_point.is_in_beam = True
         sm_enabled = ComponentEnabled("smenabled", super_mirror)
         enabled_sp = False
 
@@ -143,7 +143,7 @@ class TestBeamlineParameter(unittest.TestCase):
         sm_enabled.move = 1
 
         assert_that(sm_enabled.sp_rbv, is_(enabled_sp))
-        assert_that(super_mirror.beam_path_set_point.enabled, is_(enabled_sp))
+        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(enabled_sp))
 
 class TestBeamlineModes(unittest.TestCase):
 
@@ -521,7 +521,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         beamline_position = ComponentEnabled("param", sample)
         listener = Mock()
         beamline_position.add_rbv_change_listener(listener)
-        sample.beam_path_rbv.enabled = state
+        sample.beam_path_rbv.is_in_beam = state
 
         listener.assert_called_once_with(state)
 

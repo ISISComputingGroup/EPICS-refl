@@ -2,8 +2,6 @@
 Reflectometry pv manager
 """
 from enum import Enum
-from pcaspy import Severity
-
 from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
 from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY
@@ -28,7 +26,7 @@ PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_FIELDS_MOVE = {'type': 'int', 'count': 1, 'value': 0}
 
 PARAMS_FIELDS_BEAMLINE_TYPES = {
-    BeamlineParameterType.IN_OUT: {'enums': ["OUT", "IN"]},
+    BeamlineParameterType.IN_OUT: {'type': 'enum', 'enums': ["OUT", "IN"]},
     BeamlineParameterType.FLOAT: {'type': 'float', 'prec': 3, 'value': 0.0}}
 
 

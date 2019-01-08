@@ -260,7 +260,7 @@ class ComponentEnabled(BeamlineParameter):
         self.parameter_type = BeamlineParameterType.IN_OUT
 
     def _move_component(self):
-        self._component.beam_path_set_point.enabled = self._set_point_rbv
+        self._component.beam_path_set_point.is_in_beam = self._set_point_rbv
 
     def _rbv(self):
-        return self._component.beam_path_rbv.enabled
+        return self._component.beam_path_rbv.is_in_beam

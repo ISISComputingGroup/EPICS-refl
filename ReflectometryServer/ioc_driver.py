@@ -7,6 +7,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Tolerance within which the position will be declared out of the beam. 1 mm tolerance.
+TOLERANCE_ON_OUT_OF_BEAM_POSITION = 1
+
 
 class IocDriver(object):
     """
@@ -22,6 +25,10 @@ class IocDriver(object):
         self._component = component
         self._axis = axis
         self._axis.add_after_value_change_listener(self._trigger_after_axis_value_change_listener)
+
+    def __repr__(self):
+        return "{} for axis pv {} and component {}".format(
+            self.__class__.__name__, self._axis.name, self._component.name)
 
     def get_max_move_duration(self):
         """
@@ -72,14 +79,17 @@ class DisplacementDriver(IocDriver):
     """
     Drives a component with linear displacement movement
     """
-    def __init__(self, component, height_axis):
+    def __init__(self, component, height_axis, out_of_beam_position=None):
         """
         Constructor.
         Args:
             component (ReflectometryServer.components.Component): The component providing the values for the axes
             height_axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV that this driver controls.
+            out_of_beam_position (float): this position that the component should be in when out of the beam; None for
+                can not set the component to be out of the beam
         """
         super(DisplacementDriver, self).__init__(component, height_axis)
+        self._out_of_beam_position = out_of_beam_position
 
     def _trigger_after_axis_value_change_listener(self, new_value, alarm_severity, alarm_status):
         """
@@ -89,11 +99,22 @@ class DisplacementDriver(IocDriver):
             alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
             alarm_status (CaChannel._ca.AlarmCondition): the alarm status
         """
-
+        if self._out_of_beam_position is not None:
+            distance_to_out_of_beam = abs(new_value - self._out_of_beam_position)
+            self._component.beam_path_rbv.is_in_beam = distance_to_out_of_beam > TOLERANCE_ON_OUT_OF_BEAM_POSITION
         self._component.beam_path_rbv.set_displacement(new_value, alarm_severity, alarm_status)
 
     def _get_set_point_position(self):
-        return self._component.beam_path_set_point.get_displacement()
+        if self._component.beam_path_set_point.is_in_beam:
+            displacement = self._component.beam_path_set_point.get_displacement()
+        else:
+            if self._out_of_beam_position is None:
+                displacement = 0
+                logger.error("The component, {},is out of the beam but there is no out of beam position for the driver "
+                             "running axis{}".format(self._component.name, self._axis.name))
+            else:
+                displacement = self._out_of_beam_position
+        return displacement
 
 
 class AngleDriver(DisplacementDriver):

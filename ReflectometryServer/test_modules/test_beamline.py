@@ -74,7 +74,7 @@ class TestComponentBeamline(unittest.TestCase):
         beamline, mirror = self.setup_beamline(initial_mirror_angle, mirror_position, beam_start)
         expected_beams = [beam_start, beam_start, beam_start]
 
-        mirror.beam_path_set_point.enabled = False
+        mirror.beam_path_set_point.is_in_beam = False
         results = [component.beam_path_set_point.get_outgoing_beam() for component in beamline]
 
         for index, (result, expected_beam) in enumerate(zip(results, expected_beams)):
