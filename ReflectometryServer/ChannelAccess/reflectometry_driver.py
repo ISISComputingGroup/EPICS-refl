@@ -6,7 +6,7 @@ from functools import partial
 from pcaspy import Driver, Alarm, Severity
 
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS
-from ReflectometryServer.ChannelAccess.pv_manager import BEAMLINE_FP, BEAMLINE_DQQ, BEAMLINE_QMIN, BEAMLINE_QMAX
+from ReflectometryServer.ChannelAccess.pv_manager import BEAMLINE_FP, BEAMLINE_DQQ, BEAMLINE_QMIN, BEAMLINE_QMAX, BEAMLINE_FOOTPRINT_SUFFIXES
 from server_common.utilities import compress_and_hex
 
 
@@ -109,15 +109,24 @@ class ReflectometryDriver(Driver):
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
             self._update_param(pv_name, param_sort.get_from_parameter(parameter))
-        self._update_footprint()
+        self._update_footprints()
         self.updatePVs()
 
-    def _update_footprint(self):
-        print("\n\n\nUPDATING FP\n\n\n")
-        self._update_param(BEAMLINE_FP, self._beamline.beam_footprint)
-        self._update_param(BEAMLINE_DQQ, self._beamline.beam_resolution)
-        self._update_param(BEAMLINE_QMIN, self._beamline.beam_q_range[0])
-        self._update_param(BEAMLINE_QMAX, self._beamline.beam_q_range[1])
+    def _update_footprints(self):
+        for suffix in BEAMLINE_FOOTPRINT_SUFFIXES:
+            self._update_footprint(suffix)
+
+    def _update_footprint(self, suffix):
+        if suffix is "_SP":
+            footprint_calc = self._beamline.footprint_calc_sp
+        elif suffix is "_SP_RBV":
+            footprint_calc = self._beamline.footprint_calc_sp_rbv
+        else:
+            footprint_calc = self._beamline.footprint_calc_rbv
+        self._update_param(BEAMLINE_FP + suffix, footprint_calc.calc_footprint())
+        self._update_param(BEAMLINE_DQQ + suffix, footprint_calc.calc_min_resolution())
+        self._update_param(BEAMLINE_QMIN + suffix, footprint_calc.calc_q_min())
+        self._update_param(BEAMLINE_QMAX + suffix, footprint_calc.calc_q_max())
 
     def _update_param(self, pv_name, value):
         """
@@ -137,6 +146,7 @@ class ReflectometryDriver(Driver):
             value: new value
         """
         self._update_param(pv_name, value)
+        self._update_footprint("_RBV")
         self.updatePVs()
 
     def add_rbv_param_listeners(self):

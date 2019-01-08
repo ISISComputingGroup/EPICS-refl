@@ -18,6 +18,7 @@ BEAMLINE_FP = BEAMLINE_PREFIX + "FP"
 BEAMLINE_DQQ = BEAMLINE_PREFIX + "DQQ"
 BEAMLINE_QMIN = BEAMLINE_PREFIX + "QMIN"
 BEAMLINE_QMAX = BEAMLINE_PREFIX + "QMAX"
+BEAMLINE_FOOTPRINT_SUFFIXES = ["_SP", "_SP_RBV", "_RBV"]
 BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
 BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
 TRACKING_AXES = "TRACKING_AXES"
@@ -112,13 +113,13 @@ class PVManager:
         self.PVDB = {}
         self._add_pv_with_val(BEAMLINE_MOVE, None, PARAM_FIELDS_MOVE, "Move the beam line", PvSort.RBV, archive=True,
                               interest="HIGH")
-
+        # PVs for mode
         mode_fields = {'type': 'enum', 'enums': mode_names}
         self._add_pv_with_val(BEAMLINE_MODE, None, mode_fields, "Beamline mode", PvSort.RBV, archive=True,
                               interest="HIGH")
-
         self._add_pv_with_val(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
 
+        # PVs for server status
         status_fields = {'type': 'enum',
                          'enums': [code.display_string for code in status_codes],
                          'states': [code.alarm_severity for code in status_codes]}
@@ -127,25 +128,26 @@ class PVManager:
         self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'string'}, "Message about the beamline", PvSort.RBV,
                               archive=True, interest="HIGH")
 
+        # PVs for beamline parameters
         self._params_pv_lookup = {}
         self._tracking_positions = {}
-
         for param, (param_type, group_names, description) in param_types.items():
             self._add_parameter_pvs(param, group_names, description, **PARAMS_FIELDS_BEAMLINE_TYPES[param_type])
-
         self.PVDB[TRACKING_AXES] = {'type': 'char',
                                     'count': 300,
                                     'value': json.dumps(self._tracking_positions)
                                     }
 
-        self._add_pv_with_val(BEAMLINE_FP, None, {'type': 'string'}, "Beam Footprint", PvSort.RBV, archive=True,
-                              interest="HIGH")
-        self._add_pv_with_val(BEAMLINE_DQQ, None, {'type': 'string'}, "Beam Resolution dQ/Q", PvSort.RBV, archive=True,
-                              interest="HIGH")
-        self._add_pv_with_val(BEAMLINE_QMIN, None, {'type': 'string'}, "Minimum measurable Q with current setup",
-                              PvSort.RBV, archive=True, interest="HIGH")
-        self._add_pv_with_val(BEAMLINE_QMAX, None, {'type': 'string'}, "Maximum measurable Q with current setup",
-                              PvSort.RBV, archive=True, interest="HIGH")
+        # PVs for footprint calculator
+        for suffix in BEAMLINE_FOOTPRINT_SUFFIXES:
+            self._add_pv_with_val(BEAMLINE_FP + suffix, None, {'type': 'string'}, "Beam Footprint", PvSort.RBV,
+                                  archive=True, interest="HIGH")
+            self._add_pv_with_val(BEAMLINE_DQQ + suffix, None, {'type': 'string'}, "Beam Resolution dQ/Q", PvSort.RBV,
+                                  archive=True, interest="HIGH")
+            self._add_pv_with_val(BEAMLINE_QMIN + suffix, None, {'type': 'string'},
+                                  "Minimum measurable Q with current setup", PvSort.RBV, archive=True, interest="HIGH")
+            self._add_pv_with_val(BEAMLINE_QMAX + suffix, None, {'type': 'string'},
+                                  "Maximum measurable Q with current setup", PvSort.RBV, archive=True, interest="HIGH")
 
         for pv_name in self.PVDB.keys():
             print("creating pv: {}".format(pv_name))

@@ -32,23 +32,25 @@ class TestFootprintCalc(unittest.TestCase):
     def setUp(self):
         self.theta = Mock()
         self.theta.sp_rbv = 0.25
-        self.calc = FootprintCalculator(INTER_SLIT1_POS,
-                                        INTER_SLIT2_POS,
-                                        INTER_SLIT3_POS,
-                                        INTER_SLIT4_POS,
-                                        INTER_SAMPLE_POS,
-                                        INTER_LAMBDA_MIN,
-                                        INTER_LAMBDA_MAX,
-                                        self.theta)
 
-        self.calc.theta = 0.25
+        self.calc_setup = FootprintSetup(INTER_SLIT1_POS,
+                                         INTER_SLIT2_POS,
+                                         INTER_SLIT3_POS,
+                                         INTER_SLIT4_POS,
+                                         INTER_SAMPLE_POS,
+                                         INTER_LAMBDA_MIN,
+                                         INTER_LAMBDA_MAX,
+                                         self.theta)
+
+        self.calc = FootprintCalculatorSetpointReadback(self.calc_setup)
+
         for key, value in DEFAULT_GAPS.iteritems():
             self.calc.set_gap(key, value)
 
     def test_GIVEN_initial_values_as_int_WHEN_setting_up_footprint_calculator_THEN_all_values_are_converted_to_float(self):
-        for value in self.calc.gaps.values():
+        for value in self.calc_setup.gaps.values():
             assert_that(value, is_(float))
-        for value in self.calc.positions.values():
+        for value in self.calc_setup.positions.values():
             assert_that(value, is_(float))
 
     def test_GIVEN_two_components_WHEN_calculating_distance_THEN_distance_is_correct(self):
@@ -111,7 +113,7 @@ class TestFootprintCalc(unittest.TestCase):
                            (135, 61.16492043)])
     def test_GIVEN_variable_theta_value_WHEN_calculating_penumbra_footprint_at_sample_THEN_result_is_correct(self, theta, expected):
         self.theta.sp_rbv = theta
-        actual = self.calc.calc_footprint_penumbra()
+        actual = self.calc.calc_footprint()
 
         assert_that(actual, is_(close_to(expected, TEST_TOLERANCE)))
 
@@ -120,7 +122,7 @@ class TestFootprintCalc(unittest.TestCase):
 
         with patch.object(self.calc, 'calc_equivalent_gap_by_sample_size') as mock_sample, \
                 patch.object(self.calc, 'calc_equivalent_gap_by_penumbra') as mock_sample_penumbra, \
-                patch.object(self.calc, 'calc_footprint_penumbra', return_value=penumbra_size):
+                patch.object(self.calc, 'calc_footprint', return_value=penumbra_size):
             self.calc.get_sample_slit_gap_equivalent()
 
             mock_sample_penumbra.assert_not_called()
@@ -131,7 +133,7 @@ class TestFootprintCalc(unittest.TestCase):
 
         with patch.object(self.calc, 'calc_equivalent_gap_by_sample_size') as mock_sample, \
                 patch.object(self.calc, 'calc_equivalent_gap_by_penumbra') as mock_sample_penumbra, \
-                patch.object(self.calc, 'calc_footprint_penumbra', return_value=penumbra_size):
+                patch.object(self.calc, 'calc_footprint', return_value=penumbra_size):
             self.calc.get_sample_slit_gap_equivalent()
 
             mock_sample.assert_not_called()
@@ -170,7 +172,8 @@ class TestFootprintCalc(unittest.TestCase):
     def test_GIVEN_variable_theta_WHEN_calculating_Q_range_THEN_returns_correct_range(self, theta, qmin_expected, qmax_expected):
         self.theta.sp_rbv = theta
 
-        qmin_actual, qmax_actual = self.calc.calc_q_range()
+        qmin_actual = self.calc.calc_q_min()
+        qmax_actual = self.calc.calc_q_max()
 
         assert_that(qmin_actual, is_(close_to(qmin_expected, TEST_TOLERANCE)))
         assert_that(qmax_actual, is_(close_to(qmax_expected, TEST_TOLERANCE)))
@@ -179,7 +182,7 @@ class TestFootprintCalc(unittest.TestCase):
         self.theta.sp_rbv = None
         expected = "NaN"
 
-        actual = self.calc.calc_footprint_penumbra()
+        actual = self.calc.calc_footprint()
 
         self.assertEqual(expected, actual)
 
@@ -195,10 +198,11 @@ class TestFootprintCalc(unittest.TestCase):
         self.theta.sp_rbv = None
         expected = "NaN"
 
-        actual_qmin, actual_qmax = self.calc.calc_q_range()
+        qmin_actual = self.calc.calc_q_min()
+        qmax_actual = self.calc.calc_q_max()
 
-        self.assertEqual(expected, actual_qmin)
-        self.assertEqual(expected, actual_qmax)
+        self.assertEqual(expected, qmin_actual)
+        self.assertEqual(expected, qmax_actual)
 
 
 if __name__ == '__main__':

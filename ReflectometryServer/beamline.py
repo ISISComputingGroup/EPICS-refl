@@ -8,7 +8,8 @@ from enum import Enum
 from pcaspy import Severity
 
 from ReflectometryServer.geometry import PositionAndAngle
-from ReflectometryServer.footprint_calc import BlankFootprintCalculator
+from ReflectometryServer.footprint_calc import FootprintCalculatorSetpoint, FootprintCalculatorSetpointReadback, \
+    FootprintCalculatorReadback, BlankFootprintSetup
 
 BeamlineStatus = namedtuple("Status", ['display_string', 'alarm_severity'])
 
@@ -122,7 +123,7 @@ class Beamline(object):
     """
 
     def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=PositionAndAngle(0, 0, 0),
-                 footprint_calc=BlankFootprintCalculator()):
+                 footprint_setup=BlankFootprintSetup()):
         """
         The initializer.
         Args:
@@ -137,11 +138,13 @@ class Beamline(object):
         self._components = components
         self._beam_path_calcs_set_point = []
         self._beam_path_calcs_rbv = []
-        self._footprint_calc = footprint_calc
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
         self._status = STATUS.OKAY
         self._message = ""
+        self.footprint_calc_sp = FootprintCalculatorSetpoint(footprint_setup)
+        self.footprint_calc_sp_rbv = FootprintCalculatorSetpointReadback(footprint_setup)
+        self.footprint_calc_rbv = FootprintCalculatorReadback(footprint_setup)
 
         for beamline_parameter in beamline_parameters:
             if beamline_parameter.name in self._beamline_parameters:
@@ -149,7 +152,6 @@ class Beamline(object):
                     beamline_parameter.name))
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
             beamline_parameter.after_move_listener = self._move_for_single_beamline_parameters
-            beamline_parameter.add_rbv_change_listener(self._footprint_calc.update_footprint)
 
         for component in components:
             self._beam_path_calcs_set_point.append(component.beam_path_set_point)
@@ -229,18 +231,6 @@ class Beamline(object):
         """
         self._move_for_all_beamline_parameters()
         self._move_drivers(self._get_max_move_duration())
-
-    @property
-    def beam_footprint(self):
-        return self._footprint_calc.calc_footprint_penumbra()
-
-    @property
-    def beam_resolution(self):
-        return self._footprint_calc.calc_min_resolution()
-
-    @property
-    def beam_q_range(self):
-        return self._footprint_calc.calc_q_range()
 
     def __getitem__(self, item):
         """

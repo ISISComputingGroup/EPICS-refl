@@ -171,13 +171,13 @@ class BeamlineParameter(object):
         """
         Moves the component(s) associated with this parameter to the setpoint.
         """
-        raise NotImplemented("This must be implement in the sub class")
+        raise NotImplemented("This must be implemented in the sub class")
 
     def _rbv(self):
         """
         Returns: the read back value
         """
-        raise NotImplemented("This must be implement in the sub class")
+        raise NotImplemented("This must be implemented in the sub class")
 
 
 class AngleParameter(BeamlineParameter):
