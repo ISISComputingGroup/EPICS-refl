@@ -106,7 +106,10 @@ class FootprintCalculator(object):
 
         Returns: The equivalent slit size of the sample reflection
         """
-        return self.calc_equivalent_gap_by_sample_size()
+        if self.setup.gaps[SA] < self.calc_footprint():
+            return self.calc_equivalent_gap_by_sample_size()
+        else:
+            return self.calc_equivalent_gap_by_penumbra()
 
     def get_gap(self, comp):
         """
@@ -118,7 +121,10 @@ class FootprintCalculator(object):
             
         Returns: The gap size of the component or its equivalent for the sample reflection.
         """
-        return self.get_sample_slit_gap_equivalent()
+        if comp is SA:
+            return self.get_sample_slit_gap_equivalent()
+        else:
+            return self.setup.gaps[comp]
 
     def set_gap(self, comp, val):
         """

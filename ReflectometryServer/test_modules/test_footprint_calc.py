@@ -32,6 +32,8 @@ class TestFootprintCalc(unittest.TestCase):
     def setUp(self):
         self.theta = Mock()
         self.theta.sp_rbv = 0.25
+        self.theta.sp = 0.25
+        self.theta.rbv = 0.25
 
         self.calc_setup = FootprintSetup(INTER_SLIT1_POS,
                                          INTER_SLIT2_POS,
@@ -177,32 +179,6 @@ class TestFootprintCalc(unittest.TestCase):
 
         assert_that(qmin_actual, is_(close_to(qmin_expected, TEST_TOLERANCE)))
         assert_that(qmax_actual, is_(close_to(qmax_expected, TEST_TOLERANCE)))
-
-    def test_GIVEN_theta_is_not_initialised_WHEN_calculating_footprint_THEN_result_is_NaN(self):
-        self.theta.sp_rbv = None
-        expected = "NaN"
-
-        actual = self.calc.calc_footprint()
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_theta_is_not_initialised_WHEN_calculating_resolution_THEN_result_is_NaN(self):
-        self.theta.sp_rbv = None
-        expected = "NaN"
-
-        actual = self.calc.calc_min_resolution()
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_theta_is_not_initialised_WHEN_calculating_qrange_THEN_result_is_NaN(self):
-        self.theta.sp_rbv = None
-        expected = "NaN"
-
-        qmin_actual = self.calc.calc_q_min()
-        qmax_actual = self.calc.calc_q_max()
-
-        self.assertEqual(expected, qmin_actual)
-        self.assertEqual(expected, qmax_actual)
 
 
 if __name__ == '__main__':
