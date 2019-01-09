@@ -43,6 +43,7 @@ class BeamlineParameter(object):
             self.description = description
         self.group_names = []
         self._rbv_change_listeners = set()
+        self._sp_rbv_change_listeners = set()
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
@@ -154,6 +155,24 @@ class BeamlineParameter(object):
         for listener in self._rbv_change_listeners:
             listener(rbv)
 
+    def add_sp_rbv_change_listener(self, listener):
+        """
+        Add a listener which should be called if the rbv value changes.
+        Args:
+            listener: the function to call with one argument which is the new rbv value
+        """
+        self._sp_rbv_change_listeners.add(listener)
+
+    def _trigger_sp_rbv_listeners(self, source):
+        """
+        Trigger all rbv listeners
+
+        Args:
+            source: source of change which is not used
+        """
+        for listener in self._sp_rbv_change_listeners:
+            listener(self._set_point_rbv)
+
     @property
     def name(self):
         """
@@ -179,26 +198,6 @@ class BeamlineParameter(object):
         Returns: the read back value
         """
         raise NotImplemented("This must be implemented in the sub class")
-
-
-class SlitGapParameter(BeamlineParameter):
-    def __init__(self, name, pv_wrapper, is_vertical, sim=False, init=0, description=None):
-        super(SlitGapParameter, self).__init__(name, sim, init, description)
-        self._pv_wrapper = pv_wrapper
-        self._pv_wrapper.add_after_value_change_listener(self.update_sp)
-        if is_vertical:
-            self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
-        else:
-            self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
-
-    def update_sp(self, new_value, alarm_severity, alarm_status):
-        self._set_point = new_value
-
-    def _move_component(self):
-        self._pv_wrapper.sp_rbv = self._set_point
-
-    def _rbv(self):
-        return self._pv_wrapper.rbv
 
 
 class AngleParameter(BeamlineParameter):
@@ -285,3 +284,30 @@ class ComponentEnabled(BeamlineParameter):
 
     def _rbv(self):
         return self._component.beam_path_rbv.enabled
+
+
+class SlitGapParameter(BeamlineParameter):
+    def __init__(self, name, pv_wrapper, is_vertical, sim=False, init=0, description=None):
+        super(SlitGapParameter, self).__init__(name, sim, init, description)
+        self._pv_wrapper = pv_wrapper
+        self._pv_wrapper.add_after_sp_value_change_listener(self.update_sp)
+        self._pv_wrapper.add_after_rbv_value_change_listener(self.update_rbv)
+        self.buffer = 0
+        if is_vertical:
+            self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
+        else:
+            self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
+
+    def update_sp(self, new_value, alarm_severity, alarm_status):
+        self._set_point_rbv = new_value
+        self._trigger_sp_rbv_listeners(self)
+
+    def update_rbv(self, new_value, alarm_severity, alarm_status):
+        self.buffer = new_value
+        self._trigger_rbv_listeners(self)
+
+    def _move_component(self):
+        self._pv_wrapper.sp = self._set_point
+
+    def _rbv(self):
+        return self.buffer

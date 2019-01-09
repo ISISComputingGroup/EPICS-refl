@@ -563,7 +563,7 @@ class TestSlitGapParameter(unittest.TestCase):
 
     def setUp(self):
         self.jaws_wrapper = Mock()
-        self.jaws_wrapper.sp_rbv = 0
+        self.jaws_wrapper.sp = 0
         self.jaws_wrapper.rbv = 0
         self.slit_gap = SlitGapParameter("s1vgap", self.jaws_wrapper, True, sim=True, init=0)
 
@@ -571,7 +571,7 @@ class TestSlitGapParameter(unittest.TestCase):
         expected = 0
         self.slit_gap.sp_no_move = 1
 
-        actual = self.jaws_wrapper.sp_rbv
+        actual = self.jaws_wrapper.sp
 
         self.assertEqual(expected, actual)
 
@@ -580,13 +580,13 @@ class TestSlitGapParameter(unittest.TestCase):
         self.slit_gap.sp_no_move = 1
 
         self.slit_gap.move = 1
-        actual = self.jaws_wrapper.sp_rbv
+        actual = self.jaws_wrapper.sp
 
         self.assertEqual(expected, actual)
 
     def test_GIVEN_pv_sp_rbv_changed_THEN_param_sp_rbv_updated(self):
         expected = 1
-        self.jaws_wrapper.sp_rbv = expected
+        self.jaws_wrapper.sp = expected
 
         actual = self.slit_gap.sp_rbv
 
@@ -594,7 +594,7 @@ class TestSlitGapParameter(unittest.TestCase):
 
     def test_GIVEN_pv_sp_rbv_changed_THEN_param_sp_unchanged(self):
         expected = 0
-        self.jaws_wrapper.sp_rbv = expected
+        self.jaws_wrapper.sp = expected
 
         actual = self.slit_gap.sp
 

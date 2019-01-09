@@ -89,3 +89,4 @@ class MotorPVWrapper(object):
         Returns: the value of the underlying max velocity PV
         """
         return CaChannelWrapper.get_pv_value(self._pv_name + ".VMAX")
+
