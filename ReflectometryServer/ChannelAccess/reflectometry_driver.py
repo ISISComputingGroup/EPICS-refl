@@ -113,14 +113,21 @@ class ReflectometryDriver(Driver):
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
             self._update_param(pv_name, param_sort.get_from_parameter(parameter))
-        self._update_footprints()
+        self._update_all_footprints()
         self.updatePVs()
 
-    def _update_footprints(self):
+    def _update_all_footprints(self):
+        """
+        Updates footprint calculations for all value sorts.
+        """
         for suffix in FOOTPRINT_SUFFIXES:
             self._update_footprint(suffix)
 
     def _update_footprint(self, suffix):
+        """
+        Updates footprint calculations for a given sort of value.
+        :param suffix: The suffix determining the footprint calculator instance.
+        """
         self._update_param(FP + suffix, self._footprint_manager.get_footprint(suffix))
         self._update_param(DQQ + suffix, self._footprint_manager.get_resolution(suffix))
         self._update_param(QMIN + suffix, self._footprint_manager.get_q_min(suffix))

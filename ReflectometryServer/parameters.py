@@ -21,10 +21,9 @@ class BeamlineParameterGroup(Enum):
 
 class BeamlineParameter(object):
     """
-    General beamline parameter that can be set. Subclass must implement _calc_move to decide what to do with the
+    General beamline parameter that can be set. Subclass must implement _move_component to decide what to do with the
     value that is set.
     """
-
     def __init__(self, name, sim=False, init=None, description=None):
         if sim:
             self._set_point = init
@@ -179,6 +178,17 @@ class BeamlineParameter(object):
         """
         raise NotImplemented("This must be implemented in the sub class")
 
+
+class SlitGapParameter(BeamlineParameter):
+    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None):
+        super(SlitGapParameter, self).__init__(name, sim, init, description)
+        self._pv_wrapper = pv_wrapper
+
+    def _move_component(self):
+        self._pv_wrapper.sp_rbv = self._set_point
+
+    def _rbv(self):
+        return self._pv_wrapper.rbv
 
 class AngleParameter(BeamlineParameter):
     """
