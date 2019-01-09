@@ -4,8 +4,10 @@
 from ReflectometryServer.components import *
 from ReflectometryServer.geometry import *
 from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.ioc_driver import DisplacementDriver
 from ReflectometryServer.parameters import *
 from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
 
 def get_beamline():
@@ -29,7 +31,7 @@ def get_beamline():
     comps = [s1, super_mirror, s2, sample, s3, s4, point_det]
 
     # BEAMLINE PARAMETERS
-    sm_enabled = ComponentEnabled("smenabled", super_mirror, True)
+    sm_enabled = InBeamParameter("smenabled", super_mirror, True)
     sm_angle = AngleParameter("smangle", super_mirror, True)
     slit2_pos = TrackingPosition("slit2pos", s2, True)
     sample_pos = TrackingPosition("samplepos", sample, True)
@@ -46,6 +48,10 @@ def get_beamline():
               slit4_pos,
               det]
 
+    # Drivers
+
+    drivers = [DisplacementDriver(super_mirror, create_mock_axis("MOT:MTR0101", 0, 1), out_of_beam_position=-10)]
+
     # MODES
     nr_inits = {"smenabled": False, "smangle": 0.0}
     pnr_inits = {"smenabled": True, "smangle": 0.5}
@@ -55,6 +61,6 @@ def get_beamline():
     modes = [nr_mode, pnr_mode, disabled_mode]
 
     beam_start = PositionAndAngle(0.0, 0.0, beam_angle_natural)
-    bl = Beamline(comps, params, [], modes, beam_start)
+    bl = Beamline(comps, params, drivers, modes, beam_start)
 
     return bl

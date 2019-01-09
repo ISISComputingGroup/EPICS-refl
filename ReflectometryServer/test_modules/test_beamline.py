@@ -4,12 +4,12 @@ from math import tan, radians
 from hamcrest import *
 from mock import Mock
 
-from ReflectometryServer.components import ReflectingComponent, Component, TiltingComponent, ThetaComponent
+from ReflectometryServer.components import ReflectingComponent, Component
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
-from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
+from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.beamline import Beamline, BeamlineMode
-from ReflectometryServer.parameters import TrackingPosition, AngleParameter
-from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis
+from ReflectometryServer.parameters import  InBeamParameter
+from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
 from utils import position_and_angle
 from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus, MotorPVWrapper
 
@@ -179,6 +179,47 @@ class TestRealistic(unittest.TestCase):
         assert_that(drives["det_axis"].value, is_(expected_det_value))
 
         assert_that(drives["det_angle_axis"].value, is_(2*theta_angle))
+
+
+class TestBeamlineValidation(unittest.TestCase):
+
+    def test_GIVEN_two_beamline_parameters_with_same_name_WHEN_construct_THEN_error(self):
+        one = EmptyBeamlineParameter("same")
+        two = EmptyBeamlineParameter("same")
+
+        assert_that(calling(Beamline).with_args([], [one, two], [], []), raises(ValueError))
+
+    def test_GIVEN_two_modes_with_same_name_WHEN_construct_THEN_error(self):
+        one = BeamlineMode("same", [])
+        two = BeamlineMode("same", [])
+
+        assert_that(calling(Beamline).with_args([], [], [], [one, two]), raises(ValueError))
+
+    def test_GIVEN_enable_disable_parameter_with_driver_that_has_no_offset_WHEN_construct_THEN_error(self):
+        mode = BeamlineMode("mode", [])
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        beamline_parameter = InBeamParameter("param", component)
+        motor_axis = create_mock_axis("axis", 0, 0)
+        driver = DisplacementDriver(component, motor_axis)
+
+        assert_that(calling(Beamline).with_args(
+            [component],
+            [beamline_parameter],
+            [driver],
+            [mode]), raises(ValueError))
+
+    def test_GIVEN_enable_disable_parameter_with_driver_that_has_only_angle_driver_WHEN_construct_THEN_error(self):
+        mode = BeamlineMode("mode", [])
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        beamline_parameter = InBeamParameter("param", component)
+        motor_axis = create_mock_axis("axis", 0, 0)
+        driver = AngleDriver(component, motor_axis)
+
+        assert_that(calling(Beamline).with_args(
+            [component],
+            [beamline_parameter],
+            [driver],
+            [mode]), raises(ValueError))
 
 
 if __name__ == '__main__':

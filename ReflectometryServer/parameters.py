@@ -179,6 +179,19 @@ class BeamlineParameter(object):
         """
         raise NotImplemented("This must be implement in the sub class")
 
+    def validate(self, drivers):
+        """
+        Perform validation of this parameter retruring a list of errors.
+
+        Args:
+            drivers (list[ReflectometryServer.ioc_driver.IocDriver]): list of driver to help with validation
+
+        Returns:
+            (list[str]): list of problems; Empty list if there are no errors
+
+        """
+        return []
+
 
 class AngleParameter(BeamlineParameter):
     """
@@ -239,9 +252,9 @@ class TrackingPosition(BeamlineParameter):
         return self._component.beam_path_rbv.get_position_relative_to_beam()
 
 
-class ComponentEnabled(BeamlineParameter):
+class InBeamParameter(BeamlineParameter):
     """
-    Parameter which sets whether a given device is enabled (i.e. parked in beam) on the beamline.
+    Parameter which sets whether a given device is in the beam.
     """
 
     def __init__(self, name, component, sim=False, init=False, description=None):
@@ -254,7 +267,7 @@ class ComponentEnabled(BeamlineParameter):
         """
         if description is None:
             description = "{} component is in the beam".format(name)
-        super(ComponentEnabled, self).__init__(name, sim, init, description=description)
+        super(InBeamParameter, self).__init__(name, sim, init, description=description)
         self._component = component
         self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
         self.parameter_type = BeamlineParameterType.IN_OUT
@@ -264,3 +277,28 @@ class ComponentEnabled(BeamlineParameter):
 
     def _rbv(self):
         return self._component.beam_path_rbv.is_in_beam
+
+    def validate(self, drivers):
+        """
+        Perform validation of this parameter returning a list of errors.
+
+        Args:
+            drivers (list[ReflectometryServer.ioc_driver.IocDriver]): list of driver to help with validation
+
+        Returns:
+            (list[str]): list of problems; Empty list if there are no errors
+        """
+
+        errors = []
+        found = False
+        for driver in drivers:
+            if driver.is_for_component(self._component):
+                try:
+                    if driver.has_out_of_beam_position():
+                        found = True
+                        break
+                except AttributeError:
+                    pass  # this is not a displacement driver so can not have this
+        if not found:
+            errors.append("No driver found with out of beam position for component {}".format(self.name))
+        return errors

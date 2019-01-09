@@ -29,7 +29,7 @@ def get_beamline():
     comps = [s1, super_mirror, s2, sample, s3, s4, point_det]
 
     # BEAMLINE PARAMETERS
-    sm_enabled = ComponentEnabled("smenabled", super_mirror, True)
+    sm_enabled = InBeamParameter("smenabled", super_mirror, True)
     sm_angle = AngleParameter("smangle", super_mirror, True)
     slit2_pos = TrackingPosition("slit2pos", s2, True)
     sample_pos = TrackingPosition("samplepos", sample, True)

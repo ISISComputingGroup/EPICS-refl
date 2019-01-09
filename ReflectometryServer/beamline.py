@@ -1,13 +1,16 @@
 """
 Resources at a beamline level
 """
-
+import logging
 from collections import OrderedDict, namedtuple
 from functools import partial
 from enum import Enum
 from pcaspy import Severity
 
 from ReflectometryServer.geometry import PositionAndAngle
+
+logger = logging.getLogger(__name__)
+
 
 BeamlineStatus = namedtuple("Status", ['display_string', 'alarm_severity'])
 
@@ -97,22 +100,25 @@ class BeamlineMode(object):
         """
         return self._sp_inits
 
-    def validate_parameters(self, beamline_parameters):
+    def validate(self, beamline_parameters):
         """
         Validate the parameters in the mode against beamline parameters.
         Args:
             beamline_parameters: the beamline parameters
-        Raises KeyError: If sp init or mode parameters name is not in list
-
+        Returns:
+            list of errors
         """
+        errors = []
         for beamline_parameter in self._beamline_parameters_to_calculate:
             if beamline_parameter not in beamline_parameters:
-                raise KeyError("Beamline parameter '{}' in mode '{}' not in beamline".format(
+                errors.append("Beamline parameter '{}' in mode '{}' not in beamline".format(
                     beamline_parameters, self.name))
 
         for sp_init in self._sp_inits.keys():
             if sp_init not in beamline_parameters:
-                raise KeyError("SP Init '{}' in mode '{}' not in beamline".format(sp_init, self.name))
+                errors.append("SP Init '{}' in mode '{}' not in beamline".format(sp_init, self.name))
+
+        return errors
 
 
 class Beamline(object):
@@ -143,9 +149,6 @@ class Beamline(object):
         self._active_mode_change_listeners = set()
 
         for beamline_parameter in beamline_parameters:
-            if beamline_parameter.name in self._beamline_parameters:
-                raise ValueError("Beamline parameters must be uniquely named. Duplicate '{}'".format(
-                    beamline_parameter.name))
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
             beamline_parameter.after_move_listener = self._move_for_single_beamline_parameters
 
@@ -160,12 +163,36 @@ class Beamline(object):
         self._modes = OrderedDict()
         for mode in modes:
             self._modes[mode.name] = mode
-            mode.validate_parameters(self._beamline_parameters.keys())
 
         self._incoming_beam = incoming_beam
         self._active_mode = None
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
+
+        self._validate(beamline_parameters, modes)
+
+    def _validate(self, beamline_parameters, modes):
+        errors = []
+
+        beamline_parameters_names = [beamline_parameter.name for beamline_parameter in beamline_parameters]
+        for name in beamline_parameters_names:
+            if beamline_parameters_names.count(name) > 1:
+                errors.append("Beamline parameters must be uniquely named. Duplicate '{}'".format(name))
+
+        mode_names = [mode.name for mode in modes]
+        for mode in mode_names:
+            if mode_names.count(mode) > 1:
+                errors.append("Mode must be uniquely named. Duplicate '{}'".format(mode))
+
+        for mode in modes:
+            errors.extend(mode.validate(self._beamline_parameters.keys()))
+
+        for parameter in self._beamline_parameters.values():
+            errors.extend(parameter.validate(self._drivers))
+
+        if len(errors) > 0:
+            logger.error("There is a problem with beamline configuration:\n    {}".format("\n    ".join(errors)))
+            raise ValueError("Problem with beamline configuration: {}".format(";".join(errors)))
 
     @property
     def parameter_types(self):

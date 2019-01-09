@@ -30,6 +30,16 @@ class IocDriver(object):
         return "{} for axis pv {} and component {}".format(
             self.__class__.__name__, self._axis.name, self._component.name)
 
+    def is_for_component(self, component):
+        """
+        Does this driver use the component given.
+        Args:
+            component: the component to check
+
+        Returns: True if this ioc driver uses the component; false otherwise
+        """
+        return component == self._component
+
     def get_max_move_duration(self):
         """
         Returns: The maximum duration of the requested move for all associated axes
@@ -116,8 +126,14 @@ class DisplacementDriver(IocDriver):
                 displacement = self._out_of_beam_position
         return displacement
 
+    def has_out_of_beam_position(self):
+        """
+        Returns: True if this Displacement driver has out of beam position set; False otherwise.
+        """
+        return self._out_of_beam_position is not None
 
-class AngleDriver(DisplacementDriver):
+
+class AngleDriver(IocDriver):
     """
     Drives a component that has variable angle.
     """

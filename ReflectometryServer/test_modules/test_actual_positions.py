@@ -33,7 +33,7 @@ class TestComponentBeamline(unittest.TestCase):
         smangle.sp_no_move = 0
 
         self.nr_mode = BeamlineMode("NR Mode", [theta.name])
-        self.polarised_mode = BeamlineMode("NR Mode", [smangle.name, theta.name])
+        self.polarised_mode = BeamlineMode("Polarised Mode", [smangle.name, theta.name])
 
         self.beamline = Beamline(
             [s0, s1, frame_overlap_mirror, self.polarising_mirror, s2, self.ideal_sample_point, s3, analyser, s4, detector],
