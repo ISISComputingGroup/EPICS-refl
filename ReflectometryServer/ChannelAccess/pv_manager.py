@@ -115,11 +115,29 @@ class PVManager:
         Args:
             param_types (dict[str, (str, str, str)]): The type, group name and description for which to create PVs,
                 keyed by name.
-            mode_names: names of the modes
+            mode_names: The names of the modes in the current reflectometry configuration
             status_codes (list[ReflectometryServer.beamline.STATUS]): status codes of Beam line with severities
         """
 
         self.PVDB = {}
+        self._params_pv_lookup = {}
+        self._tracking_positions = {}
+
+        self._add_global_pvs(mode_names, status_codes)
+        self._add_footprint_calculator_pvs()
+        self._add_all_parameter_pvs(param_types)
+
+        # for pv_name in self.PVDB.keys():
+        #     print("creating pv: {}".format(pv_name))
+
+    def _add_global_pvs(self, mode_names, status_codes):
+        """
+        Add PVs that affect the whole of the reflectometry system to the server's PV database.
+
+        Args:
+            mode_names: The names of the modes in the current reflectometry configuration
+            status_codes (list[ReflectometryServer.beamline.STATUS]): status codes of Beam line with severities
+        """
         self._add_pv_with_val(BEAMLINE_MOVE, None, PARAM_FIELDS_MOVE, "Move the beam line", PvSort.RBV, archive=True,
                               interest="HIGH")
         # PVs for mode
@@ -137,19 +155,13 @@ class PVManager:
         self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'string'}, "Message about the beamline", PvSort.RBV,
                               archive=True, interest="HIGH")
 
-        # PVs for beamline parameters
-        self._params_pv_lookup = {}
-        self._tracking_positions = {}
-        for param, (param_type, group_names, description) in param_types.items():
-            self._add_parameter_pvs(param, group_names, description, **PARAMS_FIELDS_BEAMLINE_TYPES[param_type])
-        self.PVDB[TRACKING_AXES] = {'type': 'char',
-                                    'count': 300,
-                                    'value': json.dumps(self._tracking_positions)
-                                    }
-
-        # PVs for footprint calculator
+    def _add_footprint_calculator_pvs(self):
+        """
+        Add PVs related to the footprint calculation to the server's PV database.
+        """
         self._add_pv_with_val(SAMPLE_LENGTH, None, PARAMS_FIELDS_BEAMLINE_TYPES[BeamlineParameterType.FLOAT],
                               "Sample Length", PvSort.SP_RBV, archive=True, interest="HIGH")
+
         for suffix in FOOTPRINT_SUFFIXES:
             self._add_pv_with_val(FP + suffix, None, {'type': 'string'}, "Beam Footprint", PvSort.RBV,
                                   archive=True, interest="HIGH")
@@ -160,8 +172,20 @@ class PVManager:
             self._add_pv_with_val(QMAX + suffix, None, {'type': 'string'},
                                   "Maximum measurable Q with current setup", PvSort.RBV, archive=True, interest="HIGH")
 
-        for pv_name in self.PVDB.keys():
-            print("creating pv: {}".format(pv_name))
+    def _add_all_parameter_pvs(self, param_types):
+        """
+        Add PVs for each beamline parameter in the reflectometry configuration to the server's PV database.
+
+        Args:
+            param_types (dict[str, (str, str, str)]): The type, group name and description for which to create PVs,
+                keyed by name.
+        """
+        for param, (param_type, group_names, description) in param_types.items():
+            self._add_parameter_pvs(param, group_names, description, **PARAMS_FIELDS_BEAMLINE_TYPES[param_type])
+        self.PVDB[TRACKING_AXES] = {'type': 'char',
+                                    'count': 300,
+                                    'value': json.dumps(self._tracking_positions)
+                                    }
 
     def _add_parameter_pvs(self, param_name, group_names, description, **fields):
         """
@@ -201,7 +225,7 @@ class PVManager:
             self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_CHANGED, description,
                                   PvSort.CHANGED)
 
-            # Move  PV
+            # Move PV
             self._add_pv_with_val(prepended_alias + MOVE_SUFFIX, param_name, PARAM_FIELDS_MOVE, description,
                                   PvSort.MOVE)
 

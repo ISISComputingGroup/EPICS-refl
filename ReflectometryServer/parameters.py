@@ -17,6 +17,8 @@ class BeamlineParameterGroup(Enum):
     Types of groups a parameter can belong to
     """
     TRACKING = 1
+    GAP_VERTICAL = 2
+    GAP_HORIZONTAL = 3
 
 
 class BeamlineParameter(object):
@@ -180,15 +182,24 @@ class BeamlineParameter(object):
 
 
 class SlitGapParameter(BeamlineParameter):
-    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None):
+    def __init__(self, name, pv_wrapper, is_vertical, sim=False, init=0, description=None):
         super(SlitGapParameter, self).__init__(name, sim, init, description)
         self._pv_wrapper = pv_wrapper
+        self._pv_wrapper.add_after_value_change_listener(self.update_sp)
+        if is_vertical:
+            self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
+        else:
+            self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
+
+    def update_sp(self, new_value, alarm_severity, alarm_status):
+        self._set_point = new_value
 
     def _move_component(self):
         self._pv_wrapper.sp_rbv = self._set_point
 
     def _rbv(self):
         return self._pv_wrapper.rbv
+
 
 class AngleParameter(BeamlineParameter):
     """
