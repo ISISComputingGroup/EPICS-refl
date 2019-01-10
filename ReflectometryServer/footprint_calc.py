@@ -1,15 +1,15 @@
 from math import sin, tan, atan, degrees, radians, pi
 import itertools
 
-S1 = "POS_S1"
-S2 = "POS_S2"
-S3 = "POS_S3"
-S4 = "POS_S4"
-SA = "POS_SA"
+S1_ID = "SLIT1"
+S2_ID = "SLIT2"
+S3_ID = "SLIT3"
+S4_ID = "SLIT4"
+SA_ID = "SAMPLE"
 
 
 class FootprintSetup(object):
-    def __init__(self, pos_s1, pos_s2, pos_s3, pos_s4, pos_sa, lambda_min, lambda_max, theta):
+    def __init__(self, pos_s1, pos_s2, pos_s3, pos_s4, pos_sa, s1vg, s2vg, s3vg, s4vg, theta, lambda_min, lambda_max):
         """
         :param pos_s1: Position of slit 1 along Z
         :param pos_s2: Position of slit 2 along Z
@@ -23,23 +23,22 @@ class FootprintSetup(object):
         self.lambda_min = float(lambda_min)
         self.lambda_max = float(lambda_max)
         self.theta = theta
-        self.positions = {S1: 0.0,
-                          S2: float(pos_s2 - pos_s1),
-                          S3: float(pos_s3 - pos_s1),
-                          S4: float(pos_s4 - pos_s1),
-                          SA: float(pos_sa - pos_s1),
+        self.positions = {S1_ID: 0.0,
+                          S2_ID: float(pos_s2 - pos_s1),
+                          S3_ID: float(pos_s3 - pos_s1),
+                          S4_ID: float(pos_s4 - pos_s1),
+                          SA_ID: float(pos_sa - pos_s1),
                           }
-        self.gaps = {S1: 40.0,
-                     S2: 30.0,
-                     S3: 30.0,
-                     S4: 40.0,
-                     SA: 200.0,
-                     }
+        self.gap_params = {S1_ID: s1vg,
+                           S2_ID: s2vg,
+                           S3_ID: s3vg,
+                           S4_ID: s4vg,
+                           }
 
 
 class BlankFootprintSetup(FootprintSetup):
     def __init__(self):
-        super(BlankFootprintSetup, self).__init__(0, 0, 0, 0, 0, 0, 0, None)
+        super(BlankFootprintSetup, self).__init__(0, 0, 0, 0, 0, None, None, None, None, None, 0, 0)
 
 
 class FootprintCalculator(object):
@@ -50,9 +49,18 @@ class FootprintCalculator(object):
     def __init__(self, setup):
         super(FootprintCalculator, self).__init__()
         self.setup = setup
+        self.gaps = {SA_ID: 200.0}
+        self.update_gaps()
+
+    def get_param_value(self, param):
+        raise NotImplemented("This must be implemented in the sub class")
+
+    def update_gaps(self):
+        for key, gap_param in self.setup.gap_params.iteritems():
+            self.set_gap(key, self.get_param_value(gap_param))
 
     def theta(self):
-        raise NotImplemented("This must be implemented in the sub class")
+        return self.get_param_value(self.setup.theta)
 
     def distance(self, comp1, comp2):
         """
@@ -73,7 +81,7 @@ class FootprintCalculator(object):
 
         Returns: The equivalent slit gap size in mm
         """
-        return self.setup.gaps[SA] * sin(radians(self.theta()))
+        return self.gaps[SA_ID] * sin(radians(self.theta()))
 
     def calc_equivalent_gap_by_penumbra(self):
         """
@@ -81,7 +89,7 @@ class FootprintCalculator(object):
 
         Returns: The equivalent slit gap size in mm
         """
-        return (((self.distance(S1, SA) * (self.setup.gaps[S1] + self.setup.gaps[S2])) / (2 * self.distance(S1, S2))) - (self.setup.gaps[S1] / 2)) * 2
+        return (((self.distance(S1_ID, SA_ID) * (self.gaps[S1_ID] + self.gaps[S2_ID])) / (2 * self.distance(S1_ID, S2_ID))) - (self.gaps[S1_ID] / 2)) * 2
 
     def calc_footprint(self):
         """
@@ -89,6 +97,7 @@ class FootprintCalculator(object):
 
         Returns: The penumbra footprint in mm
         """
+        self.update_gaps()
         return self.calc_equivalent_gap_by_penumbra() / sin(radians(self.theta()))
 
     def calc_footprint_umbra(self):
@@ -97,7 +106,8 @@ class FootprintCalculator(object):
 
         Returns: The umbra footprint in mm
         """
-        return self.setup.gaps[S2] / sin(radians(self.theta()))
+        self.update_gaps()
+        return self.gaps[S2_ID] / sin(radians(self.theta()))
 
     def get_sample_slit_gap_equivalent(self):
         """
@@ -106,7 +116,7 @@ class FootprintCalculator(object):
 
         Returns: The equivalent slit size of the sample reflection
         """
-        if self.setup.gaps[SA] < self.calc_footprint():
+        if self.gaps[SA_ID] < self.calc_footprint():
             return self.calc_equivalent_gap_by_sample_size()
         else:
             return self.calc_equivalent_gap_by_penumbra()
@@ -121,20 +131,20 @@ class FootprintCalculator(object):
             
         Returns: The gap size of the component or its equivalent for the sample reflection.
         """
-        if comp is SA:
+        if comp is SA_ID:
             return self.get_sample_slit_gap_equivalent()
         else:
-            return self.setup.gaps[comp]
+            return self.gaps[comp]
 
-    def set_gap(self, comp, val):
+    def set_gap(self, key, val):
         """
         Set the gap size of a component in the model.
 
         Args:
-            comp (String): The key of the component to set the gap size on
+            key (String): The key of the component to set the gap size on
             val (float): The new gap size.
         """
-        self.setup.gaps[comp] = float(val)
+        self.gaps[key] = float(val)
 
     def calc_resolution(self, comp1, comp2):
         """
@@ -155,6 +165,7 @@ class FootprintCalculator(object):
 
     def calc_min_resolution(self):
         result = []
+        self.update_gaps()
         for i in range(len(self.setup.positions.keys())-1):
             start_comp = self.setup.positions.keys()[i]
             end_comps = self.setup.positions.keys()[i+1:]
@@ -170,6 +181,7 @@ class FootprintCalculator(object):
         :param theta: The incident beam angle
         :return: the minimum and maximum Q that can be measured
         """
+        self.update_gaps()
         q_min = 4 * pi * sin(radians(self.theta())) / self.setup.lambda_max
         return q_min
 
@@ -180,6 +192,7 @@ class FootprintCalculator(object):
         :param theta: The incident beam angle
         :return: the minimum and maximum Q that can be measured
         """
+        self.update_gaps()
         q_max = 4 * pi * sin(radians(self.theta())) / self.setup.lambda_min
         return q_max
 
@@ -196,30 +209,58 @@ class FootprintCalculator(object):
         Returns: The slit gaps for slit 1 and 2
         """
         theta_deg = degrees(theta_rad)
-        sv1 = 2 * self.distance(S1, SA) * tan(resolution * theta_deg) - footprint * sin(theta_deg)
-        sv2 = self.distance(S1, S2) * (footprint * sin(theta_deg)) / self.distance(S1, SA) - sv1
+        sv1 = 2 * self.distance(S1_ID, SA_ID) * tan(resolution * theta_deg) - footprint * sin(theta_deg)
+        sv2 = self.distance(S1_ID, S2_ID) * (footprint * sin(theta_deg)) / self.distance(S1_ID, SA_ID) - sv1
         return sv1, sv2
 
 
 class FootprintCalculatorSetpoint(FootprintCalculator):
+    """
+    Calculates the footprint based on the setpoint values of beamline parameters.
+    """
     def __init__(self, setup):
+        """
+        Args:
+            setup (ReflectometryServer.footprint_calc.FootprintSetup): The footprint calculation setup
+        """
         super(FootprintCalculatorSetpoint, self).__init__(setup)
 
-    def theta(self):
-        return self.setup.theta.sp
+    def get_param_value(self, param):
+        """
+        Returns: The setpoint value of a given parameter
+        """
+        return param.sp
 
 
 class FootprintCalculatorSetpointReadback(FootprintCalculator):
+    """
+    Calculates the footprint based on the setpoint readback values of beamline parameters.
+    """
     def __init__(self, setup):
+        """
+        Args:
+            setup (ReflectometryServer.footprint_calc.FootprintSetup): The footprint calculation setup
+        """
         super(FootprintCalculatorSetpointReadback, self).__init__(setup)
 
-    def theta(self):
-        return self.setup.theta.sp_rbv
+    def get_param_value(self, param):
+        return param.sp_rbv
 
 
 class FootprintCalculatorReadback(FootprintCalculator):
+    """
+    Calculates the footprint based on the readback values of beamline parameters.
+    """
     def __init__(self, setup):
+        """
+        Args:
+            setup (ReflectometryServer.footprint_calc.FootprintSetup): The footprint calculation setup
+        """
         super(FootprintCalculatorReadback, self).__init__(setup)
 
-    def theta(self):
-        return self.setup.theta.rbv
+    def get_param_value(self, param):
+        """
+        Returns: The readback value of a given parameter
+        """
+        print("param {} rbv is {}".format(param.name, param.rbv))
+        return param.rbv

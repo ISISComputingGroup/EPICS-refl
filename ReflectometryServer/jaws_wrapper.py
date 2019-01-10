@@ -1,3 +1,4 @@
+from genie_python.channel_access_exceptions import UnableToConnectToPVException
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper
 
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX
@@ -20,11 +21,13 @@ class JawsWrapper(object):
         self._sp_pv = "{}:SP".format(self._rbv_pv)
         self._after_sp_change_listeners = set()
         self._after_rbv_change_listeners = set()
-
-        CaChannelWrapper.add_monitor(self._rbv_pv, self._trigger_after_rbv_value_change_listeners)
-        logger.debug("Monitoring {} for changes.".format(self._rbv_pv))
-        CaChannelWrapper.add_monitor(self._sp_pv, self._trigger_after_sp_value_change_listeners)
-        logger.debug("Monitoring {} for changes.".format(self._sp_pv))
+        try:
+            CaChannelWrapper.add_monitor(self._rbv_pv, self._trigger_after_rbv_value_change_listeners)
+            logger.debug("Monitoring {} for changes.".format(self._rbv_pv))
+            CaChannelWrapper.add_monitor(self._sp_pv, self._trigger_after_sp_value_change_listeners)
+            logger.debug("Monitoring {} for changes.".format(self._sp_pv))
+        except UnableToConnectToPVException as e:
+            logger.error("Error adding monitor: PV does not exist: {}".format(e))
 
     def _trigger_after_sp_value_change_listeners(self, new_value, alarm_severity, alarm_status):
         logger.debug("Triggered after setpoint readback value change listeners {}.".format(new_value))
@@ -57,7 +60,11 @@ class JawsWrapper(object):
         """
         Returns: the value of the underlying PV
         """
-        return CaChannelWrapper.get_pv_value(self._sp_pv)
+        try:
+            return CaChannelWrapper.get_pv_value(self._sp_pv)
+        except UnableToConnectToPVException:
+            logger.error("Error reading value from {}: PV does not exist".format(self._sp_pv))
+            return None
 
     @sp.setter
     def sp(self, value):
@@ -66,4 +73,8 @@ class JawsWrapper(object):
         Args:
             value: The value to set
         """
-        CaChannelWrapper.set_pv_value(self._sp_pv, value)
+        try:
+            CaChannelWrapper.set_pv_value(self._sp_pv, value)
+        except UnableToConnectToPVException:
+            logger.error("Error writing value to {}: PV does not exist".format(self._sp_pv))
+            return None

@@ -14,11 +14,11 @@ INTER_SLIT4_POS = 4986.5
 INTER_LAMBDA_MIN = 2
 INTER_LAMBDA_MAX = 17
 
-DEFAULT_GAPS = {S1: 40,
-                S2: 30,
-                S3: 30,
-                S4: 40,
-                SA: 200}
+DEFAULT_GAPS = {S1_ID: 40,
+                S2_ID: 30,
+                S3_ID: 30,
+                S4_ID: 40,
+                SA_ID: 200}
 
 TEST_TOLERANCE = 1e-5
 
@@ -29,35 +29,43 @@ class TestFootprintCalc(unittest.TestCase):
     scientists used previously.
     """
 
+    @staticmethod
+    def set_up_slit(value):
+        slit = Mock()
+        slit.sp = float(value)
+        slit.sp_rbv = float(value)
+        slit.rbv = float(value)
+        return slit
+
     def setUp(self):
+        default_theta = 0.25
         self.theta = Mock()
-        self.theta.sp_rbv = 0.25
-        self.theta.sp = 0.25
-        self.theta.rbv = 0.25
+        self.theta.sp_rbv = default_theta
+        self.theta.sp = default_theta
+        self.theta.rbv = default_theta
 
         self.calc_setup = FootprintSetup(INTER_SLIT1_POS,
                                          INTER_SLIT2_POS,
                                          INTER_SLIT3_POS,
                                          INTER_SLIT4_POS,
                                          INTER_SAMPLE_POS,
+                                         self.set_up_slit(40),
+                                         self.set_up_slit(30),
+                                         self.set_up_slit(30),
+                                         self.set_up_slit(40),
+                                         self.theta,
                                          INTER_LAMBDA_MIN,
                                          INTER_LAMBDA_MAX,
-                                         self.theta)
+                                         )
 
         self.calc = FootprintCalculatorSetpointReadback(self.calc_setup)
 
         for key, value in DEFAULT_GAPS.iteritems():
             self.calc.set_gap(key, value)
 
-    def test_GIVEN_initial_values_as_int_WHEN_setting_up_footprint_calculator_THEN_all_values_are_converted_to_float(self):
-        for value in self.calc_setup.gaps.values():
-            assert_that(value, is_(float))
-        for value in self.calc_setup.positions.values():
-            assert_that(value, is_(float))
-
     def test_GIVEN_two_components_WHEN_calculating_distance_THEN_distance_is_correct(self):
-        pos1 = S2
-        pos2 = S4
+        pos1 = S2_ID
+        pos2 = S4_ID
         expected = INTER_SLIT4_POS - INTER_SLIT2_POS
 
         actual = self.calc.distance(pos1, pos2)
@@ -65,8 +73,8 @@ class TestFootprintCalc(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_GIVEN_two_components_in_reverse_order_WHEN_calculating_distance_THEN_distance_is_correct(self):
-        pos1 = S2
-        pos2 = S4
+        pos1 = S2_ID
+        pos2 = S4_ID
         expected = INTER_SLIT4_POS - INTER_SLIT2_POS
 
         actual = self.calc.distance(pos2, pos1)
@@ -93,7 +101,7 @@ class TestFootprintCalc(unittest.TestCase):
                            (200, 0.872661857),
                            (500, 2.181654642)])
     def test_GIVEN_variable_sample_size_and_fixed_theta_value_WHEN_calculating_equivalent_slit_size_of_sample_THEN_result_is_correct(self, sample_size, expected):
-        self.calc.set_gap(SA, sample_size)
+        self.calc.set_gap(SA_ID, sample_size)
 
         actual = self.calc.calc_equivalent_gap_by_sample_size()
 
@@ -141,16 +149,16 @@ class TestFootprintCalc(unittest.TestCase):
             mock_sample.assert_not_called()
             mock_sample_penumbra.assert_called_once()
 
-    @parameterized.expand([(S1, S2, 416.9432188),
-                           (S1, SA, 204.7719181),
-                           (S1, S3, 266.6636815),
-                           (S1, S4, 183.825933),
-                           (S2, SA, 969.5817187),
-                           (S2, S3, 633.3285232),
-                           (S2, S4, 261.790849),
-                           (SA, S3, 490.7094045),
-                           (SA, S4, 173.4867372),
-                           (S3, S4, 405.1548997)])
+    @parameterized.expand([(S1_ID, S2_ID, 416.9432188),
+                           (S1_ID, SA_ID, 204.7719181),
+                           (S1_ID, S3_ID, 266.6636815),
+                           (S1_ID, S4_ID, 183.825933),
+                           (S2_ID, SA_ID, 969.5817187),
+                           (S2_ID, S3_ID, 633.3285232),
+                           (S2_ID, S4_ID, 261.790849),
+                           (SA_ID, S3_ID, 490.7094045),
+                           (SA_ID, S4_ID, 173.4867372),
+                           (S3_ID, S4_ID, 405.1548997)])
     def test_GIVEN_beam_segment_WHEN_calculating_resolution_THEN_result_is_correct(self, comp1, comp2, expected):
 
         actual = self.calc.calc_resolution(comp1, comp2)

@@ -1,5 +1,6 @@
 from ReflectometryServer.footprint_calc import *
 from ReflectometryServer.ChannelAccess.pv_manager import FP_SP_SUFFIX, FP_SP_RBV_SUFFIX, FP_RBV_SUFFIX
+import traceback
 
 NOT_A_NUMBER = "NaN"
 
@@ -76,13 +77,13 @@ class FootprintManager(object):
 
         :param value: The length of the sample.
         """
-        self._footprint_setup.gaps[SA] = value
+        self._footprint_setup.gaps[SA_ID] = value
 
     def get_sample_length(self):
         """
         :return: The currently set sample length
         """
-        return self._footprint_setup.gaps[SA]
+        return self._footprint_setup.gaps[SA_ID]
 
     def _get_footprint_calc_by_sort(self, type):
         """
