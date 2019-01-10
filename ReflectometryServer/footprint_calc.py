@@ -9,25 +9,31 @@ SA_ID = "SAMPLE"
 
 
 class FootprintSetup(object):
-    def __init__(self, pos_s1, pos_s2, pos_s3, pos_s4, pos_sa, s1vg, s2vg, s3vg, s4vg, theta, lambda_min, lambda_max):
+    def __init__(self, pos_s1, pos_s2, pos_s3, pos_s4, pos_sample, s1vg, s2vg, s3vg, s4vg, theta, lambda_min, lambda_max):
         """
-        :param pos_s1: Position of slit 1 along Z
-        :param pos_s2: Position of slit 2 along Z
-        :param pos_s3: Position of slit 3 along Z
-        :param pos_s4: Position of slit 4 along Z
-        :param pos_sa: Position of the sample point along Z
-        :param lambda_min: Minimum lambda of the instrument
-        :param lambda_max: Maximum lambda of the instrument
-        :param theta(ReflectometryServer.parameters.AngleParameter): The parameter holding the incident beam angle
+        Args:
+            pos_s1: Z Position of slit 1 (along the beam)
+            pos_s2: Z Position of slit 2 (along the beam)
+            pos_s3: Z Position of slit 3 (along the beam)
+            pos_s4: Z Position of slit 4 (along the beam)
+            pos_sample: Z Position of the sample point (along the beam)
+            s1vg(ReflectometryServer.parameters.SlitGapParameter): Vertical gap parameter for slit 1
+            s2vg(ReflectometryServer.parameters.SlitGapParameter): Vertical gap parameter for slit 2
+            s3vg(ReflectometryServer.parameters.SlitGapParameter): Vertical gap parameter for slit 3
+            s4vg(ReflectometryServer.parameters.SlitGapParameter): Vertical gap parameter for slit 4
+            theta(ReflectometryServer.parameters.AngleParameter): Paramater for the beam incident angle Theta
+            lambda_min: Minimum lambda for this beamline
+            lambda_max: Maximum lambda for this beamline
         """
         self.lambda_min = float(lambda_min)
         self.lambda_max = float(lambda_max)
         self.theta = theta
+        self.sample_length = 200.0
         self.positions = {S1_ID: 0.0,
                           S2_ID: float(pos_s2 - pos_s1),
                           S3_ID: float(pos_s3 - pos_s1),
                           S4_ID: float(pos_s4 - pos_s1),
-                          SA_ID: float(pos_sa - pos_s1),
+                          SA_ID: float(pos_sample - pos_s1),
                           }
         self.gap_params = {S1_ID: s1vg,
                            S2_ID: s2vg,
@@ -37,6 +43,9 @@ class FootprintSetup(object):
 
 
 class BlankFootprintSetup(FootprintSetup):
+    """
+    Blank footprint setup for when none is given in the configuration file.
+    """
     def __init__(self):
         super(BlankFootprintSetup, self).__init__(0, 0, 0, 0, 0, None, None, None, None, None, 0, 0)
 
@@ -49,17 +58,23 @@ class FootprintCalculator(object):
     def __init__(self, setup):
         super(FootprintCalculator, self).__init__()
         self.setup = setup
-        self.gaps = {SA_ID: 200.0}
         self.update_gaps()
 
     def get_param_value(self, param):
         raise NotImplemented("This must be implemented in the sub class")
 
     def update_gaps(self):
+        """
+        Updates the value for each slit gap.
+        """
+        self.set_gap(SA_ID, self.setup.sample_length)
         for key, gap_param in self.setup.gap_params.iteritems():
             self.set_gap(key, self.get_param_value(gap_param))
 
     def theta(self):
+        """
+        Returns: The current theta parameter value.
+        """
         return self.get_param_value(self.setup.theta)
 
     def distance(self, comp1, comp2):
@@ -127,7 +142,6 @@ class FootprintCalculator(object):
 
         Args:
             comp (String): The key of the component for which to get the gap size
-            theta (float): The incident beam angle
             
         Returns: The gap size of the component or its equivalent for the sample reflection.
         """
@@ -154,7 +168,6 @@ class FootprintCalculator(object):
         Args:
             comp1 (String): The key for the first beamline component
             comp2 (String): The key for the second beamline component
-            theta (float): The incident beam angle
 
         Returns: The resolution for the given beamline section
         """
@@ -164,6 +177,11 @@ class FootprintCalculator(object):
         return (res / (2 * tan(radians(self.theta())))) * 100
 
     def calc_min_resolution(self):
+        """
+        Calculate the beam resolution for each segment of the beamline and out of those return the minimum.
+
+        Returns: The resolution of the beam in mm
+        """
         result = []
         self.update_gaps()
         for i in range(len(self.setup.positions.keys())-1):
@@ -176,10 +194,9 @@ class FootprintCalculator(object):
 
     def calc_q_min(self):
         """
-        Calculate the range of Q that can be measured with the current beamline setup.
+        Calculate the minimum Q that can be measured with the current beamline setup.
 
-        :param theta: The incident beam angle
-        :return: the minimum and maximum Q that can be measured
+        Returns: The minimum measurable Q
         """
         self.update_gaps()
         q_min = 4 * pi * sin(radians(self.theta())) / self.setup.lambda_max
@@ -187,16 +204,15 @@ class FootprintCalculator(object):
 
     def calc_q_max(self):
         """
-        Calculate the range of Q that can be measured with the current beamline setup.
+        Calculate the maximum Q that can be measured with the current beamline setup.
 
-        :param theta: The incident beam angle
-        :return: the minimum and maximum Q that can be measured
+        Returns: The maximum measurable Q
         """
         self.update_gaps()
         q_max = 4 * pi * sin(radians(self.theta())) / self.setup.lambda_min
         return q_max
 
-    # TODO check this is right
+    # TODO currently unused. check this is right
     def calc_gaps(self, theta_rad, resolution, footprint):
         """
         Calculate the gap sizes for all slits needed to achieve a given resolution and footprint
@@ -262,5 +278,4 @@ class FootprintCalculatorReadback(FootprintCalculator):
         """
         Returns: The readback value of a given parameter
         """
-        print("param {} rbv is {}".format(param.name, param.rbv))
         return param.rbv

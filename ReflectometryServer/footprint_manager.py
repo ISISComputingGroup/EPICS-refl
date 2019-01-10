@@ -1,6 +1,5 @@
 from ReflectometryServer.footprint_calc import *
-from ReflectometryServer.ChannelAccess.pv_manager import FP_SP_SUFFIX, FP_SP_RBV_SUFFIX, FP_RBV_SUFFIX
-import traceback
+from ReflectometryServer.ChannelAccess.pv_manager import PvSort
 
 NOT_A_NUMBER = "NaN"
 
@@ -11,8 +10,9 @@ class FootprintManager(object):
     """
     def __init__(self, footprint_setup):
         """
-        :param footprint_setup(ReflectometryServer.footprint_calc.FootprintSetup): The beamline parameters relevant for
-        the footprint calculation.
+        Args:
+            footprint_setup(ReflectometryServer.footprint_calc.FootprintSetup): The beamline parameters relevant for
+                the footprint calculation.
         """
         self._footprint_setup = footprint_setup
         self._footprint_calc_sp = FootprintCalculatorSetpoint(footprint_setup)
@@ -23,8 +23,10 @@ class FootprintManager(object):
         """
         Return the (penumbra) footprint at the sample for a given sort of value.
 
-        :param sort: The type of value for which to calculate the footprint.
-        :return: The footprint in mm
+        Args:
+            sort: The type of value for which to calculate the footprint.
+
+        Returns: The footprint in mm
         """
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
@@ -35,9 +37,9 @@ class FootprintManager(object):
     def get_resolution(self, sort):
         """
         Return the minimum resolution of the beamline for a given sort of value.
-
-        :param sort: The type of value for which to calculate the beamline resolution.
-        :return: The resolution in mm
+        Args:
+            sort: The type of value for which to calculate the beamline resolution.
+        Returns: The resolution in mm
         """
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
@@ -49,8 +51,9 @@ class FootprintManager(object):
         """
         Get the minimum measurable Q value for a given sort of value.
 
-        :param sort: The type of value for which to calculate the minimum Q
-        :return: The minimum Q
+        Args:
+            sort: The type of value for which to calculate the minimum Q
+        Returns: The minimum Q
         """
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
@@ -62,8 +65,9 @@ class FootprintManager(object):
         """
         Get the maximum measurable Q value for a given sort of value.
 
-        :param sort: The type of value for which to calculate the maximum Q
-        :return: The maximum Q
+        Args:
+            sort: The type of value for which to calculate the maximum Q
+        Returns: The maximum Q
         """
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
@@ -75,26 +79,28 @@ class FootprintManager(object):
         """
         Set the length of the current sample.
 
-        :param value: The length of the sample.
+        Args:
+            value: The length of the sample.
         """
-        self._footprint_setup.gaps[SA_ID] = value
+        self._footprint_setup.sample_length = value
 
     def get_sample_length(self):
         """
-        :return: The currently set sample length
+        Returns: The currently set sample length
         """
-        return self._footprint_setup.gaps[SA_ID]
+        return self._footprint_setup.sample_length
 
-    def _get_footprint_calc_by_sort(self, type):
+    def _get_footprint_calc_by_sort(self, sort):
         """
         Returns a footprint calculator instance based on type of value.
 
-        :param type: The type of value (setpoint, setpoint readback or readback)
-        :return: A footprint calculator.
+        Args:
+            type: The type of value (setpoint, setpoint readback or readback)
+        Returns: A footprint calculator.
         """
-        if type is FP_SP_SUFFIX:
+        if sort is PvSort.SP:
             return self._footprint_calc_sp
-        elif type is FP_SP_RBV_SUFFIX:
+        elif sort is PvSort.SP_RBV:
             return self._footprint_calc_sp_rbv
         else:
             return self._footprint_calc_rbv

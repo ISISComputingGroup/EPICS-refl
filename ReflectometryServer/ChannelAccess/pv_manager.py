@@ -122,6 +122,7 @@ class PVManager:
         self.PVDB = {}
         self._params_pv_lookup = {}
         self._tracking_positions = {}
+        self._footprint_parameters = {}
 
         self._add_global_pvs(mode_names, status_codes)
         self._add_footprint_calculator_pvs()
@@ -265,6 +266,15 @@ class PVManager:
 
         if param_name is not None:
             self._params_pv_lookup[pv_name] = (param_name, param_sort)
+
+    def fp_suffix(self, sort):
+        if sort is PvSort.SP:
+            suffix = FP_SP_SUFFIX
+        elif sort is PvSort.SP_RBV:
+            suffix = FP_SP_RBV_SUFFIX
+        else:
+            suffix = FP_RBV_SUFFIX
+        return suffix
 
     def param_names_pvnames_and_sort(self):
         """

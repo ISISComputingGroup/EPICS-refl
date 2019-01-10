@@ -17,8 +17,9 @@ class BeamlineParameterGroup(Enum):
     Types of groups a parameter can belong to
     """
     TRACKING = 1
-    GAP_VERTICAL = 2
-    GAP_HORIZONTAL = 3
+    FOOTPRINT_PARAMETER = 2
+    GAP_VERTICAL = 3
+    GAP_HORIZONTAL = 4
 
 
 class BeamlineParameter(object):
@@ -287,22 +288,52 @@ class ComponentEnabled(BeamlineParameter):
 
 
 class SlitGapParameter(BeamlineParameter):
+    """
+    Parameter which sets the gap on a slit. This differs from other beamline parameters in that it is not linked to the
+    beamline component layer but hooks directly into a motor axis.
+    """
     def __init__(self, name, pv_wrapper, is_vertical, sim=False, init=0, description=None):
+        """
+        Args:
+            name: The name of the parameter
+            pv_wrapper: The motor pv this parameter talks to
+            is_vertical: Whether it is a vertical gap
+            sim: Whether it is a simulated parameter
+            init: Initialisation value if simulated
+            description: The description
+        """
         super(SlitGapParameter, self).__init__(name, sim, init, description)
         self._pv_wrapper = pv_wrapper
-        self._pv_wrapper.add_after_sp_value_change_listener(self.update_sp)
+        self._pv_wrapper.add_after_sp_value_change_listener(self.update_sp_rbv)
         self._pv_wrapper.add_after_rbv_value_change_listener(self.update_rbv)
-        self.buffer = 0
+        self.buffer = 30
         if is_vertical:
+            self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
             self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
         else:
             self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
 
-    def update_sp(self, new_value, alarm_severity, alarm_status):
+    def update_sp_rbv(self, new_value, alarm_severity, alarm_status):
+        """
+        Update the setpoint readback value.
+
+        Args:
+            new_value: new given value
+            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
+            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+        """
         self._set_point_rbv = new_value
         self._trigger_sp_rbv_listeners(self)
 
     def update_rbv(self, new_value, alarm_severity, alarm_status):
+        """
+        Update the readback value.
+
+        Args:
+            new_value: new readback value that is given
+            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
+            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+        """
         self.buffer = new_value
         self._trigger_rbv_listeners(self)
 
