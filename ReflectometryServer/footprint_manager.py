@@ -11,7 +11,7 @@ class FootprintManager(object):
     def __init__(self, footprint_setup):
         """
         Args:
-            footprint_setup(ReflectometryServer.footprint_calc.FootprintSetup): The beamline parameters relevant for
+            footprint_setup: The beamline parameters relevant for
                 the footprint calculation.
         """
         self._footprint_setup = footprint_setup
@@ -31,7 +31,7 @@ class FootprintManager(object):
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
             return footprint_calc.calc_footprint()
-        except (ZeroDivisionError, TypeError, AttributeError):
+        except (ZeroDivisionError, KeyError, AttributeError):
             return NOT_A_NUMBER
 
     def get_resolution(self, sort):
@@ -44,7 +44,7 @@ class FootprintManager(object):
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
             return footprint_calc.calc_min_resolution()
-        except (ZeroDivisionError, TypeError, AttributeError):
+        except (ZeroDivisionError, KeyError, AttributeError, ValueError):
             return NOT_A_NUMBER
 
     def get_q_min(self, sort):
@@ -58,7 +58,7 @@ class FootprintManager(object):
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
             return footprint_calc.calc_q_min()
-        except (ZeroDivisionError, TypeError, AttributeError):
+        except (ZeroDivisionError, KeyError, AttributeError):
             return NOT_A_NUMBER
 
     def get_q_max(self, sort):
@@ -72,7 +72,7 @@ class FootprintManager(object):
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
             return footprint_calc.calc_q_max()
-        except (ZeroDivisionError, TypeError, AttributeError):
+        except (ZeroDivisionError, KeyError, AttributeError):
             return NOT_A_NUMBER
 
     def set_sample_length(self, value):

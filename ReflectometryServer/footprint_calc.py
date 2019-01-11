@@ -1,3 +1,4 @@
+from __builtin__ import super
 from math import sin, tan, atan, degrees, radians, pi
 import itertools
 
@@ -8,7 +9,17 @@ S4_ID = "SLIT4"
 SA_ID = "SAMPLE"
 
 
-class FootprintSetup(object):
+class BaseFootprintSetup(object):
+    def __init__(self, theta=None, lambda_min=0, lambda_max=0):
+        self.lambda_min = float(lambda_min)
+        self.lambda_max = float(lambda_max)
+        self.theta = theta
+        self.sample_length = 200.0
+        self.positions = {}
+        self.gap_params = {}
+
+
+class FootprintSetup(BaseFootprintSetup):
     def __init__(self, pos_s1, pos_s2, pos_s3, pos_s4, pos_sample, s1vg, s2vg, s3vg, s4vg, theta, lambda_min, lambda_max):
         """
         Args:
@@ -25,10 +36,7 @@ class FootprintSetup(object):
             lambda_min: Minimum lambda for this beamline
             lambda_max: Maximum lambda for this beamline
         """
-        self.lambda_min = float(lambda_min)
-        self.lambda_max = float(lambda_max)
-        self.theta = theta
-        self.sample_length = 200.0
+        super(FootprintSetup, self).__init__(theta, lambda_min, lambda_max)
         self.positions = {S1_ID: 0.0,
                           S2_ID: float(pos_s2 - pos_s1),
                           S3_ID: float(pos_s3 - pos_s1),
@@ -42,14 +50,6 @@ class FootprintSetup(object):
                            }
 
 
-class BlankFootprintSetup(FootprintSetup):
-    """
-    Blank footprint setup for when none is given in the configuration file.
-    """
-    def __init__(self):
-        super(BlankFootprintSetup, self).__init__(0, 0, 0, 0, 0, None, None, None, None, None, 0, 0)
-
-
 class FootprintCalculator(object):
     """
     Calculator for the beam footprint and resolution.
@@ -58,6 +58,7 @@ class FootprintCalculator(object):
     def __init__(self, setup):
         super(FootprintCalculator, self).__init__()
         self.setup = setup
+        self.gaps = {}
         self.update_gaps()
 
     def get_param_value(self, param):
@@ -69,7 +70,8 @@ class FootprintCalculator(object):
         """
         self.set_gap(SA_ID, self.setup.sample_length)
         for key, gap_param in self.setup.gap_params.iteritems():
-            self.set_gap(key, self.get_param_value(gap_param))
+            if gap_param:
+                self.set_gap(key, self.get_param_value(gap_param))
 
     def theta(self):
         """

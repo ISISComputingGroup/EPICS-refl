@@ -304,8 +304,8 @@ class SlitGapParameter(BeamlineParameter):
         """
         super(SlitGapParameter, self).__init__(name, sim, init, description)
         self._pv_wrapper = pv_wrapper
-        self._pv_wrapper.add_after_sp_value_change_listener(self.update_sp_rbv)
-        self._pv_wrapper.add_after_rbv_value_change_listener(self.update_rbv)
+        self._pv_wrapper.add_after_sp_change_listener(self.update_sp_rbv)
+        self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
         self.buffer = 30
         if is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)

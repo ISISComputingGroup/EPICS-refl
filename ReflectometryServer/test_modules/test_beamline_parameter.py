@@ -11,7 +11,7 @@ from ReflectometryServer.geometry import Position, PositionAndAngle
 from ReflectometryServer.parameters import AngleParameter, TrackingPosition, ComponentEnabled, SlitGapParameter
 from data_mother import DataMother, EmptyBeamlineParameter
 from utils import position, DEFAULT_TEST_TOLERANCE
-from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
+from ReflectometryServer.pv_wrapper import AlarmSeverity, AlarmStatus
 
 
 class TestBeamlineParameter(unittest.TestCase):
@@ -557,66 +557,6 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         result = theta.rbv
 
         assert_that(result, is_(45/2.0))
-
-
-class TestSlitGapParameter(unittest.TestCase):
-
-    def setUp(self):
-        self.jaws_wrapper = Mock()
-        self.jaws_wrapper.sp = 0
-        self.jaws_wrapper.rbv = 0
-        self.slit_gap = SlitGapParameter("s1vgap", self.jaws_wrapper, True, sim=True, init=0)
-
-    def test_GIVEN_param_sp_changed_but_not_moved_THEN_pv_sp_unchanged(self):
-        expected = 0
-        self.slit_gap.sp_no_move = 1
-
-        actual = self.jaws_wrapper.sp
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_param_sp_changed_and_moved_to_THEN_pv_sp_updated(self):
-        expected = 1
-        self.slit_gap.sp_no_move = 1
-
-        self.slit_gap.move = 1
-        actual = self.jaws_wrapper.sp
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_pv_sp_rbv_changed_THEN_param_sp_rbv_updated(self):
-        expected = 1
-        self.jaws_wrapper.sp = expected
-
-        actual = self.slit_gap.sp_rbv
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_pv_sp_rbv_changed_THEN_param_sp_unchanged(self):
-        expected = 0
-        self.jaws_wrapper.sp = expected
-
-        actual = self.slit_gap.sp
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_pv_rbv_changed_THEN_param_rbv_updated(self):
-        expected = 1
-        self.jaws_wrapper.rbv = expected
-
-        actual = self.slit_gap.rbv
-
-        self.assertEqual(expected, actual)
-
-    def test_GIVEN_pv_rbv_changed_THEN_param_sp_and_sp_rbv_unchanged(self):
-        expected = 0
-        self.jaws_wrapper.rbv = expected
-
-        actual_sp = self.slit_gap.sp
-        actual_sp_rbv = self.slit_gap.sp_rbv
-
-        self.assertEqual(expected, actual_sp)
-        self.assertEqual(expected, actual_sp_rbv)
 
 
 if __name__ == '__main__':

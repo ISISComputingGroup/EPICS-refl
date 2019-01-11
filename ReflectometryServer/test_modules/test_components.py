@@ -8,7 +8,7 @@ from parameterized import parameterized
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle, PositionAndAngle
 from utils import position_and_angle, position
-from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
+from ReflectometryServer.pv_wrapper import AlarmSeverity, AlarmStatus
 
 
 class TestComponent(unittest.TestCase):
