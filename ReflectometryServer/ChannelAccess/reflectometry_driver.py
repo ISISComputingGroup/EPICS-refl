@@ -67,6 +67,8 @@ class ReflectometryDriver(Driver):
             return new_value
         elif self._pv_manager.is_beamline_message(reason):
             return self._beamline.message
+        elif self._pv_manager.is_sample_length(reason):
+            return self._footprint_manager.get_sample_length()
         else:
             return self.getParam(reason)
 
