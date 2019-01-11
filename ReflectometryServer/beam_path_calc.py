@@ -28,6 +28,9 @@ class TrackingBeamPathCalc(object):
         self._is_in_beam = True
         self._movement_strategy = movement_strategy
 
+        # This is used in disable mode where the incoming
+        self.incoming_beam_can_change = True
+
     def add_after_beam_path_update_listener(self, listener):
         """
         Add a listener which is triggered if the beam path is changed. For example if displacement is set or incoming
@@ -44,14 +47,30 @@ class TrackingBeamPathCalc(object):
         for listener in self._after_beam_path_update_listeners:
             listener(self)
 
-    def set_incoming_beam(self, incoming_beam):
+    def set_incoming_beam(self, incoming_beam, force=False):
         """
-        Set the incoming beam for the component setpoint calculation
+        Set the incoming beam for the component setpoint calculation.
+        This method should respect self.incoming_beam_can_change.
+        Args:
+            incoming_beam(PositionAndAngle): incoming beam
+            force: set the incoming beam even if incoming_beam_can_change is not true
+        """
+        if self.incoming_beam_can_change or force:
+            self._incoming_beam = incoming_beam
+            self._on_set_incoming_beam(incoming_beam)
+
+        self._trigger_after_beam_path_update()
+
+    def _on_set_incoming_beam(self, incoming_beam):
+        """
+        Function called between incoming beam having been set and the change listeners being triggered. Used in classes
+        which inherit this to change behaviour on set of incoming beam. Only called when the incoming beam is allowed
+        to change
+
         Args:
             incoming_beam(PositionAndAngle): incoming beam
         """
-        self._incoming_beam = incoming_beam
-        self._trigger_after_beam_path_update()
+        pass
 
     def get_outgoing_beam(self):
         """
@@ -247,7 +266,7 @@ class BeamPathCalcAngleReflecting(_BeamPathCalcReflecting):
         self._trigger_after_physical_move_listener()
 
 
-class BeamPathCalcTheta(_BeamPathCalcReflecting):
+class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
     """
     A reflecting beam path calculator which has a read only angle based on the angle to a list of beam path
     calculations. This is used for example for Theta where the angle is the angle to the next enabled component
@@ -260,7 +279,7 @@ class BeamPathCalcTheta(_BeamPathCalcReflecting):
             angle_to (list[ReflectometryServer.beam_path_calc.TrackingBeamPathCalc]):
                 beam path calc on which to base the angle
         """
-        super(BeamPathCalcTheta, self).__init__(movement_strategy)
+        super(BeamPathCalcThetaRBV, self).__init__(movement_strategy)
         self._angle_to = angle_to
         for readback_beam_path_calc in self._angle_to:
             readback_beam_path_calc.add_after_physical_move_listener(self._update_angle)
@@ -297,14 +316,16 @@ class BeamPathCalcTheta(_BeamPathCalcReflecting):
             angle = float("NaN")
         return angle
 
-    def set_incoming_beam(self, incoming_beam):
+    def _on_set_incoming_beam(self, incoming_beam):
         """
-        Set the incoming beam for the component setpoint calculation
+        Function called between incoming beam having been set and the change listners being triggered.
+        In this case we need to calulcate a new angle because out angle is the angle of the mirror needed to bounce the
+        beam from the incoming beam to the outgoing beam.
+
         Args:
             incoming_beam(PositionAndAngle): incoming beam
         """
         self._angle = self._calc_angle_from_next_component(incoming_beam)
-        super(BeamPathCalcTheta, self).set_incoming_beam(incoming_beam)
 
     @property
     def angle(self):
@@ -312,3 +333,35 @@ class BeamPathCalcTheta(_BeamPathCalcReflecting):
         Returns: the angle of the component measured clockwise from the horizon in the incoming beam direction.
         """
         return self._angle
+
+
+class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
+    """
+    A calculation for theta SP which takes an angle to parameter. This allows changes in theta to change the incoming
+    beam on the component it is pointing at when in disable mode. It will only change the beam if the component is in
+    the beam.
+    """
+
+    def __init__(self, movement_strategy, angle_to):
+        """
+        Initialiser.
+        Args:
+            movement_strategy: movement strategy to use
+            angle_to (list[ReflectometryServer.beam_path_calc.TrackingBeamPathCalc]):
+                beam path calc on which to base the angle
+        """
+        super(BeamPathCalcThetaSP, self).__init__(movement_strategy)
+        self._angle_to = angle_to
+
+    def _trigger_after_beam_path_update(self):
+        """
+        Before triggering movement, set the disabled components angle which we point at.
+        This is because it will not get the altered beam path.
+        """
+
+        for angle_to in self._angle_to:
+            if not angle_to.incoming_beam_can_change and angle_to.is_in_beam:
+                angle_to.set_incoming_beam(self.get_outgoing_beam(), force=True)
+                break
+
+        super(BeamPathCalcThetaSP, self)._trigger_after_beam_path_update()

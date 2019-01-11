@@ -2,7 +2,7 @@
 Components on a beam
 """
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, BeamPathTilting, BeamPathCalcAngleReflecting, \
-    BeamPathCalcTheta
+    BeamPathCalcThetaRBV, BeamPathCalcThetaSP
 from ReflectometryServer.movement_strategy import LinearMovementCalc
 import logging
 
@@ -40,10 +40,8 @@ class Component(object):
         """
         The beam path calculation for the set points. This is readonly and can only be set during construction
         Returns:
-            (TrackingBeamPathCalc|BeamPathTilting|BeamPathCalcTheta|BeamPathCalcAngleReflecting): set points beam path
-                calculation
-
-
+            (TrackingBeamPathCalc|BeamPathTilting|BeamPathCalcThetaRBV|BeamPathCalcThetaSP|BeamPathCalcAngleReflecting):
+                set points beam path calculation
         """
         return self._beam_path_set_point
 
@@ -52,11 +50,21 @@ class Component(object):
         """
         The beam path calculation for the read backs. This is readonly and can only be set during construction
         Returns:
-            (TrackingBeamPathCalc|BeamPathTilting|BeamPathCalcTheta|BeamPathCalcAngleReflecting): read backs beam path
-                calculation
+            (TrackingBeamPathCalc|BeamPathTilting|BeamPathCalcThetaRBV|BeamPathCalcThetaSP|BeamPathCalcAngleReflecting):
+                read backs beam path calculation
 
         """
         return self._beam_path_rbv
+
+    def set_incoming_beam_can_change(self, can_change):
+        """
+        Set whether the incoming beam can be changed on a component. This is used in disable mode where the incoming
+        beam can not be changed.
+        Args:
+            can_change: True if the incoming beam can changed; False if it is static
+        """
+        self._beam_path_set_point.incoming_beam_can_change = can_change
+        self._beam_path_rbv.incoming_beam_can_change = can_change
 
 
 class TiltingComponent(Component):
@@ -111,10 +119,12 @@ class ThetaComponent(ReflectingComponent):
                 angle should calculated to, ordered by preference. First enabled component is used.
         """
         super(ReflectingComponent, self).__init__(name, setup)
-        self._beam_path_rbv = BeamPathCalcTheta(LinearMovementCalc(setup), [comp.beam_path_rbv for comp in angle_to])
+        self._beam_path_rbv = BeamPathCalcThetaRBV(LinearMovementCalc(setup), [comp.beam_path_rbv for comp in angle_to])
+        self._beam_path_set_point = BeamPathCalcThetaSP(LinearMovementCalc(setup),
+                                                        [comp.beam_path_set_point for comp in angle_to])
 
     def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = BeamPathCalcAngleReflecting(LinearMovementCalc(setup))
+        pass
 
 
 # class Bench(Component):

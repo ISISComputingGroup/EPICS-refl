@@ -552,5 +552,75 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         assert_that(result, is_(45/2.0))
 
 
+class TestBeamlineThetaComponetWhenDisabled(unittest.TestCase):
+
+    def test_GIVEN_theta_with_0_deg_beam_and_next_component_in_beam_but_disabled_WHEN_set_theta_to_45_THEN_component_sp_is_at_45_degrees(self):
+
+        detector = Component("detector", setup=PositionAndAngle(0, 10, 90))
+        detector.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector])
+        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        theta = AngleParameter("param", sample)
+        detector.set_incoming_beam_can_change(False)
+
+        theta.sp = 22.5
+        result = detector.beam_path_set_point.get_position_relative_to_beam()
+
+        assert_that(result, is_(close_to(-10.0, 1e-6)))  # the beam is now above the current position. The beam line parameter needs to be triggered to make is move
+
+    def test_GIVEN_theta_with_0_deg_beam_and_next_component_in_beam_is_not_disabled_WHEN_set_theta_to_45_THEN_component_sp_is_not_altered(self):
+        # this calculation will be done via the beamline not the forced copy of output beam
+        detector = Component("detector", setup=PositionAndAngle(0, 10, 90))
+        detector.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector])
+        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        theta = AngleParameter("param", sample)
+        detector.set_incoming_beam_can_change(True)
+
+        theta.sp = 22.5
+        result = detector.beam_path_set_point.get_position_relative_to_beam()
+
+        assert_that(result, is_(close_to(0, 1e-6)))
+
+    def test_GIVEN_theta_with_0_deg_beam_and_next_two_component_in_beam_and_are_disabled_WHEN_set_theta_to_45_THEN_first_component_altered_second_one_not(self):
+        # this calculation will be done via the beamline not the forced copy of output beam
+        detector = Component("detector", setup=PositionAndAngle(0, 10, 90))
+        detector.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        detector2 = Component("detector", setup=PositionAndAngle(0, 20, 90))
+        detector2.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector, detector2])
+        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        theta = AngleParameter("param", sample)
+        detector.set_incoming_beam_can_change(False)
+        detector2.set_incoming_beam_can_change(False)
+
+        theta.sp = 22.5
+        result1 = detector.beam_path_set_point.get_position_relative_to_beam()
+        result2 = detector2.beam_path_set_point.get_position_relative_to_beam()
+
+        assert_that(result1, is_(close_to(-10, 1e-6)))
+        assert_that(result2, is_(close_to(0, 1e-6)))
+
+    def test_GIVEN_theta_with_0_deg_beam_and_next_first_component_out_of_beam_second_in_beam_and_are_disabled_WHEN_set_theta_to_45_THEN_first_component_not_altered_second_one_is(self):
+        # this calculation will be done via the beamline not the forced copy of output beam
+        detector = Component("detector", setup=PositionAndAngle(0, 10, 90))
+        detector.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        detector2 = Component("detector", setup=PositionAndAngle(0, 20, 90))
+        detector2.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector, detector2])
+        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        theta = AngleParameter("param", sample)
+        detector.set_incoming_beam_can_change(False)
+        detector.beam_path_set_point.is_in_beam = False
+        detector2.set_incoming_beam_can_change(False)
+
+        theta.sp = 22.5
+        result1 = detector.beam_path_set_point.get_position_relative_to_beam()
+        result2 = detector2.beam_path_set_point.get_position_relative_to_beam()
+
+        assert_that(result1, is_(close_to(0, 1e-6)))
+        assert_that(result2, is_(close_to(-20, 1e-6)))
+
+
 if __name__ == '__main__':
     unittest.main()

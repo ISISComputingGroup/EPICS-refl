@@ -180,6 +180,26 @@ class TestRealistic(unittest.TestCase):
 
         assert_that(drives["det_angle_axis"].value, is_(2*theta_angle))
 
+    def test_GIVEN_beam_line_which_is_in_disabled_mode_WHEN_set_theta_THEN_nothing_else_moves(self):
+        spacing = 2.0
+        bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
+        bl.parameter("s1").sp = 0
+        bl.parameter("s3").sp = 0
+        bl.parameter("det").sp = 0
+        bl.parameter("det_angle").sp = 0
+        bl.active_mode = "DISABLED"
+
+        theta_angle = 2
+        bl.parameter("theta").sp = theta_angle
+
+        assert_that(drives["s1_axis"].value, is_(0))
+        assert_that(drives["s3_axis"].value, is_(0.0))
+
+        expected_det_value = 2 * spacing * tan(radians(theta_angle * 2.0))
+        assert_that(drives["det_axis"].value, is_(expected_det_value))
+
+        assert_that(drives["det_angle_axis"].value, is_(2*theta_angle))
+
 
 class TestBeamlineValidation(unittest.TestCase):
 
