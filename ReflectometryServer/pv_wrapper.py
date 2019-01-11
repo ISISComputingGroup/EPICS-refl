@@ -42,10 +42,10 @@ class PVWrapper(object):
             pv(String): The pv to monitor
             call_back_function: The function to execute on a pv value change
         """
-        try:
+        if CaChannelWrapper.pv_exists(pv):
             CaChannelWrapper.add_monitor(pv, call_back_function)
             logger.debug("Monitoring {} for changes.".format(pv))
-        except UnableToConnectToPVException:
+        else:
             logger.error("Error adding monitor to {}: PV does not exist".format(pv))
 
     @staticmethod

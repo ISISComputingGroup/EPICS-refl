@@ -105,6 +105,31 @@ class PvSort(Enum):
         return None
 
 
+class FootprintSort(Enum):
+    """
+    Enum for the type of footprint calculator
+    """
+    SP = 0
+    RBV = 1
+    SP_RBV = 2
+
+    @staticmethod
+    def suffix(sort):
+        """
+        Args:
+            sort: The sort of footprint value
+
+        Returns: The pv suffix for this sort of value
+        """
+        if sort == FootprintSort.SP:
+            return FP_SP_SUFFIX
+        elif sort == FootprintSort.SP_RBV:
+            return FP_SP_RBV_SUFFIX
+        elif sort == FootprintSort.RBV:
+            return FP_RBV_SUFFIX
+        return None
+
+
 class PVManager:
     """
     Holds reflectometry PVs and associated utilities.
@@ -128,8 +153,8 @@ class PVManager:
         self._add_footprint_calculator_pvs()
         self._add_all_parameter_pvs(param_types)
 
-        # for pv_name in self.PVDB.keys():
-        #     print("creating pv: {}".format(pv_name))
+        for pv_name in self.PVDB.keys():
+            print("creating pv: {}".format(pv_name))
 
     def _add_global_pvs(self, mode_names, status_codes):
         """
@@ -266,15 +291,6 @@ class PVManager:
 
         if param_name is not None:
             self._params_pv_lookup[pv_name] = (param_name, param_sort)
-
-    def fp_suffix(self, sort):
-        if sort is PvSort.SP:
-            suffix = FP_SP_SUFFIX
-        elif sort is PvSort.SP_RBV:
-            suffix = FP_SP_RBV_SUFFIX
-        else:
-            suffix = FP_RBV_SUFFIX
-        return suffix
 
     def param_names_pvnames_and_sort(self):
         """

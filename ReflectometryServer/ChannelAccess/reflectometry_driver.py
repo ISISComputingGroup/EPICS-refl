@@ -5,8 +5,8 @@ from functools import partial
 
 from pcaspy import Driver, Alarm, Severity
 
-from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS
-from ReflectometryServer.ChannelAccess.pv_manager import FP, DQQ, QMIN, QMAX, FOOTPRINT_SUFFIXES
+from ReflectometryServer.ChannelAccess.pv_manager import BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, FP, DQQ, QMIN, QMAX
+from ReflectometryServer.ChannelAccess.pv_manager import PvSort, FootprintSort
 from ReflectometryServer.parameters import BeamlineParameterGroup
 from server_common.utilities import compress_and_hex
 
@@ -124,18 +124,18 @@ class ReflectometryDriver(Driver):
         """
         Updates footprint calculations for all value sorts.
         """
-        self._update_footprint(PvSort.SP, 1)
-        self._update_footprint(PvSort.SP_RBV, 1)
-        self._update_footprint(PvSort.RBV, 1)
+        self._update_footprint(FootprintSort.SP, 1)
+        self._update_footprint(FootprintSort.SP_RBV, 1)
+        self._update_footprint(FootprintSort.RBV, 1)
 
     def _update_footprint(self, sort, _):
         """
-        Updates footprint pvs after a given sort of value was updated.
+        Updates footprint PVs for a given sort of value.
 
         Args:
-            sort: The sort of value that was updated on the parameter
+            sort{ReflectometryServer.pv_manager.FootprintSort): The sort of value for which to update the footprint PVs
         """
-        suffix = self._pv_manager.fp_suffix(sort)
+        suffix = FootprintSort.suffix(sort)
         self._update_param(FP + suffix, self._footprint_manager.get_footprint(sort))
         self._update_param(DQQ + suffix, self._footprint_manager.get_resolution(sort))
         self._update_param(QMIN + suffix, self._footprint_manager.get_q_min(sort))
@@ -145,6 +145,7 @@ class ReflectometryDriver(Driver):
     def _update_param(self, pv_name, value):
         """
         Update a parameter value (both it and .VAL)
+
         Args:
             pv_name: name of the pv
             value: value of the parameter
@@ -170,15 +171,16 @@ class ReflectometryDriver(Driver):
             parameter = self._beamline.parameter(param_name)
             if param_sort == PvSort.RBV:
                 parameter.add_rbv_change_listener(partial(self._update_param_listener, pv_name))
-            if param_sort == PvSort.SP_RBV:
-                parameter.add_sp_rbv_change_listener(partial(self._update_param_listener, pv_name))
 
     def add_footprint_param_listeners(self):
         """
         Add listeners to parameters that affect the beam footprint.
         """
+        parameters_to_monitor = set()
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
             if BeamlineParameterGroup.FOOTPRINT_PARAMETER in parameter.group_names:
-                parameter.add_rbv_change_listener(partial(self._update_footprint, param_sort))
-                parameter.add_sp_rbv_change_listener(partial(self._update_footprint, param_sort))
+                parameters_to_monitor.add(parameter)
+        for parameter in parameters_to_monitor:
+            parameter.add_rbv_change_listener(partial(self._update_footprint, FootprintSort.RBV))
+            parameter.add_sp_rbv_change_listener(partial(self._update_footprint, FootprintSort.SP_RBV))

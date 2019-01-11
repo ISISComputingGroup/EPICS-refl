@@ -1,5 +1,5 @@
 from ReflectometryServer.footprint_calc import *
-from ReflectometryServer.ChannelAccess.pv_manager import PvSort
+from ReflectometryServer.ChannelAccess.pv_manager import FootprintSort
 
 NOT_A_NUMBER = "NaN"
 
@@ -98,9 +98,10 @@ class FootprintManager(object):
             type: The type of value (setpoint, setpoint readback or readback)
         Returns: A footprint calculator.
         """
-        if sort is PvSort.SP:
+        if sort is FootprintSort.SP:
             return self._footprint_calc_sp
-        elif sort is PvSort.SP_RBV:
+        elif sort is FootprintSort.SP_RBV:
             return self._footprint_calc_sp_rbv
-        else:
+        elif sort is FootprintSort.RBV:
             return self._footprint_calc_rbv
+        return None
