@@ -185,3 +185,63 @@ class AxisPVWrapper(PVWrapper):
     def _set_pvs(self):
         self._sp_pv = "{}:SP".format(self._prefixed_pv)
         self._rbv_pv = self._prefixed_pv
+
+
+class VerticalJawsPVWrapper(PVWrapper):
+    """
+    Wrap the vertical jaws PVs to allow easy access to all motor PV values needed, to allow the centre to track a
+    height.
+    """
+
+    def __init__(self, base_pv):
+        """
+        Creates a wrapper around a motor PV for accessing its fields.
+        :param pv_name (string): The name of the PV
+        """
+        super(VerticalJawsPVWrapper, self).__init__(base_pv)
+
+        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
+
+    def _set_pvs(self):
+        self._sp_pv = "{}:VCENT:SP".format(self._prefixed_pv)
+        self._rbv_pv = "{}:VCENT".format(self._prefixed_pv)
+
+    @property
+    def velocity(self):
+        """
+        Returns: the value of the underlying velocity PV
+        """
+        motor_velocities = self._pv_names_for_directions("MTR.VELO")
+        return max([ChannelAccess.caget(pv) for pv in motor_velocities])
+
+    @velocity.setter
+    def velocity(self, value):
+        """
+        Writes a value to the underlying velocity PV's VAL field.
+
+        Args:
+            value: The value to set
+        """
+        motor_velocities = self._pv_names_for_directions("MTR.VELO")
+        for pv in motor_velocities:
+            ChannelAccess.caput(pv, value)
+
+    @property
+    def max_velocity(self):
+        """
+        Returns: the value of the underlying max velocity PV
+        """
+        motor_velocities = self._pv_names_for_directions("MTR.VMAX")
+        return min([ChannelAccess.caget(pv) for pv in motor_velocities])
+
+    def _pv_names_for_directions(self, suffix):
+        """
+        Args:
+            suffix: pv to read
+
+        Returns:
+            list of pv names for the different directions
+        """
+        directions = ["JN", "JS"]
+        return ["{}:{}:{}".format(self._prefixed_pv, direction, suffix)
+                for direction in directions]
