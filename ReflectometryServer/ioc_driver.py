@@ -61,8 +61,8 @@ class IocDriver(object):
         Trigger all listeners after an axis value change.
         Args:
             new_value: new axis value that is given
-            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
-            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
 
         raise NotImplemented()
@@ -86,8 +86,8 @@ class DisplacementDriver(IocDriver):
         Trigger all listeners after a height change.
         Args:
             new_value: new height that is given
-            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
-            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
 
         self._component.beam_path_rbv.set_displacement(new_value, alarm_severity, alarm_status)

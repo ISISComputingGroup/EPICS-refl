@@ -1,16 +1,10 @@
 """
 Wrapper for motor PVs
 """
-from genie_python.genie_cachannel_wrapper import CaChannelWrapper
-from genie_python.channel_access_exceptions import UnableToConnectToPVException
-
-# Export these with better names
-from CaChannel._ca import AlarmSeverity
-from CaChannel._ca import AlarmCondition as AlarmStatus
-
-
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX
 import logging
+
+from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +40,8 @@ class PVWrapper(object):
             pv(String): The pv to monitor
             call_back_function: The function to execute on a pv value change
         """
-        if CaChannelWrapper.pv_exists(pv):
-            CaChannelWrapper.add_monitor(pv, call_back_function)
+        if ChannelAccess.pv_exists(pv):
+            ChannelAccess.add_monitor(pv, call_back_function)
             logger.debug("Monitoring {} for changes.".format(pv))
         else:
             logger.error("Error adding monitor to {}: PV does not exist".format(pv))
@@ -61,7 +55,7 @@ class PVWrapper(object):
             pv(String): The pv to read
         """
         try:
-            return CaChannelWrapper.get_pv_value(pv)
+            return ChannelAccess.caget(pv)
         except UnableToConnectToPVException:
             logger.error("Error reading value from {}: PV does not exist".format(pv))
             return None
@@ -76,7 +70,7 @@ class PVWrapper(object):
             value: The new value
         """
         try:
-            CaChannelWrapper.set_pv_value(pv, value)
+            ChannelAccess.caput(pv, value)
         except UnableToConnectToPVException:
             logger.error("Error writing value to {}: PV does not exist".format(pv))
 
@@ -153,7 +147,7 @@ class MotorPVWrapper(PVWrapper):
         """
         Returns: the value of the underlying velocity PV
         """
-        return CaChannelWrapper.get_pv_value(self._prefixed_pv + ".VELO")
+        return ChannelAccess.caget(self._prefixed_pv + ".VELO")
 
     @velocity.setter
     def velocity(self, value):
@@ -163,14 +157,14 @@ class MotorPVWrapper(PVWrapper):
         Args:
             value: The value to set
         """
-        CaChannelWrapper.set_pv_value(self._prefixed_pv + ".VELO", value)
+        ChannelAccess.caput(self._prefixed_pv + ".VELO", value)
 
     @property
     def max_velocity(self):
         """
         Returns: the value of the underlying max velocity PV
         """
-        return CaChannelWrapper.get_pv_value(self._prefixed_pv + ".VMAX")
+        return ChannelAccess.caget(self._prefixed_pv + ".VMAX")
 
 
 class AxisPVWrapper(PVWrapper):

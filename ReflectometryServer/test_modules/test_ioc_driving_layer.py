@@ -7,10 +7,9 @@ from hamcrest import *
 
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.components import TiltingComponent, Component, ReflectingComponent
-from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
+from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.parameters import AngleParameter, TrackingPosition
-from ReflectometryServer.pv_wrapper import AlarmSeverity, AlarmStatus
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
 FLOAT_TOLERANCE = 1e-9

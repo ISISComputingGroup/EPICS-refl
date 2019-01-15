@@ -7,8 +7,8 @@ from parameterized import parameterized
 
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle, PositionAndAngle
+from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position_and_angle, position
-from ReflectometryServer.pv_wrapper import AlarmSeverity, AlarmStatus
 
 
 class TestComponent(unittest.TestCase):

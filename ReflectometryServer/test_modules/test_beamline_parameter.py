@@ -10,8 +10,8 @@ from ReflectometryServer.components import ReflectingComponent, Component, Theta
 from ReflectometryServer.geometry import Position, PositionAndAngle
 from ReflectometryServer.parameters import AngleParameter, TrackingPosition, ComponentEnabled, SlitGapParameter
 from data_mother import DataMother, EmptyBeamlineParameter
+from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position, DEFAULT_TEST_TOLERANCE
-from ReflectometryServer.pv_wrapper import AlarmSeverity, AlarmStatus
 
 
 class TestBeamlineParameter(unittest.TestCase):
