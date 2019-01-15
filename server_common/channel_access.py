@@ -43,7 +43,7 @@ except ImportError:
         """
         Enum for severity of alarm
         """
-        NoAlarm = 0
+        No = 0
         Minor = 1
         Major = 2
         invalid = 3
@@ -64,7 +64,7 @@ except ImportError:
         Link = 14
         Lolo = 5
         Low = 6
-        NoAlarm = 0
+        No = 0
         Read = 1
         ReadAccess = 20
         Scam = 13
