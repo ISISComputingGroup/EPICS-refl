@@ -1,7 +1,9 @@
+"""
+Manager for the footprint calc.
+"""
+
 from ReflectometryServer.footprint_calc import *
 from ReflectometryServer.ChannelAccess.pv_manager import FootprintSort
-
-NOT_A_NUMBER = "NaN"
 
 
 class FootprintManager(object):
@@ -32,7 +34,7 @@ class FootprintManager(object):
         try:
             return footprint_calc.calc_footprint()
         except (ZeroDivisionError, KeyError, AttributeError):
-            return NOT_A_NUMBER
+            return float("NaN")
 
     def get_resolution(self, sort):
         """
@@ -45,7 +47,7 @@ class FootprintManager(object):
         try:
             return footprint_calc.calc_min_resolution()
         except (ZeroDivisionError, KeyError, AttributeError, ValueError):
-            return NOT_A_NUMBER
+            return float("NaN")
 
     def get_q_min(self, sort):
         """
@@ -59,7 +61,7 @@ class FootprintManager(object):
         try:
             return footprint_calc.calc_q_min()
         except (ZeroDivisionError, KeyError, AttributeError):
-            return NOT_A_NUMBER
+            return float("NaN")
 
     def get_q_max(self, sort):
         """
@@ -73,7 +75,7 @@ class FootprintManager(object):
         try:
             return footprint_calc.calc_q_max()
         except (ZeroDivisionError, KeyError, AttributeError):
-            return NOT_A_NUMBER
+            return float("NaN")
 
     def set_sample_length(self, value):
         """
@@ -95,7 +97,7 @@ class FootprintManager(object):
         Returns a footprint calculator instance based on type of value.
 
         Args:
-            type: The type of value (setpoint, setpoint readback or readback)
+            sort: The type of value (setpoint, setpoint readback or readback)
         Returns: A footprint calculator.
         """
         if sort is FootprintSort.SP:

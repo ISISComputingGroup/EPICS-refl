@@ -306,7 +306,7 @@ class SlitGapParameter(BeamlineParameter):
         self._pv_wrapper = pv_wrapper
         self._pv_wrapper.add_after_sp_change_listener(self.update_sp_rbv)
         self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
-        self.buffer = 30
+        self._rbv_value = init
         if is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
             self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
@@ -334,11 +334,11 @@ class SlitGapParameter(BeamlineParameter):
             alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
             alarm_status (CaChannel._ca.AlarmCondition): the alarm status
         """
-        self.buffer = new_value
+        self._rbv_value = new_value
         self._trigger_rbv_listeners(self)
 
     def _move_component(self):
         self._pv_wrapper.sp = self._set_point
 
     def _rbv(self):
-        return self.buffer
+        return self._rbv_value

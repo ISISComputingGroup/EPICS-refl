@@ -2,7 +2,6 @@
 Reflectometry pv manager
 """
 from enum import Enum
-from pcaspy import Severity
 
 from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
@@ -24,19 +23,19 @@ CHANGED_SUFFIX = ":CHANGED"
 SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
 VAL_FIELD = ".VAL"
 
-FOOTPRINT_PREFIX = "FP:"
+FOOTPRINT_PREFIX = "FP"
 
-SAMPLE_LENGTH = FOOTPRINT_PREFIX + "SAMPLE_LENGTH"
-FP = FOOTPRINT_PREFIX + "FOOTPRINT"
-DQQ = FOOTPRINT_PREFIX + "DQQ"
-QMIN = FOOTPRINT_PREFIX + "QMIN"
-QMAX = FOOTPRINT_PREFIX + "QMAX"
+SAMPLE_LENGTH = "{}:{}".format(FOOTPRINT_PREFIX, "SAMPLE_LENGTH")
+FP_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "FOOTPRINT")
+DQQ_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "DQQ")
+QMIN_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "QMIN")
+QMAX_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "QMAX")
 
-FP_SP_SUFFIX = "_SP"
-FP_SP_RBV_SUFFIX = "_SP_RBV"
-FP_RBV_SUFFIX = "_RBV"
+FP_SP_PREFIX = "SP"
+FP_SP_RBV_PREFIX = "SP_RBV"
+FP_RBV_PREFIX = "RBV"
 
-FOOTPRINT_SUFFIXES = [FP_SP_SUFFIX, FP_SP_RBV_SUFFIX, FP_RBV_SUFFIX]
+FOOTPRINT_PREFIXES = [FP_SP_PREFIX, FP_SP_RBV_PREFIX, FP_RBV_PREFIX]
 
 PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
 
@@ -114,7 +113,7 @@ class FootprintSort(Enum):
     SP_RBV = 2
 
     @staticmethod
-    def suffix(sort):
+    def prefix(sort):
         """
         Args:
             sort: The sort of footprint value
@@ -122,11 +121,11 @@ class FootprintSort(Enum):
         Returns: The pv suffix for this sort of value
         """
         if sort == FootprintSort.SP:
-            return FP_SP_SUFFIX
+            return FP_SP_PREFIX
         elif sort == FootprintSort.SP_RBV:
-            return FP_SP_RBV_SUFFIX
+            return FP_SP_RBV_PREFIX
         elif sort == FootprintSort.RBV:
-            return FP_RBV_SUFFIX
+            return FP_RBV_PREFIX
         return None
 
 
@@ -188,15 +187,14 @@ class PVManager:
         self._add_pv_with_val(SAMPLE_LENGTH, None, PARAMS_FIELDS_BEAMLINE_TYPES[BeamlineParameterType.FLOAT],
                               "Sample Length", PvSort.SP_RBV, archive=True, interest="HIGH")
 
-        for suffix in FOOTPRINT_SUFFIXES:
-            self._add_pv_with_val(FP + suffix, None, {'type': 'string'}, "Beam Footprint", PvSort.RBV,
-                                  archive=True, interest="HIGH")
-            self._add_pv_with_val(DQQ + suffix, None, {'type': 'string'}, "Beam Resolution dQ/Q", PvSort.RBV,
-                                  archive=True, interest="HIGH")
-            self._add_pv_with_val(QMIN + suffix, None, {'type': 'string'},
-                                  "Minimum measurable Q with current setup", PvSort.RBV, archive=True, interest="HIGH")
-            self._add_pv_with_val(QMAX + suffix, None, {'type': 'string'},
-                                  "Maximum measurable Q with current setup", PvSort.RBV, archive=True, interest="HIGH")
+        for prefix in FOOTPRINT_PREFIXES:
+            for template, description in [(FP_TEMPLATE, "Beam Footprint"),
+                                          (DQQ_TEMPLATE, "Beam Resolution dQ/Q"),
+                                          (QMIN_TEMPLATE, "Minimum measurable Q with current setup"),
+                                          (QMAX_TEMPLATE, "Maximum measurable Q with current setup")]:
+                self._add_pv_with_val(template.format(prefix), None,
+                                      PARAMS_FIELDS_BEAMLINE_TYPES[BeamlineParameterType.FLOAT],
+                                      description, PvSort.RBV, archive=True, interest="HIGH")
 
     def _add_all_parameter_pvs(self, param_types):
         """
@@ -258,7 +256,7 @@ class PVManager:
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
 
-    def _add_pv_with_val(self, pv_name, param_name, pv_fields, description, param_sort, archive=False, interest=None,
+    def _add_pv_with_val(self, pv_name, param_name, pv_fields, description, sort, archive=False, interest=None,
                          alarm=False):
         """
         Add param to pv list with .val and correct fields and to parm look up
@@ -266,7 +264,7 @@ class PVManager:
             pv_name: name of the pv
             param_name: name of the parameter; None for not a parameter
             pv_fields: pv fields to use
-            param_sort: sort of parameter it is
+            sort: sort of pv it is
             archive: True if it should be archived
             interest: level of interest; None is not interesting
             alarm: True if this pv represents the alarm state of the IOC; false otherwise
@@ -275,7 +273,7 @@ class PVManager:
 
         """
         pv_fields = pv_fields.copy()
-        pv_fields[PV_DESCRIPTION_NAME] = description + PvSort.what(param_sort)
+        pv_fields[PV_DESCRIPTION_NAME] = description + PvSort.what(sort)
 
         pv_fields_mod = pv_fields.copy()
         pv_fields_mod[PV_INFO_FIELD_NAME] = {}
@@ -290,7 +288,7 @@ class PVManager:
         self.PVDB[pv_name + VAL_FIELD] = pv_fields
 
         if param_name is not None:
-            self._params_pv_lookup[pv_name] = (param_name, param_sort)
+            self._params_pv_lookup[pv_name] = (param_name, sort)
 
     def param_names_pvnames_and_sort(self):
         """

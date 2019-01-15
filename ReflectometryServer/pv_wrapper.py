@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 class PVWrapper(object):
+    """
+    Wrap a single pv with readback and set point listeners.
+    """
+
     def __init__(self, base_pv):
         """
         Creates a wrapper around a PV.
@@ -177,7 +181,7 @@ class AxisPVWrapper(PVWrapper):
         """
         Creates a wrapper around a motor PV for accessing its fields.
         Args:
-            pv_name (string): The name of the PV
+            base_pv (string): The name of the base PV
         """
         super(AxisPVWrapper, self).__init__(base_pv)
 

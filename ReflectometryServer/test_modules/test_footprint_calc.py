@@ -60,8 +60,8 @@ class TestFootprintCalc(unittest.TestCase):
 
         self.calc = FootprintCalculatorSetpointReadback(self.calc_setup)
 
-        for key, value in DEFAULT_GAPS.iteritems():
-            self.calc.set_gap(key, value)
+        for key, value in DEFAULT_GAPS.items():
+            self.calc.gaps[key] = value
 
     def test_GIVEN_two_components_WHEN_calculating_distance_THEN_distance_is_correct(self):
         pos1 = S2_ID
@@ -101,7 +101,7 @@ class TestFootprintCalc(unittest.TestCase):
                            (200, 0.872661857),
                            (500, 2.181654642)])
     def test_GIVEN_variable_sample_size_and_fixed_theta_value_WHEN_calculating_equivalent_slit_size_of_sample_THEN_result_is_correct(self, sample_size, expected):
-        self.calc.set_gap(SA_ID, sample_size)
+        self.calc.gaps[SA_ID] = sample_size
 
         actual = self.calc.calc_equivalent_gap_by_sample_size()
 

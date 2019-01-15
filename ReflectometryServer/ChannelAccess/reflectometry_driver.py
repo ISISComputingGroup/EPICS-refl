@@ -5,7 +5,8 @@ from functools import partial
 
 from pcaspy import Driver, Alarm, Severity
 
-from ReflectometryServer.ChannelAccess.pv_manager import BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, FP, DQQ, QMIN, QMAX
+from ReflectometryServer.ChannelAccess.pv_manager import BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, FP_TEMPLATE, \
+    DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, FootprintSort
 from ReflectometryServer.parameters import BeamlineParameterGroup
 from server_common.utilities import compress_and_hex
@@ -135,11 +136,11 @@ class ReflectometryDriver(Driver):
         Args:
             sort{ReflectometryServer.pv_manager.FootprintSort): The sort of value for which to update the footprint PVs
         """
-        suffix = FootprintSort.suffix(sort)
-        self._update_param(FP + suffix, self._footprint_manager.get_footprint(sort))
-        self._update_param(DQQ + suffix, self._footprint_manager.get_resolution(sort))
-        self._update_param(QMIN + suffix, self._footprint_manager.get_q_min(sort))
-        self._update_param(QMAX + suffix, self._footprint_manager.get_q_max(sort))
+        prefix = FootprintSort.prefix(sort)
+        self._update_param(FP_TEMPLATE.format(prefix), self._footprint_manager.get_footprint(sort))
+        self._update_param(DQQ_TEMPLATE.format(prefix), self._footprint_manager.get_resolution(sort))
+        self._update_param(QMIN_TEMPLATE.format(prefix), self._footprint_manager.get_q_min(sort))
+        self._update_param(QMAX_TEMPLATE.format(prefix), self._footprint_manager.get_q_max(sort))
         self.updatePVs()
 
     def _update_param(self, pv_name, value):
