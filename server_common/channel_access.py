@@ -30,73 +30,51 @@ except ImportError:
         def __init__(self, pv_name, err):
             super(UnableToConnectToPVException, self).__init__("Unable to connect to PV {0}: {1}".format(pv_name, err))
 
+try:
+    # noinspection PyUnresolvedReferences
+    from genie_python.genie_cachannel_wrapper import CaChannelWrapper, EXIST_TIMEOUT
+except ImportError:
+    print("ERROR: No genie_python on the system can not import CaChannelWrapper!")
 
-class AlarmSeverity(Enum):
-    """
-    Enum for severity of alarm
-    """
-    NoAlarm = 0
-    Minor = 1
-    Major = 2
-    invalid = 3
-
-    @staticmethod
-    def from_ca_channel(severity):
+try:
+    from genie_python.genie_cachannel_wrapper import AlarmSeverity, AlarmCondition as AlarmStatus
+except ImportError:
+    class AlarmSeverity(Enum):
         """
-        Convert from a ca channel severity.
-        Isolates code from CaChannel internal.
-        Args:
-            severity (CaChannel._ca.AlarmSeverity): ca channel severity
-        Returns: severity
-
+        Enum for severity of alarm
         """
-        # noinspection PyTypeChecker
-        for alarm_severity in AlarmSeverity:
-            if alarm_severity.value == severity.value:
-                return alarm_severity
+        NoAlarm = 0
+        Minor = 1
+        Major = 2
+        invalid = 3
 
 
-class AlarmStatus(Enum):
-    """
-    Enum for status of alarm
-    """
-    BadSub = 16
-    Calc = 12
-    Comm = 9
-    Cos = 8
-    Disable = 18
-    High = 4
-    HiHi = 3
-    HwLimit = 11
-    Link = 14
-    Lolo = 5
-    Low = 6
-    NoAlarm = 0
-    Read = 1
-    ReadAccess = 20
-    Scam = 13
-    Simm = 19
-    Soft = 15
-    State = 7
-    Timeout = 10
-    UDF = 17
-    Write = 2
-    WriteAccess = 21
-
-    @staticmethod
-    def from_ca_channel(status):
+    class AlarmStatus(Enum):
         """
-        Convert from a ca channel status.
-        Isolates code from CaChannel internal.
-        Args:
-            status (CaChannel._ca.AlarmStatus): ca channel status
-        Returns: severity
-
+        Enum for status of alarm
         """
-        # noinspection PyTypeChecker
-        for alarm_status in AlarmStatus:
-            if alarm_status == status.value:
-                return alarm_status
+        BadSub = 16
+        Calc = 12
+        Comm = 9
+        Cos = 8
+        Disable = 18
+        High = 4
+        HiHi = 3
+        HwLimit = 11
+        Link = 14
+        Lolo = 5
+        Low = 6
+        NoAlarm = 0
+        Read = 1
+        ReadAccess = 20
+        Scam = 13
+        Simm = 19
+        Soft = 15
+        State = 7
+        Timeout = 10
+        UDF = 17
+        Write = 2
+        WriteAccess = 21
 
 
 class ChannelAccess(object):
@@ -116,8 +94,6 @@ class ChannelAccess(object):
         Returns:
             obj : The value of the requested PV, None if no value was read
         """
-
-        from genie_python.genie_cachannel_wrapper import CaChannelWrapper
         try:
             return CaChannelWrapper.get_pv_value(name, as_string)
         except Exception as err:
@@ -136,7 +112,6 @@ class ChannelAccess(object):
             wait (bool, optional): Wait for the PV t set before returning
         """
         def _put_value():
-            from genie_python.genie_cachannel_wrapper import CaChannelWrapper
             CaChannelWrapper.set_pv_value(name, value, wait)
 
         if wait:
@@ -160,7 +135,6 @@ class ChannelAccess(object):
         Returns:
             True if exists, otherwise False.
         """
-        from genie_python.genie_cachannel_wrapper import CaChannelWrapper, EXIST_TIMEOUT
         if timeout is None:
             timeout = EXIST_TIMEOUT
         return CaChannelWrapper.pv_exists(name, timeout)
@@ -176,11 +150,7 @@ class ChannelAccess(object):
                 alarm severity (AlarmSeverity),
                 alarm status (AlarmStatus)
         """
-        from genie_python.genie_cachannel_wrapper import CaChannelWrapper
-
-        def _intermediate_callback(value, severity, status):
-            call_back_function(value, AlarmSeverity.from_ca_channel(severity), AlarmStatus.from_ca_channel(status))
-        CaChannelWrapper.add_monitor(name, _intermediate_callback)
+        CaChannelWrapper.add_monitor(name, call_back_function)
 
     @staticmethod
     def poll():
@@ -188,5 +158,4 @@ class ChannelAccess(object):
         Flush the send buffer and execute any outstanding background activity for all connected pvs.
         NB Connected pv is one which is in the cache
         """
-        from genie_python.genie_cachannel_wrapper import CaChannelWrapper
         CaChannelWrapper.poll()

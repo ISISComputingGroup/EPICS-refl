@@ -176,7 +176,7 @@ class TestObservationOfComponentReadback(unittest.TestCase):
     def test_GIVEN_listener_WHEN_readback_changes_THEN_listener_is_informed(self):
         expected_value = 10
         self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value)
-        self.component.beam_path_rbv.set_displacement(1, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        self.component.beam_path_rbv.set_displacement(1, AlarmSeverity.No, AlarmStatus.No)
 
         result = self.component.beam_path_rbv.get_displacement()
 
@@ -187,7 +187,7 @@ class TestObservationOfComponentReadback(unittest.TestCase):
         expected_value = 10
         self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value)
         self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value2)
-        self.component.beam_path_rbv.set_displacement(1, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        self.component.beam_path_rbv.set_displacement(1, AlarmSeverity.No, AlarmStatus.No)
 
         result = self.component.beam_path_rbv.get_displacement()
 
@@ -196,7 +196,7 @@ class TestObservationOfComponentReadback(unittest.TestCase):
         assert_that(result, expected_value)
 
     def test_GIVEN_no_listener_WHEN_readback_changes_THEN_no_listeners_are_informed(self):
-        self.component.beam_path_rbv.set_displacement(1, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        self.component.beam_path_rbv.set_displacement(1, AlarmSeverity.No, AlarmStatus.No)
 
         assert_that(self._value, is_(0))
 
@@ -204,7 +204,7 @@ class TestObservationOfComponentReadback(unittest.TestCase):
         expected_value = 10
         self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value)
         beam_y = 1
-        self.component.beam_path_rbv.set_displacement(expected_value + beam_y, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        self.component.beam_path_rbv.set_displacement(expected_value + beam_y, AlarmSeverity.No, AlarmStatus.No)
 
         self.component.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_y, 0, 0))
         result = self.component.beam_path_rbv.get_displacement()
@@ -242,7 +242,7 @@ class TestThetaComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = True
-        next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
@@ -255,7 +255,7 @@ class TestThetaComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = True
-        next_component.beam_path_rbv.set_displacement(5, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        next_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
@@ -268,7 +268,7 @@ class TestThetaComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 5, 90))
         next_component.beam_path_rbv.enabled = True
-        next_component.beam_path_rbv.set_displacement(5, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        next_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
@@ -284,7 +284,7 @@ class TestThetaComponent(unittest.TestCase):
 
         next_but_one_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_but_one_component.beam_path_rbv.enabled = True
-        next_but_one_component.beam_path_rbv.set_displacement(5, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        next_but_one_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
@@ -297,13 +297,13 @@ class TestThetaComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = True
-        next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
         listener = Mock()
         theta.beam_path_rbv.add_after_beam_path_update_listener(listener)
 
-        next_component.beam_path_rbv.set_displacement(1, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        next_component.beam_path_rbv.set_displacement(1, AlarmSeverity.No, AlarmStatus.No)
 
         listener.assert_called_once_with(theta.beam_path_rbv)
 
@@ -312,7 +312,7 @@ class TestThetaComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = True
-        next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
         listener = Mock()
@@ -327,7 +327,7 @@ class TestThetaComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=10, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.enabled = True
-        next_component.beam_path_rbv.set_displacement(15, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
+        next_component.beam_path_rbv.set_displacement(15, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
