@@ -5,7 +5,6 @@ Reflectometry Server
 import sys
 import os
 
-from genie_python.genie_cachannel_wrapper import CaChannelWrapper
 from pcaspy import SimpleServer
 import logging.config
 
@@ -44,6 +43,7 @@ from ReflectometryServer.beamline_configuration import create_beamline_from_conf
 from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX
 from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 from server_common.ioc_data_source import IocDataSource
+from server_common.channel_access import ChannelAccess
 from server_common.mysql_abstraction_layer import SQLAbstraction
 
 logger.info("Initialising...")
@@ -66,7 +66,7 @@ logger.info("Reflectometry IOC started")
 while True:
     try:
         SERVER.process(0.1)
-        CaChannelWrapper.poll()
+        ChannelAccess.poll()
     except Exception as err:
         print(err)
         break

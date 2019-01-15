@@ -319,8 +319,8 @@ class SlitGapParameter(BeamlineParameter):
 
         Args:
             new_value: new given value
-            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
-            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         self._set_point_rbv = new_value
         self._trigger_sp_rbv_listeners(self)
@@ -331,8 +331,8 @@ class SlitGapParameter(BeamlineParameter):
 
         Args:
             new_value: new readback value that is given
-            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
-            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         self._rbv_value = new_value
         self._trigger_rbv_listeners(self)

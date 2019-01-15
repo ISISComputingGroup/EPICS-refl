@@ -10,8 +10,8 @@ from ReflectometryServer.components import ReflectingComponent, Component, Theta
 from ReflectometryServer.geometry import Position, PositionAndAngle
 from ReflectometryServer.parameters import AngleParameter, TrackingPosition, ComponentEnabled, SlitGapParameter
 from data_mother import DataMother, EmptyBeamlineParameter
+from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position, DEFAULT_TEST_TOLERANCE
-from ReflectometryServer.pv_wrapper import AlarmSeverity, AlarmStatus
 
 
 class TestBeamlineParameter(unittest.TestCase):
@@ -481,7 +481,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         beam_height = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
         beamline_position = TrackingPosition("param", sample)
-        sample.beam_path_rbv.set_displacement(displacement, AlarmSeverity.No, AlarmStatus.No)
+        sample.beam_path_rbv.set_displacement(displacement, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
 
         result = beamline_position.rbv
 
@@ -496,7 +496,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         beamline_position = TrackingPosition("param", sample)
         listener = Mock()
         beamline_position.add_rbv_change_listener(listener)
-        sample.beam_path_rbv.set_displacement(displacement, AlarmSeverity.No, AlarmStatus.No)
+        sample.beam_path_rbv.set_displacement(displacement, AlarmSeverity.NoAlarm, AlarmStatus.NoAlarm)
 
         listener.assert_called_once_with(displacement - beam_height)
 
