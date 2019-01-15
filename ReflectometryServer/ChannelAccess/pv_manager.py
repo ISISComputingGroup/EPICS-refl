@@ -2,7 +2,6 @@
 Reflectometry pv manager
 """
 from enum import Enum
-from pcaspy import Severity
 
 from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
@@ -11,10 +10,11 @@ import json
 
 
 PARAM_PREFIX = "PARAM"
-BEAMLINE_MODE = "BL:MODE"
-BEAMLINE_MOVE = "BL:MOVE"
-BEAMLINE_STATUS = "BL:STAT"
-BEAMLINE_MESSAGE = "BL:MSG"
+BEAMLINE_PREFIX = "BL:"
+BEAMLINE_MODE = BEAMLINE_PREFIX + "MODE"
+BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
+BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
+BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
 TRACKING_AXES = "TRACKING_AXES"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
@@ -22,6 +22,20 @@ MOVE_SUFFIX = ":MOVE"
 CHANGED_SUFFIX = ":CHANGED"
 SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
 VAL_FIELD = ".VAL"
+
+FOOTPRINT_PREFIX = "FP"
+
+SAMPLE_LENGTH = "{}:{}".format(FOOTPRINT_PREFIX, "SAMPLE_LENGTH")
+FP_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "FOOTPRINT")
+DQQ_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "DQQ")
+QMIN_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "QMIN")
+QMAX_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "QMAX")
+
+FP_SP_PREFIX = "SP"
+FP_SP_RBV_PREFIX = "SP_RBV"
+FP_RBV_PREFIX = "RBV"
+
+FOOTPRINT_PREFIXES = [FP_SP_PREFIX, FP_SP_RBV_PREFIX, FP_RBV_PREFIX]
 
 PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
 
@@ -90,6 +104,31 @@ class PvSort(Enum):
         return None
 
 
+class FootprintSort(Enum):
+    """
+    Enum for the type of footprint calculator
+    """
+    SP = 0
+    RBV = 1
+    SP_RBV = 2
+
+    @staticmethod
+    def prefix(sort):
+        """
+        Args:
+            sort: The sort of footprint value
+
+        Returns: The pv suffix for this sort of value
+        """
+        if sort == FootprintSort.SP:
+            return FP_SP_PREFIX
+        elif sort == FootprintSort.SP_RBV:
+            return FP_SP_RBV_PREFIX
+        elif sort == FootprintSort.RBV:
+            return FP_RBV_PREFIX
+        return None
+
+
 class PVManager:
     """
     Holds reflectometry PVs and associated utilities.
@@ -100,20 +139,39 @@ class PVManager:
         Args:
             param_types (dict[str, (str, str, str)]): The type, group name and description for which to create PVs,
                 keyed by name.
-            mode_names: names of the modes
+            mode_names: The names of the modes in the current reflectometry configuration
             status_codes (list[ReflectometryServer.beamline.STATUS]): status codes of Beam line with severities
         """
 
         self.PVDB = {}
+        self._params_pv_lookup = {}
+        self._tracking_positions = {}
+        self._footprint_parameters = {}
+
+        self._add_global_pvs(mode_names, status_codes)
+        self._add_footprint_calculator_pvs()
+        self._add_all_parameter_pvs(param_types)
+
+        for pv_name in self.PVDB.keys():
+            print("creating pv: {}".format(pv_name))
+
+    def _add_global_pvs(self, mode_names, status_codes):
+        """
+        Add PVs that affect the whole of the reflectometry system to the server's PV database.
+
+        Args:
+            mode_names: The names of the modes in the current reflectometry configuration
+            status_codes (list[ReflectometryServer.beamline.STATUS]): status codes of Beam line with severities
+        """
         self._add_pv_with_val(BEAMLINE_MOVE, None, PARAM_FIELDS_MOVE, "Move the beam line", PvSort.RBV, archive=True,
                               interest="HIGH")
-
+        # PVs for mode
         mode_fields = {'type': 'enum', 'enums': mode_names}
         self._add_pv_with_val(BEAMLINE_MODE, None, mode_fields, "Beamline mode", PvSort.RBV, archive=True,
                               interest="HIGH")
-
         self._add_pv_with_val(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
 
+        # PVs for server status
         status_fields = {'type': 'enum',
                          'enums': [code.display_string for code in status_codes],
                          'states': [code.alarm_severity for code in status_codes]}
@@ -122,16 +180,36 @@ class PVManager:
         self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'string'}, "Message about the beamline", PvSort.RBV,
                               archive=True, interest="HIGH")
 
-        self._params_pv_lookup = {}
-        self._tracking_positions = {}
+    def _add_footprint_calculator_pvs(self):
+        """
+        Add PVs related to the footprint calculation to the server's PV database.
+        """
+        self._add_pv_with_val(SAMPLE_LENGTH, None, PARAMS_FIELDS_BEAMLINE_TYPES[BeamlineParameterType.FLOAT],
+                              "Sample Length", PvSort.SP_RBV, archive=True, interest="HIGH")
+
+        for prefix in FOOTPRINT_PREFIXES:
+            for template, description in [(FP_TEMPLATE, "Beam Footprint"),
+                                          (DQQ_TEMPLATE, "Beam Resolution dQ/Q"),
+                                          (QMIN_TEMPLATE, "Minimum measurable Q with current setup"),
+                                          (QMAX_TEMPLATE, "Maximum measurable Q with current setup")]:
+                self._add_pv_with_val(template.format(prefix), None,
+                                      PARAMS_FIELDS_BEAMLINE_TYPES[BeamlineParameterType.FLOAT],
+                                      description, PvSort.RBV, archive=True, interest="HIGH")
+
+    def _add_all_parameter_pvs(self, param_types):
+        """
+        Add PVs for each beamline parameter in the reflectometry configuration to the server's PV database.
+
+        Args:
+            param_types (dict[str, (str, str, str)]): The type, group name and description for which to create PVs,
+                keyed by name.
+        """
         for param, (param_type, group_names, description) in param_types.items():
             self._add_parameter_pvs(param, group_names, description, **PARAMS_FIELDS_BEAMLINE_TYPES[param_type])
         self.PVDB[TRACKING_AXES] = {'type': 'char',
                                     'count': 300,
                                     'value': json.dumps(self._tracking_positions)
                                     }
-        for pv_name in self.PVDB.keys():
-            print("creating pv: {}".format(pv_name))
 
     def _add_parameter_pvs(self, param_name, group_names, description, **fields):
         """
@@ -171,14 +249,14 @@ class PVManager:
             self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_CHANGED, description,
                                   PvSort.CHANGED)
 
-            # Move  PV
+            # Move PV
             self._add_pv_with_val(prepended_alias + MOVE_SUFFIX, param_name, PARAM_FIELDS_MOVE, description,
                                   PvSort.MOVE)
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
 
-    def _add_pv_with_val(self, pv_name, param_name, pv_fields, description, param_sort, archive=False, interest=None,
+    def _add_pv_with_val(self, pv_name, param_name, pv_fields, description, sort, archive=False, interest=None,
                          alarm=False):
         """
         Add param to pv list with .val and correct fields and to parm look up
@@ -186,7 +264,7 @@ class PVManager:
             pv_name: name of the pv
             param_name: name of the parameter; None for not a parameter
             pv_fields: pv fields to use
-            param_sort: sort of parameter it is
+            sort: sort of pv it is
             archive: True if it should be archived
             interest: level of interest; None is not interesting
             alarm: True if this pv represents the alarm state of the IOC; false otherwise
@@ -195,7 +273,7 @@ class PVManager:
 
         """
         pv_fields = pv_fields.copy()
-        pv_fields[PV_DESCRIPTION_NAME] = description + PvSort.what(param_sort)
+        pv_fields[PV_DESCRIPTION_NAME] = description + PvSort.what(sort)
 
         pv_fields_mod = pv_fields.copy()
         pv_fields_mod[PV_INFO_FIELD_NAME] = {}
@@ -210,7 +288,7 @@ class PVManager:
         self.PVDB[pv_name + VAL_FIELD] = pv_fields
 
         if param_name is not None:
-            self._params_pv_lookup[pv_name] = (param_name, param_sort)
+            self._params_pv_lookup[pv_name] = (param_name, sort)
 
     def param_names_pvnames_and_sort(self):
         """
@@ -273,20 +351,29 @@ class PVManager:
     def is_beamline_status(self, pv_name):
         """
         Args:
-            pv_name: name of the beamline status
+            pv_name: name of the pv
 
-        Returns: True if this the beamline status axis pv
+        Returns: True if this the beamline status pv
         """
         return self._is_pv_name_this_field(BEAMLINE_STATUS, pv_name)
 
     def is_beamline_message(self, pv_name):
         """
         Args:
-            pv_name: name of the beamline status
+            pv_name: name of the pv
 
         Returns: True if this the beamline message pv
         """
         return self._is_pv_name_this_field(BEAMLINE_MESSAGE, pv_name)
+
+    def is_sample_length(self, pv_name):
+        """
+        Args:
+            pv_name: name of the pv
+
+        Returns: True if this the sample length pv
+        """
+        return self._is_pv_name_this_field(SAMPLE_LENGTH, pv_name)
 
     def _is_pv_name_this_field(self, field_name, pv_name):
         """

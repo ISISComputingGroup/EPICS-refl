@@ -8,6 +8,8 @@ from enum import Enum
 from pcaspy import Severity
 
 from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer.footprint_calc import BaseFootprintSetup
+from ReflectometryServer.footprint_manager import FootprintManager
 
 BeamlineStatus = namedtuple("Status", ['display_string', 'alarm_severity'])
 
@@ -120,7 +122,8 @@ class Beamline(object):
     The collection of all beamline components.
     """
 
-    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=PositionAndAngle(0, 0, 0)):
+    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=PositionAndAngle(0, 0, 0),
+                 footprint_setup=BaseFootprintSetup()):
         """
         The initializer.
         Args:
@@ -139,6 +142,7 @@ class Beamline(object):
         self._drivers = drivers
         self._status = STATUS.OKAY
         self._message = ""
+        self.footprint_manager = FootprintManager(footprint_setup)
 
         for beamline_parameter in beamline_parameters:
             if beamline_parameter.name in self._beamline_parameters:

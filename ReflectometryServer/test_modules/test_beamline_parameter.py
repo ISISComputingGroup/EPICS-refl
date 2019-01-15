@@ -7,11 +7,11 @@ from mock import Mock
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 
 from ReflectometryServer.components import ReflectingComponent, Component, ThetaComponent
-from ReflectometryServer.geometry import Position, PositionAndAngle, PositionAndAngle
-from ReflectometryServer.parameters import AngleParameter, TrackingPosition, ComponentEnabled
+from ReflectometryServer.geometry import Position, PositionAndAngle
+from ReflectometryServer.parameters import AngleParameter, TrackingPosition, ComponentEnabled, SlitGapParameter
 from data_mother import DataMother, EmptyBeamlineParameter
 from utils import position, DEFAULT_TEST_TOLERANCE
-from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
+from ReflectometryServer.pv_wrapper import AlarmSeverity, AlarmStatus
 
 
 class TestBeamlineParameter(unittest.TestCase):

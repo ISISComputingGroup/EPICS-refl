@@ -17,11 +17,11 @@ class IocDriver(object):
         Drive the IOC based on a component
         Args:
             component (ReflectometryServer.components.Component):
-            axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV that this driver controls.
+            axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
         """
         self._component = component
         self._axis = axis
-        self._axis.add_after_value_change_listener(self._trigger_after_axis_value_change_listener)
+        self._axis.add_after_rbv_change_listener(self._trigger_after_axis_value_change_listener)
 
     def get_max_move_duration(self):
         """
@@ -40,13 +40,13 @@ class IocDriver(object):
         if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
             self._axis.velocity = self._get_distance() / move_duration
 
-        self._axis.value = self._get_set_point_position()
+        self._axis.sp = self._get_set_point_position()
 
     def _get_distance(self):
         """
         :return: The distance between the target component position and the actual motor position in y.
         """
-        return math.fabs(self._axis.value - self._get_set_point_position())
+        return math.fabs(self._axis.sp - self._get_set_point_position())
 
     def _get_set_point_position(self):
         """
@@ -77,7 +77,7 @@ class DisplacementDriver(IocDriver):
         Constructor.
         Args:
             component (ReflectometryServer.components.Component): The component providing the values for the axes
-            height_axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV that this driver controls.
+            height_axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
         """
         super(DisplacementDriver, self).__init__(component, height_axis)
 
@@ -105,7 +105,7 @@ class AngleDriver(DisplacementDriver):
         Constructor.
         Args:
             component (ReflectometryServer.components.Component): Component providing the values for the axes
-            angle_axis(ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): PV for the angle motor axis
+            angle_axis(ReflectometryServer.pv_wrapper.MotorPVWrapper): PV for the angle motor axis
         """
         super(AngleDriver, self).__init__(component, angle_axis)
 

@@ -10,7 +10,7 @@ from ReflectometryServer.components import TiltingComponent, Component, Reflecti
 from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.parameters import AngleParameter, TrackingPosition
-from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
+from ReflectometryServer.pv_wrapper import AlarmSeverity, AlarmStatus
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
 FLOAT_TOLERANCE = 1e-9
@@ -55,14 +55,14 @@ class TestHeightDriver(unittest.TestCase):
         self.jaws_driver.perform_move(target_duration)
 
         assert_that(self.height_axis.velocity, is_(expected_velocity))
-        assert_that(self.height_axis.value, is_(target_position))
+        assert_that(self.height_axis.sp, is_(target_position))
 
     def test_GIVEN_displacement_changed_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered(self):
         listener = MagicMock()
         self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
         expected_value = 10.1
 
-        self.height_axis.value = expected_value
+        self.height_axis.sp = expected_value
 
         listener.assert_called_once()
         assert_that(self.jaws.beam_path_rbv.get_displacement(), is_(expected_value))
@@ -111,9 +111,9 @@ class TestHeightAndTiltDriver(unittest.TestCase):
         self.tilting_jaws_driver_ang.perform_move(target_duration)
 
         assert_that(self.height_axis.velocity, is_(close_to(expected_velocity_height, FLOAT_TOLERANCE)))
-        assert_that(self.height_axis.value, is_(close_to(target_position_height, FLOAT_TOLERANCE)))
+        assert_that(self.height_axis.sp, is_(close_to(target_position_height, FLOAT_TOLERANCE)))
         assert_that(self.tilt_axis.velocity, is_(close_to(expected_velocity_tilt, FLOAT_TOLERANCE)))
-        assert_that(self.tilt_axis.value, is_(close_to(target_position_tilt, FLOAT_TOLERANCE)))
+        assert_that(self.tilt_axis.sp, is_(close_to(target_position_tilt, FLOAT_TOLERANCE)))
 
 
 class TestHeightAndAngleDriver(unittest.TestCase):
@@ -157,16 +157,16 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         self.supermirror_driver_ang.perform_move(target_duration)
 
         assert_that(fabs(self.height_axis.velocity - expected_velocity_height) <= FLOAT_TOLERANCE)
-        assert_that(fabs(self.height_axis.value - target_position_height) <= FLOAT_TOLERANCE)
+        assert_that(fabs(self.height_axis.sp - target_position_height) <= FLOAT_TOLERANCE)
         assert_that(fabs(self.angle_axis.velocity - expected_velocity_angle) <= FLOAT_TOLERANCE)
-        assert_that(fabs(self.angle_axis.value - target_position_angle) <= FLOAT_TOLERANCE)
+        assert_that(fabs(self.angle_axis.sp - target_position_angle) <= FLOAT_TOLERANCE)
 
     def test_GIVEN_angle_changed_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered(self):
         listener = MagicMock()
         self.supermirror.beam_path_rbv.add_after_beam_path_update_listener(listener)
         expected_value = 10.1
 
-        self.angle_axis.value = expected_value
+        self.angle_axis.sp = expected_value
 
         listener.assert_called_once()
         assert_that(self.supermirror.beam_path_rbv.angle, is_(expected_value))
