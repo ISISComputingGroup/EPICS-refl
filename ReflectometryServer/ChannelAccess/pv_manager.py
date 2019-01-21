@@ -41,9 +41,49 @@ PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
 
 PARAM_FIELDS_MOVE = {'type': 'int', 'count': 1, 'value': 0}
 
+OUT_IN_ENUM_TEXT = ["OUT", "IN"]
+
 PARAMS_FIELDS_BEAMLINE_TYPES = {
-    BeamlineParameterType.IN_OUT: {'type': 'enum', 'enums': ["OUT", "IN"]},
+    BeamlineParameterType.IN_OUT: {'type': 'enum', 'enums': OUT_IN_ENUM_TEXT},
     BeamlineParameterType.FLOAT: {'type': 'float', 'prec': 3, 'value': 0.0}}
+
+
+def convert_to_epics_pv_value(parameter_type, value):
+    """
+    Convert from parameter value to the epic pv value
+    Args:
+        parameter_type (BeamlineParameterType): parameters type
+        value: value to convert
+
+    Returns: epics value
+
+    """
+    if parameter_type == BeamlineParameterType.IN_OUT:
+        if value:
+            return OUT_IN_ENUM_TEXT.index("IN")
+        else:
+            return OUT_IN_ENUM_TEXT.index("OUT")
+    else:
+        if value is None:
+            return float("NaN")
+        else:
+            return value
+
+
+def convert_from_epics_pv_value(parameter_type, value):
+    """
+    Convert from epic pv value to the parameter value
+    Args:
+        parameter_type (BeamlineParameterType): parameters type
+        value: value to convert
+
+    Returns: epics value
+
+    """
+    if parameter_type == BeamlineParameterType.IN_OUT:
+        return value == OUT_IN_ENUM_TEXT.index("IN")
+    else:
+        return value
 
 
 class PvSort(Enum):
@@ -90,18 +130,19 @@ class PvSort(Enum):
         Returns: the value of the parameter of the correct sort
         """
         if self == PvSort.SP:
-            return parameter.sp
+            return convert_to_epics_pv_value(parameter.parameter_type, parameter.sp)
         elif self == PvSort.SP_RBV:
-            return parameter.sp_rbv
+            return convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_rbv)
+        elif self == PvSort.RBV:
+            return convert_to_epics_pv_value(parameter.parameter_type, parameter.rbv)
+        elif self == PvSort.SET_AND_NO_MOVE:
+            return convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_no_move)
         elif self == PvSort.CHANGED:
             return parameter.sp_changed
-        elif self == PvSort.SET_AND_NO_MOVE:
-            return parameter.sp_no_move
-        elif self == PvSort.RBV:
-            return parameter.rbv
         elif self == PvSort.MOVE:
             return parameter.move
-        return None
+
+        return float("NaN")
 
 
 class FootprintSort(Enum):

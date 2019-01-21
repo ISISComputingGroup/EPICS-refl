@@ -5,11 +5,9 @@ from functools import partial
 
 from pcaspy import Driver, Alarm, Severity
 
-from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
-from ReflectometryServer.ChannelAccess.pv_manager import BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, FP_TEMPLATE, \
-    DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, SP_SUFFIX
-from ReflectometryServer.ChannelAccess.pv_manager import PvSort, FootprintSort
-
+from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, SP_SUFFIX, \
+    FootprintSort, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, convert_from_epics_pv_value
+from ReflectometryServer.parameters import BeamlineParameterGroup
 from server_common.utilities import compress_and_hex
 
 
@@ -39,7 +37,7 @@ class ReflectometryDriver(Driver):
 
         self.update_monitors()
 
-        self.add_rbv_param_listeners()
+        self.add_param_listeners()
         self.add_trigger_active_mode_change_listener()
         self.add_footprint_param_listeners()
 
@@ -53,10 +51,7 @@ class ReflectometryDriver(Driver):
             param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
             param = self._beamline.parameter(param_name)
             value = param_sort.get_from_parameter(param)
-            if param.parameter_type == BeamlineParameterType.IN_OUT:
-                return 1 if value else 0
-            else:
-                return value
+            return value
 
         elif self._pv_manager.is_beamline_mode(reason):
             return self._beamline_mode_value(self._beamline.active_mode)
@@ -98,9 +93,9 @@ class ReflectometryDriver(Driver):
             if param_sort == PvSort.MOVE:
                 param.move = 1
             elif param_sort == PvSort.SP:
-                param.sp = value
+                param.sp = convert_from_epics_pv_value(param.parameter_type, value)
             elif param_sort == PvSort.SET_AND_NO_MOVE:
-                param.sp_no_move = value
+                param.sp_no_move = convert_from_epics_pv_value(param.parameter_type, value)
         elif self._pv_manager.is_beamline_move(reason):
             self._beamline.move = 1
         elif self._pv_manager.is_beamline_mode(reason):
@@ -184,7 +179,7 @@ class ReflectometryDriver(Driver):
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
             if param_sort == PvSort.RBV:
-                parameter.add_rbv_change_listener(partial(self._update_param_rbv_listener, pv_name))
+                parameter.add_rbv_change_listener(partial(self._update_param_listener, pv_name))
 
     def add_trigger_active_mode_change_listener(self):
         """
