@@ -4,16 +4,12 @@ from math import tan, radians
 from hamcrest import *
 from mock import Mock
 
-from ReflectometryServer.components import ReflectingComponent, Component
-from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
-from ReflectometryServer.geometry import PositionAndAngle
-from ReflectometryServer.beamline import Beamline, BeamlineMode
-from ReflectometryServer.parameters import  InBeamParameter
+from ReflectometryServer import *
+
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
+
+from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position_and_angle
-from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus, MotorPVWrapper
-
-
 
 
 class TestComponentBeamline(unittest.TestCase):
@@ -110,15 +106,15 @@ class TestRealistic(unittest.TestCase):
         theta_angle = 2
         bl.parameter("theta").sp = theta_angle
 
-        assert_that(drives["s1_axis"].value, is_(0))
+        assert_that(drives["s1_axis"].sp, is_(0))
 
         expected_s3_value = spacing * tan(radians(theta_angle * 2.0))
-        assert_that(drives["s3_axis"].value, is_(expected_s3_value))
+        assert_that(drives["s3_axis"].sp, is_(expected_s3_value))
 
         expected_det_value = 2 * spacing * tan(radians(theta_angle * 2.0))
-        assert_that(drives["det_axis"].value, is_(expected_det_value))
+        assert_that(drives["det_axis"].sp, is_(expected_det_value))
 
-        assert_that(drives["det_angle_axis"].value, is_(2*theta_angle))
+        assert_that(drives["det_angle_axis"].sp, is_(2*theta_angle))
 
 
     #TODO get question answered and then correct this test
@@ -170,15 +166,16 @@ class TestRealistic(unittest.TestCase):
         bl.parameter("theta").sp_no_move = theta_angle
         bl.move = 1
 
-        assert_that(drives["s1_axis"].value, is_(0))
+        assert_that(drives["s1_axis"].sp, is_(0))
 
         expected_s3_value = spacing * tan(radians(theta_angle * 2.0))
-        assert_that(drives["s3_axis"].value, is_(expected_s3_value))
+        assert_that(drives["s3_axis"].sp, is_(expected_s3_value))
 
         expected_det_value = 2 * spacing * tan(radians(theta_angle * 2.0))
-        assert_that(drives["det_axis"].value, is_(expected_det_value))
+        assert_that(drives["det_axis"].sp, is_(expected_det_value))
 
-        assert_that(drives["det_angle_axis"].value, is_(2*theta_angle))
+        assert_that(drives["det_angle_axis"].sp, is_(2*theta_angle))
+
 
 
 class TestBeamlineValidation(unittest.TestCase):

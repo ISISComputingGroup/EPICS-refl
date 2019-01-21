@@ -17,14 +17,16 @@ class BeamlineParameterGroup(Enum):
     Types of groups a parameter can belong to
     """
     TRACKING = 1
+    FOOTPRINT_PARAMETER = 2
+    GAP_VERTICAL = 3
+    GAP_HORIZONTAL = 4
 
 
 class BeamlineParameter(object):
     """
-    General beamline parameter that can be set. Subclass must implement _calc_move to decide what to do with the
+    General beamline parameter that can be set. Subclass must implement _move_component to decide what to do with the
     value that is set.
     """
-
     def __init__(self, name, sim=False, init=None, description=None):
         if sim:
             self._set_point = init
@@ -42,6 +44,7 @@ class BeamlineParameter(object):
             self.description = description
         self.group_names = []
         self._rbv_change_listeners = set()
+        self._sp_rbv_change_listeners = set()
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
@@ -153,6 +156,24 @@ class BeamlineParameter(object):
         for listener in self._rbv_change_listeners:
             listener(rbv)
 
+    def add_sp_rbv_change_listener(self, listener):
+        """
+        Add a listener which should be called if the rbv value changes.
+        Args:
+            listener: the function to call with one argument which is the new rbv value
+        """
+        self._sp_rbv_change_listeners.add(listener)
+
+    def _trigger_sp_rbv_listeners(self, source):
+        """
+        Trigger all rbv listeners
+
+        Args:
+            source: source of change which is not used
+        """
+        for listener in self._sp_rbv_change_listeners:
+            listener(self._set_point_rbv)
+
     @property
     def name(self):
         """
@@ -171,13 +192,13 @@ class BeamlineParameter(object):
         """
         Moves the component(s) associated with this parameter to the setpoint.
         """
-        raise NotImplemented("This must be implement in the sub class")
+        raise NotImplemented("This must be implemented in the sub class")
 
     def _rbv(self):
         """
         Returns: the read back value
         """
-        raise NotImplemented("This must be implement in the sub class")
+        raise NotImplemented("This must be implemented in the sub class")
 
     def validate(self, drivers):
         """
@@ -275,9 +296,6 @@ class InBeamParameter(BeamlineParameter):
     def _move_component(self):
         self._component.beam_path_set_point.is_in_beam = self._set_point_rbv
 
-    def _rbv(self):
-        return self._component.beam_path_rbv.is_in_beam
-
     def validate(self, drivers):
         """
         Perform validation of this parameter returning a list of errors.
@@ -302,3 +320,63 @@ class InBeamParameter(BeamlineParameter):
         if not found:
             errors.append("No driver found with out of beam position for component {}".format(self.name))
         return errors
+
+    def _rbv(self):
+        return self._component.beam_path_rbv.is_in_beam
+
+
+class SlitGapParameter(BeamlineParameter):
+    """
+    Parameter which sets the gap on a slit. This differs from other beamline parameters in that it is not linked to the
+    beamline component layer but hooks directly into a motor axis.
+    """
+    def __init__(self, name, pv_wrapper, is_vertical, sim=False, init=0, description=None):
+        """
+        Args:
+            name: The name of the parameter
+            pv_wrapper: The motor pv this parameter talks to
+            is_vertical: Whether it is a vertical gap
+            sim: Whether it is a simulated parameter
+            init: Initialisation value if simulated
+            description: The description
+        """
+        super(SlitGapParameter, self).__init__(name, sim, init, description)
+        self._pv_wrapper = pv_wrapper
+        self._pv_wrapper.add_after_sp_change_listener(self.update_sp_rbv)
+        self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
+        self._rbv_value = init
+        if is_vertical:
+            self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
+            self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
+        else:
+            self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
+
+    def update_sp_rbv(self, new_value, alarm_severity, alarm_status):
+        """
+        Update the setpoint readback value.
+
+        Args:
+            new_value: new given value
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._set_point_rbv = new_value
+        self._trigger_sp_rbv_listeners(self)
+
+    def update_rbv(self, new_value, alarm_severity, alarm_status):
+        """
+        Update the readback value.
+
+        Args:
+            new_value: new readback value that is given
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._rbv_value = new_value
+        self._trigger_rbv_listeners(self)
+
+    def _move_component(self):
+        self._pv_wrapper.sp = self._set_point
+
+    def _rbv(self):
+        return self._rbv_value

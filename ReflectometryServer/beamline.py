@@ -8,6 +8,8 @@ from enum import Enum
 from pcaspy import Severity
 
 from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer.footprint_calc import BaseFootprintSetup
+from ReflectometryServer.footprint_manager import FootprintManager
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +128,8 @@ class Beamline(object):
     The collection of all beamline components.
     """
 
-    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=PositionAndAngle(0, 0, 0)):
+    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=PositionAndAngle(0, 0, 0),
+                 footprint_setup=BaseFootprintSetup()):
         """
         The initializer.
         Args:
@@ -147,6 +150,7 @@ class Beamline(object):
         self._status = STATUS.OKAY
         self._message = ""
         self._active_mode_change_listeners = set()
+        self.footprint_manager = FootprintManager(footprint_setup)
 
         for beamline_parameter in beamline_parameters:
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
@@ -381,6 +385,7 @@ class Beamline(object):
         """
         Returns: the status codes which have display properties and alarm severities
         """
+        # noinspection PyTypeChecker
         return [status.value for status in STATUS]
 
     def _trigger_active_mode_change(self):

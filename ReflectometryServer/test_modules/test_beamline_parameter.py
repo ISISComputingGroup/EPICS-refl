@@ -4,14 +4,11 @@ from math import isnan
 from hamcrest import *
 from mock import Mock
 
-from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer import *
 
-from ReflectometryServer.components import ReflectingComponent, Component, ThetaComponent
-from ReflectometryServer.geometry import Position, PositionAndAngle, PositionAndAngle
-from ReflectometryServer.parameters import AngleParameter, TrackingPosition, InBeamParameter
-from data_mother import DataMother, EmptyBeamlineParameter
+from data_mother import DataMother
+from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position, DEFAULT_TEST_TOLERANCE
-from ReflectometryServer.motor_pv_wrapper import AlarmSeverity, AlarmStatus
 
 
 class TestBeamlineParameter(unittest.TestCase):

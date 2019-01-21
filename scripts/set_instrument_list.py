@@ -101,7 +101,9 @@ if __name__ == "__main__":
         inst_dictionary("OSIRIS"),
         inst_dictionary("INES"),
         inst_dictionary("TOSCA"),
-        inst_dictionary("LOQ")
+        inst_dictionary("LOQ"),
+        inst_dictionary("LET"),
+        inst_dictionary("MARI"),
     ]
 
     new_value = json.dumps(instruments_list)

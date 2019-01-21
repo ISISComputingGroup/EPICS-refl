@@ -7,7 +7,7 @@ from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
-from ReflectometryServer.motor_pv_wrapper import MotorPVWrapper
+from ReflectometryServer.pv_wrapper import MotorPVWrapper
 from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter
 
 
@@ -123,15 +123,15 @@ class MockMotorPVWrapper(object):
         self.velocity = None
         self.after_value_change_listener = set()
 
-    def add_after_value_change_listener(self, listener):
+    def add_after_rbv_change_listener(self, listener):
         self.after_value_change_listener.add(listener)
 
     @property
-    def value(self):
+    def sp(self):
         return self._value
 
-    @value.setter
-    def value(self, new_value):
+    @sp.setter
+    def sp(self, new_value):
         self._value = new_value
         for listener in self.after_value_change_listener:
             listener(new_value, None, None)

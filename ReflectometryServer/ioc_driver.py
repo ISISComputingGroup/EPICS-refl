@@ -20,11 +20,11 @@ class IocDriver(object):
         Drive the IOC based on a component
         Args:
             component (ReflectometryServer.components.Component):
-            axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV that this driver controls.
+            axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
         """
         self._component = component
         self._axis = axis
-        self._axis.add_after_value_change_listener(self._trigger_after_axis_value_change_listener)
+        self._axis.add_after_rbv_change_listener(self._trigger_after_axis_value_change_listener)
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -57,13 +57,13 @@ class IocDriver(object):
         if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
             self._axis.velocity = self._get_distance() / move_duration
 
-        self._axis.value = self._get_set_point_position()
+        self._axis.sp = self._get_set_point_position()
 
     def _get_distance(self):
         """
         :return: The distance between the target component position and the actual motor position in y.
         """
-        return math.fabs(self._axis.value - self._get_set_point_position())
+        return math.fabs(self._axis.sp - self._get_set_point_position())
 
     def _get_set_point_position(self):
         """
@@ -78,8 +78,8 @@ class IocDriver(object):
         Trigger all listeners after an axis value change.
         Args:
             new_value: new axis value that is given
-            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
-            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
 
         raise NotImplemented()
@@ -89,16 +89,16 @@ class DisplacementDriver(IocDriver):
     """
     Drives a component with linear displacement movement
     """
-    def __init__(self, component, height_axis, out_of_beam_position=None):
+    def __init__(self, component, motor_axis, out_of_beam_position=None):
         """
         Constructor.
         Args:
             component (ReflectometryServer.components.Component): The component providing the values for the axes
-            height_axis (ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): The PV that this driver controls.
+            motor_axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
             out_of_beam_position (float): this position that the component should be in when out of the beam; None for
                 can not set the component to be out of the beam
         """
-        super(DisplacementDriver, self).__init__(component, height_axis)
+        super(DisplacementDriver, self).__init__(component, motor_axis)
         self._out_of_beam_position = out_of_beam_position
 
     def _trigger_after_axis_value_change_listener(self, new_value, alarm_severity, alarm_status):
@@ -106,8 +106,8 @@ class DisplacementDriver(IocDriver):
         Trigger all listeners after a height change.
         Args:
             new_value: new height that is given
-            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
-            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         if self._out_of_beam_position is not None:
             distance_to_out_of_beam = abs(new_value - self._out_of_beam_position)
@@ -142,7 +142,7 @@ class AngleDriver(IocDriver):
         Constructor.
         Args:
             component (ReflectometryServer.components.Component): Component providing the values for the axes
-            angle_axis(ReflectometryServer.motor_pv_wrapper.MotorPVWrapper): PV for the angle motor axis
+            angle_axis(ReflectometryServer.pv_wrapper.MotorPVWrapper): PV for the angle motor axis
         """
         super(AngleDriver, self).__init__(component, angle_axis)
 

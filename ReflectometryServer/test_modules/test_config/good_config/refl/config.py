@@ -1,12 +1,7 @@
 # FOR TESTING
 # Valid configuration script for a refelctometry beamline
 
-from ReflectometryServer.components import *
-from ReflectometryServer.geometry import *
-from ReflectometryServer.beamline import Beamline, BeamlineMode
-from ReflectometryServer.ioc_driver import DisplacementDriver
-from ReflectometryServer.parameters import *
-from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer import *
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
 
