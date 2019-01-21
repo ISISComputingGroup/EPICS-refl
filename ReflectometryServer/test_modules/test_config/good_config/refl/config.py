@@ -1,11 +1,7 @@
 # FOR TESTING
 # Valid configuration script for a refelctometry beamline
 
-from ReflectometryServer.components import *
-from ReflectometryServer.geometry import *
-from ReflectometryServer.beamline import Beamline, BeamlineMode
-from ReflectometryServer.parameters import *
-from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer import *
 
 
 def get_beamline():

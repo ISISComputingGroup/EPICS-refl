@@ -1,10 +1,7 @@
 # FOR TESTING
 # Configuration script for a refelctometry beamline which contains errors
 
-from ReflectometryServer.components import *
-from ReflectometryServer.beamline import Beamline, BeamlineMode
-from ReflectometryServer.parameters import *
-from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer import *
 
 
 def get_beamline():
