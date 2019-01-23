@@ -202,7 +202,7 @@ class BeamlineParameter(object):
 
     def validate(self, drivers):
         """
-        Perform validation of this parameter retruring a list of errors.
+        Perform validation of this parameter returning a list of errors.
 
         Args:
             drivers (list[ReflectometryServer.ioc_driver.IocDriver]): list of driver to help with validation
@@ -211,7 +211,7 @@ class BeamlineParameter(object):
             (list[str]): list of problems; Empty list if there are no errors
 
         """
-        return []
+        raise NotImplemented("This must be implemented in the sub class")
 
 
 class AngleParameter(BeamlineParameter):
@@ -242,6 +242,19 @@ class AngleParameter(BeamlineParameter):
     def _rbv(self):
         return self._reflection_component.beam_path_rbv.get_angle_relative_to_beam()
 
+    def validate(self, drivers):
+        """
+        Perform validation of this parameter returning a list of errors.
+
+        Args:
+            drivers (list[ReflectometryServer.ioc_driver.IocDriver]): list of driver to help with validation
+
+        Returns:
+            (list[str]): list of problems; Empty list if there are no errors
+
+        """
+        return []
+
 
 class TrackingPosition(BeamlineParameter):
     """
@@ -271,6 +284,19 @@ class TrackingPosition(BeamlineParameter):
         Returns: readback value for the tracking displacement above the beam
         """
         return self._component.beam_path_rbv.get_position_relative_to_beam()
+
+    def validate(self, drivers):
+        """
+        Perform validation of this parameter returning a list of errors.
+
+        Args:
+            drivers (list[ReflectometryServer.ioc_driver.IocDriver]): list of driver to help with validation
+
+        Returns:
+            (list[str]): list of problems; Empty list if there are no errors
+
+        """
+        return []
 
 
 class InBeamParameter(BeamlineParameter):
@@ -308,16 +334,14 @@ class InBeamParameter(BeamlineParameter):
         """
 
         errors = []
-        found = False
         for driver in drivers:
             if driver.is_for_component(self._component):
                 try:
                     if driver.has_out_of_beam_position():
-                        found = True
                         break
                 except AttributeError:
                     pass  # this is not a displacement driver so can not have this
-        if not found:
+        else:
             errors.append("No driver found with out of beam position for component {}".format(self.name))
         return errors
 
@@ -380,3 +404,16 @@ class SlitGapParameter(BeamlineParameter):
 
     def _rbv(self):
         return self._rbv_value
+
+    def validate(self, drivers):
+        """
+        Perform validation of this parameter returning a list of errors.
+
+        Args:
+            drivers (list[ReflectometryServer.ioc_driver.IocDriver]): list of driver to help with validation
+
+        Returns:
+            (list[str]): list of problems; Empty list if there are no errors
+
+        """
+        return []

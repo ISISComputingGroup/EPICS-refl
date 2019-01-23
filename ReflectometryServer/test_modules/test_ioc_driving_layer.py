@@ -6,7 +6,6 @@ from mock import MagicMock, patch
 from hamcrest import *
 
 from ReflectometryServer import *
-from ReflectometryServer.ioc_driver import TOLERANCE_ON_OUT_OF_BEAM_POSITION
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
 FLOAT_TOLERANCE = 1e-9
@@ -174,12 +173,15 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.start_position = 0.0
         self.max_velocity = 10.0
         self.out_of_beam_position = -20
+        self.tolerance_on_out_of_beam_position = 1
         self.height_axis = create_mock_axis("JAWS:HEIGHT", self.start_position, self.max_velocity)
 
         self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
 
-        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis, out_of_beam_position=self.out_of_beam_position)
+        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis,
+                                              out_of_beam_position=self.out_of_beam_position,
+                                              tolerance_on_out_of_beam_position=self.tolerance_on_out_of_beam_position)
 
     def test_GIVEN_component_which_is_disabled_WHEN_calculating_move_duration_THEN_returned_duration_is_time_taken_to_move_to_out_of_beam_position(self):
 
@@ -216,7 +218,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
         expected_value = True
 
-        self.height_axis.sp = self.out_of_beam_position + 2 * TOLERANCE_ON_OUT_OF_BEAM_POSITION
+        self.height_axis.sp = self.out_of_beam_position + 2 * self.tolerance_on_out_of_beam_position
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
@@ -226,7 +228,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
         expected_value = False
 
-        self.height_axis.sp = self.out_of_beam_position + TOLERANCE_ON_OUT_OF_BEAM_POSITION * 0.9
+        self.height_axis.sp = self.out_of_beam_position + self.tolerance_on_out_of_beam_position * 0.9
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))

@@ -128,8 +128,8 @@ class Beamline(object):
     The collection of all beamline components.
     """
 
-    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=PositionAndAngle(0, 0, 0),
-                 footprint_setup=BaseFootprintSetup()):
+    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=None,
+                 footprint_setup=None):
         """
         The initializer.
         Args:
@@ -140,6 +140,8 @@ class Beamline(object):
                 the beamline
             modes(list[BeamlineMode])
             incoming_beam (ReflectometryServer.geometry.PositionAndAngle): the incoming beam point
+                (defaults to position 0,0 and angle 0)
+            footprint_setup (ReflectometryServer.BaseFootprintSetup.BaseFootprintSetup): the foot print setup
         """
 
         self._components = components
@@ -150,6 +152,7 @@ class Beamline(object):
         self._status = STATUS.OKAY
         self._message = ""
         self._active_mode_change_listeners = set()
+        footprint_setup = footprint_setup if footprint_setup is not None else BaseFootprintSetup()
         self.footprint_manager = FootprintManager(footprint_setup)
 
         for beamline_parameter in beamline_parameters:
@@ -168,7 +171,7 @@ class Beamline(object):
         for mode in modes:
             self._modes[mode.name] = mode
 
-        self._incoming_beam = incoming_beam
+        self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
         self._active_mode = None
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
