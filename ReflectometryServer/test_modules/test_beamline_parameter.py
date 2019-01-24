@@ -4,12 +4,9 @@ from math import isnan
 from hamcrest import *
 from mock import Mock
 
-from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer import *
 
-from ReflectometryServer.components import ReflectingComponent, Component, ThetaComponent
-from ReflectometryServer.geometry import Position, PositionAndAngle
-from ReflectometryServer.parameters import AngleParameter, TrackingPosition, ComponentEnabled, SlitGapParameter
-from data_mother import DataMother, EmptyBeamlineParameter
+from data_mother import DataMother
 from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position, DEFAULT_TEST_TOLERANCE
 
@@ -123,27 +120,27 @@ class TestBeamlineParameter(unittest.TestCase):
 
     def test_GIVEN_component_parameter_enabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_enabled(self):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
-        super_mirror.beam_path_set_point.enabled = False
-        sm_enabled = ComponentEnabled("smenabled", super_mirror)
+        super_mirror.beam_path_set_point.is_in_beam = False
+        sm_enabled = InBeamParameter("smenabled", super_mirror)
         enabled_sp = True
 
         sm_enabled.sp_no_move = enabled_sp
         sm_enabled.move = 1
 
         assert_that(sm_enabled.sp_rbv, is_(enabled_sp))
-        assert_that(super_mirror.beam_path_set_point.enabled, is_(enabled_sp))
+        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(enabled_sp))
 
     def test_GIVEN_component_parameter_disabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_disabled(self):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
-        super_mirror.beam_path_set_point.enabled = True
-        sm_enabled = ComponentEnabled("smenabled", super_mirror)
+        super_mirror.beam_path_set_point.is_in_beam = True
+        sm_enabled = InBeamParameter("smenabled", super_mirror)
         enabled_sp = False
 
         sm_enabled.sp_no_move = enabled_sp
         sm_enabled.move = 1
 
         assert_that(sm_enabled.sp_rbv, is_(enabled_sp))
-        assert_that(super_mirror.beam_path_set_point.enabled, is_(enabled_sp))
+        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(enabled_sp))
 
 class TestBeamlineModes(unittest.TestCase):
 
@@ -232,7 +229,7 @@ class TestBeamlineModes(unittest.TestCase):
         sp_inits = {"nonsense name": sm_angle}
         beamline_mode = BeamlineMode("mode name", [smangle.name], sp_inits)
 
-        with self.assertRaises(KeyError):
+        with self.assertRaises(ValueError):
             Beamline([super_mirror], [smangle], [], [beamline_mode])
 
     def test_GIVEN_parameter_not_in_mode_and_not_changed_and_no_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_unchanged(self):
@@ -413,13 +410,6 @@ class TestBeamlineModes(unittest.TestCase):
 
 
 class TestBeamlineOnMove(unittest.TestCase):
-
-    def test_GIVEN_two_beamline_parameters_with_same_name_WHEN_construct_THEN_error(self):
-        one = EmptyBeamlineParameter("same")
-        two = EmptyBeamlineParameter("same")
-
-        assert_that(calling(Beamline).with_args([], [one, two], [], []), raises(ValueError))
-
     def test_GIVEN_three_beamline_parameters_WHEN_move_1st_THEN_all_move(self):
         beamline_parameters, _ = DataMother.beamline_with_3_empty_parameters()
 
@@ -518,10 +508,10 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 10, 90))
         state = True
 
-        beamline_position = ComponentEnabled("param", sample)
+        beamline_position = InBeamParameter("param", sample)
         listener = Mock()
         beamline_position.add_rbv_change_listener(listener)
-        sample.beam_path_rbv.enabled = state
+        sample.beam_path_rbv.is_in_beam = state
 
         listener.assert_called_once_with(state)
 

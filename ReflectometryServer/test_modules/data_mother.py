@@ -22,6 +22,9 @@ class EmptyBeamlineParameter(BeamlineParameter):
     def _move_component(self):
         self.move_component_count += 1
 
+    def validate(self, drivers):
+        return []
+
 
 class DataMother(object):
     """

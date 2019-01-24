@@ -86,7 +86,7 @@ class TestActiveComponents(unittest.TestCase):
         mirror = ReflectingComponent("component", setup=PositionAndAngle(0, mirror_z_position, 90))
         mirror.beam_path_set_point.angle = mirror_angle
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
-        mirror.beam_path_set_point.enabled = False
+        mirror.beam_path_set_point.is_in_beam = False
 
         result = mirror.beam_path_set_point.get_outgoing_beam()
 
@@ -229,7 +229,7 @@ class TestThetaComponent(unittest.TestCase):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
-        next_component.beam_path_rbv.enabled = False
+        next_component.beam_path_rbv.is_in_beam = False
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
@@ -241,7 +241,7 @@ class TestThetaComponent(unittest.TestCase):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
-        next_component.beam_path_rbv.enabled = True
+        next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
@@ -254,7 +254,7 @@ class TestThetaComponent(unittest.TestCase):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
-        next_component.beam_path_rbv.enabled = True
+        next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
@@ -267,7 +267,7 @@ class TestThetaComponent(unittest.TestCase):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 5, 90))
-        next_component.beam_path_rbv.enabled = True
+        next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
@@ -280,10 +280,10 @@ class TestThetaComponent(unittest.TestCase):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp1", setup=PositionAndAngle(0, 10, 90))
-        next_component.beam_path_rbv.enabled = False
+        next_component.beam_path_rbv.is_in_beam = False
 
         next_but_one_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
-        next_but_one_component.beam_path_rbv.enabled = True
+        next_but_one_component.beam_path_rbv.is_in_beam = True
         next_but_one_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
@@ -296,7 +296,7 @@ class TestThetaComponent(unittest.TestCase):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
-        next_component.beam_path_rbv.enabled = True
+        next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
@@ -311,7 +311,7 @@ class TestThetaComponent(unittest.TestCase):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
-        next_component.beam_path_rbv.enabled = True
+        next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
@@ -326,7 +326,7 @@ class TestThetaComponent(unittest.TestCase):
 
         beam_start = PositionAndAngle(y=10, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
-        next_component.beam_path_rbv.enabled = True
+        next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.set_displacement(15, AlarmSeverity.No, AlarmStatus.No)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)

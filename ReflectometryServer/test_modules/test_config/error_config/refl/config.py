@@ -7,7 +7,7 @@ from ReflectometryServer import *
 def get_beamline():
     beam_angle_natural = -45
     perp_to_floor = 90.0
-            syntax error and bad whitespace # <===== Error is here
+            syntax error and bad whitespace # ===== Error is here
     # COMPONENTS
     # s1 = Component("s1", PositionAndAngle(0.0, 7.3025, perp_to_beam_angle))
     # s2 = Component("s2", PositionAndAngle(0.0, 9.6885, perp_to_beam_angle))
@@ -26,7 +26,7 @@ def get_beamline():
     comps = [s1, super_mirror, s2, sample, s3, s4, point_det]
 
     # BEAMLINE PARAMETERS
-    sm_enabled = ComponentEnabled("smenabled", super_mirror, True)
+    sm_enabled = InBeamParameter("smenabled", super_mirror, True)
     sm_angle = AngleParameter("smangle", super_mirror, True)
     slit2_pos = TrackingPosition("slit2pos", s2, True)
     sample_pos = TrackingPosition("samplepos", sample, True)

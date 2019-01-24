@@ -1,7 +1,7 @@
 """
 Resources at a beamline level
 """
-
+import logging
 from collections import OrderedDict, namedtuple
 from functools import partial
 from enum import Enum
@@ -10,6 +10,9 @@ from pcaspy import Severity
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
+
+logger = logging.getLogger(__name__)
+
 
 BeamlineStatus = namedtuple("Status", ['display_string', 'alarm_severity'])
 
@@ -99,22 +102,25 @@ class BeamlineMode(object):
         """
         return self._sp_inits
 
-    def validate_parameters(self, beamline_parameters):
+    def validate(self, beamline_parameters):
         """
         Validate the parameters in the mode against beamline parameters.
         Args:
             beamline_parameters: the beamline parameters
-        Raises KeyError: If sp init or mode parameters name is not in list
-
+        Returns:
+            list of errors
         """
+        errors = []
         for beamline_parameter in self._beamline_parameters_to_calculate:
             if beamline_parameter not in beamline_parameters:
-                raise KeyError("Beamline parameter '{}' in mode '{}' not in beamline".format(
+                errors.append("Beamline parameter '{}' in mode '{}' not in beamline".format(
                     beamline_parameters, self.name))
 
         for sp_init in self._sp_inits.keys():
             if sp_init not in beamline_parameters:
-                raise KeyError("SP Init '{}' in mode '{}' not in beamline".format(sp_init, self.name))
+                errors.append("SP Init '{}' in mode '{}' not in beamline".format(sp_init, self.name))
+
+        return errors
 
 
 class Beamline(object):
@@ -122,8 +128,8 @@ class Beamline(object):
     The collection of all beamline components.
     """
 
-    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=PositionAndAngle(0, 0, 0),
-                 footprint_setup=BaseFootprintSetup()):
+    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=None,
+                 footprint_setup=None):
         """
         The initializer.
         Args:
@@ -134,7 +140,10 @@ class Beamline(object):
                 the beamline
             modes(list[BeamlineMode])
             incoming_beam (ReflectometryServer.geometry.PositionAndAngle): the incoming beam point
+                (defaults to position 0,0 and angle 0)
+            footprint_setup (ReflectometryServer.BaseFootprintSetup.BaseFootprintSetup): the foot print setup
         """
+
         self._components = components
         self._beam_path_calcs_set_point = []
         self._beam_path_calcs_rbv = []
@@ -142,12 +151,11 @@ class Beamline(object):
         self._drivers = drivers
         self._status = STATUS.OKAY
         self._message = ""
+        self._active_mode_change_listeners = set()
+        footprint_setup = footprint_setup if footprint_setup is not None else BaseFootprintSetup()
         self.footprint_manager = FootprintManager(footprint_setup)
 
         for beamline_parameter in beamline_parameters:
-            if beamline_parameter.name in self._beamline_parameters:
-                raise ValueError("Beamline parameters must be uniquely named. Duplicate '{}'".format(
-                    beamline_parameter.name))
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
             beamline_parameter.after_move_listener = self._move_for_single_beamline_parameters
 
@@ -162,12 +170,36 @@ class Beamline(object):
         self._modes = OrderedDict()
         for mode in modes:
             self._modes[mode.name] = mode
-            mode.validate_parameters(self._beamline_parameters.keys())
 
-        self._incoming_beam = incoming_beam
+        self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
         self._active_mode = None
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
+
+        self._validate(beamline_parameters, modes)
+
+    def _validate(self, beamline_parameters, modes):
+        errors = []
+
+        beamline_parameters_names = [beamline_parameter.name for beamline_parameter in beamline_parameters]
+        for name in beamline_parameters_names:
+            if beamline_parameters_names.count(name) > 1:
+                errors.append("Beamline parameters must be uniquely named. Duplicate '{}'".format(name))
+
+        mode_names = [mode.name for mode in modes]
+        for mode in mode_names:
+            if mode_names.count(mode) > 1:
+                errors.append("Mode must be uniquely named. Duplicate '{}'".format(mode))
+
+        for mode in modes:
+            errors.extend(mode.validate(self._beamline_parameters.keys()))
+
+        for parameter in self._beamline_parameters.values():
+            errors.extend(parameter.validate(self._drivers))
+
+        if len(errors) > 0:
+            logger.error("There is a problem with beamline configuration:\n    {}".format("\n    ".join(errors)))
+            raise ValueError("Problem with beamline configuration: {}".format(";".join(errors)))
 
     @property
     def parameter_types(self):
@@ -209,6 +241,7 @@ class Beamline(object):
         try:
             self._active_mode = self._modes[mode]
             self.init_setpoints()
+            self._trigger_active_mode_change()
         except KeyError:
             raise ValueError("Not a valid mode name: '{}'".format(mode))
 
@@ -355,4 +388,22 @@ class Beamline(object):
         """
         Returns: the status codes which have display properties and alarm severities
         """
+        # noinspection PyTypeChecker
         return [status.value for status in STATUS]
+
+    def _trigger_active_mode_change(self):
+        """
+        Triggers all listeners after a mode change.
+
+        """
+        for listener in self._active_mode_change_listeners:
+            listener(self.active_mode)
+
+    def add_active_mode_change_listener(self, listener):
+        """
+        Add the listener for mode changes to this beamline
+        Args:
+            listener: the listener to add function with mode as new mode
+
+        """
+        self._active_mode_change_listeners.add(listener)
