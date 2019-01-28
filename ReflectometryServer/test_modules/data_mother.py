@@ -96,7 +96,8 @@ class DataMother(object):
         # MODES
         nr_inits = {}
         nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
-        modes = [nr_mode]
+        disabled_mode = BeamlineMode("DISABLED", [param.name for param in params], nr_inits, is_disabled=True)
+        modes = [nr_mode, disabled_mode]
         beam_start = PositionAndAngle(0.0, 0.0, 0.0)
         bl = Beamline(comps, params, drives, modes, beam_start)
         bl.active_mode = nr_mode.name

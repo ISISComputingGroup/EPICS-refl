@@ -45,7 +45,7 @@ class BeamlineMode(object):
     Beamline mode definition; which components and parameters are calculated on move.
     """
 
-    def __init__(self, name, beamline_parameters_to_calculate, sp_inits=None):
+    def __init__(self, name, beamline_parameters_to_calculate, sp_inits=None, is_disabled=False):
         """
         Initialize.
         Args:
@@ -54,6 +54,7 @@ class BeamlineMode(object):
                 which should be automatically moved to whenever a preceding parameter is changed
             sp_inits (dict[str, object]): The initial beamline parameter values that should be set when switching
                 to this mode
+            is_disabled (Boolean): True components allow input beamline to be changed; False they don't
         """
         self.name = name
         self._beamline_parameters_to_calculate = beamline_parameters_to_calculate
@@ -61,6 +62,7 @@ class BeamlineMode(object):
             self._sp_inits = {}
         else:
             self._sp_inits = sp_inits
+        self.is_disabled = is_disabled
 
     def has_beamline_parameter(self, beamline_parameter):
         """
@@ -240,6 +242,8 @@ class Beamline(object):
         """
         try:
             self._active_mode = self._modes[mode]
+            for component in self._components:
+                component.set_incoming_beam_can_change(not self._active_mode.is_disabled)
             self.init_setpoints()
             self._trigger_active_mode_change()
         except KeyError:
