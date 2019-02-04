@@ -2,8 +2,10 @@
 The driving layer communicates between the component layer and underlying pvs.
 """
 
+from decimal import Decimal
 import math
 import logging
+from server_common.utilities import trunc_float
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,8 @@ class IocDriver(object):
         self._component = component
         self._axis = axis
         self._axis.add_after_rbv_change_listener(self._trigger_after_axis_value_change_listener)
+        self._axis.add_after_sp_change_listener(self._update_sp_cache)
+        self._sp_cache = None
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -55,6 +59,7 @@ class IocDriver(object):
             self._axis.velocity = self._get_distance() / move_duration
 
         self._axis.sp = self._get_set_point_position()
+        self._sp_cache = self._get_set_point_position()
 
     def _get_distance(self):
         """
@@ -80,6 +85,24 @@ class IocDriver(object):
         """
 
         raise NotImplemented()
+
+    def _update_sp_cache(self, value, alarm_severity, alarm_status):
+        """
+        Updates the cached set point for this axis with a new value.
+        Args:
+            value: The new set point value.
+        """
+        self._sp_cache = value
+
+    def at_target_setpoint(self):
+        """
+        Returns: True if the setpoint on the component and the one on the motor PV differ, False if they are the same.
+            (Truncated to precision of the motor pv)
+        """
+        if self._sp_cache is None:
+            return False
+        pv_prec = abs(Decimal(str(self._sp_cache)).as_tuple().exponent)
+        return trunc_float(self._get_set_point_position(), pv_prec) == self._sp_cache
 
 
 class DisplacementDriver(IocDriver):

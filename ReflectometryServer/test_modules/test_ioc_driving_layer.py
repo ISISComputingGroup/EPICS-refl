@@ -234,6 +234,48 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
 
 
+class TestDriverChanged(unittest.TestCase):
+    def setUp(self):
+        start_position = 0.0
+        max_velocity = 10.0
+        self.height_axis = create_mock_axis("JAWS:HEIGHT", start_position, max_velocity)
+
+        self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
+        self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+
+        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis)
+
+    def test_GIVEN_value_not_initialised_THEN_driver_reports_not_at_setpoint(self):
+        expected = False
+
+        actual = self.jaws_driver.at_target_setpoint()
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_sp_value_set_and_not_moved_to_THEN_driver_reports_not_at_setpoint(self):
+        expected = False
+
+        actual = self.jaws_driver.at_target_setpoint()
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_sp_value_set_and_moved_to_THEN_driver_reports_at_setpoint(self):
+        expected = True
+
+        self.jaws_driver.perform_move(1)
+        actual = self.jaws_driver.at_target_setpoint()
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_sp_is_more_precise_than_motor_sp_WHEN_comparing_THEN_component_sp_is_truncated_correctly(self):
+        expected = True
+
+        self.jaws_driver.perform_move(1)
+        actual = self.jaws_driver.at_target_setpoint()
+
+        assert_that(actual, is_(expected))
+
+
 class BeamlineMoveDurationTest(unittest.TestCase):
     def test_GIVEN_multiple_components_in_beamline_WHEN_triggering_move_THEN_components_move_at_speed_of_slowest_axis(self):
         sm_angle = 0.0

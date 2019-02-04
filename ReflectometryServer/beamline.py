@@ -343,13 +343,19 @@ class Beamline(object):
         for key, value in self._active_mode.initial_setpoints.items():
             self._beamline_parameters[key].sp_no_move = value
 
+    def _get_drivers_not_at_setpoint(self):
+        """
+        Returns: A list of all drivers that are not already at their set point, i.e. need to be moved.
+        """
+        return [driver for driver in self._drivers if not driver.at_target_setpoint()]
+
     def _move_drivers(self, move_duration):
-        for driver in self._drivers:
+        for driver in self._get_drivers_not_at_setpoint():
             driver.perform_move(move_duration)
 
     def _get_max_move_duration(self):
         max_move_duration = 0.0
-        for driver in self._drivers:
+        for driver in self._get_drivers_not_at_setpoint():
             max_move_duration = max(max_move_duration, driver.get_max_move_duration())
 
         return max_move_duration

@@ -125,10 +125,14 @@ class MockMotorPVWrapper(object):
         self._value = init_position
         self.max_velocity = max_velocity
         self.velocity = None
-        self.after_value_change_listener = set()
+        self.after_rbv_change_listener = set()
+        self.after_sp_change_listener = set()
 
     def add_after_rbv_change_listener(self, listener):
-        self.after_value_change_listener.add(listener)
+        self.after_rbv_change_listener.add(listener)
+
+    def add_after_sp_change_listener(self, listener):
+        self.after_sp_change_listener.add(listener)
 
     @property
     def sp(self):
@@ -137,5 +141,5 @@ class MockMotorPVWrapper(object):
     @sp.setter
     def sp(self, new_value):
         self._value = new_value
-        for listener in self.after_value_change_listener:
+        for listener in self.after_rbv_change_listener:
             listener(new_value, None, None)
