@@ -114,6 +114,9 @@ class PVWrapper(object):
 
     @property
     def resolution(self):
+        """
+        Returns: The motor resolution for this axis.
+        """
         return self._resolution
 
     @property

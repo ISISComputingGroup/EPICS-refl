@@ -1,14 +1,12 @@
 """
 Test data and classes.
 """
-from mock import MagicMock
 from utils import DEFAULT_TEST_TOLERANCE
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent
-from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
+from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
-from ReflectometryServer.pv_wrapper import MotorPVWrapper
 from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter
 
 

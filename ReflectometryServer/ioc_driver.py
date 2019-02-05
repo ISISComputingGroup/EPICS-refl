@@ -2,7 +2,6 @@
 The driving layer communicates between the component layer and underlying pvs.
 """
 
-from decimal import Decimal
 import math
 import logging
 

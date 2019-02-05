@@ -21,7 +21,6 @@ import time
 import zlib
 import re
 import json
-import math
 from xml.etree import ElementTree
 
 from server_common.loggers.logger import Logger
@@ -303,4 +302,3 @@ def remove_from_end(string, text_to_remove):
     if string is not None and string.endswith(text_to_remove):
         return string[:-len(text_to_remove)]
     return string
-
