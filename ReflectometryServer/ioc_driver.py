@@ -5,7 +5,6 @@ The driving layer communicates between the component layer and underlying pvs.
 from decimal import Decimal
 import math
 import logging
-from server_common.utilities import trunc_float
 
 logger = logging.getLogger(__name__)
 
@@ -96,13 +95,14 @@ class IocDriver(object):
 
     def at_target_setpoint(self):
         """
-        Returns: True if the setpoint on the component and the one on the motor PV differ, False if they are the same.
-            (Truncated to precision of the motor pv)
+        Returns: True if the setpoint on the component and the one on the motor PV are the same (within tolerance),
+            False if they differ.
         """
         if self._sp_cache is None:
             return False
-        pv_prec = abs(Decimal(str(self._sp_cache)).as_tuple().exponent)
-        return trunc_float(self._get_set_point_position(), pv_prec) == self._sp_cache
+
+        difference = abs(self._get_set_point_position() - self._sp_cache)
+        return difference < self._axis.resolution
 
 
 class DisplacementDriver(IocDriver):

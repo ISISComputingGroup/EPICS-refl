@@ -2,6 +2,7 @@
 Test data and classes.
 """
 from mock import MagicMock
+from utils import DEFAULT_TEST_TOLERANCE
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent
@@ -125,6 +126,7 @@ class MockMotorPVWrapper(object):
         self._value = init_position
         self.max_velocity = max_velocity
         self.velocity = None
+        self.resolution = DEFAULT_TEST_TOLERANCE
         self.after_rbv_change_listener = set()
         self.after_sp_change_listener = set()
 

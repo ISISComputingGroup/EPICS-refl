@@ -304,18 +304,3 @@ def remove_from_end(string, text_to_remove):
         return string[:-len(text_to_remove)]
     return string
 
-
-def trunc_float(f, precision=9):
-    """
-    Truncate a float value to a given decimal precision.
-
-    Args:
-        f: The float value to truncate
-        precision: The desired decimal precision
-
-    Returns: The truncated value
-    """
-    scalar = 10 ** precision
-    truncated = math.trunc(f * scalar)
-    truncated = float(truncated) / scalar
-    return truncated

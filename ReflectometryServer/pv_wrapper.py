@@ -23,6 +23,7 @@ class PVWrapper(object):
         """
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
         self._set_pvs()
+        self._set_resolution()
 
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
@@ -30,6 +31,9 @@ class PVWrapper(object):
     def _set_pvs(self):
         self._rbv_pv = ""
         self._sp_pv = ""
+
+    def _set_resolution(self):
+        self._resolution = 0
 
     @staticmethod
     def _monitor_pv(pv, call_back_function):
@@ -109,6 +113,10 @@ class PVWrapper(object):
         return self._prefixed_pv
 
     @property
+    def resolution(self):
+        return self._resolution
+
+    @property
     def sp(self):
         """
         Returns: the value of the underlying PV
@@ -141,6 +149,9 @@ class MotorPVWrapper(PVWrapper):
     def _set_pvs(self):
         self._sp_pv = self._prefixed_pv
         self._rbv_pv = "{}.RBV".format(self._prefixed_pv)
+
+    def _set_resolution(self):
+        self._resolution = self._read_pv("{}.MRES".format(self._prefixed_pv))
 
     @property
     def velocity(self):
@@ -205,6 +216,10 @@ class VerticalJawsPVWrapper(PVWrapper):
     def _set_pvs(self):
         self._sp_pv = "{}:VCENT:SP".format(self._prefixed_pv)
         self._rbv_pv = "{}:VCENT".format(self._prefixed_pv)
+
+    def _set_resolution(self):
+        motor_resolutions = self._pv_names_for_directions("MTR.MRES")
+        self._resolution = float(sum(motor_resolutions)) / len(motor_resolutions)
 
     @property
     def velocity(self):
