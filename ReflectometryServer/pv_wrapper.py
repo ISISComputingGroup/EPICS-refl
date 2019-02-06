@@ -28,6 +28,9 @@ class PVWrapper(object):
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
 
+        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
+        self._monitor_pv(self._sp_pv, self._trigger_after_sp_change_listeners)
+
     def _set_pvs(self):
         self._rbv_pv = ""
         self._sp_pv = ""
@@ -147,8 +150,6 @@ class MotorPVWrapper(PVWrapper):
         """
         super(MotorPVWrapper, self).__init__(base_pv)
 
-        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
-
     def _set_pvs(self):
         self._sp_pv = self._prefixed_pv
         self._rbv_pv = "{}.RBV".format(self._prefixed_pv)
@@ -193,9 +194,6 @@ class AxisPVWrapper(PVWrapper):
         """
         super(AxisPVWrapper, self).__init__(base_pv)
 
-        self._monitor_pv(self._sp_pv, self._trigger_after_sp_change_listeners)
-        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
-
     def _set_pvs(self):
         self._sp_pv = "{}:SP".format(self._prefixed_pv)
         self._rbv_pv = self._prefixed_pv
@@ -213,8 +211,6 @@ class VerticalJawsPVWrapper(PVWrapper):
         :param pv_name (string): The name of the PV
         """
         super(VerticalJawsPVWrapper, self).__init__(base_pv)
-
-        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
 
     def _set_pvs(self):
         self._sp_pv = "{}:VCENT:SP".format(self._prefixed_pv)
