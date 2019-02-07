@@ -397,6 +397,13 @@ class SlitGapParameter(BeamlineParameter):
             self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
         else:
             self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
+        self._initialise_sp()
+
+    def _initialise_sp(self):
+        sp_val = self._pv_wrapper.sp
+        self._set_point = sp_val
+        self._set_point_rbv = sp_val
+        self._trigger_init_listeners()
 
     def update_sp_rbv(self, new_value, alarm_severity, alarm_status):
         """
