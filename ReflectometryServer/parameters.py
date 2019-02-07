@@ -2,7 +2,7 @@
 Parameters that the user would interact with
 """
 from enum import Enum
-
+from server_common.utilities import print_and_log, SEVERITY
 
 class BeamlineParameterType(Enum):
     """
@@ -132,14 +132,14 @@ class BeamlineParameter(object):
         Move the component but don't call a callback indicating a move has been performed.
         """
         self._set_point_rbv = self._set_point
-        self._move_component()
+        self._check_and_move_component()
         self._sp_is_changed = False
 
     def move_to_sp_rbv_no_callback(self):
         """
         Repeat the move to the last set point.
         """
-        self._move_component()
+        self._check_and_move_component()
 
     def add_rbv_change_listener(self, listener):
         """
@@ -198,6 +198,16 @@ class BeamlineParameter(object):
         Returns: Has set point been changed since the last move
         """
         return self._sp_is_changed
+
+    def _check_and_move_component(self):
+        """
+        Checks whether this parameter is initialised and moves the underlying component to its setpoint if so.
+        """
+        if self._set_point_rbv is not None:
+            self._move_component()
+        else:
+            print_and_log("Skipping uninitialised parameter {}: Please check your reflectometry configuration is"
+                          "correct.".format(self.name), SEVERITY.MAJOR)
 
     def _move_component(self):
         """
