@@ -25,11 +25,24 @@ class TrackingBeamPathCalc(object):
         self._incoming_beam = None
         self._after_beam_path_update_listeners = set()
         self._after_physical_move_listeners = set()
+        self._init_listeners = set()
         self._is_in_beam = True
         self._movement_strategy = movement_strategy
 
         # This is used in disable mode where the incoming
         self.incoming_beam_can_change = True
+
+    def init_displacement(self, setpoint):
+        self._movement_strategy.set_displacement(setpoint)
+        self._trigger_after_beam_path_update()
+        self._trigger_init_listeners()
+
+    def add_init_listener(self, listener):
+        self._init_listeners.add(listener)
+
+    def _trigger_init_listeners(self):
+        for listener in self._init_listeners:
+            listener()
 
     def add_after_beam_path_update_listener(self, listener):
         """
@@ -168,6 +181,10 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
     def __init__(self, movement_strategy):
         super(_BeamPathCalcWithAngle, self).__init__(movement_strategy)
         self._angle = 0.0
+
+    def init_angle(self, value):
+        self._angle = value
+        self._trigger_init_listeners()
 
     def _set_angle(self, angle):
         """

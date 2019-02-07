@@ -22,11 +22,13 @@ class IocDriver(object):
         self._component = component
         self._axis = axis
         self._axis.add_after_rbv_change_listener(self._trigger_after_axis_value_change_listener)
-        self._axis.add_after_sp_change_listener(self._trigger_after_set_point_value_change_listener)
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
             self.__class__.__name__, self._axis.name, self._component.name)
+
+    def initialise_sp(self):
+        raise NotImplemented()
 
     def is_for_component(self, component):
         """
@@ -82,17 +84,6 @@ class IocDriver(object):
 
         raise NotImplemented()
 
-    def _trigger_after_set_point_value_change_listener(self, new_value, alarm_severity, alarm_status):
-        """
-        Trigger all listeners after an axis setpoint value change.
-        Args:
-            new_value: new axis axis setpoint that is given
-            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
-            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
-        """
-
-        raise NotImplemented()
-
 
 class DisplacementDriver(IocDriver):
     """
@@ -113,6 +104,14 @@ class DisplacementDriver(IocDriver):
         self._out_of_beam_position = out_of_beam_position
         self._tolerance_on_out_of_beam_position = tolerance_on_out_of_beam_position
 
+    def _update_in_beam_status(self, new_value):
+        if self._out_of_beam_position is not None:
+            distance_to_out_of_beam = abs(new_value - self._out_of_beam_position)
+            self._component.beam_path_rbv.is_in_beam = distance_to_out_of_beam > self._tolerance_on_out_of_beam_position
+
+    def initialise_sp(self):
+        self._component.beam_path_set_point.init_displacement(self._axis.sp)
+
     def _trigger_after_axis_value_change_listener(self, new_value, alarm_severity, alarm_status):
         """
         Trigger all listeners after a height readback change.
@@ -121,23 +120,8 @@ class DisplacementDriver(IocDriver):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        if self._out_of_beam_position is not None:
-            distance_to_out_of_beam = abs(new_value - self._out_of_beam_position)
-            self._component.beam_path_rbv.is_in_beam = distance_to_out_of_beam > self._tolerance_on_out_of_beam_position
+        self._update_in_beam_status(new_value)
         self._component.beam_path_rbv.set_displacement(new_value, alarm_severity, alarm_status)
-
-    def _trigger_after_set_point_value_change_listener(self, new_value, alarm_severity, alarm_status):
-        """
-        Trigger all listeners after a height setpoint change.
-        Args:
-            new_value: new height setpoint value that is given
-            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
-            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
-        """
-        if self._out_of_beam_position is not None:
-            distance_to_out_of_beam = abs(new_value - self._out_of_beam_position)
-            self._component.beam_path_set_point.is_in_beam = distance_to_out_of_beam > self._tolerance_on_out_of_beam_position
-        self._component.beam_path_set_point.set_displacement(new_value, alarm_severity, alarm_status)
 
     def _get_set_point_position(self):
         if self._component.beam_path_set_point.is_in_beam:
@@ -171,6 +155,9 @@ class AngleDriver(IocDriver):
         """
         super(AngleDriver, self).__init__(component, angle_axis)
 
+    def initialise_sp(self):
+        self._component.beam_path_set_point.init_angle(self._axis.sp)
+
     def _trigger_after_axis_value_change_listener(self, new_value, alarm_severity, alarm_status):
         """
         Trigger all listeners after an angle readback change.
@@ -180,16 +167,6 @@ class AngleDriver(IocDriver):
             alarm_status (CaChannel._ca.AlarmCondition): the alarm status
         """
         self._component.beam_path_rbv.angle = new_value
-
-    def _trigger_after_set_point_value_change_listener(self, new_value, alarm_severity, alarm_status):
-        """
-        Trigger all listeners after an angle setpoint change.
-        Args:
-            new_value: new angle setpoint value that is given
-            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
-            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
-        """
-        self._component.beam_path_set_point.angle = new_value
 
     def _get_set_point_position(self):
         return self._component.beam_path_set_point.angle

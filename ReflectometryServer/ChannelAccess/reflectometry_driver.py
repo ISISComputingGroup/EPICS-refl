@@ -178,6 +178,7 @@ class ReflectometryDriver(Driver):
         """
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
+            parameter.add_init_listener(partial(self._update_param_listener, pv_name))
             if param_sort == PvSort.RBV:
                 parameter.add_rbv_change_listener(partial(self._update_param_listener, pv_name))
 

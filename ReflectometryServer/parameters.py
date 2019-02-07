@@ -45,10 +45,14 @@ class BeamlineParameter(object):
         self.group_names = []
         self._rbv_change_listeners = set()
         self._sp_rbv_change_listeners = set()
+        self._init_listeners = set()
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
                                                                       self._set_point_rbv, self.rbv, self.sp_changed)
+
+    def _initialise_sp(self):
+        raise NotImplemented()
 
     @property
     def rbv(self):
@@ -174,6 +178,13 @@ class BeamlineParameter(object):
         for listener in self._sp_rbv_change_listeners:
             listener(self._set_point_rbv)
 
+    def add_init_listener(self, listener):
+        self._init_listeners.add(listener)
+
+    def _trigger_init_listeners(self):
+        for listener in self._init_listeners:
+            listener(self._set_point)
+
     @property
     def name(self):
         """
@@ -235,6 +246,12 @@ class AngleParameter(BeamlineParameter):
         super(AngleParameter, self).__init__(name, sim, init, description)
         self._reflection_component = reflection_component
         self._reflection_component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
+        self._reflection_component.beam_path_set_point.add_init_listener(self._initialise_sp)
+
+    def _initialise_sp(self):
+        self._set_point = self._reflection_component.beam_path_set_point.angle
+        self._set_point_rbv = self._reflection_component.beam_path_set_point.angle
+        self._trigger_init_listeners()
 
     def _move_component(self):
         self._reflection_component.beam_path_set_point.set_angle_relative_to_beam(self._set_point_rbv)
@@ -274,7 +291,13 @@ class TrackingPosition(BeamlineParameter):
         super(TrackingPosition, self).__init__(name, sim, init, description=description)
         self._component = component
         self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
+        self._component.beam_path_set_point.add_init_listener(self._initialise_sp)
         self.group_names.append(BeamlineParameterGroup.TRACKING)
+
+    def _initialise_sp(self):
+        self._set_point = self._component.beam_path_set_point.get_displacement()
+        self._set_point_rbv = self._component.beam_path_set_point.get_displacement()
+        self._trigger_init_listeners()
 
     def _move_component(self):
         self._component.beam_path_set_point.set_position_relative_to_beam(self._set_point_rbv)

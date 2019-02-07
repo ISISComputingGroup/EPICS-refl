@@ -174,9 +174,13 @@ class Beamline(object):
             self._modes[mode.name] = mode
 
         self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
+
         self._active_mode = None
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
+
+        for driver in self._drivers:
+            driver.initialise_sp()
 
         self._validate(beamline_parameters, modes)
 
@@ -275,6 +279,19 @@ class Beamline(object):
         """
         return self._components[item]
 
+    def _move_for_all_beamline_parameters(self):
+        """
+        Updates the beamline parameters to the latest set point value; reapplies if they are in the mode. Then moves to
+        latest postions.
+        """
+        parameters = self._beamline_parameters.values()
+        parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
+
+        for beamline_parameter in parameters:
+            if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
+                beamline_parameter.move_to_sp_no_callback()
+        self._move_drivers(self._get_max_move_duration())
+
     def update_next_beam_component(self, source_component, calc_path_list):
         """
         Updates the next component in the beamline.
@@ -295,19 +312,6 @@ class Beamline(object):
             calc_path_list[comp_index + 1].set_incoming_beam(outgoing)
         except IndexError:
             pass  # no more components to update
-
-    def _move_for_all_beamline_parameters(self):
-        """
-        Updates the beamline parameters to the latest set point value; reapplies if they are in the mode. Then moves to
-        latest postions.
-        """
-        parameters = self._beamline_parameters.values()
-        parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
-
-        for beamline_parameter in parameters:
-            if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
-                beamline_parameter.move_to_sp_no_callback()
-        self._move_drivers(self._get_max_move_duration())
 
     def _move_for_single_beamline_parameters(self, source):
         """
