@@ -179,8 +179,8 @@ class Beamline(object):
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
 
-        # for driver in self._drivers:
-        #     driver.initialise_sp()
+        for driver in self._drivers:
+            driver.initialise_sp()
 
         self._validate(beamline_parameters, modes)
 
