@@ -180,6 +180,8 @@ class ReflectometryDriver(Driver):
             parameter = self._beamline.parameter(param_name)
             if param_sort == PvSort.RBV:
                 parameter.add_rbv_change_listener(partial(self._update_param_listener, pv_name))
+            if param_sort == PvSort.SP_RBV:
+                parameter.add_sp_rbv_change_listener(partial(self._update_param_listener, pv_name))
 
     def add_trigger_active_mode_change_listener(self):
         """
