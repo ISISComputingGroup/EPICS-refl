@@ -307,7 +307,11 @@ class Beamline(object):
         for beamline_parameter in parameters:
             if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
                 beamline_parameter.move_to_sp_no_callback()
-        self._move_drivers(self._get_max_move_duration())
+        try:
+            self._move_drivers(self._get_max_move_duration())
+        except ValueError:
+            # TODO set error on server
+            pass
 
     def _move_for_single_beamline_parameters(self, source):
         """

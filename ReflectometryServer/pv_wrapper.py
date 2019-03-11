@@ -111,18 +111,27 @@ class PVWrapper(object):
     @property
     def sp(self):
         """
-        Returns: the value of the underlying PV
+        Returns: the value of the underlying setpoint PV
         """
         return self._read_pv(self._sp_pv)
 
     @sp.setter
     def sp(self, value):
         """
-        Writes a value to the underlying PV's VAL field.
+        Writes a value to the underlying setpoint PV
+
         Args:
             value: The value to set
         """
         self._write_pv(self._sp_pv, value)
+
+    @property
+    def rbv(self):
+        """
+        Returns: the value of the underlying readback PV
+        """
+        return self._read_pv(self._rbv_pv)
+
 
 
 class MotorPVWrapper(PVWrapper):

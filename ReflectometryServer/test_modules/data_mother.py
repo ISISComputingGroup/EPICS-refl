@@ -139,3 +139,7 @@ class MockMotorPVWrapper(object):
         self._value = new_value
         for listener in self.after_value_change_listener:
             listener(new_value, None, None)
+
+    @property
+    def rbv(self):
+        return self._value
