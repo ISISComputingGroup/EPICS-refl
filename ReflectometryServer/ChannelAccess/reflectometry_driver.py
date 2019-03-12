@@ -5,8 +5,9 @@ from functools import partial
 
 from pcaspy import Driver, Alarm, Severity
 
-from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, SP_SUFFIX, \
-    FootprintSort, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, convert_from_epics_pv_value
+from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, \
+    BEAMLINE_MESSAGE, SP_SUFFIX, FootprintSort, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
+    convert_from_epics_pv_value
 from ReflectometryServer.parameters import BeamlineParameterGroup
 from server_common.utilities import compress_and_hex
 
@@ -39,6 +40,7 @@ class ReflectometryDriver(Driver):
 
         self.add_param_listeners()
         self.add_trigger_active_mode_change_listener()
+        self.add_trigger_status_change_listener()
         self.add_footprint_param_listeners()
 
     def read(self, reason):
@@ -185,7 +187,7 @@ class ReflectometryDriver(Driver):
 
     def add_trigger_active_mode_change_listener(self):
         """
-        Adds the monitor on the active mode, if this changes a monitor is posted.
+        Adds the monitor on the active mode, if this changes a monitor update is posted.
         """
         def _bl_mode_change(mode):
             mode_value = self._beamline_mode_value(mode)
@@ -193,6 +195,18 @@ class ReflectometryDriver(Driver):
             self._update_param(BEAMLINE_MODE + SP_SUFFIX, mode_value)
             self.updatePVs()
         self._beamline.add_active_mode_change_listener(_bl_mode_change)
+
+    def add_trigger_status_change_listener(self):
+        """
+        Adds the monitor on the beamline status, if this changes a monitor update is posted.
+        """
+        def _bl_status_change(status, message):
+            beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
+            status_id = beamline_status_enums.index(status.display_string)
+            self._update_param(BEAMLINE_STATUS, status_id)
+            self._update_param(BEAMLINE_MESSAGE, message)
+            self.updatePVs()
+        self._beamline.add_status_change_listener(_bl_status_change)
 
     def add_footprint_param_listeners(self):
         """
