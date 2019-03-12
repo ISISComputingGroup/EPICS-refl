@@ -11,6 +11,8 @@ from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
 
+from server_common.channel_access import UnableToConnectToPVException
+
 logger = logging.getLogger(__name__)
 
 
@@ -309,9 +311,9 @@ class Beamline(object):
                 beamline_parameter.move_to_sp_no_callback()
         try:
             self._move_drivers(self._get_max_move_duration())
-        except ValueError as e:
+            self.set_status(STATUS.OKAY, "")
+        except (ValueError, UnableToConnectToPVException) as e:
             self.set_status(STATUS.GENERAL_ERROR, e.message)
-            pass
 
     def _move_for_single_beamline_parameters(self, source):
         """

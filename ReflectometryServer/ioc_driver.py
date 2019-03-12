@@ -64,7 +64,7 @@ class IocDriver(object):
         Returns: The cached readback value for the motor
         """
         if self._rbv_cache is None:
-            raise ValueError("Axis {} not initialised.".format(self._axis))
+            raise ValueError("Axis {} not initialised. Check configuration is correct and motor IOC is running.".format(self._axis.name))
         return self._rbv_cache
 
     def _get_distance(self):
