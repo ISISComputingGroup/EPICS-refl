@@ -309,8 +309,8 @@ class Beamline(object):
                 beamline_parameter.move_to_sp_no_callback()
         try:
             self._move_drivers(self._get_max_move_duration())
-        except ValueError:
-            # TODO set error on server
+        except ValueError as e:
+            self.set_status(STATUS.GENERAL_ERROR, e.message)
             pass
 
     def _move_for_single_beamline_parameters(self, source):
