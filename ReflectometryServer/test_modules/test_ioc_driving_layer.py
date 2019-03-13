@@ -283,7 +283,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         expected_max_duration = 4.5
 
         smangle.sp_no_move = sm_angle_to_set
-        with patch.object(beamline, '_move_drivers') as mock:
+        with patch.object(beamline, '_perform_move_for_all_drivers') as mock:
             beamline.move = 1
 
             mock.assert_called_with(expected_max_duration)

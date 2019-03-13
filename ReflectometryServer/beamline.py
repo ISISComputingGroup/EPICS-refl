@@ -348,15 +348,17 @@ class Beamline(object):
 
     def _move_drivers(self):
         """
-        Move motor drivers at speed of slowest axis. Set server status to okay if move successful; set to error if not.
+        Issue move for all drivers at the speed of the slowest axis and set appropriate status for failure/success.
         """
         try:
-            move_duration = self._get_max_move_duration()
-            for driver in self._drivers:
-                driver.perform_move(move_duration)
-                self.set_status(STATUS.OKAY, "")
+            self._perform_move_for_all_drivers(self._get_max_move_duration())
+            self.set_status(STATUS.OKAY, "")
         except (ValueError, UnableToConnectToPVException) as e:
             self.set_status(STATUS.GENERAL_ERROR, e.message)
+
+    def _perform_move_for_all_drivers(self, move_duration):
+        for driver in self._drivers:
+            driver.perform_move(move_duration)
 
     def _get_max_move_duration(self):
         max_move_duration = 0.0
