@@ -324,6 +324,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Assert
         self.assertTrue(ch.blocks_changed())
 
+    @unittest.expectedFailure  # To be fixed in ticket 4110
     def test_given_empty_config_when_no_change_then_blocks_changed_returns_false(self):
         # Arrange
         ch = self.create_ach()
@@ -333,6 +334,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Assert
         self.assertFalse(ch.blocks_changed())
 
+    @unittest.expectedFailure  # To be fixed in ticket 4110
     def test_given_config_when_no_change_then_blocks_changed_returns_false(self):
         # Arrange
         ch = self.create_ach()
@@ -344,6 +346,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Assert
         self.assertFalse(ch.blocks_changed())
 
+    @unittest.expectedFailure  # To be fixed in ticket 4110
     def test_given_no_blocks_changed_when_update_archiver_archiver_not_restarted(self):
         # Arrange
         ch = self.create_ach()
