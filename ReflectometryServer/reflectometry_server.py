@@ -29,7 +29,12 @@ logging.config.dictConfig({
             'handlers': ['default'],
             'level': 'DEBUG',
             'propagate': True
-        }
+        },
+    'pcaspy':{
+            'handlers': ['default'],
+            'level': 'INFO',
+            'propagate': True
+        },
     }
 })
 
