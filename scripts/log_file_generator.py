@@ -46,7 +46,7 @@ def not_readonly(path):
     print("Created log file {}".format(path))
 
 
-def create_log(headers, columns, time_period, filename_template="default.log", host="127.0.0.1"):
+def create_log(headers, columns, time_period, default_field, filename_template="default.log", host="127.0.0.1"):
     """
     Create pv monitors based on the iocdatabase
 
@@ -56,7 +56,7 @@ def create_log(headers, columns, time_period, filename_template="default.log", h
     archive_mysql_abstraction_layer = SQLAbstraction("archive", "report", "$report", host=host)
     archiver_data_source = ArchiverDataSource(archive_mysql_abstraction_layer)
 
-    config_builder = ArchiveAccessConfigBuilder(filename_template)
+    config_builder = ArchiveAccessConfigBuilder(filename_template, default_field=default_field)
     for header in headers:
         config_builder.header(header)
 
@@ -81,6 +81,8 @@ if __name__ == '__main__':
     parser.add_argument("--host", default="localhost", help="Host to get data from defaults to localhost")
     parser.add_argument("--filename_template", "-f", default="log.log",
                         help="Filename template to use for the log file.")
+    parser.add_argument("--default_field", default="VAL",
+                        help="If the pv has no field add this field to it.")
 
     parser.add_argument("header_and_pvs", nargs="+",
                         help="A header followed by the name for each pv appearing in the data")
@@ -114,4 +116,5 @@ if __name__ == '__main__':
         column_defs,
         the_time_period,
         filename_template=args.filename_template,
-        host=args.host)
+        host=args.host,
+        default_field=args.default_field)
