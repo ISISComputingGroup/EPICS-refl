@@ -223,8 +223,9 @@ class VerticalJawsPVWrapper(PVWrapper):
         self._rbv_pv = "{}:VCENT".format(self._prefixed_pv)
 
     def _set_resolution(self):
-        motor_resolutions = self._pv_names_for_directions("MTR.MRES")
-        self._resolution = float(sum(motor_resolutions)) / len(motor_resolutions)
+        motor_resolutions_pvs = self._pv_names_for_directions("MTR.MRES")
+        motor_resolutions = [self._read_pv(motor_resolutions_pv) for motor_resolutions_pv in motor_resolutions_pvs]
+        self._resolution = float(sum(motor_resolutions)) / len(motor_resolutions_pvs)
 
     @property
     def velocity(self):
