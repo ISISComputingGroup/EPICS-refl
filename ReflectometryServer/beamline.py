@@ -11,6 +11,8 @@ from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
 
+from server_common.channel_access import UnableToConnectToPVException
+
 logger = logging.getLogger(__name__)
 
 
@@ -154,6 +156,7 @@ class Beamline(object):
         self._status = STATUS.OKAY
         self._message = ""
         self._active_mode_change_listeners = set()
+        self._status_change_listeners = set()
         footprint_setup = footprint_setup if footprint_setup is not None else BaseFootprintSetup()
         self.footprint_manager = FootprintManager(footprint_setup)
 
@@ -307,7 +310,7 @@ class Beamline(object):
         for beamline_parameter in parameters:
             if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
                 beamline_parameter.move_to_sp_no_callback()
-        self._move_drivers(self._get_max_move_duration())
+        self._move_drivers()
 
     def _move_for_single_beamline_parameters(self, source):
         """
@@ -324,7 +327,7 @@ class Beamline(object):
 
             for beamline_parameter in parameters_in_mode:
                 beamline_parameter.move_to_sp_rbv_no_callback()
-        self._move_drivers(self._get_max_move_duration())
+        self._move_drivers()
 
     def parameter(self, key):
         """
@@ -349,7 +352,17 @@ class Beamline(object):
         """
         return [driver for driver in self._drivers if not driver.at_target_setpoint()]
 
-    def _move_drivers(self, move_duration):
+    def _move_drivers(self):
+        """
+        Issue move for all drivers at the speed of the slowest axis and set appropriate status for failure/success.
+        """
+        try:
+            self._perform_move_for_all_drivers(self._get_max_move_duration())
+            self.set_status(STATUS.OKAY, "")
+        except (ValueError, UnableToConnectToPVException) as e:
+            self.set_status(STATUS.GENERAL_ERROR, e.message)
+
+    def _perform_move_for_all_drivers(self, move_duration):
         for driver in self._get_drivers_not_at_setpoint():
             driver.perform_move(move_duration)
 
@@ -371,6 +384,7 @@ class Beamline(object):
         """
         self._status = status
         self._message = message
+        self._trigger_status_change()
 
     def set_status_okay(self):
         """
@@ -411,9 +425,26 @@ class Beamline(object):
 
     def add_active_mode_change_listener(self, listener):
         """
-        Add the listener for mode changes to this beamline
-        Args:
-            listener: the listener to add function with mode as new mode
+        Add a listener for mode changes to this beamline.
 
+        Args:
+            listener: the listener function to add with new mode as parameter
         """
         self._active_mode_change_listeners.add(listener)
+
+    def _trigger_status_change(self):
+        """
+        Triggers all listeners after a status change.
+
+        """
+        for listener in self._status_change_listeners:
+            listener(self.status, self.message)
+
+    def add_status_change_listener(self, listener):
+        """
+        Add a listener for status changes to this beamline.
+
+        Args:
+            listener: the listener function to add with parameters for new status and message
+        """
+        self._status_change_listeners.add(listener)

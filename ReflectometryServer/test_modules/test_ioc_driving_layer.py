@@ -6,6 +6,8 @@ from mock import MagicMock, patch
 from hamcrest import *
 
 from ReflectometryServer import *
+from ReflectometryServer.beamline import STATUS
+from server_common.channel_access import UnableToConnectToPVException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
 FLOAT_TOLERANCE = 1e-9
@@ -277,9 +279,8 @@ class TestDriverChanged(unittest.TestCase):
 
 
 class BeamlineMoveDurationTest(unittest.TestCase):
-    def test_GIVEN_multiple_components_in_beamline_WHEN_triggering_move_THEN_components_move_at_speed_of_slowest_axis(self):
+    def setUp(self):
         sm_angle = 0.0
-        sm_angle_to_set = 22.5
         supermirror = ReflectingComponent("supermirror", setup=PositionAndAngle(y=0.0, z=10.0, angle=90.0))
         sm_height_axis = create_mock_axis("SM:HEIGHT", 0.0, 10.0)
         sm_angle_axis = create_mock_axis("SM:ANGLE", sm_angle, 10.0)
@@ -289,11 +290,12 @@ class BeamlineMoveDurationTest(unittest.TestCase):
 
         slit_2 = Component("slit_2", setup=PositionAndAngle(y=0.0, z=20.0, angle=90.0))
         slit_2_height_axis = create_mock_axis("SLIT2:HEIGHT", 0.0, 10.0)
-        slit_2_driver = DisplacementDriver(slit_2, slit_2_height_axis)
+        self.slit_2_driver = MagicMock(DisplacementDriver)
 
         slit_3 = Component("slit_3", setup=PositionAndAngle(y=0.0, z=30.0, angle=90.0))
         slit_3_height_axis = create_mock_axis("SLIT3:HEIGHT", 0.0, 10.0)
         slit_3_driver = DisplacementDriver(slit_3, slit_3_height_axis)
+        self.slit_3_driver = slit_3_driver
 
         detector = TiltingComponent("jaws", setup=PositionAndAngle(y=0.0, z=40.0, angle=90.0))
         detector_height_axis = create_mock_axis("DETECTOR:HEIGHT", 0.0, 10.0)
@@ -301,31 +303,45 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         detector_driver_disp = DisplacementDriver(detector, detector_height_axis)
         detector_driver_ang = AngleDriver(detector, detector_tilt_axis)
 
-        smangle = AngleParameter("smangle", supermirror)
+        self.smangle = AngleParameter("smangle", supermirror)
         slit_2_pos = TrackingPosition("s2_pos", slit_2)
+        self.slit_2_pos = slit_2_pos
         slit_3_pos = TrackingPosition("s3_pos", slit_3)
+        self.slit_3_pos = slit_3_pos
         det_pos = TrackingPosition("det_pos", detector)
         det_ang = AngleParameter("det_ang", detector)
 
         components = [supermirror, slit_2, slit_3, detector]
-        beamline_parameters = [smangle, slit_2_pos, slit_3_pos, det_pos, det_ang]
-        drivers = [supermirror_driver_disp, supermirror_driver_ang, slit_2_driver, slit_3_driver, detector_driver_disp, detector_driver_ang]
-        mode = BeamlineMode("mode name", [smangle.name, slit_2_pos.name, slit_3_pos.name, det_pos.name, det_ang.name])
+        beamline_parameters = [self.smangle, slit_2_pos, slit_3_pos, det_pos, det_ang]
+        self.drivers = [supermirror_driver_disp, supermirror_driver_ang, self.slit_2_driver, slit_3_driver, detector_driver_disp, detector_driver_ang]
+        mode = BeamlineMode("mode name", [self.smangle.name, slit_2_pos.name, slit_3_pos.name, det_pos.name, det_ang.name])
         beam_start = PositionAndAngle(0.0, 0.0, 0.0)
-        beamline = Beamline(components, beamline_parameters, drivers, [mode], beam_start)
+        self.beamline = Beamline(components, beamline_parameters, self.drivers, [mode], beam_start)
 
-        beamline.active_mode = mode.name
+        self.beamline.active_mode = mode.name
 
         slit_2_pos.sp_no_move = 0.0
         slit_3_pos.sp_no_move = 0.0
         det_pos.sp_no_move = 0.0
         det_ang.sp_no_move = 0
 
+    def test_GIVEN_multiple_components_in_beamline_WHEN_triggering_move_THEN_components_move_at_speed_of_slowest_axis(self):
         # detector angle axis takes longest
         expected_max_duration = 4.5
+        sm_angle_to_set = 22.5
 
-        smangle.sp_no_move = sm_angle_to_set
-        with patch.object(beamline, '_move_drivers') as mock:
-            beamline.move = 1
+        self.smangle.sp_no_move = sm_angle_to_set
+        with patch.object(self.beamline, '_perform_move_for_all_drivers') as mock:
+            self.beamline.move = 1
 
             mock.assert_called_with(expected_max_duration)
+
+    def test_GIVEN_driver_contains_disconnected_pv_WHEN_beamline_moves_THEN_status_set(self):
+        sm_angle_to_set = 22.5
+
+        self.smangle.sp_no_move = sm_angle_to_set
+        self.slit_3_pos.sp_no_move = -10
+        self.slit_3_driver.perform_move = MagicMock(side_effect=UnableToConnectToPVException("A_PV", "ERROR"))
+
+        self.beamline.move = 1
+        assert_that(self.beamline.status, is_(STATUS.GENERAL_ERROR))

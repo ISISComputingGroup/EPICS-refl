@@ -21,9 +21,10 @@ class IocDriver(object):
         """
         self._component = component
         self._axis = axis
-        self._axis.add_after_rbv_change_listener(self._trigger_after_axis_value_change_listener)
-        self._axis.add_after_sp_change_listener(self._update_sp_cache)
+        self._rbv_cache = self._axis.rbv
         self._sp_cache = None
+        self._axis.add_after_rbv_change_listener(self._rbv_change_listener)
+        self._axis.add_after_sp_change_listener(self._update_sp_cache)
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -59,11 +60,22 @@ class IocDriver(object):
         self._axis.sp = self._get_set_point_position()
         self._sp_cache = self._get_set_point_position()
 
+    def rbv_cache(self):
+        """
+        Return the last cached readback value of the underlying motor if one exists; throws an exception otherwise.
+
+        Returns: The cached readback value for the motor
+        """
+        if self._rbv_cache is None:
+            raise ValueError("Axis {} not initialised. Check configuration is correct and motor IOC is running."
+                             .format(self._axis.name))
+        return self._rbv_cache
+
     def _get_distance(self):
         """
         :return: The distance between the target component position and the actual motor position in y.
         """
-        return math.fabs(self._axis.sp - self._get_set_point_position())
+        return math.fabs(self.rbv_cache() - self._get_set_point_position())
 
     def _get_set_point_position(self):
         """
@@ -73,15 +85,28 @@ class IocDriver(object):
         """
         raise NotImplemented()
 
-    def _trigger_after_axis_value_change_listener(self, new_value, alarm_severity, alarm_status):
+    def _rbv_change_listener(self, new_value, alarm_severity, alarm_status):
         """
-        Trigger all listeners after an axis value change.
+        Listener to trigger on a change of the readback value of the underlying motor.
+
         Args:
             new_value: new axis value that is given
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
+        self._rbv_cache = new_value
+        self._propagate_rbv_change(new_value, alarm_severity, alarm_status)
 
+    def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
+        """
+        Signal that the motor readback value has changed to the middle component layer. Subclass must implement this
+        method.
+
+        Args:
+            new_value: new axis value that is given
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
         raise NotImplemented()
 
     def _update_sp_cache(self, value, alarm_severity, alarm_status):
@@ -123,9 +148,10 @@ class DisplacementDriver(IocDriver):
         self._out_of_beam_position = out_of_beam_position
         self._tolerance_on_out_of_beam_position = tolerance_on_out_of_beam_position
 
-    def _trigger_after_axis_value_change_listener(self, new_value, alarm_severity, alarm_status):
+    def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """
-        Trigger all listeners after a height change.
+        Propagate the new height to the middle component layer.
+
         Args:
             new_value: new height that is given
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
@@ -168,9 +194,10 @@ class AngleDriver(IocDriver):
         """
         super(AngleDriver, self).__init__(component, angle_axis)
 
-    def _trigger_after_axis_value_change_listener(self, new_value, alarm_severity, alarm_status):
+    def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """
-        Trigger all listeners after a angle change.
+        Propagate the new angle to the middle component layer.
+
         Args:
             new_value: new angle given
             alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm

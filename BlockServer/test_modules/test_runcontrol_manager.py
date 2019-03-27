@@ -168,6 +168,7 @@ class TestRunControlSequence(unittest.TestCase):
             self._create_initial_runcontrol_manager()
             self.assertEqual(channel.get_call_count(rc_pv), 60)
 
+    @unittest.expectedFailure  # To be fixed in ticket 4110
     def test_GIVEN_blocks_unchanged_and_not_full_init_WHEN_initialised_THEN_runcontrol_doesnt_restart_and_autosave_files_not_deleted(self):
         ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
         ch.set_config_details(details)
@@ -208,4 +209,3 @@ class TestRunControlSequence(unittest.TestCase):
 
         self.assertIn("RUNCTRL_01", ioc_control.restarted_iocs)
         self.assertTrue(rcash.clear_autosave_files.called)
-

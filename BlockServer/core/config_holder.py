@@ -423,6 +423,7 @@ class ConfigHolder(object):
             config (Configuration): A configuration
             is_component (bool, optional): Whether it is a component
         """
+        self._cache_config()
         self.clear_config()
         self._config = config
         self._is_component = is_component
