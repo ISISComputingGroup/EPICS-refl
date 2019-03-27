@@ -339,7 +339,7 @@ class BlockServer(Driver):
         self.update_blocks_monitors()
 
         self.update_get_details_monitors()
-        self._active_configserver.update_archiver()
+        self._active_configserver.update_archiver(full_init)
         for h in self.on_the_fly_handlers:
                 h.on_config_change(full_init)
 

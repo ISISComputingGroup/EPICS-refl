@@ -43,7 +43,7 @@ class ProcServWrapper(object):
             ioc (string): The name of the IOC
         """
         print_and_log("Stopping IOC %s" % ioc)
-        ChannelAccess.caput(self.procserv_prefix + ioc + ":STOP", 1)
+        ChannelAccess.caput(self.procserv_prefix + ioc + ":STOP", 1, wait=True)
 
     def restart_ioc(self, ioc):
         """Restarts the specified IOC.

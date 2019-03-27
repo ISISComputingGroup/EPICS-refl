@@ -54,11 +54,12 @@ class PVWrapper(object):
         Args:
             pv(String): The pv to read
         """
-        try:
-            return ChannelAccess.caget(pv)
-        except UnableToConnectToPVException:
-            logger.error("Error reading value from {}: PV does not exist".format(pv))
-            return None
+        value = ChannelAccess.caget(pv)
+        if value is not None:
+            return value
+        else:
+            logger.error("Could not connect to PV {}.".format(pv))
+            raise UnableToConnectToPVException(pv, "Check configuration is correct and IOC is running.")
 
     @staticmethod
     def _write_pv(pv, value):
@@ -69,10 +70,7 @@ class PVWrapper(object):
             pv(String): The PV to write to
             value: The new value
         """
-        try:
-            ChannelAccess.caput(pv, value)
-        except UnableToConnectToPVException:
-            logger.error("Error writing value to {}: PV does not exist".format(pv))
+        ChannelAccess.caput(pv, value)
 
     def add_after_rbv_change_listener(self, listener):
         """
@@ -111,18 +109,26 @@ class PVWrapper(object):
     @property
     def sp(self):
         """
-        Returns: the value of the underlying PV
+        Returns: the value of the underlying setpoint PV
         """
         return self._read_pv(self._sp_pv)
 
     @sp.setter
     def sp(self, value):
         """
-        Writes a value to the underlying PV's VAL field.
+        Writes a value to the underlying setpoint PV
+
         Args:
             value: The value to set
         """
         self._write_pv(self._sp_pv, value)
+
+    @property
+    def rbv(self):
+        """
+        Returns: the value of the underlying readback PV
+        """
+        return self._read_pv(self._rbv_pv)
 
 
 class MotorPVWrapper(PVWrapper):
@@ -147,7 +153,7 @@ class MotorPVWrapper(PVWrapper):
         """
         Returns: the value of the underlying velocity PV
         """
-        return ChannelAccess.caget(self._prefixed_pv + ".VELO")
+        return self._read_pv(self._prefixed_pv + ".VELO")
 
     @velocity.setter
     def velocity(self, value):
@@ -157,14 +163,14 @@ class MotorPVWrapper(PVWrapper):
         Args:
             value: The value to set
         """
-        ChannelAccess.caput(self._prefixed_pv + ".VELO", value)
+        self._write_pv(self._prefixed_pv + ".VELO", value)
 
     @property
     def max_velocity(self):
         """
         Returns: the value of the underlying max velocity PV
         """
-        return ChannelAccess.caget(self._prefixed_pv + ".VMAX")
+        return self._read_pv(self._prefixed_pv + ".VMAX")
 
 
 class AxisPVWrapper(PVWrapper):
@@ -212,7 +218,7 @@ class VerticalJawsPVWrapper(PVWrapper):
         Returns: the value of the underlying velocity PV
         """
         motor_velocities = self._pv_names_for_directions("MTR.VELO")
-        return max([ChannelAccess.caget(pv) for pv in motor_velocities])
+        return max([self._read_pv(pv) for pv in motor_velocities])
 
     @velocity.setter
     def velocity(self, value):
@@ -224,7 +230,7 @@ class VerticalJawsPVWrapper(PVWrapper):
         """
         motor_velocities = self._pv_names_for_directions("MTR.VELO")
         for pv in motor_velocities:
-            ChannelAccess.caput(pv, value)
+            self._write_pv(pv, value)
 
     @property
     def max_velocity(self):
@@ -232,7 +238,7 @@ class VerticalJawsPVWrapper(PVWrapper):
         Returns: the value of the underlying max velocity PV
         """
         motor_velocities = self._pv_names_for_directions("MTR.VMAX")
-        return min([ChannelAccess.caget(pv) for pv in motor_velocities])
+        return min([self._read_pv(pv) for pv in motor_velocities])
 
     def _pv_names_for_directions(self, suffix):
         """

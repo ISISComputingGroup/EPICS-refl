@@ -64,13 +64,13 @@ class ActiveConfigHolder(ConfigHolder):
         super(ActiveConfigHolder, self).set_config(conf, False)
         self.set_last_config(name)
 
-    def update_archiver(self):
+    def update_archiver(self, full_init=False):
         """ Update the archiver configuration.
 
         Args:
-            blocks_changed (bool): Have the blocks changed?
+            full_init: if True restart; if False only restart if blocks have changed
         """
-        if self.blocks_changed():
+        if self.blocks_changed() or full_init:
             self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX,
                                                   super(ActiveConfigHolder, self).get_block_details().values())
 
@@ -166,6 +166,10 @@ class ActiveConfigHolder(ConfigHolder):
         Returns:
             bool : True if blocks have changed, False otherwise
         """
+
+        # As a hotfix #4090 this will get round inconsitencies with cache config
+        return True
+
         blocks_changed = False
 
         # Check for any new or changed blocks
