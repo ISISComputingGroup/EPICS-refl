@@ -164,6 +164,12 @@ class Beamline(object):
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
             beamline_parameter.after_move_listener = self._move_for_single_beamline_parameters
 
+        self._modes = OrderedDict()
+        for mode in modes:
+            self._modes[mode.name] = mode
+
+        self._validate(beamline_parameters, modes)
+
         for component in components:
             self._beam_path_calcs_set_point.append(component.beam_path_set_point)
             self._beam_path_calcs_rbv.append(component.beam_path_rbv)
@@ -171,10 +177,6 @@ class Beamline(object):
                 partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_set_point))
             component.beam_path_rbv.add_after_beam_path_update_listener(
                 partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_rbv))
-
-        self._modes = OrderedDict()
-        for mode in modes:
-            self._modes[mode.name] = mode
 
         self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
 
@@ -184,8 +186,6 @@ class Beamline(object):
 
         for driver in self._drivers:
             driver.initialise_sp()
-
-        self._validate(beamline_parameters, modes)
 
     def _validate(self, beamline_parameters, modes):
         errors = []
