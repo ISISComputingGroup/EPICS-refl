@@ -10,6 +10,7 @@ from pcaspy import Severity
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
+from ReflectometryServer.parameters import ParameterNotInitializedException
 
 from server_common.channel_access import UnableToConnectToPVException
 
@@ -313,7 +314,13 @@ class Beamline(object):
 
         for beamline_parameter in parameters:
             if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
-                beamline_parameter.move_to_sp_no_callback()
+                try:
+                    beamline_parameter.move_to_sp_no_callback()
+                except ParameterNotInitializedException as e:
+                    self.set_status(STATUS.GENERAL_ERROR,
+                                    "Parameter {} has not been initialized. Check reflectometry configuration is "
+                                    "correct and underlying motor IOC is running.".format(e.message))
+                    return
         self._move_drivers()
 
     def _move_for_single_beamline_parameters(self, source):

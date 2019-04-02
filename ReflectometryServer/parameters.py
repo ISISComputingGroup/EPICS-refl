@@ -4,6 +4,15 @@ Parameters that the user would interact with
 from enum import Enum
 from server_common.utilities import print_and_log, SEVERITY
 
+
+class ParameterNotInitializedException(Exception):
+    def __init__(self, err):
+        self.message = str(err)
+
+    def __str__(self):
+        return self.message
+
+
 class BeamlineParameterType(Enum):
     """
     Types of beamline parameters
@@ -206,8 +215,7 @@ class BeamlineParameter(object):
         if self._set_point_rbv is not None:
             self._move_component()
         else:
-            print_and_log("Skipping uninitialised parameter {}: Please check your reflectometry configuration is"
-                          "correct.".format(self.name), SEVERITY.MAJOR)
+            raise ParameterNotInitializedException(self.name)
 
     def _move_component(self):
         """
