@@ -23,8 +23,6 @@ from BlockServer.config.block import Block
 from BlockServer.config.configuration import Configuration
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.mocks.mock_ioc_control import MockIocControl
-from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
-from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 from BlockServer.mocks.mock_ioc import MockIoc
@@ -39,6 +37,7 @@ BASE_PATH = "./example_base/"
 def quick_block_to_json(name, pv, group, local=True):
     data = {'name': name, 'pv': pv, 'group': group, 'local': local}
     return data
+
 
 def add_block(cs, data):
     cs.add_block(data)
@@ -90,17 +89,15 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self.mock_archive = Mock()
         self.mock_archive.update_archiver = Mock()
         self.mock_file_manager = MockConfigurationFileManager()
-        self.activech = ActiveConfigHolder(MACROS, self.mock_archive, self.mock_file_manager, MockIocControl(""))
+        self.active_config_holder = ActiveConfigHolder(
+            MACROS, self.mock_archive, self.mock_file_manager, MockIocControl(""))
 
-    def tearDown(self):
-        pass
-
-    def create_ach(self):
+    def create_active_config_holder(self):
         ch = ActiveConfigHolder(MACROS, self.mock_archive, MockConfigurationFileManager(), MockIocControl(""))
         return ch
 
     def test_add_ioc(self):
-        cs = self.activech
+        cs = self.active_config_holder
         iocs = cs.get_ioc_names()
         self.assertEqual(len(iocs), 0)
         cs._add_ioc("SIMPLE1")
@@ -111,7 +108,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     @unittest.skipIf(IS_LINUX, "Unable to save config on Linux")
     def test_save_config(self):
-        cs = self.activech
+        cs = self.active_config_holder
         add_basic_blocks_and_iocs(cs)
         try:
             cs.save_active("TEST_CONFIG")
@@ -120,7 +117,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     @unittest.skipIf(IS_LINUX, "Location of last_config.txt not correctly configured on Linux")
     def test_load_config(self):
-        cs = self.activech
+        cs = self.active_config_holder
         add_basic_blocks_and_iocs(cs)
         cs.save_active("TEST_CONFIG")
         cs.clear_config()
@@ -143,7 +140,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
     def test_GIVEN_load_config_WHEN_load_config_again_THEN_no_ioc_changes(self):
         # This test is checking that a load will correctly cache the IOCs that are running so that a comparison will
         # return no change
-        cs = self.activech
+        cs = self.active_config_holder
         add_basic_blocks_and_iocs(cs)
         cs.save_active("TEST_CONFIG")
         cs.clear_config()
@@ -160,13 +157,12 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(iocs_to_restart), 0)
         self.assertEqual(len(iocs_to_stop), 0)
 
-
     def test_load_notexistant_config(self):
-        cs = self.activech
+        cs = self.active_config_holder
         self.assertRaises(IOError, lambda: cs.load_active("DOES_NOT_EXIST"))
 
     def test_save_as_component(self):
-        cs = self.activech
+        cs = self.active_config_holder
         try:
             cs.save_active("TEST_CONFIG1", as_comp=True)
         except Exception as e:
@@ -174,7 +170,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     @unittest.skipIf(IS_LINUX, "Unable to save config on Linux")
     def test_save_config_for_component(self):
-        cs = self.activech
+        cs = self.active_config_holder
         cs.save_active("TEST_CONFIG1", as_comp=True)
         try:
             cs.save_active("TEST_CONFIG1")
@@ -182,7 +178,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
             self.fail("test_save_config_for_component raised Exception unexpectedly: {}".format(e))
 
     def test_load_component_fails(self):
-        cs = self.activech
+        cs = self.active_config_holder
         add_basic_blocks_and_iocs(cs)
         cs.save_active("TEST_COMPONENT", as_comp=True)
         cs.clear_config()
@@ -190,7 +186,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     @unittest.skipIf(IS_LINUX, "Location of last_config.txt not correctly configured on Linux")
     def test_load_last_config(self):
-        cs = self.activech
+        cs = self.active_config_holder
         add_basic_blocks_and_iocs(cs)
         cs.save_active("TEST_CONFIG")
         cs.clear_config()
@@ -213,13 +209,13 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_reloading_current_config_with_blank_name_does_nothing(self):
         # arrange
-        config_name = self.activech.get_config_name()
+        config_name = self.active_config_holder.get_config_name()
         self.assertEquals(config_name, "")
         load_requests = self.mock_file_manager.get_load_config_history()
         self.assertEquals(len(load_requests), 0)
 
         # act
-        self.activech.reload_current_config()
+        self.active_config_holder.reload_current_config()
 
         # assert
         load_requests = self.mock_file_manager.get_load_config_history()
@@ -228,7 +224,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
     @unittest.skipIf(IS_LINUX, "Location of last_config.txt not correctly configured on Linux")
     def test_reloading_current_config_sends_load_request_correctly(self):
         # arrange
-        cs = self.activech
+        cs = self.active_config_holder
         config_name = "TEST_CONFIG"
         add_basic_blocks_and_iocs(cs)
         cs.save_active(config_name)
@@ -245,7 +241,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_no_changes(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         ch.set_config_details(details)
         # Assert
@@ -256,7 +252,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_ioc_added(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         # Act
         details['iocs'].append(MockIoc())
@@ -269,7 +265,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_iocs_changed_ioc_removed(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         details['iocs'].append(MockIoc())
         ch.set_config_details(details)
@@ -284,7 +280,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_given_empty_config_when_block_added_then_blocks_changed_returns_true(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         # Act
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
@@ -294,7 +290,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_given_config_when_block_params_changed_then_blocks_changed_returns_true(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
         ch.set_config_details(details)
@@ -306,7 +302,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_given_config_with_one_block_when_block_removed_then_blocks_changed_returns_true(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
         ch.set_config_details(details)
@@ -318,26 +314,24 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_given_empty_config_when_component_added_then_blocks_changed_returns_true(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         # Act
         ch.add_component(name="TESTCOMPONENT", component=create_dummy_component())
         # Assert
         self.assertTrue(ch.blocks_changed())
 
-    @unittest.expectedFailure  # To be fixed in ticket 4110
     def test_given_empty_config_when_no_change_then_blocks_changed_returns_false(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         # Act
         ch.set_config_details(details)
         # Assert
         self.assertFalse(ch.blocks_changed())
 
-    @unittest.expectedFailure  # To be fixed in ticket 4110
     def test_given_config_when_no_change_then_blocks_changed_returns_false(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
         ch.set_config_details(details)
@@ -346,35 +340,34 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Assert
         self.assertFalse(ch.blocks_changed())
 
-    @unittest.expectedFailure  # To be fixed in ticket 4110
     def test_given_no_blocks_changed_when_update_archiver_archiver_not_restarted(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
         ch.set_config_details(details)
         # Act
         ch.set_config_details(details)
-        ch.update_archiver(False)
+        ch.update_archiver()
         # Assert
         self.assertFalse(self.mock_archive.update_archiver.called)
 
     def test_given_blocks_changed_when_update_archiver_archiver_is_restarted(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
         ch.set_config_details(details)
         # Act
         details['blocks'].append(Block(name="TESTNAME2", pv="TESTPV2").to_dict())
         ch.set_config_details(details)
-        ch.update_archiver(False)
+        ch.update_archiver()
         # Assert
         self.assertTrue(self.mock_archive.update_archiver.called)
 
     def test_given_no_blocks_changed_but_full_init_when_update_archiver_archiver_is_restarted(self):
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
         ch.set_config_details(details)
@@ -384,12 +377,18 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Assert
         self.assertTrue(self.mock_archive.update_archiver.called)
 
-    def _test_attribute_changes(self, initial_attrs={}, final_attrs={}, has_changed=True):
+    def _test_attribute_changes(self, initial_attrs=None, final_attrs=None, has_changed=True):
         # Take a dict of initial attributes and final attributes and
         # check for the correct change response.
 
+        if initial_attrs is None:
+            initial_attrs = {}
+
+        if final_attrs is None:
+            final_attrs = {}
+
         # Arrange
-        ch = self.create_ach()
+        ch = self.create_active_config_holder()
         details = ch.get_config_details()
 
         initial_ioc = MockIoc()
@@ -411,52 +410,52 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(stop), 0)
 
     def test_iocs_changed_macro_added(self):
-        self._test_attribute_changes(final_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]})
+        self._test_attribute_changes(final_attrs={'macros': [{"name": "TESTMACRO1", "value": "TEST"}]})
 
     def test_iocs_changed_macro_removed(self):
-        self._test_attribute_changes(initial_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]})
+        self._test_attribute_changes(initial_attrs={'macros': [{"name": "TESTMACRO1", "value": "TEST"}]})
 
     def test_iocs_changed_macro_changed(self):
-        self._test_attribute_changes(initial_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]},
-                                     final_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST_NEW"}]})
+        self._test_attribute_changes(initial_attrs={'macros': [{"name": "TESTMACRO1", "value": "TEST"}]},
+                                     final_attrs={'macros': [{"name": "TESTMACRO1", "value": "TEST_NEW"}]})
 
     def test_iocs_changed_macro_not_changed(self):
-        self._test_attribute_changes(initial_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]},
-                                     final_attrs={'macros':[{"name": "TESTMACRO1", "value": "TEST"}]},
+        self._test_attribute_changes(initial_attrs={'macros': [{"name": "TESTMACRO1", "value": "TEST"}]},
+                                     final_attrs={'macros': [{"name": "TESTMACRO1", "value": "TEST"}]},
                                      has_changed=False)
 
     def test_iocs_changed_pvs_added(self):
-        self._test_attribute_changes(final_attrs={'pvs':[{"name": "TESTPV1", "value": 123}]})
+        self._test_attribute_changes(final_attrs={'pvs': [{"name": "TESTPV1", "value": 123}]})
 
     def test_iocs_changed_pvs_removed(self):
-        self._test_attribute_changes(initial_attrs={'pvs':[{"name": "TESTPV1", "value": 123}]})
+        self._test_attribute_changes(initial_attrs={'pvs': [{"name": "TESTPV1", "value": 123}]})
 
     def test_iocs_changed_pvs_changed(self):
-        self._test_attribute_changes(initial_attrs={'pvs':[{"name": "TESTPV1", "value": 123}]},
+        self._test_attribute_changes(initial_attrs={'pvs': [{"name": "TESTPV1", "value": 123}]},
                                      final_attrs={'pvs': [{"name": "TESTPV1", "value": 456}]})
 
     def test_iocs_not_changed_pvs_not_changed(self):
-        self._test_attribute_changes(initial_attrs={'pvs':[{"name": "TESTPV1", "value": 123}]},
+        self._test_attribute_changes(initial_attrs={'pvs': [{"name": "TESTPV1", "value": 123}]},
                                      final_attrs={'pvs': [{"name": "TESTPV1", "value": 123}]},
                                      has_changed=False)
 
     def test_iocs_changed_pvsets_added(self):
-        self._test_attribute_changes(final_attrs={'pvsets':[{"name": "TESTPVSET1", "enabled": True}]})
+        self._test_attribute_changes(final_attrs={'pvsets': [{"name": "TESTPVSET1", "enabled": True}]})
 
     def test_iocs_changed_pvsets_removed(self):
-        self._test_attribute_changes(initial_attrs={'pvsets':[{"name": "TESTPVSET1", "enabled": True}]})
+        self._test_attribute_changes(initial_attrs={'pvsets': [{"name": "TESTPVSET1", "enabled": True}]})
 
     def test_iocs_changed_pvsets_changed(self):
-        self._test_attribute_changes(initial_attrs={'pvsets':[{"name": "TESTPVSET1", "enabled": True}]},
+        self._test_attribute_changes(initial_attrs={'pvsets': [{"name": "TESTPVSET1", "enabled": True}]},
                                      final_attrs={'pvsets': [{"name": "TESTPVSET1", "enabled": False}]})
 
     def test_iocs_not_changed_pvsets_not_changed(self):
-        self._test_attribute_changes(initial_attrs={'pvsets':[{"name": "TESTPVSET1", "enabled": True}]},
+        self._test_attribute_changes(initial_attrs={'pvsets': [{"name": "TESTPVSET1", "enabled": True}]},
                                      final_attrs={'pvsets': [{"name": "TESTPVSET1", "enabled": True}]},
                                      has_changed=False)
 
     def test_iocs_changed_simlevel_added(self):
-        self._test_attribute_changes(final_attrs={'simlevel':'recsim'})
+        self._test_attribute_changes(final_attrs={'simlevel': 'recsim'})
 
     def test_iocs_changed_simlevel_removed(self):
         self._test_attribute_changes(initial_attrs={'simlevel': 'recsim'})

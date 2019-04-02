@@ -99,7 +99,13 @@ class IOC(object):
         Returns:
             dict : The IOC's details
         """
-        return {'name': self.name, 'autostart': self.autostart, 'restart': self.restart,
-                'simlevel': self.simlevel, 'pvs': self._dict_to_list(self.pvs),
-                'pvsets': self._dict_to_list(self.pvsets), 'macros': self._dict_to_list(self.macros),
-                'component': self.component}
+        return {
+            'name': self.name,
+            'autostart': self.autostart,
+            'restart': self.restart,
+            'simlevel': self.simlevel,
+            'pvs': self._dict_to_list(self.pvs),
+            'pvsets': self._dict_to_list(self.pvsets),
+            'macros': self._dict_to_list(self.macros),
+            'component': self.component
+        }

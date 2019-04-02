@@ -125,5 +125,3 @@ class Configuration(object):
             name (string): The new name for the configuration
         """
         self.meta.name = name
-
-

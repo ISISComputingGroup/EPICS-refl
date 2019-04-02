@@ -13,8 +13,8 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
 import os
+import six
 
 from server_common.utilities import print_and_log
 from BlockServer.core.macros import BLOCK_PREFIX, MACROS
@@ -23,7 +23,8 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
 class ActiveConfigHolder(ConfigHolder):
-    """Class to serve up the active configuration.
+    """
+    Class to serve up the active configuration.
     """
     def __init__(self, macros, archive_manager, file_manager, ioc_control):
         """ Constructor.
@@ -48,9 +49,9 @@ class ActiveConfigHolder(ConfigHolder):
             as_comp (bool): Whether to save as a component
         """
         if as_comp:
-            super(ActiveConfigHolder, self).save_configuration(name, True)
+            self.save_configuration(name, True)
         else:
-            super(ActiveConfigHolder, self).save_configuration(name, False)
+            self.save_configuration(name, False)
             self.set_last_config(name)
 
     def load_active(self, name):
@@ -60,8 +61,7 @@ class ActiveConfigHolder(ConfigHolder):
         Args:
             name (string): The name of the configuration to load
         """
-        conf = super(ActiveConfigHolder, self).load_configuration(name, False)
-        super(ActiveConfigHolder, self).set_config(conf, False)
+        self.set_config(self.load_configuration(name))
         self.set_last_config(name)
 
     def update_archiver(self, full_init=False):
@@ -70,9 +70,9 @@ class ActiveConfigHolder(ConfigHolder):
         Args:
             full_init: if True restart; if False only restart if blocks have changed
         """
-        if self.blocks_changed() or full_init:
+        if full_init or self.blocks_changed():
             self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX,
-                                                  super(ActiveConfigHolder, self).get_block_details().values())
+                                                  self.get_block_details().values())
 
     def set_last_config(self, config):
         """ Save the last configuration used to file.
@@ -82,8 +82,7 @@ class ActiveConfigHolder(ConfigHolder):
         Args:
             config (string): The name of the last configuration used
         """
-        last = os.path.abspath(self._last_config_file)
-        with open(last, 'w') as f:
+        with open(os.path.abspath(self._last_config_file), 'w') as f:
             f.write(config + "\n")
 
     def load_last_config(self):
@@ -92,21 +91,28 @@ class ActiveConfigHolder(ConfigHolder):
         The last configuration is saved without any file path.
 
         Note: should not be a component.
+
+        Returns:
+            The name of the configuration that was loaded
         """
-        last = os.path.abspath(self._last_config_file)
-        if not os.path.isfile(last):
+        last_config_file_location = os.path.abspath(self._last_config_file)
+
+        if not os.path.isfile(last_config_file_location):
             return None
-        with open(last, 'r') as f:
-            last_config = os.path.split(f.readline().strip())[-1]
+
+        with open(last_config_file_location) as f:
+            last_config_name = os.path.split(f.readline().strip())[-1]
             # Remove any legacy path separators
-            last_config = last_config.replace("/", "")
-            last_config = last_config.replace("\\", "")
-        if last_config == "":
+            last_config_name = last_config_name.replace("/", "")
+            last_config_name = last_config_name.replace("\\", "")
+
+        if last_config_name == "":
             print_and_log("No last configuration defined")
             return None
-        print_and_log("Trying to load last_configuration %s" % last_config)
-        self.load_active(last_config)
-        return last_config
+
+        print_and_log("Trying to load last configuration '{}'".format(last_config_name))
+        self.load_active(last_config_name)
+        return last_config_name
 
     def reload_current_config(self):
         """ Reload the current configuration."""
@@ -115,7 +121,7 @@ class ActiveConfigHolder(ConfigHolder):
             print_and_log("No current configuration defined. Nothing to reload.")
             return
 
-        print_and_log("Trying to reload current configuration %s" % current_config_name)
+        print_and_log("Trying to reload current configuration '{}'".format(current_config_name))
         self.load_active(current_config_name)
 
     def iocs_changed(self):
@@ -124,81 +130,121 @@ class ActiveConfigHolder(ConfigHolder):
         It checks for: IOCs added; IOCs removed; and, macros, pvs or pvsets changed.
 
         Returns:
-            set, set : IOCs to start and IOCs to restart
+            set, set, set : IOCs to start, IOCs to restart, IOCs to stop.
         """
         iocs_to_start = set()
         iocs_to_restart = set()
         iocs_to_stop = set()
 
         # Check to see if any macros, pvs, pvsets etc. have changed
-        for n in self._config.iocs.keys():
-            if n not in self._cached_config.iocs.keys():
+        for ioc_name in self._config.iocs.keys():
+            if ioc_name not in self._cached_config.iocs.keys():
                 # If not in previously then add it to start
-                iocs_to_start.add(n)
+                iocs_to_start.add(ioc_name)
                 continue
 
-            cached_ioc = self._cached_config.iocs[n]
-            current_ioc = self._config.iocs[n]
-            if n in self._cached_config.iocs.keys():
+            cached_ioc = self._cached_config.iocs[ioc_name]
+            current_ioc = self._config.iocs[ioc_name]
+            if ioc_name in self._cached_config.iocs.keys():
                 for attr in {'macros', 'pvs', 'pvsets', 'simlevel', 'restart'}:
-                    if cmp(getattr(cached_ioc, attr),getattr(current_ioc, attr)) != 0:
-                        iocs_to_restart.add(n)
+                    if cmp(getattr(cached_ioc, attr), getattr(current_ioc, attr)) != 0:
+                        iocs_to_restart.add(ioc_name)
+                        print("Adding ioc {} to iocs to restart: {} is different".format(ioc_name, attr))
+                        print("cached: {}".format(cached_ioc.macros))
+                        print("now: {}".format(current_ioc.macros))
                         break
 
         # Look for any new components
-        for cn, cv in self._components.iteritems():
-            if cn not in self._cached_components:
-                for n in cv.iocs.keys():
-                    iocs_to_start.add(n)
+        for component_name, component in six.iteritems(self._components):
+            if component_name not in self._cached_components:
+                for ioc_name in component.iocs.keys():
+                    iocs_to_start.add(ioc_name)
 
         # Look for any removed IOCs
-        for n in self._cached_config.iocs.keys():
-            if n not in self._config.iocs.keys():
-                iocs_to_stop.add(n)
+        for ioc_name in self._cached_config.iocs.keys():
+            if ioc_name not in self._config.iocs.keys():
+                iocs_to_stop.add(ioc_name)
 
         return iocs_to_start, iocs_to_restart, iocs_to_stop
 
-    def blocks_changed(self):
-        """Checks to see if the Blocks have changed on saving."
-
-        It checks for: Blocks added; Blocks removed; Blocks changed; New components
+    def _blocks_in_top_level_config_changed(self):
+        """
+        Checks whether the blocks in the top level configuration have changed
 
         Returns:
-            bool : True if blocks have changed, False otherwise
+            True if the blocks have changed, False otherwise
         """
-
-        # As a hotfix #4090 this will get round inconsitencies with cache config
-        return True
-
-        blocks_changed = False
-
-        # Check for any new or changed blocks
         for n in self._config.blocks.keys():
             # Check to see if there are any new blocks
             if n not in self._cached_config.blocks.keys():
                 # If not in previously then blocks have been added changed
-                blocks_changed = True
-                return blocks_changed
+                return True
 
             cached_block = self._cached_config.blocks[n].to_dict()
             current_block = self._config.blocks[n].to_dict()
             # Check for any changed blocks (symmetric difference operation of sets)
             block_diff = set(cached_block.items()) ^ set(current_block.items())
             if len(block_diff) != 0:
-                blocks_changed = True
-                return blocks_changed
+                return True
 
-        # Look for any new components
-        for cn, cv in self._components.iteritems():
-            if cn not in self._cached_components:
-                if len(cv.blocks.keys()) != 0:
-                    blocks_changed = True
-                    return blocks_changed
+        return False
 
-        # Look for any removed Blocks
-        for n in self._cached_config.blocks.keys():
-            if n not in self._config.blocks.keys():
-                blocks_changed = True
-                return blocks_changed
+    def _blocks_removed_from_top_level_config(self):
+        """
+        Checks whether any blocks have been removed from the top level configuration (does not recurse to components)
 
-        return blocks_changed
+        Returns:
+            True if blocks have been removed from the top-level config; False otherwise
+        """
+        return any(name not in self._config.blocks for name in self._cached_config.blocks)
+
+    @staticmethod
+    def _check_for_added_blocks(old_components, new_components):
+        """
+        Checks whether there are any new blocks when moving between two sets of components.
+
+        Args:
+            old_components (dict): Dictionary of components in the form {component_name: component, ...}
+            new_components (dict): Dictionary of components in the form {component_name: component, ...}
+
+        Returns:
+            True if switching from components1 to components2 would have added any blocks.
+        """
+        for new_component_name, new_component in new_components.iteritems():
+            if new_component_name not in old_components and len(new_component.blocks) != 0:
+                return True
+        return False
+
+    def _new_components_containing_blocks(self):
+        """
+        Checks whether there are any new components which contain blocks.
+
+        Returns:
+            True if there are new components with blocks defined, False otherwise
+        """
+        return ActiveConfigHolder._check_for_added_blocks(self._cached_components, self._components)
+
+    def _removed_components_containing_blocks(self):
+        """
+        Checks whether there are any removed components which contained blocks.
+
+        Returns:
+            True if there are removed components with blocks defined, False otherwise
+        """
+
+        # Check for removed blocks == check for added blocks in the other direction.
+        return ActiveConfigHolder._check_for_added_blocks(self._components, self._cached_components)
+
+    def blocks_changed(self):
+        """
+        Checks to see if the Blocks have changed on saving."
+
+        It checks for: Blocks added; Blocks removed; Blocks changed; New components
+
+        Returns:
+            bool : True if blocks have changed, False otherwise
+        """
+        return self._blocks_in_top_level_config_changed() \
+            or self._blocks_removed_from_top_level_config() \
+            or self._new_components_containing_blocks() \
+            or self._removed_components_containing_blocks()
