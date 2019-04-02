@@ -323,9 +323,14 @@ class BlockServer(Driver):
         """
         iocs_to_start, iocs_to_restart, iocs_to_stop = self._active_configserver.iocs_changed()
 
+        print("\r\n\r\nIOCS to stop: {}\r\n\r\n".format(iocs_to_stop))
         self._ioc_control.stop_iocs(iocs_to_stop)
 
-        if len(iocs_to_start) > 0 or len(iocs_to_restart) > 0:
+        if full_init or any(len(x) > 0 for x in (iocs_to_start, iocs_to_stop, iocs_to_restart)):
+            print("IOCS to start: {}".format(iocs_to_start))
+            print("IOCS to restart: {}".format(iocs_to_restart))
+            print("IOCS to stop: {}".format(iocs_to_stop))
+            print("full_init: {}".format(full_init))
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
 
         # Set up the gateway
@@ -445,6 +450,8 @@ class BlockServer(Driver):
             print_and_log("Saved")
         except Exception as err:
             print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
+            import traceback
+            traceback.print_exc()
 
         # Reload configuration if a component has changed
         if as_comp and new_details["name"] in self._active_configserver.get_component_names():
@@ -489,6 +496,8 @@ class BlockServer(Driver):
             self._config_list.update_a_config_in_list(self._active_configserver)
         except Exception as err:
             print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
+            import traceback
+            traceback.print_exc()
 
     def update_blocks_monitors(self):
         """Updates the PV monitors for the blocks and groups, so the clients can see any changes.
@@ -540,6 +549,8 @@ class BlockServer(Driver):
                 print_and_log(
                     "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
                     "MAJOR")
+                import traceback
+                traceback.print_exc()
             self.update_server_status("")
 
     def get_blank_config(self):
