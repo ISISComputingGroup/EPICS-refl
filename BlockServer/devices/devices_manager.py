@@ -80,7 +80,7 @@ class DevicesManager(OnTheFlyPvInterface):
     def update_monitors(self):
         """ Writes new device screens data to PVs """
         with self._bs.monitor_lock:
-            print "UPDATING DEVICES MONITORS"
+            print_and_log("Updating devices monitors")
             self._bs.setParam(GET_SCHEMA, compress_and_hex(self.get_devices_schema()))
             self._bs.setParam(GET_SCREENS, compress_and_hex(self._data))
             self._bs.updatePVs()

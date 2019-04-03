@@ -324,14 +324,9 @@ class BlockServer(Driver):
         """
         iocs_to_start, iocs_to_restart, iocs_to_stop = self._active_configserver.iocs_changed()
 
-        print("\r\n\r\nIOCS to stop: {}\r\n\r\n".format(iocs_to_stop))
         self._ioc_control.stop_iocs(iocs_to_stop)
 
         if full_init or any(len(x) > 0 for x in (iocs_to_start, iocs_to_stop, iocs_to_restart)):
-            print("IOCS to start: {}".format(iocs_to_start))
-            print("IOCS to restart: {}".format(iocs_to_restart))
-            print("IOCS to stop: {}".format(iocs_to_stop))
-            print("full_init: {}".format(full_init))
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
 
         # Set up the gateway
@@ -383,42 +378,40 @@ class BlockServer(Driver):
                 print_and_log("Could not (re)start IOC {}: {}".format(name, err), "MAJOR")
 
         # Give it time to start as IOC has to be running to be able to set restart property
+        print_and_log("Beginning arbitrary wait for IOCs to start.")
         sleep(2)
+        print_and_log("Finished arbitrary wait for IOCs to start.")
         for name, ioc in self._active_configserver.get_all_ioc_details().iteritems():
             if ioc.autostart:
                 # Set the restart property
                 print_and_log("Setting IOC %s's auto-restart to %s" % (name, ioc.restart))
                 self._ioc_control.set_autorestart(name, ioc.restart)
 
-    def load_config(self, config, is_component=False, full_init=True):
+    def load_config(self, config, full_init=True):
         """Load a configuration.
 
         Args:
             config (string): The name of the configuration
             is_component (bool): Whether it is a component or not
         """
+        print_and_log("Loading configuration '{}'".format(config))
         try:
-            if is_component:
-                raise ValueError("Can't load component as config ???")
-                print_and_log("Loading component: %s" % config)
-                self._active_configserver.load_active(config, True)
-            else:
-                print_and_log("Loading configuration: %s" % config)
-                self._active_configserver.load_active(config)
+            self._active_configserver.load_active(config)
             # If we get this far then assume the config is okay
             self._initialise_config(full_init=full_init)
         except Exception as err:
-            print_and_log(str(err), "MAJOR")
+            print_and_log("Exception while loading configuration '{}': {}".format(config, err), "MAJOR")
+            traceback.print_exc()
 
     def reload_current_config(self):
         """Reload the current configuration."""
         try:
             print_and_log("Reloading current configuration")
             self._active_configserver.reload_current_config()
-            # If we get this far then assume the config is okay
             self._initialise_config(full_init=True)
         except Exception as err:
-            print_and_log(str(err), "MAJOR")
+            print_and_log("Exception while reloading current configuration: {}".format(err), "MAJOR")
+            traceback.print_exc()
 
     def save_inactive_config(self, json_data, as_comp=False):
         """Save an inactive configuration.
