@@ -124,10 +124,13 @@ class ActiveConfigHolder(ConfigHolder):
         print_and_log("Trying to reload current configuration '{}'".format(current_config_name))
         self.load_active(current_config_name)
 
-    def iocs_changed(self):
-        """Checks to see if the IOCs have changed on saving."
+    def _compare_ioc_properties(self, old, new):
+        """
+        Compares the properties of IOCs in a component/configuration.
 
-        It checks for: IOCs added; IOCs removed; and, macros, pvs or pvsets changed.
+        Args:
+            old: The component or configuration to use as a baseline when comparing IOCs
+            new: The corresponding new configuration or component
 
         Returns:
             set, set, set : IOCs to start, IOCs to restart, IOCs to stop.
@@ -136,31 +139,46 @@ class ActiveConfigHolder(ConfigHolder):
         iocs_to_restart = set()
         iocs_to_stop = set()
 
-        # Check to see if any macros, pvs, pvsets etc. have changed
-        for ioc_name in self._config.iocs.keys():
-            if ioc_name not in self._cached_config.iocs.keys():
+        _attributes = ["macros", "pvs", "pvsets", "simlevel", "restart"]
+
+        for ioc_name in new.iocs.keys():
+            if ioc_name not in old.iocs.keys():
                 # If not in previously then add it to start
                 iocs_to_start.add(ioc_name)
-                continue
+            elif any(getattr(old.iocs[ioc_name], attr) != getattr(new.iocs[ioc_name], attr) for attr in _attributes):
+                # If any attributes have changed, restart the IOC
+                iocs_to_restart.add(ioc_name)
 
-            cached_ioc = self._cached_config.iocs[ioc_name]
-            current_ioc = self._config.iocs[ioc_name]
-            if ioc_name in self._cached_config.iocs.keys():
-                for attr in {'macros', 'pvs', 'pvsets', 'simlevel', 'restart'}:
-                    if cmp(getattr(cached_ioc, attr), getattr(current_ioc, attr)) != 0:
-                        iocs_to_restart.add(ioc_name)
-                        break
+        return iocs_to_start, iocs_to_restart, iocs_to_stop
+
+    def iocs_changed(self):
+        """Checks to see if the IOCs have changed on saving."
+
+        It checks for: IOCs added; IOCs removed; and, macros, pvs or pvsets changed.
+
+        Returns:
+            set, set, set : IOCs to start, IOCs to restart, IOCs to stop.
+        """
+        iocs_to_start, iocs_to_restart, iocs_to_stop = self._compare_ioc_properties(self._cached_config, self._config)
 
         # Look for any new components
-        for component_name, component in six.iteritems(self._components):
-            if component_name not in self._cached_components:
+        for name, component in six.iteritems(self._components):
+            if name in self._cached_components:
+                _start, _restart, _stop = \
+                    self._compare_ioc_properties(self._cached_components[name], self._components[name])
+
+                iocs_to_start |= _start
+                iocs_to_restart |= _restart
+                iocs_to_stop |= _stop
+            else:
                 for ioc_name in component.iocs.keys():
                     iocs_to_start.add(ioc_name)
 
-        # Look for any removed IOCs
-        for ioc_name in self._cached_config.iocs.keys():
-            if ioc_name not in self._config.iocs.keys():
-                iocs_to_stop.add(ioc_name)
+        # Look for any removed components
+        for name, component in six.iteritems(self._cached_components):
+            if name not in self._components:
+                for ioc_name in component.iocs.keys():
+                    iocs_to_stop.add(ioc_name)
 
         return iocs_to_start, iocs_to_restart, iocs_to_stop
 
