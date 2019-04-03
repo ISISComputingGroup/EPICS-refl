@@ -154,7 +154,13 @@ class ActiveConfigHolder(ConfigHolder):
     def iocs_changed(self):
         """Checks to see if the IOCs have changed on saving."
 
-        It checks for: IOCs added; IOCs removed; and, macros, pvs or pvsets changed.
+        It checks for:
+        - IOCs added to top level config
+        - IOCs removed from top level config
+        - Added components which contain IOCs
+        - Removed components which contained IOCS
+        - IOCs properties changed in the top level configuration ("macros", "pvs", "pvsets", "simlevel", "restart")
+        - IOCs properties changed in components of the current configuration (as above)
 
         Returns:
             set, set, set : IOCs to start, IOCs to restart, IOCs to stop.

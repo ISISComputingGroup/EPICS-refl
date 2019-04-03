@@ -249,8 +249,6 @@ class BlockServer(Driver):
             data = dehex_and_decompress(value).strip('"')
             if reason == BlockserverPVNames.LOAD_CONFIG:
                 self.write_queue.put((self.load_config, (data,), "LOADING_CONFIG"))
-            elif reason == BlockserverPVNames.SAVE_CONFIG:
-                self.write_queue.put((self.save_active_config, (data,), "SAVING_CONFIG"))
             elif reason == BlockserverPVNames.RELOAD_CURRENT_CONFIG:
                 self.write_queue.put((self.reload_current_config, (), "RELOAD_CURRENT_CONFIG"))
             elif reason == BlockserverPVNames.START_IOCS:
@@ -435,16 +433,18 @@ class BlockServer(Driver):
 
         try:
             if not as_comp:
-                print_and_log("Saving configuration: %s" % config_name)
+                print_and_log("Saving configuration ({})".format(config_name))
                 inactive.save_inactive()
                 self._config_list.update_a_config_in_list(inactive)
             else:
-                print_and_log("Saving component: %s" % config_name)
+                print_and_log("Saving component ({})".format(config_name))
                 inactive.save_inactive(as_comp=True)
                 self._config_list.update_a_config_in_list(inactive, True)
-            print_and_log("Saved")
-        except Exception as err:
-            print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
+
+            print_and_log("Finished saving ({})".format(config_name))
+
+        except Exception as e:
+            print_and_log("Problem occurred saving configuration: {}".format(e), "MAJOR")
             import traceback
             traceback.print_exc()
 
@@ -466,32 +466,6 @@ class BlockServer(Driver):
 
     def _get_timestamp(self):
         return datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
-
-    def save_active_config(self, name):
-        """Save the active configuration.
-
-        Args:
-            name (string): The name to save it under
-        """
-        try:
-            print_and_log("Saving active configuration as: %s" % name)
-            oldname = self._active_configserver.get_cached_name()
-            if oldname != "" and name != oldname:
-                # New name or overwriting another config (Save As)
-                history = self._get_inactive_history(name)
-            else:
-                # Saving current config (Save)
-                history = self._active_configserver.get_history()
-
-            # Set updated history
-            history.append(self._get_timestamp())
-            self._active_configserver.set_history(history)
-
-            self._active_configserver.save_active(name)
-            self._config_list.update_a_config_in_list(self._active_configserver)
-        except Exception as err:
-            print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
-            traceback.print_exc()
 
     def update_blocks_monitors(self):
         """Updates the PV monitors for the blocks and groups, so the clients can see any changes.

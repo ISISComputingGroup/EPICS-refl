@@ -16,16 +16,12 @@
 import traceback
 import unittest
 import os
-import json
 import shutil
-from lxml import etree
 
-from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema, NotConfigFileException
-from BlockServer.core.active_config_holder import ActiveConfigHolder
-from BlockServer.core.constants import SCHEMA_FOR, FILENAME_IOCS
+from BlockServer.core.inactive_config_holder import InactiveConfigHolder
+from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationInvalidUnderSchema
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_ioc_control import MockIocControl
-from BlockServer.mocks.mock_runcontrol_manager import MockRunControlManager
 from BlockServer.mocks.mock_archiver_wrapper import MockArchiverWrapper
 from BlockServer.epics.archiver_manager import ArchiverManager
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
@@ -86,7 +82,7 @@ class TestSchemaChecker(unittest.TestCase):
         self.schema_dir = os.path.join(dir, SCHEMA_FOLDER)
 
         FILEPATH_MANAGER.initialise(TEST_DIRECTORY, SCRIPT_DIRECTORY, self.schema_dir)
-        self.cs = ActiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()), MockConfigurationFileManager(), MockIocControl(""))
+        self.cs = InactiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()), MockConfigurationFileManager(), MockIocControl(""))
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + os.sep):
