@@ -141,6 +141,8 @@ class MockMotorPVWrapper(object):
     @sp.setter
     def sp(self, new_value):
         self._value = new_value
+        for listener in self.after_sp_change_listener:
+            listener(new_value, None, None)
         for listener in self.after_rbv_change_listener:
             listener(new_value, None, None)
 

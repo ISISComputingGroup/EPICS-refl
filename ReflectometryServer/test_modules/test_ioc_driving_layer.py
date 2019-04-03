@@ -254,8 +254,18 @@ class TestDriverChanged(unittest.TestCase):
 
         assert_that(actual, is_(expected))
 
+    def test_GIVEN_axis_and_component_position_match_THEN_driver_reports_at_setpoint(self):
+        expected = True
+        self.height_axis.sp = 0.0
+
+        actual = self.jaws_driver.at_target_setpoint()
+
+        assert_that(actual, is_(expected))
+
     def test_GIVEN_sp_value_set_and_not_moved_to_THEN_driver_reports_not_at_setpoint(self):
         expected = False
+        self.height_axis.sp = 0.0
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(1.0)
 
         actual = self.jaws_driver.at_target_setpoint()
 
@@ -263,16 +273,20 @@ class TestDriverChanged(unittest.TestCase):
 
     def test_GIVEN_sp_value_set_and_moved_to_THEN_driver_reports_at_setpoint(self):
         expected = True
+        self.height_axis.sp = 0.0
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(1.0)
 
         self.jaws_driver.perform_move(1)
         actual = self.jaws_driver.at_target_setpoint()
 
         assert_that(actual, is_(expected))
 
-    def test_GIVEN_component_sp_is_more_precise_than_motor_sp_WHEN_comparing_THEN_component_sp_is_truncated_correctly(self):
+    def test_GIVEN_component_sp_is_within_motor_resolution_WHEN_comparing_to_motor_setpoint_THEN_driver_reports_at_setpoint(self):
         expected = True
+        # DEFAULT_TEST_TOLERANCE is 1e-9
+        self.height_axis.sp = 0.123456789
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(0.1234567890123456789)
 
-        self.jaws_driver.perform_move(1)
         actual = self.jaws_driver.at_target_setpoint()
 
         assert_that(actual, is_(expected))
