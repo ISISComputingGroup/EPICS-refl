@@ -52,3 +52,52 @@ class InactiveConfigHolder(ConfigHolder):
         """
         config = self.load_configuration(name, is_component, False)
         self.set_config(config, is_component)
+
+    def set_config_details(self, details):
+        """ Set the details of the configuration from a dictionary.
+
+        Args:
+            details (dict): A dictionary containing the new configuration settings
+        """
+        self._cache_config()
+
+        try:
+            self.clear_config()
+            if "iocs" in details:
+                # List of dicts
+                for ioc in details["iocs"]:
+                    macros = self._to_dict(ioc.get('macros'))
+                    pvs = self._to_dict(ioc.get('pvs'))
+                    pvsets = self._to_dict(ioc.get('pvsets'))
+
+                    if ioc.get('component') is not None:
+                        raise ValueError('Cannot override iocs from components')
+
+                    self._add_ioc(ioc['name'], autostart=ioc.get('autostart'), restart=ioc.get('restart'),
+                                  macros=macros, pvs=pvs, pvsets=pvsets, simlevel=ioc.get('simlevel'))
+
+            if "blocks" in details:
+                # List of dicts
+                for args in details["blocks"]:
+                    if args.get('component') is not None:
+                        raise ValueError('Cannot override blocks from components')
+                    self.add_block(args)
+            if "groups" in details:
+                self._set_group_details(details["groups"])
+            if "name" in details:
+                self._set_config_name(details["name"])
+            if "description" in details:
+                self._config.meta.description = details["description"]
+            if "synoptic" in details:
+                self._config.meta.synoptic = details["synoptic"]
+            # blockserver ignores history returned by clients:
+            if "history" in details:
+                self._config.meta.history = details["history"]
+            if "components" in details:
+                # List of dicts
+                for args in details["components"]:
+                    comp = self.load_configuration(args['name'], True)
+                    self.add_component(comp.get_name(), comp)
+        except Exception:
+            self._retrieve_cache()
+            raise

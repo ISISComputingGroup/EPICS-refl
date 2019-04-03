@@ -149,9 +149,6 @@ class ActiveConfigHolder(ConfigHolder):
                 for attr in {'macros', 'pvs', 'pvsets', 'simlevel', 'restart'}:
                     if cmp(getattr(cached_ioc, attr), getattr(current_ioc, attr)) != 0:
                         iocs_to_restart.add(ioc_name)
-                        print("Adding ioc {} to iocs to restart: {} is different".format(ioc_name, attr))
-                        print("cached: {}".format(cached_ioc.macros))
-                        print("now: {}".format(current_ioc.macros))
                         break
 
         # Look for any new components

@@ -29,7 +29,7 @@ class ConfigurationJsonConverter(object):
 
     @staticmethod
     def _groups_to_list(groups):
-        grps = list()
+        grps = []
         if groups is not None:
             for group in groups.values():
                 if group.name.lower() != GRP_NONE.lower():

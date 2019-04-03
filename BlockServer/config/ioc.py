@@ -56,17 +56,17 @@ class IOC(object):
             self.simlevel = simlevel.lower()
 
         if macros is None:
-            self.macros = dict()
+            self.macros = {}
         else:
             self.macros = macros
 
         if pvs is None:
-            self.pvs = dict()
+            self.pvs = {}
         else:
             self.pvs = pvs
 
         if pvsets is None:
-            self.pvsets = dict()
+            self.pvsets = {}
         else:
             self.pvsets = pvsets
 
@@ -90,8 +90,7 @@ class IOC(object):
         return out_list
 
     def __str__(self):
-        data = "Name: %s, COMPONENT: %s" % (self.name, self.component)
-        return data
+        return "{}(name={}, component={})".format(self.__class__.__name__, self.name, self.component)
 
     def to_dict(self):
         """ Puts the IOC's details into a dictionary.

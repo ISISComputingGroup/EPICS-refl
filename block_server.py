@@ -18,6 +18,7 @@
 import json
 import os
 import sys
+import traceback
 
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
@@ -259,7 +260,7 @@ class BlockServer(Driver):
             elif reason == BlockserverPVNames.RESTART_IOCS:
                 self.write_queue.put((self._ioc_control.restart_iocs, (convert_from_json(data), True), "RESTART_IOCS"))
             elif reason == BlockserverPVNames.SET_CURR_CONFIG_DETAILS:
-                self.write_queue.put((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
+                self.write_queue.put((self._set_curr_config, (data,), "SETTING_CONFIG"))
             elif reason == BlockserverPVNames.SAVE_NEW_CONFIG:
                 self.write_queue.put((self.save_inactive_config, (data,), "SAVING_NEW_CONFIG"))
             elif reason == BlockserverPVNames.SAVE_NEW_COMPONENT:
@@ -308,10 +309,10 @@ class BlockServer(Driver):
         Args:
             details (string): the configuration XML
         """
-        self._active_configserver.set_config_details(details)
         # Need to save the config to file before we initialize or the changes won't be propagated to IOCS
-        self.save_active_config(self._active_configserver.get_config_name())
-        self._initialise_config()
+
+        self.save_inactive_config(details)
+        self.load_config(self._active_configserver.get_config_name(), full_init=False)
 
     def _initialise_config(self, full_init=False):
         """Responsible for initialising the configuration.
@@ -389,7 +390,7 @@ class BlockServer(Driver):
                 print_and_log("Setting IOC %s's auto-restart to %s" % (name, ioc.restart))
                 self._ioc_control.set_autorestart(name, ioc.restart)
 
-    def load_config(self, config, is_component=False):
+    def load_config(self, config, is_component=False, full_init=True):
         """Load a configuration.
 
         Args:
@@ -398,13 +399,14 @@ class BlockServer(Driver):
         """
         try:
             if is_component:
+                raise ValueError("Can't load component as config ???")
                 print_and_log("Loading component: %s" % config)
                 self._active_configserver.load_active(config, True)
             else:
                 print_and_log("Loading configuration: %s" % config)
                 self._active_configserver.load_active(config)
             # If we get this far then assume the config is okay
-            self._initialise_config(full_init=True)
+            self._initialise_config(full_init=full_init)
         except Exception as err:
             print_and_log(str(err), "MAJOR")
 
@@ -437,7 +439,7 @@ class BlockServer(Driver):
         inactive.set_history(history)
 
         config_name = inactive.get_config_name()
-        self._check_config_inactive(config_name, as_comp)
+
         try:
             if not as_comp:
                 print_and_log("Saving configuration: %s" % config_name)
@@ -496,7 +498,6 @@ class BlockServer(Driver):
             self._config_list.update_a_config_in_list(self._active_configserver)
         except Exception as err:
             print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
-            import traceback
             traceback.print_exc()
 
     def update_blocks_monitors(self):
@@ -561,14 +562,6 @@ class BlockServer(Driver):
         """
         temp_config = InactiveConfigHolder(MACROS, ConfigurationFileManager())
         return temp_config.get_config_details()
-
-    def _check_config_inactive(self, inactive_name, is_component=False):
-        if not is_component:
-            if inactive_name == self._active_configserver.get_config_name():
-                raise ValueError("Cannot change config, use SET_CURR_CONFIG_DETAILS to change the active config")
-        else:
-            pass
-            # TODO: check not a component of active, don't know what do to for this case?
 
     def start_iocs(self, iocs):
         # If the IOC is in the config and auto-restart is set to true then
