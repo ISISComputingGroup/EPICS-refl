@@ -74,9 +74,8 @@ class TestRunControlSequence(unittest.TestCase):
         ioc_control = MockIocControl("")
         config_holder = ActiveConfigHolder(MACROS, None, self.mock_file_manager, ioc_control)
         run_control_autosave_helper = Mock()
-        run_control_manager = RunControlManager(prefix, "", "",
-                                ioc_control, config_holder,
-                                MockBlockServer(), self.cs, run_control_auto_save_helper=run_control_autosave_helper)
+        run_control_manager = RunControlManager(prefix, "", "", ioc_control, config_holder, MockBlockServer(), self.cs,
+                                                run_control_auto_save_helper=run_control_autosave_helper)
 
         details = config_holder.get_config_details()
 

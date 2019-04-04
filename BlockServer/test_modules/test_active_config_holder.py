@@ -21,6 +21,7 @@ from mock import Mock
 
 from BlockServer.config.block import Block
 from BlockServer.config.configuration import Configuration
+from BlockServer.config.ioc import IOC
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.mocks.mock_ioc_control import MockIocControl
@@ -286,6 +287,46 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self._modify_active(ch, details)
         # Assert
         start, restart, stop = ch.iocs_changed()
+        self.assertEqual(len(start), 0)
+        self.assertEqual(len(restart), 0)
+        self.assertEqual(len(stop), 1)
+
+    def test_GIVEN_an_ioc_defined_in_a_component_WHEN_the_component_is_removed_THEN_the_ioc_is_stopped(self):
+
+        # Arrange
+        config_holder = self.create_active_config_holder()
+
+        component = create_dummy_component()
+        component.iocs = {"DUMMY_IOC": IOC("dummyname")}
+
+        self.mock_file_manager.comps["component_name"] = component
+        config_holder.add_component("component_name", component)
+        self._modify_active(config_holder, config_holder.get_config_details())
+
+        # Act
+        config_holder.remove_comp("component_name")
+
+        # Assert
+        start, restart, stop = config_holder.iocs_changed()
+        self.assertEqual(len(start), 0)
+        self.assertEqual(len(restart), 0)
+        self.assertEqual(len(stop), 1)
+
+    def test_GIVEN_an_ioc_defined_in_the_top_level_config_WHEN_the_ioc_is_removed_THEN_the_ioc_is_stopped(self):
+
+        # Arrange
+        config_holder = self.create_active_config_holder()
+
+        details = config_holder.get_config_details()
+        details['iocs'].append(MockIoc())
+        self._modify_active(config_holder, details)
+
+        # Act
+        details['iocs'].pop(0)
+        self._modify_active(config_holder, details)
+
+        # Assert
+        start, restart, stop = config_holder.iocs_changed()
         self.assertEqual(len(start), 0)
         self.assertEqual(len(restart), 0)
         self.assertEqual(len(stop), 1)
