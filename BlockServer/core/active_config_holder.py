@@ -165,9 +165,6 @@ class ActiveConfigHolder(ConfigHolder):
         Returns:
             set, set, set : IOCs to start, IOCs to restart, IOCs to stop.
         """
-        print("Config: {}".format(self._config.iocs))
-        print("Cached Config: {}".format(self._cached_config.iocs))
-
         # Look for modified IOCs
         iocs_to_start, iocs_to_restart, iocs_to_stop = self._compare_ioc_properties(self._cached_config, self._config)
 
@@ -191,7 +188,6 @@ class ActiveConfigHolder(ConfigHolder):
 
         # Look for any removed components
         for name, component in six.iteritems(self._cached_components):
-            print("Checking {} {}".format(name, component.iocs))
             if name not in self._components:
                 for ioc_name in component.iocs.keys():
                     iocs_to_stop.add(ioc_name)
