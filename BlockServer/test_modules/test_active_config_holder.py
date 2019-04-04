@@ -13,10 +13,10 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-import copy
 import unittest
 import json
 
+import six
 from mock import Mock
 
 from BlockServer.config.block import Block
@@ -37,37 +37,29 @@ BASE_PATH = "./example_base/"
 
 # Helper methods
 def quick_block_to_json(name, pv, group, local=True):
-    data = {'name': name, 'pv': pv, 'group': group, 'local': local}
-    return data
-
-
-def add_block(cs, data):
-    cs.add_block(data)
+    return {
+        'name': name,
+        'pv': pv,
+        'group': group,
+        'local': local
+    }
 
 
 def add_basic_blocks_and_iocs(cs):
-    add_block(cs, quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
-    add_block(cs, quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
-    add_block(cs, quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
-    add_block(cs, quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
+    cs.add_block(quick_block_to_json("TESTBLOCK1", "PV1", "GROUP1", True))
+    cs.add_block(quick_block_to_json("TESTBLOCK2", "PV2", "GROUP2", True))
+    cs.add_block(quick_block_to_json("TESTBLOCK3", "PV3", "GROUP2", True))
+    cs.add_block(quick_block_to_json("TESTBLOCK4", "PV4", "NONE", True))
     cs._add_ioc("SIMPLE1")
     cs._add_ioc("SIMPLE2")
 
 
 def get_groups_and_blocks(jsondata):
-    groups = json.loads(jsondata)
-    return groups
+    return json.loads(jsondata)
 
 
 def create_grouping(groups):
-    struct = []
-    for grp, blocks in groups.iteritems():
-        d = dict()
-        d["name"] = grp
-        d["blocks"] = blocks
-        struct.append(d)    
-    ans = json.dumps(struct)
-    return ans
+    return json.dumps([{"name": group, "blocks": blocks} for group, blocks in six.iteritems(groups)])
 
 
 def create_dummy_component():
@@ -95,8 +87,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
             MACROS, self.mock_archive, self.mock_file_manager, MockIocControl(""))
 
     def create_active_config_holder(self):
-        ch = ActiveConfigHolder(MACROS, self.mock_archive, self.mock_file_manager, MockIocControl(""))
-        return ch
+        return ActiveConfigHolder(MACROS, self.mock_archive, self.mock_file_manager, MockIocControl(""))
 
     def test_add_ioc(self):
         cs = self.active_config_holder
