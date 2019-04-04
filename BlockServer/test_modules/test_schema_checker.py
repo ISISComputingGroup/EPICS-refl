@@ -82,7 +82,7 @@ class TestSchemaChecker(unittest.TestCase):
         self.schema_dir = os.path.join(dir, SCHEMA_FOLDER)
 
         FILEPATH_MANAGER.initialise(TEST_DIRECTORY, SCRIPT_DIRECTORY, self.schema_dir)
-        self.cs = InactiveConfigHolder(MACROS, ArchiverManager(None, None, MockArchiverWrapper()), MockConfigurationFileManager(), MockIocControl(""))
+        self.cs = InactiveConfigHolder(MACROS, MockConfigurationFileManager())
 
     def tearDown(self):
         if os.path.isdir(TEST_DIRECTORY + os.sep):

@@ -64,7 +64,6 @@ initial_dbs = {
     BlockserverPVNames.GROUPS: char_waveform(16000),
     BlockserverPVNames.COMPS: char_waveform(16000),
     BlockserverPVNames.LOAD_CONFIG: char_waveform(1000),
-    BlockserverPVNames.SAVE_CONFIG: char_waveform(1000),
     BlockserverPVNames.RELOAD_CURRENT_CONFIG: char_waveform(100),
     BlockserverPVNames.START_IOCS: char_waveform(16000),
     BlockserverPVNames.STOP_IOCS: char_waveform(1000),
@@ -486,9 +485,8 @@ class BlockServer(Driver):
             status (string): The status to set
         """
         if self._active_configserver is not None:
-            d = {'status': status}
             with self.monitor_lock:
-                self.setParam(BlockserverPVNames.SERVER_STATUS, compress_and_hex(convert_to_json(d)))
+                self.setParam(BlockserverPVNames.SERVER_STATUS, compress_and_hex(convert_to_json({'status': status})))
                 self.updatePVs()
 
     def update_get_details_monitors(self):

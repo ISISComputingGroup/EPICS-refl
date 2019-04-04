@@ -20,7 +20,7 @@ class InactiveConfigHolder(ConfigHolder):
     """
     Class to hold a individual inactive configuration or component.
     """
-    def __init__(self, macros, file_manager):
+    def __init__(self, macros, file_manager, test_config=None):
         """
         Constructor.
 
@@ -28,7 +28,7 @@ class InactiveConfigHolder(ConfigHolder):
             macros (dict): The BlockServer macros
             file_manager (ConfigurationFileManager): Deals with writing the config files
         """
-        super(InactiveConfigHolder, self).__init__(macros, file_manager)
+        super(InactiveConfigHolder, self).__init__(macros, file_manager, test_config=test_config)
 
     def save_inactive(self, name=None, as_comp=False):
         """Saves a configuration or component that is not currently in use.

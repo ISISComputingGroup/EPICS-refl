@@ -456,12 +456,8 @@ class ConfigHolder(object):
         self._config.update_runcontrol_settings_for_saving(rc_data)
 
     def _cache_config(self):
-        # print_and_log("Caching current configuration...")
-        # print_and_log("Configuration: {} (type: {})".format(self._config, self._config.__class__.__name__))
-        # print_and_log("Cached before: {} (type: {})".format(self._cached_config, self._cached_config.__class__.__name__))
         self._cached_config = copy.deepcopy(self._config)
         self._cached_components = copy.deepcopy(self._components)
-        # print_and_log("Cached after: {} (type: {})".format(self._cached_config, self._cached_config.__class__.__name__))
 
     def _retrieve_cache(self):
         print_and_log("Retrieving cached configuration...")

@@ -16,13 +16,12 @@
 
 import unittest
 import os
-import shutil
 import stat
-import datetime
 
 from BlockServer.core.config_holder import ConfigHolder
 from BlockServer.config.configuration import Configuration
 from BlockServer.core.constants import DEFAULT_COMPONENT
+from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
 
@@ -65,7 +64,7 @@ def on_rm_error(func, path, exc_info):
 
 
 def create_default_test_config_holder():
-    ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
+    ch = InactiveConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
                       test_config=create_dummy_config())
     return ch
 
@@ -481,8 +480,8 @@ class TestConfigHolderSequence(unittest.TestCase):
 
     def test_set_config_details(self):
         # Need component
-        ch = ConfigHolder(MACROS, file_manager=MockConfigurationFileManager(),
-                          test_config=Configuration(MACROS))
+        ch = InactiveConfigHolder(MACROS, file_manager=MockConfigurationFileManager(), test_config=Configuration(MACROS))
+
         ch.save_configuration("TESTCOMPONENT", True)
 
         new_details = {"iocs":
