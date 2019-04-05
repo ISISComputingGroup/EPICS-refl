@@ -194,6 +194,22 @@ class ActiveConfigHolder(ConfigHolder):
 
         return iocs_to_start, iocs_to_restart, iocs_to_stop
 
+    def _blocks_changed(self, old_config, new_config):
+        for n in new_config.blocks.keys():
+            # Check to see if there are any new blocks
+            if n not in old_config.blocks.keys():
+                # If not in previously then blocks have been added changed
+                return True
+
+            cached_block = old_config.blocks[n].to_dict()
+            current_block = new_config.blocks[n].to_dict()
+            # Check for any changed blocks (symmetric difference operation of sets)
+            block_diff = set(cached_block.items()) ^ set(current_block.items())
+            if len(block_diff) > 0:
+                return True
+
+        return False
+
     def _blocks_in_top_level_config_changed(self):
         """
         Checks whether the blocks in the top level configuration have changed
@@ -201,19 +217,18 @@ class ActiveConfigHolder(ConfigHolder):
         Returns:
             True if the blocks have changed, False otherwise
         """
-        for n in self._config.blocks.keys():
-            # Check to see if there are any new blocks
-            if n not in self._cached_config.blocks.keys():
-                # If not in previously then blocks have been added changed
-                return True
+        return self._blocks_changed(self._cached_config, self._config)
 
-            cached_block = self._cached_config.blocks[n].to_dict()
-            current_block = self._config.blocks[n].to_dict()
-            # Check for any changed blocks (symmetric difference operation of sets)
-            block_diff = set(cached_block.items()) ^ set(current_block.items())
-            if len(block_diff) != 0:
-                return True
+    def _blocks_in_components_changed(self):
+        """
+        Checks whether blocks that appear in both the old and the new components have changed.
 
+        The checks for components containing blocks being added/removed occurs elsewhere.
+        """
+        for name, component in six.iteritems(self._components):
+            if name in self._cached_components \
+                    and self._blocks_changed(self._cached_components[name], self._components[name]):
+                return True
         return False
 
     def _blocks_removed_from_top_level_config(self):
@@ -272,6 +287,7 @@ class ActiveConfigHolder(ConfigHolder):
             bool : True if blocks have changed, False otherwise
         """
         return self._blocks_in_top_level_config_changed() \
+            or self._blocks_in_components_changed() \
             or self._blocks_removed_from_top_level_config() \
             or self._new_components_containing_blocks() \
             or self._removed_components_containing_blocks()
