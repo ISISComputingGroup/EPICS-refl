@@ -8,7 +8,7 @@ from mock import Mock
 from ReflectometryServer import *
 from ReflectometryServer import file_io
 
-from data_mother import DataMother
+from data_mother import DataMother, create_mock_axis
 from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position, DEFAULT_TEST_TOLERANCE
 
@@ -626,34 +626,124 @@ class TestInitSetpoints(unittest.TestCase):
     def setUp(self):
         file_io.AUTOSAVE_FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "params.txt"))
         self.component = Component("component", setup=PositionAndAngle(0, 0, 10))
+        self.angle_component = TiltingComponent("angle_component", setup=PositionAndAngle(0, 0, 10))
+        self.jaws = create_mock_axis("s1vg", 0.2, 1)
 
     def test_GIVEN_autosave_is_not_set_WHEN_creating_param_THEN_defaults_to_false(self):
-        param = TrackingPosition("param_float", self.component)
+        param_name = "param_float"
+
+        param = TrackingPosition(param_name, self.component)
         self.assertFalse(param._autosave)
 
     def test_GIVEN_autosave_is_false_THEN_parameter_sp_is_none(self):
+        param_name = "param_float"
+
         param = TrackingPosition("param_float", self.component, autosave=False)
+
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
 
-    def test_GIVEN_autosave_is_true_and_autosave_value_exists_WHEN_creating_parameter_THEN_sp_is_autosave_value(self):
+    def test_GIVEN_autosave_is_true_and_autosave_value_exists_WHEN_creating_tracking_position_parameter_THEN_sp_is_autosave_value(self):
         expected = 0.1
-        param = TrackingPosition("param_float", self.component, autosave=True)
+        param_name = "param_float"
+
+        param = TrackingPosition(param_name, self.component, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
 
-    def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_parameter_THEN_sp_is_none(self):
-        param = TrackingPosition("param_not_in_file", self.component, autosave=True)
+    def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_tracking_position_parameter_THEN_sp_is_none(self):
+        param_name = "param_not_in_file"
+
+        param = TrackingPosition(param_name, self.component, autosave=True)
 
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
 
-    def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_parameter_THEN_sp_is_none(self):
-        param = TrackingPosition("param_bool", self.component, autosave=True)
+    def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_tracking_position_parameter_THEN_sp_is_none(self):
+        param_name = "param_bool"
+
+        param = TrackingPosition(param_name, self.component, autosave=True)
 
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
+
+    def test_GIVEN_autosave_is_true_and_autosave_value_exists_WHEN_creating_angle_parameter_THEN_sp_is_autosave_value(self):
+        expected = 0.1
+        param_name = "param_float"
+
+        param = AngleParameter(param_name, self.angle_component, autosave=True)
+
+        self.assertEqual(expected, param.sp)
+        self.assertEqual(expected, param.sp_rbv)
+
+    def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_angle_parameter_THEN_sp_is_none(self):
+        param_name = "param_not_in_file"
+
+        param = AngleParameter(param_name, self.angle_component, autosave=True)
+
+        self.assertIsNone(param.sp)
+        self.assertIsNone(param.sp_rbv)
+
+    def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_angle_parameter_THEN_sp_is_none(self):
+        param_name = "param_bool"
+
+        param = AngleParameter(param_name, self.angle_component, autosave=True)
+
+        self.assertIsNone(param.sp)
+        self.assertIsNone(param.sp_rbv)
+
+    def test_GIVEN_autosave_is_true_and_autosave_value_exists_WHEN_creating_in_beam_parameter_THEN_sp_is_autosave_value(self):
+        expected = True
+        param_name = "param_bool"
+
+        param = InBeamParameter(param_name, self.angle_component, autosave=True)
+
+        self.assertEqual(expected, param.sp)
+        self.assertEqual(expected, param.sp_rbv)
+
+    def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_in_beam_parameter_THEN_sp_is_none(self):
+        param_name = "param_not_in_file"
+
+        param = InBeamParameter(param_name, self.angle_component, autosave=True)
+
+        self.assertIsNone(param.sp)
+        self.assertIsNone(param.sp_rbv)
+
+    def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_in_beam_parameter_THEN_sp_is_none(self):
+        param_name = "param_float"
+
+        param = InBeamParameter(param_name, self.angle_component, autosave=True)
+
+        self.assertIsNone(param.sp)
+        self.assertIsNone(param.sp_rbv)
+
+    def test_GIVEN_autosave_is_true_and_autosave_value_exists_WHEN_creating_slit_gap_parameter_THEN_sp_is_autosave_value(self):
+        expected = 0.1
+        param_name = "param_float"
+
+        param = SlitGapParameter(param_name, self.jaws, True, autosave=True)
+
+        self.assertEqual(expected, param.sp)
+        self.assertEqual(expected, param.sp_rbv)
+
+    def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_slit_gap_parameter_THEN_sp_is_taken_from_motor_instead(self):
+        expected = 0.2
+        param_name = "param_not_in_file"
+
+        param = SlitGapParameter(param_name, self.jaws, True, autosave=True)
+
+        self.assertEqual(expected, param.sp)
+        self.assertEqual(expected, param.sp_rbv)
+
+    def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_slit_gap_parameter_THEN_sp_is_taken_from_motor_instead(self):
+        expected = 0.2
+        param_name = "param_bool"
+
+        param = SlitGapParameter(param_name, self.jaws, True, autosave=True)
+
+        self.assertEqual(expected, param.sp)
+        self.assertEqual(expected, param.sp_rbv)
 
 
 if __name__ == '__main__':

@@ -519,6 +519,17 @@ class SlitGapParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._initialise_sp_from_motor()
 
+    def _initialise_sp_from_file(self):
+        """
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
+        """
+        sp_init = file_io.read_autosave_param(self._name)
+        if sp_init is not None:
+            try:
+                self._set_initial_sp(float(sp_init))
+            except ValueError as e:
+                logger.error("Could not read autosave value for parameter {}: unexpected type.")
+
     def _initialise_sp_from_motor(self):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
