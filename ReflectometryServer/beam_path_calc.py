@@ -22,7 +22,7 @@ class TrackingBeamPathCalc(object):
             movement_strategy (ReflectometryServer.movement_strategy.LinearMovementCalc): strategy for calculating the
                 interception between the movement of the component and the beam.
         """
-        self._incoming_beam = None
+        self._incoming_beam = PositionAndAngle(0, 0, 0)
         self._after_beam_path_update_listeners = set()
         self._after_physical_move_listeners = set()
         self._init_listeners = set()

@@ -2,6 +2,7 @@
 Resources at a beamline level
 """
 import logging
+import time
 from collections import OrderedDict, namedtuple
 from functools import partial
 from enum import Enum
@@ -180,13 +181,13 @@ class Beamline(object):
                 partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_rbv))
 
         self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
-
         self._active_mode = None
-        self.update_next_beam_component(None, self._beam_path_calcs_set_point)
-        self.update_next_beam_component(None, self._beam_path_calcs_rbv)
 
         for driver in self._drivers:
             driver.initialise_sp()
+
+        self.update_next_beam_component(None, self._beam_path_calcs_rbv)
+        self.update_next_beam_component(None, self._beam_path_calcs_set_point)
 
     def _validate(self, beamline_parameters, modes):
         errors = []
