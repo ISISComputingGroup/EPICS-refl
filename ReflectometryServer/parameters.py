@@ -2,9 +2,12 @@
 Parameters that the user would interact with
 """
 import file_io
+import logging
 
 from enum import Enum
 from server_common.utilities import print_and_log, SEVERITY
+
+logger = logging.getLogger(__name__)
 
 
 class ParameterNotInitializedException(Exception):
@@ -303,8 +306,11 @@ class AngleParameter(BeamlineParameter):
         """
         sp_init = file_io.read_autosave_param(self._name)
         if sp_init is not None:
-            self._set_initial_sp(float(sp_init))
-            self._move_component()
+            try:
+                self._set_initial_sp(float(sp_init))
+                self._move_component()
+            except ValueError as e:
+                logger.error("Could not read autosave value for parameter {}: unexpected type.")
 
     def _initialise_sp_from_motor(self):
         """
@@ -366,8 +372,11 @@ class TrackingPosition(BeamlineParameter):
         """
         sp_init = file_io.read_autosave_param(self._name)
         if sp_init is not None:
-            self._set_initial_sp(float(sp_init))
-            self._move_component()
+            try:
+                self._set_initial_sp(float(sp_init))
+                self._move_component()
+            except ValueError as e:
+                logger.error("Could not read autosave value for parameter {}: unexpected type.")
 
     def _initialise_sp_from_motor(self):
         """
@@ -439,6 +448,8 @@ class InBeamParameter(BeamlineParameter):
         elif sp_init == "False":
             self._set_initial_sp(False)
             self._move_component()
+        elif sp_init is not None:
+            logger.error("Could not read autosave value for parameter {}: unexpected type.")
 
     def _initialise_sp_from_motor(self):
         """

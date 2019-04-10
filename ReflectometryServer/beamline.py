@@ -2,7 +2,6 @@
 Resources at a beamline level
 """
 import logging
-import time
 from collections import OrderedDict, namedtuple
 from functools import partial
 from enum import Enum
