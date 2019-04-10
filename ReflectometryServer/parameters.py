@@ -66,11 +66,9 @@ class BeamlineParameter(object):
     def _initialise_sp_from_file(self):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
+        Subclassed to handle type casting.
         """
-        sp_init = file_io.read_autosave_param(self._name)
-        if sp_init is not None:
-            self._set_initial_sp(sp_init)
-            self._move_component()
+        raise NotImplemented("This must be implemented in the subclass.")
 
     def _initialise_sp_from_motor(self):
         """
@@ -85,7 +83,6 @@ class BeamlineParameter(object):
         Params:
             sp_init: The setpoint value to set
         """
-        sp_init = float(sp_init)
         self._set_point = sp_init
         self._set_point_rbv = sp_init
         self._trigger_init_listeners()
@@ -292,11 +289,22 @@ class AngleParameter(BeamlineParameter):
             description = "{} angle".format(name)
         super(AngleParameter, self).__init__(name, sim, init, description, autosave)
         self._reflection_component = reflection_component
+
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
             self._reflection_component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
+
         self._reflection_component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
+
+    def _initialise_sp_from_file(self):
+        """
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
+        """
+        sp_init = file_io.read_autosave_param(self._name)
+        if sp_init is not None:
+            self._set_initial_sp(float(sp_init))
+            self._move_component()
 
     def _initialise_sp_from_motor(self):
         """
@@ -342,18 +350,33 @@ class TrackingPosition(BeamlineParameter):
             description = "{} tracking position".format(name)
         super(TrackingPosition, self).__init__(name, sim, init, description, autosave)
         self._component = component
+
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
             self._component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
+
         self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
+
         self.group_names.append(BeamlineParameterGroup.TRACKING)
+
+    def _initialise_sp_from_file(self):
+        """
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
+        """
+        sp_init = file_io.read_autosave_param(self._name)
+        if sp_init is not None:
+            self._set_initial_sp(float(sp_init))
+            self._move_component()
 
     def _initialise_sp_from_motor(self):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
         """
-        init_sp = self._component.beam_path_set_point.get_position_relative_to_beam()
+        if self._component.beam_path_set_point.is_in_beam:
+            init_sp = self._component.beam_path_set_point.get_position_relative_to_beam()
+        else:
+            init_sp = 0.0
         self._set_initial_sp(init_sp)
 
     def _move_component(self):
@@ -396,12 +419,33 @@ class InBeamParameter(BeamlineParameter):
             description = "{} component is in the beam".format(name)
         super(InBeamParameter, self).__init__(name, sim, init, description, autosave)
         self._component = component
-        # if self._autosave:
-        #     self._initialise_sp_from_file()
-        # if self._set_point_rbv is None:
-        #     self._component.beam_path_set_point.add_init_listener(self._initialise_sp_from_rbv)
+
+        if self._autosave:
+            self._initialise_sp_from_file()
+        if self._set_point_rbv is None:
+            self._component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
         self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
+
         self.parameter_type = BeamlineParameterType.IN_OUT
+
+    def _initialise_sp_from_file(self):
+        """
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
+        """
+        sp_init = file_io.read_autosave_param(self._name)
+        if sp_init == "True":
+            self._set_initial_sp(True)
+            self._move_component()
+        elif sp_init == "False":
+            self._set_initial_sp(False)
+            self._move_component()
+
+    def _initialise_sp_from_motor(self):
+        """
+        Get the setpoint value for this parameter based on the motor setpoint position.
+        """
+        init_sp = self._component.beam_path_set_point.is_in_beam
+        self._set_initial_sp(init_sp)
 
     def _move_component(self):
         self._component.beam_path_set_point.is_in_beam = self._set_point_rbv
@@ -458,6 +502,7 @@ class SlitGapParameter(BeamlineParameter):
             self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
         else:
             self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
+
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
