@@ -1,13 +1,12 @@
 """
 Test data and classes.
 """
-from mock import MagicMock
+from utils import DEFAULT_TEST_TOLERANCE
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent
-from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
+from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
-from ReflectometryServer.pv_wrapper import MotorPVWrapper
 from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter
 
 
@@ -125,10 +124,15 @@ class MockMotorPVWrapper(object):
         self._value = init_position
         self.max_velocity = max_velocity
         self.velocity = None
-        self.after_value_change_listener = set()
+        self.resolution = DEFAULT_TEST_TOLERANCE
+        self.after_rbv_change_listener = set()
+        self.after_sp_change_listener = set()
 
     def add_after_rbv_change_listener(self, listener):
-        self.after_value_change_listener.add(listener)
+        self.after_rbv_change_listener.add(listener)
+
+    def add_after_sp_change_listener(self, listener):
+        self.after_sp_change_listener.add(listener)
 
     @property
     def sp(self):
@@ -137,7 +141,9 @@ class MockMotorPVWrapper(object):
     @sp.setter
     def sp(self, new_value):
         self._value = new_value
-        for listener in self.after_value_change_listener:
+        for listener in self.after_sp_change_listener:
+            listener(new_value, None, None)
+        for listener in self.after_rbv_change_listener:
             listener(new_value, None, None)
 
     @property

@@ -236,6 +236,62 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
 
 
+class TestDriverChanged(unittest.TestCase):
+    def setUp(self):
+        start_position = 0.0
+        max_velocity = 10.0
+        self.height_axis = create_mock_axis("JAWS:HEIGHT", start_position, max_velocity)
+
+        self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
+        self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+
+        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis)
+
+    def test_GIVEN_value_not_initialised_THEN_driver_reports_not_at_setpoint(self):
+        expected = False
+
+        actual = self.jaws_driver.at_target_setpoint()
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_axis_and_component_position_match_THEN_driver_reports_at_setpoint(self):
+        expected = True
+        self.height_axis.sp = 0.0
+
+        actual = self.jaws_driver.at_target_setpoint()
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_sp_value_set_and_not_moved_to_THEN_driver_reports_not_at_setpoint(self):
+        expected = False
+        self.height_axis.sp = 0.0
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(1.0)
+
+        actual = self.jaws_driver.at_target_setpoint()
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_sp_value_set_and_moved_to_THEN_driver_reports_at_setpoint(self):
+        expected = True
+        self.height_axis.sp = 0.0
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(1.0)
+
+        self.jaws_driver.perform_move(1)
+        actual = self.jaws_driver.at_target_setpoint()
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_sp_is_within_motor_resolution_WHEN_comparing_to_motor_setpoint_THEN_driver_reports_at_setpoint(self):
+        expected = True
+        # DEFAULT_TEST_TOLERANCE is 1e-9
+        self.height_axis.sp = 0.123456789
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(0.1234567890123456789)
+
+        actual = self.jaws_driver.at_target_setpoint()
+
+        assert_that(actual, is_(expected))
+
+
 class BeamlineMoveDurationTest(unittest.TestCase):
     def setUp(self):
         sm_angle = 0.0
@@ -253,6 +309,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         slit_3 = Component("slit_3", setup=PositionAndAngle(y=0.0, z=30.0, angle=90.0))
         slit_3_height_axis = create_mock_axis("SLIT3:HEIGHT", 0.0, 10.0)
         slit_3_driver = DisplacementDriver(slit_3, slit_3_height_axis)
+        self.slit_3_driver = slit_3_driver
 
         detector = TiltingComponent("jaws", setup=PositionAndAngle(y=0.0, z=40.0, angle=90.0))
         detector_height_axis = create_mock_axis("DETECTOR:HEIGHT", 0.0, 10.0)
@@ -262,7 +319,9 @@ class BeamlineMoveDurationTest(unittest.TestCase):
 
         self.smangle = AngleParameter("smangle", supermirror)
         slit_2_pos = TrackingPosition("s2_pos", slit_2)
+        self.slit_2_pos = slit_2_pos
         slit_3_pos = TrackingPosition("s3_pos", slit_3)
+        self.slit_3_pos = slit_3_pos
         det_pos = TrackingPosition("det_pos", detector)
         det_ang = AngleParameter("det_ang", detector)
 
@@ -295,7 +354,8 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         sm_angle_to_set = 22.5
 
         self.smangle.sp_no_move = sm_angle_to_set
-        self.slit_2_driver.perform_move.side_effect = UnableToConnectToPVException("A_PV", "ERROR")
+        self.slit_3_pos.sp_no_move = -10
+        self.slit_3_driver.perform_move = MagicMock(side_effect=UnableToConnectToPVException("A_PV", "ERROR"))
+
         self.beamline.move = 1
         assert_that(self.beamline.status, is_(STATUS.GENERAL_ERROR))
-
