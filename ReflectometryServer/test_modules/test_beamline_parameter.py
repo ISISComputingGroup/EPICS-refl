@@ -625,8 +625,8 @@ class TestInitSetpoints(unittest.TestCase):
 
     def setUp(self):
         file_io.AUTOSAVE_FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "params.txt"))
-        self.component = Component("component", setup=PositionAndAngle(0, 0, 10))
-        self.angle_component = TiltingComponent("angle_component", setup=PositionAndAngle(0, 0, 10))
+        self.component = Component("component", setup=PositionAndAngle(0, 1, 90))
+        self.angle_component = TiltingComponent("angle_component", setup=PositionAndAngle(0, 10, 90))
         self.jaws = create_mock_axis("s1vg", 0.2, 1)
 
     def test_GIVEN_autosave_is_not_set_WHEN_creating_param_THEN_defaults_to_false(self):

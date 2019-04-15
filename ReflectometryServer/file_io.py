@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 from ReflectometryServer.ChannelAccess.constants import REFL_CONFIG_PATH
 
@@ -35,7 +36,7 @@ def read_autosave_param(param_name):
             lines = f.readlines()
             for line in lines:
                 key, val = line.split()
-                if key == param_name:
+                if key.upper() == param_name.upper():
                     return val
         logger.info("No autosave value found for parameter {}".format(param_name))
     except Exception as e:
@@ -67,7 +68,7 @@ def write_autosave_param(param_name, value):
             with open(AUTOSAVE_FILE_PATH, "w+") as f:
                 for i in range(len(lines)):
                     key = lines[i].split()[0]
-                    if key == param_name:
+                    if key.upper() == param_name.upper():
                         lines[i] = _format_param(param_name, value)
                         f.writelines(lines)
                         logger.info("Parameter {} autosave value changed: {}".format(param_name, value))
