@@ -4,6 +4,7 @@ The driving layer communicates between the component layer and underlying pvs.
 
 import math
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -128,13 +129,22 @@ class DisplacementDriver(IocDriver):
         self._out_of_beam_position = out_of_beam_position
         self._tolerance_on_out_of_beam_position = tolerance_on_out_of_beam_position
 
-    def _update_in_beam_status(self, new_value):
+    def _get_in_beam_status(self, value):
         if self._out_of_beam_position is not None:
-            distance_to_out_of_beam = abs(new_value - self._out_of_beam_position)
-            self._component.beam_path_rbv.is_in_beam = distance_to_out_of_beam > self._tolerance_on_out_of_beam_position
+            distance_to_out_of_beam = abs(value - self._out_of_beam_position)
+            in_beam_status = distance_to_out_of_beam > self._tolerance_on_out_of_beam_position
+        else:
+            in_beam_status = True
+        return in_beam_status
 
     def initialise_sp(self):
-        self._component.beam_path_set_point.init_displacement(self._axis.sp)
+        """
+        Initialise values in the setpoint beam path model .
+        """
+        sp = self._axis.sp
+        if self._out_of_beam_position is not None:
+            self._component.beam_path_set_point.is_in_beam = self._get_in_beam_status(sp)
+        self._component.beam_path_set_point.init_displacement(sp)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """
@@ -145,7 +155,8 @@ class DisplacementDriver(IocDriver):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self._update_in_beam_status(new_value)
+        if self._out_of_beam_position is not None:
+            self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(new_value)
         self._component.beam_path_rbv.set_displacement(new_value, alarm_severity, alarm_status)
 
     def _get_set_point_position(self):
@@ -181,6 +192,9 @@ class AngleDriver(IocDriver):
         super(AngleDriver, self).__init__(component, angle_axis)
 
     def initialise_sp(self):
+        """
+        Initialise values in the setpoint beam path model .
+        """
         self._component.beam_path_set_point.init_angle(self._axis.sp)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
