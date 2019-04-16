@@ -23,7 +23,9 @@ class IocDriver(object):
         self._component = component
         self._axis = axis
         self._rbv_cache = self._axis.rbv
+        self._sp_cache = None
         self._axis.add_after_rbv_change_listener(self._rbv_change_listener)
+        self._axis.add_after_sp_change_listener(self._update_sp_cache)
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -60,6 +62,7 @@ class IocDriver(object):
             self._axis.velocity = self._get_distance() / move_duration
 
         self._axis.sp = self._get_set_point_position()
+        self._sp_cache = self._get_set_point_position()
 
     def rbv_cache(self):
         """
@@ -68,7 +71,8 @@ class IocDriver(object):
         Returns: The cached readback value for the motor
         """
         if self._rbv_cache is None:
-            raise ValueError("Axis {} not initialised. Check configuration is correct and motor IOC is running.".format(self._axis.name))
+            raise ValueError("Axis {} not initialised. Check configuration is correct and motor IOC is running."
+                             .format(self._axis.name))
         return self._rbv_cache
 
     def _get_distance(self):
@@ -108,6 +112,25 @@ class IocDriver(object):
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         raise NotImplemented()
+
+    def _update_sp_cache(self, value, alarm_severity, alarm_status):
+        """
+        Updates the cached set point for this axis with a new value.
+        Args:
+            value: The new set point value.
+        """
+        self._sp_cache = value
+
+    def at_target_setpoint(self):
+        """
+        Returns: True if the setpoint on the component and the one on the motor PV are the same (within tolerance),
+            False if they differ.
+        """
+        if self._sp_cache is None:
+            return False
+
+        difference = abs(self._get_set_point_position() - self._sp_cache)
+        return difference < self._axis.resolution
 
 
 class DisplacementDriver(IocDriver):

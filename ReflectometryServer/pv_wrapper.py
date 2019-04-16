@@ -23,13 +23,20 @@ class PVWrapper(object):
         """
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
         self._set_pvs()
+        self._set_resolution()
 
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
 
+        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
+        self._monitor_pv(self._sp_pv, self._trigger_after_sp_change_listeners)
+
     def _set_pvs(self):
         self._rbv_pv = ""
         self._sp_pv = ""
+
+    def _set_resolution(self):
+        self._resolution = 0
 
     @staticmethod
     def _monitor_pv(pv, call_back_function):
@@ -107,6 +114,13 @@ class PVWrapper(object):
         return self._prefixed_pv
 
     @property
+    def resolution(self):
+        """
+        Returns: The motor resolution for this axis.
+        """
+        return self._resolution
+
+    @property
     def sp(self):
         """
         Returns: the value of the underlying setpoint PV
@@ -142,11 +156,12 @@ class MotorPVWrapper(PVWrapper):
         """
         super(MotorPVWrapper, self).__init__(base_pv)
 
-        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
-
     def _set_pvs(self):
         self._sp_pv = self._prefixed_pv
         self._rbv_pv = "{}.RBV".format(self._prefixed_pv)
+
+    def _set_resolution(self):
+        self._resolution = self._read_pv("{}.MRES".format(self._prefixed_pv))
 
     @property
     def velocity(self):
@@ -185,9 +200,6 @@ class AxisPVWrapper(PVWrapper):
         """
         super(AxisPVWrapper, self).__init__(base_pv)
 
-        self._monitor_pv(self._sp_pv, self._trigger_after_sp_change_listeners)
-        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
-
     def _set_pvs(self):
         self._sp_pv = "{}:SP".format(self._prefixed_pv)
         self._rbv_pv = self._prefixed_pv
@@ -206,11 +218,14 @@ class VerticalJawsPVWrapper(PVWrapper):
         """
         super(VerticalJawsPVWrapper, self).__init__(base_pv)
 
-        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
-
     def _set_pvs(self):
         self._sp_pv = "{}:VCENT:SP".format(self._prefixed_pv)
         self._rbv_pv = "{}:VCENT".format(self._prefixed_pv)
+
+    def _set_resolution(self):
+        motor_resolutions_pvs = self._pv_names_for_directions("MTR.MRES")
+        motor_resolutions = [self._read_pv(motor_resolutions_pv) for motor_resolutions_pv in motor_resolutions_pvs]
+        self._resolution = float(sum(motor_resolutions)) / len(motor_resolutions_pvs)
 
     @property
     def velocity(self):
