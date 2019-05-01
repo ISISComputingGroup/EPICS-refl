@@ -298,6 +298,84 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self.assertEqual(len(restart), 0)
         self.assertEqual(len(stop), 1)
 
+    def test_GIVEN_an_ioc_defined_in_a_component_WHEN_the_ioc_simlevel_is_changed_THEN_the_ioc_is_restarted(self):
+
+        # Arrange
+        config_holder = self.create_active_config_holder()
+
+        component = create_dummy_component()
+        component.iocs = {"DUMMY_IOC": IOC("dummyname", simlevel="devsim")}
+
+        self.mock_file_manager.comps["component_name"] = component
+        config_holder.add_component("component_name", component)
+
+        self._modify_active(config_holder, config_holder.get_config_details())
+
+        # Act
+        config_holder.remove_comp("component_name")
+        new_component = create_dummy_component()
+        new_component.iocs = {"DUMMY_IOC": IOC("dummyname", simlevel="recsim")}  # Change simlevel
+        self.mock_file_manager.comps["component_name"] = new_component
+        config_holder.add_component("component_name", new_component)
+
+        # Assert
+        start, restart, stop = config_holder.iocs_changed()
+        self.assertEqual(len(start), 0)
+        self.assertEqual(len(restart), 1)
+        self.assertEqual(len(stop), 0)
+
+    def test_GIVEN_an_ioc_defined_in_a_component_WHEN_the_ioc_macros_are_changed_THEN_the_ioc_is_restarted(self):
+
+        # Arrange
+        config_holder = self.create_active_config_holder()
+
+        component = create_dummy_component()
+        component.iocs = {"DUMMY_IOC": IOC("dummyname", macros={"macros": {"A_MACRO": "VALUE1"}})}
+
+        self.mock_file_manager.comps["component_name"] = component
+        config_holder.add_component("component_name", component)
+
+        self._modify_active(config_holder, config_holder.get_config_details())
+
+        # Act
+        config_holder.remove_comp("component_name")
+        new_component = create_dummy_component()
+        new_component.iocs = {"DUMMY_IOC": IOC("dummyname", macros={"macros": {"A_MACRO": "VALUE2"}})}
+        self.mock_file_manager.comps["component_name"] = new_component
+        config_holder.add_component("component_name", new_component)
+
+        # Assert
+        start, restart, stop = config_holder.iocs_changed()
+        self.assertEqual(len(start), 0)
+        self.assertEqual(len(restart), 1)
+        self.assertEqual(len(stop), 0)
+
+    def test_GIVEN_an_ioc_defined_in_a_component_WHEN_the_ioc_macros_are_not_changed_THEN_the_ioc_is_not_restarted(self):
+
+        # Arrange
+        config_holder = self.create_active_config_holder()
+
+        component = create_dummy_component()
+        component.iocs = {"DUMMY_IOC": IOC("dummyname", macros={"macros": {"A_MACRO": "VALUE1"}})}
+
+        self.mock_file_manager.comps["component_name"] = component
+        config_holder.add_component("component_name", component)
+
+        self._modify_active(config_holder, config_holder.get_config_details())
+
+        # Act
+        config_holder.remove_comp("component_name")
+        new_component = create_dummy_component()
+        new_component.iocs = {"DUMMY_IOC": IOC("dummyname", macros={"macros": {"A_MACRO": "VALUE1"}})}
+        self.mock_file_manager.comps["component_name"] = new_component
+        config_holder.add_component("component_name", new_component)
+
+        # Assert
+        start, restart, stop = config_holder.iocs_changed()
+        self.assertEqual(len(start), 0)
+        self.assertEqual(len(restart), 0)
+        self.assertEqual(len(stop), 0)
+
     def test_GIVEN_an_ioc_defined_in_the_top_level_config_WHEN_the_ioc_is_removed_THEN_the_ioc_is_stopped(self):
 
         # Arrange
