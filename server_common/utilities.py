@@ -72,7 +72,7 @@ def print_and_log(message, severity=SEVERITY.INFO, src="BLOCKSVR"):
                                     Default severity is INFO.
         src (string, optional): Gives the source of the message. Default source is BLOCKSVR.
     """
-    message = "[{}] {}: {}".format(time.time(), severity, message)
+    message = "[{:.2f}] {}: {}".format(time.time(), severity, message)
     print(message)
     LOGGER.write_to_log(message, severity, src)
 
