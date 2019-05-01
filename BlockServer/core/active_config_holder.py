@@ -71,6 +71,33 @@ def _blocks_changed_in_config(old_config, new_config, block_comparator=_blocks_c
     return False
 
 
+def _compare_ioc_properties(old, new):
+    """
+    Compares the properties of IOCs in a component/configuration.
+
+    Args:
+        old: The component or configuration to use as a baseline when comparing IOCs
+        new: The corresponding new configuration or component
+
+    Returns:
+        set, set : IOCs to start, IOCs to restart
+    """
+    iocs_to_start = set()
+    iocs_to_restart = set()
+
+    _attributes = ["macros", "pvs", "pvsets", "simlevel", "restart"]
+
+    for ioc_name in new.iocs.keys():
+        if ioc_name not in old.iocs.keys():
+            # If not in previously then add it to start
+            iocs_to_start.add(ioc_name)
+        elif any(getattr(old.iocs[ioc_name], attr) != getattr(new.iocs[ioc_name], attr) for attr in _attributes):
+            # If any attributes have changed, restart the IOC
+            iocs_to_restart.add(ioc_name)
+
+    return iocs_to_start, iocs_to_restart
+
+
 class ActiveConfigHolder(ConfigHolder):
     """
     Class to serve up the active configuration.
@@ -173,32 +200,6 @@ class ActiveConfigHolder(ConfigHolder):
         print_and_log("Trying to reload current configuration '{}'".format(current_config_name))
         self.load_active(current_config_name)
 
-    def _compare_ioc_properties(self, old, new):
-        """
-        Compares the properties of IOCs in a component/configuration.
-
-        Args:
-            old: The component or configuration to use as a baseline when comparing IOCs
-            new: The corresponding new configuration or component
-
-        Returns:
-            set, set : IOCs to start, IOCs to restart
-        """
-        iocs_to_start = set()
-        iocs_to_restart = set()
-
-        _attributes = ["macros", "pvs", "pvsets", "simlevel", "restart"]
-
-        for ioc_name in new.iocs.keys():
-            if ioc_name not in old.iocs.keys():
-                # If not in previously then add it to start
-                iocs_to_start.add(ioc_name)
-            elif any(getattr(old.iocs[ioc_name], attr) != getattr(new.iocs[ioc_name], attr) for attr in _attributes):
-                # If any attributes have changed, restart the IOC
-                iocs_to_restart.add(ioc_name)
-
-        return iocs_to_start, iocs_to_restart
-
     def iocs_changed(self):
         """Checks to see if the IOCs have changed on saving."
 
@@ -214,13 +215,13 @@ class ActiveConfigHolder(ConfigHolder):
             set, set, set : IOCs to start, IOCs to restart, IOCs to stop.
         """
         # Look for modified IOCs
-        iocs_to_start, iocs_to_restart = self._compare_ioc_properties(self._cached_config, self._config)
+        iocs_to_start, iocs_to_restart = _compare_ioc_properties(self._cached_config, self._config)
         iocs_to_stop = set()
 
         # Look for any new/changed components
         for name, component in six.iteritems(self._components):
             if name in self._cached_components:
-                _start, _restart = self._compare_ioc_properties(
+                _start, _restart = _compare_ioc_properties(
                     self._cached_components[name], self._components[name])
 
                 iocs_to_start |= _start
