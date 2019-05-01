@@ -18,11 +18,12 @@ import json
 
 import six
 from mock import Mock
+from parameterized import parameterized
 
 from BlockServer.config.block import Block
 from BlockServer.config.configuration import Configuration
 from BlockServer.config.ioc import IOC
-from BlockServer.core.active_config_holder import ActiveConfigHolder
+from BlockServer.core.active_config_holder import ActiveConfigHolder, _blocks_changed, _blocks_changed_in_config
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.core.macros import MACROS
@@ -511,6 +512,69 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self._test_attribute_changes(initial_attrs={'simlevel': 'recsim'},
                                      final_attrs={'simlevel': 'recsim'},
                                      has_changed=False)
+
+    @parameterized.expand([
+        (Block(name="name", pv="pv"), Block(name="other", pv="pv")),
+        (Block(name="name", pv="pv"), Block(name="name", pv="other")),
+        (Block(name="name", pv="pv", local=True), Block(name="name", pv="pv", local=False)),
+        (Block(name="name", pv="pv", component="A"), Block(name="name", pv="pv", component="B")),
+        (Block(name="name", pv="pv", runcontrol=True), Block(name="name", pv="pv", runcontrol=False)),
+        (Block(name="name", pv="pv", lowlimit=True), Block(name="name", pv="pv", lowlimit=False)),
+        (Block(name="name", pv="pv", highlimit=True), Block(name="name", pv="pv", highlimit=False)),
+        (Block(name="name", pv="pv", log_periodic=True), Block(name="name", pv="pv", log_periodic=False)),
+        (Block(name="name", pv="pv", log_rate=True), Block(name="name", pv="pv", log_rate=False)),
+        (Block(name="name", pv="pv", log_deadband=True), Block(name="name", pv="pv", log_deadband=False)),
+    ])
+    def test_WHEN_block_attributes_different_THEN_blocks_changed_returns_true(self, block1, block2):
+        self.assertTrue(_blocks_changed(block1, block2))
+
+    def test_WHEN_block_attributes_different_THEN_blocks_changed_returns_false(self):
+        self.assertFalse(_blocks_changed(Block(name="name", pv="pv"), Block(name="name", pv="pv")))
+
+    def test_WHEN_blocks_changed_in_config_called_for_configs_which_contain_same_blocks_THEN_returns_false(self):
+        config1 = Mock()
+        config1.blocks = {"a": Block(name="a", pv="pv")}
+
+        config2 = Mock()
+        config2.blocks = {"a": Block(name="a", pv="pv")}
+
+        self.assertFalse(_blocks_changed_in_config(config1, config2))
+
+    def test_WHEN_blocks_changed_in_config_called_for_configs_with_removed_blocks_THEN_returns_true(self):
+        config1 = Mock()
+        config1.blocks = {"a": Block(name="a", pv="pv")}
+
+        config2 = Mock()
+        config2.blocks = {}
+
+        self.assertTrue(_blocks_changed_in_config(config1, config2))
+
+    def test_WHEN_blocks_changed_in_config_called_for_configs_with_added_blocks_THEN_returns_true(self):
+        config1 = Mock()
+        config1.blocks = {}
+
+        config2 = Mock()
+        config2.blocks = {"a": Block(name="a", pv="pv")}
+
+        self.assertTrue(_blocks_changed_in_config(config1, config2))
+
+    def test_WHEN_blocks_changed_in_config_called_and_block_comparator_says_they_are_different_THEN_returns_true(self):
+        config1 = Mock()
+        config1.blocks = {"a": Block(name="a", pv="pv")}
+
+        config2 = Mock()
+        config2.blocks = {"a": Block(name="a", pv="pv")}
+
+        self.assertTrue(_blocks_changed_in_config(config1, config2, block_comparator=lambda block1, block2: True))
+
+    def test_WHEN_blocks_changed_in_config_called_and_block_comparator_says_they_are_the_same_THEN_returns_false(self):
+        config1 = Mock()
+        config1.blocks = {"a": Block(name="a", pv="pv")}
+
+        config2 = Mock()
+        config2.blocks = {"a": Block(name="a", pv="pv")}
+
+        self.assertFalse(_blocks_changed_in_config(config1, config2, block_comparator=lambda block1, block2: False))
 
 
 if __name__ == '__main__':

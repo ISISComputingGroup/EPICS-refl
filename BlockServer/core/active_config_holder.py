@@ -22,6 +22,55 @@ from BlockServer.core.config_holder import ConfigHolder
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 
 
+def _blocks_changed(block1, block2):
+    """
+    Compare two Block objects
+
+    Args:
+        block1: The first block to compare
+        block2: The second block to compare
+
+    Returns:
+        True if the provided blocks are different, False otherwise
+    """
+    if block1.name != block2.name:
+        return True
+
+    # Check for any changed blocks (symmetric difference operation of sets)
+    block_diff = set(block1.to_dict().items()) ^ set(block2.to_dict().items())
+    if len(block_diff) > 0:
+        return True
+
+    return False
+
+
+def _blocks_changed_in_config(old_config, new_config, block_comparator=_blocks_changed):
+    """
+    Given a new configuration/component and an old one, find out whether blocks have changed between them.
+
+    Args:
+        old_config: A configuration or component object describing the "old" config to use as a reference.
+        new_config: A configuration or component object describing the "new" config/component.
+        block_comparator: A function that takes two blocks as arguments and returns True if they have changed.
+
+    Returns:
+        True if the blocks have changed, False otherwise.
+    """
+
+    for block_name in new_config.blocks.keys():
+        # Check to see if there are any new blocks
+        if block_name not in old_config.blocks.keys() or \
+                block_comparator(old_config.blocks[block_name], new_config.blocks[block_name]):
+            return True
+
+    for block_name in old_config.blocks.keys():
+        if block_name not in new_config.blocks.keys() \
+                or block_comparator(old_config.blocks[block_name], new_config.blocks[block_name]):
+            return True
+
+    return False
+
+
 class ActiveConfigHolder(ConfigHolder):
     """
     Class to serve up the active configuration.
@@ -133,11 +182,10 @@ class ActiveConfigHolder(ConfigHolder):
             new: The corresponding new configuration or component
 
         Returns:
-            set, set, set : IOCs to start, IOCs to restart, IOCs to stop.
+            set, set : IOCs to start, IOCs to restart
         """
         iocs_to_start = set()
         iocs_to_restart = set()
-        iocs_to_stop = set()
 
         _attributes = ["macros", "pvs", "pvsets", "simlevel", "restart"]
 
@@ -149,7 +197,7 @@ class ActiveConfigHolder(ConfigHolder):
                 # If any attributes have changed, restart the IOC
                 iocs_to_restart.add(ioc_name)
 
-        return iocs_to_start, iocs_to_restart, iocs_to_stop
+        return iocs_to_start, iocs_to_restart
 
     def iocs_changed(self):
         """Checks to see if the IOCs have changed on saving."
@@ -166,25 +214,24 @@ class ActiveConfigHolder(ConfigHolder):
             set, set, set : IOCs to start, IOCs to restart, IOCs to stop.
         """
         # Look for modified IOCs
-        iocs_to_start, iocs_to_restart, iocs_to_stop = self._compare_ioc_properties(self._cached_config, self._config)
+        iocs_to_start, iocs_to_restart = self._compare_ioc_properties(self._cached_config, self._config)
+        iocs_to_stop = set()
 
         # Look for any new/changed components
         for name, component in six.iteritems(self._components):
             if name in self._cached_components:
-                _start, _restart, _stop = self._compare_ioc_properties(
+                _start, _restart = self._compare_ioc_properties(
                     self._cached_components[name], self._components[name])
 
                 iocs_to_start |= _start
                 iocs_to_restart |= _restart
-                iocs_to_stop |= _stop
             else:
                 for ioc_name in component.iocs.keys():
                     iocs_to_start.add(ioc_name)
 
         # Look for removed IOCs
-        for ioc_name in self._cached_config.iocs.keys():
-            if ioc_name not in self._config.iocs.keys():
-                iocs_to_stop.add(ioc_name)
+        for ioc_name in set(self._cached_config.iocs.keys()).difference(self._config.iocs.keys()):
+            iocs_to_stop.add(ioc_name)
 
         # Look for any removed components
         for name, component in six.iteritems(self._cached_components):
@@ -194,22 +241,6 @@ class ActiveConfigHolder(ConfigHolder):
 
         return iocs_to_start, iocs_to_restart, iocs_to_stop
 
-    def _blocks_changed(self, old_config, new_config):
-        for n in new_config.blocks.keys():
-            # Check to see if there are any new blocks
-            if n not in old_config.blocks.keys():
-                # If not in previously then blocks have been added changed
-                return True
-
-            cached_block = old_config.blocks[n].to_dict()
-            current_block = new_config.blocks[n].to_dict()
-            # Check for any changed blocks (symmetric difference operation of sets)
-            block_diff = set(cached_block.items()) ^ set(current_block.items())
-            if len(block_diff) > 0:
-                return True
-
-        return False
-
     def _blocks_in_top_level_config_changed(self):
         """
         Checks whether the blocks in the top level configuration have changed
@@ -217,7 +248,7 @@ class ActiveConfigHolder(ConfigHolder):
         Returns:
             True if the blocks have changed, False otherwise
         """
-        return self._blocks_changed(self._cached_config, self._config)
+        return _blocks_changed_in_config(self._cached_config, self._config)
 
     def _blocks_in_components_changed(self):
         """
@@ -227,7 +258,7 @@ class ActiveConfigHolder(ConfigHolder):
         """
         for name, component in six.iteritems(self._components):
             if name in self._cached_components \
-                    and self._blocks_changed(self._cached_components[name], self._components[name]):
+                    and _blocks_changed_in_config(self._cached_components[name], self._components[name]):
                 return True
         return False
 

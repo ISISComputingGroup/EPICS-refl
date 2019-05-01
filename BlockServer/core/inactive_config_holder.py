@@ -31,7 +31,7 @@ class InactiveConfigHolder(ConfigHolder):
         super(InactiveConfigHolder, self).__init__(macros, file_manager, test_config=test_config)
 
     def save_inactive(self, name=None, as_comp=False):
-        """Saves a configuration or component that is not currently in use.
+        """Saves a configuration or component that is not currently in use.T
 
         Args:
             name (string): The name to save it under (defaults to the current config name)
