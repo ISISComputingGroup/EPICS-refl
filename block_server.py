@@ -389,7 +389,7 @@ class BlockServer(Driver):
 
         Args:
             config (string): The name of the configuration
-            is_component (bool): Whether it is a component or not
+            full_init (bool): True to restart all IOCs/services or False to restart only those required
         """
         print_and_log("Loading configuration '{}'".format(config))
         try:

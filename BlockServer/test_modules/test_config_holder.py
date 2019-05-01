@@ -481,7 +481,6 @@ class TestConfigHolderSequence(unittest.TestCase):
     def test_set_config_details(self):
         # Need component
         ch = InactiveConfigHolder(MACROS, file_manager=MockConfigurationFileManager(), test_config=Configuration(MACROS))
-
         ch.save_configuration("TESTCOMPONENT", True)
 
         new_details = {"iocs":

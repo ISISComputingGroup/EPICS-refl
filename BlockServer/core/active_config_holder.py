@@ -158,7 +158,7 @@ class ActiveConfigHolder(ConfigHolder):
         - IOCs added to top level config
         - IOCs removed from top level config
         - Added components which contain IOCs
-        - Removed components which contained IOCS
+        - Removed components which contained IOCs
         - IOCs properties changed in the top level configuration ("macros", "pvs", "pvsets", "simlevel", "restart")
         - IOCs properties changed in components of the current configuration (as above)
 
@@ -252,7 +252,7 @@ class ActiveConfigHolder(ConfigHolder):
         Returns:
             True if switching from components1 to components2 would have added any blocks.
         """
-        for new_component_name, new_component in new_components.iteritems():
+        for new_component_name, new_component in six.iteritems(new_components):
             if new_component_name not in old_components and len(new_component.blocks) != 0:
                 return True
         return False
