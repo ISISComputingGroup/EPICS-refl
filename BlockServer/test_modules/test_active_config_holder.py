@@ -29,6 +29,7 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
+from BlockServer.test_modules.helpers import modify_active
 from server_common.constants import IS_LINUX
 
 
@@ -233,13 +234,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         self.assertEquals(load_requests.count(config_name), 1)
         
     def _modify_active(self, config_holder, new_details, name="config1"):
-        config = Configuration(MACROS)
-        config.meta.name = name
-        inactive_config = InactiveConfigHolder(MACROS, self.mock_file_manager)
-        inactive_config.set_config_details(new_details)
-        inactive_config.save_inactive(name)
-
-        config_holder.load_active(name)
+        modify_active(name, MACROS, self.mock_file_manager, new_details, config_holder)
 
     def test_iocs_changed_no_changes(self):
         # Arrange

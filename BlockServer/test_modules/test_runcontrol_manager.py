@@ -23,6 +23,7 @@ from BlockServer.config.configuration import Configuration
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
+from BlockServer.test_modules.helpers import modify_active
 
 os.environ['MYPVPREFIX'] = ""
 
@@ -172,15 +173,7 @@ class TestRunControlSequence(unittest.TestCase):
             self.assertEqual(channel.get_call_count(rc_pv), 60)
 
     def _modify_active(self, config_holder, new_details):
-        name = "abc"
-
-        config = Configuration(MACROS)
-        config.meta.name = name
-        inactive_config = InactiveConfigHolder(MACROS, self.mock_file_manager)
-        inactive_config.set_config_details(new_details)
-        inactive_config.save_inactive(name)
-
-        config_holder.load_active(name)
+        modify_active("abc", MACROS, self.mock_file_manager, new_details, config_holder)
 
     def test_GIVEN_blocks_unchanged_and_not_full_init_WHEN_initialised_THEN_runcontrol_doesnt_restart_and_autosave_files_not_deleted(self):
         ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
