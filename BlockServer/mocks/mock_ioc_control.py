@@ -63,4 +63,3 @@ class MockIocControl(object):
             return True
         except:
             return False
-

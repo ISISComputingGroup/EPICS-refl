@@ -29,7 +29,6 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.mocks.mock_ioc_control import MockIocControl
 from BlockServer.core.macros import MACROS
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
-from BlockServer.mocks.mock_ioc import MockIoc
 from server_common.constants import IS_LINUX
 
 
@@ -260,7 +259,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         config_holder = self.create_active_config_holder()
         details = config_holder.get_config_details()
         # Act
-        details['iocs'].append(MockIoc())
+        details['iocs'].append(IOC("NAME"))
         self._modify_active(config_holder, details)
         # Assert
         start, restart, stop = config_holder.iocs_changed()
@@ -272,7 +271,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         # Arrange
         config_holder = self.create_active_config_holder()
         details = config_holder.get_config_details()
-        details['iocs'].append(MockIoc())
+        details['iocs'].append(IOC("NAME"))
         self._modify_active(config_holder, details)
         # Act
         details['iocs'].pop(0)
@@ -310,7 +309,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         config_holder = self.create_active_config_holder()
 
         details = config_holder.get_config_details()
-        details['iocs'].append(MockIoc())
+        details['iocs'].append(IOC("NAME"))
         self._modify_active(config_holder, details)
 
         # Act
@@ -436,10 +435,10 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         config_holder = self.create_active_config_holder()
         details = config_holder.get_config_details()
 
-        initial_ioc = MockIoc()
+        initial_ioc = IOC("NAME")
         for key, value in initial_attrs.iteritems():
             setattr(initial_ioc, key, value)
-        final_ioc = MockIoc()
+        final_ioc = IOC("NAME")
         for key, value in final_attrs.iteritems():
             setattr(final_ioc, key, value)
 
@@ -579,21 +578,21 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
 
     def test_WHEN_compare_ioc_properties_called_with_the_same_ioc_then_returns_empty_set_of_iocs_to_start_restart(self):
         old_config = Mock()
-        old_config.iocs = {"a": MockIoc("a")}
+        old_config.iocs = {"a": IOC("a")}
 
         new_config = Mock()
-        new_config.iocs = {"a": MockIoc("a")}
+        new_config.iocs = {"a": IOC("a")}
 
         start, restart = _compare_ioc_properties(old_config, new_config)
         self.assertEqual(len(start), 0)
         self.assertEqual(len(restart), 0)
 
     @parameterized.expand([
-        ({"a": MockIoc("a", macros=True)}, {"a": MockIoc("a", macros=False)}),
-        ({"a": MockIoc("a", pvs=True)}, {"a": MockIoc("a", pvs=False)}),
-        ({"a": MockIoc("a", pvsets=True)}, {"a": MockIoc("a", pvsets=False)}),
-        ({"a": MockIoc("a", simlevel=True)}, {"a": MockIoc("a", simlevel=False)}),
-        ({"a": MockIoc("a", restart=True)}, {"a": MockIoc("a", restart=False)}),
+        ({"a": IOC("a", macros=True)}, {"a": IOC("a", macros=False)}),
+        ({"a": IOC("a", pvs=True)}, {"a": IOC("a", pvs=False)}),
+        ({"a": IOC("a", pvsets=True)}, {"a": IOC("a", pvsets=False)}),
+        ({"a": IOC("a", simlevel="recsim")}, {"a": IOC("a", simlevel="devsim")}),
+        ({"a": IOC("a", restart=True)}, {"a": IOC("a", restart=False)}),
     ])
     def test_WHEN_compare_ioc_properties_called_with_different_then_restarts_ioc(self, old_iocs, new_iocs):
         old_config = Mock()
@@ -611,7 +610,7 @@ class TestActiveConfigHolderSequence(unittest.TestCase):
         old_config.iocs = {}
 
         new_config = Mock()
-        new_config.iocs = {"a": MockIoc("a", macros=True)}
+        new_config.iocs = {"a": IOC("a", macros=True)}
 
         start, restart = _compare_ioc_properties(old_config, new_config)
         self.assertEqual(len(start), 1)

@@ -108,3 +108,11 @@ class IOC(object):
             'macros': self._dict_to_list(self.macros),
             'component': self.component
         }
+
+    def get(self, name):
+        return self.__getattribute__(name)
+
+    def __getitem__(self, name):
+        return self.__getattribute__(name)
+
+
