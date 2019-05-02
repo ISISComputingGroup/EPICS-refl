@@ -271,6 +271,12 @@ class BeamlineParameter(object):
         """
         raise NotImplemented("This must be implemented in the sub class")
 
+    def _log_autosave_type_error(self):
+        """
+        Logs an error that the autosave value this parameter was trying to read was of the wrong type.
+        """
+        logger.error("Could not read autosave value for parameter {}: unexpected type.".format(self.name))
+
 
 class AngleParameter(BeamlineParameter):
     """
@@ -310,7 +316,7 @@ class AngleParameter(BeamlineParameter):
                 self._set_initial_sp(float(sp_init))
                 self._move_component()
             except ValueError as e:
-                logger.error("Could not read autosave value for parameter {}: unexpected type.")
+                self._log_autosave_type_error()
 
     def _initialise_sp_from_motor(self):
         """
@@ -376,7 +382,7 @@ class TrackingPosition(BeamlineParameter):
                 self._set_initial_sp(float(sp_init))
                 self._move_component()
             except ValueError as e:
-                logger.error("Could not read autosave value for parameter {}: unexpected type.")
+                self._log_autosave_type_error()
 
     def _initialise_sp_from_motor(self):
         """
@@ -449,7 +455,7 @@ class InBeamParameter(BeamlineParameter):
             self._set_initial_sp(False)
             self._move_component()
         elif sp_init is not None:
-            logger.error("Could not read autosave value for parameter {}: unexpected type.")
+                self._log_autosave_type_error()
 
     def _initialise_sp_from_motor(self):
         """
@@ -528,7 +534,7 @@ class SlitGapParameter(BeamlineParameter):
             try:
                 self._set_initial_sp(float(sp_init))
             except ValueError as e:
-                logger.error("Could not read autosave value for parameter {}: unexpected type.")
+                self._log_autosave_type_error()
 
     def _initialise_sp_from_motor(self):
         """

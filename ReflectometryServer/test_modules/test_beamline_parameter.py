@@ -624,7 +624,7 @@ class TestBeamlineThetaComponetWhenDisabled(unittest.TestCase):
 class TestInitSetpoints(unittest.TestCase):
 
     def setUp(self):
-        file_io.AUTOSAVE_FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "params.txt"))
+        file_io.PARAM_AUTOSAVE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "params.txt"))
         self.component = Component("component", setup=PositionAndAngle(0, 1, 90))
         self.angle_component = TiltingComponent("angle_component", setup=PositionAndAngle(0, 10, 90))
         self.jaws = create_mock_axis("s1vg", 0.2, 1)
