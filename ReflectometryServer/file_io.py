@@ -7,7 +7,7 @@ from ReflectometryServer.ChannelAccess.constants import REFL_AUTOSAVE_PATH
 logger = logging.getLogger(__name__)
 
 PARAM_AUTOSAVE_PATH = os.path.join(REFL_AUTOSAVE_PATH, "params.txt")
-MODE_AUTOSAVE_PATH = os.path.join(REFL_AUTOSAVE_PATH, "mode.txt")
+MODE_AUTOSAVE_PATH = os.path.join(REFL_AUTOSAVE_PATH, "mode_pnr.txt")
 
 
 def _format_param(param_name, value):
@@ -82,3 +82,35 @@ def write_autosave_param(param_name, value):
 
     except Exception as e:
         logger.error("Failed to write autosave parameter {}: {}".format(param_name, e))
+
+
+def read_mode():
+    """
+    Read the last active mode from file.
+
+    Returns:
+        The name of the mode as string.
+    """
+    try:
+        with open(MODE_AUTOSAVE_PATH) as f:
+            return f.readlines()[0]
+    except Exception as e:
+        logger.error("Failed to read mode: {}".format(e))
+        return None
+
+
+def save_mode(mode):
+    """
+    Save the current mode to file.
+
+    Params:
+        mode(str): The name of the mode to save.
+    """
+    if not os.path.exists(REFL_AUTOSAVE_PATH):
+        os.mkdir(REFL_AUTOSAVE_PATH)
+    try:
+        with open(MODE_AUTOSAVE_PATH, "w") as f:
+            f.write(mode)
+    except Exception as e:
+        logger.error("Failed to save mode: {}".format(e))
+        return None

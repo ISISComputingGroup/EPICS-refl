@@ -370,10 +370,7 @@ class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
         super(BeamPathCalcThetaSP, self).__init__(movement_strategy)
         self._angle_to = angle_to
         for comp in self._angle_to:
-            comp.add_init_listener(self._pass_through_listener)
-
-    def _pass_through_listener(self):
-        super(BeamPathCalcThetaSP, self)._trigger_init_listeners()
+            comp.add_init_listener(self._trigger_init_listeners)
 
     def _trigger_after_beam_path_update(self):
         """
