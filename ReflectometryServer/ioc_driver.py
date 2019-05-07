@@ -4,7 +4,6 @@ The driving layer communicates between the component layer and underlying pvs.
 
 import math
 import logging
-import time
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +29,10 @@ class IocDriver(object):
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
             self.__class__.__name__, self._axis.name, self._component.name)
+
+    def initialise_values(self):
+        self._axis.add_monitors()
+        self.initialise_sp()
 
     def initialise_sp(self):
         raise NotImplemented()

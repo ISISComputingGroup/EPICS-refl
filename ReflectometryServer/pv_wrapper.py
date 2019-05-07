@@ -28,6 +28,10 @@ class PVWrapper(object):
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
 
+    def add_monitors(self):
+        """
+        Add monitors to the relevant motor PVs for readback and setpoint values.
+        """
         self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
         self._monitor_pv(self._sp_pv, self._trigger_after_sp_change_listeners)
 

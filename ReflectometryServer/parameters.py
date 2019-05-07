@@ -513,7 +513,7 @@ class SlitGapParameter(BeamlineParameter):
         self._pv_wrapper = pv_wrapper
         self._pv_wrapper.add_after_sp_change_listener(self.update_sp_rbv)
         self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
-        self._rbv_value = init
+        self._pv_wrapper.add_monitors()
         if is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
             self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)

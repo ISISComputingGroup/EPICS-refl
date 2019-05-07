@@ -183,7 +183,7 @@ class Beamline(object):
         self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
 
         for driver in self._drivers:
-            driver.initialise_sp()
+            driver.initialise_values()
 
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
