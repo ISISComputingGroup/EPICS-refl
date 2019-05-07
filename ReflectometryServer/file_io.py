@@ -1,13 +1,12 @@
 import logging
 import os
-import time
 
 from ReflectometryServer.ChannelAccess.constants import REFL_AUTOSAVE_PATH
 
 logger = logging.getLogger(__name__)
 
 PARAM_AUTOSAVE_PATH = os.path.join(REFL_AUTOSAVE_PATH, "params.txt")
-MODE_AUTOSAVE_PATH = os.path.join(REFL_AUTOSAVE_PATH, "mode_pnr.txt")
+MODE_AUTOSAVE_PATH = os.path.join(REFL_AUTOSAVE_PATH, "mode.txt")
 
 
 def _format_param(param_name, value):
