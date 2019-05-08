@@ -129,6 +129,9 @@ class MockMotorPVWrapper(object):
         self.after_sp_change_listener = set()
         self.after_sp_change_listener = set()
 
+    def add_monitors(self):
+        pass
+
     def add_after_rbv_change_listener(self, listener):
         self.after_rbv_change_listener.add(listener)
 
