@@ -129,7 +129,7 @@ class TestMovementRelativeToBeam(unittest.TestCase):
         dist = 0
 
         movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.sp_position()
+        result = movement.position_in_mantid_coordinates()
 
         assert_that(result, is_(position(Position(beam_intercept.y, beam_intercept.z))))
 
@@ -140,7 +140,7 @@ class TestMovementRelativeToBeam(unittest.TestCase):
         dist = 10
 
         movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.sp_position()
+        result = movement.position_in_mantid_coordinates()
 
         assert_that(result, is_(position(Position(beam_intercept.y + dist, beam_intercept.z))))
 
@@ -151,7 +151,7 @@ class TestMovementRelativeToBeam(unittest.TestCase):
         dist = 10
 
         movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.sp_position()
+        result = movement.position_in_mantid_coordinates()
 
         assert_that(result, is_(position(Position(beam_intercept.y, beam_intercept.z + dist))))
 
@@ -165,7 +165,7 @@ class TestMovementRelativeToBeam(unittest.TestCase):
         dist = 10
 
         movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.sp_position()
+        result = movement.position_in_mantid_coordinates()
 
         assert_that(result, is_(position(Position(beam_intercept.y + dist/2.0, beam_intercept.z + dist * sqrt(3)/2.0))))
 
@@ -179,7 +179,7 @@ class TestMovementRelativeToBeam(unittest.TestCase):
         dist = 10
 
         movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.sp_position()
+        result = movement.position_in_mantid_coordinates()
 
         assert_that(result, is_(position(Position(beam_intercept.y + dist/2.0, beam_intercept.z + dist * sqrt(3)/2.0))))
 
@@ -192,7 +192,7 @@ class TestMovementRelativeToBeam(unittest.TestCase):
         dist = 10
 
         movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.sp_position()
+        result = movement.position_in_mantid_coordinates()
 
         assert_that(result, is_(position(Position(beam_intercept.y + dist/2.0, beam_intercept.z + dist * sqrt(3)/2.0))))
 
@@ -206,7 +206,7 @@ class TestMovementRelativeToBeam(unittest.TestCase):
         dist = 10
 
         movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.sp_position()
+        result = movement.position_in_mantid_coordinates()
 
         assert_that(result, is_(position(Position(beam_intercept.y - dist/2.0, beam_intercept.z + dist * sqrt(3)/2.0))))
 
@@ -220,7 +220,7 @@ class TestMovementRelativeToBeam(unittest.TestCase):
         dist = 10
 
         movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.sp_position()
+        result = movement.position_in_mantid_coordinates()
 
         assert_that(result, is_(position(Position(beam_intercept.y - dist/2.0, beam_intercept.z + dist * sqrt(3)/2.0))))
 
@@ -234,7 +234,7 @@ class TestMovementRelativeToBeam(unittest.TestCase):
         dist = 10
 
         movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.sp_position()
+        result = movement.position_in_mantid_coordinates()
 
         assert_that(result, is_(position(Position(beam_intercept.y, beam_intercept.z - dist))))
 

@@ -379,8 +379,9 @@ class TrackingPosition(BeamlineParameter):
         sp_init = file_io.read_autosave_param(self._name)
         if sp_init is not None:
             try:
-                self._set_initial_sp(float(sp_init))
-                self._move_component()
+                sp_init = float(sp_init)
+                self._set_initial_sp(sp_init)
+                self._component.beam_path_set_point.autosaved_position_offset = sp_init
             except ValueError as e:
                 self._log_autosave_type_error()
 

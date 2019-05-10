@@ -29,6 +29,8 @@ class TrackingBeamPathCalc(object):
         self._is_in_beam = True
         self._movement_strategy = movement_strategy
 
+        self.autosaved_position_offset = 0
+
         # This is used in disable mode where the incoming
         self.incoming_beam_can_change = True
 
@@ -138,11 +140,15 @@ class TrackingBeamPathCalc(object):
         """
         return self._movement_strategy.get_displacement()
 
-    def sp_position(self):
+    def position_in_mantid_coordinates(self):
         """
         Returns (Position): The set point position of this component in mantid coordinates.
         """
-        return self._movement_strategy.sp_position()
+        return self._movement_strategy.position_in_mantid_coordinates()
+
+    def intercept_in_mantid_coordinates(self):
+        intercept_displacement = self.get_displacement() - self.autosaved_position_offset
+        return self._movement_strategy.position_in_mantid_coordinates(intercept_displacement)
 
     @property
     def is_in_beam(self):
@@ -317,7 +323,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
         """
         for readback_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
-                other_pos = readback_beam_path_calc.sp_position()
+                other_pos = readback_beam_path_calc.position_in_mantid_coordinates()
                 this_pos = self._movement_strategy.calculate_interception(incoming_beam)
 
                 opp = other_pos.y - this_pos.y
@@ -370,7 +376,36 @@ class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
         super(BeamPathCalcThetaSP, self).__init__(movement_strategy)
         self._angle_to = angle_to
         for comp in self._angle_to:
-            comp.add_init_listener(self._trigger_init_listeners)
+            comp.add_init_listener(self._init_listener)
+
+    def _init_listener(self):
+        self._angle = self._calc_angle_from_next_component(self._incoming_beam)
+        self._trigger_init_listeners()
+        self._trigger_after_beam_path_update()
+
+    def _calc_angle_from_next_component(self, incoming_beam):
+        """
+        Calculates the angle needed for a mirror to be position to reflect the incoming beam to the components position.
+
+        Returns: half the angle to the next enabled beam path calc, or nan if there isn't one.
+        """
+        for setpoint_beam_path_calc in self._angle_to:
+            if setpoint_beam_path_calc.is_in_beam:
+                other_pos = setpoint_beam_path_calc.intercept_in_mantid_coordinates()
+                this_pos = self._movement_strategy.calculate_interception(incoming_beam)
+
+                opp = other_pos.y - this_pos.y
+                adj = other_pos.z - this_pos.z
+                # x = degrees(atan2(opp, adj)) is angle in room co-ords to component
+                # x = x - incoming_beam.angle : is 2 theta
+                # x = x / 2.0: is theta
+                # x + incoming_beam.angle: angle of sample in room coordinate
+
+                angle = (degrees(atan2(opp, adj)) - incoming_beam.angle) / 2.0 + incoming_beam.angle
+                break
+        else:
+            angle = float("NaN")
+        return angle
 
     def _trigger_after_beam_path_update(self):
         """
