@@ -17,5 +17,6 @@
 """Contains constants used by multiple servers"""
 import os
 
-IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL', 'ALARM')
+IOCS_NOT_TO_STOP = ('INSTETC', 'PSCTRL', 'ISISDAE', 'BLOCKSVR', 'ARINST', 'ARBLOCK', 'GWBLOCK', 'RUNCTRL', 'ALARM',
+                    'BSKAFKA')
 IS_LINUX = os.name != "nt"
