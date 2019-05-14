@@ -219,9 +219,9 @@ class AngleDriver(IocDriver):
 
     def initialise_sp(self):
         """
-        Initialise values in the setpoint beam path model .
+        Initialise values in the setpoint beam path model.
         """
-        self._component.beam_path_set_point.init_angle(self._axis.sp)
+        self._component.beam_path_set_point.init_angle_from_motor(self._axis.sp)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """

@@ -169,8 +169,12 @@ class TrackingBeamPathCalc(object):
         """
         return self._movement_strategy.position_in_mantid_coordinates()
 
-    def intercept_in_mantid_coordinates(self):
-        intercept_displacement = self.get_displacement() - self.autosaved_offset
+    def intercept_in_mantid_coordinates(self, on_init=False):
+        if on_init:
+            offset = self.autosaved_offset
+        else:
+            offset = self.get_position_relative_to_beam()
+        intercept_displacement = self.get_displacement() - offset
         return self._movement_strategy.position_in_mantid_coordinates(intercept_displacement)
 
     @property
@@ -211,14 +215,14 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         super(_BeamPathCalcWithAngle, self).__init__(movement_strategy)
         self._angle = 0.0
 
-    def init_angle(self, value):
+    def init_angle_from_motor(self, angle):
         """
-        Initialise the angle of this component.
+        Initialise the angle of this component from a motor axis value.
 
         Params:
-            value(float): The angle read from the motor or file
+            value(float): The angle read from the motor
         """
-        self._angle = value
+        self._angle = angle
         self._trigger_init_listeners()
 
     def _set_angle(self, angle):
@@ -278,14 +282,14 @@ class _BeamPathCalcReflecting(_BeamPathCalcWithAngle):
     def __init__(self, movement_strategy):
         super(_BeamPathCalcReflecting, self).__init__(movement_strategy)
 
-    def init_angle(self, value):
+    def init_angle_from_motor(self, angle):
         """
-        Initialise the angle of this component.
+        Initialise the angle of this component from a motor axis value.
 
         Params:
-            value(float): The angle read from the motor or file
+            value(float): The angle read from the motor
         """
-        super(_BeamPathCalcReflecting, self).init_angle(value)
+        super(_BeamPathCalcReflecting, self).init_angle_from_motor(angle)
         self._trigger_after_beam_path_update_on_init()
 
     def get_outgoing_beam(self):
@@ -430,7 +434,7 @@ class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
         """
         for setpoint_beam_path_calc in self._angle_to:
             if setpoint_beam_path_calc.is_in_beam:
-                other_pos = setpoint_beam_path_calc.intercept_in_mantid_coordinates()
+                other_pos = setpoint_beam_path_calc.intercept_in_mantid_coordinates(on_init=True)
                 this_pos = self._movement_strategy.calculate_interception(incoming_beam)
 
                 opp = other_pos.y - this_pos.y

@@ -316,7 +316,6 @@ class AngleParameter(BeamlineParameter):
                 angle = float(sp_init)
                 self._set_initial_sp(angle)
                 self._move_component()
-                self._reflection_component.beam_path_set_point.init_angle(angle)
             except ValueError as e:
                 self._log_autosave_type_error()
 
@@ -326,7 +325,6 @@ class AngleParameter(BeamlineParameter):
         """
         init_sp = self._reflection_component.beam_path_set_point.angle
         self._set_initial_sp(init_sp)
-        self._move_component()
 
     def _move_component(self):
         self._reflection_component.beam_path_set_point.set_angle_relative_to_beam(self._set_point_rbv)
