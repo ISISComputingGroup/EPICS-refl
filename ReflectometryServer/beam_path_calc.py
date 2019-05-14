@@ -170,10 +170,18 @@ class TrackingBeamPathCalc(object):
         return self._movement_strategy.position_in_mantid_coordinates()
 
     def intercept_in_mantid_coordinates(self, on_init=False):
+        """
+        Calculates the position of the intercept between the incoming beam and the movement axis of this component.
+
+        Params:
+            on_init(Boolean): Whether this is being called on init (decides which value to use for offset)
+
+        Returns (Position): The position of the beam intercept in mantid coordinates.
+        """
         if on_init:
-            offset = self.autosaved_offset
+            offset = self.autosaved_offset or self.get_position_relative_to_beam() or 0
         else:
-            offset = self.get_position_relative_to_beam()
+            offset = self.get_position_relative_to_beam() or 0
         intercept_displacement = self.get_displacement() - offset
         return self._movement_strategy.position_in_mantid_coordinates(intercept_displacement)
 
