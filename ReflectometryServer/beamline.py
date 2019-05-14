@@ -175,6 +175,8 @@ class Beamline(object):
         for component in components:
             self._beam_path_calcs_set_point.append(component.beam_path_set_point)
             self._beam_path_calcs_rbv.append(component.beam_path_rbv)
+            component.beam_path_set_point.add_after_beam_path_update_on_init_listener(
+                self.update_next_beam_component_on_init)
             component.beam_path_set_point.add_after_beam_path_update_listener(
                 partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_set_point))
             component.beam_path_rbv.add_after_beam_path_update_listener(
@@ -304,6 +306,29 @@ class Beamline(object):
 
         try:
             calc_path_list[comp_index + 1].set_incoming_beam(outgoing)
+        except IndexError:
+            pass  # no more components to update
+
+    def update_next_beam_component_on_init(self, source_component):
+        """
+        Updates the next component in the beamline after an initialisation event, preserving autosaved values.
+
+        Args:
+            source_component(None|ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): source component of the
+                update or None for not from component change
+            calc_path_list(List[ReflectometryServer.components.BeamPathCalc]): list of beam calcs order in the same
+                order as components
+        """
+        if source_component is None:
+            outgoing = self._incoming_beam
+            comp_index = -1
+        else:
+            outgoing = source_component.get_outgoing_beam()
+            comp_index = self._beam_path_calcs_set_point.index(source_component)
+
+        try:
+            next_component = self._beam_path_calcs_set_point[comp_index + 1]
+            next_component.set_incoming_beam(outgoing, on_init=True)
         except IndexError:
             pass  # no more components to update
 

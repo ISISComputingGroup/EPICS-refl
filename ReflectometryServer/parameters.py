@@ -313,8 +313,10 @@ class AngleParameter(BeamlineParameter):
         sp_init = file_io.read_autosave_param(self._name)
         if sp_init is not None:
             try:
-                self._set_initial_sp(float(sp_init))
+                angle = float(sp_init)
+                self._set_initial_sp(angle)
                 self._move_component()
+                self._reflection_component.beam_path_set_point.init_angle(angle)
             except ValueError as e:
                 self._log_autosave_type_error()
 
@@ -324,6 +326,7 @@ class AngleParameter(BeamlineParameter):
         """
         init_sp = self._reflection_component.beam_path_set_point.angle
         self._set_initial_sp(init_sp)
+        self._move_component()
 
     def _move_component(self):
         self._reflection_component.beam_path_set_point.set_angle_relative_to_beam(self._set_point_rbv)
@@ -381,7 +384,7 @@ class TrackingPosition(BeamlineParameter):
             try:
                 sp_init = float(sp_init)
                 self._set_initial_sp(sp_init)
-                self._component.beam_path_set_point.autosaved_position_offset = sp_init
+                self._component.beam_path_set_point.autosaved_offset = sp_init
             except ValueError as e:
                 self._log_autosave_type_error()
 
@@ -456,7 +459,7 @@ class InBeamParameter(BeamlineParameter):
             self._set_initial_sp(False)
             self._move_component()
         elif sp_init is not None:
-                self._log_autosave_type_error()
+            self._log_autosave_type_error()
 
     def _initialise_sp_from_motor(self):
         """
