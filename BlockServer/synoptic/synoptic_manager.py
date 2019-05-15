@@ -88,12 +88,12 @@ class SynopticManager(OnTheFlyPvInterface):
 
     def update_monitors(self):
         with self._bs.monitor_lock:
-            print_and_log("UPDATING SYNOPTIC MONITORS")
+            print_and_log("Updating synoptic monitors")
             self._bs.setParam(SYNOPTIC_PRE + SYNOPTIC_GET_DEFAULT, compress_and_hex(self.get_default_synoptic_xml()))
             names = convert_to_json(self.get_synoptic_list())
             self._bs.setParam(SYNOPTIC_PRE + SYNOPTIC_NAMES, compress_and_hex(names))
             self._bs.updatePVs()
-            print_and_log("FINISHED UPDATING SYNOPTIC MONITORS")
+            print_and_log("Finished updating synoptic monitors")
 
     def on_config_change(self, full_init=False):
         # If the config has a default synoptic then set the PV to that

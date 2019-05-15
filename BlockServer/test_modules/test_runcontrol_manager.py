@@ -19,8 +19,11 @@ import os
 from mock import Mock
 
 from BlockServer.config.block import Block
+from BlockServer.config.configuration import Configuration
 from BlockServer.core.active_config_holder import ActiveConfigHolder
+from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
+from BlockServer.test_modules.helpers import modify_active
 
 os.environ['MYPVPREFIX'] = ""
 
@@ -64,19 +67,20 @@ class TestRunControlSequence(unittest.TestCase):
     def setUp(self):
         self.cs = MockChannelAccess()
         self.set_start_time_of_run_control()
+        self.mock_file_manager = MockConfigurationFileManager()
         self.activech, details, ioc_control, self.rcm, rcash = self._create_initial_runcontrol_manager()
 
     def _create_initial_runcontrol_manager(self):
         prefix = ""
         ioc_control = MockIocControl("")
-        ch = ActiveConfigHolder(MACROS, None, MockConfigurationFileManager(), ioc_control)
-        rcash = Mock()
-        rcm = RunControlManager(prefix, "", "",
-                                ioc_control, ch,
-                                MockBlockServer(), self.cs, run_control_auto_save_helper=rcash)
-        details = ch.get_config_details()
-        ch.set_config_details(details)
-        return ch, details, ioc_control, rcm, rcash
+        config_holder = ActiveConfigHolder(MACROS, None, self.mock_file_manager, ioc_control)
+        run_control_autosave_helper = Mock()
+        run_control_manager = RunControlManager(prefix, "", "", ioc_control, config_holder, MockBlockServer(), self.cs,
+                                                run_control_auto_save_helper=run_control_autosave_helper)
+
+        details = config_holder.get_config_details()
+
+        return config_holder, details, ioc_control, run_control_manager, run_control_autosave_helper
 
     def set_start_time_of_run_control(self, start_time=_get_current_time()):
         PVS[MACROS["$(MYPVPREFIX)"] + RC_START_PV] = start_time
@@ -168,10 +172,12 @@ class TestRunControlSequence(unittest.TestCase):
             self._create_initial_runcontrol_manager()
             self.assertEqual(channel.get_call_count(rc_pv), 60)
 
-    @unittest.expectedFailure  # To be fixed in ticket 4110
+    def _modify_active(self, config_holder, new_details):
+        modify_active("abc", MACROS, self.mock_file_manager, new_details, config_holder)
+
     def test_GIVEN_blocks_unchanged_and_not_full_init_WHEN_initialised_THEN_runcontrol_doesnt_restart_and_autosave_files_not_deleted(self):
         ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
-        ch.set_config_details(details)
+        self._modify_active(ch, details)
 
         rcm.on_config_change(False)
 
@@ -182,7 +188,7 @@ class TestRunControlSequence(unittest.TestCase):
     def test_GIVEN_blocks_changed_and_not_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_not_deleted(self, sleep_patch):
         ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
-        ch.set_config_details(details)
+        self._modify_active(ch, details)
 
         rcm.on_config_change(False)
 
@@ -192,7 +198,7 @@ class TestRunControlSequence(unittest.TestCase):
     @patch("BlockServer.runcontrol.runcontrol_manager.sleep")
     def test_GIVEN_blocks_unchanged_and_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_deleted(self, sleep_patch):
         ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
-        ch.set_config_details(details)
+        self._modify_active(ch, details)
 
         rcm.on_config_change(True)
 
@@ -203,7 +209,7 @@ class TestRunControlSequence(unittest.TestCase):
     def test_GIVEN_blocks_changed_and_full_init_WHEN_initialised_THEN_runcontrol_restarts_and_autosave_files_deleted(self, sleep_patch):
         ch, details, ioc_control, rcm, rcash = self._create_initial_runcontrol_manager()
         details['blocks'].append(Block(name="TESTNAME", pv="TESTPV").to_dict())
-        ch.set_config_details(details)
+        self._modify_active(ch, details)
 
         rcm.on_config_change(True)
 

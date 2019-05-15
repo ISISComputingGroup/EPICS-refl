@@ -42,7 +42,7 @@ RUNCONTROL_GET_PV = prepend_blockserver('GET_RC_PARS')
 MAX_LOOPS_TO_WAIT_FOR_START = 60  # roughly 2 minutes at standard time
 
 
-class _RunControlAutoSaveHelper():
+class _RunControlAutoSaveHelper(object):
 
     def __init__(self):
         self._autosave_dir = None
@@ -292,7 +292,7 @@ class RunControlManager(OnTheFlyPvInterface):
         try:
             frmt = '%m/%d/%Y %H:%M:%S'
             latest_ioc_start = datetime.strptime(raw_ioc_time, frmt)
-        except TypeError as e:
+        except TypeError:
             latest_ioc_start = None
             print_and_log("Unable to get run control start time, IOC has not started yet", "MINOR")
         except ValueError as e:
@@ -375,4 +375,3 @@ class RunControlManager(OnTheFlyPvInterface):
         except Exception as err:
             print_and_log("Problem with restarting the run-control IOC: %s"
                           % str(err), "MAJOR")
-

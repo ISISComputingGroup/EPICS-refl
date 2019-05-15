@@ -99,4 +99,3 @@ class Block(object):
                 "visible": self.visible, "component": self.component, "runcontrol": self.rc_enabled,
                 "lowlimit": self.rc_lowlimit, "highlimit": self.rc_highlimit,
                 "log_periodic": self.log_periodic, "log_rate": self.log_rate, "log_deadband": self.log_deadband}
-
