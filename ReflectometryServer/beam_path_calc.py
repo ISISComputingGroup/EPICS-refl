@@ -35,14 +35,28 @@ class TrackingBeamPathCalc(object):
         # This is used in disable mode where the incoming
         self.incoming_beam_can_change = True
 
-    def init_displacement(self, setpoint):
-        self._movement_strategy.set_displacement(setpoint)
+    def init_displacement_from_motor(self, value):
+        """
+        Sets the displacement read from the motor axis on startup.
+
+        Params:
+            value(float): The motor position
+        """
+        self._movement_strategy.set_displacement(value)
         self._trigger_init_listeners()  # Tell Parameter layer and Theta
 
     def add_init_listener(self, listener):
+        """
+        Add a listener which is triggered if an initial value is set
+        Args:
+            listener: listener to trigger after initialisation
+        """
         self._init_listeners.add(listener)
 
     def _trigger_init_listeners(self):
+        """
+        Runs initialisation listeners because an initial value has been read.
+        """
         for listener in self._init_listeners:
             listener()
 
@@ -57,7 +71,7 @@ class TrackingBeamPathCalc(object):
 
     def _trigger_after_beam_path_update(self):
         """
-        Runs all the current listeners because something about the beam path has changed.
+        Runs all the current listeners on the beam path because something about it has changed.
         """
         for listener in self._after_beam_path_update_listeners:
             listener(self)
@@ -65,7 +79,7 @@ class TrackingBeamPathCalc(object):
     def add_after_beam_path_update_on_init_listener(self, listener):
         """
         Add a listener which is triggered if the beam path is changed after a component reads an initial value on
-        startup. For example if displacement is set or incoming beam is changed.
+        startup. For example if incoming beam is changed.
         Args:
             listener: listener with a single argument which is the calling calculation.
         """
@@ -261,6 +275,7 @@ class BeamPathTilting(_BeamPathCalcWithAngle):
     """
     A beam path calculation which includes an angle it can tilt at. Beam path is unaffected by the angle.
     """
+
     def __init__(self, movement_strategy):
         super(BeamPathTilting, self).__init__(movement_strategy)
 
@@ -287,6 +302,7 @@ class _BeamPathCalcReflecting(_BeamPathCalcWithAngle):
     A beam path calculation which includes an angle of the component and that reflects the beam from that angle.
     This is used for theta and reflecting component.
     """
+
     def __init__(self, movement_strategy):
         super(_BeamPathCalcReflecting, self).__init__(movement_strategy)
 
@@ -318,6 +334,7 @@ class BeamPathCalcAngleReflecting(_BeamPathCalcReflecting):
     A reflecting beam path calculation which includes an angle of the component that can be set,
     e.g. a reflecting mirror.
     """
+
     def __init__(self, movement_strategy):
         super(BeamPathCalcAngleReflecting, self).__init__(movement_strategy)
         self._angle = 0.0
@@ -345,6 +362,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
     A reflecting beam path calculator which has a read only angle based on the angle to a list of beam path
     calculations. This is used for example for Theta where the angle is the angle to the next enabled component
     """
+
     def __init__(self, movement_strategy, angle_to):
         """
         Initialiser.
@@ -430,13 +448,18 @@ class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
             comp.add_init_listener(self._init_listener)
 
     def _init_listener(self):
+        """
+        Initialises the theta angle. To be put on the component this theta is angled to, and triggered once that
+        component has read an initial position.
+        """
         self._angle = self._calc_angle_from_next_component(self._incoming_beam)
         self._trigger_init_listeners()
         self._trigger_after_beam_path_update()
 
     def _calc_angle_from_next_component(self, incoming_beam):
         """
-        Calculates the angle needed for a mirror to be position to reflect the incoming beam to the components position.
+        Calculates the theta angle based on the position of the theta component and the beam intercept of the next
+        component on the beam it is angled to.
 
         Returns: half the angle to the next enabled beam path calc, or nan if there isn't one.
         """

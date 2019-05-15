@@ -408,7 +408,7 @@ class TestComponentInitialisation(unittest.TestCase):
         self.theta.beam_path_set_point.set_incoming_beam(self.STRAIGHT_BEAM)
         expected = self.REFLECTION_ANGLE / 2.0
 
-        self.component.beam_path_set_point.init_displacement(z_theta + offset_comp)
+        self.component.beam_path_set_point.init_displacement_from_motor(z_theta + offset_comp)
         actual = self.theta.beam_path_set_point.get_angle_relative_to_beam()
 
         assert_that(actual, is_(close_to(expected, DEFAULT_TEST_TOLERANCE)))

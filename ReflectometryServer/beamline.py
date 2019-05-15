@@ -185,7 +185,7 @@ class Beamline(object):
         self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
 
         for driver in self._drivers:
-            driver.initialise_values()
+            driver.initialise()
 
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
@@ -311,13 +311,12 @@ class Beamline(object):
 
     def update_next_beam_component_on_init(self, source_component):
         """
-        Updates the next component in the beamline after an initialisation event, preserving autosaved values.
+        Updates the next component in the beamline after an initialisation event, recalculating the setpoint beam path
+        while preserving autosaved values.
 
         Args:
             source_component(None|ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): source component of the
                 update or None for not from component change
-            calc_path_list(List[ReflectometryServer.components.BeamPathCalc]): list of beam calcs order in the same
-                order as components
         """
         if source_component is None:
             outgoing = self._incoming_beam
@@ -455,6 +454,12 @@ class Beamline(object):
         return [status.value for status in STATUS]
 
     def _initialise_mode(self, modes):
+        """
+        Tries to read and apply the last active mode from autosave file. Defaults to first mode in list if unsuccessful.
+
+        Params:
+            modes(list[BeamlineMode]): A list of all the modes in this configuration.
+        """
         mode_name = read_mode()
         try:
             self._active_mode = self._modes[mode_name]
