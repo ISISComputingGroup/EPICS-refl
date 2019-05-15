@@ -745,6 +745,23 @@ class TestInitSetpoints(unittest.TestCase):
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
 
+    def test_GIVEN_autosave_is_true_WHEN_initialising_tracking_position_THEN_beam_calc_caches_autosaved_offset(self):
+        expected = 0.1
+        param_name = "param_float"
+
+        param = TrackingPosition(param_name, self.component, autosave=True)
+        actual = self.component.beam_path_set_point.autosaved_offset
+
+        self.assertEqual(expected, actual)
+
+    def test_GIVEN_autosave_is_false_WHEN_initialising_tracking_position_THEN_beam_calc_has_no_autosaved_offset(self):
+        param_name = "param_float"
+
+        param = TrackingPosition(param_name, self.component, autosave=False)
+        actual = self.component.beam_path_set_point.autosaved_offset
+
+        self.assertIsNone(actual)
+
 
 if __name__ == '__main__':
     unittest.main()

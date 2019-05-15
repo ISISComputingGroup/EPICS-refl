@@ -118,6 +118,18 @@ class TestMovementIntercept(unittest.TestCase):
 
         assert_that(result, is_(position(Position(expected_y, expected_z))))
 
+    def test_GIVEN_displacement_WHEN_calculating_position_in_mantid_coordinates_THEN_coordinates_at_given_displacement_are_returned(self):
+        y = 0
+        z = 10
+        angle = 90
+        movement = LinearMovementCalc(PositionAndAngle(y, z, angle))
+
+        displacement = 5
+        result = movement.position_in_mantid_coordinates(displacement)
+
+        assert_that(result, is_(position(Position(displacement, z))))
+
+
 
 class TestMovementRelativeToBeam(unittest.TestCase):
 
