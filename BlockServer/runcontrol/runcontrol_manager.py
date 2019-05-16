@@ -177,11 +177,18 @@ class RunControlManager(OnTheFlyPvInterface):
             self.restart_ioc(clear_autosave)
             # Need to wait for RUNCONTROL_IOC to restart
             self.wait_for_ioc_start(time_between_tries)
+            print_and_log("Finish creating runcontrol PVs")
+
+            print_and_log("Start arbitrary wait after creating runcontrol PVs")
+            # If this sleep is not done, sometimes the config settings will not overwrite the current settings
+            # correctly. See https://github.com/ISISComputingGroup/IBEX/issues/4344
+            sleep(2)
+            print_and_log("Finish arbitrary wait after creating runcontrol PVs")
+
             print_and_log("Restoring config settings...")
             self.restore_config_settings(
                 self._active_configholder.get_block_details())
             print_and_log("Finish restoring config settings")
-            print_and_log("Finish creating runcontrol PVs")
 
     def update_runcontrol_blocks(self, blocks):
         """
