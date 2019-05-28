@@ -86,14 +86,14 @@ class RemoteIocListDriver(Driver):
             remote_ioc.restart_required = True
 
 
-def serve_forever(pv_prefix, ioc_names):
+def serve_forever(pv_prefix, subsystem_prefix, ioc_names):
     server = SimpleServer()
 
     pvdb = STATIC_PV_DATABASE.copy()
     for ioc_db in [pvdb_for_ioc(name) for name in ioc_names]:
         pvdb.update(ioc_db)
 
-    server.createPV(pv_prefix, pvdb)
+    server.createPV("{}{}".format(pv_prefix, subsystem_prefix), pvdb)
 
     # Looks like it does nothing, but this creates *and automatically registers* it
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
@@ -117,11 +117,14 @@ def main():
     parser.add_argument("--ioc_names", type=str, nargs="+", default=None,
                         help="The list of IOCS to be managed by this remote IOC server. The names should be in the"
                              " same format as the names in the IOC list.")
-    parser.add_argument("--pv_prefix", required=True, type=str, help="The PV prefix of this instrument.")
+    parser.add_argument("--pv_prefix", required=True, type=str,
+                        help="The PV prefix of this instrument.")
+    parser.add_argument("--subsystem_prefix", type=str, default="REMIOC:",
+                        help="The subsystem prefix to use for this remote IOC server")
 
     args = parser.parse_args()
 
-    serve_forever(args.pv_prefix, args.ioc_names)
+    serve_forever(args.pv_prefix, args.subsystem_prefix, args.ioc_names)
 
 
 if __name__ == "__main__":
