@@ -117,8 +117,8 @@ class TestBeamlineParameter(unittest.TestCase):
         result = tracking_height.sp_rbv
 
         assert_that(result, is_(height_set))
-        assert_that(jaws.beam_path_set_point.sp_position().y, is_(expected_height))
-        assert_that(jaws.beam_path_set_point.sp_position().z, is_(close_to(jaws_z, DEFAULT_TEST_TOLERANCE)))
+        assert_that(jaws.beam_path_set_point.position_in_mantid_coordinates().y, is_(expected_height))
+        assert_that(jaws.beam_path_set_point.position_in_mantid_coordinates().z, is_(close_to(jaws_z, DEFAULT_TEST_TOLERANCE)))
 
     def test_GIVEN_component_parameter_enabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_enabled(self):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
@@ -168,9 +168,9 @@ class TestBeamlineModes(unittest.TestCase):
 
         beamline.move = 1
 
-        assert_that(slit2.beam_path_set_point.sp_position(), is_(position(Position(-10, 10))))
-        assert_that(ideal_sample_point.beam_path_set_point.sp_position(), is_(position(Position(-20, 20))))
-        assert_that(detector.beam_path_set_point.sp_position(), is_(position(Position(-10, 30))))
+        assert_that(slit2.beam_path_set_point.position_in_mantid_coordinates(), is_(position(Position(-10, 10))))
+        assert_that(ideal_sample_point.beam_path_set_point.position_in_mantid_coordinates(), is_(position(Position(-20, 20))))
+        assert_that(detector.beam_path_set_point.position_in_mantid_coordinates(), is_(position(Position(-10, 30))))
 
     def test_GIVEN_a_mode_with_a_single_beamline_parameter_in_WHEN_move_THEN_beamline_parameter_is_calculated_on_move(self):
         angle_to_set = 45.0
@@ -249,7 +249,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         beamline.move = 1
 
-        assert_that(s2.beam_path_set_point.sp_position().y, is_(initial_s2_height))
+        assert_that(s2.beam_path_set_point.position_in_mantid_coordinates().y, is_(initial_s2_height))
 
     def test_GIVEN_parameter_not_in_mode_and_not_changed_and_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_unchanged(self):
         initial_s2_height = 0.0
@@ -267,7 +267,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         beamline.move = 1
 
-        assert_that(s2.beam_path_set_point.sp_position().y, is_(initial_s2_height))
+        assert_that(s2.beam_path_set_point.position_in_mantid_coordinates().y, is_(initial_s2_height))
 
     def test_GIVEN_parameter_in_mode_and_not_changed_and_no_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_unchanged(self):
         initial_s2_height = 0.0
@@ -284,7 +284,7 @@ class TestBeamlineModes(unittest.TestCase):
 
         beamline.move = 1
 
-        assert_that(s2.beam_path_set_point.sp_position().y, is_(initial_s2_height))
+        assert_that(s2.beam_path_set_point.position_in_mantid_coordinates().y, is_(initial_s2_height))
 
     def test_GIVEN_parameter_changed_and_not_in_mode_and_no_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_moved_to_sp(self):
         initial_s2_height = 0.0
@@ -303,7 +303,7 @@ class TestBeamlineModes(unittest.TestCase):
         slit2_pos.sp_no_move = target_s2_height
         beamline.move = 1
 
-        assert_that(s2.beam_path_set_point.sp_position().y, is_(target_s2_height))
+        assert_that(s2.beam_path_set_point.position_in_mantid_coordinates().y, is_(target_s2_height))
 
     def test_GIVEN_parameter_changed_and_not_in_mode_and_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_moved_to_sp(
             self):
@@ -324,7 +324,7 @@ class TestBeamlineModes(unittest.TestCase):
         slit2_pos.sp_no_move = 1.0
         beamline.move = 1
 
-        assert_that(s2.beam_path_set_point.sp_position().y, is_(close_to(target_s2_height, DEFAULT_TEST_TOLERANCE)))
+        assert_that(s2.beam_path_set_point.position_in_mantid_coordinates().y, is_(close_to(target_s2_height, DEFAULT_TEST_TOLERANCE)))
 
     def test_GIVEN_parameter_changed_and_in_mode_and_no_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_moved_to_sp(
             self):
@@ -344,7 +344,7 @@ class TestBeamlineModes(unittest.TestCase):
         slit2_pos.sp_no_move = target_s2_height
         beamline.move = 1
 
-        assert_that(s2.beam_path_set_point.sp_position().y, is_(target_s2_height))
+        assert_that(s2.beam_path_set_point.position_in_mantid_coordinates().y, is_(target_s2_height))
 
     def test_GIVEN_two_changed_parameters_in_mode_WHEN_first_parameter_moved_to_SP_THEN_second_parameter_moved_to_SP_RBV(self):
         beam_start = PositionAndAngle(0, 0, 0)
@@ -365,7 +365,7 @@ class TestBeamlineModes(unittest.TestCase):
         slit4_pos.sp_no_move = s4_height_sp
         theta.move = 1
 
-        assert_that(s4.beam_path_set_point.sp_position().y, is_(close_to(sample_to_s4_z + s4_height_initial, DEFAULT_TEST_TOLERANCE)))
+        assert_that(s4.beam_path_set_point.position_in_mantid_coordinates().y, is_(close_to(sample_to_s4_z + s4_height_initial, DEFAULT_TEST_TOLERANCE)))
 
     def test_GIVEN_two_changed_parameters_with_second_not_in_mode_WHEN_first_parameter_moved_to_SP_THEN_second_parameter_unchanged(self):
         beam_start = PositionAndAngle(0, 0, 0)
@@ -386,7 +386,7 @@ class TestBeamlineModes(unittest.TestCase):
         slit4_pos.sp_no_move = s4_height_sp
         theta.move = 1
 
-        assert_that(s4.beam_path_set_point.sp_position().y, is_(s4_height_initial))
+        assert_that(s4.beam_path_set_point.position_in_mantid_coordinates().y, is_(s4_height_initial))
 
     def test_GIVEN_two_changed_parameters_with_first_not_in_mode_WHEN_first_parameter_moved_to_SP_THEN_second_parameter_unchanged(
             self):
@@ -408,7 +408,7 @@ class TestBeamlineModes(unittest.TestCase):
         slit4_pos.sp_no_move = s4_height_sp
         theta.move = 1
 
-        assert_that(s4.beam_path_set_point.sp_position().y, is_(s4_height_initial))
+        assert_that(s4.beam_path_set_point.position_in_mantid_coordinates().y, is_(s4_height_initial))
 
 
 class TestBeamlineOnMove(unittest.TestCase):
@@ -624,7 +624,7 @@ class TestBeamlineThetaComponetWhenDisabled(unittest.TestCase):
 class TestInitSetpoints(unittest.TestCase):
 
     def setUp(self):
-        file_io.AUTOSAVE_FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "params.txt"))
+        file_io.PARAM_AUTOSAVE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "params.txt"))
         self.component = Component("component", setup=PositionAndAngle(0, 1, 90))
         self.angle_component = TiltingComponent("angle_component", setup=PositionAndAngle(0, 10, 90))
         self.jaws = create_mock_axis("s1vg", 0.2, 1)
@@ -744,6 +744,23 @@ class TestInitSetpoints(unittest.TestCase):
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
+
+    def test_GIVEN_autosave_is_true_WHEN_initialising_tracking_position_THEN_beam_calc_caches_autosaved_offset(self):
+        expected = 0.1
+        param_name = "param_float"
+
+        param = TrackingPosition(param_name, self.component, autosave=True)
+        actual = self.component.beam_path_set_point.autosaved_offset
+
+        self.assertEqual(expected, actual)
+
+    def test_GIVEN_autosave_is_false_WHEN_initialising_tracking_position_THEN_beam_calc_has_no_autosaved_offset(self):
+        param_name = "param_float"
+
+        param = TrackingPosition(param_name, self.component, autosave=False)
+        actual = self.component.beam_path_set_point.autosaved_offset
+
+        self.assertIsNone(actual)
 
 
 if __name__ == '__main__':

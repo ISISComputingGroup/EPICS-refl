@@ -4,7 +4,6 @@ The driving layer communicates between the component layer and underlying pvs.
 
 import math
 import logging
-import time
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +30,17 @@ class IocDriver(object):
         return "{} for axis pv {} and component {}".format(
             self.__class__.__name__, self._axis.name, self._component.name)
 
-    def initialise_sp(self):
+    def initialise(self):
+        """
+        Post monitors and read initial value from the axis.
+        """
+        self._axis.add_monitors()
+        self.initialise_setpoint()
+
+    def initialise_setpoint(self):
+        """
+        Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
+        """
         raise NotImplemented()
 
     def is_for_component(self, component):
@@ -160,14 +169,14 @@ class DisplacementDriver(IocDriver):
             in_beam_status = True
         return in_beam_status
 
-    def initialise_sp(self):
+    def initialise_setpoint(self):
         """
-        Initialise values in the setpoint beam path model .
+        Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
         sp = self._axis.sp
         if self._out_of_beam_position is not None:
             self._component.beam_path_set_point.is_in_beam = self._get_in_beam_status(sp)
-        self._component.beam_path_set_point.init_displacement(sp)
+        self._component.beam_path_set_point.init_displacement_from_motor(sp)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """
@@ -214,11 +223,11 @@ class AngleDriver(IocDriver):
         """
         super(AngleDriver, self).__init__(component, angle_axis)
 
-    def initialise_sp(self):
+    def initialise_setpoint(self):
         """
-        Initialise values in the setpoint beam path model .
+        Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        self._component.beam_path_set_point.init_angle(self._axis.sp)
+        self._component.beam_path_set_point.init_angle_from_motor(self._axis.sp)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """

@@ -50,5 +50,4 @@ def create_beamline_from_configuration():
         traceback.print_exc(file=sys.stdout)
         beamline = _create_beamline_in_error("Can not read configuration.")
 
-    beamline.active_mode = beamline.mode_names[0]  # TODO initialise in init (future ticket)
     return beamline
