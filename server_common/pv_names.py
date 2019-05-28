@@ -47,7 +47,6 @@ class BlockserverPVNames:
     GROUP_RULES = prepend_blockserver('GROUP_RULES')
     COMPS = prepend_blockserver('COMPS')
     LOAD_CONFIG = prepend_blockserver('LOAD_CONFIG')
-    SAVE_CONFIG = prepend_blockserver('SAVE_CONFIG')
     CLEAR_CONFIG = prepend_blockserver('CLEAR_CONFIG')
     RELOAD_CURRENT_CONFIG = prepend_blockserver('RELOAD_CURRENT_CONFIG')
     CONF_DESC_RULES = prepend_blockserver('CONF_DESC_RULES')

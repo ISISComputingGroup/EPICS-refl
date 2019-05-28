@@ -13,45 +13,91 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
-import json
-
 from BlockServer.core.config_holder import ConfigHolder
 
 
 class InactiveConfigHolder(ConfigHolder):
-    """ Class to hold a individual inactive configuration or component.
     """
-    def __init__(self, macros, file_manager):
-        """ Constructor.
+    Class to hold a individual inactive configuration or component.
+    """
+    def __init__(self, macros, file_manager, test_config=None):
+        """
+        Constructor.
 
         Args:
             macros (dict): The BlockServer macros
             file_manager (ConfigurationFileManager): Deals with writing the config files
         """
-        super(InactiveConfigHolder, self).__init__(macros, file_manager)
+        super(InactiveConfigHolder, self).__init__(macros, file_manager, test_config=test_config)
 
-    # Could we override save_configuration?
     def save_inactive(self, name=None, as_comp=False):
         """Saves a configuration or component that is not currently in use.
 
         Args:
-            name (string): The name to save it under
-            as_comp (bool): Whether to save it as a component
+            name (string): The name to save it under (defaults to the current config name)
+            as_comp (bool): Whether to save it as a component (defaults to False)
         """
         if name is None:
-            name = super(InactiveConfigHolder, self).get_config_name()
-        # See if comp or config already exists
-        # if it does then load it
-        super(InactiveConfigHolder, self).save_configuration(name, as_comp)
+            name = self.get_config_name()
 
-    # Could we override load_configuration?
+        self.save_configuration(name, as_comp)
+
     def load_inactive(self, name, is_component=False):
-        """Loads a configuration or component into memory for editing only.
+        """
+        Loads a configuration or component into memory for editing only.
 
         Args:
             name (string): The name of the configuration to load
             is_component (bool): Whether it is a component
         """
-        config = super(InactiveConfigHolder, self).load_configuration(name, is_component, False)
-        super(InactiveConfigHolder, self).set_config(config, is_component)
+        config = self.load_configuration(name, is_component, False)
+        self.set_config(config, is_component)
+
+    def set_config_details(self, details):
+        """ Set the details of the configuration from a dictionary.
+
+        Args:
+            details (dict): A dictionary containing the new configuration settings
+        """
+        self._cache_config()
+
+        try:
+            self.clear_config()
+            if "iocs" in details:
+                # List of dicts
+                for ioc in details["iocs"]:
+                    macros = self._to_dict(ioc.get('macros'))
+                    pvs = self._to_dict(ioc.get('pvs'))
+                    pvsets = self._to_dict(ioc.get('pvsets'))
+
+                    if ioc.get('component') is not None:
+                        raise ValueError('Cannot override iocs from components')
+
+                    self._add_ioc(ioc['name'], autostart=ioc.get('autostart'), restart=ioc.get('restart'),
+                                  macros=macros, pvs=pvs, pvsets=pvsets, simlevel=ioc.get('simlevel'))
+
+            if "blocks" in details:
+                # List of dicts
+                for args in details["blocks"]:
+                    if args.get('component') is not None:
+                        raise ValueError('Cannot override blocks from components')
+                    self.add_block(args)
+            if "groups" in details:
+                self._set_group_details(details["groups"])
+            if "name" in details:
+                self._set_config_name(details["name"])
+            if "description" in details:
+                self._config.meta.description = details["description"]
+            if "synoptic" in details:
+                self._config.meta.synoptic = details["synoptic"]
+            # blockserver ignores history returned by clients:
+            if "history" in details:
+                self._config.meta.history = details["history"]
+            if "components" in details:
+                # List of dicts
+                for args in details["components"]:
+                    comp = self.load_configuration(args['name'], True)
+                    self.add_component(comp.get_name(), comp)
+        except Exception:
+            self._retrieve_cache()
+            raise

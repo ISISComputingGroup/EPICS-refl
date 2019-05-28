@@ -225,7 +225,6 @@ class ConfigurationXmlConverter(object):
             b = ElementTree.SubElement(grp, TAG_BLOCK)
             b.set(TAG_NAME, blk)
 
-
     @staticmethod
     def _ioc_to_xml(root_xml, ioc):
         """Generates the XML for an ioc"""
@@ -270,10 +269,10 @@ class ConfigurationXmlConverter(object):
             n = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_NAME)
             read = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_READ_PV)
             if n is not None and n.text != "" and read is not None and read.text is not None:
-                name = ConfigurationXmlConverter._replace_macros(n.text)
+                name = n.text
 
                 # Blocks automatically get assigned to the NONE group
-                blocks[name.lower()] = Block(name, ConfigurationXmlConverter._replace_macros(read.text))
+                blocks[name.lower()] = Block(name, read.text)
                 groups[KEY_NONE].blocks.append(name)
 
                 # Check to see if not local
@@ -289,10 +288,8 @@ class ConfigurationXmlConverter(object):
                 # Runcontrol
                 rc_enabled = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_RUNCONTROL_ENABLED)
                 if rc_enabled is not None:
-                    if rc_enabled.text == "True":
-                        blocks[name.lower()].rc_enabled = True
-                    else:
-                        blocks[name.lower()].rc_enabled = False
+                    blocks[name.lower()].rc_enabled = (rc_enabled.text == "True")
+
                 rc_low = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_RUNCONTROL_LOW)
                 if rc_low is not None:
                     blocks[name.lower()].rc_lowlimit = float(rc_low.text)
@@ -328,7 +325,7 @@ class ConfigurationXmlConverter(object):
             gname = g.attrib[TAG_NAME]
             try:
                 gcomp = g.attrib[TAG_COMPONENT]
-            except KeyError as e:
+            except KeyError:
                 gcomp = None
             gname_low = gname.lower()
 
@@ -348,9 +345,8 @@ class ConfigurationXmlConverter(object):
                     blocks[name.lower()].group = gname
 
                 # Remove the block from the NONE group
-                if KEY_NONE in groups:
-                    if name in groups[KEY_NONE].blocks:
-                        groups[KEY_NONE].blocks.remove(name)
+                if KEY_NONE in groups and name in groups[KEY_NONE].blocks:
+                    groups[KEY_NONE].blocks.remove(name)
 
     @staticmethod
     def ioc_from_xml(root_xml, iocs):
@@ -427,11 +423,6 @@ class ConfigurationXmlConverter(object):
         data.history = [e.text for e in edits]
 
     @staticmethod
-    def _replace_macros(name):
-        """Currently does nothing!"""
-        return name
-
-    @staticmethod
     def _find_all_nodes(root, tag, name):
         """Finds all the nodes regardless of whether it has a namespace or not.
 
@@ -486,18 +477,15 @@ class ConfigurationXmlConverter(object):
         if root is None:
             return []
 
-        configs = []
+        banner_items = []
 
         items = ConfigurationXmlConverter._find_single_node(root, "banner", "items")
 
         for item in items:
-
-            bumpstrip = {
+            banner_items.append({
                 "name": ConfigurationXmlConverter._find_single_node(item, "banner", "name").text,
                 "pv": ConfigurationXmlConverter._find_single_node(item, "banner", "pv").text,
                 "local": ConfigurationXmlConverter._find_single_node(item, "banner", "local").text,
-            }
+            })
 
-            configs.append(bumpstrip)
-
-        return configs
+        return banner_items

@@ -18,6 +18,7 @@
 import json
 import os
 import sys
+import traceback
 
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
@@ -63,7 +64,6 @@ initial_dbs = {
     BlockserverPVNames.GROUPS: char_waveform(16000),
     BlockserverPVNames.COMPS: char_waveform(16000),
     BlockserverPVNames.LOAD_CONFIG: char_waveform(1000),
-    BlockserverPVNames.SAVE_CONFIG: char_waveform(1000),
     BlockserverPVNames.RELOAD_CURRENT_CONFIG: char_waveform(100),
     BlockserverPVNames.START_IOCS: char_waveform(16000),
     BlockserverPVNames.STOP_IOCS: char_waveform(1000),
@@ -248,8 +248,6 @@ class BlockServer(Driver):
             data = dehex_and_decompress(value).strip('"')
             if reason == BlockserverPVNames.LOAD_CONFIG:
                 self.write_queue.put((self.load_config, (data,), "LOADING_CONFIG"))
-            elif reason == BlockserverPVNames.SAVE_CONFIG:
-                self.write_queue.put((self.save_active_config, (data,), "SAVING_CONFIG"))
             elif reason == BlockserverPVNames.RELOAD_CURRENT_CONFIG:
                 self.write_queue.put((self.reload_current_config, (), "RELOAD_CURRENT_CONFIG"))
             elif reason == BlockserverPVNames.START_IOCS:
@@ -259,7 +257,7 @@ class BlockServer(Driver):
             elif reason == BlockserverPVNames.RESTART_IOCS:
                 self.write_queue.put((self._ioc_control.restart_iocs, (convert_from_json(data), True), "RESTART_IOCS"))
             elif reason == BlockserverPVNames.SET_CURR_CONFIG_DETAILS:
-                self.write_queue.put((self._set_curr_config, (convert_from_json(data),), "SETTING_CONFIG"))
+                self.write_queue.put((self._set_curr_config, (data,), "SETTING_CONFIG"))
             elif reason == BlockserverPVNames.SAVE_NEW_CONFIG:
                 self.write_queue.put((self.save_inactive_config, (data,), "SAVING_NEW_CONFIG"))
             elif reason == BlockserverPVNames.SAVE_NEW_COMPONENT:
@@ -308,10 +306,10 @@ class BlockServer(Driver):
         Args:
             details (string): the configuration XML
         """
-        self._active_configserver.set_config_details(details)
         # Need to save the config to file before we initialize or the changes won't be propagated to IOCS
-        self.save_active_config(self._active_configserver.get_config_name())
-        self._initialise_config()
+
+        self.save_inactive_config(details)
+        self.load_config(self._active_configserver.get_config_name(), full_init=False)
 
     def _initialise_config(self, full_init=False):
         """Responsible for initialising the configuration.
@@ -325,7 +323,7 @@ class BlockServer(Driver):
 
         self._ioc_control.stop_iocs(iocs_to_stop)
 
-        if len(iocs_to_start) > 0 or len(iocs_to_restart) > 0:
+        if full_init or any(len(x) > 0 for x in (iocs_to_start, iocs_to_stop, iocs_to_restart)):
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
 
         # Set up the gateway
@@ -377,41 +375,40 @@ class BlockServer(Driver):
                 print_and_log("Could not (re)start IOC {}: {}".format(name, err), "MAJOR")
 
         # Give it time to start as IOC has to be running to be able to set restart property
+        print_and_log("Beginning arbitrary wait for IOCs to start.")
         sleep(2)
+        print_and_log("Finished arbitrary wait for IOCs to start.")
         for name, ioc in self._active_configserver.get_all_ioc_details().iteritems():
             if ioc.autostart:
                 # Set the restart property
                 print_and_log("Setting IOC %s's auto-restart to %s" % (name, ioc.restart))
                 self._ioc_control.set_autorestart(name, ioc.restart)
 
-    def load_config(self, config, is_component=False):
+    def load_config(self, config, full_init=True):
         """Load a configuration.
 
         Args:
             config (string): The name of the configuration
-            is_component (bool): Whether it is a component or not
+            full_init (bool): True to restart all IOCs/services or False to restart only those required
         """
+        print_and_log("Loading configuration '{}'".format(config))
         try:
-            if is_component:
-                print_and_log("Loading component: %s" % config)
-                self._active_configserver.load_active(config, True)
-            else:
-                print_and_log("Loading configuration: %s" % config)
-                self._active_configserver.load_active(config)
+            self._active_configserver.load_active(config)
             # If we get this far then assume the config is okay
-            self._initialise_config(full_init=True)
+            self._initialise_config(full_init=full_init)
         except Exception as err:
-            print_and_log(str(err), "MAJOR")
+            print_and_log("Exception while loading configuration '{}': {}".format(config, err), "MAJOR")
+            traceback.print_exc()
 
     def reload_current_config(self):
         """Reload the current configuration."""
         try:
             print_and_log("Reloading current configuration")
             self._active_configserver.reload_current_config()
-            # If we get this far then assume the config is okay
             self._initialise_config(full_init=True)
         except Exception as err:
-            print_and_log(str(err), "MAJOR")
+            print_and_log("Exception while reloading current configuration: {}".format(err), "MAJOR")
+            traceback.print_exc()
 
     def save_inactive_config(self, json_data, as_comp=False):
         """Save an inactive configuration.
@@ -432,19 +429,23 @@ class BlockServer(Driver):
         inactive.set_history(history)
 
         config_name = inactive.get_config_name()
-        self._check_config_inactive(config_name, as_comp)
+
         try:
             if not as_comp:
-                print_and_log("Saving configuration: %s" % config_name)
+                print_and_log("Saving configuration ({})".format(config_name))
                 inactive.save_inactive()
                 self._config_list.update_a_config_in_list(inactive)
             else:
-                print_and_log("Saving component: %s" % config_name)
+                print_and_log("Saving component ({})".format(config_name))
                 inactive.save_inactive(as_comp=True)
                 self._config_list.update_a_config_in_list(inactive, True)
-            print_and_log("Saved")
-        except Exception as err:
-            print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
+
+            print_and_log("Finished saving ({})".format(config_name))
+
+        except Exception as e:
+            print_and_log("Problem occurred saving configuration: {}".format(e), "MAJOR")
+            import traceback
+            traceback.print_exc()
 
         # Reload configuration if a component has changed
         if as_comp and new_details["name"] in self._active_configserver.get_component_names():
@@ -465,31 +466,6 @@ class BlockServer(Driver):
     def _get_timestamp(self):
         return datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
 
-    def save_active_config(self, name):
-        """Save the active configuration.
-
-        Args:
-            name (string): The name to save it under
-        """
-        try:
-            print_and_log("Saving active configuration as: %s" % name)
-            oldname = self._active_configserver.get_cached_name()
-            if oldname != "" and name != oldname:
-                # New name or overwriting another config (Save As)
-                history = self._get_inactive_history(name)
-            else:
-                # Saving current config (Save)
-                history = self._active_configserver.get_history()
-
-            # Set updated history
-            history.append(self._get_timestamp())
-            self._active_configserver.set_history(history)
-
-            self._active_configserver.save_active(name)
-            self._config_list.update_a_config_in_list(self._active_configserver)
-        except Exception as err:
-            print_and_log("Problem occurred saving configuration: {error}".format(error=err), "MAJOR")
-
     def update_blocks_monitors(self):
         """Updates the PV monitors for the blocks and groups, so the clients can see any changes.
         """
@@ -509,9 +485,8 @@ class BlockServer(Driver):
             status (string): The status to set
         """
         if self._active_configserver is not None:
-            d = {'status': status}
             with self.monitor_lock:
-                self.setParam(BlockserverPVNames.SERVER_STATUS, compress_and_hex(convert_to_json(d)))
+                self.setParam(BlockserverPVNames.SERVER_STATUS, compress_and_hex(convert_to_json({'status': status})))
                 self.updatePVs()
 
     def update_get_details_monitors(self):
@@ -540,6 +515,8 @@ class BlockServer(Driver):
                 print_and_log(
                     "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
                     "MAJOR")
+                import traceback
+                traceback.print_exc()
             self.update_server_status("")
 
     def get_blank_config(self):
@@ -550,14 +527,6 @@ class BlockServer(Driver):
         """
         temp_config = InactiveConfigHolder(MACROS, ConfigurationFileManager())
         return temp_config.get_config_details()
-
-    def _check_config_inactive(self, inactive_name, is_component=False):
-        if not is_component:
-            if inactive_name == self._active_configserver.get_config_name():
-                raise ValueError("Cannot change config, use SET_CURR_CONFIG_DETAILS to change the active config")
-        else:
-            pass
-            # TODO: check not a component of active, don't know what do to for this case?
 
     def start_iocs(self, iocs):
         # If the IOC is in the config and auto-restart is set to true then

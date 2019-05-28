@@ -71,9 +71,6 @@ class TestSynopticManagerSequence(unittest.TestCase):
         self.bs = MockBlockServer()
         self.sm = SynopticManager(self.bs, os.path.join(self.dir, SCHEMA_FOLDER), None, self.fileIO)
 
-    def tearDown(self):
-        pass
-
     def _create_a_synoptic(self, name, sm):
         sm.save_synoptic_xml(EXAMPLE_SYNOPTIC % name)
 
@@ -88,7 +85,6 @@ class TestSynopticManagerSequence(unittest.TestCase):
         # Assert
         self.assertTrue(len(s) > 0)
         n = [x['name'] for x in s]
-        print n
         self.assertEqual("-- NONE --", n[0])
         self.assertEqual(SYNOPTIC_1, n[1])
         self.assertEqual(SYNOPTIC_2, n[2])

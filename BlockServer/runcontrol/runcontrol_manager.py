@@ -42,7 +42,7 @@ RUNCONTROL_GET_PV = prepend_blockserver('GET_RC_PARS')
 MAX_LOOPS_TO_WAIT_FOR_START = 60  # roughly 2 minutes at standard time
 
 
-class _RunControlAutoSaveHelper():
+class _RunControlAutoSaveHelper(object):
 
     def __init__(self):
         self._autosave_dir = None
@@ -177,11 +177,18 @@ class RunControlManager(OnTheFlyPvInterface):
             self.restart_ioc(clear_autosave)
             # Need to wait for RUNCONTROL_IOC to restart
             self.wait_for_ioc_start(time_between_tries)
+            print_and_log("Finish creating runcontrol PVs")
+
+            print_and_log("Start arbitrary wait after creating runcontrol PVs")
+            # If this sleep is not done, sometimes the config settings will not overwrite the current settings
+            # correctly. See https://github.com/ISISComputingGroup/IBEX/issues/4344
+            sleep(2)
+            print_and_log("Finish arbitrary wait after creating runcontrol PVs")
+
             print_and_log("Restoring config settings...")
             self.restore_config_settings(
                 self._active_configholder.get_block_details())
             print_and_log("Finish restoring config settings")
-            print_and_log("Finish creating runcontrol PVs")
 
     def update_runcontrol_blocks(self, blocks):
         """
@@ -292,7 +299,7 @@ class RunControlManager(OnTheFlyPvInterface):
         try:
             frmt = '%m/%d/%Y %H:%M:%S'
             latest_ioc_start = datetime.strptime(raw_ioc_time, frmt)
-        except TypeError as e:
+        except TypeError:
             latest_ioc_start = None
             print_and_log("Unable to get run control start time, IOC has not started yet", "MINOR")
         except ValueError as e:
@@ -375,4 +382,3 @@ class RunControlManager(OnTheFlyPvInterface):
         except Exception as err:
             print_and_log("Problem with restarting the run-control IOC: %s"
                           % str(err), "MAJOR")
-

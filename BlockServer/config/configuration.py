@@ -23,6 +23,7 @@ from BlockServer.config.ioc import IOC
 from BlockServer.config.metadata import MetaData
 from BlockServer.core.constants import GRP_NONE
 from BlockServer.core.macros import PVPREFIX_MACRO
+from server_common.utilities import print_and_log
 
 
 class Configuration(object):
@@ -64,16 +65,17 @@ class Configuration(object):
         """
         # Check block name is unique
         if name.lower() in self.blocks.keys():
-            raise Exception("Failed to add block as name is not unique")
+            raise ValueError("Failed to add block as name is not unique")
 
         if local:
             # Strip off the MYPVPREFIX in the PV name (not the block name!)
             pv = pv.replace(self.macros[PVPREFIX_MACRO], "")
+
         self.blocks[name.lower()] = Block(name, pv, local, **kwargs)
 
         if group is not None:
             # If group does not exists then add it
-            if not group.lower() in self.groups.keys():
+            if group.lower() not in self.groups.keys():
                 self.groups[group.lower()] = Group(group)
             self.groups[group.lower()].blocks.append(name)
 
@@ -93,7 +95,9 @@ class Configuration(object):
 
         """
         # Only add it if it has not been added before
-        if not name.upper() in self.iocs.keys():
+        if name.upper() in self.iocs.keys():
+            print_and_log("Warning: IOC '{}' is already part of the configuration. Not adding it again.")
+        else:
             self.iocs[name.upper()] = IOC(name, autostart, restart, component, macros, pvs, pvsets, simlevel)
 
     def update_runcontrol_settings_for_saving(self, rc_data):
@@ -104,11 +108,10 @@ class Configuration(object):
         """
         # Only do it for blocks that are not in a component
         for bn, blk in self.blocks.iteritems():
-            if blk.component is None:
-                if blk.name in rc_data.keys():
-                    blk.rc_enabled = rc_data[blk.name]['ENABLE']
-                    blk.rc_lowlimit = rc_data[blk.name]['LOW']
-                    blk.rc_highlimit = rc_data[blk.name]['HIGH']
+            if blk.component is None and blk.name in rc_data.keys():
+                blk.rc_enabled = rc_data[blk.name]['ENABLE']
+                blk.rc_lowlimit = rc_data[blk.name]['LOW']
+                blk.rc_highlimit = rc_data[blk.name]['HIGH']
 
     def get_name(self):
         """ Gets the name of the configuration.
@@ -125,5 +128,3 @@ class Configuration(object):
             name (string): The new name for the configuration
         """
         self.meta.name = name
-
-

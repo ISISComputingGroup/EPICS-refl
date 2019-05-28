@@ -16,7 +16,9 @@
 
 
 class MockChannelAccess(object):
-    def __init__(self, starting_values=dict()):
+    def __init__(self, starting_values=None):
+        if starting_values is None:
+            starting_values = {}
         self._dict = starting_values
 
     def caget(self, name, as_string=False):
@@ -24,4 +26,3 @@ class MockChannelAccess(object):
 
     def caput(self, name, value, wait=False):
         self._dict[name] = value
-
