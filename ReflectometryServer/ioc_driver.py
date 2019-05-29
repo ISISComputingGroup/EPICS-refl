@@ -25,7 +25,7 @@ class IocDriver(object):
         self._axis = axis
         self._rbv_cache = self._axis.rbv
         self._sp_cache = None
-        self._velocity_to_restore = self._axis.velocity
+        self._velocity_to_restore = self._axis.max_velocity
         self._status_cache = None
         self._move_initiated = False
 
