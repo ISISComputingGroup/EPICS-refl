@@ -1,6 +1,8 @@
 """
 Wrapper for motor PVs
 """
+from functools import partial
+
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX
 import logging
 
@@ -30,10 +32,14 @@ class PVWrapper(object):
         self._after_status_change_listeners = set()
         self._after_velocity_change_listeners = set()
 
-        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
-        self._monitor_pv(self._sp_pv, self._trigger_after_sp_change_listeners)
-        self._monitor_pv(self._dmov_pv, self._trigger_after_status_change_listeners)
-        self._monitor_pv(self._velo_pv, self._trigger_after_velocity_change_listeners)
+        self._monitor_pv(self._rbv_pv,
+                         partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
+        self._monitor_pv(self._sp_pv,
+                         partial(self._trigger_listeners, "setpoint value", self._after_sp_change_listeners))
+        self._monitor_pv(self._dmov_pv,
+                         partial(self._trigger_listeners, "motion status", self._after_status_change_listeners))
+        self._monitor_pv(self._velo_pv,
+                         partial(self._trigger_listeners, "velocity", self._after_velocity_change_listeners))
 
     def _set_pvs(self):
         self._rbv_pv = ""
@@ -95,11 +101,6 @@ class PVWrapper(object):
         """
         self._after_rbv_change_listeners.add(listener)
 
-    def _trigger_after_rbv_change_listeners(self, new_value, alarm_severity, alarm_status):
-        logger.debug("Triggering after value change listeners. New value: {}.".format(new_value))
-        for value_change_listener in self._after_rbv_change_listeners:
-            value_change_listener(new_value, alarm_severity, alarm_status)
-
     def add_after_sp_change_listener(self, listener):
         """
         Add a listener which should be called after a change in the read back value of the motor.
@@ -107,11 +108,6 @@ class PVWrapper(object):
             listener: function to call should have two arguments which are the new value and new error state
         """
         self._after_sp_change_listeners.add(listener)
-
-    def _trigger_after_sp_change_listeners(self, new_value, alarm_severity, alarm_status):
-        logger.debug("Triggered after setpoint readback value change listeners {}.".format(new_value))
-        for value_change_listener in self._after_sp_change_listeners:
-            value_change_listener(new_value, alarm_severity, alarm_status)
 
     def add_after_status_change_listener(self, listener):
         """
@@ -121,11 +117,6 @@ class PVWrapper(object):
         """
         self._after_status_change_listeners.add(listener)
 
-    def _trigger_after_status_change_listeners(self, new_value, alarm_severity, alarm_status):
-        logger.debug("Triggered after moving status change listeners {}.".format(new_value))
-        for value_change_listener in self._after_status_change_listeners:
-            value_change_listener(new_value, alarm_severity, alarm_status)
-
     def add_after_velocity_change_listener(self, listener):
         """
         Add a listener which should be called after a change in the motor velocity.
@@ -134,9 +125,9 @@ class PVWrapper(object):
         """
         self._after_velocity_change_listeners.add(listener)
 
-    def _trigger_after_velocity_change_listeners(self, new_value, alarm_severity, alarm_status):
-        logger.debug("Triggered after velocity change listeners {}.".format(new_value))
-        for value_change_listener in self._after_velocity_change_listeners:
+    def _trigger_listeners(self, change_type, listeners, new_value, alarm_severity, alarm_status):
+        logger.debug("Triggering after {} change listeners. New value: {}".format(change_type, new_value))
+        for value_change_listener in listeners:
             value_change_listener(new_value, alarm_severity, alarm_status)
 
     @property

@@ -25,13 +25,14 @@ class IocDriver(object):
         self._axis = axis
         self._rbv_cache = self._axis.rbv
         self._sp_cache = None
-        self._velocity_cache = None
+        self._velocity_to_restore = self._axis.velocity
         self._status_cache = None
         self._move_initiated = False
+
         self._axis.add_after_rbv_change_listener(self._rbv_change_listener)
         self._axis.add_after_sp_change_listener(self._update_sp_cache)
         self._axis.add_after_status_change_listener(self._update_status)
-        self._axis.add_after_velocity_change_listener(self._cache_velocity)
+        self._axis.add_after_velocity_change_listener(self._save_velocity)
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -63,7 +64,7 @@ class IocDriver(object):
         logger.debug("Moving axis {}".format(self._get_distance()))
         self._move_initiated = True
         if self._status_cache == MTR_STOPPED:
-            self._velocity_cache = self._axis.velocity
+            self._velocity_to_restore = self._axis.velocity
 
         if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
             self._axis.velocity = self._get_distance() / move_duration
@@ -128,15 +129,32 @@ class IocDriver(object):
         self._sp_cache = value
 
     def _update_status(self, value, alarm_severity, alarm_status):
-        if value == MTR_STOPPED and self._velocity_cache is not None:
-            self._axis.velocity = self._velocity_cache
+        """
+        React to an update in the motion status of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new motion status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        if value == MTR_STOPPED and self._velocity_to_restore is not None:
+            self._axis.velocity = self._velocity_to_restore
         if self._move_initiated and value == MTR_MOVING:
             self._move_initiated = False
         self._status_cache = value
 
-    def _cache_velocity(self, value, alarm_severity, alarm_status):
+    def _save_velocity(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the velocity of the underlying motor axis: save value to be restored later if the update
+        is not issued by reflectometry server itself.
+
+        Params:
+            value (Boolean): The new motion status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
         if not self._move_initiated:
-            self._velocity_cache = value
+            self._velocity_to_restore = value
 
     def at_target_setpoint(self):
         """
