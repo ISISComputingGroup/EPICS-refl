@@ -27,13 +27,20 @@ class PVWrapper(object):
 
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
+        self._after_status_change_listeners = set()
+        self._after_velocity_change_listeners = set()
 
         self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
         self._monitor_pv(self._sp_pv, self._trigger_after_sp_change_listeners)
+        self._monitor_pv(self._dmov_pv, self._trigger_after_status_change_listeners)
+        self._monitor_pv(self._velo_pv, self._trigger_after_velocity_change_listeners)
 
     def _set_pvs(self):
         self._rbv_pv = ""
         self._sp_pv = ""
+        self._velo_pv = ""
+        self._vmax_pv = ""
+        self._dmov_pv = ""
 
     def _set_resolution(self):
         self._resolution = 0
@@ -106,6 +113,32 @@ class PVWrapper(object):
         for value_change_listener in self._after_sp_change_listeners:
             value_change_listener(new_value, alarm_severity, alarm_status)
 
+    def add_after_status_change_listener(self, listener):
+        """
+        Add a listener which should be called after a change in the moving status of the motor.
+        Args:
+            listener: function to call should have two arguments which are the new value and new error state
+        """
+        self._after_status_change_listeners.add(listener)
+
+    def _trigger_after_status_change_listeners(self, new_value, alarm_severity, alarm_status):
+        logger.debug("Triggered after moving status change listeners {}.".format(new_value))
+        for value_change_listener in self._after_status_change_listeners:
+            value_change_listener(new_value, alarm_severity, alarm_status)
+
+    def add_after_velocity_change_listener(self, listener):
+        """
+        Add a listener which should be called after a change in the motor velocity.
+        Args:
+            listener: function to call should have two arguments which are the new value and new error state
+        """
+        self._after_velocity_change_listeners.add(listener)
+
+    def _trigger_after_velocity_change_listeners(self, new_value, alarm_severity, alarm_status):
+        logger.debug("Triggered after velocity change listeners {}.".format(new_value))
+        for value_change_listener in self._after_velocity_change_listeners:
+            value_change_listener(new_value, alarm_severity, alarm_status)
+
     @property
     def name(self):
         """
@@ -144,6 +177,30 @@ class PVWrapper(object):
         """
         return self._read_pv(self._rbv_pv)
 
+    @property
+    def velocity(self):
+        """
+        Returns: the value of the underlying velocity PV
+        """
+        return self._read_pv(self._velo_pv)
+
+    @velocity.setter
+    def velocity(self, value):
+        """
+        Writes a value to the underlying velocity PV's VAL field.
+
+        Args:
+            value: The value to set
+        """
+        self._write_pv(self._velo_pv, value)
+
+    @property
+    def max_velocity(self):
+        """
+        Returns: the value of the underlying max velocity PV
+        """
+        return self._read_pv(self._vmax_pv)
+
 
 class MotorPVWrapper(PVWrapper):
     """
@@ -159,33 +216,12 @@ class MotorPVWrapper(PVWrapper):
     def _set_pvs(self):
         self._sp_pv = self._prefixed_pv
         self._rbv_pv = "{}.RBV".format(self._prefixed_pv)
+        self._velo_pv = "{}.VELO".format(self._prefixed_pv)
+        self._vmax_pv = "{}.VMAX".format(self._prefixed_pv)
+        self._dmov_pv = "{}.DMOV".format(self._prefixed_pv)
 
     def _set_resolution(self):
         self._resolution = self._read_pv("{}.MRES".format(self._prefixed_pv))
-
-    @property
-    def velocity(self):
-        """
-        Returns: the value of the underlying velocity PV
-        """
-        return self._read_pv(self._prefixed_pv + ".VELO")
-
-    @velocity.setter
-    def velocity(self, value):
-        """
-        Writes a value to the underlying velocity PV's VAL field.
-
-        Args:
-            value: The value to set
-        """
-        self._write_pv(self._prefixed_pv + ".VELO", value)
-
-    @property
-    def max_velocity(self):
-        """
-        Returns: the value of the underlying max velocity PV
-        """
-        return self._read_pv(self._prefixed_pv + ".VMAX")
 
 
 class AxisPVWrapper(PVWrapper):
@@ -203,6 +239,9 @@ class AxisPVWrapper(PVWrapper):
     def _set_pvs(self):
         self._sp_pv = "{}:SP".format(self._prefixed_pv)
         self._rbv_pv = self._prefixed_pv
+        self._velo_pv = "{}:MTR.VELO".format(self._prefixed_pv)
+        self._vmax_pv = "{}:MTR.VMAX".format(self._prefixed_pv)
+        self._dmov_pv = "{}:MTR.DMOV".format(self._prefixed_pv)
 
 
 class VerticalJawsPVWrapper(PVWrapper):

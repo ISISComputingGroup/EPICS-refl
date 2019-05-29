@@ -127,12 +127,20 @@ class MockMotorPVWrapper(object):
         self.resolution = DEFAULT_TEST_TOLERANCE
         self.after_rbv_change_listener = set()
         self.after_sp_change_listener = set()
+        self.after_status_change_listener = set()
+        self.after_velocity_change_listener = set()
 
     def add_after_rbv_change_listener(self, listener):
         self.after_rbv_change_listener.add(listener)
 
     def add_after_sp_change_listener(self, listener):
         self.after_sp_change_listener.add(listener)
+
+    def add_after_status_change_listener(self, listener):
+        self.after_status_change_listener.add(listener)
+
+    def add_after_velocity_change_listener(self, listener):
+        self.after_velocity_change_listener.add(listener)
 
     @property
     def sp(self):

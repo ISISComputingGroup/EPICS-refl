@@ -16,3 +16,7 @@ REFLECTOMETRY_PREFIX = "{}REFL:".format(MYPVPREFIX)
 
 # Reflectometry configuration file path
 REFL_CONFIG_PATH = "{}".format(_get_env_var('ICPCONFIGROOT'))
+
+# alias motor DMOV values
+MTR_MOVING = 0
+MTR_STOPPED = 1

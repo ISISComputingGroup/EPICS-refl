@@ -5,6 +5,8 @@ The driving layer communicates between the component layer and underlying pvs.
 import math
 import logging
 
+from ReflectometryServer.ChannelAccess.constants import MTR_MOVING, MTR_STOPPED
+
 logger = logging.getLogger(__name__)
 
 
@@ -23,8 +25,13 @@ class IocDriver(object):
         self._axis = axis
         self._rbv_cache = self._axis.rbv
         self._sp_cache = None
+        self._velocity_cache = None
+        self._status_cache = None
+        self._move_initiated = False
         self._axis.add_after_rbv_change_listener(self._rbv_change_listener)
         self._axis.add_after_sp_change_listener(self._update_sp_cache)
+        self._axis.add_after_status_change_listener(self._update_status)
+        self._axis.add_after_velocity_change_listener(self._cache_velocity)
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -54,9 +61,12 @@ class IocDriver(object):
             move_duration: The duration in which to perform this move
         """
         logger.debug("Moving axis {}".format(self._get_distance()))
+        self._move_initiated = True
+        if self._status_cache == MTR_STOPPED:
+            self._velocity_cache = self._axis.velocity
+
         if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
             self._axis.velocity = self._get_distance() / move_duration
-
         self._axis.sp = self._get_set_point_position()
         self._sp_cache = self._get_set_point_position()
 
@@ -116,6 +126,17 @@ class IocDriver(object):
             value: The new set point value.
         """
         self._sp_cache = value
+
+    def _update_status(self, value, alarm_severity, alarm_status):
+        if value == MTR_STOPPED and self._velocity_cache is not None:
+            self._axis.velocity = self._velocity_cache
+        if self._move_initiated and value == MTR_MOVING:
+            self._move_initiated = False
+        self._status_cache = value
+
+    def _cache_velocity(self, value, alarm_severity, alarm_status):
+        if not self._move_initiated:
+            self._velocity_cache = value
 
     def at_target_setpoint(self):
         """
