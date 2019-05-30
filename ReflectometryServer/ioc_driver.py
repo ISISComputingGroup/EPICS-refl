@@ -139,7 +139,7 @@ class IocDriver(object):
         """
         if value == MTR_STOPPED and self._velocity_to_restore is not None:
             self._axis.velocity = self._velocity_to_restore
-        if self._move_initiated and value == MTR_MOVING:
+        if value == MTR_MOVING:
             self._move_initiated = False
         self._status_cache = value
 
