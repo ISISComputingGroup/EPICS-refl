@@ -118,13 +118,14 @@ class ThetaComponent(ReflectingComponent):
             angle_to (list[ReflectometryServer.components.Component]): list of components that the readback
                 angle should calculated to, ordered by preference. First enabled component is used.
         """
+        self.angle_to_components = angle_to
         super(ReflectingComponent, self).__init__(name, setup)
-        self._beam_path_rbv = BeamPathCalcThetaRBV(LinearMovementCalc(setup), [comp.beam_path_rbv for comp in angle_to])
-        self._beam_path_set_point = BeamPathCalcThetaSP(LinearMovementCalc(setup),
-                                                        [comp.beam_path_set_point for comp in angle_to])
 
     def _init_beam_path_calcs(self, setup):
-        pass
+        self._beam_path_rbv = BeamPathCalcThetaRBV(LinearMovementCalc(setup),
+                                                   [comp.beam_path_rbv for comp in self.angle_to_components])
+        self._beam_path_set_point = BeamPathCalcThetaSP(LinearMovementCalc(setup),
+                                                        [comp.beam_path_set_point for comp in self.angle_to_components])
 
 
 # class Bench(Component):

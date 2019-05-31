@@ -38,6 +38,19 @@ class IocDriver(object):
         return "{} for axis pv {} and component {}".format(
             self.__class__.__name__, self._axis.name, self._component.name)
 
+    def initialise(self):
+        """
+        Post monitors and read initial value from the axis.
+        """
+        self._axis.add_monitors()
+        self.initialise_setpoint()
+
+    def initialise_setpoint(self):
+        """
+        Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
+        """
+        raise NotImplemented()
+
     def is_for_component(self, component):
         """
         Does this driver use the component given.
@@ -101,7 +114,7 @@ class IocDriver(object):
         Listener to trigger on a change of the readback value of the underlying motor.
 
         Args:
-            new_value: new axis value that is given
+            new_value: new axis readback value that is given
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
@@ -187,18 +200,34 @@ class DisplacementDriver(IocDriver):
         self._out_of_beam_position = out_of_beam_position
         self._tolerance_on_out_of_beam_position = tolerance_on_out_of_beam_position
 
+    def _get_in_beam_status(self, value):
+        if self._out_of_beam_position is not None:
+            distance_to_out_of_beam = abs(value - self._out_of_beam_position)
+            in_beam_status = distance_to_out_of_beam > self._tolerance_on_out_of_beam_position
+        else:
+            in_beam_status = True
+        return in_beam_status
+
+    def initialise_setpoint(self):
+        """
+        Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
+        """
+        sp = self._axis.sp
+        if self._out_of_beam_position is not None:
+            self._component.beam_path_set_point.is_in_beam = self._get_in_beam_status(sp)
+        self._component.beam_path_set_point.init_displacement_from_motor(sp)
+
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """
-        Propagate the new height to the middle component layer.
+        Propagate the new height readback value to the middle component layer.
 
         Args:
-            new_value: new height that is given
+            new_value: new height readback value that is given
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         if self._out_of_beam_position is not None:
-            distance_to_out_of_beam = abs(new_value - self._out_of_beam_position)
-            self._component.beam_path_rbv.is_in_beam = distance_to_out_of_beam > self._tolerance_on_out_of_beam_position
+            self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(new_value)
         self._component.beam_path_rbv.set_displacement(new_value, alarm_severity, alarm_status)
 
     def _get_set_point_position(self):
@@ -233,12 +262,18 @@ class AngleDriver(IocDriver):
         """
         super(AngleDriver, self).__init__(component, angle_axis)
 
+    def initialise_setpoint(self):
+        """
+        Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
+        """
+        self._component.beam_path_set_point.init_angle_from_motor(self._axis.sp)
+
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """
-        Propagate the new angle to the middle component layer.
+        Propagate the new angle readback value to the middle component layer.
 
         Args:
-            new_value: new angle given
+            new_value: new angle readback value that is given
             alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
             alarm_status (CaChannel._ca.AlarmCondition): the alarm status
         """

@@ -8,7 +8,7 @@ from parameterized import parameterized
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle, PositionAndAngle
 from server_common.channel_access import AlarmSeverity, AlarmStatus
-from utils import position_and_angle, position
+from utils import position_and_angle, position,  DEFAULT_TEST_TOLERANCE
 
 
 class TestComponent(unittest.TestCase):
@@ -58,6 +58,20 @@ class TestComponent(unittest.TestCase):
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = jaws.beam_path_set_point.calculate_beam_interception()
+
+        assert_that(result, is_(position(expected_position)))
+
+    def test_GIVEN_component_has_offset_WHEN_requesting_intercept_in_mantid_coordinates_THEN_offset_is_ignored_in_result(self):
+        beam_angle = 45.0
+        comp_z = 10.0
+        expected_y = comp_z
+        expected_position = Position(expected_y, comp_z)
+        comp = Component("comp", PositionAndAngle(0, comp_z, 90))
+        beam = PositionAndAngle(0, 0, beam_angle)
+        comp.beam_path_set_point.set_incoming_beam(beam)
+
+        comp.beam_path_set_point.set_position_relative_to_beam(5)
+        result = comp.beam_path_set_point.intercept_in_mantid_coordinates()
 
         assert_that(result, is_(position(expected_position)))
 
@@ -333,7 +347,71 @@ class TestThetaComponent(unittest.TestCase):
 
         result = theta.beam_path_rbv.angle
 
-        assert_that(result, is_(close_to(45.0/2.0, 1e-6)))
+        assert_that(result, is_(close_to(45.0/2.0, DEFAULT_TEST_TOLERANCE)))
+
+
+class TestComponentInitialisation(unittest.TestCase):
+
+    def setUp(self):
+        self.Z_COMPONENT = 10
+        self.REFLECTION_ANGLE = 45
+        self.STRAIGHT_BEAM = PositionAndAngle(y=0, z=0, angle=0)
+        self.BOUNCED_BEAM = PositionAndAngle(y=0, z=0, angle=self.REFLECTION_ANGLE)
+        self.EXPECTED_INTERCEPT = self.Z_COMPONENT
+
+        self.component = Component("component", setup=PositionAndAngle(0, self.Z_COMPONENT, 90))
+        self.component.beam_path_set_point.set_incoming_beam(PositionAndAngle(y=0, z=0, angle=0))
+
+    # tests that changing beam on init does the right thing
+    def test_GIVEN_component_has_autosaved_offset_WHEN_incoming_beam_changes_on_init_THEN_displacement_is_beam_intercept_plus_offset(self):
+        autosaved_offset = 1
+        self.component.beam_path_set_point.autosaved_offset = autosaved_offset
+        expected = self.EXPECTED_INTERCEPT + autosaved_offset
+
+        self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
+        actual = self.component.beam_path_set_point.get_displacement()
+
+        assert_that(actual, is_(close_to(expected, DEFAULT_TEST_TOLERANCE)))
+
+    def test_GIVEN_component_has_autosave_position_WHEN_incoming_beam_changes_on_init_THEN_pos_relative_to_beam_is_autosaved_offset(self):
+        autosaved_offset = 1
+        self.component.beam_path_set_point.autosaved_offset = autosaved_offset
+
+        self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
+        actual = self.component.beam_path_set_point.get_position_relative_to_beam()
+
+        self.assertEqual(autosaved_offset, actual)
+
+    def test_GIVEN_component_has_no_autosaved_offset_WHEN_incoming_beam_changes_on_init_THEN_displacement_is_unchanged(self):
+        expected = self.component.beam_path_set_point.get_displacement()
+
+        self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
+        actual = self.component.beam_path_set_point.get_displacement()
+
+        self.assertEqual(expected, actual)
+
+    def test_GIVEN_component_has_no_autosave_position_WHEN_incoming_beam_changes_on_init_THEN_pos_relative_to_beam_is_displacement_minus_beam_intercept(self):
+        displacement = 5
+        self.component.beam_path_set_point.set_displacement(displacement, None, None)
+        expected = displacement - self.EXPECTED_INTERCEPT
+
+        self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
+        actual = self.component.beam_path_set_point.get_position_relative_to_beam()
+
+        assert_that(actual, is_(close_to(expected, DEFAULT_TEST_TOLERANCE)))
+
+    def test_GIVEN_theta_angled_to_autosaved_comp_WHEN_initialising_comp_THEN_theta_is_init_with_regards_to_beam_intercept(self):
+        z_theta = self.Z_COMPONENT / 2
+        offset_comp = 3
+        self.component.beam_path_set_point.autosaved_offset = offset_comp
+        self.theta = ThetaComponent("theta", PositionAndAngle(0, z_theta, 90), angle_to=[self.component])
+        self.theta.beam_path_set_point.set_incoming_beam(self.STRAIGHT_BEAM)
+        expected = self.REFLECTION_ANGLE / 2.0
+
+        self.component.beam_path_set_point.init_displacement_from_motor(z_theta + offset_comp)
+        actual = self.theta.beam_path_set_point.get_angle_relative_to_beam()
+
+        assert_that(actual, is_(close_to(expected, DEFAULT_TEST_TOLERANCE)))
 
 
 if __name__ == '__main__':

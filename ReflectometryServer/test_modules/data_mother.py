@@ -18,7 +18,7 @@ class EmptyBeamlineParameter(BeamlineParameter):
         super(EmptyBeamlineParameter, self).__init__(name)
         self.move_component_count = 0
 
-    def _move_component(self):
+    def _check_and_move_component(self):
         self.move_component_count += 1
 
     def validate(self, drivers):
@@ -129,6 +129,9 @@ class MockMotorPVWrapper(object):
         self.after_sp_change_listener = set()
         self.after_status_change_listener = set()
         self.after_velocity_change_listener = set()
+
+    def add_monitors(self):
+        pass
 
     def add_after_rbv_change_listener(self, listener):
         self.after_rbv_change_listener.add(listener)

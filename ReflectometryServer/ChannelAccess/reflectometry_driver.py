@@ -1,6 +1,7 @@
 """
 Driver for the reflectometry server.
 """
+import logging
 from functools import partial
 
 from pcaspy import Driver, Alarm, Severity
@@ -10,6 +11,8 @@ from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, 
     convert_from_epics_pv_value
 from ReflectometryServer.parameters import BeamlineParameterGroup
 from server_common.utilities import compress_and_hex
+
+logger = logging.getLogger(__name__)
 
 
 class ReflectometryDriver(Driver):
@@ -103,20 +106,21 @@ class ReflectometryDriver(Driver):
         elif self._pv_manager.is_beamline_mode(reason):
             try:
                 beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
-                self._beamline.active_mode = beamline_mode_enums[value]
-                self._update_param(reason, value)
+                new_mode_name = beamline_mode_enums[value]
+                self._beamline.active_mode = new_mode_name
+                self._bl_mode_change(new_mode_name)
             except ValueError:
-                print("Invalid value entered for mode. (Possible modes: {})".format(
+                logger.error("Invalid value entered for mode. (Possible modes: {})".format(
                     ",".join(self._beamline.mode_names)))
                 status = False
         elif self._pv_manager.is_sample_length(reason):
             self._footprint_manager.set_sample_length(value)
         else:
-            print("Error: PV is read only")
+            logger.error("Error: PV is read only")
             status = False
 
         if status:
-            self._update_param(reason, value)
+            self._update_param_both_pv_and_pv_val(reason, value)
             self.update_monitors()
         return status
 
@@ -127,7 +131,7 @@ class ReflectometryDriver(Driver):
         # with self.monitor_lock:
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
-            self._update_param(pv_name, param_sort.get_from_parameter(parameter))
+            self._update_param_both_pv_and_pv_val(pv_name, param_sort.get_from_parameter(parameter))
         self._update_all_footprints()
         self.updatePVs()
 
@@ -147,13 +151,13 @@ class ReflectometryDriver(Driver):
             sort{ReflectometryServer.pv_manager.FootprintSort): The sort of value for which to update the footprint PVs
         """
         prefix = FootprintSort.prefix(sort)
-        self._update_param(FP_TEMPLATE.format(prefix), self._footprint_manager.get_footprint(sort))
-        self._update_param(DQQ_TEMPLATE.format(prefix), self._footprint_manager.get_resolution(sort))
-        self._update_param(QMIN_TEMPLATE.format(prefix), self._footprint_manager.get_q_min(sort))
-        self._update_param(QMAX_TEMPLATE.format(prefix), self._footprint_manager.get_q_max(sort))
+        self._update_param_both_pv_and_pv_val(FP_TEMPLATE.format(prefix), self._footprint_manager.get_footprint(sort))
+        self._update_param_both_pv_and_pv_val(DQQ_TEMPLATE.format(prefix), self._footprint_manager.get_resolution(sort))
+        self._update_param_both_pv_and_pv_val(QMIN_TEMPLATE.format(prefix), self._footprint_manager.get_q_min(sort))
+        self._update_param_both_pv_and_pv_val(QMAX_TEMPLATE.format(prefix), self._footprint_manager.get_q_max(sort))
         self.updatePVs()
 
-    def _update_param(self, pv_name, value):
+    def _update_param_both_pv_and_pv_val(self, pv_name, value):
         """
         Update a parameter value (both it and .VAL)
 
@@ -171,7 +175,7 @@ class ReflectometryDriver(Driver):
             pv_name: name of the pv
             value: new value
         """
-        self._update_param(pv_name, value)
+        self._update_param_both_pv_and_pv_val(pv_name, value)
         self.updatePVs()
 
     def add_param_listeners(self):
@@ -180,21 +184,29 @@ class ReflectometryDriver(Driver):
         """
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
+            parameter.add_init_listener(partial(self._update_param_listener, pv_name))
             if param_sort == PvSort.RBV:
                 parameter.add_rbv_change_listener(partial(self._update_param_listener, pv_name))
             if param_sort == PvSort.SP_RBV:
                 parameter.add_sp_rbv_change_listener(partial(self._update_param_listener, pv_name))
 
+    def _bl_mode_change(self, mode):
+        """
+        Beamline mode change in driver
+        Args:
+            mode (str): to change to
+        """
+        mode_value = self._beamline_mode_value(mode)
+        self._update_param_both_pv_and_pv_val(BEAMLINE_MODE, mode_value)
+        self._update_param_both_pv_and_pv_val(BEAMLINE_MODE + SP_SUFFIX, mode_value)
+        self.updatePVs()
+
     def add_trigger_active_mode_change_listener(self):
         """
         Adds the monitor on the active mode, if this changes a monitor update is posted.
         """
-        def _bl_mode_change(mode):
-            mode_value = self._beamline_mode_value(mode)
-            self._update_param(BEAMLINE_MODE, mode_value)
-            self._update_param(BEAMLINE_MODE + SP_SUFFIX, mode_value)
-            self.updatePVs()
-        self._beamline.add_active_mode_change_listener(_bl_mode_change)
+        self._beamline.add_active_mode_change_listener(self._bl_mode_change)
+        self._bl_mode_change(self._beamline.active_mode)
 
     def add_trigger_status_change_listener(self):
         """
@@ -203,8 +215,8 @@ class ReflectometryDriver(Driver):
         def _bl_status_change(status, message):
             beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
             status_id = beamline_status_enums.index(status.display_string)
-            self._update_param(BEAMLINE_STATUS, status_id)
-            self._update_param(BEAMLINE_MESSAGE, message)
+            self._update_param_both_pv_and_pv_val(BEAMLINE_STATUS, status_id)
+            self._update_param_both_pv_and_pv_val(BEAMLINE_MESSAGE, message)
             self.updatePVs()
         self._beamline.add_status_change_listener(_bl_status_change)
 

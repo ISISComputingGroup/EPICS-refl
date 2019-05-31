@@ -8,8 +8,10 @@ from enum import Enum
 from pcaspy import Severity
 
 from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer.file_io import read_mode, save_mode
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
+from ReflectometryServer.parameters import ParameterNotInitializedException
 
 from server_common.channel_access import UnableToConnectToPVException
 
@@ -164,24 +166,31 @@ class Beamline(object):
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
             beamline_parameter.after_move_listener = self._move_for_single_beamline_parameters
 
+        self._modes = OrderedDict()
+        for mode in modes:
+            self._modes[mode.name] = mode
+
+        self._validate(beamline_parameters, modes)
+
         for component in components:
             self._beam_path_calcs_set_point.append(component.beam_path_set_point)
             self._beam_path_calcs_rbv.append(component.beam_path_rbv)
+            component.beam_path_set_point.add_after_beam_path_update_on_init_listener(
+                self.update_next_beam_component_on_init)
             component.beam_path_set_point.add_after_beam_path_update_listener(
                 partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_set_point))
             component.beam_path_rbv.add_after_beam_path_update_listener(
                 partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_rbv))
 
-        self._modes = OrderedDict()
-        for mode in modes:
-            self._modes[mode.name] = mode
-
         self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
-        self._active_mode = None
-        self.update_next_beam_component(None, self._beam_path_calcs_set_point)
-        self.update_next_beam_component(None, self._beam_path_calcs_rbv)
 
-        self._validate(beamline_parameters, modes)
+        for driver in self._drivers:
+            driver.initialise()
+
+        self.update_next_beam_component(None, self._beam_path_calcs_rbv)
+        self.update_next_beam_component(None, self._beam_path_calcs_set_point)
+
+        self._initialise_mode(modes)
 
     def _validate(self, beamline_parameters, modes):
         errors = []
@@ -247,7 +256,8 @@ class Beamline(object):
             self._active_mode = self._modes[mode]
             for component in self._components:
                 component.set_incoming_beam_can_change(not self._active_mode.is_disabled)
-            self.init_setpoints()
+            save_mode(mode)
+            self._init_params_from_mode()
             self._trigger_active_mode_change()
         except KeyError:
             raise ValueError("Not a valid mode name: '{}'".format(mode))
@@ -299,6 +309,28 @@ class Beamline(object):
         except IndexError:
             pass  # no more components to update
 
+    def update_next_beam_component_on_init(self, source_component):
+        """
+        Updates the next component in the beamline after an initialisation event, recalculating the setpoint beam path
+        while preserving autosaved values.
+
+        Args:
+            source_component(None|ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): source component of the
+                update or None for not from component change
+        """
+        if source_component is None:
+            outgoing = self._incoming_beam
+            comp_index = -1
+        else:
+            outgoing = source_component.get_outgoing_beam()
+            comp_index = self._beam_path_calcs_set_point.index(source_component)
+
+        try:
+            next_component = self._beam_path_calcs_set_point[comp_index + 1]
+            next_component.set_incoming_beam(outgoing, on_init=True)
+        except IndexError:
+            pass  # no more components to update
+
     def _move_for_all_beamline_parameters(self):
         """
         Updates the beamline parameters to the latest set point value; reapplies if they are in the mode. Then moves to
@@ -309,7 +341,13 @@ class Beamline(object):
 
         for beamline_parameter in parameters:
             if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
-                beamline_parameter.move_to_sp_no_callback()
+                try:
+                    beamline_parameter.move_to_sp_no_callback()
+                except ParameterNotInitializedException as e:
+                    self.set_status(STATUS.GENERAL_ERROR,
+                                    "Parameter {} has not been initialized. Check reflectometry configuration is "
+                                    "correct and underlying motor IOC is running.".format(e.message))
+                    return
         self._move_drivers()
 
     def _move_for_single_beamline_parameters(self, source):
@@ -339,7 +377,7 @@ class Beamline(object):
         """
         return self._beamline_parameters[key]
 
-    def init_setpoints(self):
+    def _init_params_from_mode(self):
         """
         Applies the initial values set in the current beamline mode to the relevant beamline parameter setpoints.
         """
@@ -414,6 +452,21 @@ class Beamline(object):
         """
         # noinspection PyTypeChecker
         return [status.value for status in STATUS]
+
+    def _initialise_mode(self, modes):
+        """
+        Tries to read and apply the last active mode from autosave file. Defaults to first mode in list if unsuccessful.
+
+        Params:
+            modes(list[BeamlineMode]): A list of all the modes in this configuration.
+        """
+        mode_name = read_mode()
+        try:
+            self._active_mode = self._modes[mode_name]
+        except KeyError:
+            logger.error("Mode {} not found in configuration. Setting default.".format(mode_name))
+            if len(modes) > 0:
+                self._active_mode = modes[0]
 
     def _trigger_active_mode_change(self):
         """
