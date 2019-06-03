@@ -112,4 +112,3 @@ def save_mode(mode):
             f.write(mode)
     except Exception as e:
         logger.error("Failed to save mode: {}".format(e))
-        return None

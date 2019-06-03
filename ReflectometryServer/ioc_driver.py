@@ -25,7 +25,7 @@ class IocDriver(object):
         self._axis = axis
         self._rbv_cache = self._axis.rbv
         self._sp_cache = None
-        self._velocity_to_restore = self._axis.max_velocity
+        self._velocity_to_restore = None
         self._status_cache = None
         self._move_initiated = False
 
@@ -166,7 +166,9 @@ class IocDriver(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        if not self._move_initiated:
+        if self._velocity_to_restore is None:
+            self._velocity_to_restore = self._axis.max_velocity
+        elif not self._move_initiated:
             self._velocity_to_restore = value
 
     def at_target_setpoint(self):

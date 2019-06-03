@@ -24,13 +24,16 @@ class PVWrapper(object):
             base_pv(String): The name of the PV
         """
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
-        self._set_pvs()
-        self._set_resolution()
+        self.max_velocity = None
 
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
         self._after_status_change_listeners = set()
         self._after_velocity_change_listeners = set()
+
+        self._set_pvs()
+        self._set_resolution()
+        self._set_max_velocity()
 
     def add_monitors(self):
         """
@@ -54,6 +57,9 @@ class PVWrapper(object):
 
     def _set_resolution(self):
         self._resolution = 0
+
+    def _set_max_velocity(self):
+        self.max_velocity = self._read_pv(self._vmax_pv)
 
     @staticmethod
     def _monitor_pv(pv, call_back_function):
@@ -189,13 +195,6 @@ class PVWrapper(object):
         """
         self._write_pv(self._velo_pv, value)
 
-    @property
-    def max_velocity(self):
-        """
-        Returns: the value of the underlying max velocity PV
-        """
-        return self._read_pv(self._vmax_pv)
-
 
 class MotorPVWrapper(PVWrapper):
     """
@@ -281,13 +280,12 @@ class VerticalJawsPVWrapper(PVWrapper):
         for pv in motor_velocities:
             self._write_pv(pv, value)
 
-    @property
-    def max_velocity(self):
+    def _set_max_velocity(self):
         """
         Returns: the value of the underlying max velocity PV
         """
         motor_velocities = self._pv_names_for_directions("MTR.VMAX")
-        return min([self._read_pv(pv) for pv in motor_velocities])
+        self.max_velocity = min([self._read_pv(pv) for pv in motor_velocities])
 
     def _pv_names_for_directions(self, suffix):
         """
