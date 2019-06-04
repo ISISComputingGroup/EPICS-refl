@@ -55,7 +55,7 @@ def write_autosave_param(param_name, value):
     Returns: A formatted string to write to file
     """
     if not os.path.exists(REFL_AUTOSAVE_PATH):
-        os.mkdir(REFL_AUTOSAVE_PATH)
+        os.makedirs(REFL_AUTOSAVE_PATH)
     try:
         if not os.path.exists(PARAM_AUTOSAVE_PATH):
             with open(PARAM_AUTOSAVE_PATH, "w") as f:
@@ -106,7 +106,7 @@ def save_mode(mode):
         mode(str): The name of the mode to save.
     """
     if not os.path.exists(REFL_AUTOSAVE_PATH):
-        os.mkdir(REFL_AUTOSAVE_PATH)
+        os.makedirs(REFL_AUTOSAVE_PATH)
     try:
         with open(MODE_AUTOSAVE_PATH, "w") as f:
             f.write(mode)
