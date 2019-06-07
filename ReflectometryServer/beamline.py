@@ -222,7 +222,7 @@ class Beamline(object):
             dict[str, ReflectometryServer.parameters.BeamlineParameterType]: a dictionary of parameter type,
                 keyed by their name
         """
-        types = {}
+        types = OrderedDict()
         for beamline_parameter in self._beamline_parameters.values():
             types[beamline_parameter.name] = (beamline_parameter.parameter_type, beamline_parameter.group_names,
                                               beamline_parameter.description)

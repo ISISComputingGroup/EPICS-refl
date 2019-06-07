@@ -7,6 +7,7 @@ from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParame
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
 from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY
 import json
+from collections import OrderedDict
 
 
 PARAM_PREFIX = "PARAM"
@@ -185,8 +186,8 @@ class PVManager:
         """
 
         self.PVDB = {}
-        self._params_pv_lookup = {}
-        self._tracking_positions = {}
+        self._params_pv_lookup = OrderedDict()
+        self._tracking_positions = []
         self._footprint_parameters = {}
 
         self._add_global_pvs(mode_names, status_codes)
@@ -251,7 +252,7 @@ class PVManager:
                                     'count': 300,
                                     'value': json.dumps(self._tracking_positions)
                                     }
-
+    
     def _add_parameter_pvs(self, param_name, group_names, description, **fields):
         """
         Adds all PVs needed for one beamline parameter to the PV database.
@@ -266,7 +267,9 @@ class PVManager:
             param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM", limit=10)
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
             if BeamlineParameterGroup.TRACKING in group_names:
-                self._tracking_positions[prepended_alias] = param_name
+                item = {}
+                item[prepended_alias] = param_name
+                self._tracking_positions.append(item) 
 
             self.PVDB["{}.DESC".format(prepended_alias)] = {'type': 'string',
                                                             'value': description
