@@ -66,6 +66,8 @@ ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
 ioc_data_source.insert_ioc_start("REFL", os.getpid(), sys.argv[0], pv_db.PVDB, REFLECTOMETRY_PREFIX)
 
 logger.info("Reflectometry IOC started")
+
+logger.info(pv_db.PVDB["TRACKING_AXES"])
 # Process CA transactions
 
 while True:

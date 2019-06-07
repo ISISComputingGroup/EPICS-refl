@@ -247,13 +247,13 @@ class PVManager:
                 keyed by name.
         """
         for param, (param_type, group_names, description) in param_types.items():
-            self._add_parameter_pvs(param, group_names, description, **PARAMS_FIELDS_BEAMLINE_TYPES[param_type])
+            self._add_parameter_pvs(param, group_names, description, param_type)
         self.PVDB[TRACKING_AXES] = {'type': 'char',
                                     'count': 300,
                                     'value': json.dumps(self._tracking_positions)
                                     }
     
-    def _add_parameter_pvs(self, param_name, group_names, description, **fields):
+    def _add_parameter_pvs(self, param_name, group_names, description, param_type):
         """
         Adds all PVs needed for one beamline parameter to the PV database.
 
@@ -266,10 +266,18 @@ class PVManager:
         try:
             param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM", limit=10)
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
-            if BeamlineParameterGroup.TRACKING in group_names:
-                item = {}
-                item[prepended_alias] = param_name
-                self._tracking_positions.append(item) 
+           
+            fields = PARAMS_FIELDS_BEAMLINE_TYPES[param_type]
+            #if BeamlineParameterGroup.TRACKING in group_names:
+            item = {}
+            item["param_name"] = param_name
+            item["prepended_alias"] = prepended_alias
+            if param_type is BeamlineParameterType.FLOAT:
+                item["type"] = "float"
+            elif param_type is BeamlineParameterType.IN_OUT:
+                item["type"] = "in_out"
+
+            self._tracking_positions.append(item) 
 
             self.PVDB["{}.DESC".format(prepended_alias)] = {'type': 'string',
                                                             'value': description
