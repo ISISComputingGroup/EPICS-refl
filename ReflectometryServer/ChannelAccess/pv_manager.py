@@ -22,6 +22,7 @@ SP_RBV_SUFFIX = ":SP:RBV"
 MOVE_SUFFIX = ":MOVE"
 CHANGED_SUFFIX = ":CHANGED"
 SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
+IN_MODE_SUFFIX = ":IN_MODE"
 VAL_FIELD = ".VAL"
 
 FOOTPRINT_PREFIX = "FP"
@@ -39,6 +40,8 @@ FP_RBV_PREFIX = "RBV"
 FOOTPRINT_PREFIXES = [FP_SP_PREFIX, FP_SP_RBV_PREFIX, FP_RBV_PREFIX]
 
 PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
+
+PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 
 PARAM_FIELDS_MOVE = {'type': 'int', 'count': 1, 'value': 0}
 
@@ -97,6 +100,7 @@ class PvSort(Enum):
     SP = 3
     SET_AND_NO_MOVE = 4
     CHANGED = 6
+    IN_MODE = 7
 
     @staticmethod
     def what(pv_sort):
@@ -118,6 +122,8 @@ class PvSort(Enum):
             return "(Set point with no move afterwards)"
         elif pv_sort == PvSort.CHANGED:
             return "(is changed)"
+        elif pv_sort == PvSort.IN_MODE:
+            return "(is in mode)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -142,6 +148,8 @@ class PvSort(Enum):
             return parameter.sp_changed
         elif self == PvSort.MOVE:
             return parameter.move
+        elif self == PvSort.IN_MODE:
+            return parameter.in_mode
 
         return float("NaN")
 
@@ -260,7 +268,7 @@ class PVManager:
         Args:
             param_name: The name of the beamline parameter
             fields: The fields of the parameter PV
-            group_names: list fo groups to which this parameter belong
+            group_names: list of groups to which this parameter belong
             description: description of the pv
         """
         try:
@@ -268,7 +276,6 @@ class PVManager:
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
            
             fields = PARAMS_FIELDS_BEAMLINE_TYPES[param_type]
-            #if BeamlineParameterGroup.TRACKING in group_names:
             item = {}
             item["param_name"] = param_name
             item["prepended_alias"] = prepended_alias
@@ -303,6 +310,10 @@ class PVManager:
 
             # Move PV
             self._add_pv_with_val(prepended_alias + MOVE_SUFFIX, param_name, PARAM_FIELDS_MOVE, description,
+                                  PvSort.MOVE)
+
+            # In mode PV
+            self._add_pv_with_val(prepended_alias + IN_MODE_SUFFIX, param_name, PARAM_IN_MODE, description,
                                   PvSort.MOVE)
 
         except Exception as err:

@@ -288,6 +288,16 @@ class Beamline(object):
         """
         return self._components[item]
 
+    def get_param_names_in_mode(self):
+        """ Returns a list of the name of params in the current mode.
+        """
+
+        param_names_in_mode = []
+        parameters = self._beamline_parameters.values()
+        for param in self._active_mode.get_parameters_in_mode(parameters):
+            param_names_in_mode.append(param.name)
+        return param_names_in_mode
+
     def update_next_beam_component(self, source_component, calc_path_list):
         """
         Updates the next component in the beamline.
@@ -474,7 +484,7 @@ class Beamline(object):
 
         """
         for listener in self._active_mode_change_listeners:
-            listener(self.active_mode)
+            listener(self.active_mode, self.get_param_names_in_mode())
 
     def add_active_mode_change_listener(self, listener):
         """

@@ -108,7 +108,7 @@ class ReflectometryDriver(Driver):
                 beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
                 new_mode_name = beamline_mode_enums[value]
                 self._beamline.active_mode = new_mode_name
-                self._bl_mode_change(new_mode_name)
+                self._bl_mode_change(new_mode_name, self._beamline.get_param_names_in_mode())
             except ValueError:
                 logger.error("Invalid value entered for mode. (Possible modes: {})".format(
                     ",".join(self._beamline.mode_names)))
@@ -190,12 +190,13 @@ class ReflectometryDriver(Driver):
             if param_sort == PvSort.SP_RBV:
                 parameter.add_sp_rbv_change_listener(partial(self._update_param_listener, pv_name))
 
-    def _bl_mode_change(self, mode):
+    def _bl_mode_change(self, mode, params_in_mode):
         """
         Beamline mode change in driver
         Args:
             mode (str): to change to
         """
+        print(params_in_mode)
         mode_value = self._beamline_mode_value(mode)
         self._update_param_both_pv_and_pv_val(BEAMLINE_MODE, mode_value)
         self._update_param_both_pv_and_pv_val(BEAMLINE_MODE + SP_SUFFIX, mode_value)
@@ -206,7 +207,7 @@ class ReflectometryDriver(Driver):
         Adds the monitor on the active mode, if this changes a monitor update is posted.
         """
         self._beamline.add_active_mode_change_listener(self._bl_mode_change)
-        self._bl_mode_change(self._beamline.active_mode)
+        self._bl_mode_change(self._beamline.active_mode, self._beamline.get_param_names_in_mode())
 
     def add_trigger_status_change_listener(self):
         """
