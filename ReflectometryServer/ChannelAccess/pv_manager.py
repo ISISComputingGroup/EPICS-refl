@@ -148,8 +148,8 @@ class PvSort(Enum):
             return parameter.sp_changed
         elif self == PvSort.MOVE:
             return parameter.move
-        elif self == PvSort.IN_MODE:
-            return parameter.in_mode
+        #elif self == PvSort.IN_MODE:
+           # return 1
 
         return float("NaN")
 
@@ -314,7 +314,7 @@ class PVManager:
 
             # In mode PV
             self._add_pv_with_val(prepended_alias + IN_MODE_SUFFIX, param_name, PARAM_IN_MODE, description,
-                                  PvSort.MOVE)
+                                  PvSort.IN_MODE)
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
