@@ -200,8 +200,8 @@ class ReflectometryDriver(Driver):
         Beamline mode change in driver
         Args:
             mode (str): to change to
+            params_in_mode : list of parameters in the mode given
         """
-        print(params_in_mode)
 
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             if param_sort is PvSort.RBV:

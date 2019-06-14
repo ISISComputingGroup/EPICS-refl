@@ -148,9 +148,6 @@ class PvSort(Enum):
             return parameter.sp_changed
         elif self == PvSort.MOVE:
             return parameter.move
-        #elif self == PvSort.IN_MODE:
-           # return 1
-
         return float("NaN")
 
 
@@ -267,7 +264,7 @@ class PVManager:
 
         Args:
             param_name: The name of the beamline parameter
-            fields: The fields of the parameter PV
+            param_type: The type of the parameter
             group_names: list of groups to which this parameter belong
             description: description of the pv
         """
@@ -276,6 +273,7 @@ class PVManager:
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
            
             fields = PARAMS_FIELDS_BEAMLINE_TYPES[param_type]
+            # generate a dictionary to store metadata about tracking positions
             item = {}
             item["param_name"] = param_name
             item["prepended_alias"] = prepended_alias
