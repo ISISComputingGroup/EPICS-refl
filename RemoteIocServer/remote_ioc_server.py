@@ -4,11 +4,12 @@ import os
 
 from pcaspy import SimpleServer, Driver
 
+from gateway import GateWay
 from global_settings import read_globals_file, write_globals_file
 from pvdb import STATIC_PV_DATABASE, PvNames, pvdb_for_ioc
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
-from server_common.utilities import print_and_log
+from utilities import print_and_log
 from BlockServer.core.ioc_control import IocControl
 
 
@@ -31,13 +32,17 @@ class RemoteIoc(object):
 
 
 class RemoteIocListDriver(Driver):
-    def __init__(self, ioc_names, pv_prefix):
+    def __init__(self, ioc_names, pv_prefix, gateway_settings_path):
         super(RemoteIocListDriver, self).__init__()
         self._instrument = "NDW1799"
 
         self._ioc_controller = IocControl(pv_prefix)
 
         self._iocs = {name: RemoteIoc(self._ioc_controller, name) for name in ioc_names}
+
+        self._gateway = GateWay(local_pv_prefix=pv_prefix, gateway_settings_file_path=gateway_settings_path)
+        self._gateway.set_instrument(self._instrument)
+        self._gateway.set_ioc_list(ioc_names)
 
     def write(self, reason, value):
         print("Processing PV write for reason {}".format(reason))
@@ -80,13 +85,14 @@ class RemoteIocListDriver(Driver):
     def set_instrument(self, new_instrument):
         self._instrument = new_instrument
         self.require_restarts_for_all_iocs()
+        self._gateway.set_instrument(new_instrument)
 
     def require_restarts_for_all_iocs(self):
         for remote_ioc in self._iocs.values():
             remote_ioc.restart_required = True
 
 
-def serve_forever(pv_prefix, subsystem_prefix, ioc_names):
+def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_settings_path):
     server = SimpleServer()
 
     pvdb = STATIC_PV_DATABASE.copy()
@@ -98,7 +104,7 @@ def serve_forever(pv_prefix, subsystem_prefix, ioc_names):
     # Looks like it does nothing, but this creates *and automatically registers* it
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
     # of how it achieves this.
-    RemoteIocListDriver(ioc_names, pv_prefix)
+    RemoteIocListDriver(ioc_names, pv_prefix, gateway_settings_path)
 
     try:
         while True:
@@ -121,10 +127,12 @@ def main():
                         help="The PV prefix of this instrument.")
     parser.add_argument("--subsystem_prefix", type=str, default="REMIOC:",
                         help="The subsystem prefix to use for this remote IOC server")
+    parser.add_argument("--gateway_settings_path", type=str, default=r"C:\instrument\settings\gwremoteioc.pvlist",
+                        help="The path to the gateway pvlist file to generate")
 
     args = parser.parse_args()
 
-    serve_forever(args.pv_prefix, args.subsystem_prefix, args.ioc_names)
+    serve_forever(args.pv_prefix, args.subsystem_prefix, args.ioc_names, args.gateway_settings_path)
 
 
 if __name__ == "__main__":

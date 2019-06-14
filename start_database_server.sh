@@ -21,7 +21,7 @@ DBSERVER_CONSOLEPORT="9009"
 echo "Starting dbserver (console port $DBSERVER_CONSOLEPORT)"
 DBSERVER_CMD="/bin/bash -i -O huponexit $MYDIRBLOCK/start_database_server_cmd.sh"
 
-# Unlike IOC we are not using "--noautorestart --wait" so gateway will start immediately and also automatically restart on exit
+# Unlike IOC we are not using "--noautorestart --wait" so gateway.py will start immediately and also automatically restart on exit
 
 procServ --logstamp --logfile="$IOCLOGROOT/DBSVR-$(date +'%Y%m%d').log" --timefmt="%c" --restrict --ignore="^D^C" --name=DBSVR --pidfile="$EPICS_ROOT/EPICS_DBSVR.pid" $DBSERVER_CONSOLEPORT $DBSERVER_CMD 
 

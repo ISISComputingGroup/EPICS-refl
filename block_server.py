@@ -184,10 +184,10 @@ class BlockServer(Driver):
 
         try:
             if self._gateway.exists():
-                print_and_log("Found gateway")
+                print_and_log("Found gateway.py")
                 self.load_last_config()
             else:
-                print_and_log("Could not connect to gateway - is it running?")
+                print_and_log("Could not connect to gateway.py - is it running?")
                 self.load_last_config()
         except Exception as err:
             print_and_log("Could not load last configuration. Message was: %s" % err, "MAJOR")
@@ -313,7 +313,7 @@ class BlockServer(Driver):
 
     def _initialise_config(self, full_init=False):
         """Responsible for initialising the configuration.
-        Sets all the monitors, initialises the gateway, etc.
+        Sets all the monitors, initialises the gateway.py, etc.
 
         Args:
             full_init (bool, optional): whether this requires a full initialisation, e.g. on loading a new
@@ -326,7 +326,7 @@ class BlockServer(Driver):
         if full_init or any(len(x) > 0 for x in (iocs_to_start, iocs_to_stop, iocs_to_restart)):
             self._stop_iocs_and_start_config_iocs(iocs_to_start, iocs_to_restart)
 
-        # Set up the gateway
+        # Set up the gateway.py
         if self._active_configserver.blocks_changed() or full_init:
             self._gateway.set_new_aliases(self._active_configserver.get_block_details())
 
@@ -584,10 +584,10 @@ if __name__ == '__main__':
                         help='The directory from which to load the configuration options(default=current directory)')
     parser.add_argument('-g', '--gateway_prefix', nargs=1, type=str, default=[MACROS["$(MYPVPREFIX)"] +
                                                                               'CS:GATEWAY:BLOCKSERVER'],
-                        help='The prefix for the blocks gateway (default=' + MACROS[
+                        help='The prefix for the blocks gateway.py (default=' + MACROS[
                             "$(MYPVPREFIX)"] + 'CS:GATEWAY:BLOCKSERVER)')
     parser.add_argument('-pv', '--pvlist_name', nargs=1, type=str, default=['gwblock.pvlist'],
-                        help='The filename for the pvlist file used by the blocks gateway (default=gwblock.pvlist)')
+                        help='The filename for the pvlist file used by the blocks gateway.py (default=gwblock.pvlist)')
     parser.add_argument('-au', '--archive_uploader', nargs=1,
                         default=[os.path.join(MACROS["$(EPICS_KIT_ROOT)"], "CSS", "master", "ArchiveEngine",
                                               "set_block_config.bat")],
