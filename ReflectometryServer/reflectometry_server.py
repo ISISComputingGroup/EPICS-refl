@@ -67,7 +67,6 @@ ioc_data_source.insert_ioc_start("REFL", os.getpid(), sys.argv[0], pv_db.PVDB, R
 
 logger.info("Reflectometry IOC started")
 
-logger.info(pv_db.PVDB["TRACKING_AXES"])
 # Process CA transactions
 
 while True:

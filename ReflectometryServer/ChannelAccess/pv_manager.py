@@ -16,7 +16,7 @@ BEAMLINE_MODE = BEAMLINE_PREFIX + "MODE"
 BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
 BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
 BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
-TRACKING_AXES = "TRACKING_AXES"
+PARAM_INFO = "PARAM_INFO"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
 MOVE_SUFFIX = ":MOVE"
@@ -192,7 +192,7 @@ class PVManager:
 
         self.PVDB = {}
         self._params_pv_lookup = OrderedDict()
-        self._tracking_positions = []
+        self._param_info = []
         self._footprint_parameters = {}
 
         self._add_global_pvs(mode_names, status_codes)
@@ -253,9 +253,9 @@ class PVManager:
         """
         for param, (param_type, group_names, description) in param_types.items():
             self._add_parameter_pvs(param, group_names, description, param_type)
-        self.PVDB[TRACKING_AXES] = {'type': 'char',
+        self.PVDB[PARAM_INFO] = {'type': 'char',
                                     'count': 300,
-                                    'value': json.dumps(self._tracking_positions)
+                                    'value': json.dumps(self._param_info)
                                     }
     
     def _add_parameter_pvs(self, param_name, group_names, description, param_type):
@@ -273,16 +273,16 @@ class PVManager:
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
            
             fields = PARAMS_FIELDS_BEAMLINE_TYPES[param_type]
-            # generate a dictionary to store metadata about tracking positions
-            item = {}
-            item["param_name"] = param_name
-            item["prepended_alias"] = prepended_alias
+            # generate a dictionary to store metadata about parameters
+            param_info = {}
+            param_info["param_name"] = param_name
+            param_info["prepended_alias"] = prepended_alias
             if param_type is BeamlineParameterType.FLOAT:
-                item["type"] = "float"
+                param_info["type"] = "float"
             elif param_type is BeamlineParameterType.IN_OUT:
-                item["type"] = "in_out"
+                param_info["type"] = "in_out"
 
-            self._tracking_positions.append(item) 
+            self._param_info.append(param_info)
 
             self.PVDB["{}.DESC".format(prepended_alias)] = {'type': 'string',
                                                             'value': description
@@ -407,7 +407,7 @@ class PVManager:
 
         Returns: True if this the beamline tracking axis pv
         """
-        return self._is_pv_name_this_field(TRACKING_AXES, pv_name)
+        return self._is_pv_name_this_field(PARAM_INFO, pv_name)
 
     def is_beamline_status(self, pv_name):
         """
