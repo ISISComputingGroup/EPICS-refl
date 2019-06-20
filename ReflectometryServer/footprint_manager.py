@@ -33,7 +33,7 @@ class FootprintManager(object):
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
             return footprint_calc.calc_footprint()
-        except (ZeroDivisionError, KeyError, AttributeError):
+        except (ZeroDivisionError, KeyError, AttributeError, TypeError):
             return float("NaN")
 
     def get_resolution(self, sort):
@@ -46,7 +46,7 @@ class FootprintManager(object):
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
             return footprint_calc.calc_min_resolution()
-        except (ZeroDivisionError, KeyError, AttributeError, ValueError):
+        except (ZeroDivisionError, KeyError, AttributeError, ValueError, TypeError):
             return float("NaN")
 
     def get_q_min(self, sort):
@@ -60,7 +60,7 @@ class FootprintManager(object):
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
             return footprint_calc.calc_q_min()
-        except (ZeroDivisionError, KeyError, AttributeError):
+        except (ZeroDivisionError, KeyError, AttributeError, TypeError):
             return float("NaN")
 
     def get_q_max(self, sort):
@@ -74,7 +74,7 @@ class FootprintManager(object):
         footprint_calc = self._get_footprint_calc_by_sort(sort)
         try:
             return footprint_calc.calc_q_max()
-        except (ZeroDivisionError, KeyError, AttributeError):
+        except (ZeroDivisionError, KeyError, AttributeError, TypeError):
             return float("NaN")
 
     def set_sample_length(self, value):

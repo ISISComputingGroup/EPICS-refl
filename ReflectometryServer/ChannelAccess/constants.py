@@ -16,3 +16,6 @@ REFLECTOMETRY_PREFIX = "{}REFL:".format(MYPVPREFIX)
 
 # Reflectometry configuration file path
 REFL_CONFIG_PATH = "{}".format(_get_env_var('ICPCONFIGROOT'))
+
+# Reflectometry configuration file path
+REFL_AUTOSAVE_PATH = os.path.join("{}".format(_get_env_var('ICPVARDIR')), "refl")

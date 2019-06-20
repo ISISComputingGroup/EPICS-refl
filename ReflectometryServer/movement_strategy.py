@@ -93,17 +93,6 @@ class LinearMovementCalc(object):
         z = z_zero
         return y, z
 
-    def set_distance_relative_to_beam(self, beam, position):
-        """
-        Set the position of the component relative to the beam for the given value based on its movement strategy.
-        For instance this could set the height above the beam for a vertically moving component
-        Args:
-            beam: the current beam ray to set relative to
-            position: the position relative to the beam that the component should be, e.g. height
-        """
-
-        self._displacement = position + self._dist_along_axis_from_zero_to_beam_intercept(beam)
-
     def _dist_along_axis_from_zero_to_beam_intercept(self, beam):
         """
         Distance along the axis of movement from the zero point to where the beam hits that axis.
@@ -126,12 +115,15 @@ class LinearMovementCalc(object):
         dist_along_axis_from_zero_to_beam_intercept = dist_to_beam * direction
         return dist_along_axis_from_zero_to_beam_intercept
 
-    def sp_position(self):
+    def position_in_mantid_coordinates(self, given_displacement=None):
         """
         Returns (Position): The set point position of this component in mantid coordinates.
         """
-        y_value = self._position_at_zero.y + self._displacement * sin(radians(self._angle))
-        z_value = self._position_at_zero.z + self._displacement * cos(radians(self._angle))
+        displacement = given_displacement
+        if displacement is None:
+            displacement = self._displacement
+        y_value = self._position_at_zero.y + displacement * sin(radians(self._angle))
+        z_value = self._position_at_zero.z + displacement * cos(radians(self._angle))
 
         return Position(y_value, z_value)
 
@@ -143,6 +135,17 @@ class LinearMovementCalc(object):
             displacement: value along the axis, -ve for before the zero point
         """
         self._displacement = float(displacement)
+
+    def set_distance_relative_to_beam(self, beam, position):
+        """
+        Set the position of the component relative to the beam for the given value based on its movement strategy.
+        For instance this could set the height above the beam for a vertically moving component
+        Args:
+            beam: the current beam ray to set relative to
+            position: the position relative to the beam that the component should be, e.g. height
+        """
+
+        self._displacement = position + self._dist_along_axis_from_zero_to_beam_intercept(beam)
 
     def get_distance_relative_to_beam(self, beam):
         """
