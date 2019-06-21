@@ -1,7 +1,12 @@
+from __future__ import print_function, unicode_literals, division
 import os
 import subprocess
 
 from utilities import print_and_log
+
+
+GATEWAY_PATH = os.path.join("C:\\", "Instrument", "Apps", "EPICS", "gateway")
+GATEWAY_START_FILE = "start_remoteioc_server.bat"
 
 
 class GateWay(object):
@@ -35,15 +40,13 @@ class GateWay(object):
             f.write("\n")
 
     def _get_alias_file_lines(self):
-        if self._instrument is None:
-            return []
-        else:
-            lines = []
+        lines = []
+        if self._instrument is not None:
             for ioc in self._ioc_names:
-                lines.append(r'IN:{instrument}:{ioc}:\(.*\)    ALIAS    {local_pv_prefix}{ioc}:\1'
+                lines.append(r'INTEST:{instrument}:{ioc}:\(.*\)    ALIAS    {local_pv_prefix}{ioc}:\1'
                              .format(local_pv_prefix=self._local_pv_prefix, ioc=ioc, instrument=self._instrument))
-            return lines
+        return lines
 
     def _restart_gateway(self):
         print_and_log("Restarting gateway")
-        subprocess.call(os.path.join("C:\\", "Instrument", "Apps", "EPICS", "gateway", "start_remoteioc_server.bat"))
+        subprocess.call(os.path.join(GATEWAY_PATH, GATEWAY_START_FILE))

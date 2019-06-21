@@ -1,34 +1,20 @@
+from __future__ import print_function, unicode_literals, division
+
 import argparse
 import sys
 import os
 
 from pcaspy import SimpleServer, Driver
 
+from config_monitor import ConfigurationMonitor
 from gateway import GateWay
+from remote_ioc import RemoteIoc
 from global_settings import read_globals_file, write_globals_file
 from pvdb import STATIC_PV_DATABASE, PvNames, pvdb_for_ioc
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from utilities import print_and_log
 from BlockServer.core.ioc_control import IocControl
-
-
-class RemoteIoc(object):
-    def __init__(self, ioc_control, name):
-        self.name = name
-        self._ioc_control = ioc_control
-        self.restart_required = False
-
-    def start(self):
-        self._ioc_control.start_ioc(self.name)
-
-    def stop(self):
-        self._ioc_control.stop_ioc(self.name, force=True)
-        self.restart_required = False
-
-    def restart(self):
-        self._ioc_control.restart_ioc(self.name, force=True)
-        self.restart_required = False
 
 
 class RemoteIocListDriver(Driver):
@@ -43,6 +29,8 @@ class RemoteIocListDriver(Driver):
         self._gateway = GateWay(local_pv_prefix=pv_prefix, gateway_settings_file_path=gateway_settings_path)
         self._gateway.set_instrument(self._instrument)
         self._gateway.set_ioc_list(ioc_names)
+
+        self.configuration_monitor = ConfigurationMonitor("TE:NDW1799:".format(self._instrument))
 
     def write(self, reason, value):
         print("Processing PV write for reason {}".format(reason))
@@ -76,6 +64,8 @@ class RemoteIocListDriver(Driver):
         else:
             print_and_log("Could not read from PV '{}': not known".format(reason), "MAJOR")
 
+        self.updatePVs()
+
     def _is_ioc_specific_request(self, reason, paramname):
         try:
             return reason.split(":")[0] in self._iocs and reason.split(":")[1] == paramname
@@ -86,6 +76,8 @@ class RemoteIocListDriver(Driver):
         self._instrument = new_instrument
         self.require_restarts_for_all_iocs()
         self._gateway.set_instrument(new_instrument)
+        self.configuration_monitor.set_remote_pv_prefix("TE:NDW1799:")
+        self.configuration_monitor._start_monitoring(callback_func=lambda **k: print("{}".format(k)))
 
     def require_restarts_for_all_iocs(self):
         for remote_ioc in self._iocs.values():
