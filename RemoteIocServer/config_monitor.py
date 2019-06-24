@@ -72,8 +72,6 @@ def write_new_config_as_xml(config_json):
         for ioc in config["iocs"]:
             iocs_list.append(ioc)
 
-    print(iocs_list)
-
     iocs = {}
     for ioc in iocs_list:
         name = ioc["name"]
@@ -90,7 +88,6 @@ def write_new_config_as_xml(config_json):
 
     iocs_xml = ConfigurationXmlConverter.iocs_to_xml(iocs)
 
-    print(iocs_xml)
-
+    # TODO: write this file to a sensible location
     with open(os.path.join("C:\\", "Instrument", "a.txt"), "w") as f:
         f.write(str(iocs_xml))

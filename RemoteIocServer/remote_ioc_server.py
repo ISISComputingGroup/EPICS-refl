@@ -20,6 +20,7 @@ from BlockServer.core.ioc_control import IocControl
 class RemoteIocListDriver(Driver):
     def __init__(self, ioc_names, pv_prefix, gateway_settings_path):
         super(RemoteIocListDriver, self).__init__()
+        # TODO: don't hardcode.
         self._instrument = "NDW1799"
 
         self._ioc_controller = IocControl(pv_prefix)
@@ -76,8 +77,8 @@ class RemoteIocListDriver(Driver):
         self._instrument = new_instrument
         self.require_restarts_for_all_iocs()
         self._gateway.set_instrument(new_instrument)
+        # TODO: don't hardcode this...
         self.configuration_monitor.set_remote_pv_prefix("TE:NDW1799:")
-        self.configuration_monitor._start_monitoring(callback_func=lambda **k: print("{}".format(k)))
 
     def require_restarts_for_all_iocs(self):
         for remote_ioc in self._iocs.values():
