@@ -6,6 +6,7 @@ import math
 import logging
 
 from ReflectometryServer.ChannelAccess.constants import MTR_MOVING, MTR_STOPPED
+from threading import Event
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +29,12 @@ class IocDriver(object):
         self._velocity_to_restore = None
         self._status_cache = None
         self._move_initiated = False
+        self._velocity_event = Event()
 
-        self._axis.add_after_rbv_change_listener(self._rbv_change_listener)
-        self._axis.add_after_sp_change_listener(self._update_sp_cache)
-        self._axis.add_after_status_change_listener(self._update_status)
-        self._axis.add_after_velocity_change_listener(self._save_velocity)
+        self._axis.add_after_rbv_change_listener(self._on_update_rbv)
+        self._axis.add_after_sp_change_listener(self._on_update_sp)
+        self._axis.add_after_status_change_listener(self._on_update_moving_status)
+        self._axis.add_after_velocity_change_listener(self._on_update_velocity)
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -76,6 +78,7 @@ class IocDriver(object):
         """
         logger.debug("Moving axis {}".format(self._get_distance()))
         self._move_initiated = True
+        self._velocity_event.clear()
         if self._status_cache == MTR_STOPPED:
             self._velocity_to_restore = self._axis.velocity
 
@@ -109,7 +112,7 @@ class IocDriver(object):
         """
         raise NotImplemented()
 
-    def _rbv_change_listener(self, new_value, alarm_severity, alarm_status):
+    def _on_update_rbv(self, new_value, alarm_severity, alarm_status):
         """
         Listener to trigger on a change of the readback value of the underlying motor.
 
@@ -133,7 +136,7 @@ class IocDriver(object):
         """
         raise NotImplemented()
 
-    def _update_sp_cache(self, value, alarm_severity, alarm_status):
+    def _on_update_sp(self, value, alarm_severity, alarm_status):
         """
         Updates the cached set point for this axis with a new value.
         Args:
@@ -141,7 +144,7 @@ class IocDriver(object):
         """
         self._sp_cache = value
 
-    def _update_status(self, value, alarm_severity, alarm_status):
+    def _on_update_moving_status(self, value, alarm_severity, alarm_status):
         """
         React to an update in the motion status of the underlying motor axis.
 
@@ -153,10 +156,13 @@ class IocDriver(object):
         if value == MTR_STOPPED and self._velocity_to_restore is not None:
             self._axis.velocity = self._velocity_to_restore
         if value == MTR_MOVING:
-            self._move_initiated = False
+            if self._move_initiated:
+                self._velocity_event.wait()
+                self._move_initiated = False
+                self._velocity_event.clear()
         self._status_cache = value
 
-    def _save_velocity(self, value, alarm_severity, alarm_status):
+    def _on_update_velocity(self, value, alarm_severity, alarm_status):
         """
         React to an update in the velocity of the underlying motor axis: save value to be restored later if the update
         is not issued by reflectometry server itself.
@@ -170,6 +176,7 @@ class IocDriver(object):
             self._velocity_to_restore = self._axis.max_velocity
         elif not self._move_initiated:
             self._velocity_to_restore = value
+        self._velocity_event.set()
 
     def at_target_setpoint(self):
         """
