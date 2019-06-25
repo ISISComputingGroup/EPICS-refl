@@ -30,7 +30,8 @@ META_XML = """<?xml version="1.0" ?>
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.channel_access import ChannelAccess
-from server_common.utilities import print_and_log, dehex_and_decompress, waveform_to_string
+from server_common.utilities import dehex_and_decompress, waveform_to_string
+from utilities import print_and_log
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.ioc import IOC
 
