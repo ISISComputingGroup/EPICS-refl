@@ -6,6 +6,7 @@ import math
 import logging
 
 from ReflectometryServer.ChannelAccess.constants import MTR_MOVING, MTR_STOPPED
+from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
 from threading import Event
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,7 @@ class IocDriver(object):
         self._velocity_event.clear()
         if self._status_cache == MTR_STOPPED:
             self._velocity_to_restore = self._axis.velocity
+            write_autosave_value(self._axis.name, self._velocity_to_restore, AutosaveType.VELOCITY)
 
         if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
             self._axis.velocity = self._get_distance() / move_duration
@@ -173,10 +175,26 @@ class IocDriver(object):
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         if self._velocity_to_restore is None:
-            self._velocity_to_restore = self._axis.max_velocity
+            self._init_velocity_to_restore(value)
         elif not self._move_initiated:
             self._velocity_to_restore = value
+            write_autosave_value(self._axis.name, value, AutosaveType.VELOCITY)
         self._velocity_event.set()
+
+    def _init_velocity_to_restore(self, value):
+        """
+        Initialises the velocity to restore for this axis after a beamline move ends. Tries to read it from an autosave
+        file, or to the current value if that fails.
+
+        Params:
+            value (float): The current velocity reported by the motor axis.
+        """
+        autosaved_velocity = read_autosave_value(self._axis.name, AutosaveType.VELOCITY)
+        if autosaved_velocity is not None:
+            self._velocity_to_restore = autosaved_velocity
+        else:
+            self._velocity_to_restore = self._axis.max_velocity
+            write_autosave_value(self._axis.name, value, AutosaveType.VELOCITY)
 
     def at_target_setpoint(self):
         """

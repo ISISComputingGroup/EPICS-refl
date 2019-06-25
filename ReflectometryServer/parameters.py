@@ -1,7 +1,7 @@
 """
 Parameters that the user would interact with
 """
-import file_io
+from file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
 
 from enum import Enum
@@ -171,7 +171,7 @@ class BeamlineParameter(object):
         self._check_and_move_component()
         self._sp_is_changed = False
         if self._autosave:
-            file_io.write_autosave_param(self._name, self._set_point_rbv)
+            write_autosave_value(self._name, self._set_point_rbv, AutosaveType.PARAM)
 
     def move_to_sp_rbv_no_callback(self):
         """
@@ -310,7 +310,7 @@ class AngleParameter(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
         """
-        sp_init = file_io.read_autosave_param(self._name)
+        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init is not None:
             try:
                 angle = float(sp_init)
@@ -377,7 +377,7 @@ class TrackingPosition(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
         """
-        sp_init = file_io.read_autosave_param(self._name)
+        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init is not None:
             try:
                 sp_init = float(sp_init)
@@ -450,7 +450,7 @@ class InBeamParameter(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
         """
-        sp_init = file_io.read_autosave_param(self._name)
+        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init == "True":
             self._set_initial_sp(True)
             self._move_component()
@@ -532,7 +532,7 @@ class SlitGapParameter(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
         """
-        sp_init = file_io.read_autosave_param(self._name)
+        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init is not None:
             try:
                 self._set_initial_sp(float(sp_init))
