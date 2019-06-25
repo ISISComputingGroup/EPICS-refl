@@ -1,4 +1,4 @@
-from __future__ import print_function, unicode_literals, division
+from __future__ import print_function, unicode_literals, division, absolute_import
 
 import argparse
 import sys
@@ -31,7 +31,8 @@ class RemoteIocListDriver(Driver):
         self._gateway.set_instrument(self._instrument)
         self._gateway.set_ioc_list(ioc_names)
 
-        self.configuration_monitor = ConfigurationMonitor("TE:NDW1799:".format(self._instrument))
+        self.configuration_monitor = ConfigurationMonitor("TE:NDW1799:".format(self._instrument),
+                                                          restart_iocs_callback=self.restart_all_iocs)
 
     def write(self, reason, value):
         print("Processing PV write for reason {}".format(reason))
@@ -45,7 +46,7 @@ class RemoteIocListDriver(Driver):
             self._iocs[reason.split(":")[0]].restart()
         elif reason == PvNames.WRITE_GLOBALS:
             write_globals_file(value)
-            self.require_restarts_for_all_iocs()
+            self.restart_all_iocs()
         else:
             print_and_log("Could not write to PV '{}': not known".format(reason), "MAJOR")
 
@@ -75,14 +76,14 @@ class RemoteIocListDriver(Driver):
 
     def set_instrument(self, new_instrument):
         self._instrument = new_instrument
-        self.require_restarts_for_all_iocs()
+        self.restart_all_iocs()
         self._gateway.set_instrument(new_instrument)
         # TODO: don't hardcode this...
         self.configuration_monitor.set_remote_pv_prefix("TE:NDW1799:")
 
-    def require_restarts_for_all_iocs(self):
-        for remote_ioc in self._iocs.values():
-            remote_ioc.restart_required = True
+    def restart_all_iocs(self):
+        for ioc in self._iocs.values():
+            ioc.restart()
 
 
 def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_settings_path):

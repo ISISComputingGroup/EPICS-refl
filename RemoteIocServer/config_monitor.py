@@ -1,10 +1,12 @@
-from __future__ import print_function, unicode_literals, division
+from __future__ import print_function, unicode_literals, division, absolute_import
 
 import json
 import sys
 import os
 
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper
+
+REMOTE_IOC_CONFIG_NAME = "_REMOTE_IOC_CONFIG"
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.channel_access import ChannelAccess
@@ -33,9 +35,10 @@ class ConfigurationMonitor(object):
 
     Calls back to the RemoteIocServer class on change of config.
     """
-    def __init__(self, initial_remote_pv_prefix):
+    def __init__(self, initial_remote_pv_prefix, restart_iocs_callback):
         self._monitor = None
         self.set_remote_pv_prefix(initial_remote_pv_prefix)
+        self.restart_iocs_callback_func = restart_iocs_callback
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
         self._remote_pv_prefix = remote_pv_prefix
@@ -48,18 +51,20 @@ class ConfigurationMonitor(object):
         if self._monitor is not None:
             self._monitor.end()
         self._monitor = _ConfigurationMonitor("{}CS:BLOCKSERVER:GET_CURR_CONFIG_DETAILS".format(self._remote_pv_prefix))
-        self._monitor.start(callback=_config_updated)
+        self._monitor.start(callback=self._config_updated)
 
-
-def _config_updated(value, alarm_severity, alarm_status):
-    try:
-        new_config = dehex_and_decompress(waveform_to_string(value))
-        write_new_config_as_xml(new_config)
-    except (TypeError, ValueError, IOError) as e:
-        print_and_log("Config JSON from instrument not decoded correctly: {}: {}".format(e.__class__.__name__, e))
+    def _config_updated(self, value, alarm_severity_ignored, alarm_status_ignored):
+        try:
+            new_config = dehex_and_decompress(waveform_to_string(value))
+            write_new_config_as_xml(new_config)
+            self.restart_iocs_callback_func()
+        except (TypeError, ValueError, IOError) as e:
+            print_and_log("Config JSON from instrument not decoded correctly: {}: {}".format(e.__class__.__name__, e))
+            print_and_log("Raw PV value was: {}".format(value))
 
 
 def write_new_config_as_xml(config_json):
+    print_and_log("Got new config monitor.")
     config = json.loads(config_json, "ascii")
 
     iocs_list = []
@@ -88,6 +93,17 @@ def write_new_config_as_xml(config_json):
 
     iocs_xml = ConfigurationXmlConverter.iocs_to_xml(iocs)
 
-    # TODO: write this file to a sensible location
-    with open(os.path.join("C:\\", "Instrument", "a.txt"), "w") as f:
+    print_and_log("Writing new iocs.xml file")
+
+    config_base = os.path.normpath(os.getenv("ICPCONFIGROOT"))
+    config_dir = os.path.join(config_base, "configurations", REMOTE_IOC_CONFIG_NAME)
+    if not os.path.exists(config_dir):
+        os.mkdir(config_dir)
+
+    with open(os.path.join(config_dir, "iocs.xml"), "w") as f:
         f.write(str(iocs_xml))
+
+    with open(os.path.join(config_base, "last_config.txt"), "w") as f:
+        f.write(REMOTE_IOC_CONFIG_NAME)
+
+    print_and_log("Finished writing new iocs.xml file")

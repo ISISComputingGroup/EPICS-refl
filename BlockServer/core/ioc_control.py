@@ -60,7 +60,6 @@ class IocControl(object):
         if not force and ioc.startswith(IOCS_NOT_TO_STOP):
             return
         try:
-            auto = self._proc.get_autorestart(ioc)
             self._proc.restart_ioc(ioc)
             if ioc != "ALARM":
                 AlarmConfigLoader.restart_alarm_server(self)
