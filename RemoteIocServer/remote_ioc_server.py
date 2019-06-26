@@ -7,12 +7,11 @@ import traceback
 
 from pcaspy import SimpleServer, Driver
 
-from config_monitor import ConfigurationMonitor
-from gateway import GateWay
-from pvdb import STATIC_PV_DATABASE, PvNames
-from utilities import print_and_log
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
+from RemoteIocServer.config_monitor import ConfigurationMonitor
+from RemoteIocServer.gateway import GateWay
+from RemoteIocServer.pvdb import STATIC_PV_DATABASE, PvNames
+from RemoteIocServer.utilities import print_and_log
 from BlockServer.core.ioc_control import IocControl
 
 

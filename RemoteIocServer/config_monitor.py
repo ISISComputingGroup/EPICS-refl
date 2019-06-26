@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals, division, absolute_impo
 import json
 import sys
 import os
+import zlib
 
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper
 
@@ -28,17 +29,18 @@ META_XML = """<?xml version="1.0" ?>
 </meta>
 """
 
+from RemoteIocServer.utilities import print_and_log
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.channel_access import ChannelAccess
 from server_common.utilities import dehex_and_decompress, waveform_to_string
-from utilities import print_and_log
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.ioc import IOC
 
 
-class _ConfigurationMonitor(object):
+class _EpicsMonitor(object):
     """
-    Wrapper around an EPICS configuration monitor.
+    Wrapper around an EPICS monitor.
     """
     def __init__(self, pv):
         self._pv = pv
@@ -59,8 +61,8 @@ class ConfigurationMonitor(object):
     """
     def __init__(self, initial_remote_pv_prefix, restart_iocs_callback):
         self._monitor = None
-        self.set_remote_pv_prefix(initial_remote_pv_prefix)
         self.restart_iocs_callback_func = restart_iocs_callback
+        self.set_remote_pv_prefix(initial_remote_pv_prefix)
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
         self._remote_pv_prefix = remote_pv_prefix
@@ -72,7 +74,7 @@ class ConfigurationMonitor(object):
         """
         if self._monitor is not None:
             self._monitor.end()
-        self._monitor = _ConfigurationMonitor("{}CS:BLOCKSERVER:GET_CURR_CONFIG_DETAILS".format(self._remote_pv_prefix))
+        self._monitor = _EpicsMonitor("{}CS:BLOCKSERVER:GET_CURR_CONFIG_DETAILS".format(self._remote_pv_prefix))
         self._monitor.start(callback=self._config_updated)
 
     def _config_updated(self, value, *_, **__):
@@ -80,7 +82,7 @@ class ConfigurationMonitor(object):
             new_config = dehex_and_decompress(waveform_to_string(value))
             self._write_new_config_as_xml(new_config)
             self.restart_iocs_callback_func()
-        except (TypeError, ValueError, IOError) as e:
+        except (TypeError, ValueError, IOError, zlib.error) as e:
             print_and_log("ConfigMonitor: Config JSON from instrument not decoded correctly: {}: {}"
                           .format(e.__class__.__name__, e))
             print_and_log("ConfigMonitor: Raw PV value was: {}".format(value))

@@ -4,7 +4,7 @@ import os
 import subprocess
 import traceback
 
-from utilities import print_and_log
+from RemoteIocServer.utilities import print_and_log
 
 
 class GateWay(object):
