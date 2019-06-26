@@ -254,9 +254,9 @@ class PVManager:
         for param, (param_type, group_names, description) in param_types.items():
             self._add_parameter_pvs(param, group_names, description, param_type)
         self.PVDB[PARAM_INFO] = {'type': 'char',
-                                    'count': 300,
-                                    'value': json.dumps(self._param_info)
-                                    }
+                                 'count': 2048,
+                                 'value': json.dumps(self._param_info)
+                                 }
     
     def _add_parameter_pvs(self, param_name, group_names, description, param_type):
         """
