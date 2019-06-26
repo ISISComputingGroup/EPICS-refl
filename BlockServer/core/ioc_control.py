@@ -46,7 +46,7 @@ class IocControl(object):
         except Exception as err:
             print_and_log("Could not start IOC %s: %s" % (ioc, str(err)), "MAJOR")
 
-    def restart_ioc(self, ioc, force=False):
+    def restart_ioc(self, ioc, force=False, restart_alarm_server=True):
         """Restart an IOC.
 
         Note: restarting an IOC automatically sets the IOC to auto-restart, so it is neccessary to reapply the
@@ -61,7 +61,7 @@ class IocControl(object):
             return
         try:
             self._proc.restart_ioc(ioc)
-            if ioc != "ALARM":
+            if ioc != "ALARM" and restart_alarm_server:
                 AlarmConfigLoader.restart_alarm_server(self)
         except Exception as err:
             print_and_log("Could not restart IOC %s: %s" % (ioc, str(err)), "MAJOR")

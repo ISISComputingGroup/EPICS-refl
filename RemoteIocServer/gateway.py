@@ -1,20 +1,19 @@
 from __future__ import print_function, unicode_literals, division, absolute_import
+
 import os
 import subprocess
+import traceback
 
 from utilities import print_and_log
 
 
-GATEWAY_PATH = os.path.join("C:\\", "Instrument", "Apps", "EPICS", "gateway")
-GATEWAY_START_FILE = "start_remoteioc_server.bat"
-
-
 class GateWay(object):
-    def __init__(self, gateway_settings_file_path, local_pv_prefix):
+    def __init__(self, gateway_settings_file_path, gateway_restart_script_path, local_pv_prefix):
         self._instrument = None
         self._ioc_names = []
         self._local_pv_prefix = local_pv_prefix
         self._gateway_settings_file_path = gateway_settings_file_path
+        self._gateway_restart_script_path = gateway_restart_script_path
 
         self._reapply_gateway_settings()
 
@@ -33,7 +32,7 @@ class GateWay(object):
         self._restart_gateway()
 
     def _recreate_gateway_file(self):
-        print_and_log("Rewriting gateway configuration file at '{}'".format(self._gateway_settings_file_path))
+        print_and_log("Gateway: rewriting gateway configuration file at '{}'".format(self._gateway_settings_file_path))
         with open(self._gateway_settings_file_path, "w") as f:
             f.write("EVALUATION ORDER ALLOW, DENY\n")
             f.writelines(self._get_alias_file_lines())
@@ -49,5 +48,11 @@ class GateWay(object):
         return lines
 
     def _restart_gateway(self):
-        print_and_log("Restarting gateway")
-        subprocess.call(os.path.join(GATEWAY_PATH, GATEWAY_START_FILE))
+        print_and_log("Gateway: restarting")
+        try:
+            with open(os.devnull, "w") as devnull:
+                status = subprocess.call(self._gateway_restart_script_path, stdout=devnull, stderr=devnull)
+            print_and_log("Gateway: restart complete (exit code: {})".format(status))
+        except subprocess.CalledProcessError:
+            print_and_log("Gateway: restart failed (path to script: {})".format(self._gateway_restart_script_path))
+            print_and_log(traceback.format_exc())
