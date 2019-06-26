@@ -2,8 +2,10 @@
 Wrapper for motor PVs
 """
 from functools import partial
+from threading import Event
 
-from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX
+from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
+from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
 
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
@@ -24,29 +26,19 @@ class PVWrapper(object):
             base_pv(String): The name of the PV
         """
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
-        self.max_velocity = None
-
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
-        self._after_status_change_listeners = set()
-        self._after_velocity_change_listeners = set()
+
+        self._move_initiated = False
+        self._moving_state = None
+        self._velocity_to_restore = None
+        self._state_init_event = Event()
+        self._velocity_event = Event()
+        self.max_velocity = None
 
         self._set_pvs()
         self._set_resolution()
         self._set_max_velocity()
-
-    def add_monitors(self):
-        """
-        Add monitors to the relevant motor PVs for readback and setpoint values.
-        """
-        self._monitor_pv(self._rbv_pv,
-                         partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
-        self._monitor_pv(self._sp_pv,
-                         partial(self._trigger_listeners, "setpoint value", self._after_sp_change_listeners))
-        self._monitor_pv(self._dmov_pv,
-                         partial(self._trigger_listeners, "motion status", self._after_status_change_listeners))
-        self._monitor_pv(self._velo_pv,
-                         partial(self._trigger_listeners, "velocity", self._after_velocity_change_listeners))
 
     def _set_pvs(self):
         self._rbv_pv = ""
@@ -60,6 +52,18 @@ class PVWrapper(object):
 
     def _set_max_velocity(self):
         self.max_velocity = self._read_pv(self._vmax_pv)
+
+    def add_monitors(self):
+        """
+        Add monitors to the relevant motor value PVs.
+        """
+        self._monitor_pv(self._rbv_pv,
+                         partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
+        self._monitor_pv(self._sp_pv,
+                         partial(self._trigger_listeners, "setpoint value", self._after_sp_change_listeners))
+
+        self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
+        self._monitor_pv(self._velo_pv, self._on_update_velocity)
 
     @staticmethod
     def _monitor_pv(pv, call_back_function):
@@ -118,22 +122,6 @@ class PVWrapper(object):
             listener: function to call should have two arguments which are the new value and new error state
         """
         self._after_sp_change_listeners.add(listener)
-
-    def add_after_status_change_listener(self, listener):
-        """
-        Add a listener which should be called after a change in the moving status of the motor.
-        Args:
-            listener: function to call should have two arguments which are the new value and new error state
-        """
-        self._after_status_change_listeners.add(listener)
-
-    def add_after_velocity_change_listener(self, listener):
-        """
-        Add a listener which should be called after a change in the motor velocity.
-        Args:
-            listener: function to call should have two arguments which are the new value and new error state
-        """
-        self._after_velocity_change_listeners.add(listener)
 
     def _trigger_listeners(self, change_type, listeners, new_value, alarm_severity, alarm_status):
         logger.debug("Triggering after {} change listeners. New value: {}".format(change_type, new_value))
@@ -194,6 +182,66 @@ class PVWrapper(object):
             value: The value to set
         """
         self._write_pv(self._velo_pv, value)
+
+    def initiate_move(self):
+        """
+
+        """
+        self._move_initiated = True
+        self._velocity_event.clear()
+        if self._moving_state == MTR_STOPPED:
+            self._velocity_to_restore = self.velocity
+            write_autosave_value(self.name, self._velocity_to_restore, AutosaveType.VELOCITY)
+
+    def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
+        """
+        React to an update in the motion status of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new motion status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        if new_value == MTR_STOPPED and self._velocity_to_restore is not None:
+            self.velocity = self._velocity_to_restore
+        if new_value == MTR_MOVING:
+            if self._move_initiated:
+                self._velocity_event.wait()
+                self._move_initiated = False
+                self._velocity_event.clear()
+        self._moving_state = new_value
+        self._state_init_event.set()
+
+    def _on_update_velocity(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the velocity of the underlying motor axis: save value to be restored later if the update
+        is not issued by reflectometry server itself.
+
+        Params:
+            value (Boolean): The new motion status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        if self._velocity_to_restore is None:
+            self._init_velocity_to_restore(value)
+        elif not self._move_initiated:
+            self._velocity_to_restore = value
+            write_autosave_value(self.name, value, AutosaveType.VELOCITY)
+        self._velocity_event.set()
+
+    def _init_velocity_to_restore(self, value):
+        """
+        Reads the velocity this axis should restore after a beamline move ends. Initialises to the current value unless
+        the motor is currently moving and an autosave value can be read.
+        """
+        v_init = value
+        v_autosaved = read_autosave_value(self.name, AutosaveType.VELOCITY)
+        self._state_init_event.wait()
+        if self._moving_state == MTR_MOVING:
+            if v_autosaved is not None:
+                v_init = v_autosaved
+        self._velocity_to_restore = v_init
+        write_autosave_value(self.name, v_init, AutosaveType.VELOCITY)
 
 
 class MotorPVWrapper(PVWrapper):

@@ -145,6 +145,9 @@ class MockMotorPVWrapper(object):
     def add_after_velocity_change_listener(self, listener):
         self.after_velocity_change_listener.add(listener)
 
+    def initiate_move(self):
+        pass
+
     @property
     def sp(self):
         return self._value

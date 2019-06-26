@@ -5,8 +5,6 @@ The driving layer communicates between the component layer and underlying pvs.
 import math
 import logging
 
-from ReflectometryServer.ChannelAccess.constants import MTR_MOVING, MTR_STOPPED
-from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
 from threading import Event
 
 logger = logging.getLogger(__name__)
@@ -27,15 +25,9 @@ class IocDriver(object):
         self._axis = axis
         self._rbv_cache = self._axis.rbv
         self._sp_cache = None
-        self._velocity_to_restore = None
-        self._status_cache = None
-        self._move_initiated = False
-        self._velocity_event = Event()
 
         self._axis.add_after_rbv_change_listener(self._on_update_rbv)
         self._axis.add_after_sp_change_listener(self._on_update_sp)
-        self._axis.add_after_status_change_listener(self._on_update_moving_status)
-        self._axis.add_after_velocity_change_listener(self._on_update_velocity)
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -77,13 +69,8 @@ class IocDriver(object):
         Args:
             move_duration: The duration in which to perform this move
         """
-        logger.debug("Moving axis {}".format(self._get_distance()))
-        self._move_initiated = True
-        self._velocity_event.clear()
-        if self._status_cache == MTR_STOPPED:
-            self._velocity_to_restore = self._axis.velocity
-            write_autosave_value(self._axis.name, self._velocity_to_restore, AutosaveType.VELOCITY)
-
+        logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
+        self._axis.initiate_move()
         if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
             self._axis.velocity = self._get_distance() / move_duration
         self._axis.sp = self._get_set_point_position()
@@ -145,56 +132,6 @@ class IocDriver(object):
             value: The new set point value.
         """
         self._sp_cache = value
-
-    def _on_update_moving_status(self, value, alarm_severity, alarm_status):
-        """
-        React to an update in the motion status of the underlying motor axis.
-
-        Params:
-            value (Boolean): The new motion status
-            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
-            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
-        """
-        if value == MTR_STOPPED and self._velocity_to_restore is not None:
-            self._axis.velocity = self._velocity_to_restore
-        if value == MTR_MOVING:
-            if self._move_initiated:
-                self._velocity_event.wait()
-                self._move_initiated = False
-                self._velocity_event.clear()
-        self._status_cache = value
-
-    def _on_update_velocity(self, value, alarm_severity, alarm_status):
-        """
-        React to an update in the velocity of the underlying motor axis: save value to be restored later if the update
-        is not issued by reflectometry server itself.
-
-        Params:
-            value (Boolean): The new motion status
-            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
-            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
-        """
-        if self._velocity_to_restore is None:
-            self._init_velocity_to_restore(value)
-        elif not self._move_initiated:
-            self._velocity_to_restore = value
-            write_autosave_value(self._axis.name, value, AutosaveType.VELOCITY)
-        self._velocity_event.set()
-
-    def _init_velocity_to_restore(self, value):
-        """
-        Initialises the velocity to restore for this axis after a beamline move ends. Tries to read it from an autosave
-        file, or to the current value if that fails.
-
-        Params:
-            value (float): The current velocity reported by the motor axis.
-        """
-        autosaved_velocity = read_autosave_value(self._axis.name, AutosaveType.VELOCITY)
-        if autosaved_velocity is not None:
-            self._velocity_to_restore = autosaved_velocity
-        else:
-            self._velocity_to_restore = self._axis.max_velocity
-            write_autosave_value(self._axis.name, value, AutosaveType.VELOCITY)
 
     def at_target_setpoint(self):
         """
