@@ -417,6 +417,7 @@ class BlockServer(Driver):
             json_data (string): The JSON data containing the configuration/component
             as_comp (bool): Whether it is a component or not
         """
+        print(json_data)
         new_details = convert_from_json(json_data)
         inactive = InactiveConfigHolder(MACROS, ConfigurationFileManager())
 

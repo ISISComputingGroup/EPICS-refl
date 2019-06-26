@@ -43,7 +43,8 @@ class GateWay(object):
         lines = []
         if self._instrument is not None:
             for ioc in self._ioc_names:
-                lines.append(r'INTEST:{instrument}:{ioc}:\(.*\)    ALIAS    {local_pv_prefix}{ioc}:\1'
+                # TODO: don't hardcode prefix.
+                lines.append(r'ME:{instrument}:{ioc}:\(.*\)    ALIAS    {local_pv_prefix}{ioc}:\1'
                              .format(local_pv_prefix=self._local_pv_prefix, ioc=ioc, instrument=self._instrument))
         return lines
 

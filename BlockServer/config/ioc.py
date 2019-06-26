@@ -31,7 +31,7 @@ class IOC(object):
         simlevel (string): The level of simulation
     """
     def __init__(self, name, autostart=True, restart=True, component=None, macros=None, pvs=None, pvsets=None,
-                 simlevel=None):
+                 simlevel=None, host=None):
         """ Constructor.
 
         Args:
@@ -49,6 +49,7 @@ class IOC(object):
         self.autostart = autostart
         self.restart = restart
         self.component = component
+        self.host = host
 
         if simlevel is None:
             self.simlevel = "none"
@@ -106,7 +107,8 @@ class IOC(object):
             'pvs': self._dict_to_list(self.pvs),
             'pvsets': self._dict_to_list(self.pvsets),
             'macros': self._dict_to_list(self.macros),
-            'component': self.component
+            'component': self.component,
+            'host': self.host,
         }
 
     def get(self, name):

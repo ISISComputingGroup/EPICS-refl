@@ -109,7 +109,8 @@ def write_new_config_as_xml(config_json):
             macros={macro["name"]: {"name": macro["name"], "value": macro["value"]} for macro in ioc["macros"]},
             pvsets={pvset["name"]: {"name": pvset["name"], "value": pvset["value"]} for pvset in ioc["pvsets"]},
             pvs={pv["name"]: {"name": pv["name"], "value": pv["value"]} for pv in ioc["pvs"]},
-            simlevel=ioc["simlevel"]
+            simlevel=ioc["simlevel"],
+            host=ioc["host"],
         )
 
     iocs_xml = ConfigurationXmlConverter.iocs_to_xml(iocs)
