@@ -8,7 +8,7 @@ from pcaspy import Driver, Alarm, Severity
 
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, \
     BEAMLINE_MESSAGE, SP_SUFFIX, FootprintSort, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
-    convert_from_epics_pv_value
+    convert_from_epics_pv_value, IN_MODE_SUFFIX, PARAM_PREFIX
 from ReflectometryServer.parameters import BeamlineParameterGroup
 from server_common.utilities import compress_and_hex
 
@@ -56,7 +56,10 @@ class ReflectometryDriver(Driver):
             param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
             param = self._beamline.parameter(param_name)
             value = param_sort.get_from_parameter(param)
-            return value
+            if param_sort is PvSort.IN_MODE:
+                return self.getParam(reason)
+            else:
+                return value
 
         elif self._pv_manager.is_beamline_mode(reason):
             return self._beamline_mode_value(self._beamline.active_mode)
@@ -108,7 +111,7 @@ class ReflectometryDriver(Driver):
                 beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
                 new_mode_name = beamline_mode_enums[value]
                 self._beamline.active_mode = new_mode_name
-                self._bl_mode_change(new_mode_name)
+                self._bl_mode_change(new_mode_name, self._beamline.get_param_names_in_mode())
             except ValueError:
                 logger.error("Invalid value entered for mode. (Possible modes: {})".format(
                     ",".join(self._beamline.mode_names)))
@@ -131,7 +134,9 @@ class ReflectometryDriver(Driver):
         # with self.monitor_lock:
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
-            self._update_param_both_pv_and_pv_val(pv_name, param_sort.get_from_parameter(parameter))
+            if param_sort is not PvSort.IN_MODE:
+                self._update_param_both_pv_and_pv_val(pv_name, param_sort.get_from_parameter(parameter))
+
         self._update_all_footprints()
         self.updatePVs()
 
@@ -190,12 +195,21 @@ class ReflectometryDriver(Driver):
             if param_sort == PvSort.SP_RBV:
                 parameter.add_sp_rbv_change_listener(partial(self._update_param_listener, pv_name))
 
-    def _bl_mode_change(self, mode):
+    def _bl_mode_change(self, mode, params_in_mode):
         """
         Beamline mode change in driver
         Args:
             mode (str): to change to
+            params_in_mode : list of parameters in the mode given
         """
+
+        for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
+            if param_sort is PvSort.RBV:
+                if param_name in params_in_mode:
+                    self._update_param_both_pv_and_pv_val(pv_name + IN_MODE_SUFFIX, 1)
+                else: 
+                    self._update_param_both_pv_and_pv_val(pv_name + IN_MODE_SUFFIX, 0)
+     
         mode_value = self._beamline_mode_value(mode)
         self._update_param_both_pv_and_pv_val(BEAMLINE_MODE, mode_value)
         self._update_param_both_pv_and_pv_val(BEAMLINE_MODE + SP_SUFFIX, mode_value)
@@ -206,7 +220,7 @@ class ReflectometryDriver(Driver):
         Adds the monitor on the active mode, if this changes a monitor update is posted.
         """
         self._beamline.add_active_mode_change_listener(self._bl_mode_change)
-        self._bl_mode_change(self._beamline.active_mode)
+        self._bl_mode_change(self._beamline.active_mode, self._beamline.get_param_names_in_mode())
 
     def add_trigger_status_change_listener(self):
         """
