@@ -37,7 +37,7 @@ class IocDriver(object):
         """
         Post monitors and read initial value from the axis.
         """
-        self._axis.add_monitors()
+        self._axis.initialise()
         self.initialise_setpoint()
 
     def initialise_setpoint(self):

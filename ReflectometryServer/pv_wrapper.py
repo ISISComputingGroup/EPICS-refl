@@ -31,10 +31,10 @@ class PVWrapper(object):
 
         self._move_initiated = False
         self._moving_state = None
-        self._velocity_to_restore = None
+        self._v_restore = None
+        self.max_velocity = None
         self._state_init_event = Event()
         self._velocity_event = Event()
-        self.max_velocity = None
 
         self._set_pvs()
         self._set_resolution()
@@ -53,9 +53,15 @@ class PVWrapper(object):
     def _set_max_velocity(self):
         self.max_velocity = self._read_pv(self._vmax_pv)
 
-    def add_monitors(self):
+    def initialise(self):
         """
-        Add monitors to the relevant motor value PVs.
+        Initialise PVWrapper values once the beamline is ready.
+        """
+        self._add_monitors()
+
+    def _add_monitors(self):
+        """
+        Add monitors to the relevant motor PVs.
         """
         self._monitor_pv(self._rbv_pv,
                          partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
@@ -183,6 +189,14 @@ class PVWrapper(object):
         """
         self._write_pv(self._velo_pv, value)
 
+    @property
+    def velocity_to_restore(self):
+        return self._v_restore
+
+    @velocity_to_restore.setter
+    def velocity_to_restore(self, value):
+        self._v_restore = value
+
     def initiate_move(self):
         """
 
@@ -190,8 +204,8 @@ class PVWrapper(object):
         self._move_initiated = True
         self._velocity_event.clear()
         if self._moving_state == MTR_STOPPED:
-            self._velocity_to_restore = self.velocity
-            write_autosave_value(self.name, self._velocity_to_restore, AutosaveType.VELOCITY)
+            self._v_restore = self.velocity
+            write_autosave_value(self.name, self._v_restore, AutosaveType.VELOCITY)
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
         """
@@ -202,8 +216,8 @@ class PVWrapper(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        if new_value == MTR_STOPPED and self._velocity_to_restore is not None:
-            self.velocity = self._velocity_to_restore
+        if new_value == MTR_STOPPED and self._v_restore is not None:
+            self.velocity = self._v_restore
         if new_value == MTR_MOVING:
             if self._move_initiated:
                 self._velocity_event.wait()
@@ -222,10 +236,10 @@ class PVWrapper(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        if self._velocity_to_restore is None:
+        if self._v_restore is None:
             self._init_velocity_to_restore(value)
         elif not self._move_initiated:
-            self._velocity_to_restore = value
+            self._v_restore = value
             write_autosave_value(self.name, value, AutosaveType.VELOCITY)
         self._velocity_event.set()
 
@@ -240,7 +254,7 @@ class PVWrapper(object):
         if self._moving_state == MTR_MOVING:
             if v_autosaved is not None:
                 v_init = v_autosaved
-        self._velocity_to_restore = v_init
+        self._v_restore = v_init
         write_autosave_value(self.name, v_init, AutosaveType.VELOCITY)
 
 
@@ -295,8 +309,16 @@ class VerticalJawsPVWrapper(PVWrapper):
     def __init__(self, base_pv):
         """
         Creates a wrapper around a motor PV for accessing its fields.
-        :param pv_name (string): The name of the PV
+
+        Params:
+            pv_name (string): The name of the PV
         """
+        self._directions = ["JN", "JS"]
+        self._individual_moving_states = {}
+        self._state_init_events = {}
+        for key in self._directions:
+            self._state_init_events[key] = Event()
+
         super(VerticalJawsPVWrapper, self).__init__(base_pv)
 
     def _set_pvs(self):
@@ -308,13 +330,33 @@ class VerticalJawsPVWrapper(PVWrapper):
         motor_resolutions = [self._read_pv(motor_resolutions_pv) for motor_resolutions_pv in motor_resolutions_pvs]
         self._resolution = float(sum(motor_resolutions)) / len(motor_resolutions_pvs)
 
+    def initialise(self):
+        """
+        Initialise PVWrapper values once the beamline is ready.
+        """
+        self._add_monitors()
+        self._init_velocity_to_restore(self.velocity)
+
+    def _add_monitors(self):
+        """
+        Add monitors to the relevant motor PVs.
+        """
+        self._monitor_pv(self._rbv_pv,
+                         partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
+        self._monitor_pv(self._sp_pv,
+                         partial(self._trigger_listeners, "setpoint value", self._after_sp_change_listeners))
+
+        for dmov_pv in self._pv_names_for_directions("MTR.DMOV"):
+            self._monitor_pv(dmov_pv, partial(self._on_update_moving_state, source=self._strip_source_pv(dmov_pv)))
+
     @property
     def velocity(self):
         """
-        Returns: the value of the underlying velocity PV
+        Returns: the value of the underlying velocity PV. We use the minimum between the two jaw blades to
+        ensure we do not create crash conditions (i.e. one jaw blade going faster than the other one can).
         """
         motor_velocities = self._pv_names_for_directions("MTR.VELO")
-        return max([self._read_pv(pv) for pv in motor_velocities])
+        return min([self._read_pv(pv) for pv in motor_velocities])
 
     @velocity.setter
     def velocity(self, value):
@@ -330,7 +372,7 @@ class VerticalJawsPVWrapper(PVWrapper):
 
     def _set_max_velocity(self):
         """
-        Returns: the value of the underlying max velocity PV
+        Set the value of the underlying max velocity PV
         """
         motor_velocities = self._pv_names_for_directions("MTR.VMAX")
         self.max_velocity = min([self._read_pv(pv) for pv in motor_velocities])
@@ -340,9 +382,64 @@ class VerticalJawsPVWrapper(PVWrapper):
         Args:
             suffix: pv to read
 
-        Returns:
-            list of pv names for the different directions
+        Returns: list of pv names for the different directions
         """
-        directions = ["JN", "JS"]
         return ["{}:{}:{}".format(self._prefixed_pv, direction, suffix)
-                for direction in directions]
+                for direction in self._directions]
+
+    def _on_update_moving_state(self, new_value, alarm_severity, alarm_status, source=None):
+        """
+        React to an update in the motion status of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new motion status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._individual_moving_states[source] = new_value
+        overall_state = self._get_overall_moving_state()
+        if overall_state == MTR_STOPPED and self._v_restore is not None:
+            self.velocity = self._v_restore
+        self._moving_state = overall_state
+        self._state_init_events[source].set()
+
+    def _init_velocity_to_restore(self, value):
+        """
+        Reads the velocity this axis should restore after a beamline move ends. Initialises to the given value unless
+        the motor is currently moving and an autosave value can be read.
+        """
+        v_init = value
+        v_autosaved = read_autosave_value(self.name, AutosaveType.VELOCITY)
+        for key, event in self._state_init_events.items():
+            event.wait()
+        if self._moving_state == MTR_MOVING:
+            if v_autosaved is not None:
+                v_init = v_autosaved
+        self._v_restore = v_init
+        write_autosave_value(self.name, v_init, AutosaveType.VELOCITY)
+
+    def _get_overall_moving_state(self):
+        """
+        Returns the overall moving state of the jaws. If every individual axis is stopped the overall state is stopped,
+        otherwise the state is moving.
+
+        Returns: The overall moving state.
+        """
+        overall_state = MTR_MOVING
+        if all(state == MTR_STOPPED for state in self._individual_moving_states.values()):
+            overall_state = MTR_STOPPED
+        return overall_state
+
+    def _strip_source_pv(self, pv):
+        """
+        Extracts the direction key from a given pv.
+
+        Params:
+            pv (string): The source pv
+
+        Returns: The direction key embedded within the pv
+        """
+        for key in self._directions:
+            if key in pv:
+                return key
+        logger.error("Unexpected event source: {}".format(pv))
