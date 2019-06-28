@@ -502,22 +502,21 @@ class SlitGapParameter(BeamlineParameter):
     Parameter which sets the gap on a slit. This differs from other beamline parameters in that it is not linked to the
     beamline component layer but hooks directly into a motor axis.
     """
-    def __init__(self, name, pv_wrapper, is_vertical, sim=False, init=0, description=None, autosave=False):
+    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False):
         """
         Args:
-            name: The name of the parameter
-            pv_wrapper: The motor pv this parameter talks to
-            is_vertical: Whether it is a vertical gap
-            sim: Whether it is a simulated parameter
-            init: Initialisation value if simulated
-            description: The description
+            name (String): The name of the parameter
+            pv_wrapper (ReflectometryServer.pv_wrapper._JawsAxisPVWrapper): The jaws pv wrapper this parameter talks to
+            sim (Boolean): Whether it is a simulated parameter
+            init (Float): Initialisation value if simulated
+            description (String): The description
         """
         super(SlitGapParameter, self).__init__(name, sim, init, description, autosave)
         self._pv_wrapper = pv_wrapper
         self._pv_wrapper.add_after_sp_change_listener(self.update_sp_rbv)
         self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
         self._pv_wrapper.initialise()
-        if is_vertical:
+        if pv_wrapper.is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
             self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
         else:

@@ -1,6 +1,7 @@
 """
 Wrapper for motor PVs
 """
+from enum import Enum
 from functools import partial
 from threading import Event
 
@@ -15,9 +16,8 @@ logger = logging.getLogger(__name__)
 
 class PVWrapper(object):
     """
-    Wrap a single pv with readback and set point listeners.
+    Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
     """
-
     def __init__(self, base_pv):
         """
         Creates a wrapper around a PV.
@@ -41,6 +41,9 @@ class PVWrapper(object):
         self._set_max_velocity()
 
     def _set_pvs(self):
+        """
+        Define relevant PVs for this type of axis. Must be overridden in subclass.
+        """
         self._rbv_pv = ""
         self._sp_pv = ""
         self._velo_pv = ""
@@ -48,9 +51,15 @@ class PVWrapper(object):
         self._dmov_pv = ""
 
     def _set_resolution(self):
+        """
+        Set the motor resolution for this axis. Must be overridden in subclass.
+        """
         self._resolution = 0
 
     def _set_max_velocity(self):
+        """
+        Sets the maximum velocity this axis can move at.
+        """
         self.max_velocity = self._read_pv(self._vmax_pv)
 
     def initialise(self):
@@ -130,7 +139,6 @@ class PVWrapper(object):
         self._after_sp_change_listeners.add(listener)
 
     def _trigger_listeners(self, change_type, listeners, new_value, alarm_severity, alarm_status):
-        logger.debug("Triggering after {} change listeners. New value: {}".format(change_type, new_value))
         for value_change_listener in listeners:
             value_change_listener(new_value, alarm_severity, alarm_status)
 
@@ -189,17 +197,9 @@ class PVWrapper(object):
         """
         self._write_pv(self._velo_pv, value)
 
-    @property
-    def velocity_to_restore(self):
-        return self._v_restore
-
-    @velocity_to_restore.setter
-    def velocity_to_restore(self, value):
-        self._v_restore = value
-
     def initiate_move(self):
         """
-
+        Sets internal state of the pv wrapper to reflect that a move has just been initialised.
         """
         self._move_initiated = True
         self._velocity_event.clear()
@@ -260,16 +260,21 @@ class PVWrapper(object):
 
 class MotorPVWrapper(PVWrapper):
     """
-    Wrap the motor PVs to allow easy access to all motor PV values needed.
+    Wrap a low level motor PV. Provides relevant listeners and synchronization utilities.
     """
     def __init__(self, base_pv):
         """
-        Creates a wrapper around a motor PV for accessing its fields.
-        :param pv_name (string): The name of the PV
+        Creates a wrapper around a low level motor PV.
+
+        Params:
+            base_pv (String): The name of the PV
         """
         super(MotorPVWrapper, self).__init__(base_pv)
 
     def _set_pvs(self):
+        """
+        Define relevant PVs for this type of axis.
+        """
         self._sp_pv = self._prefixed_pv
         self._rbv_pv = "{}.RBV".format(self._prefixed_pv)
         self._velo_pv = "{}.VELO".format(self._prefixed_pv)
@@ -277,55 +282,48 @@ class MotorPVWrapper(PVWrapper):
         self._dmov_pv = "{}.DMOV".format(self._prefixed_pv)
 
     def _set_resolution(self):
+        """
+        Set the motor resolution for this axis.
+        """
         self._resolution = self._read_pv("{}.MRES".format(self._prefixed_pv))
 
 
-class AxisPVWrapper(PVWrapper):
-    """
-    Wrap the axis PVs on top of a motor record to allow easy access to all axis PV values needed.
-    """
-    def __init__(self, base_pv):
+class _JawsAxisPVWrapper(PVWrapper):
+    def __init__(self, base_pv, is_vertical):
         """
-        Creates a wrapper around a motor PV for accessing its fields.
-        Args:
-            base_pv (string): The name of the base PV
-        """
-        super(AxisPVWrapper, self).__init__(base_pv)
-
-    def _set_pvs(self):
-        self._sp_pv = "{}:SP".format(self._prefixed_pv)
-        self._rbv_pv = self._prefixed_pv
-        self._velo_pv = "{}:MTR.VELO".format(self._prefixed_pv)
-        self._vmax_pv = "{}:MTR.VMAX".format(self._prefixed_pv)
-        self._dmov_pv = "{}:MTR.DMOV".format(self._prefixed_pv)
-
-
-class VerticalJawsPVWrapper(PVWrapper):
-    """
-    Wrap the vertical jaws PVs to allow easy access to all motor PV values needed, to allow the centre to track a
-    height.
-    """
-
-    def __init__(self, base_pv):
-        """
-        Creates a wrapper around a motor PV for accessing its fields.
+        Creates a wrapper around a jaws axis.
 
         Params:
-            pv_name (string): The name of the PV
+            base_pv (String): The name of the PV
+            is_vertical (Boolean): Whether the jaws axis moves in the horizontal or vertical direction.
         """
-        self._directions = ["JN", "JS"]
+        self.is_vertical = is_vertical
         self._individual_moving_states = {}
         self._state_init_events = {}
+
+        self._directions = []
+        self._set_directions()
+
         for key in self._directions:
             self._state_init_events[key] = Event()
 
-        super(VerticalJawsPVWrapper, self).__init__(base_pv)
+        super(_JawsAxisPVWrapper, self).__init__(base_pv)
 
-    def _set_pvs(self):
-        self._sp_pv = "{}:VCENT:SP".format(self._prefixed_pv)
-        self._rbv_pv = "{}:VCENT".format(self._prefixed_pv)
+    def _set_directions(self):
+        """
+        Set the direction keys used in PVs for this jaws axis.
+        """
+        if self.is_vertical:
+            self._directions = ["JN", "JS"]
+            self._direction_symbol = "V"
+        else:
+            self._directions = ["JE", "JW"]
+            self._direction_symbol = "H"
 
     def _set_resolution(self):
+        """
+        Set the motor resolution for this axis.
+        """
         motor_resolutions_pvs = self._pv_names_for_directions("MTR.MRES")
         motor_resolutions = [self._read_pv(motor_resolutions_pv) for motor_resolutions_pv in motor_resolutions_pvs]
         self._resolution = float(sum(motor_resolutions)) / len(motor_resolutions_pvs)
@@ -372,7 +370,7 @@ class VerticalJawsPVWrapper(PVWrapper):
 
     def _set_max_velocity(self):
         """
-        Set the value of the underlying max velocity PV
+        Sets the maximum velocity this axis can move at.
         """
         motor_velocities = self._pv_names_for_directions("MTR.VMAX")
         self.max_velocity = min([self._read_pv(pv) for pv in motor_velocities])
@@ -435,7 +433,7 @@ class VerticalJawsPVWrapper(PVWrapper):
         Extracts the direction key from a given pv.
 
         Params:
-            pv (string): The source pv
+            pv (String): The source pv
 
         Returns: The direction key embedded within the pv
         """
@@ -443,3 +441,46 @@ class VerticalJawsPVWrapper(PVWrapper):
             if key in pv:
                 return key
         logger.error("Unexpected event source: {}".format(pv))
+
+
+class JawsGapPVWrapper(_JawsAxisPVWrapper):
+    """
+    Wrap the axis PVs on top of a motor record to allow easy access to all axis PV values needed.
+    """
+    def __init__(self, base_pv, is_vertical):
+        """
+        Creates a wrapper around a motor PV for accessing its fields.
+        Args:
+            base_pv (String): The name of the base PV
+        """
+        super(JawsGapPVWrapper, self).__init__(base_pv, is_vertical)
+
+    def _set_pvs(self):
+        """
+        Define relevant PVs for this type of axis.
+        """
+        self._sp_pv = "{}:{}GAP:SP".format(self._prefixed_pv, self._direction_symbol)
+        self._rbv_pv = "{}:{}GAP".format(self._prefixed_pv, self._direction_symbol)
+
+
+class JawsCentrePVWrapper(_JawsAxisPVWrapper):
+    """
+    Wrap the vertical jaws PVs to allow easy access to all motor PV values needed, to allow the centre to track a
+    height.
+    """
+
+    def __init__(self, base_pv, is_vertical):
+        """
+        Creates a wrapper around a motor PV for accessing its fields.
+
+        Params:
+            pv_name (String): The name of the PV
+        """
+        super(JawsCentrePVWrapper, self).__init__(base_pv, is_vertical)
+
+    def _set_pvs(self):
+        """
+        Define relevant PVs for this type of axis.
+        """
+        self._sp_pv = "{}:{}CENT:SP".format(self._prefixed_pv, self._direction_symbol)
+        self._rbv_pv = "{}:{}CENT".format(self._prefixed_pv, self._direction_symbol)

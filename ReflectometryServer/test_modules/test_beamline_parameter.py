@@ -722,7 +722,7 @@ class TestInitSetpoints(unittest.TestCase):
         expected = 0.1
         param_name = "param_float"
 
-        param = SlitGapParameter(param_name, self.jaws, True, autosave=True)
+        param = SlitGapParameter(param_name, self.jaws, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
@@ -731,7 +731,7 @@ class TestInitSetpoints(unittest.TestCase):
         expected = 0.2
         param_name = "param_not_in_file"
 
-        param = SlitGapParameter(param_name, self.jaws, True, autosave=True)
+        param = SlitGapParameter(param_name, self.jaws, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
@@ -740,7 +740,7 @@ class TestInitSetpoints(unittest.TestCase):
         expected = 0.2
         param_name = "param_bool"
 
-        param = SlitGapParameter(param_name, self.jaws, True, autosave=True)
+        param = SlitGapParameter(param_name, self.jaws, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)

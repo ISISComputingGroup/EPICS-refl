@@ -119,7 +119,7 @@ def create_mock_axis(name, init_position, max_velocity):
 
 
 class MockMotorPVWrapper(object):
-    def __init__(self, pv_name, init_position, max_velocity):
+    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True):
         self.name = pv_name
         self._value = init_position
         self.max_velocity = max_velocity
@@ -129,8 +129,9 @@ class MockMotorPVWrapper(object):
         self.after_sp_change_listener = set()
         self.after_status_change_listener = set()
         self.after_velocity_change_listener = set()
+        self.is_vertical = is_vertical
 
-    def add_monitors(self):
+    def initialise(self):
         pass
 
     def add_after_rbv_change_listener(self, listener):
