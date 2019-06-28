@@ -159,6 +159,14 @@ class LinearMovementCalc(object):
         """
         return self._displacement - self._dist_along_axis_from_zero_to_beam_intercept(beam)
 
+    def get_distance_relative_to_beam_in_mantid_coordinates(self, incoming_beam):
+        """
+        Returns (ReflectometryServer.geometry.Position): distance to the beam in mantid coordinates as a vector
+        """
+        distance_relative_to_beam = self.get_distance_relative_to_beam(incoming_beam)
+        return Position(distance_relative_to_beam * sin(radians(self._angle)),
+                        distance_relative_to_beam * cos(radians(self._angle)))
+
     def get_displacement(self):
         """
 

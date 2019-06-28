@@ -179,9 +179,15 @@ class TrackingBeamPathCalc(object):
 
     def position_in_mantid_coordinates(self):
         """
-        Returns (Position): The set point position of this component in mantid coordinates.
+        Returns (ReflectometryServer.geometry.Position): The set point position of this component in mantid coordinates.
         """
         return self._movement_strategy.position_in_mantid_coordinates()
+
+    def get_distance_relative_to_beam_in_mantid_coordinates(self):
+        """
+        Returns (ReflectometryServer.geometry.Position): distance to the beam in mantid coordinates as a vector
+        """
+        return self._movement_strategy.get_distance_relative_to_beam_in_mantid_coordinates(self._incoming_beam)
 
     def intercept_in_mantid_coordinates(self, on_init=False):
         """
@@ -190,7 +196,7 @@ class TrackingBeamPathCalc(object):
         Params:
             on_init(Boolean): Whether this is being called on init (decides which value to use for offset)
 
-        Returns (Position): The position of the beam intercept in mantid coordinates.
+        Returns (ReflectometryServer.geometry.Position): The position of the beam intercept in mantid coordinates.
         """
         if on_init:
             offset = self.autosaved_offset or self.get_position_relative_to_beam() or 0
@@ -360,7 +366,7 @@ class BeamPathCalcAngleReflecting(_BeamPathCalcReflecting):
 class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
     """
     A reflecting beam path calculator which has a read only angle based on the angle to a list of beam path
-    calculations. This is used for example for Theta where the angle is the angle to the next enabled component
+    calculations. This is used for example for Theta where the angle is the angle to the next enabled component.
     """
 
     def __init__(self, movement_strategy, angle_to):
@@ -368,13 +374,14 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
         Initialiser.
         Args:
             movement_strategy: movement strategy to use
-            angle_to (list[ReflectometryServer.beam_path_calc.TrackingBeamPathCalc]):
-                beam path calc on which to base the angle
+            angle_to (list[(ReflectometryServer.beam_path_calc.TrackingBeamPathCalc, ReflectometryServer.beam_path_calc.TrackingBeamPathCalc)]):
+                readback beam path calc on which to base the angle and setpoint on which the offset is taken
         """
         super(BeamPathCalcThetaRBV, self).__init__(movement_strategy)
         self._angle_to = angle_to
-        for readback_beam_path_calc in self._angle_to:
+        for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             readback_beam_path_calc.add_after_physical_move_listener(self._update_angle)
+            setpoint_beam_path_calc.add_after_physical_move_listener(self._update_angle)
 
     def _update_angle(self, source):
         """
@@ -390,13 +397,14 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
 
         Returns: half the angle to the next enabled beam path calc, or nan if there isn't one.
         """
-        for readback_beam_path_calc in self._angle_to:
+        for readback_beam_path_calc, set_point_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
                 other_pos = readback_beam_path_calc.position_in_mantid_coordinates()
+                set_point_offset = set_point_beam_path_calc.get_distance_relative_to_beam_in_mantid_coordinates()
                 this_pos = self._movement_strategy.calculate_interception(incoming_beam)
 
-                opp = other_pos.y - this_pos.y
-                adj = other_pos.z - this_pos.z
+                opp = other_pos.y - set_point_offset.y - this_pos.y
+                adj = other_pos.z - set_point_offset.z - this_pos.z
                 # x = degrees(atan2(opp, adj)) is angle in room co-ords to component
                 # x = x - incoming_beam.angle : is 2 theta
                 # x = x / 2.0: is theta
