@@ -177,7 +177,10 @@ class MockChannelAccess(object):
         pass
 
     def caget(self, pv):
-        return self._pvs[pv]
+        try:
+            return self._pvs[pv]
+        except KeyError:
+            return None
 
     def caput(self, pv, value):
         self._pvs[pv] = value
