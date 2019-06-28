@@ -18,13 +18,17 @@ class PVWrapper(object):
     """
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
     """
-    def __init__(self, base_pv):
+    def __init__(self, base_pv, ca=None):
         """
         Creates a wrapper around a PV.
 
         Args:
             base_pv(String): The name of the PV
         """
+        if ca is None:
+            self._ca = ChannelAccess
+        else:
+            self._ca = ca
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
@@ -80,8 +84,7 @@ class PVWrapper(object):
         self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._velo_pv, self._on_update_velocity)
 
-    @staticmethod
-    def _monitor_pv(pv, call_back_function):
+    def _monitor_pv(self, pv, call_back_function):
         """
         Adds a monitor function to a given PV.
 
@@ -89,29 +92,27 @@ class PVWrapper(object):
             pv(String): The pv to monitor
             call_back_function: The function to execute on a pv value change
         """
-        if ChannelAccess.pv_exists(pv):
-            ChannelAccess.add_monitor(pv, call_back_function)
+        if self._ca.pv_exists(pv):
+            self._ca.add_monitor(pv, call_back_function)
             logger.debug("Monitoring {} for changes.".format(pv))
         else:
             logger.error("Error adding monitor to {}: PV does not exist".format(pv))
 
-    @staticmethod
-    def _read_pv(pv):
+    def _read_pv(self, pv):
         """
         Read the value from a given PV.
 
         Args:
             pv(String): The pv to read
         """
-        value = ChannelAccess.caget(pv)
+        value = self._ca.caget(pv)
         if value is not None:
             return value
         else:
             logger.error("Could not connect to PV {}.".format(pv))
             raise UnableToConnectToPVException(pv, "Check configuration is correct and IOC is running.")
 
-    @staticmethod
-    def _write_pv(pv, value):
+    def _write_pv(self, pv, value):
         """
         Write a value to a given PV.
 
@@ -119,7 +120,7 @@ class PVWrapper(object):
             pv(String): The PV to write to
             value: The new value
         """
-        ChannelAccess.caput(pv, value)
+        self._ca.caput(pv, value)
 
     def add_after_rbv_change_listener(self, listener):
         """
@@ -262,14 +263,14 @@ class MotorPVWrapper(PVWrapper):
     """
     Wrap a low level motor PV. Provides relevant listeners and synchronization utilities.
     """
-    def __init__(self, base_pv):
+    def __init__(self, base_pv, ca=None):
         """
         Creates a wrapper around a low level motor PV.
 
         Params:
             base_pv (String): The name of the PV
         """
-        super(MotorPVWrapper, self).__init__(base_pv)
+        super(MotorPVWrapper, self).__init__(base_pv, ca)
 
     def _set_pvs(self):
         """
@@ -289,7 +290,7 @@ class MotorPVWrapper(PVWrapper):
 
 
 class _JawsAxisPVWrapper(PVWrapper):
-    def __init__(self, base_pv, is_vertical):
+    def __init__(self, base_pv, is_vertical, ca=None):
         """
         Creates a wrapper around a jaws axis.
 
@@ -307,7 +308,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         for key in self._directions:
             self._state_init_events[key] = Event()
 
-        super(_JawsAxisPVWrapper, self).__init__(base_pv)
+        super(_JawsAxisPVWrapper, self).__init__(base_pv, ca)
 
     def _set_directions(self):
         """
@@ -447,13 +448,13 @@ class JawsGapPVWrapper(_JawsAxisPVWrapper):
     """
     Wrap the axis PVs on top of a motor record to allow easy access to all axis PV values needed.
     """
-    def __init__(self, base_pv, is_vertical):
+    def __init__(self, base_pv, is_vertical, ca=None):
         """
         Creates a wrapper around a motor PV for accessing its fields.
         Args:
             base_pv (String): The name of the base PV
         """
-        super(JawsGapPVWrapper, self).__init__(base_pv, is_vertical)
+        super(JawsGapPVWrapper, self).__init__(base_pv, is_vertical, ca)
 
     def _set_pvs(self):
         """
@@ -469,14 +470,14 @@ class JawsCentrePVWrapper(_JawsAxisPVWrapper):
     height.
     """
 
-    def __init__(self, base_pv, is_vertical):
+    def __init__(self, base_pv, is_vertical, ca=None):
         """
         Creates a wrapper around a motor PV for accessing its fields.
 
         Params:
             pv_name (String): The name of the PV
         """
-        super(JawsCentrePVWrapper, self).__init__(base_pv, is_vertical)
+        super(JawsCentrePVWrapper, self).__init__(base_pv, is_vertical, ca)
 
     def _set_pvs(self):
         """

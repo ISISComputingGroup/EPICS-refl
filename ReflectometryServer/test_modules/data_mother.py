@@ -164,3 +164,20 @@ class MockMotorPVWrapper(object):
     @property
     def rbv(self):
         return self._value
+
+
+class MockChannelAccess(object):
+    def __init__(self, pvs):
+        self._pvs = pvs
+
+    def pv_exists(self, pv):
+        return pv in self._pvs.keys()
+
+    def add_monitor(self):
+        pass
+
+    def caget(self, pv):
+        return self._pvs[pv]
+
+    def caput(self, pv, value):
+        self._pvs[pv] = value
