@@ -90,7 +90,7 @@ def write_autosave_value(param_name, value, autosave_type):
         value: The value to save
     """
     if not os.path.exists(REFL_AUTOSAVE_PATH):
-        os.mkdir(REFL_AUTOSAVE_PATH)
+        os.makedirs(REFL_AUTOSAVE_PATH)
     autosave_file_path = AutosaveType.path(autosave_type)
     type_desc = AutosaveType.description(autosave_type)
     try:
@@ -143,7 +143,7 @@ def save_mode(mode):
         mode(str): The name of the mode to save.
     """
     if not os.path.exists(REFL_AUTOSAVE_PATH):
-        os.mkdir(REFL_AUTOSAVE_PATH)
+        os.makedirs(REFL_AUTOSAVE_PATH)
     try:
         with open(MODE_AUTOSAVE_PATH, "w") as f:
             f.write(mode)

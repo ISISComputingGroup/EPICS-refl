@@ -7,6 +7,7 @@ from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParame
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
 from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY
 import json
+from collections import OrderedDict
 
 
 PARAM_PREFIX = "PARAM"
@@ -15,12 +16,13 @@ BEAMLINE_MODE = BEAMLINE_PREFIX + "MODE"
 BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
 BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
 BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
-TRACKING_AXES = "TRACKING_AXES"
+PARAM_INFO = "PARAM_INFO"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
 MOVE_SUFFIX = ":MOVE"
 CHANGED_SUFFIX = ":CHANGED"
 SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
+IN_MODE_SUFFIX = ":IN_MODE"
 VAL_FIELD = ".VAL"
 
 FOOTPRINT_PREFIX = "FP"
@@ -38,6 +40,8 @@ FP_RBV_PREFIX = "RBV"
 FOOTPRINT_PREFIXES = [FP_SP_PREFIX, FP_SP_RBV_PREFIX, FP_RBV_PREFIX]
 
 PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
+
+PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 
 PARAM_FIELDS_MOVE = {'type': 'int', 'count': 1, 'value': 0}
 
@@ -96,6 +100,7 @@ class PvSort(Enum):
     SP = 3
     SET_AND_NO_MOVE = 4
     CHANGED = 6
+    IN_MODE = 7
 
     @staticmethod
     def what(pv_sort):
@@ -117,6 +122,8 @@ class PvSort(Enum):
             return "(Set point with no move afterwards)"
         elif pv_sort == PvSort.CHANGED:
             return "(is changed)"
+        elif pv_sort == PvSort.IN_MODE:
+            return "(is in mode)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -141,7 +148,6 @@ class PvSort(Enum):
             return parameter.sp_changed
         elif self == PvSort.MOVE:
             return parameter.move
-
         return float("NaN")
 
 
@@ -185,8 +191,8 @@ class PVManager:
         """
 
         self.PVDB = {}
-        self._params_pv_lookup = {}
-        self._tracking_positions = {}
+        self._params_pv_lookup = OrderedDict()
+        self._param_info = []
         self._footprint_parameters = {}
 
         self._add_global_pvs(mode_names, status_codes)
@@ -246,27 +252,37 @@ class PVManager:
                 keyed by name.
         """
         for param, (param_type, group_names, description) in param_types.items():
-            self._add_parameter_pvs(param, group_names, description, **PARAMS_FIELDS_BEAMLINE_TYPES[param_type])
-        self.PVDB[TRACKING_AXES] = {'type': 'char',
-                                    'count': 300,
-                                    'value': json.dumps(self._tracking_positions)
-                                    }
-
-    def _add_parameter_pvs(self, param_name, group_names, description, **fields):
+            self._add_parameter_pvs(param, group_names, description, param_type)
+        self.PVDB[PARAM_INFO] = {'type': 'char',
+                                 'count': 2048,
+                                 'value': json.dumps(self._param_info)
+                                 }
+    
+    def _add_parameter_pvs(self, param_name, group_names, description, param_type):
         """
         Adds all PVs needed for one beamline parameter to the PV database.
 
         Args:
             param_name: The name of the beamline parameter
-            fields: The fields of the parameter PV
-            group_names: list fo groups to which this parameter belong
+            param_type: The type of the parameter
+            group_names: list of groups to which this parameter belong
             description: description of the pv
         """
         try:
             param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM", limit=10)
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
-            if BeamlineParameterGroup.TRACKING in group_names:
-                self._tracking_positions[prepended_alias] = param_name
+           
+            fields = PARAMS_FIELDS_BEAMLINE_TYPES[param_type]
+            # generate a dictionary to store metadata about parameters
+            param_info = {}
+            param_info["param_name"] = param_name
+            param_info["prepended_alias"] = prepended_alias
+            if param_type is BeamlineParameterType.FLOAT:
+                param_info["type"] = "float"
+            elif param_type is BeamlineParameterType.IN_OUT:
+                param_info["type"] = "in_out"
+
+            self._param_info.append(param_info)
 
             self.PVDB["{}.DESC".format(prepended_alias)] = {'type': 'string',
                                                             'value': description
@@ -293,6 +309,10 @@ class PVManager:
             # Move PV
             self._add_pv_with_val(prepended_alias + MOVE_SUFFIX, param_name, PARAM_FIELDS_MOVE, description,
                                   PvSort.MOVE)
+
+            # In mode PV
+            self._add_pv_with_val(prepended_alias + IN_MODE_SUFFIX, param_name, PARAM_IN_MODE, description,
+                                  PvSort.IN_MODE)
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
@@ -387,7 +407,7 @@ class PVManager:
 
         Returns: True if this the beamline tracking axis pv
         """
-        return self._is_pv_name_this_field(TRACKING_AXES, pv_name)
+        return self._is_pv_name_this_field(PARAM_INFO, pv_name)
 
     def is_beamline_status(self, pv_name):
         """

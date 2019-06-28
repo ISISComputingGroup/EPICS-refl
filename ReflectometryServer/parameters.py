@@ -61,10 +61,11 @@ class BeamlineParameter(object):
         self._rbv_change_listeners = set()
         self._sp_rbv_change_listeners = set()
         self._init_listeners = set()
+        #self._in_mode = init
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
-                                                                      self._set_point_rbv, self.rbv, self.sp_changed)
+                                                                      self._set_point_rbv, self.rbv, self.sp_changed)# self.in_mode)
 
     def _initialise_sp_from_file(self):
         """
