@@ -7,6 +7,10 @@ import traceback
 from RemoteIocServer.utilities import print_and_log
 
 
+# As per https://github.com/ISISComputingGroup/ibex_developers_manual/wiki/PV-Naming#top-level-domain
+REMOTE_IOC_PV_PREFIX = "ME"
+
+
 class GateWay(object):
     def __init__(self, gateway_settings_file_path, gateway_restart_script_path, local_pv_prefix):
         self._instrument = None
@@ -42,9 +46,9 @@ class GateWay(object):
         lines = []
         if self._instrument is not None:
             for ioc in self._ioc_names:
-                # TODO: don't hardcode prefix.
-                lines.append(r'ME:{instrument}:{ioc}:\(.*\)    ALIAS    {local_pv_prefix}{ioc}:\1'
-                             .format(local_pv_prefix=self._local_pv_prefix, ioc=ioc, instrument=self._instrument))
+                lines.append(r'{remote_ioc_prefix}:{instrument}:{ioc}:\(.*\)    ALIAS    {local_pv_prefix}{ioc}:\1'
+                             .format(remote_ioc_prefix=REMOTE_IOC_PV_PREFIX, local_pv_prefix=self._local_pv_prefix,
+                                     ioc=ioc, instrument=self._instrument))
         return lines
 
     def _restart_gateway(self):

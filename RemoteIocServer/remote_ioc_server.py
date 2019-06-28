@@ -15,11 +15,14 @@ from RemoteIocServer.utilities import print_and_log
 from BlockServer.core.ioc_control import IocControl
 
 
+DEFAULT_GATEWAY_START_BAT = os.path.join("C:\\", "Instrument", "Apps", "EPICS", "gateway", "start_remoteioc_server.bat")
+
+
 class RemoteIocListDriver(Driver):
     def __init__(self, ioc_names, pv_prefix, gateway_settings_path, gateway_restart_script_path):
         super(RemoteIocListDriver, self).__init__()
         # TODO: don't hardcode.
-        self._instrument = "NDW1799"
+        self._instrument = None
 
         self._ioc_controller = IocControl(pv_prefix)
 
@@ -54,7 +57,7 @@ class RemoteIocListDriver(Driver):
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
         if reason == PvNames.INSTRUMENT_SP or reason == PvNames.INSTRUMENT:
-            return self._instrument
+            return self._instrument if self._instrument is not None else "NONE"
         else:
             print_and_log("RemoteIocListDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
 
@@ -78,7 +81,7 @@ class RemoteIocListDriver(Driver):
 def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_settings_path, gateway_restart_script_path):
     server = SimpleServer()
 
-    server.createPV("{}{}".format(pv_prefix, subsystem_prefix), STATIC_PV_DATABASE)
+    server.createPV("{}{}".format(pv_prefix, subsystem_prefix).encode('ascii'), STATIC_PV_DATABASE)
 
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
@@ -111,7 +114,7 @@ def main():
                         default=r"C:\instrument\settings\gwremoteioc.pvlist",
                         help="The path to the gateway pvlist file to generate")
     parser.add_argument("--gateway_restart_script_path", type=str,
-                        default=os.path.join("C:\\", "Instrument", "Apps", "EPICS", "gateway", "start_remoteioc_server.bat"),
+                        default=DEFAULT_GATEWAY_START_BAT,
                         help="The path to the script to call to restart the remote ioc gateway")
 
     args = parser.parse_args()

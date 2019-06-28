@@ -116,5 +116,3 @@ class IOC(object):
 
     def __getitem__(self, name):
         return self.__getattribute__(name)
-
-
