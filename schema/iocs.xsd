@@ -22,7 +22,7 @@
       <xs:attribute name="name" use="required" type="ioc:iocname"/>
       <xs:attribute name="restart" use="required" type="xs:boolean"/>
       <xs:attribute name="simlevel" use="required" type="ioc:simoptions"/>
-      <xs:attribute name="host" type="xs:string"/>
+      <xs:attribute name="remotePvPrefix" type="xs:string"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="pvs">

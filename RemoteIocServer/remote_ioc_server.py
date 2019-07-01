@@ -4,6 +4,7 @@ import argparse
 import sys
 import os
 import traceback
+import six
 
 from pcaspy import SimpleServer, Driver
 
@@ -13,6 +14,7 @@ from RemoteIocServer.gateway import GateWay
 from RemoteIocServer.pvdb import STATIC_PV_DATABASE, PvNames
 from RemoteIocServer.utilities import print_and_log
 from BlockServer.core.ioc_control import IocControl
+from server_common.utilities import waveform_to_string
 
 
 DEFAULT_GATEWAY_START_BAT = os.path.join("C:\\", "Instrument", "Apps", "EPICS", "gateway", "start_remoteioc_server.bat")
@@ -21,7 +23,6 @@ DEFAULT_GATEWAY_START_BAT = os.path.join("C:\\", "Instrument", "Apps", "EPICS", 
 class RemoteIocListDriver(Driver):
     def __init__(self, ioc_names, pv_prefix, gateway_settings_path, gateway_restart_script_path):
         super(RemoteIocListDriver, self).__init__()
-        # TODO: don't hardcode.
         self._instrument = None
 
         self._ioc_controller = IocControl(pv_prefix)
@@ -36,28 +37,30 @@ class RemoteIocListDriver(Driver):
         self._gateway.set_instrument(self._instrument)
         self._gateway.set_ioc_list(ioc_names)
 
-        # TODO: don't hardcode
-        self._configuration_monitor = ConfigurationMonitor("TE:NDW1799:".format(self._instrument),
-                                                           restart_iocs_callback=self.restart_all_iocs)
+        self._configuration_monitor = ConfigurationMonitor(
+            local_pv_prefix=pv_prefix,
+            restart_iocs_callback=self.restart_all_iocs
+        )
 
         self.updatePVs()
 
     def write(self, reason, value):
         print_and_log("RemoteIocListDriver: Processing PV write for reason {}".format(reason))
-        if reason == PvNames.INSTRUMENT_SP:
+        if reason == PvNames.INSTRUMENT:
             self.set_instrument(value)
         else:
             print_and_log("RemoteIocListDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
 
         # Update PVs after any write.
         self.updatePVs()
+        return 0
 
     def read(self, reason):
         print_and_log("RemoteIocListDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
-        if reason == PvNames.INSTRUMENT_SP or reason == PvNames.INSTRUMENT:
-            return self._instrument if self._instrument is not None else "NONE"
+        if reason == PvNames.INSTRUMENT:
+            return six.binary_type(self._instrument if self._instrument is not None else "NONE")
         else:
             print_and_log("RemoteIocListDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
 
@@ -65,8 +68,9 @@ class RemoteIocListDriver(Driver):
         print_and_log("RemoteIocListDriver: setting instrument to {} (old: {})"
                       .format(new_instrument, self._instrument))
         self._instrument = new_instrument
-        # TODO: don't hardcode
-        self._configuration_monitor.set_remote_pv_prefix("TE:NDW1799:")
+        # TODO: this is messy.
+        inst_prefix = "IN:{}:".format(self._instrument) if self._instrument is not None else ""
+        self._configuration_monitor.set_remote_pv_prefix(inst_prefix)
         self.restart_all_iocs()
         self._gateway.set_instrument(new_instrument)
         self.updatePVs()

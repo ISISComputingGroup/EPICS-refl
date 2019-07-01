@@ -73,13 +73,11 @@ class InactiveConfigHolder(ConfigHolder):
                     if ioc.get('component') is not None:
                         raise ValueError('Cannot override iocs from components')
 
-                    if ioc.get("host") is not None:
-                        host = ioc["host"]
-                    else:
-                        host = "localhost"
+                    remote_pv_prefix = ioc.get("remotePvPrefix")
 
                     self._add_ioc(ioc['name'], autostart=ioc.get('autostart'), restart=ioc.get('restart'),
-                                  macros=macros, pvs=pvs, pvsets=pvsets, simlevel=ioc.get('simlevel'), host=host)
+                                  macros=macros, pvs=pvs, pvsets=pvsets, simlevel=ioc.get('simlevel'),
+                                  remote_pv_prefix=remote_pv_prefix)
 
             if "blocks" in details:
                 # List of dicts

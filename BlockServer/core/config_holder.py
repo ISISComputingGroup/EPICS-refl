@@ -278,12 +278,12 @@ class ConfigHolder(object):
         self._config.add_block(**blockargs)
 
     def _add_ioc(self, name, component=None, autostart=True, restart=True, macros=None, pvs=None, pvsets=None,
-                 simlevel=None, host=None):
+                 simlevel=None, remote_pv_prefix=None):
         # TODO: use IOC object instead?
         if component is None:
-            self._config.add_ioc(name, None, autostart, restart, macros, pvs, pvsets, simlevel, host)
+            self._config.add_ioc(name, None, autostart, restart, macros, pvs, pvsets, simlevel, remote_pv_prefix)
         elif component.lower() in self._components:
-            self._components[component.lower()].add_ioc(name, component, autostart, restart, macros, pvs, pvsets, simlevel, host)
+            self._components[component.lower()].add_ioc(name, component, autostart, restart, macros, pvs, pvsets, simlevel, remote_pv_prefix)
         else:
             raise ValueError("Can't add IOC '{}' to component '{}': component does not exist".format(name, component))
 

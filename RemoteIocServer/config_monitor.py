@@ -59,10 +59,10 @@ class ConfigurationMonitor(object):
 
     Calls back to the RemoteIocServer class on change of config.
     """
-    def __init__(self, initial_remote_pv_prefix, restart_iocs_callback):
+    def __init__(self, local_pv_prefix, restart_iocs_callback):
         self._monitor = None
+        self._local_pv_prefix = local_pv_prefix
         self.restart_iocs_callback_func = restart_iocs_callback
-        self.set_remote_pv_prefix(initial_remote_pv_prefix)
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
         self._remote_pv_prefix = remote_pv_prefix
@@ -112,7 +112,8 @@ class ConfigurationMonitor(object):
 
         if "iocs" in config and config["iocs"] is not None:
             for ioc in config["iocs"]:
-                iocs_list.append(ioc)
+                if ioc["remotePvPrefix"] == self._local_pv_prefix:  # If the IOC is meant to run on this machine...
+                    iocs_list.append(ioc)
 
         iocs = {}
         for ioc in iocs_list:
@@ -126,7 +127,7 @@ class ConfigurationMonitor(object):
                 pvsets={pvset["name"]: {"name": pvset["name"], "value": pvset["value"]} for pvset in ioc["pvsets"]},
                 pvs={pv["name"]: {"name": pv["name"], "value": pv["value"]} for pv in ioc["pvs"]},
                 simlevel=ioc["simlevel"],
-                host=ioc["host"],
+                remote_pv_prefix=ioc["remotePvPrefix"],
             )
 
         iocs_xml = ConfigurationXmlConverter.iocs_to_xml(iocs)

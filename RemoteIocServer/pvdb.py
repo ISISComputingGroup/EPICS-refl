@@ -8,10 +8,8 @@ from server_common.utilities import char_waveform
 
 class PvNames(object):
     INSTRUMENT = "INSTRUMENT"
-    INSTRUMENT_SP = "INSTRUMENT:SP"
 
 
 STATIC_PV_DATABASE = {
     PvNames.INSTRUMENT: char_waveform(50),
-    PvNames.INSTRUMENT_SP: char_waveform(50),
 }
