@@ -18,7 +18,7 @@ class GatewayTests(unittest.TestCase):
                           gateway_restart_script_path="cmd.exe /c exit /b 0",
                           gateway_settings_file_path=os.devnull)
 
-        gateway.set_instrument(TEST_INSTRUMENT)
+        gateway.set_remote_pv_prefix(TEST_INSTRUMENT)
         gateway.set_ioc_list([])
         alias_file_lines = gateway._get_alias_file_lines()
         self.assertEqual([], alias_file_lines)
@@ -29,7 +29,7 @@ class GatewayTests(unittest.TestCase):
                           gateway_restart_script_path="cmd.exe /c exit /b 0",
                           gateway_settings_file_path=os.devnull)
 
-        gateway.set_instrument(TEST_INSTRUMENT)
+        gateway.set_remote_pv_prefix(TEST_INSTRUMENT)
         gateway.set_ioc_list(["DEVICE1", "DEVICE2"])
         alias_file_lines = gateway._get_alias_file_lines()
         self.assertEqual([

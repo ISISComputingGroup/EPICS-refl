@@ -14,7 +14,6 @@ from RemoteIocServer.gateway import GateWay
 from RemoteIocServer.pvdb import STATIC_PV_DATABASE, PvNames
 from RemoteIocServer.utilities import print_and_log
 from BlockServer.core.ioc_control import IocControl
-from server_common.utilities import waveform_to_string
 
 
 DEFAULT_GATEWAY_START_BAT = os.path.join("C:\\", "Instrument", "Apps", "EPICS", "gateway", "start_remoteioc_server.bat")
@@ -23,7 +22,7 @@ DEFAULT_GATEWAY_START_BAT = os.path.join("C:\\", "Instrument", "Apps", "EPICS", 
 class RemoteIocListDriver(Driver):
     def __init__(self, ioc_names, pv_prefix, gateway_settings_path, gateway_restart_script_path):
         super(RemoteIocListDriver, self).__init__()
-        self._instrument = None
+        self._remote_pv_prefix = None
 
         self._ioc_controller = IocControl(pv_prefix)
 
@@ -34,7 +33,7 @@ class RemoteIocListDriver(Driver):
             gateway_settings_file_path=gateway_settings_path,
             gateway_restart_script_path=gateway_restart_script_path
         )
-        self._gateway.set_instrument(self._instrument)
+        self._gateway.set_remote_pv_prefix(self._remote_pv_prefix)
         self._gateway.set_ioc_list(ioc_names)
 
         self._configuration_monitor = ConfigurationMonitor(
@@ -47,34 +46,32 @@ class RemoteIocListDriver(Driver):
     def write(self, reason, value):
         print_and_log("RemoteIocListDriver: Processing PV write for reason {}".format(reason))
         if reason == PvNames.INSTRUMENT:
-            self.set_instrument(value)
+            self.set_remote_pv_prefix(value)
         else:
             print_and_log("RemoteIocListDriver: Could not write to PV '{}': not known".format(reason), "MAJOR")
 
         # Update PVs after any write.
         self.updatePVs()
-        return 0
 
     def read(self, reason):
         print_and_log("RemoteIocListDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
         if reason == PvNames.INSTRUMENT:
-            return six.binary_type(self._instrument if self._instrument is not None else "NONE")
+            return six.binary_type(self._remote_pv_prefix if self._remote_pv_prefix is not None else "NONE")
         else:
             print_and_log("RemoteIocListDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
 
-    def set_instrument(self, new_instrument):
+    def set_remote_pv_prefix(self, remote_pv_prefix):
         print_and_log("RemoteIocListDriver: setting instrument to {} (old: {})"
-                      .format(new_instrument, self._instrument))
-        self._instrument = new_instrument
-        # TODO: this is messy.
-        inst_prefix = "IN:{}:".format(self._instrument) if self._instrument is not None else ""
-        self._configuration_monitor.set_remote_pv_prefix(inst_prefix)
+                      .format(remote_pv_prefix, self._remote_pv_prefix))
+        self._remote_pv_prefix = remote_pv_prefix
+
+        self._configuration_monitor.set_remote_pv_prefix(remote_pv_prefix)
         self.restart_all_iocs()
-        self._gateway.set_instrument(new_instrument)
+        self._gateway.set_remote_pv_prefix(remote_pv_prefix)
         self.updatePVs()
-        print_and_log("RemoteIocListDriver: Finished setting instrument to {}".format(self._instrument))
+        print_and_log("RemoteIocListDriver: Finished setting instrument to {}".format(self._remote_pv_prefix))
 
     def restart_all_iocs(self):
         print_and_log("RemoteIocListDriver: Restarting all IOCs")

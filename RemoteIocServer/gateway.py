@@ -7,13 +7,9 @@ import traceback
 from RemoteIocServer.utilities import print_and_log
 
 
-# As per https://github.com/ISISComputingGroup/ibex_developers_manual/wiki/PV-Naming#top-level-domain
-REMOTE_IOC_PV_PREFIX = "ME"
-
-
 class GateWay(object):
     def __init__(self, gateway_settings_file_path, gateway_restart_script_path, local_pv_prefix):
-        self._instrument = None
+        self._remote_pv_prefix = None
         self._ioc_names = []
         self._local_pv_prefix = local_pv_prefix
         self._gateway_settings_file_path = gateway_settings_file_path
@@ -21,9 +17,9 @@ class GateWay(object):
 
         self._reapply_gateway_settings()
 
-    def set_instrument(self, instrument):
-        print_and_log("Gateway: instrument changed from {} to {}".format(self._instrument, instrument))
-        self._instrument = instrument
+    def set_remote_pv_prefix(self, remote_pv_prefix):
+        print_and_log("Gateway: instrument changed from {} to {}".format(self._remote_pv_prefix, remote_pv_prefix))
+        self._remote_pv_prefix = remote_pv_prefix
         self._reapply_gateway_settings()
 
     def set_ioc_list(self, iocs):
@@ -44,11 +40,10 @@ class GateWay(object):
 
     def _get_alias_file_lines(self):
         lines = []
-        if self._instrument is not None:
+        if self._remote_pv_prefix is not None:
             for ioc in self._ioc_names:
-                lines.append(r'{remote_ioc_prefix}:{instrument}:{ioc}:\(.*\)    ALIAS    {local_pv_prefix}{ioc}:\1'
-                             .format(remote_ioc_prefix=REMOTE_IOC_PV_PREFIX, local_pv_prefix=self._local_pv_prefix,
-                                     ioc=ioc, instrument=self._instrument))
+                lines.append(r'{remote_prefix}{ioc}:\(.*\)    ALIAS    {local_prefix}{ioc}:\1'
+                             .format(remote_prefix=self._remote_pv_prefix, local_prefix=self._local_pv_prefix, ioc=ioc))
         return lines
 
     def _restart_gateway(self):
