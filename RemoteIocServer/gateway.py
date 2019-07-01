@@ -35,7 +35,7 @@ class GateWay(object):
         print_and_log("Gateway: rewriting gateway configuration file at '{}'".format(self._gateway_settings_file_path))
         with open(self._gateway_settings_file_path, "w") as f:
             f.write("EVALUATION ORDER ALLOW, DENY\n")
-            f.writelines(self._get_alias_file_lines())
+            f.write("\n".join(self._get_alias_file_lines()))
             f.write("\n")
 
     def _get_alias_file_lines(self):
