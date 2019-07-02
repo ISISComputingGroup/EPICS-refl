@@ -19,6 +19,16 @@ from BlockServer.core.ioc_control import IocControl
 DEFAULT_GATEWAY_START_BAT = os.path.join("C:\\", "Instrument", "Apps", "EPICS", "gateway", "start_remoteioc_server.bat")
 
 
+def _error_handler(func):
+    @six.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            print_and_log(traceback.format_exc())
+    return wrapper
+
+
 class RemoteIocListDriver(Driver):
     def __init__(self, ioc_names, pv_prefix, gateway_settings_path, gateway_restart_script_path):
         super(RemoteIocListDriver, self).__init__()
@@ -43,6 +53,7 @@ class RemoteIocListDriver(Driver):
 
         self.updatePVs()
 
+    @_error_handler
     def write(self, reason, value):
         print_and_log("RemoteIocListDriver: Processing PV write for reason {}".format(reason))
         if reason == PvNames.INSTRUMENT:
@@ -53,6 +64,7 @@ class RemoteIocListDriver(Driver):
         # Update PVs after any write.
         self.updatePVs()
 
+    @_error_handler
     def read(self, reason):
         print_and_log("RemoteIocListDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.

@@ -14,6 +14,10 @@ from RemoteIocServer.utilities import print_and_log
 
 
 class GateWay(object):
+    """
+    Class representing the EPICS remote IOC gateway.
+    """
+
     def __init__(self, gateway_settings_file_path, gateway_restart_script_path, local_pv_prefix):
         self._remote_pv_prefix = None
         self._ioc_names = []
@@ -24,11 +28,23 @@ class GateWay(object):
         self._reapply_gateway_settings()
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
+        """
+        Sets the remote PV prefix (i.e. the prefix of the NDX machine). Will cause gateways to reload.
+
+        Args:
+            remote_pv_prefix: the prefix of the remote machine to observe (e.g. IN:DEMO: )
+        """
         print_and_log("Gateway: instrument changed from {} to {}".format(self._remote_pv_prefix, remote_pv_prefix))
         self._remote_pv_prefix = remote_pv_prefix
         self._reapply_gateway_settings()
 
     def set_ioc_list(self, iocs):
+        """
+        Changes the list of IOCS which this gateway is aliasing.
+
+        Args:
+            iocs: the new list of IOC names to observe
+        """
         print_and_log("Gateway: ioc list changed from {} to {}".format(str(self._ioc_names), str(iocs)))
         self._ioc_names = iocs
         self._reapply_gateway_settings()
@@ -48,6 +64,7 @@ class GateWay(object):
             f.write("\n".join(self._get_alias_file_lines()))
             f.write("\n")
 
+        # TODO: don't just randomly chop of 6 characters and replace them...
         with open(self._gateway_settings_file_path[:-6] + "acf", "w") as f:
             f.write(self._get_access_security_file_content())
 
@@ -57,13 +74,12 @@ class GateWay(object):
             for ioc in self._ioc_names:
                 lines.append(r'{remote_prefix}{ioc}:\(.*\)    ALIAS    {local_prefix}{ioc}:\1'
                              .format(remote_prefix=self._remote_pv_prefix, local_prefix=self._local_pv_prefix, ioc=ioc))
-                lines.append(r'{remote_prefix}{ioc}:\(.*\)    ALLOW    GWEXT    1'
-                             .format(remote_prefix=self._remote_pv_prefix, local_prefix=self._local_pv_prefix, ioc=ioc))
         return lines
 
     def _get_access_security_file_content(self):
+        hostname = self._get_hostname()
         return """
-HAG(allowed_write) { localhost, 127.0.0.1, """ + six.binary_type(self._get_hostname()) + """ }
+HAG(allowed_write) { localhost, 127.0.0.1, """ + six.binary_type(hostname) + """ }
 
 ASG(DEFAULT) {
    RULE(1, READ)
@@ -81,7 +97,7 @@ ASG(GWEXT) {
 ASG(ANYBODY) {
     RULE(1, READ)
 }
-        """.encode("ascii")
+""".encode("ascii") if hostname is not None else ""
 
     def _restart_gateway(self):
         print_and_log("Gateway: restarting")
@@ -105,4 +121,4 @@ ASG(ANYBODY) {
             return name
         except (UnableToConnectToPVException, ReadAccessException) as e:
             print_and_log("Gateway: Unable to get hostname because {}.".format(e))
-            return "none"
+            return None
