@@ -6,11 +6,9 @@ import subprocess
 import traceback
 
 import six
-from genie_python.channel_access_exceptions import UnableToConnectToPVException, ReadAccessException
-from genie_python.genie_cachannel_wrapper import CaChannelWrapper
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
-from RemoteIocServer.utilities import print_and_log
+from RemoteIocServer.utilities import print_and_log, get_hostname_from_prefix
 
 
 class GateWay(object):
@@ -77,7 +75,7 @@ class GateWay(object):
         return lines
 
     def _get_access_security_file_content(self):
-        hostname = self._get_hostname()
+        hostname = get_hostname_from_prefix(self._remote_pv_prefix)
         return """
 HAG(allowed_write) { localhost, 127.0.0.1, """ + six.binary_type(hostname) + """ }
 
@@ -108,17 +106,3 @@ ASG(ANYBODY) {
         except subprocess.CalledProcessError:
             print_and_log("Gateway: restart failed (path to script: {})".format(self._gateway_restart_script_path))
             print_and_log(traceback.format_exc())
-
-    def _get_hostname(self):
-        """
-        DevIocStats on any IOC publishes the hostname of the computer it's running on over channel access.
-        """
-        try:
-            # Choose an IOC which should always be up (INSTETC) and use the deviocstats hostname record.
-            name = CaChannelWrapper.get_pv_value("{}CS:IOC:INSTETC_01:DEVIOS:HOSTNAME".format(self._remote_pv_prefix),
-                                                 to_string=True, timeout=5)
-            print_and_log("Gateway: hostname is '{}' (from DevIocStats)".format(name))
-            return name
-        except (UnableToConnectToPVException, ReadAccessException) as e:
-            print_and_log("Gateway: Unable to get hostname because {}.".format(e))
-            return None
