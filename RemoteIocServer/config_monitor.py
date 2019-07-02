@@ -122,17 +122,21 @@ class ConfigurationMonitor(object):
         iocs = {}
         for ioc in iocs_list:
             name = ioc["name"]
-            iocs[name.upper()] = IOC(
-                name=name,
-                autostart=ioc["autostart"],
-                restart=ioc["restart"],
-                component=None,  # We don't care what component it was defined in.
-                macros={macro["name"]: {"name": macro["name"], "value": macro["value"]} for macro in ioc["macros"]},
-                pvsets={pvset["name"]: {"name": pvset["name"], "value": pvset["value"]} for pvset in ioc["pvsets"]},
-                pvs={pv["name"]: {"name": pv["name"], "value": pv["value"]} for pv in ioc["pvs"]},
-                simlevel=ioc["simlevel"],
-                remote_pv_prefix=ioc["remotePvPrefix"],
-            )
+            try:
+                iocs[name.upper()] = IOC(
+                    name=name,
+                    autostart=ioc["autostart"],
+                    restart=ioc["restart"],
+                    component=None,  # We don't care what component it was defined in.
+                    macros={macro["name"]: {"name": macro["name"], "value": macro["value"]} for macro in ioc["macros"]},
+                    pvsets={pvset["name"]: {"name": pvset["name"], "value": pvset["value"]} for pvset in ioc["pvsets"]},
+                    pvs={pv["name"]: {"name": pv["name"], "value": pv["value"]} for pv in ioc["pvs"]},
+                    simlevel=ioc["simlevel"],
+                    remote_pv_prefix=ioc["remotePvPrefix"],
+                )
+            except KeyError:
+                print_and_log("ConfigMonitor: not all attributes could be extracted from config."
+                              "The config may not have been updated to the correct schema. Ignoring this IOC.")
 
         iocs_xml = ConfigurationXmlConverter.iocs_to_xml(iocs)
 
