@@ -33,6 +33,7 @@ from RemoteIocServer.utilities import print_and_log
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.channel_access import ChannelAccess
+from genie_python.channel_access_exceptions import UnableToConnectToPVException
 from server_common.utilities import dehex_and_decompress, waveform_to_string
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.ioc import IOC
@@ -50,7 +51,10 @@ class _EpicsMonitor(object):
         ChannelAccess.poll()  # Needed to get first monitor immediately
 
     def end(self):
-        CaChannelWrapper.get_chan(self._pv).clear_channel()
+        try:
+            CaChannelWrapper.get_chan(self._pv).clear_channel()
+        except UnableToConnectToPVException:
+            pass
 
 
 class ConfigurationMonitor(object):
