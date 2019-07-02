@@ -1,17 +1,16 @@
 from __future__ import print_function, unicode_literals, division, absolute_import
 
-import json
 import os
 import sys
 import subprocess
 import traceback
 
+import six
 from genie_python.channel_access_exceptions import UnableToConnectToPVException, ReadAccessException
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from RemoteIocServer.utilities import print_and_log
-from server_common.utilities import dehex_and_decompress
 
 
 class GateWay(object):
@@ -35,15 +34,22 @@ class GateWay(object):
         self._reapply_gateway_settings()
 
     def _reapply_gateway_settings(self):
-        self._recreate_gateway_file()
+        self._recreate_gateway_config_files()
         self._restart_gateway()
 
-    def _recreate_gateway_file(self):
+    def _recreate_gateway_config_files(self):
         print_and_log("Gateway: rewriting gateway configuration file at '{}'".format(self._gateway_settings_file_path))
+
+        if not os.path.exists(os.path.dirname(self._gateway_settings_file_path)):
+            os.makedirs(os.path.dirname(self._gateway_settings_file_path))
+
         with open(self._gateway_settings_file_path, "w") as f:
             f.write("EVALUATION ORDER ALLOW, DENY\n")
             f.write("\n".join(self._get_alias_file_lines()))
             f.write("\n")
+
+        with open(self._gateway_settings_file_path[:-6] + "acf", "w") as f:
+            f.write(self._get_access_security_file_content())
 
     def _get_alias_file_lines(self):
         lines = []
@@ -51,11 +57,25 @@ class GateWay(object):
             for ioc in self._ioc_names:
                 lines.append(r'{remote_prefix}{ioc}:\(.*\)    ALIAS    {local_prefix}{ioc}:\1'
                              .format(remote_prefix=self._remote_pv_prefix, local_prefix=self._local_pv_prefix, ioc=ioc))
-                lines.append(r'{remote_prefix}{ioc}:\(.*\)    DENY'
-                             .format(remote_prefix=self._remote_pv_prefix, ioc=ioc))
-                lines.append(r'{remote_prefix}{ioc}:\(.*\)    ALLOW FROM {hostname}'
-                             .format(remote_prefix=self._remote_pv_prefix, ioc=ioc, hostname=self._get_hostname()))
         return lines
+
+    def _get_access_security_file_content(self):
+        return """
+HAG(allowed_write) { localhost, 127.0.0.1, """ + six.binary_type(self._get_hostname()) + """ }
+
+ASG(DEFAULT) {
+   RULE(1, READ)
+   RULE(1, WRITE, TRAPWRITE)
+}
+
+ASG(GWEXT) {
+    RULE(1, READ)
+    RULE(1, WRITE, TRAPWRITE)
+    {
+        HAG(allowed_write)
+    }
+}
+        """.encode("ascii")
 
     def _restart_gateway(self):
         print_and_log("Gateway: restarting")
@@ -69,21 +89,6 @@ class GateWay(object):
 
     def _get_hostname(self):
         """
-        The gateway access files depend on hostname, but we only know the PV prefix and don't want to have to pass both.
-
-        We can try:
-        - Getting the hostname direct from the instrument using a PV (won't work if server is down)
-        - Getting the hostname from the instrument list based on the PV prefix (won't work if not an instrument)
-        - If neither of the above work, guess (and print a warning) based on the PV prefix.
-
-        Between the approaches above we have covered all of the common cases.
-        """
-        return self._get_host_from_prefix_using_deviocstats() \
-            or self._get_host_from_prefix_using_instlist() \
-            or self._guess_hostname_from_prefix()
-
-    def _get_host_from_prefix_using_deviocstats(self):
-        """
         DevIocStats on any IOC publishes the hostname of the computer it's running on over channel access.
         """
         try:
@@ -93,34 +98,5 @@ class GateWay(object):
             print_and_log("Gateway: hostname is '{}' (from DevIocStats)".format(name))
             return name
         except (UnableToConnectToPVException, ReadAccessException) as e:
-            print_and_log("Gateway: Unable to use DevIocStats to get hostname because {}.".format(e))
-
-    def _get_host_from_prefix_using_instlist(self):
-        """
-        Looks in the global instrument list for an instrument who's PV prefix matches the one we're looking for, and
-        return the hostname.
-        """
-        try:
-            raw_instrument_list = dehex_and_decompress(
-                CaChannelWrapper.get_pv_value("CS:INSTLIST", to_string=True, timeout=5))
-            instrument_list = json.loads(raw_instrument_list)
-
-            for inst in instrument_list:
-                if inst["pvPrefix"] == self._remote_pv_prefix:
-                    print_and_log("Gateway: hostname is '{}' (from instrument list)".format(inst["hostName"]))
-                    return inst["hostName"]
-            else:
-                print_and_log("Gateway: Unable to use inst list to get hostname: not in instrument list")
-        except Exception as e:
-            print_and_log("Gateway: Unable to use inst list to get hostname because {}.".format(e))
-
-    def _guess_hostname_from_prefix(self):
-        """
-        Guess the hostname of a PC given it's PV prefix
-        """
-        try:
-            name = self._remote_pv_prefix.split(":")[1]
-            print_and_log("Gateway: guessing that hostname is '{}'.".format(name))
-            return name
-        except (TypeError, ValueError, IndexError) as e:
-            print_and_log("Gateway: unable to guess hostname from pv prefix because {}".format(e))
+            print_and_log("Gateway: Unable to get hostname because {}.".format(e))
+            return "none"

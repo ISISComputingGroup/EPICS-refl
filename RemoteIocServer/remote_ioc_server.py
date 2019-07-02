@@ -103,18 +103,19 @@ def main():
         description="Runs a remote IOC server.",
     )
 
-    parser.add_argument("--ioc_names", type=str, nargs="+", default=[],
+    parser.add_argument("--ioc_names", type=six.text_type, nargs="+", default=[],
                         help="The list of IOCS to be managed by this remote IOC server. The names should be in the"
                              " same format as the names in the IOC list.")
-    parser.add_argument("--pv_prefix", required=True, type=str,
+    parser.add_argument("--pv_prefix", required=True, type=six.text_type,
                         help="The PV prefix of this instrument.")
-    parser.add_argument("--subsystem_prefix", type=str,
+    parser.add_argument("--subsystem_prefix", type=six.text_type,
                         default="REMIOC:",
                         help="The subsystem prefix to use for this remote IOC server")
-    parser.add_argument("--gateway_settings_path", type=str,
-                        default=r"C:\instrument\settings\gwremoteioc.pvlist",
+    parser.add_argument("--gateway_settings_path", type=six.text_type,
+                        default=os.path.normpath(
+                            os.path.join(os.getenv("ICPCONFIGROOT"), "AccessSecurity", "gwremoteioc.pvlist")),
                         help="The path to the gateway pvlist file to generate")
-    parser.add_argument("--gateway_restart_script_path", type=str,
+    parser.add_argument("--gateway_restart_script_path", type=six.text_type,
                         default=DEFAULT_GATEWAY_START_BAT,
                         help="The path to the script to call to restart the remote ioc gateway")
 
