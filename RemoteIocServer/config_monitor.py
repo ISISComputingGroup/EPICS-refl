@@ -33,7 +33,7 @@ from RemoteIocServer.utilities import print_and_log
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.channel_access import ChannelAccess
-from genie_python.channel_access_exceptions import UnableToConnectToPVException
+from genie_python.channel_access_exceptions import UnableToConnectToPVException, ReadAccessException
 from server_common.utilities import dehex_and_decompress, waveform_to_string
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.ioc import IOC
@@ -122,13 +122,15 @@ class ConfigurationMonitor(object):
         iocs = {}
         for ioc in iocs_list:
             name = ioc["name"]
+            macros = {macro["name"]: {"name": macro["name"], "value": macro["value"]} for macro in ioc["macros"]}
+            macros["ACF_IH1"] = {"name": "ACF_IH1", "value": self._get_hostname()}
             try:
                 iocs[name.upper()] = IOC(
                     name=name,
                     autostart=ioc["autostart"],
                     restart=ioc["restart"],
                     component=None,  # We don't care what component it was defined in.
-                    macros={macro["name"]: {"name": macro["name"], "value": macro["value"]} for macro in ioc["macros"]},
+                    macros=macros,
                     pvsets={pvset["name"]: {"name": pvset["name"], "value": pvset["value"]} for pvset in ioc["pvsets"]},
                     pvs={pv["name"]: {"name": pv["name"], "value": pv["value"]} for pv in ioc["pvs"]},
                     simlevel=ioc["simlevel"],
@@ -165,3 +167,17 @@ class ConfigurationMonitor(object):
         print_and_log("ConfigMonitor: Writing last_config.txt")
         with open(os.path.join(config_base, "last_config.txt"), "w") as f:
             f.write("{}\n".format(REMOTE_IOC_CONFIG_NAME))
+
+    def _get_hostname(self):
+        """
+        DevIocStats on any IOC publishes the hostname of the computer it's running on over channel access.
+        """
+        try:
+            # Choose an IOC which should always be up (INSTETC) and use the deviocstats hostname record.
+            name = CaChannelWrapper.get_pv_value("{}CS:IOC:INSTETC_01:DEVIOS:HOSTNAME".format(self._remote_pv_prefix),
+                                                 to_string=True, timeout=5)
+            print_and_log("Gateway: hostname is '{}' (from DevIocStats)".format(name))
+            return name
+        except (UnableToConnectToPVException, ReadAccessException) as e:
+            print_and_log("Gateway: Unable to get hostname because {}.".format(e))
+            return None
