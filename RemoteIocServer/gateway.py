@@ -44,7 +44,7 @@ class GateWay(object):
             os.makedirs(os.path.dirname(self._gateway_settings_file_path))
 
         with open(self._gateway_settings_file_path, "w") as f:
-            f.write("EVALUATION ORDER ALLOW, DENY\n")
+            f.write("EVALUATION ORDER DENY, ALLOW\n")
             f.write("\n".join(self._get_alias_file_lines()))
             f.write("\n")
 
@@ -76,6 +76,10 @@ ASG(GWEXT) {
     {
         HAG(allowed_write)
     }
+}
+
+ASG(ANYBODY) {
+    RULE(1, READ)
 }
         """.encode("ascii")
 
