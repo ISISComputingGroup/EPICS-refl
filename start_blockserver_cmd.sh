@@ -14,7 +14,7 @@ export EPICS_CAS_BEACON_ADDR_LIST="127.255.255.255"
 
 export PYTHONUNBUFFERED="TRUE"
 
-export MYDIRGATE="$MYDIRBLOCK/../../../gateway.py"
+export MYDIRGATE="$MYDIRBLOCK/../../../gateway"
 if [ -r "$ICPSETTINGSDIR/gwblock.pvlist" ]; then
     GWBLOCK_PVLIST="$ICPSETTINGSDIR/gwblock.pvlist"
 else

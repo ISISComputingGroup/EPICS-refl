@@ -24,22 +24,22 @@ ALIAS_HEADER = """\
 ##
 EVALUATION ORDER ALLOW, DENY
 
-## serve blockserver internal variables, including Flag variables needed by blockserver process to restart gateway.py
+## serve blockserver internal variables, including Flag variables needed by blockserver process to restart gateway
 %sCS:GATEWAY:BLOCKSERVER:.*    				    ALLOW	ANYBODY	    1
-## allow anybody to generate gateway.py reports
+## allow anybody to generate gateway reports
 %sCS:GATEWAY:BLOCKSERVER:report[1-9]Flag		ALLOW	ANYBODY		1
 """
 
 class Gateway(object):
-    """A class for interacting with the EPICS gateway.py that creates the aliases used for implementing blocks"""
+    """A class for interacting with the EPICS gateway that creates the aliases used for implementing blocks"""
 
     def __init__(self, prefix, block_prefix, pvlist_file, pv_prefix):
         """Constructor.
 
         Args:
-            prefix (string): The prefix for the gateway.py
+            prefix (string): The prefix for the gateway
             block_prefix (string): The block prefix
-            pvlist_file (string): Where to write the gateway.py file
+            pvlist_file (string): Where to write the gateway file
             pv_prefix (string): Prefix for instrument PVs
         """
         self._prefix = prefix
@@ -48,10 +48,10 @@ class Gateway(object):
         self._pv_prefix = pv_prefix
 
     def exists(self):
-        """Checks the gateway.py exists by querying on of the PVs.
+        """Checks the gateway exists by querying on of the PVs.
 
         Returns:
-            bool : Whether the gateway.py is running and is accessible
+            bool : Whether the gateway is running and is accessible
         """
         val = ChannelAccess.caget(self._prefix + "pvtotal")
         if val is None:
@@ -60,19 +60,19 @@ class Gateway(object):
             return True
 
     def _reload(self):
-        print_and_log("Reloading gateway.py")
+        print_and_log("Reloading gateway")
         try:
-            # Have to wait after put as the gateway.py does not do completion callbacks (it is not an IOC)
+            # Have to wait after put as the gateway does not do completion callbacks (it is not an IOC)
             ChannelAccess.caput(self._prefix + "newAsFlag", 1)
 
             while ChannelAccess.caget(self._prefix + "newAsFlag") == 1:
                 time.sleep(1)
             print_and_log("Gateway reloaded")
         except Exception as err:
-            print_and_log("Problem with reloading the gateway.py %s" % err)
+            print_and_log("Problem with reloading the gateway %s" % err)
 
     def _generate_alias_file(self, blocks=None):
-        # Generate blocks.pvlist for gateway.py
+        # Generate blocks.pvlist for gateway
         with open(self._pvlist_file, 'w') as f:
             header = ALIAS_HEADER % (self._pv_prefix, self._pv_prefix)
             f.write(header)
@@ -153,7 +153,7 @@ class Gateway(object):
         return lines
 
     def set_new_aliases(self, blocks):
-        """Creates the aliases for the blocks and restarts the gateway.py.
+        """Creates the aliases for the blocks and restarts the gateway.
 
         Args:
             blocks (OrderedDict): The blocks that belong to the configuration

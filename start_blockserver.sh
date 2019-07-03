@@ -21,7 +21,7 @@ BLOCKSERVER_CONSOLEPORT="9006"
 echo "Starting blockserver (console port $BLOCKSERVER_CONSOLEPORT)"
 BLOCKSERVER_CMD="/bin/bash -i -O huponexit $MYDIRBLOCK/start_blockserver_cmd.sh"
 
-# Unlike IOC we are not using "--noautorestart --wait" so gateway.py will start immediately and also automatically restart on exit
+# Unlike IOC we are not using "--noautorestart --wait" so gateway will start immediately and also automatically restart on exit
 
 procServ --logstamp --logfile="$IOCLOGROOT/BLOCKSVR-$(date +'%Y%m%d').log" --timefmt="%c" --restrict --ignore="^D^C" --name=BLOCKSVR --pidfile="$EPICS_ROOT/EPICS_BLOCKSVR.pid" $BLOCKSERVER_CONSOLEPORT $BLOCKSERVER_CMD 
 
