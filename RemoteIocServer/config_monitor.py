@@ -67,20 +67,31 @@ class ConfigurationMonitor(object):
         self.restart_iocs_callback_func = restart_iocs_callback
         self._remote_hostname = None
 
+        self._remote_pv_prefix = None
+        self._remote_hostname = None
+
     def set_remote_pv_prefix(self, remote_pv_prefix):
         self._remote_pv_prefix = remote_pv_prefix
         self._remote_hostname = get_hostname_from_prefix(remote_pv_prefix)
 
-        self._start_monitoring()
+        if self._remote_pv_prefix is None or self._remote_hostname is None:
+            print_and_log("ConfigMonitor: prefix/hostname not set - will not monitor")
+            self._stop_monitoring()
+        else:
+            self._start_monitoring()
 
     def _start_monitoring(self):
         """
         Monitors the PV and calls the provided callback function when the value changes
         """
-        if self._monitor is not None:
-            self._monitor.end()
+        self._stop_monitoring()
         self._monitor = _EpicsMonitor("{}CS:BLOCKSERVER:GET_CURR_CONFIG_DETAILS".format(self._remote_pv_prefix))
         self._monitor.start(callback=self._config_updated)
+
+    def _stop_monitoring(self):
+        if self._monitor is not None:
+            self._monitor.end()
+        self._monitor = None
 
     def _config_updated(self, value, *_, **__):
         try:
@@ -135,7 +146,7 @@ class ConfigurationMonitor(object):
                     pvsets={pvset["name"]: {"name": pvset["name"], "value": pvset["value"]} for pvset in ioc["pvsets"]},
                     pvs={pv["name"]: {"name": pv["name"], "value": pv["value"]} for pv in ioc["pvs"]},
                     simlevel=ioc["simlevel"],
-                    remote_pv_prefix=ioc["remotePvPrefix"],
+                    remotePvPrefix=ioc["remotePvPrefix"],
                 )
             except KeyError:
                 print_and_log("ConfigMonitor: not all attributes could be extracted from config."

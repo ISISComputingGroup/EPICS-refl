@@ -80,7 +80,7 @@ class Configuration(object):
             self.groups[group.lower()].blocks.append(name)
 
     def add_ioc(self, name, component=None, autostart=None, restart=None, macros=None, pvs=None, pvsets=None,
-                simlevel=None, remote_pv_prefix=None):
+                simlevel=None, remotePvPrefix=None):
         """ Add an IOC to the configuration.
 
         Args:
@@ -98,7 +98,7 @@ class Configuration(object):
         if name.upper() in self.iocs.keys():
             print_and_log("Warning: IOC '{}' is already part of the configuration. Not adding it again.")
         else:
-            self.iocs[name.upper()] = IOC(name, autostart, restart, component, macros, pvs, pvsets, simlevel, remote_pv_prefix)
+            self.iocs[name.upper()] = IOC(name, autostart, restart, component, macros, pvs, pvsets, simlevel, remotePvPrefix)
 
     def update_runcontrol_settings_for_saving(self, rc_data):
         """ Updates the run-control settings for the configuration's blocks.
