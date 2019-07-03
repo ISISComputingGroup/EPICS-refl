@@ -65,9 +65,12 @@ class ConfigurationMonitor(object):
         self._monitor = None
         self._local_pv_prefix = local_pv_prefix
         self.restart_iocs_callback_func = restart_iocs_callback
+        self._remote_hostname = None
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
         self._remote_pv_prefix = remote_pv_prefix
+        self._remote_hostname = get_hostname_from_prefix(remote_pv_prefix)
+
         self._start_monitoring()
 
     def _start_monitoring(self):
@@ -121,7 +124,7 @@ class ConfigurationMonitor(object):
         for ioc in iocs_list:
             name = ioc["name"]
             macros = {macro["name"]: {"name": macro["name"], "value": macro["value"]} for macro in ioc["macros"]}
-            macros["ACF_IH1"] = {"name": "ACF_IH1", "value": get_hostname_from_prefix(self._remote_pv_prefix)}
+            macros["ACF_IH1"] = {"name": "ACF_IH1", "value": self._remote_hostname}
             try:
                 iocs[name.upper()] = IOC(
                     name=name,
