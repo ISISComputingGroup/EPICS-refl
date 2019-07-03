@@ -30,7 +30,7 @@ def _error_handler(func):
 
 
 class RemoteIocListDriver(Driver):
-    def __init__(self, ioc_names, pv_prefix, gateway_settings_path, gateway_restart_script_path):
+    def __init__(self, ioc_names, pv_prefix, gateway_pvlist_path, gateway_acf_path, gateway_restart_script_path):
         super(RemoteIocListDriver, self).__init__()
         self._remote_pv_prefix = None
 
@@ -40,7 +40,8 @@ class RemoteIocListDriver(Driver):
 
         self._gateway = GateWay(
             local_pv_prefix=pv_prefix,
-            gateway_settings_file_path=gateway_settings_path,
+            gateway_pvlist_file_path=gateway_pvlist_path,
+            gateway_acf_file_path=gateway_acf_path,
             gateway_restart_script_path=gateway_restart_script_path
         )
         self._gateway.set_remote_pv_prefix(self._remote_pv_prefix)
@@ -91,7 +92,7 @@ class RemoteIocListDriver(Driver):
             self._ioc_controller.restart_ioc(ioc_name, force=True, restart_alarm_server=False)
 
 
-def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_settings_path, gateway_restart_script_path):
+def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_pvlist_path, gateway_acf_path, gateway_restart_script_path):
     server = SimpleServer()
 
     server.createPV("{}{}".format(pv_prefix, subsystem_prefix).encode('ascii'), STATIC_PV_DATABASE)
@@ -99,7 +100,7 @@ def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_settings_path,
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
     # of how it achieves this.
-    RemoteIocListDriver(ioc_names, pv_prefix, gateway_settings_path, gateway_restart_script_path)
+    RemoteIocListDriver(ioc_names, pv_prefix, gateway_pvlist_path, gateway_acf_path, gateway_restart_script_path)
 
     try:
         while True:
@@ -124,9 +125,13 @@ def main():
     parser.add_argument("--subsystem_prefix", type=six.text_type,
                         default="REMIOC:",
                         help="The subsystem prefix to use for this remote IOC server")
-    parser.add_argument("--gateway_settings_path", type=six.text_type,
+    parser.add_argument("--gateway_pvlist_path", type=six.text_type,
                         default=os.path.normpath(
                             os.path.join(os.getenv("ICPCONFIGROOT"), "AccessSecurity", "gwremoteioc.pvlist")),
+                        help="The path to the gateway pvlist file to generate")
+    parser.add_argument("--gateway_acf_path", type=six.text_type,
+                        default=os.path.normpath(
+                            os.path.join(os.getenv("ICPCONFIGROOT"), "AccessSecurity", "gwremoteioc.acf")),
                         help="The path to the gateway pvlist file to generate")
     parser.add_argument("--gateway_restart_script_path", type=six.text_type,
                         default=DEFAULT_GATEWAY_START_BAT,
@@ -138,7 +143,8 @@ def main():
         args.pv_prefix,
         args.subsystem_prefix,
         args.ioc_names,
-        args.gateway_settings_path,
+        args.gateway_pvlist_path,
+        args.gateway_acf_path,
         args.gateway_restart_script_path
     )
 

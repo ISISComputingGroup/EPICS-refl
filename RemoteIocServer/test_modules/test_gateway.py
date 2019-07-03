@@ -17,7 +17,8 @@ class GatewayTests(unittest.TestCase):
     def test_GIVEN_gateway_has_no_iocs_configured_WHEN_call_generate_gateway_file_THEN_get_empty_gateway_file(self, *_):
         gateway = GateWay(local_pv_prefix=TEST_LOCAL_PV_PREFIX,
                           gateway_restart_script_path="cmd.exe /c exit /b 0",
-                          gateway_settings_file_path=os.devnull)
+                          gateway_pvlist_file_path=os.devnull,
+                          gateway_acf_path=os.devnull)
 
         gateway.set_remote_pv_prefix(TEST_REMOTE_PV_PREFIX)
         gateway.set_ioc_list([])
@@ -29,7 +30,8 @@ class GatewayTests(unittest.TestCase):
     def test_GIVEN_gateway_has_iocs_configured_WHEN_call_generate_gateway_file_THEN_get_appropriate_lines(self, *_):
         gateway = GateWay(local_pv_prefix=TEST_LOCAL_PV_PREFIX,
                           gateway_restart_script_path="cmd.exe /c exit /b 0",
-                          gateway_settings_file_path=os.devnull)
+                          gateway_pvlist_file_path=os.devnull,
+                          gateway_acf_path=os.devnull)
 
         gateway.set_remote_pv_prefix(TEST_REMOTE_PV_PREFIX)
         gateway.set_ioc_list(["DEVICE1", "DEVICE2"])

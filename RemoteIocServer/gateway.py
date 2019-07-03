@@ -16,11 +16,12 @@ class GateWay(object):
     Class representing the EPICS remote IOC gateway.
     """
 
-    def __init__(self, gateway_settings_file_path, gateway_restart_script_path, local_pv_prefix):
+    def __init__(self, gateway_pvlist_file_path, gateway_acf_path, gateway_restart_script_path, local_pv_prefix):
         self._remote_pv_prefix = None
         self._ioc_names = []
         self._local_pv_prefix = local_pv_prefix
-        self._gateway_settings_file_path = gateway_settings_file_path
+        self._gateway_pvlist_file_path = gateway_pvlist_file_path
+        self._gateway_acf_file_path = gateway_acf_path
         self._gateway_restart_script_path = gateway_restart_script_path
 
         self._reapply_gateway_settings()
@@ -52,18 +53,17 @@ class GateWay(object):
         self._restart_gateway()
 
     def _recreate_gateway_config_files(self):
-        print_and_log("Gateway: rewriting gateway configuration file at '{}'".format(self._gateway_settings_file_path))
+        print_and_log("Gateway: rewriting gateway configuration file at '{}'".format(self._gateway_pvlist_file_path))
 
-        if not os.path.exists(os.path.dirname(self._gateway_settings_file_path)):
-            os.makedirs(os.path.dirname(self._gateway_settings_file_path))
+        if not os.path.exists(os.path.dirname(self._gateway_pvlist_file_path)):
+            os.makedirs(os.path.dirname(self._gateway_pvlist_file_path))
 
-        with open(self._gateway_settings_file_path, "w") as f:
+        with open(self._gateway_pvlist_file_path, "w") as f:
             f.write("EVALUATION ORDER DENY, ALLOW\n")
             f.write("\n".join(self._get_alias_file_lines()))
             f.write("\n")
 
-        # TODO: don't just randomly chop of 6 characters and replace them...
-        with open(self._gateway_settings_file_path[:-6] + "acf", "w") as f:
+        with open(self._gateway_acf_file_path, "w") as f:
             f.write(self._get_access_security_file_content())
 
     def _get_alias_file_lines(self):
