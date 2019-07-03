@@ -41,7 +41,7 @@ class RemoteIocListDriver(Driver):
         self._gateway = GateWay(
             local_pv_prefix=pv_prefix,
             gateway_pvlist_file_path=gateway_pvlist_path,
-            gateway_acf_file_path=gateway_acf_path,
+            gateway_acf_path=gateway_acf_path,
             gateway_restart_script_path=gateway_restart_script_path
         )
         self._gateway.set_remote_pv_prefix(self._remote_pv_prefix)
