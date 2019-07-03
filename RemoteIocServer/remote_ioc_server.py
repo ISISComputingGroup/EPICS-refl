@@ -89,7 +89,10 @@ class RemoteIocListDriver(Driver):
     def restart_all_iocs(self):
         print_and_log("RemoteIocListDriver: Restarting all IOCs")
         for ioc_name in self._iocs:
-            self._ioc_controller.restart_ioc(ioc_name, force=True, restart_alarm_server=False)
+            if self._ioc_controller.get_ioc_status(ioc_name) == "RUNNING":
+                self._ioc_controller.restart_ioc(ioc_name, force=True, restart_alarm_server=False)
+            else:
+                self._ioc_controller.start_ioc(ioc_name, restart_alarm_server=False)
 
 
 def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_pvlist_path, gateway_acf_path, gateway_restart_script_path):

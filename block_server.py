@@ -362,6 +362,10 @@ class BlockServer(Driver):
         # Note: autostart means the IOC is started when the config is loaded,
         # restart means the IOC should automatically restart if it stops for some reason (e.g. it crashes)
         for name, ioc in self._active_configserver.get_all_ioc_details().iteritems():
+            if ioc.remotePvPrefix != "":
+                print_and_log("IOC '{}' is set to run remotely - not starting it.")
+                continue
+
             try:
                 # IOCs are restarted if and only if auto start is True. Note that auto restart instructs proc serv to
                 # restart an IOC if it terminates unexpectedly and does not apply here.

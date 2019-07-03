@@ -33,7 +33,7 @@ class IocControl(object):
         """
         self._proc = ProcServWrapper(prefix)
 
-    def start_ioc(self, ioc):
+    def start_ioc(self, ioc, restart_alarm_server=True):
         """Start an IOC.
 
         Args:
@@ -41,7 +41,7 @@ class IocControl(object):
         """
         try:
             self._proc.start_ioc(ioc)
-            if ioc != "ALARM":
+            if ioc != "ALARM" and restart_alarm_server:
                 AlarmConfigLoader.restart_alarm_server(self)
         except Exception as err:
             print_and_log("Could not start IOC %s: %s" % (ioc, str(err)), "MAJOR")
