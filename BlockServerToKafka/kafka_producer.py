@@ -23,10 +23,10 @@ class Producer:
     A wrapper class for the kafka producer.
     """
 
-    def __init__(self, server, config_topic, data_topic):
+    def __init__(self, servers, config_topic, data_topic):
         self.topic = config_topic
-        self.converter = ForwarderConfig(data_topic)
-        self.set_up_producer(server)
+        self.set_up_producer(servers)
+        self.converter = ForwarderConfig(r"//{}/{}".format(servers[0], data_topic))
 
     def set_up_producer(self, server):
         try:
