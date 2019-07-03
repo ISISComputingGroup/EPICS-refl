@@ -111,7 +111,6 @@ def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_settings_path,
 
 def main():
     print(get_hostname_from_prefix("TE:NDW1799:"))
-    return
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Runs a remote IOC server.",

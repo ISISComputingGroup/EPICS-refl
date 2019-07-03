@@ -82,6 +82,9 @@ HAG(allowed_write) { localhost, 127.0.0.1, """ + six.binary_type(hostname) + """
 ASG(DEFAULT) {
    RULE(1, READ)
    RULE(1, WRITE, TRAPWRITE)
+   {
+       HAG(allowed_write)
+   }
 }
 
 ASG(GWEXT) {
