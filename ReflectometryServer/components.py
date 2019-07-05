@@ -1,12 +1,21 @@
 """
 Components on a beam
 """
+from enum import Enum
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, BeamPathTilting, BeamPathCalcAngleReflecting, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
 from ReflectometryServer.movement_strategy import LinearMovementCalc
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class ChangeAxis(Enum):
+    """
+    Types of axes in the component that can change.
+    """
+    POSITION = 0
+    ANGLE = 1
 
 
 class Component(object):
@@ -23,19 +32,39 @@ class Component(object):
         """
         self._name = name
         self._init_beam_path_calcs(setup)
-        self._changed = False
+        self._changed = {ChangeAxis.POSITION: False}
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = TrackingBeamPathCalc(LinearMovementCalc(setup))
         self._beam_path_rbv = TrackingBeamPathCalc(LinearMovementCalc(setup))
 
-    @property
-    def changed(self):
-        return self._changed
+    def set_changed_flag(self, change_type, value):
+        """
+        Set a flag signalling whether this component has an un-applied change.
 
-    @changed.setter
-    def changed(self, val):
-        self._changed = val
+        Params:
+            change_type (ChangeType): The type of axis for which to set the flag
+            value (bool): Value to set or clear the flag
+        """
+        if change_type in self._changed.keys():
+            self._changed[change_type] = value
+        else:
+            logger.error("Tried to set an invalid type of parameter for component {}.".format(self.name))
+
+    def read_changed_flag(self, change_axis):
+        """
+        Reads a flag signalling whether this component has an un-applied change.
+
+        Params:
+            change_axis (ChangeAxis): The type of axis for which to read the flag
+
+        Returns: Whether the flag for the given axis has changed
+        """
+        if change_axis in self._changed.keys():
+            return self._changed[change_axis]
+        else:
+            logger.error("Tried to read an invalid type of parameter for component {}.".format(self.name))
+            return None
 
     @property
     def name(self):
@@ -89,6 +118,7 @@ class TiltingComponent(Component):
             setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
         """
         super(TiltingComponent, self).__init__(name, setup)
+        self._changed[ChangeAxis.ANGLE] = False
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = BeamPathTilting(LinearMovementCalc(setup))
@@ -107,6 +137,7 @@ class ReflectingComponent(Component):
             setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
         """
         super(ReflectingComponent, self).__init__(name, setup)
+        self._changed[ChangeAxis.ANGLE] = False
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = BeamPathCalcAngleReflecting(LinearMovementCalc(setup))

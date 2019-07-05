@@ -5,6 +5,7 @@ import file_io
 import logging
 
 from enum import Enum
+from ReflectometryServer.components import ChangeAxis
 from server_common.utilities import print_and_log, SEVERITY
 
 logger = logging.getLogger(__name__)
@@ -338,7 +339,7 @@ class AngleParameter(BeamlineParameter):
         self._reflection_component.beam_path_set_point.set_angle_relative_to_beam(self._set_point_rbv)
 
     def _set_changed_flag(self):
-        self._reflection_component.changed = True
+        self._reflection_component.set_changed_flag(ChangeAxis.ANGLE, True)
 
     def _rbv(self):
         return self._reflection_component.beam_path_rbv.get_angle_relative_to_beam()
@@ -412,7 +413,7 @@ class TrackingPosition(BeamlineParameter):
         self._component.beam_path_set_point.set_position_relative_to_beam(self._set_point_rbv)
 
     def _set_changed_flag(self):
-        self._component.changed = True
+        self._component.set_changed_flag(ChangeAxis.POSITION, True)
 
     def _rbv(self):
         """
@@ -485,7 +486,7 @@ class InBeamParameter(BeamlineParameter):
         self._component.beam_path_set_point.is_in_beam = self._set_point_rbv
 
     def _set_changed_flag(self):
-        self._component.changed = True
+        self._component.set_changed_flag(ChangeAxis.POSITION, True)
 
     def validate(self, drivers):
         """
