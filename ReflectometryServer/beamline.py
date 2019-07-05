@@ -411,7 +411,7 @@ class Beamline(object):
             self.set_status(STATUS.GENERAL_ERROR, e.message)
 
     def _perform_move_for_all_drivers(self, move_duration):
-        for driver in self._get_drivers_not_at_setpoint():
+        for driver in self._drivers:
             driver.perform_move(move_duration)
 
     def _get_max_move_duration(self):

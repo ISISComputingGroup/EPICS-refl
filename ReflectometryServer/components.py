@@ -23,10 +23,19 @@ class Component(object):
         """
         self._name = name
         self._init_beam_path_calcs(setup)
+        self._changed = False
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = TrackingBeamPathCalc(LinearMovementCalc(setup))
         self._beam_path_rbv = TrackingBeamPathCalc(LinearMovementCalc(setup))
+
+    @property
+    def changed(self):
+        return self._changed
+
+    @changed.setter
+    def changed(self, val):
+        self._changed = val
 
     @property
     def name(self):

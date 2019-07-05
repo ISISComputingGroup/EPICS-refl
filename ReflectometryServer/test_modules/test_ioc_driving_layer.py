@@ -49,7 +49,7 @@ class TestHeightDriver(unittest.TestCase):
         expected_velocity = 5.0
         self.jaws.beam_path_set_point.set_position_relative_to_beam(target_position)
 
-        self.jaws_driver.perform_move(target_duration)
+        self.jaws_driver.perform_move(target_duration, True)
 
         assert_that(self.height_axis.velocity, is_(expected_velocity))
         assert_that(self.height_axis.sp, is_(target_position))
@@ -104,8 +104,8 @@ class TestHeightAndTiltDriver(unittest.TestCase):
         self.tilting_jaws.beam_path_set_point.set_position_relative_to_beam(0.0)  # move component into beam
         self.tilting_jaws.beam_path_set_point.set_angle_relative_to_beam(90.0)
 
-        self.tilting_jaws_driver_disp.perform_move(target_duration)
-        self.tilting_jaws_driver_ang.perform_move(target_duration)
+        self.tilting_jaws_driver_disp.perform_move(target_duration, True)
+        self.tilting_jaws_driver_ang.perform_move(target_duration, True)
 
         assert_that(self.height_axis.velocity, is_(close_to(expected_velocity_height, FLOAT_TOLERANCE)))
         assert_that(self.height_axis.sp, is_(close_to(target_position_height, FLOAT_TOLERANCE)))
@@ -150,8 +150,8 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         self.supermirror.beam_path_set_point.angle = 30.0
         self.supermirror.beam_path_set_point.set_position_relative_to_beam(10.0)  # move component into beam
 
-        self.supermirror_driver_disp.perform_move(target_duration)
-        self.supermirror_driver_ang.perform_move(target_duration)
+        self.supermirror_driver_disp.perform_move(target_duration, True)
+        self.supermirror_driver_ang.perform_move(target_duration, True)
 
         assert_that(fabs(self.height_axis.velocity - expected_velocity_height) <= FLOAT_TOLERANCE)
         assert_that(fabs(self.height_axis.sp - target_position_height) <= FLOAT_TOLERANCE)
@@ -200,7 +200,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         expected_velocity = - expected_position / 4.0
         self.jaws.beam_path_set_point.is_in_beam = False
 
-        self.jaws_driver.perform_move(target_duration)
+        self.jaws_driver.perform_move(target_duration, True)
 
         assert_that(self.height_axis.velocity, is_(expected_velocity))
         assert_that(self.height_axis.sp, is_(expected_position))
@@ -276,7 +276,7 @@ class TestDriverChanged(unittest.TestCase):
         self.height_axis.sp = 0.0
         self.jaws.beam_path_set_point.set_position_relative_to_beam(1.0)
 
-        self.jaws_driver.perform_move(1)
+        self.jaws_driver.perform_move(1, True)
         actual = self.jaws_driver.at_target_setpoint()
 
         assert_that(actual, is_(expected))

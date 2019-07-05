@@ -59,19 +59,23 @@ class IocDriver(object):
         """
         return self._get_distance() / self._axis.max_velocity
 
-    def perform_move(self, move_duration):
+    def perform_move(self, move_duration, force=False):
         """
         Tells the driver to perform a move to the component set points within a given duration
 
         Args:
-            move_duration: The duration in which to perform this move
+            move_duration (float): The duration in which to perform this move
+            force (bool): move even if component does not report changed (for unit testing).
         """
-        logger.debug("Moving axis {}".format(self._get_distance()))
-        if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
-            self._axis.velocity = self._get_distance() / move_duration
+        if not self.at_target_setpoint():
+            if self._component.changed or force:
+                logger.debug("Moving axis {}".format(self._get_distance()))
+                if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
+                    self._axis.velocity = self._get_distance() / move_duration
 
-        self._axis.sp = self._get_set_point_position()
-        self._sp_cache = self._get_set_point_position()
+                self._axis.sp = self._get_set_point_position()
+                self._sp_cache = self._get_set_point_position()
+        self._component.changed = False
 
     def rbv_cache(self):
         """
