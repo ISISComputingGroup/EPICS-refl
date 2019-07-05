@@ -123,9 +123,10 @@ class ThetaComponent(ReflectingComponent):
 
     def _init_beam_path_calcs(self, setup):
         beam_path_calcs = [(comp.beam_path_rbv, comp.beam_path_set_point) for comp in self.angle_to_components]
-        self._beam_path_rbv = BeamPathCalcThetaRBV(LinearMovementCalc(setup), beam_path_calcs)
-        self._beam_path_set_point = BeamPathCalcThetaSP(LinearMovementCalc(setup),
+        linear_movement_calc = LinearMovementCalc(setup)
+        self._beam_path_set_point = BeamPathCalcThetaSP(linear_movement_calc,
                                                         [comp.beam_path_set_point for comp in self.angle_to_components])
+        self._beam_path_rbv = BeamPathCalcThetaRBV(linear_movement_calc, beam_path_calcs, self._beam_path_set_point)
 
 
 # class Bench(Component):

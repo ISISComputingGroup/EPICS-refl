@@ -35,6 +35,11 @@ class TrackingBeamPathCalc(object):
         # This is used in disable mode where the incoming
         self.incoming_beam_can_change = True
 
+        # This is the theta beam path and is used because this beam path calc is defining theta and therefore its offset
+        #   will always be exact. So we use this to calculate the position of the component not the incoming beam.
+        #  If it is None then this does not define theta
+        self.theta_calc_set_of_incoming_beam = None
+
     def init_displacement_from_motor(self, value):
         """
         Sets the displacement read from the motor axis on startup.
@@ -133,10 +138,10 @@ class TrackingBeamPathCalc(object):
 
     def calculate_beam_interception(self):
         """
-        Returns: the position at the point where the components possible movement intercepts the beam
-
+        Returns: the position at the point where the components possible movement intercepts the beam (the beam is
+            the theta beam if set or the incoming beam if not)
         """
-        return self._movement_strategy.calculate_interception(self._incoming_beam)
+        return self._movement_strategy.calculate_interception(self._theta_incoming_beam_if_set_else_incoming_beam())
 
     def set_position_relative_to_beam(self, displacement):
         """
@@ -152,10 +157,24 @@ class TrackingBeamPathCalc(object):
         """
 
         Returns: the displacement of the component relative to the beam, E.g. The distance along the movement
-            axis of the component from the intercept with the beam.
+            axis of the component from the intercept with the beam. Beam is theta beam if set otherwise incoming beam
 
         """
-        return self._movement_strategy.get_distance_relative_to_beam(self._incoming_beam)
+        return self._movement_strategy.get_distance_relative_to_beam(
+            self._theta_incoming_beam_if_set_else_incoming_beam())
+
+    def _theta_incoming_beam_if_set_else_incoming_beam(self):
+        """
+        If this is the component defining theta then measuring relative to the incoming beam makes no sense it will
+        always be zero, so instead measure with respect to the setpoint beam. This function returns the correct beam.
+        Returns: theta incoming beam if this is not None; otherwise returns incoming beam
+
+        """
+        if self.theta_calc_set_of_incoming_beam is None:
+            beam = self._incoming_beam
+        else:
+            beam = self.theta_calc_set_of_incoming_beam
+        return beam
 
     def set_displacement(self, displacement, alarm_severity, alarm_status):
         """
@@ -185,9 +204,11 @@ class TrackingBeamPathCalc(object):
 
     def get_distance_relative_to_beam_in_mantid_coordinates(self):
         """
-        Returns (ReflectometryServer.geometry.Position): distance to the beam in mantid coordinates as a vector
+        Returns (ReflectometryServer.geometry.Position): distance to the beam in mantid coordinates as a vector, beam
+            is the theta beam if set otherwise incoming beam
         """
-        return self._movement_strategy.get_distance_relative_to_beam_in_mantid_coordinates(self._incoming_beam)
+        return self._movement_strategy.get_distance_relative_to_beam_in_mantid_coordinates(
+            self._theta_incoming_beam_if_set_else_incoming_beam())
 
     def intercept_in_mantid_coordinates(self, on_init=False):
         """
@@ -369,16 +390,18 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
     calculations. This is used for example for Theta where the angle is the angle to the next enabled component.
     """
 
-    def __init__(self, movement_strategy, angle_to):
+    def __init__(self, movement_strategy, angle_to, theta_setpoint_beam_path_calc):
         """
         Initialiser.
         Args:
             movement_strategy: movement strategy to use
             angle_to (list[(ReflectometryServer.beam_path_calc.TrackingBeamPathCalc, ReflectometryServer.beam_path_calc.TrackingBeamPathCalc)]):
                 readback beam path calc on which to base the angle and setpoint on which the offset is taken
+            theta_setpoint_beam_path_calc (ReflectometryServer.beam_path_calc.BeamPathCalcThetaSP)
         """
         super(BeamPathCalcThetaRBV, self).__init__(movement_strategy)
         self._angle_to = angle_to
+        self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             readback_beam_path_calc.add_after_physical_move_listener(self._update_angle)
             setpoint_beam_path_calc.add_after_physical_move_listener(self._update_angle)
@@ -397,6 +420,11 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
 
         Returns: half the angle to the next enabled beam path calc, or nan if there isn't one.
         """
+
+        # clear previous incoming theta beam on all components
+        for readback_beam_path_calc, _ in self._angle_to:
+            readback_beam_path_calc.theta_calc_set_of_incoming_beam = None
+
         for readback_beam_path_calc, set_point_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
                 other_pos = readback_beam_path_calc.position_in_mantid_coordinates()
@@ -411,6 +439,9 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
                 # x + incoming_beam.angle: angle of sample in room coordinate
 
                 angle = (degrees(atan2(opp, adj)) - incoming_beam.angle) / 2.0 + incoming_beam.angle
+
+                readback_beam_path_calc.theta_calc_set_of_incoming_beam = \
+                    self.theta_setpoint_beam_path_calc.get_outgoing_beam()
                 break
         else:
             angle = float("NaN")
