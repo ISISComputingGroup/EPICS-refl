@@ -173,6 +173,7 @@ class BeamlineParameter(object):
         self._sp_is_changed = False
         if self._autosave:
             write_autosave_value(self._name, self._set_point_rbv, AutosaveType.PARAM)
+        self._trigger_sp_rbv_listeners(self)
 
     def move_to_sp_rbv_no_callback(self):
         """
@@ -506,15 +507,14 @@ class SlitGapParameter(BeamlineParameter):
     def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False):
         """
         Args:
-            name (String): The name of the parameter
+            name (str): The name of the parameter
             pv_wrapper (ReflectometryServer.pv_wrapper._JawsAxisPVWrapper): The jaws pv wrapper this parameter talks to
-            sim (Boolean): Whether it is a simulated parameter
-            init (Float): Initialisation value if simulated
-            description (String): The description
+            sim (bool): Whether it is a simulated parameter
+            init (float): Initialisation value if simulated
+            description (str): The description
         """
         super(SlitGapParameter, self).__init__(name, sim, init, description, autosave)
         self._pv_wrapper = pv_wrapper
-        self._pv_wrapper.add_after_sp_change_listener(self.update_sp_rbv)
         self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
         self._pv_wrapper.initialise()
         if pv_wrapper.is_vertical:
@@ -544,18 +544,6 @@ class SlitGapParameter(BeamlineParameter):
         Get the setpoint value for this parameter based on the motor setpoint position.
         """
         self._set_initial_sp(self._pv_wrapper.sp)
-
-    def update_sp_rbv(self, new_value, alarm_severity, alarm_status):
-        """
-        Update the setpoint readback value.
-
-        Args:
-            new_value: new given value
-            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
-            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
-        """
-        self._set_point_rbv = new_value
-        self._trigger_sp_rbv_listeners(self)
 
     def update_rbv(self, new_value, alarm_severity, alarm_status):
         """
