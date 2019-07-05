@@ -119,7 +119,7 @@ def create_mock_axis(name, init_position, max_velocity):
 
 
 class MockMotorPVWrapper(object):
-    def __init__(self, pv_name, init_position, max_velocity):
+    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True):
         self.name = pv_name
         self._value = init_position
         self.max_velocity = max_velocity
@@ -127,9 +127,11 @@ class MockMotorPVWrapper(object):
         self.resolution = DEFAULT_TEST_TOLERANCE
         self.after_rbv_change_listener = set()
         self.after_sp_change_listener = set()
-        self.after_sp_change_listener = set()
+        self.after_status_change_listener = set()
+        self.after_velocity_change_listener = set()
+        self.is_vertical = is_vertical
 
-    def add_monitors(self):
+    def initialise(self):
         pass
 
     def add_after_rbv_change_listener(self, listener):
@@ -137,6 +139,15 @@ class MockMotorPVWrapper(object):
 
     def add_after_sp_change_listener(self, listener):
         self.after_sp_change_listener.add(listener)
+
+    def add_after_status_change_listener(self, listener):
+        self.after_status_change_listener.add(listener)
+
+    def add_after_velocity_change_listener(self, listener):
+        self.after_velocity_change_listener.add(listener)
+
+    def initiate_move(self):
+        pass
 
     @property
     def sp(self):
@@ -153,3 +164,23 @@ class MockMotorPVWrapper(object):
     @property
     def rbv(self):
         return self._value
+
+
+class MockChannelAccess(object):
+    def __init__(self, pvs):
+        self._pvs = pvs
+
+    def pv_exists(self, pv):
+        return pv in self._pvs.keys()
+
+    def add_monitor(self):
+        pass
+
+    def caget(self, pv):
+        try:
+            return self._pvs[pv]
+        except KeyError:
+            return None
+
+    def caput(self, pv, value):
+        self._pvs[pv] = value
