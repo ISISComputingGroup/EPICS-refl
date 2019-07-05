@@ -38,7 +38,7 @@ class TrackingBeamPathCalc(object):
         # This is the theta beam path and is used because this beam path calc is defining theta and therefore its offset
         #   will always be exact. So we use this to calculate the position of the component not the incoming beam.
         #  If it is None then this does not define theta
-        self.theta_calc_set_of_incoming_beam = None
+        self.substitute_incoming_beam_for_displacement = None
 
     def init_displacement_from_motor(self, value):
         """
@@ -170,10 +170,10 @@ class TrackingBeamPathCalc(object):
         Returns: theta incoming beam if this is not None; otherwise returns incoming beam
 
         """
-        if self.theta_calc_set_of_incoming_beam is None:
+        if self.substitute_incoming_beam_for_displacement is None:
             beam = self._incoming_beam
         else:
-            beam = self.theta_calc_set_of_incoming_beam
+            beam = self.substitute_incoming_beam_for_displacement
         return beam
 
     def set_displacement(self, displacement, alarm_severity, alarm_status):
@@ -423,7 +423,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
 
         # clear previous incoming theta beam on all components
         for readback_beam_path_calc, _ in self._angle_to:
-            readback_beam_path_calc.theta_calc_set_of_incoming_beam = None
+            readback_beam_path_calc.substitute_incoming_beam_for_displacement = None
 
         for readback_beam_path_calc, set_point_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
@@ -440,7 +440,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
 
                 angle = (degrees(atan2(opp, adj)) - incoming_beam.angle) / 2.0 + incoming_beam.angle
 
-                readback_beam_path_calc.theta_calc_set_of_incoming_beam = \
+                readback_beam_path_calc.substitute_incoming_beam_for_displacement = \
                     self.theta_setpoint_beam_path_calc.get_outgoing_beam()
                 break
         else:

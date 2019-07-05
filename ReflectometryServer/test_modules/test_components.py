@@ -261,7 +261,7 @@ class TestThetaComponent(unittest.TestCase):
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
-        theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.theta_calc_set_of_incoming_beam
+        theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.substitute_incoming_beam_for_displacement
 
         assert_that(result, is_(0.0))
         assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component has defined theta rbv")
@@ -297,19 +297,19 @@ class TestThetaComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp1", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = False
-        next_component.beam_path_rbv.theta_calc_set_of_incoming_beam = "Not None"
+        next_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
 
         next_but_one_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_but_one_component.beam_path_rbv.is_in_beam = True
         next_but_one_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
-        next_component.beam_path_rbv.theta_calc_set_of_incoming_beam = "Not None"
+        next_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
 
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
-        theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.theta_calc_set_of_incoming_beam
-        theta_calc_set_of_incoming_beam_next_comp_but_one = next_but_one_component.beam_path_rbv.theta_calc_set_of_incoming_beam
+        theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.substitute_incoming_beam_for_displacement
+        theta_calc_set_of_incoming_beam_next_comp_but_one = next_but_one_component.beam_path_rbv.substitute_incoming_beam_for_displacement
 
         assert_that(result, is_(45.0/2.0))
         assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(None), "This component does not define theta rbv")
@@ -320,20 +320,20 @@ class TestThetaComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp1", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
-        next_component.beam_path_rbv.theta_calc_set_of_incoming_beam = "Not None"
+        next_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
         next_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
 
         next_but_one_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_but_one_component.beam_path_rbv.is_in_beam = True
         next_but_one_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
-        next_but_one_component.beam_path_rbv.theta_calc_set_of_incoming_beam = "Not None"
+        next_but_one_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
 
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
-        theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.theta_calc_set_of_incoming_beam
-        theta_calc_set_of_incoming_beam_next_comp_but_one = next_but_one_component.beam_path_rbv.theta_calc_set_of_incoming_beam
+        theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.substitute_incoming_beam_for_displacement
+        theta_calc_set_of_incoming_beam_next_comp_but_one = next_but_one_component.beam_path_rbv.substitute_incoming_beam_for_displacement
 
         assert_that(result, is_(45.0/2.0))
         assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component does not define theta rbv")
