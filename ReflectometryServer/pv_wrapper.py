@@ -53,12 +53,14 @@ class PVWrapper(object):
         self._velo_pv = ""
         self._vmax_pv = ""
         self._dmov_pv = ""
+        raise NotImplementedError()
 
     def _set_resolution(self):
         """
         Set the motor resolution for this axis. Must be overridden in subclass.
         """
         self._resolution = 0
+        raise NotImplementedError()
 
     def _set_max_velocity(self):
         """
