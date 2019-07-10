@@ -32,6 +32,7 @@ class PVWrapper(object):
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
+        self._after_dmov_change_listeners = set()
 
         self._move_initiated = False
         self._moving_state = None
@@ -82,6 +83,8 @@ class PVWrapper(object):
                          partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
         self._monitor_pv(self._sp_pv,
                          partial(self._trigger_listeners, "setpoint value", self._after_sp_change_listeners))
+        self._monitor_pv(self._dmov_pv,
+                         partial(self._trigger_listeners, "moving state value", self._after_dmov_change_listeners))
 
         self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._velo_pv, self._on_update_velocity)
@@ -302,13 +305,10 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         self.is_vertical = is_vertical
         self._individual_moving_states = {}
-        self._state_init_events = {}
+        self._state_init_event = Event()
 
         self._directions = []
         self._set_directions()
-
-        for key in self._directions:
-            self._state_init_events[key] = Event()
 
         super(_JawsAxisPVWrapper, self).__init__(base_pv, ca)
 
@@ -346,9 +346,8 @@ class _JawsAxisPVWrapper(PVWrapper):
                          partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
         self._monitor_pv(self._sp_pv,
                          partial(self._trigger_listeners, "setpoint value", self._after_sp_change_listeners))
-
-        for dmov_pv in self._pv_names_for_directions("MTR.DMOV"):
-            self._monitor_pv(dmov_pv, partial(self._on_update_moving_state, source=self._strip_source_pv(dmov_pv)))
+        self._monitor_pv(self._dmov_pv,
+                         partial(self._on_update_moving_state, "moving state value"))
 
     @property
     def velocity(self):
@@ -397,12 +396,10 @@ class _JawsAxisPVWrapper(PVWrapper):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self._individual_moving_states[source] = new_value
-        overall_state = self._get_overall_moving_state()
-        if overall_state == MTR_STOPPED and self._v_restore is not None:
+        if new_value == MTR_STOPPED and self._v_restore is not None:
             self.velocity = self._v_restore
-        self._moving_state = overall_state
-        self._state_init_events[source].set()
+        self._moving_state = new_value
+        self._state_init_event.set()
 
     def _init_velocity_to_restore(self, value):
         """
@@ -411,25 +408,12 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         v_init = value
         v_autosaved = read_autosave_value(self.name, AutosaveType.VELOCITY)
-        for key, event in self._state_init_events.items():
-            event.wait()
+        self._state_init_event.wait()
         if self._moving_state == MTR_MOVING:
             if v_autosaved is not None:
                 v_init = v_autosaved
         self._v_restore = v_init
         write_autosave_value(self.name, v_init, AutosaveType.VELOCITY)
-
-    def _get_overall_moving_state(self):
-        """
-        Returns the overall moving state of the jaws. If every individual axis is stopped the overall state is stopped,
-        otherwise the state is moving.
-
-        Returns: The overall moving state.
-        """
-        overall_state = MTR_MOVING
-        if all(state == MTR_STOPPED for state in self._individual_moving_states.values()):
-            overall_state = MTR_STOPPED
-        return overall_state
 
     def _strip_source_pv(self, pv):
         """
@@ -443,6 +427,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         for key in self._directions:
             if key in pv:
                 return key
+        logger.error("Unexpected event source: {}".format(pv))
         logger.error("Unexpected event source: {}".format(pv))
 
 
@@ -464,6 +449,7 @@ class JawsGapPVWrapper(_JawsAxisPVWrapper):
         """
         self._sp_pv = "{}:{}GAP:SP".format(self._prefixed_pv, self._direction_symbol)
         self._rbv_pv = "{}:{}GAP".format(self._prefixed_pv, self._direction_symbol)
+        self._dmov_pv = "{}:{}GAP:DMOV".format(self._prefixed_pv, self._direction_symbol)
 
 
 class JawsCentrePVWrapper(_JawsAxisPVWrapper):
@@ -487,3 +473,4 @@ class JawsCentrePVWrapper(_JawsAxisPVWrapper):
         """
         self._sp_pv = "{}:{}CENT:SP".format(self._prefixed_pv, self._direction_symbol)
         self._rbv_pv = "{}:{}CENT".format(self._prefixed_pv, self._direction_symbol)
+        self._dmov_pv = "{}:{}CENT:DMOV".format(self._prefixed_pv, self._direction_symbol)
