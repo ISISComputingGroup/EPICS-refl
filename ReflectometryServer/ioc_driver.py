@@ -6,6 +6,8 @@ import math
 import logging
 from ReflectometryServer.components import ChangeAxis
 
+from threading import Event
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,8 +26,9 @@ class IocDriver(object):
         self._axis = axis
         self._rbv_cache = self._axis.rbv
         self._sp_cache = None
-        self._axis.add_after_rbv_change_listener(self._rbv_change_listener)
-        self._axis.add_after_sp_change_listener(self._update_sp_cache)
+
+        self._axis.add_after_rbv_change_listener(self._on_update_rbv)
+        self._axis.add_after_sp_change_listener(self._on_update_sp)
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -35,7 +38,7 @@ class IocDriver(object):
         """
         Post monitors and read initial value from the axis.
         """
-        self._axis.add_monitors()
+        self._axis.initialise()
         self.initialise_setpoint()
 
     def initialise_setpoint(self):
@@ -70,10 +73,10 @@ class IocDriver(object):
         """
         if not self.at_target_setpoint():
             if self._is_changed() or force:
-                logger.debug("Moving axis {}".format(self._get_distance()))
+                logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
+                self._axis.initiate_move()
                 if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
                     self._axis.velocity = self._get_distance() / move_duration
-
                 self._axis.sp = self._get_set_point_position()
                 self._sp_cache = self._get_set_point_position()
         self._clear_changed()
@@ -115,7 +118,7 @@ class IocDriver(object):
         """
         raise NotImplemented()
 
-    def _rbv_change_listener(self, new_value, alarm_severity, alarm_status):
+    def _on_update_rbv(self, new_value, alarm_severity, alarm_status):
         """
         Listener to trigger on a change of the readback value of the underlying motor.
 
@@ -139,7 +142,7 @@ class IocDriver(object):
         """
         raise NotImplemented()
 
-    def _update_sp_cache(self, value, alarm_severity, alarm_status):
+    def _on_update_sp(self, value, alarm_severity, alarm_status):
         """
         Updates the cached set point for this axis with a new value.
         Args:

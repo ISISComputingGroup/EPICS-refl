@@ -33,3 +33,5 @@ NULL
 # File generated during test-reports
 last_config.txt
 rc_settings.cmd
+**/NONSENSICAL_PATH
+**/test_modules/refl

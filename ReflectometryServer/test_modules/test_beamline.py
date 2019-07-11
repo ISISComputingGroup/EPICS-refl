@@ -118,41 +118,38 @@ class TestRealistic(unittest.TestCase):
 
         assert_that(drives["det_angle_axis"].sp, is_(2*theta_angle))
 
+    def test_GIVEN_beam_line_where_all_items_have_offset_WHEN_set_theta_THEN_motors_move_to_be_correct_distance_from_the_beam_theta_readback_is_correct_and_does_not_include_offset(self):
+        spacing = 2.0
 
-    #TODO get question answered and then correct this test
-    # def test_GIVEN_beam_line_where_items_no_on_track_WHEN_set_theta_THEN_motors_move_to_be_correct_distance_from_the_beam(self):
-    #     spacing = 2.0
-    #
-    #     bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
-    #
-    #     s1_offset = 1
-    #     bl.parameter("s1").sp = s1_offset
-    #     s3_offset = 2
-    #     bl.parameter("s3").sp = s3_offset
-    #     det_offset = 3
-    #     bl.parameter("det").sp = det_offset
-    #     det_ang_offset = 4
-    #     bl.parameter("det_angle").sp = det_ang_offset
-    #
-    #     theta_angle = 2
-    #     bl.parameter("theta").sp = theta_angle
-    #     bl.move = 1
-    #
-    #     assert_that(drives["s1_axis"].value, is_(s1_offset))
-    #     assert_that(bl.parameter("s1").rbv, is_(s1_offset))
-    #
-    #     expected_s3_value = spacing * tan(radians(theta_angle * 2.0)) + s3_offset
-    #     assert_that(drives["s3_axis"].value, is_(expected_s3_value))
-    #     assert_that(bl.parameter("s3").rbv, is_(s3_offset))
-    #
-    #     expected_det_value = 2 * spacing * tan(radians(theta_angle * 2.0)) + det_offset
-    #     assert_that(drives["det_axis"].value, is_(expected_det_value))
-    #     assert_that(bl.parameter("det").rbv, is_(det_offset))
-    #
-    #     assert_that(drives["det_angle_axis"].value, is_(2*theta_angle + det_ang_offset))
-    #     assert_that(bl.parameter("det_angle").rbv, is_(det_ang_offset))
-    #
-    #     assert_that(bl.parameter("theta").rbv, is_(theta_angle))
+        bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
+
+        s1_offset = 1.0
+        bl.parameter("s1").sp = s1_offset
+        s3_offset = 2.0
+        bl.parameter("s3").sp = s3_offset
+        det_offset = 3.0
+        bl.parameter("det").sp = det_offset
+        det_ang_offset = 4.0
+        bl.parameter("det_angle").sp = det_ang_offset
+
+        theta_angle = 2.0
+        bl.parameter("theta").sp = theta_angle
+
+        assert_that(drives["s1_axis"].sp, is_(s1_offset))
+        assert_that(bl.parameter("s1").rbv, is_(s1_offset))
+
+        expected_s3_value = spacing * tan(radians(theta_angle * 2.0)) + s3_offset
+        assert_that(drives["s3_axis"].sp, is_(expected_s3_value))
+        assert_that(bl.parameter("s3").rbv, is_(s3_offset))
+
+        expected_det_value = 2 * spacing * tan(radians(theta_angle * 2.0)) + det_offset
+        assert_that(drives["det_axis"].sp, is_(expected_det_value))
+        assert_that(bl.parameter("det").rbv, is_(det_offset))
+
+        assert_that(drives["det_angle_axis"].sp, is_(2*theta_angle + det_ang_offset))
+        assert_that(bl.parameter("det_angle").rbv, close_to(det_ang_offset, 1e-6))
+
+        assert_that(bl.parameter("theta").rbv, close_to(theta_angle, 1e-6))
 
     def test_GIVEN_beam_line_where_all_items_track_WHEN_set_theta_no_move_and_move_beamline_THEN_motors_move_to_be_on_the_beam(self):
         spacing = 2.0

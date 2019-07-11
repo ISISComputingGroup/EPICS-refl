@@ -1,15 +1,48 @@
 import logging
 import os
 
+from enum import Enum
 from ReflectometryServer.ChannelAccess.constants import REFL_AUTOSAVE_PATH
+from server_common.utilities import print_and_log, SEVERITY
 
 logger = logging.getLogger(__name__)
 
 PARAM_AUTOSAVE_PATH = os.path.join(REFL_AUTOSAVE_PATH, "params.txt")
+VELOCITY_AUTOSAVE_PATH = os.path.join(REFL_AUTOSAVE_PATH, "velocity.txt")
 MODE_AUTOSAVE_PATH = os.path.join(REFL_AUTOSAVE_PATH, "mode.txt")
 
 
-def _format_param(param_name, value):
+class AutosaveType(Enum):
+    PARAM = 0
+    VELOCITY = 1
+    MODE = 2
+
+    @staticmethod
+    def path(autosave_type):
+        if autosave_type == AutosaveType.PARAM:
+            return PARAM_AUTOSAVE_PATH
+        elif autosave_type == AutosaveType.VELOCITY:
+            return VELOCITY_AUTOSAVE_PATH
+        elif autosave_type == AutosaveType.MODE:
+            return MODE_AUTOSAVE_PATH
+        else:
+            print_and_log("Error: file path requested for unknown autosave type.", severity=SEVERITY.MAJOR, src="REFL")
+            return ""
+
+    @staticmethod
+    def description(autosave_type):
+        if autosave_type == AutosaveType.PARAM:
+            return "beamline parameter"
+        elif autosave_type == AutosaveType.VELOCITY:
+            return "axis velocity"
+        elif autosave_type == AutosaveType.MODE:
+            return "beamline mode"
+        else:
+            print_and_log("Error: description requested for unknown autosave type.", severity=SEVERITY.MAJOR, src="REFL")
+            return ""
+
+
+def _format_autosave(key, value):
     """
     Format a parameter entry into a line containing a simple space separated key-value pair.
 
@@ -17,70 +50,74 @@ def _format_param(param_name, value):
         key (string): The name of the parameter
         value: The value to save
 
-    Returns: A formatted string to write to file
+    Returns:
+         A formatted string to write to file
     """
-    return "{} {}\n".format(param_name, value)
+    return "{} {}\n".format(key, value)
 
 
-def read_autosave_param(param_name):
+def read_autosave_value(value_id, autosave_type):
     """
     Try to read the autosaved setpoint value of a given parameter from file.
 
     Params:
         param_name (string): The name of the parameter
 
-    Returns: A formatted string to write to file
+    Returns:
+         The autosaved value for this parameter
     """
+    autosave_file_path = AutosaveType.path(autosave_type)
+    type_desc = AutosaveType.description(autosave_type)
     try:
-        with open(PARAM_AUTOSAVE_PATH) as f:
+        with open(autosave_file_path) as f:
             lines = f.readlines()
             for line in lines:
                 key, val = line.split()
-                if key.upper() == param_name.upper():
+                if key.upper() == value_id.upper():
                     return val
-        logger.info("No autosave value found for parameter {}".format(param_name))
+        logger.info("No autosave value found for key {} (type: {})".format(value_id, type_desc))
     except Exception as e:
-        logger.error("Failed to read autosave parameter {}: {}".format(param_name, e))
+        logger.error("Failed to read autosave value for key {} (type: {}): {}".format(value_id, type_desc, e))
         return None
 
 
-def write_autosave_param(param_name, value):
+def write_autosave_value(param_name, value, autosave_type):
     """
     Try to save the setpoint value of a given parameter to file.
 
     Params:
         param_name (string): The name of the parameter
         value: The value to save
-
-    Returns: A formatted string to write to file
     """
     if not os.path.exists(REFL_AUTOSAVE_PATH):
         os.makedirs(REFL_AUTOSAVE_PATH)
+    autosave_file_path = AutosaveType.path(autosave_type)
+    type_desc = AutosaveType.description(autosave_type)
     try:
-        if not os.path.exists(PARAM_AUTOSAVE_PATH):
-            with open(PARAM_AUTOSAVE_PATH, "w") as f:
-                f.writelines(_format_param(param_name, value))
-                logger.info("Creating parameter autosave file.")
-                logger.info("Parameter {} autosave value added: {}".format(param_name, value))
+        if not os.path.exists(autosave_file_path):
+            with open(autosave_file_path, "w") as f:
+                f.writelines(_format_autosave(param_name, value))
+                logger.info("Creating {} autosave file.".format(type_desc))
+                logger.info("Autosave value added for key {} (type: {}): {}".format(param_name, type_desc, value))
                 return
         else:
-            with open(PARAM_AUTOSAVE_PATH, "r") as f:
+            with open(autosave_file_path, "r") as f:
                 lines = f.readlines()
             for index, line in enumerate(lines):
                 key = line.split()[0]
                 if key.upper() == param_name.upper():
-                    lines[index] = _format_param(param_name, value)
-                    logger.info("Parameter {} autosave value changed: {}".format(param_name, value))
+                    lines[index] = _format_autosave(param_name, value)
+                    logger.info("Autosave value changed for key {} (type: {}): {}".format(param_name, type_desc, value))
                     break
             else:
-                lines.append(_format_param(param_name, value))
-                logger.info("Parameter {} autosave value added: {}".format(param_name, value))
+                lines.append(_format_autosave(param_name, value))
+                logger.info("Autosave value added for key {} (type: {}): {}".format(param_name, type_desc, value))
 
-            with open(PARAM_AUTOSAVE_PATH, "w+") as f:
+            with open(autosave_file_path, "w+") as f:
                 f.writelines(lines)
 
     except Exception as e:
-        logger.error("Failed to write autosave parameter {}: {}".format(param_name, e))
+        logger.error("Failed to write autosave value for {} (type: {}): {}".format(param_name, type_desc, e))
 
 
 def read_mode():
@@ -112,4 +149,3 @@ def save_mode(mode):
             f.write(mode)
     except Exception as e:
         logger.error("Failed to save mode: {}".format(e))
-        return None

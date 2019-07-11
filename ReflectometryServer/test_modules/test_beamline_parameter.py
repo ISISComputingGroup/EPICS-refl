@@ -529,26 +529,39 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
     def test_GIVEN_theta_with_45_deg_beam_WHEN_next_component_is_along_beam_THEN_value_is_0(self):
 
+        # Given
+        beam_before_and_after_sample = PositionAndAngle(0, 0, 45)
+
         s3 = Component("s3", setup=PositionAndAngle(20, 20, 135))
-        s3.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 45))
+        s3.beam_path_rbv.set_incoming_beam(beam_before_and_after_sample)
+        s3.beam_path_set_point.set_incoming_beam(beam_before_and_after_sample)
+
         sample = ThetaComponent("sample", setup=PositionAndAngle(10, 10, 135), angle_to=[s3])
-        sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 45))
+        sample.beam_path_rbv.set_incoming_beam(beam_before_and_after_sample)
         theta = AngleParameter("param", sample)
 
+        # When
         result = theta.rbv
 
+        # Then
         assert_that(result, is_(0))
 
     def test_GIVEN_theta_with_0_deg_beam_WHEN_next_component_is_at_45_THEN_value_is_22_5(self):
 
-        s3 = Component("s3", setup=PositionAndAngle(10, 10, 90))
-        sample = ThetaComponent("sample", setup=PositionAndAngle(10, 0, 90), angle_to=[s3])
-        sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        theta = AngleParameter("param", sample)
+        height_above_beam = 10
+        expected_theta = 22.5
+        s3 = Component("s3", setup=PositionAndAngle(height_above_beam, 10, 90))
+        s3.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, expected_theta * 2))
+        s3.beam_path_set_point.set_position_relative_to_beam(0)
+
+        theta_comp = ThetaComponent("sample", setup=PositionAndAngle(1, 0, 90), angle_to=[s3])
+        theta_comp.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
+
+        theta = AngleParameter("param", theta_comp)
 
         result = theta.rbv
 
-        assert_that(result, is_(45/2.0))
+        assert_that(result, is_(expected_theta))
 
 
 class TestBeamlineThetaComponetWhenDisabled(unittest.TestCase):
@@ -722,7 +735,7 @@ class TestInitSetpoints(unittest.TestCase):
         expected = 0.1
         param_name = "param_float"
 
-        param = SlitGapParameter(param_name, self.jaws, True, autosave=True)
+        param = SlitGapParameter(param_name, self.jaws, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
@@ -731,7 +744,7 @@ class TestInitSetpoints(unittest.TestCase):
         expected = 0.2
         param_name = "param_not_in_file"
 
-        param = SlitGapParameter(param_name, self.jaws, True, autosave=True)
+        param = SlitGapParameter(param_name, self.jaws, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
@@ -740,7 +753,7 @@ class TestInitSetpoints(unittest.TestCase):
         expected = 0.2
         param_name = "param_bool"
 
-        param = SlitGapParameter(param_name, self.jaws, True, autosave=True)
+        param = SlitGapParameter(param_name, self.jaws, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)

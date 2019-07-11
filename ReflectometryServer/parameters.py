@@ -1,7 +1,7 @@
 """
 Parameters that the user would interact with
 """
-import file_io
+from file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
 
 from enum import Enum
@@ -178,7 +178,7 @@ class BeamlineParameter(object):
         self._check_and_move_component()
         self._sp_is_changed = False
         if self._autosave:
-            file_io.write_autosave_param(self._name, self._set_point_rbv)
+            write_autosave_value(self._name, self._set_point_rbv, AutosaveType.PARAM)
         self._trigger_sp_rbv_listeners(self)
 
     def move_to_sp_rbv_no_callback(self):
@@ -319,7 +319,7 @@ class AngleParameter(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
         """
-        sp_init = file_io.read_autosave_param(self._name)
+        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init is not None:
             try:
                 angle = float(sp_init)
@@ -389,7 +389,7 @@ class TrackingPosition(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
         """
-        sp_init = file_io.read_autosave_param(self._name)
+        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init is not None:
             try:
                 sp_init = float(sp_init)
@@ -465,7 +465,7 @@ class InBeamParameter(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
         """
-        sp_init = file_io.read_autosave_param(self._name)
+        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init == "True":
             self._set_initial_sp(True)
             self._move_component()
@@ -520,21 +520,20 @@ class SlitGapParameter(BeamlineParameter):
     Parameter which sets the gap on a slit. This differs from other beamline parameters in that it is not linked to the
     beamline component layer but hooks directly into a motor axis.
     """
-    def __init__(self, name, pv_wrapper, is_vertical, sim=False, init=0, description=None, autosave=False):
+    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False):
         """
         Args:
             name (str): The name of the parameter
-            pv_wrapper (ReflectometryServer.pv_wrapper.PVWrapper): The motor pv this parameter talks to
-            is_vertical: Whether it is a vertical gap
-            sim: Whether it is a simulated parameter
-            init: Initialisation value if simulated
-            description: The description
+            pv_wrapper (ReflectometryServer.pv_wrapper._JawsAxisPVWrapper): The jaws pv wrapper this parameter talks to
+            sim (bool): Whether it is a simulated parameter
+            init (float): Initialisation value if simulated
+            description (str): The description
         """
         super(SlitGapParameter, self).__init__(name, sim, init, description, autosave)
         self._pv_wrapper = pv_wrapper
         self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
-        self._pv_wrapper.add_monitors()
-        if is_vertical:
+        self._pv_wrapper.initialise()
+        if pv_wrapper.is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
             self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
         else:
@@ -549,7 +548,7 @@ class SlitGapParameter(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
         """
-        sp_init = file_io.read_autosave_param(self._name)
+        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init is not None:
             try:
                 self._set_initial_sp(float(sp_init))
