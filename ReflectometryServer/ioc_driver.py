@@ -5,7 +5,7 @@ The driving layer communicates between the component layer and underlying pvs.
 import math
 import logging
 
-from threading import Event
+from ReflectometryServer.engineering_corrections import NoCorrection
 
 logger = logging.getLogger(__name__)
 
@@ -14,16 +14,19 @@ class IocDriver(object):
     """
     Drives an actual motor axis based on a component in the beamline model.
     """
-    def __init__(self, component, axis):
+    def __init__(self, component, axis, engineering_correct=NoCorrection()):
         """
         Drive the IOC based on a component
         Args:
             component (ReflectometryServer.components.Component):
             axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
+            engineering_correct (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
+                correction to apply to the value from the component before it is sent to the pv.
         """
+        self._engineering_correct = engineering_correct
         self._component = component
         self._axis = axis
-        self._rbv_cache = self._axis.rbv
+        self._rbv_cache = self._engineering_correct.from_axis(self._axis.rbv)
         self._sp_cache = None
 
         self._axis.add_after_rbv_change_listener(self._on_update_rbv)
@@ -64,7 +67,8 @@ class IocDriver(object):
 
     def perform_move(self, move_duration):
         """
-        Tells the driver to perform a move to the component set points within a given duration
+        Tells the driver to perform a move to the component set points within a given duration.
+        The axis will update the set point cache when it is changed so don't need to do it here
 
         Args:
             move_duration: The duration in which to perform this move
@@ -73,8 +77,7 @@ class IocDriver(object):
         self._axis.initiate_move()
         if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
             self._axis.velocity = self._get_distance() / move_duration
-        self._axis.sp = self._get_set_point_position()
-        self._sp_cache = self._get_set_point_position()
+        self._axis.sp = self._engineering_correct.to_axis(self._get_component_sp())
 
     def rbv_cache(self):
         """
@@ -91,13 +94,11 @@ class IocDriver(object):
         """
         :return: The distance between the target component position and the actual motor position in y.
         """
-        return math.fabs(self.rbv_cache() - self._get_set_point_position())
+        return math.fabs(self.rbv_cache() - self._get_component_sp())
 
-    def _get_set_point_position(self):
+    def _get_component_sp(self):
         """
-
-        Returns:
-
+        Returns: position that the component is set to
         """
         raise NotImplemented()
 
@@ -110,8 +111,9 @@ class IocDriver(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self._rbv_cache = new_value
-        self._propagate_rbv_change(new_value, alarm_severity, alarm_status)
+        corrected_new_value = self._engineering_correct.from_axis(new_value)
+        self._rbv_cache = corrected_new_value
+        self._propagate_rbv_change(corrected_new_value, alarm_severity, alarm_status)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """
@@ -127,11 +129,11 @@ class IocDriver(object):
 
     def _on_update_sp(self, value, alarm_severity, alarm_status):
         """
-        Updates the cached set point for this axis with a new value.
+        Updates the cached set point from the axis with a new value.
         Args:
             value: The new set point value.
         """
-        self._sp_cache = value
+        self._sp_cache = self._engineering_correct.from_axis(value)
 
     def at_target_setpoint(self):
         """
@@ -141,7 +143,7 @@ class IocDriver(object):
         if self._sp_cache is None:
             return False
 
-        difference = abs(self._get_set_point_position() - self._sp_cache)
+        difference = abs(self._get_component_sp() - self._sp_cache)
         return difference < self._axis.resolution
 
 
@@ -149,7 +151,7 @@ class DisplacementDriver(IocDriver):
     """
     Drives a component with linear displacement movement
     """
-    def __init__(self, component, motor_axis, out_of_beam_position=None, tolerance_on_out_of_beam_position=1):
+    def __init__(self, component, motor_axis, out_of_beam_position=None, tolerance_on_out_of_beam_position=1, engineering_correct=NoCorrection()):
         """
         Constructor.
         Args:
@@ -159,8 +161,10 @@ class DisplacementDriver(IocDriver):
                 can not set the component to be out of the beam
             tolerance_on_out_of_beam_position (float): this the tolerance on the out of beam position, if the motor
                 is within this tolerance of the out_of_beam_position it will read out of beam otherwise the position
+            engineering_correct (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
+                correction to apply to the value from the component before it is sent to the pv.
         """
-        super(DisplacementDriver, self).__init__(component, motor_axis)
+        super(DisplacementDriver, self).__init__(component, motor_axis, engineering_correct)
         self._out_of_beam_position = out_of_beam_position
         self._tolerance_on_out_of_beam_position = tolerance_on_out_of_beam_position
 
@@ -176,7 +180,7 @@ class DisplacementDriver(IocDriver):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        sp = self._axis.sp
+        sp = self._engineering_correct.from_axis(self._axis.sp)
         if self._out_of_beam_position is not None:
             self._component.beam_path_set_point.is_in_beam = self._get_in_beam_status(sp)
         self._component.beam_path_set_point.init_displacement_from_motor(sp)
@@ -194,7 +198,7 @@ class DisplacementDriver(IocDriver):
             self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(new_value)
         self._component.beam_path_rbv.set_displacement(new_value, alarm_severity, alarm_status)
 
-    def _get_set_point_position(self):
+    def _get_component_sp(self):
         if self._component.beam_path_set_point.is_in_beam:
             displacement = self._component.beam_path_set_point.get_displacement()
         else:
@@ -217,20 +221,22 @@ class AngleDriver(IocDriver):
     """
     Drives a component that has variable angle.
     """
-    def __init__(self, component, angle_axis):
+    def __init__(self, component, angle_axis, engineering_correct=NoCorrection()):
         """
         Constructor.
         Args:
             component (ReflectometryServer.components.Component): Component providing the values for the axes
             angle_axis(ReflectometryServer.pv_wrapper.MotorPVWrapper): PV for the angle motor axis
+            engineering_correct (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
+                correction to apply to the value from the component before it is sent to the pv.
         """
-        super(AngleDriver, self).__init__(component, angle_axis)
+        super(AngleDriver, self).__init__(component, angle_axis, engineering_correct)
 
     def initialise_setpoint(self):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        self._component.beam_path_set_point.init_angle_from_motor(self._axis.sp)
+        self._component.beam_path_set_point.init_angle_from_motor(self._engineering_correct.from_axis(self._axis.sp))
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """
@@ -243,5 +249,5 @@ class AngleDriver(IocDriver):
         """
         self._component.beam_path_rbv.angle = new_value
 
-    def _get_set_point_position(self):
+    def _get_component_sp(self):
         return self._component.beam_path_set_point.angle
