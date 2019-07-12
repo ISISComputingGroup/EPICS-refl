@@ -7,6 +7,7 @@ from hamcrest import *
 
 from ReflectometryServer import *
 from ReflectometryServer.beamline import STATUS
+from ReflectometryServer.components import ChangeAxis
 from server_common.channel_access import UnableToConnectToPVException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
@@ -22,6 +23,7 @@ class TestHeightDriver(unittest.TestCase):
 
         self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+        self.jaws.set_changed_flag(ChangeAxis.POSITION, True)
 
         self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis)
 
@@ -49,7 +51,7 @@ class TestHeightDriver(unittest.TestCase):
         expected_velocity = 5.0
         self.jaws.beam_path_set_point.set_position_relative_to_beam(target_position)
 
-        self.jaws_driver.perform_move(target_duration)
+        self.jaws_driver.perform_move(target_duration, True)
 
         assert_that(self.height_axis.velocity, is_(expected_velocity))
         assert_that(self.height_axis.sp, is_(target_position))
@@ -74,6 +76,7 @@ class TestNonSynchronisedHeightDriver(unittest.TestCase):
 
         self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+        self.jaws.set_changed_flag(ChangeAxis.POSITION, True)
 
         self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis, synchronised=False)
 
@@ -119,6 +122,8 @@ class TestHeightAndTiltDriver(unittest.TestCase):
         beam = PositionAndAngle(0.0, 0.0, beam_angle)
         self.tilting_jaws.beam_path_set_point.set_incoming_beam(beam)
         self.tilting_jaws.beam_path_set_point.set_angle_relative_to_beam(0)
+        self.tilting_jaws.set_changed_flag(ChangeAxis.POSITION, True)
+        self.tilting_jaws.set_changed_flag(ChangeAxis.ANGLE, True)
 
         result = max(self.tilting_jaws_driver_disp.get_max_move_duration(),
                      self.tilting_jaws_driver_ang.get_max_move_duration())
@@ -137,8 +142,8 @@ class TestHeightAndTiltDriver(unittest.TestCase):
         self.tilting_jaws.beam_path_set_point.set_position_relative_to_beam(0.0)  # move component into beam
         self.tilting_jaws.beam_path_set_point.set_angle_relative_to_beam(90.0)
 
-        self.tilting_jaws_driver_disp.perform_move(target_duration)
-        self.tilting_jaws_driver_ang.perform_move(target_duration)
+        self.tilting_jaws_driver_disp.perform_move(target_duration, True)
+        self.tilting_jaws_driver_ang.perform_move(target_duration, True)
 
         assert_that(self.height_axis.velocity, is_(close_to(expected_velocity_height, FLOAT_TOLERANCE)))
         assert_that(self.height_axis.sp, is_(close_to(target_position_height, FLOAT_TOLERANCE)))
@@ -158,6 +163,8 @@ class TestNonSynchronisedHeightAndTiltDriver(unittest.TestCase):
         self.tilt_axis.velocity = 0.123
 
         self.tilting_jaws = TiltingComponent("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
+        self.tilting_jaws.set_changed_flag(ChangeAxis.POSITION, True)
+        self.tilting_jaws.set_changed_flag(ChangeAxis.ANGLE, True)
 
         self.tilting_jaws_driver_disp = DisplacementDriver(self.tilting_jaws, self.height_axis)
         self.tilting_jaws_driver_ang = AngleDriver(self.tilting_jaws, self.tilt_axis, synchronised=False)
@@ -218,6 +225,8 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         expected = 3.0
         self.supermirror.beam_path_set_point.angle = target_angle
         self.supermirror.beam_path_set_point.set_position_relative_to_beam(10.0)
+        self.supermirror.set_changed_flag(ChangeAxis.POSITION, True)
+        self.supermirror.set_changed_flag(ChangeAxis.ANGLE, True)
 
         result = max(self.supermirror_driver_disp.get_max_move_duration(),
                      self.supermirror_driver_ang.get_max_move_duration())
@@ -234,8 +243,8 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         self.supermirror.beam_path_set_point.angle = 30.0
         self.supermirror.beam_path_set_point.set_position_relative_to_beam(10.0)  # move component into beam
 
-        self.supermirror_driver_disp.perform_move(target_duration)
-        self.supermirror_driver_ang.perform_move(target_duration)
+        self.supermirror_driver_disp.perform_move(target_duration, True)
+        self.supermirror_driver_ang.perform_move(target_duration, True)
 
         assert_that(fabs(self.height_axis.velocity - expected_velocity_height) <= FLOAT_TOLERANCE)
         assert_that(fabs(self.height_axis.sp - target_position_height) <= FLOAT_TOLERANCE)
@@ -264,6 +273,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
 
         self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+        self.jaws.set_changed_flag(ChangeAxis.POSITION, True)
 
         self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis,
                                               out_of_beam_position=self.out_of_beam_position,
@@ -284,7 +294,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         expected_velocity = - expected_position / 4.0
         self.jaws.beam_path_set_point.is_in_beam = False
 
-        self.jaws_driver.perform_move(target_duration)
+        self.jaws_driver.perform_move(target_duration, True)
 
         assert_that(self.height_axis.velocity, is_(expected_velocity))
         assert_that(self.height_axis.sp, is_(expected_position))
@@ -360,7 +370,7 @@ class TestDriverChanged(unittest.TestCase):
         self.height_axis.sp = 0.0
         self.jaws.beam_path_set_point.set_position_relative_to_beam(1.0)
 
-        self.jaws_driver.perform_move(1)
+        self.jaws_driver.perform_move(1, True)
         actual = self.jaws_driver.at_target_setpoint()
 
         assert_that(actual, is_(expected))

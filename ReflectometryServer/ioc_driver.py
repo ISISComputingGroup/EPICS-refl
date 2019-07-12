@@ -4,6 +4,7 @@ The driving layer communicates between the component layer and underlying pvs.
 
 import math
 import logging
+from ReflectometryServer.components import ChangeAxis
 
 logger = logging.getLogger(__name__)
 
@@ -57,28 +58,50 @@ class IocDriver(object):
         """
         return component is self._component
 
+    def _axis_will_move(self):
+        """
+        Returns: True if the axis set point has changed and it will move any distance
+        """
+        return not self.at_target_setpoint() and self._is_changed()
+
     def get_max_move_duration(self):
         """
         Returns: The maximum duration of the requested move for all associated axes. If axes are not synchornised this
         will return 0 but movement will still be required.
         """
-        return self._get_distance() / self._axis.max_velocity if self._synchronised else 0.0
+        if self._axis_will_move() and self._synchronised:
+            return self._get_distance() / self._axis.max_velocity
+        else:
+            return 0.0
 
-    def perform_move(self, move_duration):
+    def perform_move(self, move_duration, force=False):
         """
         Tells the driver to perform a move to the component set points within a given duration
 
         Args:
-            move_duration: The duration in which to perform this move
+            move_duration (float): The duration in which to perform this move
+            force (bool): move even if component does not report changed
         """
-        logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
-        # TODO: Is it sensible if the time is short to not change the velocity
-        if move_duration > 1e-6 and self._synchronised:
-            self._axis.initiate_move_with_change_of_velocity()
-            self._axis.velocity = self._get_distance() / move_duration
+        if self._axis_will_move() or force:
+            logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
+            if move_duration > 1e-6 and self._synchronised:
+                self._axis.initiate_move_with_change_of_velocity()
+                self._axis.velocity = self._get_distance() / move_duration
+            self._axis.sp = self._get_set_point_position()
+            self._sp_cache = self._get_set_point_position()
+        self._clear_changed()
 
-        self._axis.sp = self._get_set_point_position()
-        self._sp_cache = self._get_set_point_position()
+    def _is_changed(self):
+        """
+        Returns whether this driver's component has been flagged for change.
+        """
+        raise NotImplemented("This should be implemented in the subclass")
+
+    def _clear_changed(self):
+        """
+        Clears the flag indicating whether this driver's component has been changed.
+        """
+        raise NotImplemented("This should be implemented in the subclass")
 
     def rbv_cache(self):
         """
@@ -219,6 +242,21 @@ class DisplacementDriver(IocDriver):
         """
         return self._out_of_beam_position is not None
 
+    def _component_changed(self):
+        return self._component.read_changed_flag(ChangeAxis.POSITION)
+
+    def _is_changed(self):
+        """
+        Returns whether this driver's component's position has been flagged for change.
+        """
+        return self._component.read_changed_flag(ChangeAxis.POSITION)
+
+    def _clear_changed(self):
+        """
+        Clears the flag indicating whether the this driver's component's position has been changed.
+        """
+        self._component.set_changed_flag(ChangeAxis.POSITION, False)
+
 
 class AngleDriver(IocDriver):
     """
@@ -254,3 +292,15 @@ class AngleDriver(IocDriver):
 
     def _get_set_point_position(self):
         return self._component.beam_path_set_point.angle
+
+    def _is_changed(self):
+        """
+        Returns whether this driver's component angle has been flagged for change.
+        """
+        return self._component.read_changed_flag(ChangeAxis.ANGLE)
+
+    def _clear_changed(self):
+        """
+        Clears the flag indicating whether the this driver's component's angle has been changed.
+        """
+        self._component.set_changed_flag(ChangeAxis.ANGLE, False)
