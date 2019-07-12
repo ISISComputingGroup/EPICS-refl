@@ -200,7 +200,7 @@ class PVWrapper(object):
         """
         self._write_pv(self._velo_pv, value)
 
-    def initiate_move(self):
+    def initiate_move_with_change_of_velocity(self):
         """
         Sets internal state of the pv wrapper to reflect that a move has just been initialised.
         """
