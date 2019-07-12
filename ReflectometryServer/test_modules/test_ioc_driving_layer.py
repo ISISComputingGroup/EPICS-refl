@@ -65,6 +65,39 @@ class TestHeightDriver(unittest.TestCase):
         assert_that(self.jaws.beam_path_rbv.get_displacement(), is_(expected_value))
 
 
+class TestNonSynchronisedHeightDriver(unittest.TestCase):
+
+    def setUp(self):
+        start_position = 0.0
+        max_velocity = 10.0
+        self.height_axis = create_mock_axis("JAWS:HEIGHT", start_position, max_velocity)
+
+        self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
+        self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+
+        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis, synchronised=False)
+
+    def test_GIVEN_component_with_height_setpoint_below_current_position_and_not_synchronised_WHEN_calculating_move_duration_THEN_returned_0(self):
+        target_position = -20.0
+        expected = 0.0
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(target_position)
+
+        result = self.jaws_driver.get_max_move_duration()
+
+        assert_that(result, is_(expected))
+
+    def test_GIVEN_move_duration_and_target_position_set_on_non_synchronised_axis_WHEN_moving_axis_THEN_computed_axis_velocity_is_correct_and_setpoint_set(self):
+        target_position = 20.0
+        target_duration = 4.0
+        expected_velocity = self.height_axis.velocity
+        self.jaws.beam_path_set_point.set_position_relative_to_beam(target_position)
+
+        self.jaws_driver.perform_move(target_duration)
+
+        assert_that(self.height_axis.velocity, is_(expected_velocity))
+        assert_that(self.height_axis.sp, is_(target_position))
+
+
 class TestHeightAndTiltDriver(unittest.TestCase):
     def setUp(self):
         start_position_height = 0.0
@@ -112,6 +145,57 @@ class TestHeightAndTiltDriver(unittest.TestCase):
         assert_that(self.tilt_axis.velocity, is_(close_to(expected_velocity_tilt, FLOAT_TOLERANCE)))
         assert_that(self.tilt_axis.sp, is_(close_to(target_position_tilt, FLOAT_TOLERANCE)))
 
+
+class TestNonSynchronisedHeightAndTiltDriver(unittest.TestCase):
+    def setUp(self):
+        start_position_height = 0.0
+        max_velocity_height = 10.0
+        self.height_axis = create_mock_axis("JAWS:HEIGHT", start_position_height, max_velocity_height)
+
+        start_position_tilt = 90.0
+        max_velocity_tilt = 10.0
+        self.tilt_axis = create_mock_axis("JAWS:TILT", start_position_tilt, max_velocity_tilt)
+        self.tilt_axis.velocity = 0.123
+
+        self.tilting_jaws = TiltingComponent("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
+
+        self.tilting_jaws_driver_disp = DisplacementDriver(self.tilting_jaws, self.height_axis)
+        self.tilting_jaws_driver_ang = AngleDriver(self.tilting_jaws, self.tilt_axis, synchronised=False)
+
+    def test_GIVEN_multiple_axes_need_to_move_and_one_is_not_synchronised_WHEN_computing_move_duration_THEN_maximum_duration_is_returned(self):
+        beam_angle = 45.0
+        expected = 1.0
+        beam = PositionAndAngle(0.0, 0.0, beam_angle)
+        self.tilting_jaws.beam_path_set_point.set_incoming_beam(beam)
+        self.tilting_jaws.beam_path_set_point.set_angle_relative_to_beam(0)
+        self.tilting_jaws.beam_path_set_point.set_position_relative_to_beam(0)
+
+        angle_duration = self.tilting_jaws_driver_ang.get_max_move_duration()
+        result = max(self.tilting_jaws_driver_disp.get_max_move_duration(),
+                     angle_duration)
+
+        assert_that(result, is_(close_to(expected, FLOAT_TOLERANCE)))
+        assert_that(angle_duration, is_(0.0))
+
+    def test_GIVEN_move_duration_and_target_position_set_and_one_is_not_synchronised_WHEN_moving_multiple_axes_THEN_computed_axis_velocity_is_correct_and_setpoint_set_for_all_axes(self):
+        beam_angle = 45.0
+        beam = PositionAndAngle(0.0, 0.0, beam_angle)
+        target_duration = 10.0
+        expected_velocity_height = 1.0
+        target_position_height = 10.0
+        expected_velocity_tilt = self.tilt_axis.velocity  # Velocity should not change
+        target_position_tilt = 135.0
+        self.tilting_jaws.beam_path_set_point.set_incoming_beam(beam)
+        self.tilting_jaws.beam_path_set_point.set_position_relative_to_beam(0.0)  # move component into beam
+        self.tilting_jaws.beam_path_set_point.set_angle_relative_to_beam(90.0)
+
+        self.tilting_jaws_driver_disp.perform_move(target_duration)
+        self.tilting_jaws_driver_ang.perform_move(target_duration)
+
+        assert_that(self.height_axis.velocity, is_(close_to(expected_velocity_height, FLOAT_TOLERANCE)))
+        assert_that(self.height_axis.sp, is_(close_to(target_position_height, FLOAT_TOLERANCE)))
+        assert_that(self.tilt_axis.velocity, is_(close_to(expected_velocity_tilt, FLOAT_TOLERANCE)))
+        assert_that(self.tilt_axis.sp, is_(close_to(target_position_tilt, FLOAT_TOLERANCE)))
 
 class TestHeightAndAngleDriver(unittest.TestCase):
     def setUp(self):
