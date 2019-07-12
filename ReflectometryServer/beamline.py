@@ -190,6 +190,7 @@ class Beamline(object):
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
 
+        self._active_mode = None
         self._initialise_mode(modes)
 
     def _validate(self, beamline_parameters, modes):
@@ -415,6 +416,11 @@ class Beamline(object):
             driver.perform_move(move_duration)
 
     def _get_max_move_duration(self):
+        """
+        Returns: maximum time taken for all required moves, if axes are not synchronised this will return 0 but
+        movement will still be required
+
+        """
         max_move_duration = 0.0
         for driver in self._get_drivers_not_at_setpoint():
             max_move_duration = max(max_move_duration, driver.get_max_move_duration())
