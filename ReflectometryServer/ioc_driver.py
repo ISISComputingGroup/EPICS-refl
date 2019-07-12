@@ -72,10 +72,11 @@ class IocDriver(object):
             move_duration: The duration in which to perform this move
         """
         logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
-        self._axis.initiate_move()
         # TODO: Is it sensible if the time is short to not change the velocity
         if move_duration > 1e-6 and self._synchronised:
+            self._axis.initiate_move_with_change_of_velocity()
             self._axis.velocity = self._get_distance() / move_duration
+
         self._axis.sp = self._get_set_point_position()
         self._sp_cache = self._get_set_point_position()
 
