@@ -46,10 +46,7 @@ class Component(object):
             change_type (ChangeType): The type of axis for which to set the flag
             value (bool): Value to set or clear the flag
         """
-        if change_type in self._changed.keys():
-            self._changed[change_type] = value
-        else:
-            logger.error("Tried to set an invalid type of parameter for component {}.".format(self.name))
+        self._changed[change_type] = value
 
     def read_changed_flag(self, change_axis):
         """
@@ -60,11 +57,11 @@ class Component(object):
 
         Returns: Whether the flag for the given axis has changed
         """
-        if change_axis in self._changed.keys():
+        try:
             return self._changed[change_axis]
-        else:
+        except KeyError:
             logger.error("Tried to read an invalid type of parameter for component {}.".format(self.name))
-            return None
+            return True
 
     @property
     def name(self):

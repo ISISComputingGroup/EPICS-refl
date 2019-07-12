@@ -57,11 +57,20 @@ class IocDriver(object):
         """
         return component is self._component
 
+    def _axis_will_move(self):
+        """
+        Returns: True if the axis set point has changed and it will move any distance
+        """
+        return not self.at_target_setpoint() and self._is_changed()
+
     def get_max_move_duration(self):
         """
         Returns: The maximum duration of the requested move for all associated axes
         """
-        return self._get_distance() / self._axis.max_velocity
+        if self._axis_will_move():
+            return self._get_distance() / self._axis.max_velocity
+        else:
+            return 0.0
 
     def perform_move(self, move_duration, force=False):
         """
@@ -69,16 +78,15 @@ class IocDriver(object):
 
         Args:
             move_duration (float): The duration in which to perform this move
-            force (bool): move even if component does not report changed (for unit testing).
+            force (bool): move even if component does not report changed
         """
-        if not self.at_target_setpoint():
-            if self._is_changed() or force:
-                logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
-                self._axis.initiate_move()
-                if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
-                    self._axis.velocity = self._get_distance() / move_duration
-                self._axis.sp = self._get_set_point_position()
-                self._sp_cache = self._get_set_point_position()
+        if self._axis_will_move() or force:
+            logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
+            self._axis.initiate_move()
+            if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
+                self._axis.velocity = self._get_distance() / move_duration
+            self._axis.sp = self._get_set_point_position()
+            self._sp_cache = self._get_set_point_position()
         self._clear_changed()
 
     def _is_changed(self):
