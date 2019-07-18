@@ -26,8 +26,11 @@ class TrackingBeamPathCalc(object):
         self._after_beam_path_update_listeners = set()
         self._after_beam_path_update_on_init_listeners = set()
         self._after_physical_move_listeners = set()
+        self._after_moving_state_update_listeners = set()
         self._init_listeners = set()
         self._is_in_beam = True
+        self._is_displacing = False
+        self._is_rotating = False
         self._movement_strategy = movement_strategy
 
         self.autosaved_offset = None
@@ -63,6 +66,19 @@ class TrackingBeamPathCalc(object):
         Runs initialisation listeners because an initial value has been read.
         """
         for listener in self._init_listeners:
+            listener()
+
+    def add_after_moving_state_update_listener(self, listener):
+        """
+        TODO
+        """
+        self._after_moving_state_update_listeners.add(listener)
+
+    def _trigger_after_moving_state_update(self):
+        """
+        TODO
+        """
+        for listener in self._after_moving_state_update_listeners:
             listener()
 
     def add_after_beam_path_update_listener(self, listener):
@@ -243,6 +259,40 @@ class TrackingBeamPathCalc(object):
         self._is_in_beam = is_in_beam
         self._trigger_after_beam_path_update()
         self._trigger_after_physical_move_listener()
+
+    @property
+    def is_displacing(self):
+        """
+        TODO
+        """
+        print("SET: component(beam_path_calc)[displacing]: {}".format(self._is_displacing))
+        return self._is_displacing
+
+    @is_displacing.setter
+    def is_displacing(self, value):
+        """
+         TODO
+        """
+        self._is_displacing = value
+        print("SET: component(beam_path_calc)[displacing]: {}".format(value))
+        self._trigger_after_moving_state_update()
+
+    @property
+    def is_rotating(self):
+        """
+        TODO
+        """
+        print("GET: component(beam_path_calc)[rotating]: {}".format(self._is_rotating))
+        return self._is_rotating
+
+    @is_rotating.setter
+    def is_rotating(self, value):
+        """
+         TODO
+        """
+        self._is_rotating = value
+        print("SET: component(beam_path_calc)[rotating]: {}".format(value))
+        self._trigger_after_moving_state_update()
 
     def add_after_physical_move_listener(self, listener):
         """

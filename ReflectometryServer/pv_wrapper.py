@@ -1,6 +1,8 @@
 """
 Wrapper for motor PVs
 """
+from time import sleep
+
 from enum import Enum
 from functools import partial
 from threading import Event
@@ -32,7 +34,7 @@ class PVWrapper(object):
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
-        self._after_dmov_change_listeners = set()
+        self._after_is_changing_change_listeners = set()
 
         self._move_initiated = False
         self._moving_state = None
@@ -80,11 +82,9 @@ class PVWrapper(object):
         Add monitors to the relevant motor PVs.
         """
         self._monitor_pv(self._rbv_pv,
-                         partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
+                         partial(self._trigger_listeners, self._after_rbv_change_listeners))
         self._monitor_pv(self._sp_pv,
-                         partial(self._trigger_listeners, "setpoint value", self._after_sp_change_listeners))
-        self._monitor_pv(self._dmov_pv,
-                         partial(self._trigger_listeners, "moving state value", self._after_dmov_change_listeners))
+                         partial(self._trigger_listeners, self._after_sp_change_listeners))
 
         self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._velo_pv, self._on_update_velocity)
@@ -144,7 +144,15 @@ class PVWrapper(object):
         """
         self._after_sp_change_listeners.add(listener)
 
-    def _trigger_listeners(self, change_type, listeners, new_value, alarm_severity, alarm_status):
+    def add_after_is_changing_change_listener(self, listener):
+        """
+        Add a listener which should be called after a change in the dmov (moving) status for a motor
+        Args:
+            listener: function to call should have two arguments which are the new value and new error state
+        """
+        self._after_is_changing_change_listeners.add(listener)
+
+    def _trigger_listeners(self, listeners, new_value, alarm_severity, alarm_status):
         for value_change_listener in listeners:
             value_change_listener(new_value, alarm_severity, alarm_status)
 
@@ -231,6 +239,10 @@ class PVWrapper(object):
                 self._velocity_event.clear()
         self._moving_state = new_value
         self._state_init_event.set()
+        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value), alarm_severity, alarm_status)
+
+    def _dmov_to_bool(self, value):
+        return not value
 
     def _on_update_velocity(self, value, alarm_severity, alarm_status):
         """
@@ -262,6 +274,10 @@ class PVWrapper(object):
                 v_init = v_autosaved
         self._v_restore = v_init
         write_autosave_value(self.name, v_init, AutosaveType.VELOCITY)
+
+    @property
+    def is_moving(self):
+        return self._dmov_to_bool(self._moving_state)
 
 
 class MotorPVWrapper(PVWrapper):
@@ -342,12 +358,9 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         Add monitors to the relevant motor PVs.
         """
-        self._monitor_pv(self._rbv_pv,
-                         partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
-        self._monitor_pv(self._sp_pv,
-                         partial(self._trigger_listeners, "setpoint value", self._after_sp_change_listeners))
-        self._monitor_pv(self._dmov_pv,
-                         partial(self._on_update_moving_state, "moving state value"))
+        self._monitor_pv(self._rbv_pv, partial(self._trigger_listeners, self._after_rbv_change_listeners))
+        self._monitor_pv(self._sp_pv, partial(self._trigger_listeners, self._after_sp_change_listeners))
+        self._monitor_pv(self._dmov_pv, partial(self._on_update_moving_state))
 
     @property
     def velocity(self):
@@ -400,6 +413,7 @@ class _JawsAxisPVWrapper(PVWrapper):
             self.velocity = self._v_restore
         self._moving_state = new_value
         self._state_init_event.set()
+        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value), alarm_severity, alarm_status)
 
     def _init_velocity_to_restore(self, value):
         """

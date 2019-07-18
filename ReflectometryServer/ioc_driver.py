@@ -28,6 +28,7 @@ class IocDriver(object):
 
         self._axis.add_after_rbv_change_listener(self._on_update_rbv)
         self._axis.add_after_sp_change_listener(self._on_update_sp)
+        self._axis.add_after_is_changing_change_listener(self._on_update_is_changing)
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -133,6 +134,14 @@ class IocDriver(object):
         """
         self._sp_cache = value
 
+    def _on_update_is_changing(self, value, alarm_severity, alarm_status):
+        """
+        Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
+        Args:
+            value: The new is_moving value
+        """
+        raise NotImplemented()
+
     def at_target_setpoint(self):
         """
         Returns: True if the setpoint on the component and the one on the motor PV are the same (within tolerance),
@@ -212,6 +221,14 @@ class DisplacementDriver(IocDriver):
         """
         return self._out_of_beam_position is not None
 
+    def _on_update_is_changing(self, value, alarm_severity, alarm_status):
+        """
+        Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
+        Args:
+            value: The new is_moving value
+        """
+        self._component.beam_path_rbv.is_displacing = value
+
 
 class AngleDriver(IocDriver):
     """
@@ -245,3 +262,11 @@ class AngleDriver(IocDriver):
 
     def _get_set_point_position(self):
         return self._component.beam_path_set_point.angle
+
+    def _on_update_is_changing(self, value, alarm_severity, alarm_status):
+        """
+        Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
+        Args:
+            value: The new is_moving value
+        """
+        self._component.beam_path_rbv.is_rotating = value
