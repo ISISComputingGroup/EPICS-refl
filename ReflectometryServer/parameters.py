@@ -41,7 +41,7 @@ class BeamlineParameter(object):
     General beamline parameter that can be set. Subclass must implement _move_component to decide what to do with the
     value that is set.
     """
-    def __init__(self, name, sim=False, init=None, description=None, autosave=False):
+    def __init__(self, name, sim=False, init=None, description=None, autosave=False, rbv_tolerance=0.04):
         if sim:
             self._set_point = init
             self._set_point_rbv = init
@@ -62,7 +62,9 @@ class BeamlineParameter(object):
         self._rbv_change_listeners = set()
         self._sp_rbv_change_listeners = set()
         self._after_moving_state_update_listeners = set()
+        self._after_at_position_listeners = set()
         self._init_listeners = set()
+        self.rbv_tolerance = rbv_tolerance
         #self._in_mode = init
 
     def __repr__(self):
@@ -99,6 +101,15 @@ class BeamlineParameter(object):
         Returns: the read back value
         """
         return self._rbv()
+
+    @property
+    def rbv_at_position(self):
+        if abs(self.rbv - self._set_point_rbv) > self.rbv_tolerance:
+            print("PARAM:@Property:rbv_at_position:{}:FALSE ({:0.3f})".format(self.name, abs(self.rbv - self._set_point_rbv)))
+            return False
+        else:
+            #print("PARAM:@Property:rbv_at_position:{}:true ({:0.3f})".format(self.name, abs(self.rbv - self._set_point_rbv)))
+            return True
 
     @property
     def sp_rbv(self):
@@ -207,14 +218,32 @@ class BeamlineParameter(object):
         raise NotImplemented()
 
     def add_after_moving_state_update_listener(self, listener):
-        """"""
+        """
+        """
         self._after_moving_state_update_listeners.add(listener)
 
     def _trigger_after_moving_state_update(self):
         """
         """
+        print("PARAM:_trigger_after_moving_state_update:{}".format(self.is_changing))
         for listener in self._after_moving_state_update_listeners:
             listener(self.is_changing)
+
+    def add_after_rbv_at_position_listener(self, listener):
+        """
+        """
+        print("PARAM:add_after_rbv_at_position:{}".format(listener))
+        self._after_at_position_listeners.add(listener)
+
+    def _trigger_after_rbv_at_position_update(self):
+        """
+        """
+        print("---- PARA: triggering after_at_position listeners")
+        print("PARAM:_trigger_after_rbv_at_position_update:{}".format(self.rbv_at_position))
+        for listener in self._after_at_position_listeners:
+            print("PARAM:_trigger_after_rbv_at_position_update:{}".format(listener))
+            listener(self.rbv_at_position)
+        print("----------")
 
     def add_sp_rbv_change_listener(self, listener):
         """
@@ -393,8 +422,7 @@ class TrackingPosition(BeamlineParameter):
             self._component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
 
         self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._component.beam_path_rbv.add_after_moving_state_update_listener(
-            self._trigger_after_moving_state_update)
+        self._component.beam_path_rbv.add_after_moving_state_update_listener(self._trigger_after_moving_state_update)
 
         self.group_names.append(BeamlineParameterGroup.TRACKING)
 
@@ -433,7 +461,6 @@ class TrackingPosition(BeamlineParameter):
 
     @property
     def is_changing(self):
-        print("parameter: {}".format(self._component.beam_path_rbv.is_displacing))
         return self._component.beam_path_rbv.is_displacing
 
     def validate(self, drivers):
@@ -615,7 +642,6 @@ class SlitGapParameter(BeamlineParameter):
 
     def _on_moving_state_update(self, new_value, alarm_severity, alarm_status):
         self._trigger_after_moving_state_update()
-
 
     @property
     def is_changing(self):

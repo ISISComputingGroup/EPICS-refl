@@ -21,6 +21,7 @@ SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
 MOVE_SUFFIX = ":MOVE"
 CHANGING = ":CHANGING"
+RBV_AT_POSITION = ":RBV:AT_POS"
 CHANGED_SUFFIX = ":CHANGED"
 SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
 IN_MODE_SUFFIX = ":IN_MODE"
@@ -103,6 +104,7 @@ class PvSort(Enum):
     CHANGED = 6
     IN_MODE = 7
     CHANGING = 8
+    RBV_AT_POSITION = 9
 
     @staticmethod
     def what(pv_sort):
@@ -128,6 +130,8 @@ class PvSort(Enum):
             return "(Is in mode)"
         elif pv_sort == PvSort.CHANGING:
             return "(Is changing)"
+        elif pv_sort == PvSort.RBV_AT_POSITION:
+            return "(Tolerance between RBV and SP:RBV)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -154,6 +158,8 @@ class PvSort(Enum):
             return parameter.move
         elif self == PvSort.CHANGING:
             return parameter.is_changing
+        elif self == PvSort.RBV_AT_POSITION:
+            return parameter.rbv_at_position
         return float("NaN")
 
 
@@ -323,6 +329,10 @@ class PVManager:
             # In mode PV
             self._add_pv_with_val(prepended_alias + IN_MODE_SUFFIX, param_name, PARAM_IN_MODE, description,
                                   PvSort.IN_MODE)
+
+            # RBV to SP:RBV tolerance once move completed
+            self._add_pv_with_val(prepended_alias + RBV_AT_POSITION, param_name, fields, description,
+                                  PvSort.RBV_AT_POSITION)
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)

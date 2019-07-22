@@ -265,7 +265,6 @@ class TrackingBeamPathCalc(object):
         """
         TODO
         """
-        print("SET: component(beam_path_calc)[displacing]: {}".format(self._is_displacing))
         return self._is_displacing
 
     @is_displacing.setter
@@ -274,7 +273,6 @@ class TrackingBeamPathCalc(object):
          TODO
         """
         self._is_displacing = value
-        print("SET: component(beam_path_calc)[displacing]: {}".format(value))
         self._trigger_after_moving_state_update()
 
     @property
@@ -282,7 +280,6 @@ class TrackingBeamPathCalc(object):
         """
         TODO
         """
-        print("GET: component(beam_path_calc)[rotating]: {}".format(self._is_rotating))
         return self._is_rotating
 
     @is_rotating.setter
@@ -291,7 +288,6 @@ class TrackingBeamPathCalc(object):
          TODO
         """
         self._is_rotating = value
-        print("SET: component(beam_path_calc)[rotating]: {}".format(value))
         self._trigger_after_moving_state_update()
 
     def add_after_physical_move_listener(self, listener):

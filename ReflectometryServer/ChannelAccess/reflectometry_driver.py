@@ -189,16 +189,20 @@ class ReflectometryDriver(Driver):
         """
         Add listeners to beamline parameter changes, which update pvs in the server
         """
+        print("---- refl_serv: Adding after rbv_at_pos listeners ----------")
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
             parameter.add_init_listener(partial(self._update_param_listener, pv_name))
-            print("adding listeners fors")
             if param_sort == PvSort.RBV:
                 parameter.add_rbv_change_listener(partial(self._update_param_listener, pv_name))
             if param_sort == PvSort.SP_RBV:
                 parameter.add_sp_rbv_change_listener(partial(self._update_param_listener, pv_name))
             if param_sort == PvSort.CHANGING:
                 parameter.add_after_moving_state_update_listener(partial(self._update_binary_listener, pv_name))
+            if param_sort == PvSort.RBV_AT_POSITION:
+                print("REFL_DRV:add_param_listeners:PvSort.RBV_AT_POSITION:{}".format(pv_name))
+                parameter.add_after_rbv_at_position_listener(partial(self._update_binary_listener, pv_name))
+        print("----------")
 
     def _update_binary_listener(self, pv_name, value):
         self.setParam(pv_name, value)
