@@ -41,7 +41,7 @@ class BeamlineParameter(object):
     General beamline parameter that can be set. Subclass must implement _move_component to decide what to do with the
     value that is set.
     """
-    def __init__(self, name, sim=False, init=None, description=None, autosave=False, rbv_tolerance=0.04):
+    def __init__(self, name, sim=False, init=None, description=None, autosave=False, rbv_tolerance=0.01):
         if sim:
             self._set_point = init
             self._set_point_rbv = init
@@ -104,12 +104,12 @@ class BeamlineParameter(object):
 
     @property
     def rbv_at_position(self):
-        if abs(self.rbv - self._set_point_rbv) > self.rbv_tolerance:
+        if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self.rbv_tolerance:
             print("PARAM:@Property:rbv_at_position:{}:FALSE ({:0.3f})".format(self.name, abs(self.rbv - self._set_point_rbv)))
-            return False
+            return 0
         else:
             #print("PARAM:@Property:rbv_at_position:{}:true ({:0.3f})".format(self.name, abs(self.rbv - self._set_point_rbv)))
-            return True
+            return 1
 
     @property
     def sp_rbv(self):
@@ -212,6 +212,7 @@ class BeamlineParameter(object):
         rbv = self._rbv()
         for listener in self._rbv_change_listeners:
             listener(rbv)
+        self._trigger_after_rbv_at_position_update()
 
     @property
     def is_changing(self):
@@ -262,6 +263,7 @@ class BeamlineParameter(object):
         """
         for listener in self._sp_rbv_change_listeners:
             listener(self._set_point_rbv)
+        self._trigger_after_rbv_at_position_update()
 
     def add_init_listener(self, listener):
         self._init_listeners.add(listener)
