@@ -105,10 +105,8 @@ class BeamlineParameter(object):
     @property
     def rbv_at_position(self):
         if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self.rbv_tolerance:
-            print("PARAM:@Property:rbv_at_position:{}:FALSE ({:0.3f})".format(self.name, abs(self.rbv - self._set_point_rbv)))
             return 0
         else:
-            #print("PARAM:@Property:rbv_at_position:{}:true ({:0.3f})".format(self.name, abs(self.rbv - self._set_point_rbv)))
             return 1
 
     @property
@@ -226,25 +224,19 @@ class BeamlineParameter(object):
     def _trigger_after_moving_state_update(self):
         """
         """
-        print("PARAM:_trigger_after_moving_state_update:{}".format(self.is_changing))
         for listener in self._after_moving_state_update_listeners:
             listener(self.is_changing)
 
     def add_after_rbv_at_position_listener(self, listener):
         """
         """
-        print("PARAM:add_after_rbv_at_position:{}".format(listener))
         self._after_at_position_listeners.add(listener)
 
     def _trigger_after_rbv_at_position_update(self):
         """
         """
-        print("---- PARA: triggering after_at_position listeners")
-        print("PARAM:_trigger_after_rbv_at_position_update:{}".format(self.rbv_at_position))
         for listener in self._after_at_position_listeners:
-            print("PARAM:_trigger_after_rbv_at_position_update:{}".format(listener))
             listener(self.rbv_at_position)
-        print("----------")
 
     def add_sp_rbv_change_listener(self, listener):
         """
