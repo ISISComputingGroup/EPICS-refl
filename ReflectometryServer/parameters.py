@@ -41,7 +41,7 @@ class BeamlineParameter(object):
     General beamline parameter that can be set. Subclass must implement _move_component to decide what to do with the
     value that is set.
     """
-    def __init__(self, name, sim=False, init=None, description=None, autosave=False, rbv_at_target_tolerance=0.01):
+    def __init__(self, name, sim=False, init=None, description=None, autosave=False, rbv_to_sp_tolerance=0.01):
         if sim:
             self._set_point = init
             self._set_point_rbv = init
@@ -62,9 +62,9 @@ class BeamlineParameter(object):
         self._rbv_change_listeners = set()
         self._sp_rbv_change_listeners = set()
         self._after_moving_state_update_listeners = set()
-        self._after_at_position_listeners = set()
+        self._after_rbv_at_sp_listeners = set()
         self._init_listeners = set()
-        self.rbv_at_target_tolerance = rbv_at_target_tolerance
+        self.rbv_to_sp_tolerance = rbv_to_sp_tolerance
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
@@ -102,8 +102,8 @@ class BeamlineParameter(object):
         return self._rbv()
 
     @property
-    def rbv_at_position(self):
-        if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self.rbv_at_target_tolerance:
+    def rbv_at_sp(self):
+        if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self.rbv_to_sp_tolerance:
             return 0
         else:
             return 1
@@ -209,7 +209,7 @@ class BeamlineParameter(object):
         rbv = self._rbv()
         for listener in self._rbv_change_listeners:
             listener(rbv)
-        self._trigger_after_rbv_at_position_update()
+        self._trigger_after_sp_at_rbv_update()
 
     @property
     def is_changing(self):
@@ -226,16 +226,16 @@ class BeamlineParameter(object):
         for listener in self._after_moving_state_update_listeners:
             listener(self.is_changing)
 
-    def add_after_rbv_at_position_listener(self, listener):
+    def add_after_rbv_at_sp_listener(self, listener):
         """
         """
-        self._after_at_position_listeners.add(listener)
+        self._after_rbv_at_sp_listeners.add(listener)
 
-    def _trigger_after_rbv_at_position_update(self):
+    def _trigger_after_sp_at_rbv_update(self):
         """
         """
-        for listener in self._after_at_position_listeners:
-            listener(self.rbv_at_position)
+        for listener in self._after_rbv_at_sp_listeners:
+            listener(self.rbv_at_sp)
 
     def add_sp_rbv_change_listener(self, listener):
         """
@@ -254,7 +254,7 @@ class BeamlineParameter(object):
         """
         for listener in self._sp_rbv_change_listeners:
             listener(self._set_point_rbv)
-        self._trigger_after_rbv_at_position_update()
+        self._trigger_after_sp_at_rbv_update()
 
     def add_init_listener(self, listener):
         self._init_listeners.add(listener)
@@ -325,7 +325,7 @@ class AngleParameter(BeamlineParameter):
     Angle is measure with +ve in the anti-clockwise direction)
     """
 
-    def __init__(self, name, reflection_component, sim=False, init=0, description=None, autosave=False, rbv_at_target_tolerance=0.002):
+    def __init__(self, name, reflection_component, sim=False, init=0, description=None, autosave=False, rbv_to_sp_tolerance=0.002):
         """
         Initializer.
         Args:
@@ -336,7 +336,7 @@ class AngleParameter(BeamlineParameter):
         """
         if description is None:
             description = "{} angle".format(name)
-        super(AngleParameter, self).__init__(name, sim, init, description, autosave, rbv_at_target_tolerance=rbv_at_target_tolerance)
+        super(AngleParameter, self).__init__(name, sim, init, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._reflection_component = reflection_component
 
         if self._autosave:
@@ -345,7 +345,7 @@ class AngleParameter(BeamlineParameter):
             self._reflection_component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
 
         self._reflection_component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._reflection_component.beam_path_rbv.add_after_moving_state_update_listener(self._trigger_after_moving_state_update)
+        self._reflection_component.beam_path_rbv.add_after_changing_state_update_listener(self._trigger_after_moving_state_update)
 
     def _initialise_sp_from_file(self):
         """
@@ -396,7 +396,7 @@ class TrackingPosition(BeamlineParameter):
     Component which tracks the position of the beam with a single degree of freedom. E.g. slit set on a height stage
     """
 
-    def __init__(self, name, component, sim=False, init=0, description=None, autosave=False, rbv_at_target_tolerance=0.002):
+    def __init__(self, name, component, sim=False, init=0, description=None, autosave=False, rbv_to_sp_tolerance=0.002):
         """
 
         Args:
@@ -406,7 +406,7 @@ class TrackingPosition(BeamlineParameter):
         """
         if description is None:
             description = "{} tracking position".format(name)
-        super(TrackingPosition, self).__init__(name, sim, init, description, autosave, rbv_at_target_tolerance=rbv_at_target_tolerance)
+        super(TrackingPosition, self).__init__(name, sim, init, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._component = component
 
         if self._autosave:
@@ -415,7 +415,7 @@ class TrackingPosition(BeamlineParameter):
             self._component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
 
         self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._component.beam_path_rbv.add_after_moving_state_update_listener(self._trigger_after_moving_state_update)
+        self._component.beam_path_rbv.add_after_changing_state_update_listener(self._trigger_after_moving_state_update)
 
         self.group_names.append(BeamlineParameterGroup.TRACKING)
 
@@ -485,7 +485,7 @@ class InBeamParameter(BeamlineParameter):
         """
         if description is None:
             description = "{} component is in the beam".format(name)
-        super(InBeamParameter, self).__init__(name, sim, init, description, autosave, rbv_at_target_tolerance=0.001)
+        super(InBeamParameter, self).__init__(name, sim, init, description, autosave, rbv_to_sp_tolerance=0.001)
         self._component = component
 
         if self._autosave:
@@ -493,7 +493,7 @@ class InBeamParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
         self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._component.beam_path_rbv.add_after_moving_state_update_listener(self._trigger_after_moving_state_update)
+        self._component.beam_path_rbv.add_after_changing_state_update_listener(self._trigger_after_moving_state_update)
 
         self.parameter_type = BeamlineParameterType.IN_OUT
 
@@ -560,7 +560,7 @@ class SlitGapParameter(BeamlineParameter):
     Parameter which sets the gap on a slit. This differs from other beamline parameters in that it is not linked to the
     beamline component layer but hooks directly into a motor axis.
     """
-    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False, rbv_at_target_tolerance=0.002):
+    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False, rbv_to_sp_tolerance=0.002):
         """
         Args:
             name (str): The name of the parameter
@@ -569,7 +569,7 @@ class SlitGapParameter(BeamlineParameter):
             init (float): Initialisation value if simulated
             description (str): The description
         """
-        super(SlitGapParameter, self).__init__(name, sim, init, description, autosave, rbv_at_target_tolerance=rbv_at_target_tolerance)
+        super(SlitGapParameter, self).__init__(name, sim, init, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._pv_wrapper = pv_wrapper
         self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
         self._pv_wrapper.add_after_is_changing_change_listener(self._on_moving_state_update)

@@ -17,14 +17,17 @@ BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
 BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
 BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
 PARAM_INFO = "PARAM_INFO"
+IN_MODE_SUFFIX = ":IN_MODE"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
+RBV_AT_SP = ":RBV:AT_SP"
 MOVE_SUFFIX = ":MOVE"
 CHANGING = ":CHANGING"
-RBV_AT_POSITION = ":RBV:AT_POS"
 CHANGED_SUFFIX = ":CHANGED"
+
+
 SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
-IN_MODE_SUFFIX = ":IN_MODE"
+
 VAL_FIELD = ".VAL"
 
 FOOTPRINT_PREFIX = "FP"
@@ -104,7 +107,7 @@ class PvSort(Enum):
     CHANGED = 6
     IN_MODE = 7
     CHANGING = 8
-    RBV_AT_POSITION = 9
+    RBV_AT_SP = 9
 
     @staticmethod
     def what(pv_sort):
@@ -130,8 +133,8 @@ class PvSort(Enum):
             return "(Is in mode)"
         elif pv_sort == PvSort.CHANGING:
             return "(Is changing)"
-        elif pv_sort == PvSort.RBV_AT_POSITION:
-            return "(Tolerance between RBV and SP:RBV)"
+        elif pv_sort == PvSort.RBV_AT_SP:
+            return "(Tolerance between RBV and target set point)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -158,8 +161,8 @@ class PvSort(Enum):
             return parameter.move
         elif self == PvSort.CHANGING:
             return parameter.is_changing
-        elif self == PvSort.RBV_AT_POSITION:
-            return parameter.rbv_at_position
+        elif self == PvSort.RBV_AT_SP:
+            return parameter.rbv_at_sp
         return float("NaN")
 
 
@@ -331,8 +334,8 @@ class PVManager:
                                   PvSort.IN_MODE)
 
             # RBV to SP:RBV tolerance once move completed
-            self._add_pv_with_val(prepended_alias + RBV_AT_POSITION, param_name, fields, description,
-                                  PvSort.RBV_AT_POSITION)
+            self._add_pv_with_val(prepended_alias + RBV_AT_SP, param_name, fields, description,
+                                  PvSort.RBV_AT_SP)
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)

@@ -26,7 +26,7 @@ class TrackingBeamPathCalc(object):
         self._after_beam_path_update_listeners = set()
         self._after_beam_path_update_on_init_listeners = set()
         self._after_physical_move_listeners = set()
-        self._after_moving_state_update_listeners = set()
+        self._after_changing_state_update_listeners = set()
         self._init_listeners = set()
         self._is_in_beam = True
         self._is_displacing = False
@@ -68,17 +68,17 @@ class TrackingBeamPathCalc(object):
         for listener in self._init_listeners:
             listener()
 
-    def add_after_moving_state_update_listener(self, listener):
+    def add_after_changing_state_update_listener(self, listener):
         """
         TODO
         """
-        self._after_moving_state_update_listeners.add(listener)
+        self._after_changing_state_update_listeners.add(listener)
 
-    def _trigger_after_moving_state_update(self):
+    def _trigger_after_changing_state_update(self):
         """
         TODO
         """
-        for listener in self._after_moving_state_update_listeners:
+        for listener in self._after_changing_state_update_listeners:
             listener()
 
     def add_after_beam_path_update_listener(self, listener):
@@ -273,7 +273,7 @@ class TrackingBeamPathCalc(object):
          TODO
         """
         self._is_displacing = value
-        self._trigger_after_moving_state_update()
+        self._trigger_after_changing_state_update()
 
     @property
     def is_rotating(self):
@@ -288,7 +288,7 @@ class TrackingBeamPathCalc(object):
          TODO
         """
         self._is_rotating = value
-        self._trigger_after_moving_state_update()
+        self._trigger_after_changing_state_update()
 
     def add_after_physical_move_listener(self, listener):
         """
@@ -451,13 +451,13 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             readback_beam_path_calc.add_after_physical_move_listener(self._update_angle)
             setpoint_beam_path_calc.add_after_physical_move_listener(self._update_angle)
-            readback_beam_path_calc.add_after_moving_state_update_listener(self._on_moving_state_update)
+            readback_beam_path_calc.add_after_changing_state_update_listener(self._on_moving_state_update)
 
     def _on_moving_state_update(self):
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
                 self.is_rotating = readback_beam_path_calc.is_displacing
-                self._trigger_after_moving_state_update()
+                self._trigger_after_changing_state_update()
                 break
 
     def _update_angle(self, source):
