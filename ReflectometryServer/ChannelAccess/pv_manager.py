@@ -334,7 +334,7 @@ class PVManager:
                                   PvSort.IN_MODE)
 
             # RBV to SP:RBV tolerance once move completed
-            self._add_pv_with_val(prepended_alias + RBV_AT_SP, param_name, fields, description,
+            self._add_pv_with_val(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
                                   PvSort.RBV_AT_SP)
 
         except Exception as err:
