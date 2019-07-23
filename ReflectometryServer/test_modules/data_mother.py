@@ -8,7 +8,7 @@ from ReflectometryServer.components import Component, TiltingComponent, ThetaCom
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter
-
+from time import time
 
 class EmptyBeamlineParameter(BeamlineParameter):
     """
@@ -173,7 +173,7 @@ class MockChannelAccess(object):
     def pv_exists(self, pv):
         return pv in self._pvs.keys()
 
-    def add_monitor(self):
+    def add_monitor(self,pv, call_back_function):
         pass
 
     def caget(self, pv):
