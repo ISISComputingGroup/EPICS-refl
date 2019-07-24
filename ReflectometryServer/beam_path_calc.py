@@ -460,9 +460,9 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             readback_beam_path_calc.add_after_physical_move_listener(self._update_angle)
             setpoint_beam_path_calc.add_after_physical_move_listener(self._update_angle)
-            readback_beam_path_calc.add_after_is_changing_change_listener(self._on_moving_state_update)
+            readback_beam_path_calc.add_after_is_changing_change_listener(self._on_is_changing_change)
 
-    def _on_moving_state_update(self):
+    def _on_is_changing_change(self):
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
                 self.is_rotating = readback_beam_path_calc.is_displacing
