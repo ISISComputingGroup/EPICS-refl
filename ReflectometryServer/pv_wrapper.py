@@ -36,6 +36,7 @@ class PVWrapper(object):
         self._move_initiated = False
         self._moving_state = None
         self._v_restore = None
+        self._v_curr = None
         self.max_velocity = None
         self._state_init_event = Event()
         self._velocity_event = Event()
@@ -73,6 +74,7 @@ class PVWrapper(object):
         Initialise PVWrapper values once the beamline is ready.
         """
         self._add_monitors()
+        self._v_curr = self._read_pv(self._velo_pv)
 
     def _add_monitors(self):
         """
@@ -188,7 +190,7 @@ class PVWrapper(object):
         """
         Returns: the value of the underlying velocity PV
         """
-        return self._read_pv(self._velo_pv)
+        return self._v_curr
 
     @velocity.setter
     def velocity(self, value):
@@ -239,6 +241,7 @@ class PVWrapper(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
+        self._v_curr = value
         if self._v_restore is None:
             self._init_velocity_to_restore(value)
         elif not self._move_initiated:
@@ -306,6 +309,7 @@ class _JawsAxisPVWrapper(PVWrapper):
 
         self._directions = []
         self._set_directions()
+        self._velocities = {}
 
         for key in self._directions:
             self._state_init_events[key] = Event()
@@ -337,6 +341,8 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         self._add_monitors()
         self._init_velocity_to_restore(self.velocity)
+        for velo_pv in self._pv_names_for_directions("MTR.VELO"):
+            self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
 
     def _add_monitors(self):
         """
@@ -350,14 +356,17 @@ class _JawsAxisPVWrapper(PVWrapper):
         for dmov_pv in self._pv_names_for_directions("MTR.DMOV"):
             self._monitor_pv(dmov_pv, partial(self._on_update_moving_state, source=self._strip_source_pv(dmov_pv)))
 
+        for velo_pv in self._pv_names_for_directions("MTR.VELO"):
+            self._monitor_pv(velo_pv, partial(self._on_update_individual_velocity, source=self._strip_source_pv(velo_pv)))
+
     @property
     def velocity(self):
         """
         Returns: the value of the underlying velocity PV. We use the minimum between the two jaw blades to
         ensure we do not create crash conditions (i.e. one jaw blade going faster than the other one can).
         """
-        motor_velocities = self._pv_names_for_directions("MTR.VELO")
-        return min([self._read_pv(pv) for pv in motor_velocities])
+        motor_velocities = self._velocities.values()
+        return min([motor_velocities])
 
     @velocity.setter
     def velocity(self, value):
@@ -403,6 +412,9 @@ class _JawsAxisPVWrapper(PVWrapper):
             self.velocity = self._v_restore
         self._moving_state = overall_state
         self._state_init_events[source].set()
+
+    def _on_update_individual_velocity(self, value, alarm_severity, alarm_status, source=None):
+        self._velocities[source] = value
 
     def _init_velocity_to_restore(self, value):
         """
