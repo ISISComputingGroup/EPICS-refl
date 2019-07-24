@@ -26,7 +26,7 @@ class TrackingBeamPathCalc(object):
         self._after_beam_path_update_listeners = set()
         self._after_beam_path_update_on_init_listeners = set()
         self._after_physical_move_listeners = set()
-        self._after_changing_state_update_listeners = set()
+        self._after_is_changing_change_listeners = set()
         self._init_listeners = set()
         self._is_in_beam = True
         self._is_displacing = False
@@ -68,17 +68,20 @@ class TrackingBeamPathCalc(object):
         for listener in self._init_listeners:
             listener()
 
-    def add_after_changing_state_update_listener(self, listener):
+    def add_after_is_changing_change_listener(self, listener):
         """
-        TODO
-        """
-        self._after_changing_state_update_listeners.add(listener)
+        Add a listener which is triggered if the changing (rotating, displacing etc) state is changed.
 
-    def _trigger_after_changing_state_update(self):
+        Args:
+            listener: listener with a single argument which is the calling calculation.
         """
-        TODO
+        self._after_is_changing_change_listeners.add(listener)
+
+    def _trigger_after_is_changing_change(self):
         """
-        for listener in self._after_changing_state_update_listeners:
+        Runs all the current listeners on the changing state because something has changed.
+        """
+        for listener in self._after_is_changing_change_listeners:
             listener()
 
     def add_after_beam_path_update_listener(self, listener):
@@ -263,32 +266,38 @@ class TrackingBeamPathCalc(object):
     @property
     def is_displacing(self):
         """
-        TODO
+        Returns: Is the displacement component currently displacing
         """
         return self._is_displacing
 
     @is_displacing.setter
     def is_displacing(self, value):
         """
-         TODO
+         Update the displacement component displacing state and triggers the changing state listeners
+
+         Args:
+             value: the new displacing state
         """
         self._is_displacing = value
-        self._trigger_after_changing_state_update()
+        self._trigger_after_is_changing_change()
 
     @property
     def is_rotating(self):
         """
-        TODO
+        Returns: Is the angular component currently rotating
         """
         return self._is_rotating
 
     @is_rotating.setter
     def is_rotating(self, value):
         """
-         TODO
+         Update the angular components rotating state and triggers the changing state listeners
+
+         Args:
+             value: the new rotating state
         """
         self._is_rotating = value
-        self._trigger_after_changing_state_update()
+        self._trigger_after_is_changing_change()
 
     def add_after_physical_move_listener(self, listener):
         """
@@ -451,13 +460,13 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             readback_beam_path_calc.add_after_physical_move_listener(self._update_angle)
             setpoint_beam_path_calc.add_after_physical_move_listener(self._update_angle)
-            readback_beam_path_calc.add_after_changing_state_update_listener(self._on_moving_state_update)
+            readback_beam_path_calc.add_after_is_changing_change_listener(self._on_moving_state_update)
 
     def _on_moving_state_update(self):
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
                 self.is_rotating = readback_beam_path_calc.is_displacing
-                self._trigger_after_changing_state_update()
+                self._trigger_after_is_changing_change()
                 break
 
     def _update_angle(self, source):

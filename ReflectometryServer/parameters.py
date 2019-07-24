@@ -61,7 +61,7 @@ class BeamlineParameter(object):
         self.group_names = []
         self._rbv_change_listeners = set()
         self._sp_rbv_change_listeners = set()
-        self._after_moving_state_update_listeners = set()
+        self._after_is_changing_change_listeners = set()
         self._after_rbv_at_sp_listeners = set()
         self._init_listeners = set()
         self.rbv_to_sp_tolerance = rbv_to_sp_tolerance
@@ -103,6 +103,9 @@ class BeamlineParameter(object):
 
     @property
     def rbv_at_sp(self):
+        """
+        Returns: Does the read back value match the set point target within a defined tolerance
+        """
         if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self.rbv_to_sp_tolerance:
             return 0
         else:
@@ -213,26 +216,39 @@ class BeamlineParameter(object):
 
     @property
     def is_changing(self):
+        """
+        Returns: Is the parameter changing (rotating, displacing etc.)
+        """
         raise NotImplemented()
 
-    def add_after_moving_state_update_listener(self, listener):
+    def add_after_is_changing_change_listener(self, listener):
         """
-        """
-        self._after_moving_state_update_listeners.add(listener)
+        Add a listener which is triggered if the changing (rotating, displacing etc) state is changed.
 
-    def _trigger_after_moving_state_update(self):
+        Args:
+            listener: listener with a single argument which is the calling calculation.
         """
+        self._after_is_changing_change_listeners.add(listener)
+
+    def _trigger_after_is_changing_change(self):
         """
-        for listener in self._after_moving_state_update_listeners:
+        Runs all the current listeners on the changing state because something has changed.
+        """
+        for listener in self._after_is_changing_change_listeners:
             listener(self.is_changing)
 
     def add_after_rbv_at_sp_listener(self, listener):
         """
+        Add a listener which is triggered to check if the rbv is at the sp target within some tolerance.
+
+        Args:
+            listener: listener with a single argument which is the calling calculation.
         """
         self._after_rbv_at_sp_listeners.add(listener)
 
     def _trigger_after_sp_at_rbv_update(self):
         """
+        Runs all the current listeners on the rbv_at_sp because something has changed.
         """
         for listener in self._after_rbv_at_sp_listeners:
             listener(self.rbv_at_sp)
@@ -345,7 +361,7 @@ class AngleParameter(BeamlineParameter):
             self._reflection_component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
 
         self._reflection_component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._reflection_component.beam_path_rbv.add_after_changing_state_update_listener(self._trigger_after_moving_state_update)
+        self._reflection_component.beam_path_rbv.add_after_is_changing_change_listener(self._trigger_after_is_changing_change)
 
     def _initialise_sp_from_file(self):
         """
@@ -375,6 +391,9 @@ class AngleParameter(BeamlineParameter):
 
     @property
     def is_changing(self):
+        """
+        Returns: Is the parameter changing (rotating)
+        """
         return self._reflection_component.beam_path_rbv.is_rotating
 
     def validate(self, drivers):
@@ -415,7 +434,7 @@ class TrackingPosition(BeamlineParameter):
             self._component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
 
         self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._component.beam_path_rbv.add_after_changing_state_update_listener(self._trigger_after_moving_state_update)
+        self._component.beam_path_rbv.add_after_is_changing_change_listener(self._trigger_after_is_changing_change)
 
         self.group_names.append(BeamlineParameterGroup.TRACKING)
 
@@ -454,6 +473,9 @@ class TrackingPosition(BeamlineParameter):
 
     @property
     def is_changing(self):
+        """
+        Returns: Is the parameter changing (displacing)
+        """
         return self._component.beam_path_rbv.is_displacing
 
     def validate(self, drivers):
@@ -493,7 +515,7 @@ class InBeamParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
         self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._component.beam_path_rbv.add_after_changing_state_update_listener(self._trigger_after_moving_state_update)
+        self._component.beam_path_rbv.add_after_is_changing_change_listener(self._trigger_after_is_changing_change)
 
         self.parameter_type = BeamlineParameterType.IN_OUT
 
@@ -549,6 +571,9 @@ class InBeamParameter(BeamlineParameter):
 
     @property
     def is_changing(self):
+        """
+        Returns: Is the parameter changing (rotating, displacing etc.)
+        """
         if self._component.beam_path_rbv.is_displacing or self._component.beam_path_rbv.is_rotating:
             return True
         else:
@@ -572,7 +597,7 @@ class SlitGapParameter(BeamlineParameter):
         super(SlitGapParameter, self).__init__(name, sim, init, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._pv_wrapper = pv_wrapper
         self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
-        self._pv_wrapper.add_after_is_changing_change_listener(self._on_moving_state_update)
+        self._pv_wrapper.add_after_is_changing_change_listener(self._on_is_changing_change)
         self._pv_wrapper.initialise()
         if pv_wrapper.is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
@@ -634,9 +659,12 @@ class SlitGapParameter(BeamlineParameter):
         """
         return []
 
-    def _on_moving_state_update(self, new_value, alarm_severity, alarm_status):
-        self._trigger_after_moving_state_update()
+    def _on_is_changing_change(self, new_value, alarm_severity, alarm_status):
+        self._trigger_after_is_changing_change()
 
     @property
     def is_changing(self):
+        """
+        Returns: Is the parameter changing (displacing)
+        """
         return self._pv_wrapper.is_moving

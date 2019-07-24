@@ -242,6 +242,9 @@ class PVWrapper(object):
         self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value), alarm_severity, alarm_status)
 
     def _dmov_to_bool(self, value):
+        """
+        Converts the inverted dmov (0=True, 1=False) to the standard format
+        """
         return not value
 
     def _on_update_velocity(self, value, alarm_severity, alarm_status):

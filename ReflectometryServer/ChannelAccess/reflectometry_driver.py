@@ -197,7 +197,7 @@ class ReflectometryDriver(Driver):
             if param_sort == PvSort.SP_RBV:
                 parameter.add_sp_rbv_change_listener(partial(self._update_param_listener, pv_name))
             if param_sort == PvSort.CHANGING:
-                parameter.add_after_moving_state_update_listener(partial(self._update_binary_listener, pv_name))
+                parameter.add_after_is_changing_change_listener(partial(self._update_binary_listener, pv_name))
             if param_sort == PvSort.RBV_AT_SP:
                 parameter.add_after_rbv_at_sp_listener(partial(self._update_binary_listener, pv_name))
 
