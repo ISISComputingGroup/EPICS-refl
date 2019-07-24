@@ -4,8 +4,7 @@ The driving layer communicates between the component layer and underlying pvs.
 
 import math
 import logging
-
-from threading import Event
+from ReflectometryServer.components import ChangeAxis
 
 logger = logging.getLogger(__name__)
 
@@ -14,17 +13,20 @@ class IocDriver(object):
     """
     Drives an actual motor axis based on a component in the beamline model.
     """
-    def __init__(self, component, axis):
+    def __init__(self, component, axis, synchronised=True):
         """
         Drive the IOC based on a component
         Args:
             component (ReflectometryServer.components.Component):
             axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
+            synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
+                time; if false they will move at their current speed.
         """
         self._component = component
         self._axis = axis
         self._rbv_cache = self._axis.rbv
         self._sp_cache = None
+        self._synchronised = synchronised
 
         self._axis.add_after_rbv_change_listener(self._on_update_rbv)
         self._axis.add_after_sp_change_listener(self._on_update_sp)
@@ -57,25 +59,50 @@ class IocDriver(object):
         """
         return component is self._component
 
+    def _axis_will_move(self):
+        """
+        Returns: True if the axis set point has changed and it will move any distance
+        """
+        return not self.at_target_setpoint() and self._is_changed()
+
     def get_max_move_duration(self):
         """
-        Returns: The maximum duration of the requested move for all associated axes
+        Returns: The maximum duration of the requested move for all associated axes. If axes are not synchornised this
+        will return 0 but movement will still be required.
         """
-        return self._get_distance() / self._axis.max_velocity
+        if self._axis_will_move() and self._synchronised:
+            return self._get_distance() / self._axis.max_velocity
+        else:
+            return 0.0
 
-    def perform_move(self, move_duration):
+    def perform_move(self, move_duration, force=False):
         """
         Tells the driver to perform a move to the component set points within a given duration
 
         Args:
-            move_duration: The duration in which to perform this move
+            move_duration (float): The duration in which to perform this move
+            force (bool): move even if component does not report changed
         """
-        logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
-        self._axis.initiate_move()
-        if move_duration > 1e-6:  # TODO Is this the correct thing to do and if so test it
-            self._axis.velocity = self._get_distance() / move_duration
-        self._axis.sp = self._get_set_point_position()
-        self._sp_cache = self._get_set_point_position()
+        if self._axis_will_move() or force:
+            logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
+            if move_duration > 1e-6 and self._synchronised:
+                self._axis.initiate_move_with_change_of_velocity()
+                self._axis.velocity = self._get_distance() / move_duration
+            self._axis.sp = self._get_set_point_position()
+            self._sp_cache = self._get_set_point_position()
+        self._clear_changed()
+
+    def _is_changed(self):
+        """
+        Returns whether this driver's component has been flagged for change.
+        """
+        raise NotImplemented("This should be implemented in the subclass")
+
+    def _clear_changed(self):
+        """
+        Clears the flag indicating whether this driver's component has been changed.
+        """
+        raise NotImplemented("This should be implemented in the subclass")
 
     def rbv_cache(self):
         """
@@ -158,7 +185,8 @@ class DisplacementDriver(IocDriver):
     """
     Drives a component with linear displacement movement
     """
-    def __init__(self, component, motor_axis, out_of_beam_position=None, tolerance_on_out_of_beam_position=1):
+    def __init__(self, component, motor_axis, out_of_beam_position=None, tolerance_on_out_of_beam_position=1,
+                 synchronised=True):
         """
         Constructor.
         Args:
@@ -168,8 +196,10 @@ class DisplacementDriver(IocDriver):
                 can not set the component to be out of the beam
             tolerance_on_out_of_beam_position (float): this the tolerance on the out of beam position, if the motor
                 is within this tolerance of the out_of_beam_position it will read out of beam otherwise the position
+            synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
+                time; if false they will move at their current speed.
         """
-        super(DisplacementDriver, self).__init__(component, motor_axis)
+        super(DisplacementDriver, self).__init__(component, motor_axis, synchronised)
         self._out_of_beam_position = out_of_beam_position
         self._tolerance_on_out_of_beam_position = tolerance_on_out_of_beam_position
 
@@ -229,19 +259,36 @@ class DisplacementDriver(IocDriver):
         """
         self._component.beam_path_rbv.is_displacing = value
 
+    def _component_changed(self):
+        return self._component.read_changed_flag(ChangeAxis.POSITION)
+
+    def _is_changed(self):
+        """
+        Returns whether this driver's component's position has been flagged for change.
+        """
+        return self._component.read_changed_flag(ChangeAxis.POSITION)
+
+    def _clear_changed(self):
+        """
+        Clears the flag indicating whether the this driver's component's position has been changed.
+        """
+        self._component.set_changed_flag(ChangeAxis.POSITION, False)
+
 
 class AngleDriver(IocDriver):
     """
     Drives a component that has variable angle.
     """
-    def __init__(self, component, angle_axis):
+    def __init__(self, component, angle_axis, synchronised=True):
         """
         Constructor.
         Args:
             component (ReflectometryServer.components.Component): Component providing the values for the axes
             angle_axis(ReflectometryServer.pv_wrapper.MotorPVWrapper): PV for the angle motor axis
+            synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
+                time; if false they will move at their current speed.
         """
-        super(AngleDriver, self).__init__(component, angle_axis)
+        super(AngleDriver, self).__init__(component, angle_axis, synchronised)
 
     def initialise_setpoint(self):
         """
@@ -270,3 +317,15 @@ class AngleDriver(IocDriver):
             value: The new is_moving value
         """
         self._component.beam_path_rbv.is_rotating = value
+
+    def _is_changed(self):
+        """
+        Returns whether this driver's component angle has been flagged for change.
+        """
+        return self._component.read_changed_flag(ChangeAxis.ANGLE)
+
+    def _clear_changed(self):
+        """
+        Clears the flag indicating whether the this driver's component's angle has been changed.
+        """
+        self._component.set_changed_flag(ChangeAxis.ANGLE, False)
