@@ -5,6 +5,7 @@ from file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
 
 from enum import Enum
+from ReflectometryServer.components import ChangeAxis
 from server_common.utilities import print_and_log, SEVERITY
 
 logger = logging.getLogger(__name__)
@@ -61,11 +62,10 @@ class BeamlineParameter(object):
         self._rbv_change_listeners = set()
         self._sp_rbv_change_listeners = set()
         self._init_listeners = set()
-        #self._in_mode = init
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
-                                                                      self._set_point_rbv, self.rbv, self.sp_changed)# self.in_mode)
+                                                                      self._set_point_rbv, self.rbv, self.sp_changed)
 
     def _initialise_sp_from_file(self):
         """
@@ -90,6 +90,12 @@ class BeamlineParameter(object):
         self._set_point = sp_init
         self._set_point_rbv = sp_init
         self._trigger_init_listeners()
+
+    def _set_changed_flag(self):
+        """
+        Flags in the component that the beamline parameter should be moved.
+        """
+        raise NotImplemented("This must be implemented in the sub class")
 
     @property
     def rbv(self):
@@ -245,6 +251,7 @@ class BeamlineParameter(object):
         """
         if self._set_point_rbv is not None:
             self._move_component()
+            self._set_changed_flag()
         else:
             raise ParameterNotInitializedException(self.name)
 
@@ -331,6 +338,9 @@ class AngleParameter(BeamlineParameter):
     def _move_component(self):
         self._reflection_component.beam_path_set_point.set_angle_relative_to_beam(self._set_point_rbv)
 
+    def _set_changed_flag(self):
+        self._reflection_component.set_changed_flag(ChangeAxis.ANGLE, True)
+
     def _rbv(self):
         return self._reflection_component.beam_path_rbv.get_angle_relative_to_beam()
 
@@ -402,6 +412,9 @@ class TrackingPosition(BeamlineParameter):
     def _move_component(self):
         self._component.beam_path_set_point.set_position_relative_to_beam(self._set_point_rbv)
 
+    def _set_changed_flag(self):
+        self._component.set_changed_flag(ChangeAxis.POSITION, True)
+
     def _rbv(self):
         """
         Returns: readback value for the tracking displacement above the beam
@@ -471,6 +484,9 @@ class InBeamParameter(BeamlineParameter):
 
     def _move_component(self):
         self._component.beam_path_set_point.is_in_beam = self._set_point_rbv
+
+    def _set_changed_flag(self):
+        self._component.set_changed_flag(ChangeAxis.POSITION, True)
 
     def validate(self, drivers):
         """
@@ -556,6 +572,9 @@ class SlitGapParameter(BeamlineParameter):
         """
         self._rbv_value = new_value
         self._trigger_rbv_listeners(self)
+
+    def _set_changed_flag(self):
+        pass
 
     def _move_component(self):
         self._pv_wrapper.sp = self._set_point
