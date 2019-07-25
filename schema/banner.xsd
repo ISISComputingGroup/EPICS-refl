@@ -66,6 +66,6 @@
       </xs:restriction>
     </xs:simpleType>
   </xs:element>
-  <xs:element name="width" type="xs:decimal"/>
-  <xs:element name="height" type="xs:decimal"/>
+  <xs:element name="width" type="xs:integer"/>
+  <xs:element name="height" type="xs:integer"/>
 </xs:schema>
