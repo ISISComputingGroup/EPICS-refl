@@ -51,7 +51,7 @@
   <xs:element name="name" type="xs:string"/>
   <xs:element name="pv" type="xs:string"/>
   <xs:element name="local" type="xs:boolean"/>
-  <xs:element name="pvValue" type="xs:string"/>
+  <xs:element name="pvValue" type="xs:integer"/>
   <xs:element name="textColour">
     <xs:simpleType>
       <xs:restriction base="xs:string">
