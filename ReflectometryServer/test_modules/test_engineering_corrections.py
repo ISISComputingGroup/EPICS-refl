@@ -17,6 +17,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         comp = Component("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
         driver = DisplacementDriver(comp, mock_axis, engineering_correct=ConstantCorrection(correction))
+        driver._is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp
 
     def test_GIVEN_engineering_correction_offset_of_1_WHEN_driver_told_to_go_to_0_THEN_pv_sent_to_1(self):
@@ -33,6 +34,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
         driver = AngleDriver(comp, mock_axis, engineering_correct=ConstantCorrection(expected_correction))
+        driver._is_changed = lambda: True  # simulate that the component has requested a change
         driver.perform_move(1)
 
         result = mock_axis.sp
