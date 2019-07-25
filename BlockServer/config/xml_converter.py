@@ -471,8 +471,9 @@ class ConfigurationXmlConverter(object):
             root: The root XML node
 
         Returns:
-            A list of dictionaries with two properties: name (the name of the banner item) and pv (the pv which this
-            banner item looks at, without any prefix)
+            A dictionary with two entries, the banner items and the banner buttons.
+            The items have the properties name, pv, local.
+            The buttons have the properties name, pv, local, pvValue, textColour, buttonColour, width, height.
         """
         if root is None:
             return []
@@ -488,4 +489,23 @@ class ConfigurationXmlConverter(object):
                 "local": ConfigurationXmlConverter._find_single_node(item, "banner", "local").text,
             })
 
-        return banner_items
+        banner_buttons = []
+
+        buttons = ConfigurationXmlConverter._find_single_node(root, "banner", "buttons")
+
+        for button in buttons:
+            banner_buttons.append({
+                "name": ConfigurationXmlConverter._find_single_node(button, "banner", "name").text,
+                "pv": ConfigurationXmlConverter._find_single_node(button, "banner", "pv").text,
+                "local": ConfigurationXmlConverter._find_single_node(button, "banner", "local").text,
+                "pvValue": ConfigurationXmlConverter._find_single_node(button, "banner", "pvValue").text,
+                "textColour": ConfigurationXmlConverter._find_single_node(button, "banner", "textColour").text,
+                "buttonColour": ConfigurationXmlConverter._find_single_node(button, "banner", "buttonColour").text,
+                "width": ConfigurationXmlConverter._find_single_node(button, "banner", "width").text,
+                "height": ConfigurationXmlConverter._find_single_node(button, "banner", "height").text,
+            })
+
+        return {
+            "items": banner_items,
+            "buttons": banner_buttons,
+        }
