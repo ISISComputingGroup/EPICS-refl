@@ -26,12 +26,13 @@ class IocDriver(object):
             engineering_correct (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv.
         """
-        self._engineering_correct = engineering_correct
         self._component = component
         self._axis = axis
-        self._rbv_cache = self._engineering_correct.from_axis(self._axis.rbv)
-        self._sp_cache = None
         self._synchronised = synchronised
+        self._engineering_correct = engineering_correct
+
+        self._sp_cache = None
+        self._rbv_cache = self._engineering_correct.from_axis(self._axis.rbv, self._get_component_sp())
 
         self._axis.add_after_rbv_change_listener(self._on_update_rbv)
         self._axis.add_after_sp_change_listener(self._on_update_sp)
@@ -140,7 +141,7 @@ class IocDriver(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        corrected_new_value = self._engineering_correct.from_axis(new_value)
+        corrected_new_value = self._engineering_correct.from_axis(new_value, self._get_component_sp())
         self._rbv_cache = corrected_new_value
         self._propagate_rbv_change(corrected_new_value, alarm_severity, alarm_status)
 
@@ -162,7 +163,7 @@ class IocDriver(object):
         Args:
             value: The new set point value.
         """
-        self._sp_cache = self._engineering_correct.from_axis(value)
+        self._sp_cache = self._engineering_correct.from_axis(value, self._get_component_sp())
 
     def at_target_setpoint(self):
         """
@@ -212,7 +213,7 @@ class DisplacementDriver(IocDriver):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        sp = self._engineering_correct.from_axis(self._axis.sp)
+        sp = self._engineering_correct.init_from_axis(self._axis.sp)
         if self._out_of_beam_position is not None:
             self._component.beam_path_set_point.is_in_beam = self._get_in_beam_status(sp)
         self._component.beam_path_set_point.init_displacement_from_motor(sp)
@@ -285,7 +286,8 @@ class AngleDriver(IocDriver):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        self._component.beam_path_set_point.init_angle_from_motor(self._engineering_correct.from_axis(self._axis.sp))
+        corrected_axis_setpoint = self._engineering_correct.init_from_axis(self._axis.sp)
+        self._component.beam_path_set_point.init_angle_from_motor(corrected_axis_setpoint)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """

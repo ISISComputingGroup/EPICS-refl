@@ -6,12 +6,16 @@ import logging
 
 from enum import Enum
 from ReflectometryServer.components import ChangeAxis
-from server_common.utilities import print_and_log, SEVERITY
+import abc
+import six
 
 logger = logging.getLogger(__name__)
 
 
 class ParameterNotInitializedException(Exception):
+    """
+    Exception for when a parameter is not initialized.
+    """
     def __init__(self, err):
         self.message = str(err)
 
@@ -37,6 +41,7 @@ class BeamlineParameterGroup(Enum):
     GAP_HORIZONTAL = 4
 
 
+@six.add_metaclass(abc.ABCMeta)
 class BeamlineParameter(object):
     """
     General beamline parameter that can be set. Subclass must implement _move_component to decide what to do with the
@@ -67,18 +72,18 @@ class BeamlineParameter(object):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
                                                                       self._set_point_rbv, self.rbv, self.sp_changed)
 
+    @abc.abstractmethod
     def _initialise_sp_from_file(self):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
         Subclassed to handle type casting.
         """
-        raise NotImplemented("This must be implemented in the subclass.")
 
+    @abc.abstractmethod
     def _initialise_sp_from_motor(self):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
         """
-        raise NotImplemented("This must be implemented in the subclass.")
 
     def _set_initial_sp(self, sp_init):
         """
@@ -91,11 +96,11 @@ class BeamlineParameter(object):
         self._set_point_rbv = sp_init
         self._trigger_init_listeners()
 
+    @abc.abstractmethod
     def _set_changed_flag(self):
         """
         Flags in the component that the beamline parameter should be moved.
         """
-        raise NotImplemented("This must be implemented in the sub class")
 
     @property
     def rbv(self):
@@ -225,6 +230,12 @@ class BeamlineParameter(object):
             listener(self._set_point_rbv)
 
     def add_init_listener(self, listener):
+        """
+        Add a new initialise listener to be triggered when the parameter is initialised.
+        Args:
+            listener: listener to add
+
+        """
         self._init_listeners.add(listener)
 
     def _trigger_init_listeners(self):
@@ -255,18 +266,19 @@ class BeamlineParameter(object):
         else:
             raise ParameterNotInitializedException(self.name)
 
+    @abc.abstractmethod
     def _move_component(self):
         """
         Moves the component(s) associated with this parameter to the setpoint.
         """
-        raise NotImplemented("This must be implemented in the sub class")
 
+    @abc.abstractmethod
     def _rbv(self):
         """
         Returns: the read back value
         """
-        raise NotImplemented("This must be implemented in the sub class")
 
+    @abc.abstractmethod
     def validate(self, drivers):
         """
         Perform validation of this parameter returning a list of errors.
@@ -278,7 +290,6 @@ class BeamlineParameter(object):
             (list[str]): list of problems; Empty list if there are no errors
 
         """
-        raise NotImplemented("This must be implemented in the sub class")
 
     def _log_autosave_type_error(self):
         """
@@ -325,7 +336,7 @@ class AngleParameter(BeamlineParameter):
                 angle = float(sp_init)
                 self._set_initial_sp(angle)
                 self._move_component()
-            except ValueError as e:
+            except ValueError:
                 self._log_autosave_type_error()
 
     def _initialise_sp_from_motor(self):

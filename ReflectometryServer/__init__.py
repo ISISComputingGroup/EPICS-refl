@@ -9,4 +9,4 @@ from ReflectometryServer.parameters import InBeamParameter, AngleParameter, Trac
 from ReflectometryServer.ioc_driver import AngleDriver, DisplacementDriver
 from ReflectometryServer.pv_wrapper import MotorPVWrapper, JawsCentrePVWrapper, JawsGapPVWrapper, PVWrapper
 from ReflectometryServer.footprint_manager import FootprintSetup, BaseFootprintSetup
-from ReflectometryServer.engineering_corrections import ConstantCorrection, EngineeringCorrection, NoCorrection
+from ReflectometryServer.engineering_corrections import *

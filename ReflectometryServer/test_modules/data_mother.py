@@ -10,10 +10,27 @@ from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter
 from time import time
 
+
 class EmptyBeamlineParameter(BeamlineParameter):
     """
     A Bemline Parameter Stub. Counts the number of time it is asked to move
     """
+
+    def _initialise_sp_from_file(self):
+        pass
+
+    def _initialise_sp_from_motor(self):
+        pass
+
+    def _set_changed_flag(self):
+        pass
+
+    def _move_component(self):
+        pass
+
+    def _rbv(self):
+        pass
+
     def __init__(self, name):
         super(EmptyBeamlineParameter, self).__init__(name)
         self.move_component_count = 0
