@@ -478,34 +478,37 @@ class ConfigurationXmlConverter(object):
         if root is None:
             return []
 
-        banner_items = []
-
-        items = ConfigurationXmlConverter._find_single_node(root, "banner", "items")
-
-        for item in items:
-            banner_items.append({
-                "name": ConfigurationXmlConverter._find_single_node(item, "banner", "name").text,
-                "pv": ConfigurationXmlConverter._find_single_node(item, "banner", "pv").text,
-                "local": ConfigurationXmlConverter._find_single_node(item, "banner", "local").text,
-            })
-
+        banner_displays = []
         banner_buttons = []
 
-        buttons = ConfigurationXmlConverter._find_single_node(root, "banner", "buttons")
+        items = ConfigurationXmlConverter._find_single_node(root, "banner", "items")
+        index = 0
 
-        for button in buttons:
-            banner_buttons.append({
-                "name": ConfigurationXmlConverter._find_single_node(button, "banner", "name").text,
-                "pv": ConfigurationXmlConverter._find_single_node(button, "banner", "pv").text,
-                "local": ConfigurationXmlConverter._find_single_node(button, "banner", "local").text,
-                "pvValue": ConfigurationXmlConverter._find_single_node(button, "banner", "pvValue").text,
-                "textColour": ConfigurationXmlConverter._find_single_node(button, "banner", "textColour").text,
-                "buttonColour": ConfigurationXmlConverter._find_single_node(button, "banner", "buttonColour").text,
-                "width": ConfigurationXmlConverter._find_single_node(button, "banner", "width").text,
-                "height": ConfigurationXmlConverter._find_single_node(button, "banner", "height").text,
-            })
+        for item in items:
+            child = item.find("./")
+            if "display" in child.tag:
+                banner_displays.append({
+                    "index": index,
+                    "name": ConfigurationXmlConverter._find_single_node(child, "banner", "name").text,
+                    "pv": ConfigurationXmlConverter._find_single_node(child, "banner", "pv").text,
+                    "local": ConfigurationXmlConverter._find_single_node(child, "banner", "local").text,
+                })
+            else:
+                banner_buttons.append({
+                    "index": index,
+                    "name": ConfigurationXmlConverter._find_single_node(child, "banner", "name").text,
+                    "pv": ConfigurationXmlConverter._find_single_node(child, "banner", "pv").text,
+                    "local": ConfigurationXmlConverter._find_single_node(child, "banner", "local").text,
+                    "pvValue": ConfigurationXmlConverter._find_single_node(child, "banner", "pvValue").text,
+                    "textColour": ConfigurationXmlConverter._find_single_node(child, "banner", "textColour").text,
+                    "buttonColour": ConfigurationXmlConverter._find_single_node(child, "banner", "buttonColour").text,
+                    "fontSize": ConfigurationXmlConverter._find_single_node(child, "banner", "fontSize").text,
+                    "width": ConfigurationXmlConverter._find_single_node(child, "banner", "width").text,
+                    "height": ConfigurationXmlConverter._find_single_node(child, "banner", "height").text,
+                })
+            index += 1
 
         return {
-            "items": banner_items,
+            "items": banner_displays,
             "buttons": banner_buttons,
         }
