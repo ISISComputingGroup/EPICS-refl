@@ -31,6 +31,7 @@
         <xs:element ref="banner:name"/>
         <xs:element ref="banner:pv"/>
         <xs:element ref="banner:local"/>
+        <xs:element ref="banner:width"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -67,7 +68,7 @@
       </xs:restriction>
     </xs:simpleType>
   </xs:element>
-  <xs:element name="fontSize" type="xs:integer"/>
-  <xs:element name="width" type="xs:integer"/>
-  <xs:element name="height" type="xs:integer"/>
+  <xs:element name="fontSize" type="xs:int"/>
+  <xs:element name="width" type="xs:int"/>
+  <xs:element name="height" type="xs:int"/>
 </xs:schema>

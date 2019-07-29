@@ -492,6 +492,7 @@ class ConfigurationXmlConverter(object):
                     "name": ConfigurationXmlConverter._find_single_node(child, "banner", "name").text,
                     "pv": ConfigurationXmlConverter._find_single_node(child, "banner", "pv").text,
                     "local": ConfigurationXmlConverter._find_single_node(child, "banner", "local").text,
+                    "width": ConfigurationXmlConverter._find_single_node(child, "banner", "width").text,
                 })
             else:
                 banner_buttons.append({
