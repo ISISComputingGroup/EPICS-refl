@@ -1,9 +1,13 @@
+import io
+
 from hamcrest import *
+from mock import patch
 
 import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
+from ReflectometryServer import beamline_configuration
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_axis
 
 from server_common.channel_access import UnableToConnectToPVException
@@ -165,6 +169,109 @@ class TestEngineeringCorrectionsPureFunction(unittest.TestCase):
         assert_that(result, is_(close_to(expected_correction, FLOAT_TOLERANCE)))
 
 
+class TestEngineeringCorrectionsLinear(unittest.TestCase):
+
+    def setUp(self):
+        self._file_contents = ""
+
+    def test_GIVEN_1d_interp_WHEN_filename_and_reader_not_set_THEN_error(self):
+
+        assert_that(calling(Interpolate1DCorrection), raises(ValueError))
+
+    def test_GIVEN_1d_interp_WHEN_filename_and_reader_both_set_THEN_error(self):
+
+        assert_that(calling(Interpolate1DCorrection).with_args("filename", "filereader"), raises(ValueError))
+
+
+class Test1DInterpolationFileReader(unittest.TestCase):
+
+    def test_GIVEN_file_reader_WHEN_file_does_not_exist_THEN_error(self):
+        reader = GridDataFileReader("non_existant_filename")
+
+        assert_that(calling(reader.read), raises(IOError, ".*No such file.*"))
+
+    def test_GIVEN_1d_interp_WHEN_file_does_exist_but_is_empty_THEN_error(self):
+        beamline_configuration.REFL_CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "good_config", "refl"))
+        reader = GridDataFileReader("blankfile.dat")
+
+        assert_that(calling(reader.read), raises(IOError, "No data found.*"))
+
+    @patch("ReflectometryServer.engineering_corrections.GridDataFileReader._open_file")
+    def test_GIVEN_1d_interp_with_a_good_file_WHEN_get_correction_details_THEN_description_returned(self, open_file_mock):
+        expected_variable_name = "name"
+        _file_contents = [u"  {}  , correction".format(expected_variable_name),
+                          u"1, 2",
+                          u"2, 3"]
+        open_file_mock.configure_mock(return_value=io.StringIO("\n".join(_file_contents)))
+        correction = GridDataFileReader("")
+
+        correction.read()
+        result = correction.variables
+
+        assert_that(result, is_([expected_variable_name]))
+
+    @patch("ReflectometryServer.engineering_corrections.GridDataFileReader._open_file")
+    def test_GIVEN_1d_interp_with_a_header_missing_variable_WHEN_read_file_THEN_error(self, open_file_mock):
+        expected_variable_name = "name"
+        _file_contents = [u"correction".format(expected_variable_name),
+                          u"1, 2",
+                          u"2, 3"]
+        open_file_mock.configure_mock(return_value=io.StringIO("\n".join(_file_contents)))
+        correction = GridDataFileReader("")
+
+        assert_that(calling(correction.read), raises(IOError))
+
+    @patch("ReflectometryServer.engineering_corrections.GridDataFileReader._open_file")
+    def test_GIVEN_1d_interp_with_different_item_count_in_a_row_WHEN_read_file_THEN_error(self, open_file_mock):
+        _file_contents = [u"name, correction",
+                          u"1, 2, 3",
+                          u"2, 3"]
+        open_file_mock.configure_mock(return_value=io.StringIO("\n".join(_file_contents)))
+        correction = GridDataFileReader("")
+
+        assert_that(calling(correction.read), raises(IOError))
+
+    @patch("ReflectometryServer.engineering_corrections.GridDataFileReader._open_file")
+    def test_GIVEN_1d_interp_with_string_in_csv_WHEN_read_file_THEN_error(self, open_file_mock):
+        _file_contents = [u"name, correction",
+                          u"1, orange",
+                          u"2, 3"]
+        open_file_mock.configure_mock(return_value=io.StringIO("\n".join(_file_contents)))
+        correction = GridDataFileReader("")
+        assert_that(calling(correction.read), raises(IOError, "Problem with data in.*"))
+
+    @patch("ReflectometryServer.engineering_corrections.GridDataFileReader._open_file")
+    def test_GIVEN_1d_interp_with_header_and_data_WHEN_read_file_THEN_data_is_as_given(self, open_file_mock):
+        expected_correction = [2.0, 4.0, 6.0]
+        expected_values = [1, 2.0, 3]
+
+        _file_contents = [u"name, correction"]
+        for value, correction in zip(expected_values, expected_correction):
+            _file_contents.append(u"{}, {}".format(value, correction))
+        open_file_mock.configure_mock(return_value=io.StringIO("\n".join(_file_contents)))
+        correction = GridDataFileReader("")
+
+        correction.read()
+
+        assert_that(correction.corrections, contains(*expected_correction), "corrections")
+        assert_that(correction.values, contains(*expected_values), "values")
+
+    @patch("ReflectometryServer.engineering_corrections.GridDataFileReader._open_file")
+    def test_GIVEN_1d_interp_with_header_and_data_with_2_d_WHEN_read_file_THEN_data_is_as_given(self, open_file_mock):
+        expected_correction = [2.0, 4.0, 6.0]
+        expected_values = [[1, 6], [2.0, 4], [3, -10]]
+
+        _file_contents = [u"name1, name2, correction"]
+        for (value1, value2), correction in zip(expected_values, expected_correction):
+            _file_contents.append(u"{}, {}, {}".format(value1, value2, correction))
+        open_file_mock.configure_mock(return_value=io.StringIO("\n".join(_file_contents)))
+        correction = GridDataFileReader("")
+
+        correction.read()
+
+        assert_that(correction.corrections, contains(*expected_correction), "corrections")
+        for expected_value, value in zip(expected_values, correction.values):
+            assert_that(expected_value, contains(*value), "values")
 
 
 # Test when a component is not autosaved but has an engineering correction based on its setpoint
