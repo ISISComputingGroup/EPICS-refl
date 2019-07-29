@@ -335,10 +335,10 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
         return interpolated_value[0]
 
 
-class InterpolateGridDataCorrection1(InterpolateGridDataCorrectionFromProvider):
+class InterpolateGridDataCorrection(InterpolateGridDataCorrectionFromProvider):
     """
     Generate a interpolated correction from a file containing a table of values.
     """
 
     def __init__(self, filename, *beamline_parameters):
-        super(InterpolateGridDataCorrection1, self).__init__(GridDataFileReader(filename), *beamline_parameters)
+        super(InterpolateGridDataCorrection, self).__init__(GridDataFileReader(filename), *beamline_parameters)
