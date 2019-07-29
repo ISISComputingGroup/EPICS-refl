@@ -2,12 +2,14 @@ import io
 
 from hamcrest import *
 from mock import patch
+from parameterized import parameterized
 
 import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
 from ReflectometryServer import beamline_configuration
+from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_axis
 
 from server_common.channel_access import UnableToConnectToPVException
@@ -174,13 +176,89 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
     def setUp(self):
         self._file_contents = ""
 
-    def test_GIVEN_1d_interp_WHEN_filename_and_reader_not_set_THEN_error(self):
+    @parameterized.expand([(1.0, 1.234),  # first point in grid
+                           (2.0, 4.0),     # second point in grid
+                           (1.5, (4.0 - 1.234)/2 + 1.234),  # halfway between 1st and 2nd point
+                           (1.25, (4.0 - 1.234)/4 + 1.234),  # quarter of the way between 1st and 2nd point
+                           (0.9, 0),  # outside the grid before first point
+                           (3.1, 0)  # outside the grid after last point
+                           ])
+    def test_GIVEN_interp_with_1D_points_based_on_setpoint_of_axis_WHEN_request_a_point_THEN_correction_returned_for_that_point_with_interpolation_if_needed(self, value, expected_correction):
+        grid_data_provider = GridDataFileReader("Test")
+        grid_data_provider.variables = ["driver"]
+        grid_data_provider.points = np.array([[1.0, ], [2.0, ], [3.0, ]])
+        grid_data_provider.corrections = np.array([1.234, 4.0, 6.0])
+        grid_data_provider.read = lambda: None
 
-        assert_that(calling(Interpolate1DCorrection), raises(ValueError))
+        interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider=grid_data_provider)
 
-    def test_GIVEN_1d_interp_WHEN_filename_and_reader_both_set_THEN_error(self):
+        result = interp.correction(value)
 
-        assert_that(calling(Interpolate1DCorrection).with_args("filename", "filereader"), raises(ValueError))
+        assert_that(result, is_(close_to(expected_correction, FLOAT_TOLERANCE)))
+
+    @parameterized.expand([(1.0, 1.234),  # first point in grid
+                           (2.0, 4.0),     # second point in grid
+                           (1.5, (4.0 - 1.234)/2 + 1.234),  # halfway between 1st and 2nd point
+                           (1.25, (4.0 - 1.234)/4 + 1.234),  # quarter of the way between 1st and 2nd point
+                           (0.9, 0),  # outside the grid before first point
+                           (3.1, 0)  # outside the grid after last point
+                           ])
+    def test_GIVEN_interp_with_1D_points_based_on_setpoint_of_beamline_parameter_WHEN_request_a_point_THEN_correction_returned_for_that_point_with_interpolation_if_needed(self, value, expected_correction):
+        grid_data_provider = GridDataFileReader("Test")
+        grid_data_provider.variables = ["Theta"]
+        grid_data_provider.points = np.array([[1.0, ], [2.0, ], [3.0, ]])
+        grid_data_provider.corrections = np.array([1.234, 4.0, 6.0])
+        grid_data_provider.read = lambda: None
+
+        comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
+        beamline_parameter = TrackingPosition("theta", comp)
+        beamline_parameter.sp = value
+
+        interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider, beamline_parameter)
+        interp.grid_data_provider = grid_data_provider
+
+        result = interp.correction(0)
+
+        assert_that(result, is_(close_to(expected_correction, FLOAT_TOLERANCE)))
+
+    @parameterized.expand([(1.0, 1.0, 1.234),  # first point in grid
+                           (2.0, 6.0, 5.0),     # second point in grid
+                           (1.5, 1.0, (4.0 - 1.234)/2 + 1.234),  # value (2.617) halfway between 1st and 2nd point
+                           (1.0, 3.5, (2.234 - 1.234) / 2 + 1.234),  # value (1.734) halfway between 1st and 4th point
+                           (1.5, 3.5, (1.234 + 2.234 + 4.0 + 5.0) / 4),  # halfway between 1st, 2nd, 3rd and 4th point
+                           (0.9, 1.1, 0),  # outside the grid in value
+                           (2.1, 6.1, 0)  # outside the grid in theta
+                           ])
+    def test_GIVEN_interp_with_2D_points_based_on_setpoint_of_beamline_parameter_WHEN_request_a_point_THEN_correction_returned_for_that_point_with_interpolation_if_needed(self, value, theta, expected_correction):
+        grid_data_provider = GridDataFileReader("Test")
+        grid_data_provider.variables = ["driver", "Theta"]
+        grid_data_provider.points = np.array([[1.0, 1.0], [2.0, 1.0], [3.0, 1.0], [1.0, 6.0], [2.0, 6.0], [3.0, 6.0]])
+        grid_data_provider.corrections = np.array([1.234, 4.0, 6.0, 2.234, 5.0, 7.0])
+        grid_data_provider.read = lambda: None
+
+        comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
+        beamline_parameter = TrackingPosition("theta", comp)
+        beamline_parameter.sp = theta
+
+        interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider, beamline_parameter)
+
+        result = interp.correction(value)
+
+        assert_that(result, is_(close_to(expected_correction, FLOAT_TOLERANCE)))
+
+    def test_GIVEN_interp_with_1D_points_based_on_setpoint_of_beamline_parameter_WHEN_column_name_not_beamline_name_THEN_error_in_initialise(self):
+        grid_data_provider = GridDataFileReader("Test")
+        grid_data_provider.variables = ["Theta"]
+        grid_data_provider.points = np.array([[1.0, ], [2.0, ], [3.0, ]])
+        grid_data_provider.corrections = np.array([1.234, 4.0, 6.0])
+        grid_data_provider.read = lambda: None
+
+        comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
+        beamline_parameter = TrackingPosition("not theta", comp)
+
+        assert_that(
+            calling(InterpolateGridDataCorrectionFromProvider).with_args(grid_data_provider, beamline_parameter),
+            raises(ValueError))
 
 
 class Test1DInterpolationFileReader(unittest.TestCase):
@@ -254,7 +332,7 @@ class Test1DInterpolationFileReader(unittest.TestCase):
         correction.read()
 
         assert_that(correction.corrections, contains(*expected_correction), "corrections")
-        assert_that(correction.values, contains(*expected_values), "values")
+        assert_that(correction.points, contains(*expected_values), "values")
 
     @patch("ReflectometryServer.engineering_corrections.GridDataFileReader._open_file")
     def test_GIVEN_1d_interp_with_header_and_data_with_2_d_WHEN_read_file_THEN_data_is_as_given(self, open_file_mock):
@@ -270,7 +348,7 @@ class Test1DInterpolationFileReader(unittest.TestCase):
         correction.read()
 
         assert_that(correction.corrections, contains(*expected_correction), "corrections")
-        for expected_value, value in zip(expected_values, correction.values):
+        for expected_value, value in zip(expected_values, correction.points):
             assert_that(expected_value, contains(*value), "values")
 
 
