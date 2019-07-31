@@ -352,6 +352,54 @@ class Test1DInterpolationFileReader(unittest.TestCase):
             assert_that(expected_value, contains(*value), "values")
 
 
+class TestEngineeringCorrectionsChangeListener(unittest.TestCase):
+
+    def setUp(self):
+        self.engineering_correction_update = None
+        self.engineering_correction_update2 = None
+
+    def _setup_driver_axis_and_correction(self, correction):
+        comp = Component("comp", PositionAndAngle(0.0, 0.0, 0.0))
+        mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
+        engineering_correct = ConstantCorrection(correction)
+        driver = DisplacementDriver(comp, mock_axis, engineering_correct=engineering_correct)
+        driver._is_changed = lambda: True  # simulate that the component has requested a change
+        return driver, mock_axis, comp, engineering_correct
+
+    def _record_event(self, engineering_correction_update):
+        self.engineering_correction_update = engineering_correction_update
+
+    def _record_event2(self, engineering_correction_update):
+        self.engineering_correction_update2 = engineering_correction_update
+
+    def test_GIVEN_engineering_correction_offset_of_1_WHEN_driver_told_to_go_to_0_THEN_event_is_triggered_with_description_and_value(self):
+        expected_correction = 1
+        driver, mock_axis, comp, engineering_correct = self._setup_driver_axis_and_correction(expected_correction)
+        driver.add_listener(CorrectionUpdate, self._record_event)
+
+        driver.perform_move(1)
+
+        assert_that(self.engineering_correction_update.correction, is_(close_to(expected_correction, FLOAT_TOLERANCE)))
+        assert_that(self.engineering_correction_update.description, all_of(contains_string(engineering_correct.description),
+                                                                           contains_string(comp.name),
+                                                                           contains_string(mock_axis.name)))
+
+    def test_GIVEN_engineering_correction_offset_of_1_WHEN_driver_is_at_2_THEN_event_is_triggered_with_description_and_value(self):
+        expected_correct_value = 1
+        correction = 1
+        move_to = expected_correct_value + correction
+        driver, mock_axis, comp, engineering_correct = self._setup_driver_axis_and_correction(correction)
+        mock_axis.sp = move_to
+        driver.add_listener(CorrectionUpdate, self._record_event)
+
+        mock_axis.trigger_rbv_change()
+
+        assert_that(self.engineering_correction_update.correction, is_(close_to(correction, FLOAT_TOLERANCE)))
+        assert_that(self.engineering_correction_update.description, all_of(contains_string(engineering_correct.description),
+                                                                           contains_string(comp.name),
+                                                                           contains_string(mock_axis.name)))
+
+
 # Test when a component is not autosaved but has an engineering correction based on its setpoint
 # Test that changes a couple of parameters not in the mode, change a parameter with a correction that depends on both those parameters, then click move for a parameter, should not take into account correction
 # Same again but click move for all value should be taken into account

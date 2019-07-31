@@ -134,7 +134,6 @@ def create_mock_axis(name, init_position, max_velocity):
 
     return MockMotorPVWrapper(name, init_position, max_velocity)
 
-
 class MockMotorPVWrapper(object):
     def __init__(self, pv_name, init_position, max_velocity, is_vertical=True):
         self.name = pv_name
@@ -175,8 +174,11 @@ class MockMotorPVWrapper(object):
         self._value = new_value
         for listener in self.after_sp_change_listener:
             listener(new_value, None, None)
+        self.trigger_rbv_change()
+
+    def trigger_rbv_change(self):
         for listener in self.after_rbv_change_listener:
-            listener(new_value, None, None)
+            listener(self._value, None, None)
 
     @property
     def rbv(self):

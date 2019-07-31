@@ -5,6 +5,7 @@ import abc
 import csv
 import logging
 import os
+from collections import namedtuple
 from contextlib import contextmanager
 
 import numpy as np
@@ -12,6 +13,7 @@ import six
 from scipy.interpolate import griddata
 
 from ReflectometryServer import beamline_configuration
+from ReflectometryServer.observable import observable
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +26,12 @@ ENGINEERING_CORRECTION_NOT_POSSIBLE = "EngineeringCorrectionNotPossible"
 # IOCDriver's setpoint values
 COLUMN_NAME_FOR_DRIVER_SETPOINT = "DRIVER"
 
+# Type for correction updates
+CorrectionUpdate = namedtuple("CorrectionUpdate", ["correction", "description"])
+
 
 @six.add_metaclass(abc.ABCMeta)
+@observable(CorrectionUpdate)
 class EngineeringCorrection:
     """
     Base class for all engineering correction
@@ -58,7 +64,7 @@ class EngineeringCorrection:
         Get a value from the axis without a setpoint. This may be possible in a small number of cases. If not this
         should return EngineeringCorrectionNotPossible
         Args:
-            value: value to convert from the axis as an inital value,
+            value: value to convert from the axis as an initial value,
 
         Returns:
             the corrected value; EngineeringCorrectionNotPossible if this is not possible
@@ -72,6 +78,9 @@ class SymmetricEngineeringCorrection(EngineeringCorrection):
     Base class for engineering correction which are symmetric for from component and from axis. Correction is add to
     the value when sent to an axis.
     """
+
+    def __init__(self):
+        self.description = "Symmetric engineering correction"
 
     @abc.abstractmethod
     def correction(self, setpoint):
@@ -88,7 +97,9 @@ class SymmetricEngineeringCorrection(EngineeringCorrection):
         Returns: the corrected value
 
         """
-        return setpoint + self.correction(setpoint)
+        correction = self.correction(setpoint)
+        self.trigger_listeners(CorrectionUpdate(correction, self.description))
+        return setpoint + correction
 
     def from_axis(self, value, setpoint):
         """
@@ -100,7 +111,9 @@ class SymmetricEngineeringCorrection(EngineeringCorrection):
         Returns: the corrected value
 
         """
-        return value - self.correction(setpoint)
+        correction = self.correction(setpoint)
+        self.trigger_listeners(CorrectionUpdate(correction, self.description))
+        return value - correction
 
 
 class NoCorrection(SymmetricEngineeringCorrection):
@@ -120,7 +133,7 @@ class NoCorrection(SymmetricEngineeringCorrection):
         Get a value from the axis without a setpoint. This may be possible in a small number of cases. If not this
         should return EngineeringCorrectionNotPossible
         Args:
-            value: value to convert from the axis as an inital value,
+            value: value to convert from the axis as an initial value,
 
         Returns:
             the corrected value; EngineeringCorrectionNotPossible if this is not possible
@@ -138,7 +151,9 @@ class ConstantCorrection(SymmetricEngineeringCorrection):
         Args:
             offset: the offset to add to the motor when it is moved to
         """
+        super(ConstantCorrection, self).__init__()
         self._offset = offset
+        self.description = "Constant Correction"
 
     def correction(self, _):
         """
@@ -153,7 +168,7 @@ class ConstantCorrection(SymmetricEngineeringCorrection):
         Get a value from the axis without a setpoint. This may be possible in a small number of cases. If not this
         should return EngineeringCorrectionNotPossible
         Args:
-            value: value to convert from the axis as an inital value,
+            value: value to convert from the axis as an initial value,
 
         Returns:
             the corrected value; EngineeringCorrectionNotPossible if this is not possible
@@ -171,12 +186,14 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
         Args:
             user_correction_function (func): function which when called with the set point for this driver and any
                 additional beamline parameters returns a constant which is added to that set point when that setpoint
-                is sent to an IOC and is removed from the readback when that readback is read from the IOC
+                is sent to an IOC and is removed from the read-back when that read-back is read from the IOC
             beamline_parameters (ReflectometryServer.parameters.BeamlineParameter): beamline parameters to use in the
                 user function, listed in the order they should be used in the user function
         """
+        super(UserFunctionCorrection, self).__init__()
         self._user_correction_function = user_correction_function
         self._beamline_parameters = beamline_parameters
+        self.description = "User function correction {}".format(user_correction_function.__name__)
 
     def correction(self, setpoint):
         """
@@ -263,10 +280,10 @@ class GridDataFileReader:
         Yields:
             file
         """
-        fullpath = os.path.join(beamline_configuration.REFL_CONFIG_PATH, filename)
-        if not os.path.isfile(fullpath):
-            raise IOError("No such file for interpolation 1D engineering correction '{}'".format(fullpath))
-        with open(fullpath) as correction_file:
+        full_path = os.path.join(beamline_configuration.REFL_CONFIG_PATH, filename)
+        if not os.path.isfile(full_path):
+            raise IOError("No such file for interpolation 1D engineering correction '{}'".format(full_path))
+        with open(full_path) as correction_file:
             yield correction_file
 
 
@@ -291,6 +308,7 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
             beamline_parameters (ReflectometryServer.parameters.BeamlineParameter): beamline parameters to use in the
                 interpolation
         """
+        super(InterpolateGridDataCorrectionFromProvider, self).__init__()
         self._grid_data_provider = grid_data_provider
         self._grid_data_provider.read()
         self.set_point_value_as_parameter = _DummyBeamlineParameter()
@@ -298,16 +316,17 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
                                      for variable in self._grid_data_provider.variables]
 
         self._default_correction = 0
+        self.description = "Interpolated"
 
     def _find_parameter(self, beamline_name, beamline_parameters):
         """
         Find the beamline parameter in the beamline parameters list
         Args:
-            beamline_name: name of the bealmine parameter
+            beamline_name: name of the beamline parameter
             beamline_parameters: possible parameters
 
         Returns:
-            special driver prameter if the name is driver otherise the beamline parameter associated with the name
+            special driver parameter if the name is driver otherwise the beamline parameter associated with the name
         """
         if beamline_name.upper() == COLUMN_NAME_FOR_DRIVER_SETPOINT:
             return self.set_point_value_as_parameter
@@ -342,3 +361,4 @@ class InterpolateGridDataCorrection(InterpolateGridDataCorrectionFromProvider):
 
     def __init__(self, filename, *beamline_parameters):
         super(InterpolateGridDataCorrection, self).__init__(GridDataFileReader(filename), *beamline_parameters)
+        self.description = "Interpolated from file {}".format(filename)

@@ -5,17 +5,19 @@ The driving layer communicates between the component layer and underlying pvs.
 import math
 import logging
 
-from ReflectometryServer.engineering_corrections import NoCorrection
+from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
 from ReflectometryServer.components import ChangeAxis
+from ReflectometryServer.observable import observable
 
 logger = logging.getLogger(__name__)
 
 
+@observable(CorrectionUpdate)
 class IocDriver(object):
     """
     Drives an actual motor axis based on a component in the beamline model.
     """
-    def __init__(self, component, axis, synchronised=True, engineering_correct=NoCorrection()):
+    def __init__(self, component, axis, synchronised=True, engineering_correct=None):
         """
         Drive the IOC based on a component
         Args:
@@ -24,18 +26,36 @@ class IocDriver(object):
             synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
                 time; if false they will move at their current speed.
             engineering_correct (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
-                correction to apply to the value from the component before it is sent to the pv.
+                correction to apply to the value from the component before it is sent to the pv. None for no correction
         """
         self._component = component
         self._axis = axis
         self._synchronised = synchronised
-        self._engineering_correct = engineering_correct
+        if engineering_correct is None:
+            self._engineering_correct = NoCorrection()
+            self.correction_description = None
+        else:
+            self._engineering_correct = engineering_correct
+            self._engineering_correct.add_listener(CorrectionUpdate, self._on_correction_update)
+            self.correction_description = "{} on {} for {}".format(self._engineering_correct.description,
+                                                                   self._axis.name, self._component.name)
 
         self._sp_cache = None
         self._rbv_cache = self._engineering_correct.from_axis(self._axis.rbv, self._get_component_sp())
 
         self._axis.add_after_rbv_change_listener(self._on_update_rbv)
         self._axis.add_after_sp_change_listener(self._on_update_sp)
+
+    def _on_correction_update(self, new_correction_value):
+        """
+
+        Args:
+            new_correction_value (CorrectionUpdate): the new correction value
+
+        Returns:
+
+        """
+        self.trigger_listeners(CorrectionUpdate(new_correction_value.correction, self.correction_description))
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -72,7 +92,7 @@ class IocDriver(object):
 
     def get_max_move_duration(self):
         """
-        Returns: The maximum duration of the requested move for all associated axes. If axes are not synchornised this
+        Returns: The maximum duration of the requested move for all associated axes. If axes are not synchronised this
         will return 0 but movement will still be required.
         """
         if self._axis_will_move() and self._synchronised:
