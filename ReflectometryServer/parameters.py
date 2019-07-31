@@ -332,7 +332,7 @@ class AngleParameter(BeamlineParameter):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
         """
-        init_sp = self._reflection_component.beam_path_set_point.angle
+        init_sp = self._reflection_component.beam_path_set_point.get_angle_relative_to_beam()
         self._set_initial_sp(init_sp)
 
     def _move_component(self):
