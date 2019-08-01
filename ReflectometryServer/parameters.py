@@ -1,7 +1,7 @@
 """
 Parameters that the user would interact with
 """
-from file_io import AutosaveType, read_autosave_value, write_autosave_value
+from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
 
 from enum import Enum
@@ -322,8 +322,9 @@ class AngleParameter(BeamlineParameter):
         sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init is not None:
             try:
-                angle = float(sp_init)
-                self._set_initial_sp(angle)
+                sp_init = float(sp_init)
+                self._set_initial_sp(sp_init)
+                self._reflection_component.beam_path_set_point.autosaved_angle = sp_init
                 self._move_component()
             except ValueError as e:
                 self._log_autosave_type_error()
