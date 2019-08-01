@@ -400,8 +400,14 @@ class Beamline(object):
         Issue move for all drivers at the speed of the slowest axis and set appropriate status for failure/success.
         """
         try:
-            self._perform_move_for_all_drivers(self._get_max_move_duration())
-            self.set_status(STATUS.OKAY, "")
+
+            try:
+                self._perform_move_for_all_drivers(self._get_max_move_duration())
+                self.set_status(STATUS.OKAY, "")
+            except ZeroDivisionError as e:
+                print(str(e))
+                self.set_status(STATUS.CONFIG_ERROR, str(e))
+
         except (ValueError, UnableToConnectToPVException) as e:
             self.set_status(STATUS.GENERAL_ERROR, e.message)
 
