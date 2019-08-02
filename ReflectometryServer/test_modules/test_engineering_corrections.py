@@ -15,6 +15,7 @@ from ReflectometryServer.test_modules.data_mother import MockChannelAccess, crea
 from server_common.channel_access import UnableToConnectToPVException
 
 FLOAT_TOLERANCE = 1e-9
+OUT_OF_BEAM_POSITION = 10
 
 
 class TestEngineeringCorrections(unittest.TestCase):
@@ -22,7 +23,7 @@ class TestEngineeringCorrections(unittest.TestCase):
     def _setup_driver_axis_and_correction(self, correction):
         comp = Component("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = DisplacementDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction))
+        driver = DisplacementDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction), out_of_beam_position=OUT_OF_BEAM_POSITION)
         driver._is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp
 
@@ -85,6 +86,16 @@ class TestEngineeringCorrections(unittest.TestCase):
 
         assert_that(result, is_(-1 * correction))
 
+    def test_GIVEN_engineering_correction_offset_of_1_and_out_of_beam_WHEN_initialise_THEN_sp_set_correctly(self):
+        correction = 4
+        driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
+        mock_axis.sp = OUT_OF_BEAM_POSITION
+        driver.initialise()
+
+        result = comp.beam_path_set_point.get_displacement()
+
+        assert_that(result, is_(OUT_OF_BEAM_POSITION))
+
     def test_GIVEN_engineering_correction_offset_of_1_on_angle_driver_WHEN_initialise_THEN_rbv_set_correctly(self):
         correction = 1
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0.0, 0.0))
@@ -95,17 +106,6 @@ class TestEngineeringCorrections(unittest.TestCase):
         result = comp.beam_path_set_point.angle
 
         assert_that(result, is_(-1 * correction))
-
-    def test_GIVEN_user_function_engineering_correction_on_angle_driver_WHEN_initialise_THEN_rbv_is_error_value(self):
-        correction = lambda x: 0
-        comp = TiltingComponent("comp", PositionAndAngle(0.0, 0.0, 0.0))
-        mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = AngleDriver(comp, mock_axis, engineering_correction=UserFunctionCorrection(correction))
-        driver.initialise()
-
-        result = comp.beam_path_set_point.angle
-
-        assert_that(result, is_(ENGINEERING_CORRECTION_NOT_POSSIBLE))
 
 
 class TestEngineeringCorrectionsPureFunction(unittest.TestCase):
@@ -170,6 +170,15 @@ class TestEngineeringCorrectionsPureFunction(unittest.TestCase):
 
         assert_that(result, is_(close_to(expected_correction, FLOAT_TOLERANCE)))
 
+    def test_GIVEN_user_function_engineering_correction_which_throws_WHEN_set_value_on_axis_THEN_0_correction(self):
+        def _test_correction(setpoint):
+            raise TypeError()
+
+        engineering_correction = UserFunctionCorrection(_test_correction)
+
+        result = engineering_correction.to_axis(0)
+
+        assert_that(result, is_(close_to(0, FLOAT_TOLERANCE)))
 
 class TestEngineeringCorrectionsLinear(unittest.TestCase):
 
@@ -259,6 +268,23 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
         assert_that(
             calling(InterpolateGridDataCorrectionFromProvider).with_args(grid_data_provider, beamline_parameter),
             raises(ValueError))
+
+    def test_GIVEN_interp_with_1D_points_based_on_setpoint_of_beamline_parameter_which_has_not_been_initialised_WHEN_request_a_point_THEN_correction_0_returned(self):
+        grid_data_provider = GridDataFileReader("Test")
+        grid_data_provider.variables = ["Theta"]
+        grid_data_provider.points = np.array([[1.0, ], [2.0, ], [3.0, ]])
+        grid_data_provider.corrections = np.array([1.234, 4.0, 6.0])
+        grid_data_provider.read = lambda: None
+
+        comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
+        beamline_parameter = TrackingPosition("theta", comp)
+
+        interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider, beamline_parameter)
+        interp.grid_data_provider = grid_data_provider
+
+        result = interp.correction(0)
+
+        assert_that(result, is_(close_to(0, FLOAT_TOLERANCE)))
 
 
 class Test1DInterpolationFileReader(unittest.TestCase):

@@ -236,7 +236,11 @@ class DisplacementDriver(IocDriver):
         """
         sp = self._engineering_correct.init_from_axis(self._axis.sp)
         if self._out_of_beam_position is not None:
-            self._component.beam_path_set_point.is_in_beam = self._get_in_beam_status(sp)
+            in_beam_status = self._get_in_beam_status(self._axis.sp)
+            self._component.beam_path_set_point.is_in_beam = in_beam_status
+            # if the axis is out of the beam then no correction needs adding to setpoint
+            if not in_beam_status:
+                sp = self._axis.sp
         self._component.beam_path_set_point.init_displacement_from_motor(sp)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):

@@ -18,10 +18,6 @@ from ReflectometryServer.observable import observable
 logger = logging.getLogger(__name__)
 
 
-# constant used to indicate that a value is not allowed to be used
-ENGINEERING_CORRECTION_NOT_POSSIBLE = float('NaN')
-
-
 # The column name in the engineering correction interpolation data file to label the column which contains the
 # IOCDriver's setpoint values
 COLUMN_NAME_FOR_DRIVER_SETPOINT = "DRIVER"
@@ -54,22 +50,22 @@ class EngineeringCorrection:
         Correct a value from the axis using the correction
         Args:
             value: value to correct
-            setpoint: setpoint to use to calculate correction
+            setpoint: setpoint to use to calculate correction; if None setpoint has not been set yet
 
         Returns: the corrected value
         """
 
-    def init_from_axis(self, value):
+    def init_from_axis(self, setpoint):
         """
         Get a value from the axis without a setpoint. This may be possible in a small number of cases. If not this
         should return EngineeringCorrectionNotPossible
         Args:
-            value: value to convert from the axis as an initial value,
+            setpoint: value to convert from the axis as an initial value,
 
         Returns:
             the corrected value; EngineeringCorrectionNotPossible if this is not possible
         """
-        return ENGINEERING_CORRECTION_NOT_POSSIBLE
+        return self.from_axis(setpoint, None)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -128,18 +124,6 @@ class NoCorrection(SymmetricEngineeringCorrection):
         """
         return 0
 
-    def init_from_axis(self, value):
-        """
-        Get a value from the axis without a setpoint. This may be possible in a small number of cases. If not this
-        should return EngineeringCorrectionNotPossible
-        Args:
-            value: value to convert from the axis as an initial value,
-
-        Returns:
-            the corrected value; EngineeringCorrectionNotPossible if this is not possible
-        """
-        return value
-
 
 class ConstantCorrection(SymmetricEngineeringCorrection):
     """
@@ -163,17 +147,17 @@ class ConstantCorrection(SymmetricEngineeringCorrection):
         """
         return self._offset
 
-    def init_from_axis(self, value):
+    def init_from_axis(self, setpoint):
         """
         Get a value from the axis without a setpoint. This may be possible in a small number of cases. If not this
         should return EngineeringCorrectionNotPossible
         Args:
-            value: value to convert from the axis as an initial value,
+            setpoint: value to convert from the axis as an initial value,
 
         Returns:
             the corrected value; EngineeringCorrectionNotPossible if this is not possible
         """
-        return self.from_axis(value, None)
+        return self.from_axis(setpoint, None)
 
 
 class UserFunctionCorrection(SymmetricEngineeringCorrection):
@@ -202,8 +186,16 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
             setpoint: setpoint to use to calculate correction
         Returns: the correction calculated using the users function.
         """
-
-        return self._user_correction_function(setpoint, *[param.sp_rbv for param in self._beamline_parameters])
+        try:
+            return self._user_correction_function(setpoint, *[param.sp_rbv for param in self._beamline_parameters])
+        except Exception as ex:
+            if setpoint is None or None in [param.sp_rbv for param in self._beamline_parameters]:
+                non_initialised_params = [param.name for param in self._beamline_parameters if param.sp_rbv is None]
+                logger.error("Engineering correction, '{}', raised exception '{}' is this because you have not coped "
+                             "with non-autosaved value, {}".format(self.description, ex, non_initialised_params))
+            else:
+                logger.error("Engineering correction, '{}', raised exception '{}' ".format(self.description, ex))
+        return 0
 
 
 class GridDataFileReader:
@@ -349,8 +341,14 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
         """
         self.set_point_value_as_parameter.sp_rbv = setpoint
         evaluation_point = [param.sp_rbv for param in self._beamline_parameters]
-        interpolated_value = griddata(self._grid_data_provider.points, self._grid_data_provider.corrections,
-                                      evaluation_point, 'linear', self._default_correction)
+        if None in evaluation_point:
+            non_initialised_params = [param.name for param in self._beamline_parameters if param.sp_rbv is None]
+            logger.error("Engineering correction, '{}', evaluated for non-autosaved value, {}".format(
+                self.description, non_initialised_params))
+            interpolated_value = [0]
+        else:
+            interpolated_value = griddata(self._grid_data_provider.points, self._grid_data_provider.corrections,
+                                          evaluation_point, 'linear', self._default_correction)
         return interpolated_value[0]
 
 
