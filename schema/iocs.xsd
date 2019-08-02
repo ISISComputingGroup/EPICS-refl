@@ -72,6 +72,9 @@
 	  <xs:attribute name="description" use="optional" type="xs:string">
         <xs:annotation><xs:documentation>macro description</xs:documentation></xs:annotation>      
       </xs:attribute>
+      <xs:attribute name="defaultValue" use="optional" type="xs:string">
+        <xs:annotation><xs:documentation>macro default value</xs:documentation></xs:annotation>
+      </xs:attribute>
     </xs:complexType>
   </xs:element>
 </xs:schema>
