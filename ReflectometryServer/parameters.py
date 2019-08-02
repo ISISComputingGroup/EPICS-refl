@@ -87,7 +87,7 @@ class BeamlineParameter(object):
     @abc.abstractmethod
     def _initialise_sp_from_file(self):
         """
-        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
         Subclassed to handle type casting.
         """
 
@@ -124,7 +124,7 @@ class BeamlineParameter(object):
     @property
     def sp_rbv(self):
         """
-        Returns: the set point read back value, i.e. wherethe last move was instructed to go
+        Returns: the set point read back value, i.e. where the last move was instructed to go
         """
         return self._set_point_rbv
 
@@ -410,7 +410,7 @@ class TrackingPosition(BeamlineParameter):
 
     def _initialise_sp_from_file(self):
         """
-        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
         """
         sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init is not None:
@@ -419,7 +419,7 @@ class TrackingPosition(BeamlineParameter):
                 self._set_initial_sp(sp_init)
                 self._component.beam_path_set_point.autosaved_offset = sp_init
                 self._move_component()
-            except ValueError as e:
+            except ValueError:
                 self._log_autosave_type_error()
 
     def _initialise_sp_from_motor(self):
@@ -486,7 +486,7 @@ class InBeamParameter(BeamlineParameter):
 
     def _initialise_sp_from_file(self):
         """
-        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
         """
         sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init == "True":
@@ -553,6 +553,7 @@ class SlitGapParameter(BeamlineParameter):
             description (str): The description
         """
         super(SlitGapParameter, self).__init__(name, sim, init, description, autosave)
+        self._rbv_value = None
         self._pv_wrapper = pv_wrapper
         self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
         self._pv_wrapper.initialise()
@@ -569,13 +570,13 @@ class SlitGapParameter(BeamlineParameter):
 
     def _initialise_sp_from_file(self):
         """
-        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
         """
         sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init is not None:
             try:
                 self._set_initial_sp(float(sp_init))
-            except ValueError as e:
+            except ValueError:
                 self._log_autosave_type_error()
 
     def _initialise_sp_from_motor(self):

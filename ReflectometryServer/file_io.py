@@ -1,3 +1,7 @@
+"""
+file io for various autosave and other parts of the system
+"""
+
 import logging
 import os
 
@@ -13,12 +17,27 @@ MODE_AUTOSAVE_PATH = os.path.join(REFL_AUTOSAVE_PATH, "mode.txt")
 
 
 class AutosaveType(Enum):
+    """
+    Different types of autosave.
+    """
+    # parameter autosave
     PARAM = 0
+
+    # Velocity autosave
     VELOCITY = 1
+
+    # Modes autosave
     MODE = 2
 
     @staticmethod
     def path(autosave_type):
+        """
+        Path for file that autosave type is saved into.
+        Args:
+            autosave_type: autosave type
+
+        Returns: path to file
+        """
         if autosave_type == AutosaveType.PARAM:
             return PARAM_AUTOSAVE_PATH
         elif autosave_type == AutosaveType.VELOCITY:
@@ -31,6 +50,14 @@ class AutosaveType(Enum):
 
     @staticmethod
     def description(autosave_type):
+        """
+        Description for the autosaved type.
+        Args:
+            autosave_type: autosaved type
+
+        Returns: description of the type
+
+        """
         if autosave_type == AutosaveType.PARAM:
             return "beamline parameter"
         elif autosave_type == AutosaveType.VELOCITY:
@@ -38,7 +65,8 @@ class AutosaveType(Enum):
         elif autosave_type == AutosaveType.MODE:
             return "beamline mode"
         else:
-            print_and_log("Error: description requested for unknown autosave type.", severity=SEVERITY.MAJOR, src="REFL")
+            print_and_log("Error: description requested for unknown autosave type.",
+                          severity=SEVERITY.MAJOR, src="REFL")
             return ""
 
 

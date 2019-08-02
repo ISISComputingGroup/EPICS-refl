@@ -1,7 +1,6 @@
 """
 Objects to Create a beamline from the configuration.
 """
-import os
 import sys
 import traceback
 
@@ -34,6 +33,7 @@ def create_beamline_from_configuration():
         print_and_log("Importing get_beamline function from config.py in {}".format(REFL_CONFIG_PATH),
                       SEVERITY.INFO, src="REFL")
         sys.path.insert(0, REFL_CONFIG_PATH)
+        # noinspection PyUnresolvedReferences
         from config import get_beamline
 
         beamline = get_beamline()

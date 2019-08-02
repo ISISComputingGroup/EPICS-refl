@@ -345,7 +345,7 @@ class Beamline(object):
     def _move_for_all_beamline_parameters(self):
         """
         Updates the beamline parameters to the latest set point value; reapplies if they are in the mode. Then moves to
-        latest postions.
+        latest positions.
         """
         parameters = self._beamline_parameters.values()
         parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
@@ -514,4 +514,7 @@ class Beamline(object):
 
     @property
     def drivers(self):
+        """
+        Returns: list of drivers in the beamline
+        """
         return self._drivers

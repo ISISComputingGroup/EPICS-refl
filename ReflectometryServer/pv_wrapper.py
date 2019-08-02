@@ -1,7 +1,6 @@
 """
 Wrapper for motor PVs
 """
-from enum import Enum
 from functools import partial
 from threading import Event
 
@@ -358,7 +357,8 @@ class _JawsAxisPVWrapper(PVWrapper):
             self._monitor_pv(dmov_pv, partial(self._on_update_moving_state, source=self._strip_source_pv(dmov_pv)))
 
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
-            self._monitor_pv(velo_pv, partial(self._on_update_individual_velocity, source=self._strip_source_pv(velo_pv)))
+            self._monitor_pv(velo_pv, partial(self._on_update_individual_velocity,
+                                              source=self._strip_source_pv(velo_pv)))
 
     @property
     def velocity(self):
