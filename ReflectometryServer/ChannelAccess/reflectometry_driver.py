@@ -10,6 +10,7 @@ from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, 
     BEAMLINE_MESSAGE, SP_SUFFIX, FootprintSort, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
     convert_from_epics_pv_value, IN_MODE_SUFFIX, PARAM_PREFIX
 from ReflectometryServer.parameters import BeamlineParameterGroup
+from ReflectometryServer.engineering_corrections import CorrectionUpdate
 from server_common.utilities import compress_and_hex
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ class ReflectometryDriver(Driver):
         self.add_trigger_active_mode_change_listener()
         self.add_trigger_status_change_listener()
         self.add_footprint_param_listeners()
+        self._add_trigger_on_engineering_correction_change()
 
     def read(self, reason):
         """
@@ -66,9 +68,6 @@ class ReflectometryDriver(Driver):
 
         elif self._pv_manager.is_beamline_move(reason):
             return self._beamline.move
-
-        elif self._pv_manager.is_tracking_axis(reason):
-            return compress_and_hex(self.getParam(reason))
 
         elif self._pv_manager.is_beamline_status(reason):
             beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
@@ -246,3 +245,28 @@ class ReflectometryDriver(Driver):
         for parameter in parameters_to_monitor:
             parameter.add_rbv_change_listener(partial(self._update_footprint, FootprintSort.RBV))
             parameter.add_sp_rbv_change_listener(partial(self._update_footprint, FootprintSort.SP_RBV))
+
+    def _add_trigger_on_engineering_correction_change(self):
+        """
+        Add all the triggers on engineering corrections.
+
+        """
+        def _corrections_pv(pv_name, correction_update):
+            """
+            Update the driver engineering corrections PV with new value
+            Args:
+                pv_name: name fo the pv to update
+                correction_update (CorrectionUpdate): the updated values
+            Returns:
+            """
+            self._update_param_both_pv_and_pv_val(pv_name,
+                                                  correction_update.correction)
+            self.setParam("{}.DESC".format(pv_name), correction_update.description)
+            self.updatePVs()
+
+        for driver, pv_name in self._pv_manager.drivers_pv.items():
+            driver.add_listener(CorrectionUpdate, partial(_corrections_pv, pv_name))
+            last_val = driver.listener_last_value(CorrectionUpdate)
+            if last_val is None:
+                last_val = CorrectionUpdate(float("NaN"), driver.correction_description)
+            _corrections_pv(pv_name, last_val)

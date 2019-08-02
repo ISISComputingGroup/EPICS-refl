@@ -30,6 +30,18 @@ class BeamlineParameterType(Enum):
     FLOAT = 0
     IN_OUT = 1
 
+    @staticmethod
+    def name_for_param_list(param_type):
+        """
+        Returns: Type of parameter for the parameters list
+        """
+        if param_type is BeamlineParameterType.FLOAT:
+            return "float"
+        elif param_type is BeamlineParameterType.IN_OUT:
+            return "in_out"
+        else:
+            raise ValueError("Parameter doesn't have recognised type {}".format(param_type))
+
 
 class BeamlineParameterGroup(Enum):
     """

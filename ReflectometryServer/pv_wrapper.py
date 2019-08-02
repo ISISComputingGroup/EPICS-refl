@@ -29,6 +29,7 @@ class PVWrapper(object):
             self._ca = ChannelAccess
         else:
             self._ca = ca
+        self._name = base_pv
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
@@ -152,7 +153,7 @@ class PVWrapper(object):
         """
         Returns: the name of the underlying PV
         """
-        return self._prefixed_pv
+        return self._name
 
     @property
     def resolution(self):

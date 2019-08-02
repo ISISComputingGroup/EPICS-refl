@@ -17,7 +17,7 @@ class IocDriver(object):
     """
     Drives an actual motor axis based on a component in the beamline model.
     """
-    def __init__(self, component, axis, synchronised=True, engineering_correct=None):
+    def __init__(self, component, axis, synchronised=True, engineering_correction=None):
         """
         Drive the IOC based on a component
         Args:
@@ -25,20 +25,20 @@ class IocDriver(object):
             axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
             synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
                 time; if false they will move at their current speed.
-            engineering_correct (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
+            engineering_correction (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv. None for no correction
         """
         self._component = component
         self._axis = axis
+        self.name = axis.name
         self._synchronised = synchronised
-        if engineering_correct is None:
+        if engineering_correction is None:
             self._engineering_correct = NoCorrection()
-            self.correction_description = None
+            self.has_engineering_correct = False
         else:
-            self._engineering_correct = engineering_correct
+            self.has_engineering_correct = True
+            self._engineering_correct = engineering_correction
             self._engineering_correct.add_listener(CorrectionUpdate, self._on_correction_update)
-            self.correction_description = "{} on {} for {}".format(self._engineering_correct.description,
-                                                                   self._axis.name, self._component.name)
 
         self._sp_cache = None
         self._rbv_cache = self._engineering_correct.from_axis(self._axis.rbv, self._get_component_sp())
@@ -55,7 +55,8 @@ class IocDriver(object):
         Returns:
 
         """
-        self.trigger_listeners(CorrectionUpdate(new_correction_value.correction, self.correction_description))
+        description = "{} on {} for {}".format(new_correction_value.description, self.name, self._component.name)
+        self.trigger_listeners(CorrectionUpdate(new_correction_value.correction, description))
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
@@ -202,7 +203,7 @@ class DisplacementDriver(IocDriver):
     Drives a component with linear displacement movement
     """
     def __init__(self, component, motor_axis, out_of_beam_position=None, tolerance_on_out_of_beam_position=1,
-                 synchronised=True, engineering_correct=NoCorrection()):
+                 synchronised=True, engineering_correction=None):
         """
         Constructor.
         Args:
@@ -214,10 +215,10 @@ class DisplacementDriver(IocDriver):
                 is within this tolerance of the out_of_beam_position it will read out of beam otherwise the position
             synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
                 time; if false they will move at their current speed.
-            engineering_correct (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
+            engineering_correction (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv.
         """
-        super(DisplacementDriver, self).__init__(component, motor_axis, synchronised, engineering_correct)
+        super(DisplacementDriver, self).__init__(component, motor_axis, synchronised, engineering_correction)
         self._out_of_beam_position = out_of_beam_position
         self._tolerance_on_out_of_beam_position = tolerance_on_out_of_beam_position
 
@@ -289,7 +290,7 @@ class AngleDriver(IocDriver):
     """
     Drives a component that has variable angle.
     """
-    def __init__(self, component, angle_axis, synchronised=True, engineering_correct=NoCorrection()):
+    def __init__(self, component, angle_axis, synchronised=True, engineering_correction=None):
         """
         Constructor.
         Args:
@@ -297,10 +298,10 @@ class AngleDriver(IocDriver):
             angle_axis(ReflectometryServer.pv_wrapper.MotorPVWrapper): PV for the angle motor axis
             synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
                 time; if false they will move at their current speed.
-            engineering_correct (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
+            engineering_correction (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv.
         """
-        super(AngleDriver, self).__init__(component, angle_axis, synchronised, engineering_correct)
+        super(AngleDriver, self).__init__(component, angle_axis, synchronised, engineering_correction)
 
     def initialise_setpoint(self):
         """

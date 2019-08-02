@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 # constant used to indicate that a value is not allowed to be used
-ENGINEERING_CORRECTION_NOT_POSSIBLE = "EngineeringCorrectionNotPossible"
+ENGINEERING_CORRECTION_NOT_POSSIBLE = float('NaN')
 
 
 # The column name in the engineering correction interpolation data file to label the column which contains the

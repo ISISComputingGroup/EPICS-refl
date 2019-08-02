@@ -31,10 +31,9 @@ def create_beamline_from_configuration():
     """
 
     try:
-        import_path = os.path.abspath(os.path.join(REFL_CONFIG_PATH, 'refl'))
-        print_and_log("Importing get_beamline function from config.py in {}".format(import_path),
+        print_and_log("Importing get_beamline function from config.py in {}".format(REFL_CONFIG_PATH),
                       SEVERITY.INFO, src="REFL")
-        sys.path.insert(0, import_path)
+        sys.path.insert(0, REFL_CONFIG_PATH)
         from config import get_beamline
 
         beamline = get_beamline()

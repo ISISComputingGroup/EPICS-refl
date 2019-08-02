@@ -28,7 +28,6 @@ class TestObservable(unittest.TestCase):
     def listener2(self, value_update):
         self.value2 = value_update.value
 
-
     def test_GIVEN_class_with_observed_type_WHEN_add_listener_and_trigger_THEN_listners_triggers(self):
         expected_value = 1
         test = Test()
@@ -139,3 +138,15 @@ class TestObservable(unittest.TestCase):
         test.set_value(expected_value1)
 
         assert_that(self.value, is_(expected_value1))
+
+    def test_GIVEN_class_with_cached_observed_type_WHEN_get_cache_THEN_default_returned(self):
+        test = Test()
+
+        assert_that(test.listener_last_value(ValueUpdate), is_(None))
+
+    def test_GIVEN_class_with_cached_observed_type_WHEN_set_and_get_cache_THEN_set_value_returned(self):
+        expected_value = 123
+        test = Test()
+        test.set_value(expected_value)
+
+        assert_that(test.listener_last_value(ValueUpdate).value, is_(expected_value))

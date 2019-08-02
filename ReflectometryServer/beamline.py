@@ -511,3 +511,7 @@ class Beamline(object):
             listener: the listener function to add with parameters for new status and message
         """
         self._status_change_listeners.add(listener)
+
+    @property
+    def drivers(self):
+        return self._drivers

@@ -22,7 +22,7 @@ class TestEngineeringCorrections(unittest.TestCase):
     def _setup_driver_axis_and_correction(self, correction):
         comp = Component("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = DisplacementDriver(comp, mock_axis, engineering_correct=ConstantCorrection(correction))
+        driver = DisplacementDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction))
         driver._is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp
 
@@ -39,7 +39,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         expected_correction = 1
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = AngleDriver(comp, mock_axis, engineering_correct=ConstantCorrection(expected_correction))
+        driver = AngleDriver(comp, mock_axis, engineering_correction=ConstantCorrection(expected_correction))
         driver._is_changed = lambda: True  # simulate that the component has requested a change
         driver.perform_move(1)
 
@@ -89,7 +89,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         correction = 1
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = AngleDriver(comp, mock_axis, engineering_correct=ConstantCorrection(correction))
+        driver = AngleDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction))
         driver.initialise()
 
         result = comp.beam_path_set_point.angle
@@ -100,7 +100,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         correction = lambda x: 0
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = AngleDriver(comp, mock_axis, engineering_correct=UserFunctionCorrection(correction))
+        driver = AngleDriver(comp, mock_axis, engineering_correction=UserFunctionCorrection(correction))
         driver.initialise()
 
         result = comp.beam_path_set_point.angle
@@ -362,7 +362,7 @@ class TestEngineeringCorrectionsChangeListener(unittest.TestCase):
         comp = Component("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
         engineering_correct = ConstantCorrection(correction)
-        driver = DisplacementDriver(comp, mock_axis, engineering_correct=engineering_correct)
+        driver = DisplacementDriver(comp, mock_axis, engineering_correction=engineering_correct)
         driver._is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp, engineering_correct
 

@@ -5,7 +5,7 @@ from enum import Enum
 
 from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
-from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY
+from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY, compress_and_hex
 import json
 from collections import OrderedDict
 
@@ -17,6 +17,7 @@ BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
 BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
 BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
 PARAM_INFO = "PARAM_INFO"
+DRIVER_INFO = "DRIVER_INFO"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
 MOVE_SUFFIX = ":MOVE"
@@ -180,48 +181,42 @@ class PVManager:
     """
     Holds reflectometry PVs and associated utilities.
     """
-    def __init__(self, param_types, mode_names, status_codes):
+    def __init__(self, beamline):
         """
         The constructor.
         Args:
-            param_types (dict[str, (str, str, str)]): The type, group name and description for which to create PVs,
-                keyed by name.
-            mode_names: The names of the modes in the current reflectometry configuration
-            status_codes (list[ReflectometryServer.beamline.STATUS]): status codes of Beam line with severities
+            beamline (ReflectometryServer.beamline.Beamline): the beamline to create the manager for
         """
-
+        self._beamline = beamline
         self.PVDB = {}
         self._params_pv_lookup = OrderedDict()
-        self._param_info = []
         self._footprint_parameters = {}
 
-        self._add_global_pvs(mode_names, status_codes)
+        self._add_global_pvs()
         self._add_footprint_calculator_pvs()
-        self._add_all_parameter_pvs(param_types)
+        self._add_all_parameter_pvs()
+        self._add_all_driver_pvs()
 
         for pv_name in self.PVDB.keys():
             print("creating pv: {}".format(pv_name))
 
-    def _add_global_pvs(self, mode_names, status_codes):
+    def _add_global_pvs(self):
         """
         Add PVs that affect the whole of the reflectometry system to the server's PV database.
 
-        Args:
-            mode_names: The names of the modes in the current reflectometry configuration
-            status_codes (list[ReflectometryServer.beamline.STATUS]): status codes of Beam line with severities
         """
         self._add_pv_with_val(BEAMLINE_MOVE, None, PARAM_FIELDS_MOVE, "Move the beam line", PvSort.RBV, archive=True,
                               interest="HIGH")
         # PVs for mode
-        mode_fields = {'type': 'enum', 'enums': mode_names}
+        mode_fields = {'type': 'enum', 'enums': self._beamline.mode_names}
         self._add_pv_with_val(BEAMLINE_MODE, None, mode_fields, "Beamline mode", PvSort.RBV, archive=True,
                               interest="HIGH")
         self._add_pv_with_val(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
 
         # PVs for server status
         status_fields = {'type': 'enum',
-                         'enums': [code.display_string for code in status_codes],
-                         'states': [code.alarm_severity for code in status_codes]}
+                         'enums': [code.display_string for code in self._beamline.status_codes],
+                         'states': [code.alarm_severity for code in self._beamline.status_codes]}
         self._add_pv_with_val(BEAMLINE_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV, archive=True,
                               interest="HIGH", alarm=True)
         self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'string'}, "Message about the beamline", PvSort.RBV,
@@ -243,19 +238,17 @@ class PVManager:
                                       PARAMS_FIELDS_BEAMLINE_TYPES[BeamlineParameterType.FLOAT],
                                       description, PvSort.RBV, archive=True, interest="HIGH")
 
-    def _add_all_parameter_pvs(self, param_types):
+    def _add_all_parameter_pvs(self):
         """
         Add PVs for each beamline parameter in the reflectometry configuration to the server's PV database.
-
-        Args:
-            param_types (dict[str, (str, str, str)]): The type, group name and description for which to create PVs,
-                keyed by name.
         """
-        for param, (param_type, group_names, description) in param_types.items():
-            self._add_parameter_pvs(param, group_names, description, param_type)
+        param_info = []
+        for param, (param_type, group_names, description) in self._beamline.parameter_types.items():
+            param_info_record = self._add_parameter_pvs(param, group_names, description, param_type)
+            param_info.append(param_info_record)
         self.PVDB[PARAM_INFO] = {'type': 'char',
                                  'count': 2048,
-                                 'value': json.dumps(self._param_info)
+                                 'value': compress_and_hex(json.dumps(param_info))
                                  }
     
     def _add_parameter_pvs(self, param_name, group_names, description, param_type):
@@ -267,22 +260,15 @@ class PVManager:
             param_type: The type of the parameter
             group_names: list of groups to which this parameter belong
             description: description of the pv
+
+        Returns:
+            parameter information
         """
         try:
-            param_alias = create_pv_name(param_name, self.PVDB.keys(), "PARAM", limit=10)
+            param_alias = create_pv_name(param_name, self.PVDB.keys(), PARAM_PREFIX, limit=10)
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
            
             fields = PARAMS_FIELDS_BEAMLINE_TYPES[param_type]
-            # generate a dictionary to store metadata about parameters
-            param_info = {}
-            param_info["param_name"] = param_name
-            param_info["prepended_alias"] = prepended_alias
-            if param_type is BeamlineParameterType.FLOAT:
-                param_info["type"] = "float"
-            elif param_type is BeamlineParameterType.IN_OUT:
-                param_info["type"] = "in_out"
-
-            self._param_info.append(param_info)
 
             self.PVDB["{}.DESC".format(prepended_alias)] = {'type': 'string',
                                                             'value': description
@@ -313,6 +299,10 @@ class PVManager:
             # In mode PV
             self._add_pv_with_val(prepended_alias + IN_MODE_SUFFIX, param_name, PARAM_IN_MODE, description,
                                   PvSort.IN_MODE)
+
+            return {"name": param_name,
+                    "prepended_alias": prepended_alias,
+                    "type": BeamlineParameterType.name_for_param_list(param_type)}
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
@@ -350,6 +340,28 @@ class PVManager:
 
         if param_name is not None:
             self._params_pv_lookup[pv_name] = (param_name, sort)
+
+    def _add_all_driver_pvs(self):
+        """
+        Add all pvs for the drivers.
+        """
+        self.drivers_pv = {}
+        driver_info = []
+        for driver in self._beamline.drivers:
+            if driver.has_engineering_correct:
+                correction_alias = create_pv_name(driver.name, self.PVDB.keys(), "COR", limit=12, allow_colon=True)
+                prepended_alias = "{}:{}".format("COR", correction_alias)
+
+                self.PVDB[prepended_alias] = {'type': 'float', 'value': 0}
+                self.PVDB[prepended_alias + VAL_FIELD] = {'type': 'float', 'value': 0}
+                self.PVDB["{}.DESC".format(prepended_alias)] = {'type': 'char', 'count': 100, 'value': ""}
+
+                self.drivers_pv[driver] = prepended_alias
+
+                driver_info.append({"name": driver.name, "prepended_alias": prepended_alias})
+        self.PVDB[DRIVER_INFO] = {'type': 'char',
+                                  'count': 2048,
+                                  'value': compress_and_hex(json.dumps(driver_info))}
 
     def param_names_pvnames_and_sort(self):
         """
