@@ -98,11 +98,11 @@ class ReflectometryDriver(Driver):
         if self._pv_manager.is_param(reason):
             param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
             param = self._beamline.parameter(param_name)
-            if param_sort == PvSort.MOVE:
+            if param_sort == PvSort.ACTION:
                 param.move = 1
             elif param_sort == PvSort.SP:
                 param.sp = convert_from_epics_pv_value(param.parameter_type, value)
-            elif param_sort == PvSort.SET_AND_NO_MOVE:
+            elif param_sort == PvSort.SET_AND_NO_ACTION:
                 param.sp_no_move = convert_from_epics_pv_value(param.parameter_type, value)
         elif self._pv_manager.is_beamline_move(reason):
             self._beamline.move = 1

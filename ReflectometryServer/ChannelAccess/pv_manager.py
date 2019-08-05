@@ -19,9 +19,9 @@ BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
 PARAM_INFO = "PARAM_INFO"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
-MOVE_SUFFIX = ":MOVE"
+ACTION_SUFFIX = ":ACTION"
+SET_AND_NO_ACTION_SUFFIX = ":SP_NO_ACTION"
 CHANGED_SUFFIX = ":CHANGED"
-SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
 IN_MODE_SUFFIX = ":IN_MODE"
 VAL_FIELD = ".VAL"
 
@@ -95,10 +95,10 @@ class PvSort(Enum):
     Enum for the type of PV
     """
     RBV = 0
-    MOVE = 1
+    ACTION = 1
     SP_RBV = 2
     SP = 3
-    SET_AND_NO_MOVE = 4
+    SET_AND_NO_ACTION = 4
     CHANGED = 6
     IN_MODE = 7
 
@@ -112,14 +112,14 @@ class PvSort(Enum):
         """
         if pv_sort == PvSort.RBV:
             return ""
-        elif pv_sort == PvSort.MOVE:
-            return "(Do move)"
+        elif pv_sort == PvSort.ACTION:
+            return "(Do the action)"
         elif pv_sort == PvSort.SP_RBV:
             return "(Set point readback)"
         elif pv_sort == PvSort.SP:
             return "(Set point)"
-        elif pv_sort == PvSort.SET_AND_NO_MOVE:
-            return "(Set point with no move afterwards)"
+        elif pv_sort == PvSort.SET_AND_NO_ACTION:
+            return "(Set point with no action executed)"
         elif pv_sort == PvSort.CHANGED:
             return "(is changed)"
         elif pv_sort == PvSort.IN_MODE:
@@ -142,11 +142,11 @@ class PvSort(Enum):
             return convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_rbv)
         elif self == PvSort.RBV:
             return convert_to_epics_pv_value(parameter.parameter_type, parameter.rbv)
-        elif self == PvSort.SET_AND_NO_MOVE:
+        elif self == PvSort.SET_AND_NO_ACTION:
             return convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_no_move)
         elif self == PvSort.CHANGED:
             return parameter.sp_changed
-        elif self == PvSort.MOVE:
+        elif self == PvSort.ACTION:
             return parameter.move
         return float("NaN")
 
@@ -298,17 +298,17 @@ class PVManager:
             # Setpoint readback PV
             self._add_pv_with_val(prepended_alias + SP_RBV_SUFFIX, param_name, fields, description, PvSort.SP_RBV)
 
-            # Set value and move PV
-            self._add_pv_with_val(prepended_alias + SET_AND_NO_MOVE_SUFFIX, param_name, fields, description,
-                                  PvSort.SET_AND_NO_MOVE)
+            # Set value and do not action PV
+            self._add_pv_with_val(prepended_alias + SET_AND_NO_ACTION_SUFFIX, param_name, fields, description,
+                                  PvSort.SET_AND_NO_ACTION)
 
             # Changed PV
             self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_CHANGED, description,
                                   PvSort.CHANGED)
 
-            # Move PV
-            self._add_pv_with_val(prepended_alias + MOVE_SUFFIX, param_name, PARAM_FIELDS_MOVE, description,
-                                  PvSort.MOVE)
+            # Action PV
+            self._add_pv_with_val(prepended_alias + ACTION_SUFFIX, param_name, PARAM_FIELDS_MOVE, description,
+                                  PvSort.ACTION)
 
             # In mode PV
             self._add_pv_with_val(prepended_alias + IN_MODE_SUFFIX, param_name, PARAM_IN_MODE, description,
