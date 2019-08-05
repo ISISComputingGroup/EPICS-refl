@@ -45,7 +45,6 @@ class ReflectometryDriver(Driver):
         self.add_param_listeners()
         self.add_trigger_active_mode_change_listener()
         self.add_trigger_status_change_listener()
-        self.add_trigger_is_changing_change_listener()
         self.add_footprint_param_listeners()
 
     def read(self, reason):
@@ -243,12 +242,6 @@ class ReflectometryDriver(Driver):
             self._update_param_both_pv_and_pv_val(BEAMLINE_MESSAGE, message)
             self.updatePVs()
         self._beamline.add_status_change_listener(_bl_status_change)
-
-    def add_trigger_is_changing_change_listener(self):
-        """
-        Adds the monitor on the moving status, if this changes a monitor update is posted
-        """
-        self.updatePVs()
 
     def add_footprint_param_listeners(self):
         """

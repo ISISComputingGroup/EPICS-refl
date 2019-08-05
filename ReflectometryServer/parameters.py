@@ -65,7 +65,7 @@ class BeamlineParameter(object):
         self._after_is_changing_change_listeners = set()
         self._after_rbv_at_sp_listeners = set()
         self._init_listeners = set()
-        self.rbv_to_sp_tolerance = rbv_to_sp_tolerance
+        self._rbv_to_sp_tolerance = rbv_to_sp_tolerance
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
@@ -113,7 +113,7 @@ class BeamlineParameter(object):
         """
         Returns: Does the read back value match the set point target within a defined tolerance
         """
-        if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self.rbv_to_sp_tolerance:
+        if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self._rbv_to_sp_tolerance:
             return 0
         else:
             return 1
