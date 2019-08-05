@@ -50,6 +50,7 @@ class TestMotorPVWrapper(unittest.TestCase):
         expected_velocity = self.velo
 
         wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
+        wrapper.initialise()
         actual_velocity = wrapper.velocity
 
         self.assertEqual(expected_velocity, actual_velocity)
