@@ -128,6 +128,7 @@ class MockMotorPVWrapper(object):
         self.after_rbv_change_listener = set()
         self.after_sp_change_listener = set()
         self.after_status_change_listener = set()
+        self.after_is_changing_change_listener = set()
         self.after_velocity_change_listener = set()
         self.is_vertical = is_vertical
 
@@ -142,6 +143,9 @@ class MockMotorPVWrapper(object):
 
     def add_after_status_change_listener(self, listener):
         self.after_status_change_listener.add(listener)
+
+    def add_after_is_changing_change_listener(self, listener):
+        self.after_is_changing_change_listener.add(listener)
 
     def add_after_velocity_change_listener(self, listener):
         self.after_velocity_change_listener.add(listener)
