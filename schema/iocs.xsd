@@ -75,6 +75,9 @@
       <xs:attribute name="defaultValue" use="optional" type="xs:string">
         <xs:annotation><xs:documentation>macro default value</xs:documentation></xs:annotation>
       </xs:attribute>
+      <xs:attribute name="hasDefault" use="optional" type="xs:string">
+        <xs:annotation><xs:documentation>whether the macro has a default</xs:documentation></xs:annotation>
+      </xs:attribute>
     </xs:complexType>
   </xs:element>
 </xs:schema>

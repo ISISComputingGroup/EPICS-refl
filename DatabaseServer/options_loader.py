@@ -26,6 +26,7 @@ CONFIG_PART = 'config_part'
 TAG_PATTERN = 'pattern'
 TAG_DESCRIPTION = 'description'
 TAG_DEFAULT = 'defaultValue'
+TAG_HAS_DEFAULT = 'hasDefault'
 
 
 def create_xpath_search(group, individual):
@@ -67,7 +68,8 @@ class OptionsLoader(object):
                 for macro in ioc.findall(MACROS):
                     iocs[name.upper()].macros[macro.attrib[TAG_NAME]] = {TAG_DESCRIPTION: macro.attrib[TAG_DESCRIPTION],
                                                                          TAG_PATTERN: macro.attrib.get(TAG_PATTERN),
-                                                                         TAG_DEFAULT: macro.attrib.get(TAG_DEFAULT)}
+                                                                         TAG_DEFAULT: macro.attrib.get(TAG_DEFAULT),
+                                                                         TAG_HAS_DEFAULT: macro.attrib[TAG_HAS_DEFAULT]}
 
                 # Get any pvsets
                 for pvset in ioc.findall(PVSETS):
