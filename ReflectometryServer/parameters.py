@@ -114,9 +114,9 @@ class BeamlineParameter(object):
         Returns: Does the read back value match the set point target within a defined tolerance
         """
         if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self._rbv_to_sp_tolerance:
-            return 0
+            return False
         else:
-            return 1
+            return True
 
     @property
     def sp_rbv(self):
@@ -486,6 +486,16 @@ class TrackingPosition(BeamlineParameter):
         return self._component.beam_path_rbv.get_position_relative_to_beam()
 
     @property
+    def rbv_at_sp(self):
+        """
+        Returns: Does the read back value match the set point target within a defined tolerance
+        """
+        if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self._rbv_to_sp_tolerance and self._component.beam_path_set_point.is_in_beam:
+            return False
+        else:
+            return True
+
+    @property
     def is_changing(self):
         """
         Returns: Is the parameter changing (displacing)
@@ -585,6 +595,16 @@ class InBeamParameter(BeamlineParameter):
 
     def _rbv(self):
         return self._component.beam_path_rbv.is_in_beam
+
+    @property
+    def rbv_at_sp(self):
+        """
+        Returns: Does the read back value match the set point target within a defined tolerance
+        """
+        if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self._rbv_to_sp_tolerance and self._component.beam_path_rbv.is_in_beam:
+            return False
+        else:
+            return True
 
     @property
     def is_changing(self):
