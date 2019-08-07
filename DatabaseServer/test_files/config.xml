@@ -3,9 +3,9 @@
 	<ioc_config name="SIMPLE1">
 		<config_part>
 			<macros>		
-				<macro description="COM port to use for communication" name="COMPORT" pattern="COM[0-9]+:"/>
-				<macro description="TEST" name="ANOTHERMACRO" pattern="COM[0-9]+:"/>
-				<macro description="TEST" name="FINALMACRO" pattern="COM[0-9]+:"/>
+				<macro description="COM port to use for communication" name="COMPORT" pattern="COM[0-9]+:" hasDefault="UNKNOWN"/>
+				<macro description="TEST" name="ANOTHERMACRO" pattern="COM[0-9]+:" hasDefault="UNKNOWN"/>
+				<macro description="TEST" name="FINALMACRO" pattern="COM[0-9]+:" hasDefault="UNKNOWN"/>
 			</macros>
 			<pvsets>
 				<pvset description="Motor high and low limits" name="Motor Limits"/>
@@ -21,8 +21,8 @@
 	<ioc_config name="SIMPLE2">
 		<config_part>
 			<macros>
-				<macro description="COM port to use for communication" name="COMPORT" pattern="COM[0-9]+:"/>
-				<macro description="TEST" name="ANOTHERMACRO" pattern="COM[0-9]+:"/>
+				<macro description="COM port to use for communication" name="COMPORT" pattern="COM[0-9]+:" hasDefault="UNKNOWN"/>
+				<macro description="TEST" name="ANOTHERMACRO" pattern="COM[0-9]+:" hasDefault="UNKNOWN"/>
 			</macros>
 			<pvsets>
 				<pvset description="Motor high and low limits" name="Motor Limits"/>
