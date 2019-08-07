@@ -463,6 +463,31 @@ class ConfigurationXmlConverter(object):
         return node
 
     @staticmethod
+    def _display(child, index):
+        return {
+                    "index": index,
+                    "name": ConfigurationXmlConverter._find_single_node(child, "banner", "name").text,
+                    "pv": ConfigurationXmlConverter._find_single_node(child, "banner", "pv").text,
+                    "local": ConfigurationXmlConverter._find_single_node(child, "banner", "local").text,
+                    "width": ConfigurationXmlConverter._find_single_node(child, "banner", "width").text,
+               }
+
+    @staticmethod
+    def _button(child, index):
+        return {
+                    "index": index,
+                    "name": ConfigurationXmlConverter._find_single_node(child, "banner", "name").text,
+                    "pv": ConfigurationXmlConverter._find_single_node(child, "banner", "pv").text,
+                    "local": ConfigurationXmlConverter._find_single_node(child, "banner", "local").text,
+                    "pvValue": ConfigurationXmlConverter._find_single_node(child, "banner", "pvValue").text,
+                    "textColour": ConfigurationXmlConverter._find_single_node(child, "banner", "textColour").text,
+                    "buttonColour": ConfigurationXmlConverter._find_single_node(child, "banner", "buttonColour").text,
+                    "fontSize": ConfigurationXmlConverter._find_single_node(child, "banner", "fontSize").text,
+                    "width": ConfigurationXmlConverter._find_single_node(child, "banner", "width").text,
+                    "height": ConfigurationXmlConverter._find_single_node(child, "banner", "height").text,
+               }
+
+    @staticmethod
     def banner_config_from_xml(root):
         """
         Parses the banner config XML to produce a banner config dictionary
@@ -487,26 +512,9 @@ class ConfigurationXmlConverter(object):
         for item in items:
             child = item.find("./")
             if "display" in child.tag:
-                banner_displays.append({
-                    "index": index,
-                    "name": ConfigurationXmlConverter._find_single_node(child, "banner", "name").text,
-                    "pv": ConfigurationXmlConverter._find_single_node(child, "banner", "pv").text,
-                    "local": ConfigurationXmlConverter._find_single_node(child, "banner", "local").text,
-                    "width": ConfigurationXmlConverter._find_single_node(child, "banner", "width").text,
-                })
+                banner_displays.append(ConfigurationXmlConverter._display(child, index))
             else:
-                banner_buttons.append({
-                    "index": index,
-                    "name": ConfigurationXmlConverter._find_single_node(child, "banner", "name").text,
-                    "pv": ConfigurationXmlConverter._find_single_node(child, "banner", "pv").text,
-                    "local": ConfigurationXmlConverter._find_single_node(child, "banner", "local").text,
-                    "pvValue": ConfigurationXmlConverter._find_single_node(child, "banner", "pvValue").text,
-                    "textColour": ConfigurationXmlConverter._find_single_node(child, "banner", "textColour").text,
-                    "buttonColour": ConfigurationXmlConverter._find_single_node(child, "banner", "buttonColour").text,
-                    "fontSize": ConfigurationXmlConverter._find_single_node(child, "banner", "fontSize").text,
-                    "width": ConfigurationXmlConverter._find_single_node(child, "banner", "width").text,
-                    "height": ConfigurationXmlConverter._find_single_node(child, "banner", "height").text,
-                })
+                banner_buttons.append(ConfigurationXmlConverter._button(child, index))
             index += 1
 
         return {

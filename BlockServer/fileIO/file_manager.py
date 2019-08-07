@@ -81,7 +81,7 @@ class ConfigurationFileManager(object):
             root = self._read_element_tree(blocks_path)
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_BLOCKS)
+            self._check_against_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_BLOCKS)
 
             ConfigurationXmlConverter.blocks_from_xml(root, blocks, groups)
         else:
@@ -93,7 +93,7 @@ class ConfigurationFileManager(object):
             root = self._read_element_tree(groups_path)
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_GROUPS)
+            self._check_against_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_GROUPS)
 
             ConfigurationXmlConverter.groups_from_xml(root, groups, blocks)
         else:
@@ -110,7 +110,7 @@ class ConfigurationFileManager(object):
                                                                               'simlevel="none"')
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(correct_xml, FILENAME_IOCS)
+            self._check_against_schema(correct_xml, FILENAME_IOCS)
 
             ConfigurationXmlConverter.ioc_from_xml(root, iocs)
         else:
@@ -122,7 +122,7 @@ class ConfigurationFileManager(object):
             root = self._read_element_tree(component_path)
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_COMPONENTS)
+            self._check_against_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_COMPONENTS)
 
             ConfigurationXmlConverter.components_from_xml(root, components)
         elif not is_component:
@@ -136,7 +136,7 @@ class ConfigurationFileManager(object):
             root = self._read_element_tree(meta_path)
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_META)
+            self._check_against_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_META)
 
             ConfigurationXmlConverter.meta_from_xml(root, meta)
         else:
@@ -156,7 +156,7 @@ class ConfigurationFileManager(object):
         return configuration
 
     @staticmethod
-    def _check_againgst_schema(xml, filename):
+    def _check_against_schema(xml, filename):
         regex = re.compile(re.escape('.xml'), re.IGNORECASE)
         name = regex.sub('.xsd', filename)
         schema_path = os.path.join(FILEPATH_MANAGER.schema_dir, name)
@@ -309,8 +309,8 @@ class ConfigurationFileManager(object):
             root = ConfigurationFileManager._read_element_tree(FILEPATH_MANAGER.get_banner_path())
 
             # Check against the schema - raises if incorrect
-            ConfigurationFileManager._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'),
-                                                            FILENAME_BANNER)
+            ConfigurationFileManager._check_against_schema(ElementTree.tostring(root, encoding='utf8'),
+                                                           FILENAME_BANNER)
             try:
                 banner = ConfigurationXmlConverter.banner_config_from_xml(
                     ConfigurationFileManager._attempt_read(FILEPATH_MANAGER.get_banner_path())
