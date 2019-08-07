@@ -308,15 +308,26 @@ class BlockServer(Driver):
         self._initialise_config()
 
     def _set_curr_config(self, details):
-        """Sets the current configuration details to that defined in the XML, saves to disk, then initialises it.
+        """Sets the current configuration details to that defined in the JSON, saves to disk,
+        then re-initialises the current configuration.
 
         Args:
-            details (string): the configuration XML
+            details (string): the configuration JSON
         """
-        # Need to save the config to file before we initialize or the changes won't be propagated to IOCS
 
+        current_name = self._active_configserver.get_config_name()
+        details_name = convert_from_json(details)["name"]
+
+        # This method saves the given details and then reloads the current config.
+        # Sending the details of a new config to this method, as was being done incorrectly (see #4606)
+        # will save the details as a new config, but not load it. A warning is sent in case this happens again.
+        if current_name != details_name:
+            print_and_log("Config details to be set ({}) did not match current config ({})"
+                          .format(details_name, current_name), "MINOR")
+
+        # Need to save the config to file before we initialize or the changes won't be propagated to IOCS
         self.save_inactive_config(details)
-        self.load_config(self._active_configserver.get_config_name(), full_init=False)
+        self.load_config(current_name, full_init=False)
 
     def _initialise_config(self, full_init=False):
         """Responsible for initialising the configuration.

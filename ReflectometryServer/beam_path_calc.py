@@ -215,12 +215,12 @@ class TrackingBeamPathCalc(object):
         Calculates the position of the intercept between the incoming beam and the movement axis of this component.
 
         Params:
-            on_init(Boolean): Whether this is being called on init (decides which value to use for offset)
+            on_init(Boolean): Whether this is being called on initialisation
 
         Returns (ReflectometryServer.geometry.Position): The position of the beam intercept in mantid coordinates.
         """
-        if on_init:
-            offset = self.autosaved_offset or self.get_position_relative_to_beam() or 0
+        if on_init and self.autosaved_offset is not None:
+            offset = self.autosaved_offset
         else:
             offset = self.get_position_relative_to_beam() or 0
         intercept_displacement = self.get_displacement() - offset
@@ -262,7 +262,8 @@ class TrackingBeamPathCalc(object):
 class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
     def __init__(self, movement_strategy):
         super(_BeamPathCalcWithAngle, self).__init__(movement_strategy)
-        self._angle = 0.0
+        self._absolute_angle = 0.0
+        self.autosaved_angle = None
 
     def init_angle_from_motor(self, angle):
         """
@@ -271,7 +272,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Params:
             value(float): The angle read from the motor
         """
-        self._angle = angle
+        self._absolute_angle = angle
         self._trigger_init_listeners()
 
     def _set_angle(self, angle):
@@ -280,7 +281,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Args:
             angle: angle to set
         """
-        self._angle = angle
+        self._absolute_angle = angle
         self._trigger_after_beam_path_update()
 
     def set_angle_relative_to_beam(self, angle):
@@ -295,7 +296,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         """
         Returns: the angle of the component relative to the beamline
         """
-        return self._angle - self._incoming_beam.angle
+        return self._absolute_angle - self._incoming_beam.angle
 
 
 class BeamPathTilting(_BeamPathCalcWithAngle):
@@ -311,7 +312,7 @@ class BeamPathTilting(_BeamPathCalcWithAngle):
         """
         Returns: the angle of the component measured clockwise from the horizon in the incoming beam direction.
         """
-        return self._angle
+        return self._absolute_angle
 
     @angle.setter
     def angle(self, angle):
@@ -351,7 +352,7 @@ class _BeamPathCalcReflecting(_BeamPathCalcWithAngle):
             return self._incoming_beam
 
         target_position = self.calculate_beam_interception()
-        angle_between_beam_and_component = (self._angle - self._incoming_beam.angle)
+        angle_between_beam_and_component = (self._absolute_angle - self._incoming_beam.angle)
         angle = angle_between_beam_and_component * 2 + self._incoming_beam.angle
         return PositionAndAngle(target_position.y, target_position.z, angle)
 
@@ -364,14 +365,14 @@ class BeamPathCalcAngleReflecting(_BeamPathCalcReflecting):
 
     def __init__(self, movement_strategy):
         super(BeamPathCalcAngleReflecting, self).__init__(movement_strategy)
-        self._angle = 0.0
+        self._absolute_angle = 0.0
 
     @property
     def angle(self):
         """
         Returns: the angle of the component measured clockwise from the horizon in the incoming beam direction.
         """
-        return self._angle
+        return self._absolute_angle
 
     @angle.setter
     def angle(self, angle):
@@ -456,14 +457,14 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
         Args:
             incoming_beam(PositionAndAngle): incoming beam
         """
-        self._angle = self._calc_angle_from_next_component(incoming_beam)
+        self._absolute_angle = self._calc_angle_from_next_component(incoming_beam)
 
     @property
     def angle(self):
         """
         Returns: the angle of the component measured clockwise from the horizon in the incoming beam direction.
         """
-        return self._angle
+        return self._absolute_angle
 
 
 class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
@@ -488,10 +489,13 @@ class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
 
     def _init_listener(self):
         """
-        Initialises the theta angle. To be put on the component this theta is angled to, and triggered once that
+        Initialises the theta angle. Listens on the component(s) this theta is angled to, and is triggered once that
         component has read an initial position.
         """
-        self._angle = self._calc_angle_from_next_component(self._incoming_beam)
+        if self.autosaved_angle is None:
+            self._absolute_angle = self._calc_angle_from_next_component(self._incoming_beam)
+        else:
+            self._absolute_angle = self._incoming_beam.angle + self.autosaved_angle
         self._trigger_init_listeners()
         self._trigger_after_beam_path_update()
 
