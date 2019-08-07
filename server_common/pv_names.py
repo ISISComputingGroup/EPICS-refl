@@ -67,6 +67,8 @@ class BlockserverPVNames:
     SET_SCREENS = prepend_blockserver('SET_SCREENS')
     BANNER_DESCRIPTION = prepend_blockserver('BANNER_DESCRIPTION')
     SCREENS_SCHEMA = prepend_blockserver('SCREENS_SCHEMA')
+    CURR_CONFIG_NAME = prepend_blockserver('CURR_CONFIG_NAME')
+    CURR_CONFIG_NAME_SEVR = prepend_blockserver('CURR_CONFIG_NAME.SEVR')
     
     @staticmethod
     def get_config_details_pv(pv_key):
