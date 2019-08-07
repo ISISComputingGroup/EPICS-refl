@@ -128,6 +128,8 @@ class MockMotorPVWrapper(object):
         self.velocity = None
         self.direction = direction
         self.backlash_distance = backlash_distance
+        if self.direction == "Pos":
+            self.backlash_distance = backlash_distance * -1
         self.backlash_velocity = backlash_velocity
         self.resolution = DEFAULT_TEST_TOLERANCE
         self.after_rbv_change_listener = set()

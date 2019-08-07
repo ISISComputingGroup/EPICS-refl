@@ -405,7 +405,7 @@ class Beamline(object):
                 self._perform_move_for_all_drivers(self._get_max_move_duration())
                 self.set_status(STATUS.OKAY, "")
             except ZeroDivisionError as e:
-                print(str(e))
+                logger.error("Failed to perform move: {}".format(e))
                 self.set_status(STATUS.CONFIG_ERROR, str(e))
 
         except (ValueError, UnableToConnectToPVException) as e:

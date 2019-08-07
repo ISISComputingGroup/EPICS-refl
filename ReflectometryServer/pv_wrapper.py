@@ -210,7 +210,10 @@ class PVWrapper(object):
         """
         Returns: the value of the underlying backlash distance PV
         """
-        return self._d_back
+        if self._dir == "Pos":
+            return self._d_back * -1
+        else:
+            return self._d_back
 
     @property
     def backlash_velocity(self):
