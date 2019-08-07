@@ -85,9 +85,9 @@ class IocDriver(object):
         """
         # If the speeds are zero on a motor which is going to move, error as it makes no sense
         # to move a non-zero distance with a zero velocity
-        if vmax == 0 or vmax is None and not (bvel == 0 or bvel is None):
+        if vmax == 0 or vmax is None:
             raise ZeroDivisionError("Motor max velocity is zero or none")
-        if bvel == 0 or bvel is None and not (vmax == 0 or vmax is None):
+        if (bvel == 0 or bvel is None) and not (bdst == 0 or bdst is None):
             raise ZeroDivisionError("Backlash speed is zero or none")
 
         if bvel == 0 or bvel is None:
@@ -123,8 +123,8 @@ class IocDriver(object):
         will return 0 but movement will still be required.
         """
         if self._axis_will_move() and self._synchronised:
-            base_move_duration = self._base_move_duration(self._get_duration_parameters())
             backlash_duration = self._backlash_duration(self._get_duration_parameters())
+            base_move_duration = self._base_move_duration(self._get_duration_parameters())
 
             duration = base_move_duration + backlash_duration
 
@@ -140,7 +140,7 @@ class IocDriver(object):
             move_duration (float): The duration in which to perform this move
             force (bool): move even if component does not report changed
         """
-        
+
         if self._axis_will_move() or force:
             move_duration -= self._backlash_duration(self._get_duration_parameters())
             logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))

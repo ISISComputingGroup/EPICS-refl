@@ -459,10 +459,15 @@ class BeamlineMoveDurationTest(unittest.TestCase):
 class BeamlineBacklashMoveDurationTest(unittest.TestCase):
 
     @parameterized.expand([
-        (  # Error when speeds are 0
+        (  # Error when max_vel is 0
             {"max_vel": 0, "start": 0, "set": 0.5, "back_dist": 0, "back_speed": 0, "dir": "Pos"},
             {"max_vel": 0, "start": 0, "set": 10, "back_dist": 0, "back_speed": 0, "dir": "Pos"},
             "ERROR"
+        ),
+        (  # No error when back_speed is 0 if back_dist is also 0
+            {"max_vel": 1, "start": 0, "set": 0.5, "back_dist": 0, "back_speed": 0, "dir": "Pos"},
+            {"max_vel": 1, "start": 0, "set": 10, "back_dist": 0, "back_speed": 0, "dir": "Pos"},
+            10  # 10/1
         ),
         (  # No backlash distance
             {"max_vel": 20, "start": 0, "set": 0.5, "back_dist": 0, "back_speed": 1, "dir": "Pos"},
