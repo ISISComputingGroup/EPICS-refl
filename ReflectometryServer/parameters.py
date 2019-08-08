@@ -684,7 +684,7 @@ class SlitGapParameter(BeamlineParameter):
         pass
 
     def _move_component(self):
-        self._pv_wrapper.sp = self._set_point
+        self._pv_wrapper.sp = self._set_point_rbv
 
     def _rbv(self):
         return self._rbv_value
