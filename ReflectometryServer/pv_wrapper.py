@@ -10,6 +10,7 @@ from threading import Event
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
 from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
+import math
 
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
 
@@ -40,6 +41,9 @@ class PVWrapper(object):
         self._moving_state = None
         self._v_restore = None
         self._v_curr = None
+        self._d_back = None
+        self._v_back = None
+        self._dir = None
         self.max_velocity = None
         self._state_init_event = Event()
         self._velocity_event = Event()
@@ -57,6 +61,9 @@ class PVWrapper(object):
         self._velo_pv = ""
         self._vmax_pv = ""
         self._dmov_pv = ""
+        self._bdst_pv = ""
+        self._bvel_pv = ""
+        self._dir_pv = ""
         raise NotImplementedError()
 
     def _set_resolution(self):
@@ -78,6 +85,9 @@ class PVWrapper(object):
         """
         self._add_monitors()
         self._v_curr = self._read_pv(self._velo_pv)
+        self._d_back = self._read_pv(self._bdst_pv)
+        self._v_back = self._read_pv(self._bvel_pv)
+        self._dir = self._read_pv(self._dir_pv)
 
     def _add_monitors(self):
         """
@@ -90,6 +100,9 @@ class PVWrapper(object):
 
         self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._velo_pv, self._on_update_velocity)
+        self._monitor_pv(self._bdst_pv, self._on_update_backlash_distance)
+        self._monitor_pv(self._bvel_pv, self._on_update_backlash_velocity)
+        self._monitor_pv(self._dir_pv, self._on_update_direction)
 
     def _monitor_pv(self, pv, call_back_function):
         """
@@ -203,6 +216,30 @@ class PVWrapper(object):
         """
         return self._v_curr
 
+    @property
+    def backlash_distance(self):
+        """
+        Returns: the value of the underlying backlash distance PV
+        """
+        if self._dir == "Pos":
+            return self._d_back * -1
+        else:
+            return self._d_back
+
+    @property
+    def backlash_velocity(self):
+        """
+        Returns: the value of the underlying backlash velocity PV
+        """
+        return self._v_back
+
+    @property
+    def direction(self):
+        """
+        Returns: the value of the underlying direction PV
+        """
+        return self._dir
+
     @velocity.setter
     def velocity(self, value):
         """
@@ -286,6 +323,49 @@ class PVWrapper(object):
         return self._dmov_to_bool(self._moving_state)
 
 
+    def _on_update_backlash_distance(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the backlash distance of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new backlash distance
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._d_back = value
+
+    def _on_update_backlash_velocity(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the backlash velocity of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new backlash distance
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._v_back = value
+
+    def _on_update_direction(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the direction of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new backlash distance
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._dir = value
+
+    def get_distance(self, rbv, set_point_position):
+        """
+        Args:
+            rbv: the read back value
+            set_point_position: the set point position
+        Returns: The distance between the target component position and the actual motor position in y.
+        """
+        raise NotImplemented("This should be implemented in the subclass")
+
+
 class MotorPVWrapper(PVWrapper):
     """
     Wrap a low level motor PV. Provides relevant listeners and synchronization utilities.
@@ -308,6 +388,9 @@ class MotorPVWrapper(PVWrapper):
         self._velo_pv = "{}.VELO".format(self._prefixed_pv)
         self._vmax_pv = "{}.VMAX".format(self._prefixed_pv)
         self._dmov_pv = "{}.DMOV".format(self._prefixed_pv)
+        self._bdst_pv = "{}.BDST".format(self._prefixed_pv)
+        self._bvel_pv = "{}.BVEL".format(self._prefixed_pv)
+        self._dir_pv = "{}.DIR".format(self._prefixed_pv)
 
     def _set_resolution(self):
         """

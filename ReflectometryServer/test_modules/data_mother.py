@@ -158,27 +158,34 @@ class DataMother(object):
         return bl, axes
 
 
-def create_mock_axis(name, init_position, max_velocity):
+def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):
     """
     Create a mock axis
     Args:
         name: pv name of axis
         init_position: initial position
         max_velocity: maximum velocity of the axis
-
+        backlash_distance: distance that the axis will backlash
+        backlash_velocity: velocity that the backlash is performed
+        direction: calibration direction of the axis, Pos or Neg
     Returns:
             mocked axis
     """
 
-    return MockMotorPVWrapper(name, init_position, max_velocity)
+    return MockMotorPVWrapper(name, init_position, max_velocity, True, backlash_distance, backlash_velocity, direction)
 
 
 class MockMotorPVWrapper(object):
-    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True):
+    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True, backlash_distance=0, backlash_velocity=1, direction="Neg"):
         self.name = pv_name
         self._value = init_position
         self.max_velocity = max_velocity
         self.velocity = None
+        self.direction = direction
+        self.backlash_distance = backlash_distance
+        if self.direction == "Pos":
+            self.backlash_distance = backlash_distance * -1
+        self.backlash_velocity = backlash_velocity
         self.resolution = DEFAULT_TEST_TOLERANCE
         self.after_rbv_change_listener = set()
         self.after_sp_change_listener = set()

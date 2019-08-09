@@ -1,6 +1,7 @@
 import unittest
 from math import fabs
 
+from parameterized import parameterized
 
 from mock import MagicMock, patch
 from hamcrest import *
@@ -453,3 +454,110 @@ class BeamlineMoveDurationTest(unittest.TestCase):
 
         self.beamline.move = 1
         assert_that(self.beamline.status, is_(STATUS.GENERAL_ERROR))
+
+
+class BeamlineBacklashMoveDurationTest(unittest.TestCase):
+
+    @parameterized.expand([
+        (  # Error when max_vel is 0
+            {"max_vel": 0, "start": 0, "set": 0.5, "back_dist": 0, "back_speed": 0, "dir": "Pos"},
+            {"max_vel": 0, "start": 0, "set": 10, "back_dist": 0, "back_speed": 0, "dir": "Pos"},
+            "ERROR"
+        ),
+        (  # No error when back_speed is 0 if back_dist is also 0
+            {"max_vel": 1, "start": 0, "set": 0.5, "back_dist": 0, "back_speed": 0, "dir": "Pos"},
+            {"max_vel": 1, "start": 0, "set": 10, "back_dist": 0, "back_speed": 0, "dir": "Pos"},
+            10  # 10/1
+        ),
+        (  # No backlash distance
+            {"max_vel": 20, "start": 0, "set": 0.5, "back_dist": 0, "back_speed": 1, "dir": "Pos"},
+            {"max_vel": 0.2, "start": 0, "set": 10, "back_dist": 0, "back_speed": 0.1, "dir": "Pos"},
+            50  # 10/0.2
+        ),
+        (  # Test where backlash is in same direction as motion
+            {"max_vel": 20, "start": 0, "set": 0.5, "back_dist": 0, "back_speed": 1, "dir": "Pos"},
+            {"max_vel": 0.2, "start": 0, "set": 10, "back_dist": 2, "back_speed": 0.1, "dir": "Pos"},
+            60  # (10-2)/0.2 + 2/0.1
+        ),
+        (  # Test where backlash is in the opposite direction to set point
+            {"max_vel": 20, "start": 0.5, "set": 0, "back_dist": 0, "back_speed": 1, "dir": "Pos"},
+            {"max_vel": 0.2, "start": 10, "set": 0, "back_dist": 2, "back_speed": 0.1, "dir": "Pos"},
+            80  # (10+2)/0.2 + 2/0.1
+        ),
+        (  # Test where move starts already within backlash distance
+            {"max_vel": 20, "start": 0, "set": 0.5, "back_dist": 0, "back_speed": 1, "dir": "Pos"},
+            {"max_vel": 0.2, "start": 0, "set": 1, "back_dist": 2, "back_speed": 0.1, "dir": "Pos"},
+            10  # 1/0.1
+        ),
+        (  # Test where move starts within backlash distance but not from backlash direction
+            {"max_vel": 20, "start": 0.5, "set": 0, "back_dist": 0, "back_speed": 1, "dir": "Pos"},
+            {"max_vel": 0.2, "start": 1, "set": 0, "back_dist": 2, "back_speed": 0.1, "dir": "Pos"},
+            35  # (1+2)/0.2 + 2/0.1
+        ),
+        (  # Test where both axes have backlash
+            {"max_vel": 20, "start": 0, "set": 0.5, "back_dist": 0.1, "back_speed": 0.1, "dir": "Pos"},
+            {"max_vel": 0.2, "start": 0, "set": 0.1, "back_dist": 2, "back_speed": 0.1, "dir": "Pos"},
+            1.02  # (0.5-0.1)/20 + 0.1/0.1
+        ),
+        (  # Test where backlash is in same direction as motion and axes are Neg
+            {"max_vel": 20, "start": 0, "set": 0.5, "back_dist": 0, "back_speed": 1, "dir": "Neg"},
+            {"max_vel": 0.2, "start": 0, "set": 10, "back_dist": 2, "back_speed": 0.1, "dir": "Neg"},
+            80  # (10+2)/0.2 + 2/0.1
+        ),
+        (  # Test where backlash is in the opposite direction to set point and axes are Neg
+            {"max_vel": 20, "start": 0.5, "set": 0, "back_dist": 0, "back_speed": 1, "dir": "Neg"},
+            {"max_vel": 0.2, "start": 10, "set": 0, "back_dist": 2, "back_speed": 0.1, "dir": "Neg"},
+            60  # (10-2)/0.2 + 2/0.1
+        ),
+        (  # Test where move starts already within backlash distance and axes are Neg
+            {"max_vel": 20, "start": 0, "set": 0.5, "back_dist": 0, "back_speed": 1, "dir": "Neg"},
+            {"max_vel": 0.2, "start": 0, "set": 1, "back_dist": 2, "back_speed": 0.1, "dir": "Neg"},
+            35  # (1+2)/0.2 + 2/0.1
+        ),
+        (  # Test where move starts within backlash distance but not from backlash direction and axes are Neg
+            {"max_vel": 20, "start": 0.5, "set": 0, "back_dist": 0, "back_speed": 1, "dir": "Neg"},
+            {"max_vel": 0.2, "start": 1, "set": 0, "back_dist": 2, "back_speed": 0.1, "dir": "Neg"},
+            10  # 1/0.1
+        ),
+        (  # Test where both axes have backlash and axes are Neg
+            {"max_vel": 20, "start": 0, "set": 0.5, "back_dist": 0.1, "back_speed": 0.1, "dir": "Neg"},
+            {"max_vel": 0.2, "start": 0, "set": 0.1, "back_dist": 2, "back_speed": 0.1, "dir": "Neg"},
+            30.5  # (0.1+2)/0.2 + 2/0.1
+        ),
+        (  # Test where both axes have backlash and one axis is Neg
+            {"max_vel": 20, "start": 0, "set": 0.5, "back_dist": 0.1, "back_speed": 0.1, "dir": "Neg"},
+            {"max_vel": 0.2, "start": 0, "set": 0.1, "back_dist": 2, "back_speed": 0.1, "dir": "Pos"},
+            1.03  # (0.5+0.1)/20 + 0.1/0.1
+        ),
+    ])
+    def test_GIVEN_two_axes_with_backlash_WHEN_triggering_move_THEN_components_move_at_speed_of_slowest_axis(
+            self, pos, ang, expected_max_duration):
+
+        detector = TiltingComponent("point_detector", setup=PositionAndAngle(y=0.0, z=6.0, angle=90.0))
+        detector_height_axis = create_mock_axis("HEIGHT", pos["start"], pos["max_vel"], pos["back_dist"], pos["back_speed"], pos["dir"])
+        detector_tilt_axis = create_mock_axis("TILT", ang["start"], ang["max_vel"], ang["back_dist"], ang["back_speed"], ang["dir"])
+        detector_driver_disp = DisplacementDriver(detector, detector_height_axis)
+        detector_driver_ang = AngleDriver(detector, detector_tilt_axis)
+        det_pos = TrackingPosition("det_pos", detector)
+        det_ang = AngleParameter("det_ang", detector)
+
+        components = [detector]
+        beamline_parameters = [det_pos, det_ang]
+        drivers = [detector_driver_disp, detector_driver_ang]
+        mode = BeamlineMode("mode name",
+                            [det_pos.name, det_ang.name])
+        beam_start = PositionAndAngle(0.0, 0.0, 0.0)
+        beamline = Beamline(components, beamline_parameters, drivers, [mode], beam_start)
+
+        beamline.active_mode = mode.name
+
+        det_pos.sp_no_move = pos["set"]
+        det_ang.sp_no_move = ang["set"]
+
+        with patch.object(beamline, '_perform_move_for_all_drivers') as mock:
+            beamline.move = 1
+
+            if expected_max_duration == "ERROR":
+                mock.assert_not_called()
+            else:
+                mock.assert_called_with(expected_max_duration)
