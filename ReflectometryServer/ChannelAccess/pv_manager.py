@@ -17,12 +17,17 @@ BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
 BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
 BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
 PARAM_INFO = "PARAM_INFO"
+IN_MODE_SUFFIX = ":IN_MODE"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
+RBV_AT_SP = ":RBV:AT_SP"
 MOVE_SUFFIX = ":MOVE"
+CHANGING = ":CHANGING"
 CHANGED_SUFFIX = ":CHANGED"
+
+
 SET_AND_NO_MOVE_SUFFIX = ":SP_NO_MOVE"
-IN_MODE_SUFFIX = ":IN_MODE"
+
 VAL_FIELD = ".VAL"
 
 FOOTPRINT_PREFIX = "FP"
@@ -39,7 +44,7 @@ FP_RBV_PREFIX = "RBV"
 
 FOOTPRINT_PREFIXES = [FP_SP_PREFIX, FP_SP_RBV_PREFIX, FP_RBV_PREFIX]
 
-PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
+PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
 
 PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 
@@ -101,6 +106,8 @@ class PvSort(Enum):
     SET_AND_NO_MOVE = 4
     CHANGED = 6
     IN_MODE = 7
+    CHANGING = 8
+    RBV_AT_SP = 9
 
     @staticmethod
     def what(pv_sort):
@@ -121,9 +128,13 @@ class PvSort(Enum):
         elif pv_sort == PvSort.SET_AND_NO_MOVE:
             return "(Set point with no move afterwards)"
         elif pv_sort == PvSort.CHANGED:
-            return "(is changed)"
+            return "(Is changed)"
         elif pv_sort == PvSort.IN_MODE:
-            return "(is in mode)"
+            return "(Is in mode)"
+        elif pv_sort == PvSort.CHANGING:
+            return "(Is changing)"
+        elif pv_sort == PvSort.RBV_AT_SP:
+            return "(Tolerance between RBV and target set point)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -148,6 +159,10 @@ class PvSort(Enum):
             return parameter.sp_changed
         elif self == PvSort.MOVE:
             return parameter.move
+        elif self == PvSort.CHANGING:
+            return parameter.is_changing
+        elif self == PvSort.RBV_AT_SP:
+            return parameter.rbv_at_sp
         return float("NaN")
 
 
@@ -303,16 +318,24 @@ class PVManager:
                                   PvSort.SET_AND_NO_MOVE)
 
             # Changed PV
-            self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_CHANGED, description,
+            self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_BINARY, description,
                                   PvSort.CHANGED)
 
             # Move PV
             self._add_pv_with_val(prepended_alias + MOVE_SUFFIX, param_name, PARAM_FIELDS_MOVE, description,
                                   PvSort.MOVE)
 
+            # Moving state PV
+            self._add_pv_with_val(prepended_alias + CHANGING, param_name, PARAM_FIELDS_BINARY, description,
+                                  PvSort.CHANGING)
+
             # In mode PV
             self._add_pv_with_val(prepended_alias + IN_MODE_SUFFIX, param_name, PARAM_IN_MODE, description,
                                   PvSort.IN_MODE)
+
+            # RBV to SP:RBV tolerance once move completed
+            self._add_pv_with_val(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
+                                  PvSort.RBV_AT_SP)
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
@@ -438,7 +461,6 @@ class PVManager:
 
     def _is_pv_name_this_field(self, field_name, pv_name):
         """
-
         Args:
             field_name: field name to match
             pv_name: pv name to match
