@@ -67,16 +67,15 @@ class IocDriver(object):
 
     def _get_duration_parameters(self):
         """
-        Returns: gets the parameters used for calculating duration
-        direction, rbv, sp, bdst, mvel, bvel
+        Returns: gets the parameters used for calculating duration: readback value, setpoint, backlash distance, maximum
+        axis velocity and backlash velocity.
         """
-        return self._axis.direction, self.rbv_cache(), self._get_set_point_position(),\
-               self._axis.backlash_distance, self._axis.max_velocity, self._axis.backlash_velocity
+        return self.rbv_cache(), self._get_set_point_position(), self._axis.backlash_distance, self._axis.max_velocity,\
+               self._axis.backlash_velocity
 
-    def _backlash_duration(self, (direction, rbv, sp, bdst, vmax, bvel)):
+    def _backlash_duration(self, (rbv, sp, bdst, vmax, bvel)):
         """
         Args:
-            direction: the current dir setting of the motor
             rbv: the position read back value
             sp: the set point
             bdst: the backlash distance
@@ -86,8 +85,6 @@ class IocDriver(object):
         """
         # If the speeds are zero on a motor which is going to move, error as it makes no sense
         # to move a non-zero distance with a zero velocity
-        if vmax == 0 or vmax is None:
-            raise ZeroDivisionError("Motor max velocity is zero or none")
         if (bvel == 0 or bvel is None) and not (bdst == 0 or bdst is None):
             raise ZeroDivisionError("Backlash speed is zero or none")
 
@@ -101,15 +98,14 @@ class IocDriver(object):
         else:
             return math.fabs(bdst) / bvel
 
-    def _base_move_duration(self, (direction, rbv, sp, bdst, vmax, bvel)):
+    def _base_move_duration(self, (rbv, sp, bdst, vmax, bvel)):
         """
         Args:
-            direction: the current dir setting of the motor
             rbv: the position read back value
             sp: the set point
             bdst: the backlash distance
-            vmax: the maximum velocity (not used)
-            bvel: the backlash velocity
+            vmax: the maximum velocity
+            bvel: the backlash velocity (not used)
         Returns: the duration move without the backlash
         """
         if not (min([0, bdst]) <= rbv - sp <= max([0, bdst])):
@@ -124,6 +120,8 @@ class IocDriver(object):
         will return 0 but movement will still be required.
         """
         if self._axis_will_move() and self._synchronised:
+            if self._axis.max_velocity == 0 or self._axis.max_velocity is None:
+                raise ZeroDivisionError("Motor max velocity is zero or none")
             backlash_duration = self._backlash_duration(self._get_duration_parameters())
             base_move_duration = self._base_move_duration(self._get_duration_parameters())
 

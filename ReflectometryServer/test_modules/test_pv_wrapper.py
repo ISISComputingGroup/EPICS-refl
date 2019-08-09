@@ -88,7 +88,18 @@ class TestMotorPVWrapper(unittest.TestCase):
 
         self.assertEqual(expected_rbv, actual_rbv)
 
-    def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_backlash_distance_is_initialised_correctly(self):
+    def test_GIVEN_base_pv_and_positive_dir_WHEN_creating_motor_pv_wrapper_THEN_backlash_distance_is_initialised_correctly(self):
+        self.mock_ca.caput(self.dir_pv, "Pos")
+        expected_bdst = self.bdst * -1
+
+        wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
+        wrapper.initialise()
+        actual_bdst = wrapper.backlash_distance
+
+        self.assertEqual(expected_bdst, actual_bdst)
+
+    def test_GIVEN_base_pv_and_negative_dir_WHEN_creating_motor_pv_wrapper_THEN_backlash_distance_is_initialised_correctly(self):
+        self.mock_ca.caput(self.dir_pv, "Neg")
         expected_bdst = self.bdst
 
         wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
