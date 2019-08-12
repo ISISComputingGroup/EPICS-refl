@@ -32,11 +32,15 @@ class PVWrapper(object):
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
+        self._after_is_changing_change_listeners = set()
 
         self._move_initiated = False
         self._moving_state = None
         self._v_restore = None
         self._v_curr = None
+        self._d_back = None
+        self._v_back = None
+        self._dir = None
         self.max_velocity = None
         self._state_init_event = Event()
         self._velocity_event = Event()
@@ -54,6 +58,9 @@ class PVWrapper(object):
         self._velo_pv = ""
         self._vmax_pv = ""
         self._dmov_pv = ""
+        self._bdst_pv = ""
+        self._bvel_pv = ""
+        self._dir_pv = ""
         raise NotImplementedError()
 
     def _set_resolution(self):
@@ -75,18 +82,24 @@ class PVWrapper(object):
         """
         self._add_monitors()
         self._v_curr = self._read_pv(self._velo_pv)
+        self._d_back = self._read_pv(self._bdst_pv)
+        self._v_back = self._read_pv(self._bvel_pv)
+        self._dir = self._read_pv(self._dir_pv)
 
     def _add_monitors(self):
         """
         Add monitors to the relevant motor PVs.
         """
         self._monitor_pv(self._rbv_pv,
-                         partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
+                         partial(self._trigger_listeners, self._after_rbv_change_listeners))
         self._monitor_pv(self._sp_pv,
-                         partial(self._trigger_listeners, "setpoint value", self._after_sp_change_listeners))
+                         partial(self._trigger_listeners, self._after_sp_change_listeners))
 
         self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._velo_pv, self._on_update_velocity)
+        self._monitor_pv(self._bdst_pv, self._on_update_backlash_distance)
+        self._monitor_pv(self._bvel_pv, self._on_update_backlash_velocity)
+        self._monitor_pv(self._dir_pv, self._on_update_direction)
 
     def _monitor_pv(self, pv, call_back_function):
         """
@@ -143,7 +156,15 @@ class PVWrapper(object):
         """
         self._after_sp_change_listeners.add(listener)
 
-    def _trigger_listeners(self, change_type, listeners, new_value, alarm_severity, alarm_status):
+    def add_after_is_changing_change_listener(self, listener):
+        """
+        Add a listener which should be called after a change in the dmov (moving) status for a motor
+        Args:
+            listener: function to call should have two arguments which are the new value and new error state
+        """
+        self._after_is_changing_change_listeners.add(listener)
+
+    def _trigger_listeners(self, listeners, new_value, alarm_severity, alarm_status):
         for value_change_listener in listeners:
             value_change_listener(new_value, alarm_severity, alarm_status)
 
@@ -192,6 +213,30 @@ class PVWrapper(object):
         """
         return self._v_curr
 
+    @property
+    def backlash_distance(self):
+        """
+        Returns: the value of the underlying backlash distance PV
+        """
+        if self._dir == "Pos":
+            return self._d_back * -1
+        else:
+            return self._d_back
+
+    @property
+    def backlash_velocity(self):
+        """
+        Returns: the value of the underlying backlash velocity PV
+        """
+        return self._v_back
+
+    @property
+    def direction(self):
+        """
+        Returns: the value of the underlying direction PV
+        """
+        return self._dir
+
     @velocity.setter
     def velocity(self, value):
         """
@@ -230,6 +275,13 @@ class PVWrapper(object):
                 self._velocity_event.clear()
         self._moving_state = new_value
         self._state_init_event.set()
+        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value), alarm_severity, alarm_status)
+
+    def _dmov_to_bool(self, value):
+        """
+        Converts the inverted dmov (0=True, 1=False) to the standard format
+        """
+        return not value
 
     def _on_update_velocity(self, value, alarm_severity, alarm_status):
         """
@@ -263,6 +315,53 @@ class PVWrapper(object):
         self._v_restore = v_init
         write_autosave_value(self.name, v_init, AutosaveType.VELOCITY)
 
+    @property
+    def is_moving(self):
+        return self._dmov_to_bool(self._moving_state)
+
+
+    def _on_update_backlash_distance(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the backlash distance of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new backlash distance
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._d_back = value
+
+    def _on_update_backlash_velocity(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the backlash velocity of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new backlash distance
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._v_back = value
+
+    def _on_update_direction(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the direction of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new backlash distance
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._dir = value
+
+    def get_distance(self, rbv, set_point_position):
+        """
+        Args:
+            rbv: the read back value
+            set_point_position: the set point position
+        Returns: The distance between the target component position and the actual motor position in y.
+        """
+        raise NotImplemented("This should be implemented in the subclass")
+
 
 class MotorPVWrapper(PVWrapper):
     """
@@ -286,6 +385,9 @@ class MotorPVWrapper(PVWrapper):
         self._velo_pv = "{}.VELO".format(self._prefixed_pv)
         self._vmax_pv = "{}.VMAX".format(self._prefixed_pv)
         self._dmov_pv = "{}.DMOV".format(self._prefixed_pv)
+        self._bdst_pv = "{}.BDST".format(self._prefixed_pv)
+        self._bvel_pv = "{}.BVEL".format(self._prefixed_pv)
+        self._dir_pv = "{}.DIR".format(self._prefixed_pv)
 
     def _set_resolution(self):
         """
@@ -305,14 +407,11 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         self.is_vertical = is_vertical
         self._individual_moving_states = {}
-        self._state_init_events = {}
+        self._state_init_event = Event()
 
         self._directions = []
         self._set_directions()
         self._velocities = {}
-
-        for key in self._directions:
-            self._state_init_events[key] = Event()
 
         super(_JawsAxisPVWrapper, self).__init__(base_pv, ca)
 
@@ -348,13 +447,9 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         Add monitors to the relevant motor PVs.
         """
-        self._monitor_pv(self._rbv_pv,
-                         partial(self._trigger_listeners, "readback value", self._after_rbv_change_listeners))
-        self._monitor_pv(self._sp_pv,
-                         partial(self._trigger_listeners, "setpoint value", self._after_sp_change_listeners))
-
-        for dmov_pv in self._pv_names_for_directions("MTR.DMOV"):
-            self._monitor_pv(dmov_pv, partial(self._on_update_moving_state, source=self._strip_source_pv(dmov_pv)))
+        self._monitor_pv(self._rbv_pv, partial(self._trigger_listeners, self._after_rbv_change_listeners))
+        self._monitor_pv(self._sp_pv, partial(self._trigger_listeners, self._after_sp_change_listeners))
+        self._monitor_pv(self._dmov_pv, partial(self._on_update_moving_state))
 
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._monitor_pv(velo_pv, partial(self._on_update_individual_velocity,
@@ -407,12 +502,11 @@ class _JawsAxisPVWrapper(PVWrapper):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self._individual_moving_states[source] = new_value
-        overall_state = self._get_overall_moving_state()
-        if overall_state == MTR_STOPPED and self._v_restore is not None:
+        if new_value == MTR_STOPPED and self._v_restore is not None:
             self.velocity = self._v_restore
-        self._moving_state = overall_state
-        self._state_init_events[source].set()
+        self._moving_state = new_value
+        self._state_init_event.set()
+        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value), alarm_severity, alarm_status)
 
     def _on_update_individual_velocity(self, value, alarm_severity, alarm_status, source=None):
         self._velocities[source] = value
@@ -424,25 +518,12 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         v_init = value
         v_autosaved = read_autosave_value(self.name, AutosaveType.VELOCITY)
-        for key, event in self._state_init_events.items():
-            event.wait()
+        self._state_init_event.wait()
         if self._moving_state == MTR_MOVING:
             if v_autosaved is not None:
                 v_init = v_autosaved
         self._v_restore = v_init
         write_autosave_value(self.name, v_init, AutosaveType.VELOCITY)
-
-    def _get_overall_moving_state(self):
-        """
-        Returns the overall moving state of the jaws. If every individual axis is stopped the overall state is stopped,
-        otherwise the state is moving.
-
-        Returns: The overall moving state.
-        """
-        overall_state = MTR_MOVING
-        if all(state == MTR_STOPPED for state in self._individual_moving_states.values()):
-            overall_state = MTR_STOPPED
-        return overall_state
 
     def _strip_source_pv(self, pv):
         """
@@ -456,6 +537,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         for key in self._directions:
             if key in pv:
                 return key
+        logger.error("Unexpected event source: {}".format(pv))
         logger.error("Unexpected event source: {}".format(pv))
 
 
@@ -477,6 +559,7 @@ class JawsGapPVWrapper(_JawsAxisPVWrapper):
         """
         self._sp_pv = "{}:{}GAP:SP".format(self._prefixed_pv, self._direction_symbol)
         self._rbv_pv = "{}:{}GAP".format(self._prefixed_pv, self._direction_symbol)
+        self._dmov_pv = "{}:{}GAP:DMOV".format(self._prefixed_pv, self._direction_symbol)
 
 
 class JawsCentrePVWrapper(_JawsAxisPVWrapper):
@@ -500,3 +583,4 @@ class JawsCentrePVWrapper(_JawsAxisPVWrapper):
         """
         self._sp_pv = "{}:{}CENT:SP".format(self._prefixed_pv, self._direction_symbol)
         self._rbv_pv = "{}:{}CENT".format(self._prefixed_pv, self._direction_symbol)
+        self._dmov_pv = "{}:{}CENT:DMOV".format(self._prefixed_pv, self._direction_symbol)

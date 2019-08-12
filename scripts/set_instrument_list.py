@@ -104,9 +104,9 @@ if __name__ == "__main__":
         inst_dictionary("LOQ"),
         inst_dictionary("LET"),
         inst_dictionary("MARI"),
-        inst_dictionary("CRISP", is_scheduled=False),
+        inst_dictionary("CRISP"),
         inst_dictionary("SOFTMAT", is_scheduled=False),
-        inst_dictionary("SURF", is_scheduled=False),
+        inst_dictionary("SURF"),
     ]
 
     new_value = json.dumps(instruments_list)

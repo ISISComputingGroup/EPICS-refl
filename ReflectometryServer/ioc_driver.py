@@ -45,6 +45,7 @@ class IocDriver(object):
 
         self._axis.add_after_rbv_change_listener(self._on_update_rbv)
         self._axis.add_after_sp_change_listener(self._on_update_sp)
+        self._axis.add_after_is_changing_change_listener(self._on_update_is_changing)
 
     def _on_correction_update(self, new_correction_value):
         """
@@ -91,13 +92,69 @@ class IocDriver(object):
         """
         return not self.at_target_setpoint() and self._is_changed()
 
+    def _get_duration_parameters(self):
+        """
+        Returns: gets the parameters used for calculating duration: readback value, setpoint, backlash distance, maximum
+        axis velocity and backlash velocity.
+        """
+        return self.rbv_cache(), self._get_set_point_position(), self._axis.backlash_distance, self._axis.max_velocity,\
+               self._axis.backlash_velocity
+
+    def _backlash_duration(self, (rbv, sp, bdst, vmax, bvel)):
+        """
+        Args:
+            rbv: the position read back value
+            sp: the set point
+            bdst: the backlash distance
+            vmax: the maximum velocity (not used)
+            bvel: the backlash velocity
+        Returns: the duration of the backlash move
+        """
+        # If the speeds are zero on a motor which is going to move, error as it makes no sense
+        # to move a non-zero distance with a zero velocity
+        if (bvel == 0 or bvel is None) and not (bdst == 0 or bdst is None):
+            raise ZeroDivisionError("Backlash speed is zero or none")
+
+        if bvel == 0 or bvel is None:
+            # Return 0 instead of error as when this is called by perform_move it can be on motors which are
+            # not in fact moving, and may not have been set up yet
+            return 0
+        elif min([0, bdst]) <= rbv - sp <= max([0, bdst]):
+            # If the motor is already within the backlash distance
+            return math.fabs(rbv - sp) / bvel
+        else:
+            return math.fabs(bdst) / bvel
+
+    def _base_move_duration(self, (rbv, sp, bdst, vmax, bvel)):
+        """
+        Args:
+            rbv: the position read back value
+            sp: the set point
+            bdst: the backlash distance
+            vmax: the maximum velocity
+            bvel: the backlash velocity (not used)
+        Returns: the duration move without the backlash
+        """
+        if not (min([0, bdst]) <= rbv - sp <= max([0, bdst])):
+            # If the motor is not already within the backlash distance
+            return math.fabs(rbv - (sp + bdst)) / vmax
+        else:
+            return 0
+
     def get_max_move_duration(self):
         """
         Returns: The maximum duration of the requested move for all associated axes. If axes are not synchronised this
         will return 0 but movement will still be required.
         """
         if self._axis_will_move() and self._synchronised:
-            return self._get_distance() / self._axis.max_velocity
+            if self._axis.max_velocity == 0 or self._axis.max_velocity is None:
+                raise ZeroDivisionError("Motor max velocity is zero or none")
+            backlash_duration = self._backlash_duration(self._get_duration_parameters())
+            base_move_duration = self._base_move_duration(self._get_duration_parameters())
+
+            duration = base_move_duration + backlash_duration
+
+            return duration
         else:
             return 0.0
 
@@ -110,7 +167,9 @@ class IocDriver(object):
             move_duration (float): The duration in which to perform this move
             force (bool): move even if component does not report changed
         """
+
         if self._axis_will_move() or force:
+            move_duration -= self._backlash_duration(self._get_duration_parameters())
             logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
             if move_duration > 1e-6 and self._synchronised:
                 self._axis.initiate_move_with_change_of_velocity()
@@ -145,7 +204,9 @@ class IocDriver(object):
         """
         :return: The distance between the target component position and the actual motor position in y.
         """
-        return math.fabs(self.rbv_cache() - self._get_component_sp())
+
+        bdst = self._axis.backlash_distance
+        return math.fabs(self.rbv_cache() - (self._get_component_sp() + bdst))
 
     def _get_component_sp(self):
         """
@@ -185,6 +246,14 @@ class IocDriver(object):
             value: The new set point value.
         """
         self._sp_cache = self._engineering_correct.from_axis(value, self._get_component_sp())
+
+    def _on_update_is_changing(self, value, alarm_severity, alarm_status):
+        """
+        Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
+        Args:
+            value: The new is_moving value
+        """
+        raise NotImplemented()
 
     def at_target_setpoint(self):
         """
@@ -274,6 +343,14 @@ class DisplacementDriver(IocDriver):
         """
         return self._out_of_beam_position is not None
 
+    def _on_update_is_changing(self, value, alarm_severity, alarm_status):
+        """
+        Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
+        Args:
+            value: The new is_moving value
+        """
+        self._component.beam_path_rbv.is_displacing = value
+
     def _component_changed(self):
         return self._component.read_changed_flag(ChangeAxis.POSITION)
 
@@ -327,6 +404,14 @@ class AngleDriver(IocDriver):
 
     def _get_component_sp(self):
         return self._component.beam_path_set_point.angle
+
+    def _on_update_is_changing(self, value, alarm_severity, alarm_status):
+        """
+        Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
+        Args:
+            value: The new is_moving value
+        """
+        self._component.beam_path_rbv.is_rotating = value
 
     def _is_changed(self):
         """

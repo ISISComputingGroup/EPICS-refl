@@ -2,6 +2,7 @@
 Driver for the reflectometry server.
 """
 import logging
+import time
 from functools import partial
 
 from pcaspy import Driver, Alarm, Severity
@@ -133,7 +134,7 @@ class ReflectometryDriver(Driver):
         # with self.monitor_lock:
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pvnames_and_sort():
             parameter = self._beamline.parameter(param_name)
-            if param_sort is not PvSort.IN_MODE:
+            if param_sort not in [PvSort.IN_MODE, PvSort.CHANGING]:
                 self._update_param_both_pv_and_pv_val(pv_name, param_sort.get_from_parameter(parameter))
 
         self._update_all_footprints()
@@ -193,6 +194,14 @@ class ReflectometryDriver(Driver):
                 parameter.add_rbv_change_listener(partial(self._update_param_listener, pv_name))
             if param_sort == PvSort.SP_RBV:
                 parameter.add_sp_rbv_change_listener(partial(self._update_param_listener, pv_name))
+            if param_sort == PvSort.CHANGING:
+                parameter.add_after_is_changing_change_listener(partial(self._update_binary_listener, pv_name))
+            if param_sort == PvSort.RBV_AT_SP:
+                parameter.add_after_rbv_at_sp_listener(partial(self._update_binary_listener, pv_name))
+
+    def _update_binary_listener(self, pv_name, value):
+        self.setParam(pv_name, value)
+        self.updatePVs()
 
     def _bl_mode_change(self, mode, params_in_mode):
         """

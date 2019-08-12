@@ -3,7 +3,7 @@ import unittest
 
 from math import tan, radians
 from hamcrest import *
-from mock import Mock, patch
+from mock import Mock, patch, MagicMock
 
 from ReflectometryServer import *
 
@@ -286,5 +286,84 @@ class TestBeamlineModeInitialization(unittest.TestCase):
         mock_mode_inits.assert_not_called()
 
 
+class TestRealisticWithAutosaveInit(unittest.TestCase):
+
+    @patch("ReflectometryServer.parameters.read_autosave_value")
+    def test_GIVEN_beam_line_where_autosave_theta_at_0_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_sm_angle = 22.5
+        expected_theta = 0
+        file_io.return_value = expected_theta
+
+        bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta)
+
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
+        assert_that(bl.parameter("theta").sp, is_(close_to(expected_theta, 1e-6)), "theta SP")
+        assert_that(bl.parameter("det_pos").sp, is_(close_to(0, 1e-6)), "det position SP")
+        assert_that(bl.parameter("det_angle").sp, is_(close_to(0, 1e-6)), "det angle SP")
+
+        assert_that(bl.parameter("sm_angle").sp_rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP RBV")
+        assert_that(bl.parameter("theta").sp_rbv, is_(close_to(expected_theta, 1e-6)), "theta SP RBV")
+        assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(0, 1e-6)), "det position SP RBV")
+        assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
+
+    @patch("ReflectometryServer.parameters.read_autosave_value")
+    def test_GIVEN_beam_line_where_autosave_theta_at_non_zero_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_sm_angle = 22.5
+        expected_theta = 2
+        file_io.return_value = expected_theta
+
+        bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta)
+
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
+        assert_that(bl.parameter("theta").sp, is_(close_to(expected_theta, 1e-6)), "theta SP")
+        assert_that(bl.parameter("det_pos").sp, is_(close_to(0, 1e-6)), "det position SP")
+        assert_that(bl.parameter("det_angle").sp, is_(close_to(0, 1e-6)), "det angle SP")
+
+        assert_that(bl.parameter("sm_angle").sp_rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP RBV")
+        assert_that(bl.parameter("theta").sp_rbv, is_(close_to(expected_theta, 1e-6)), "theta SP RBV")
+        assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(0, 1e-6)), "det position SP RBV")
+        assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
+
+    @patch("ReflectometryServer.parameters.read_autosave_value")
+    def test_GIVEN_beam_line_where_autosave_det_offset_at_zero_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_sm_angle = 22.5
+        expected_theta = 0
+        expected_det_offset = 0
+        file_io.return_value = expected_det_offset
+
+        bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, autosave_theta_not_offset=False)
+
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
+        assert_that(bl.parameter("theta").sp, is_(close_to(expected_theta, 1e-6)), "theta SP")
+        assert_that(bl.parameter("det_pos").sp, is_(close_to(0, 1e-6)), "det position SP")
+        assert_that(bl.parameter("det_angle").sp, is_(close_to(0, 1e-6)), "det angle SP")
+
+        assert_that(bl.parameter("sm_angle").sp_rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP RBV")
+        assert_that(bl.parameter("theta").sp_rbv, is_(close_to(expected_theta, 1e-6)), "theta SP RBV")
+        assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(0, 1e-6)), "det position SP RBV")
+        assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
+
+    @patch("ReflectometryServer.parameters.read_autosave_value")
+    def test_GIVEN_beam_line_where_autosave_det_offset_at_non_zero_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_sm_angle = 22.5
+        expected_theta = 0
+        expected_det_offset = 1
+        file_io.return_value = expected_det_offset
+
+        bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, expected_det_offset, autosave_theta_not_offset=False)
+
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
+        assert_that(bl.parameter("theta").sp, is_(close_to(expected_theta, 1e-6)), "theta SP")
+        assert_that(bl.parameter("det_pos").sp, is_(close_to(expected_det_offset, 1e-6)), "det position SP")
+        assert_that(bl.parameter("det_angle").sp, is_(close_to(0, 1e-6)), "det angle SP")
+
+        assert_that(bl.parameter("sm_angle").sp_rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP RBV")
+        assert_that(bl.parameter("theta").sp_rbv, is_(close_to(expected_theta, 1e-6)), "theta SP RBV")
+        assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(expected_det_offset, 1e-6)), "det position SP RBV")
+        assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
+
+
 if __name__ == '__main__':
     unittest.main()
+
+
