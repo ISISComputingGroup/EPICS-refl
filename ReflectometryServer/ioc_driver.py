@@ -33,15 +33,15 @@ class IocDriver(object):
         self.name = axis.name
         self._synchronised = synchronised
         if engineering_correction is None:
-            self._engineering_correct = NoCorrection()
+            self._engineering_correction = NoCorrection()
             self.has_engineering_correct = False
         else:
             self.has_engineering_correct = True
-            self._engineering_correct = engineering_correction
-            self._engineering_correct.add_listener(CorrectionUpdate, self._on_correction_update)
+            self._engineering_correction = engineering_correction
+            self._engineering_correction.add_listener(CorrectionUpdate, self._on_correction_update)
 
         self._sp_cache = None
-        self._rbv_cache = self._engineering_correct.from_axis(self._axis.rbv, self._get_component_sp())
+        self._rbv_cache = self._engineering_correction.from_axis(self._axis.rbv, self._get_component_sp())
 
         self._axis.add_after_rbv_change_listener(self._on_update_rbv)
         self._axis.add_after_sp_change_listener(self._on_update_sp)
@@ -175,7 +175,7 @@ class IocDriver(object):
             if move_duration > 1e-6 and self._synchronised:
                 self._axis.initiate_move_with_change_of_velocity()
                 self._axis.velocity = self._get_distance() / move_duration
-            self._axis.sp = self._engineering_correct.to_axis(self._get_component_sp())
+            self._axis.sp = self._engineering_correction.to_axis(self._get_component_sp())
         self._clear_changed()
 
     def _is_changed(self):
@@ -225,7 +225,7 @@ class IocDriver(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        corrected_new_value = self._engineering_correct.from_axis(new_value, self._get_component_sp())
+        corrected_new_value = self._engineering_correction.from_axis(new_value, self._get_component_sp())
         self._rbv_cache = corrected_new_value
         self._propagate_rbv_change(corrected_new_value, alarm_severity, alarm_status)
 
@@ -247,7 +247,7 @@ class IocDriver(object):
         Args:
             value: The new set point value.
         """
-        self._sp_cache = self._engineering_correct.from_axis(value, self._get_component_sp())
+        self._sp_cache = self._engineering_correction.from_axis(value, self._get_component_sp())
 
     def _on_update_is_changing(self, value, alarm_severity, alarm_status):
         """
@@ -305,7 +305,7 @@ class DisplacementDriver(IocDriver):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        sp = self._engineering_correct.init_from_axis(self._axis.sp)
+        sp = self._engineering_correction.init_from_axis(self._axis.sp)
         if self._out_of_beam_position is not None:
             in_beam_status = self._get_in_beam_status(self._axis.sp)
             self._component.beam_path_set_point.is_in_beam = in_beam_status
@@ -390,7 +390,7 @@ class AngleDriver(IocDriver):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        corrected_axis_setpoint = self._engineering_correct.init_from_axis(self._axis.sp)
+        corrected_axis_setpoint = self._engineering_correction.init_from_axis(self._axis.sp)
         self._component.beam_path_set_point.init_angle_from_motor(corrected_axis_setpoint)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):

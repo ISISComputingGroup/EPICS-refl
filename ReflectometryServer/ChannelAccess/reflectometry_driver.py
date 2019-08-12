@@ -258,7 +258,7 @@ class ReflectometryDriver(Driver):
         Add all the triggers on engineering corrections.
 
         """
-        def _corrections_pv(name, correction_update):
+        def _update_corrections_pv(name, correction_update):
             """
             Update the driver engineering corrections PV with new value
             Args:
@@ -272,8 +272,8 @@ class ReflectometryDriver(Driver):
             self.updatePVs()
 
         for driver, pv_name in self._pv_manager.drivers_pv.items():
-            driver.add_listener(CorrectionUpdate, partial(_corrections_pv, pv_name))
+            driver.add_listener(CorrectionUpdate, partial(_update_corrections_pv, pv_name))
             last_val = driver.listener_last_value(CorrectionUpdate)
             if last_val is None:
                 last_val = CorrectionUpdate(float("NaN"), driver.correction_description)
-            _corrections_pv(pv_name, last_val)
+            _update_corrections_pv(pv_name, last_val)

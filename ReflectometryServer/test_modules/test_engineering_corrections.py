@@ -10,7 +10,7 @@ import unittest
 from ReflectometryServer import *
 from ReflectometryServer import beamline_configuration
 from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider
-from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_axis
+from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_axis, DataMother
 
 from server_common.channel_access import UnableToConnectToPVException
 
@@ -156,13 +156,13 @@ class TestEngineeringCorrectionsPureFunction(unittest.TestCase):
         def _test_correction(setpoint, beamline_parameter):
             return setpoint + beamline_parameter
 
-        beamline_value = 2
+        parameter_value = 2
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
         beamline_parameter = TrackingPosition("param", comp)
-        beamline_parameter.sp = beamline_value
+        beamline_parameter.sp = parameter_value
 
         value = 1
-        expected_correction = value * 2 + beamline_value
+        expected_correction = value * 2 + parameter_value
 
         engineering_correction = UserFunctionCorrection(_test_correction, beamline_parameter)
 
@@ -283,6 +283,22 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
         interp.grid_data_provider = grid_data_provider
 
         result = interp.correction(0)
+
+        assert_that(result, is_(close_to(0, FLOAT_TOLERANCE)))
+
+    def test_GIVEN_interp_with_1D_points_based_on_setpoint_of_driver_which_has_not_been_initialised_WHEN_request_a_point_THEN_correction_0_returned(self):
+        grid_data_provider = GridDataFileReader("Test")
+        grid_data_provider.variables = ["DRIVER"]
+        grid_data_provider.points = np.array([[1.0, ], [2.0, ], [3.0, ]])
+        grid_data_provider.corrections = np.array([1.234, 4.0, 6.0])
+        grid_data_provider.read = lambda: None
+
+        comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
+
+        interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider)
+        interp.grid_data_provider = grid_data_provider
+
+        result = interp.init_from_axis(0)
 
         assert_that(result, is_(close_to(0, FLOAT_TOLERANCE)))
 
@@ -426,6 +442,29 @@ class TestEngineeringCorrectionsChangeListener(unittest.TestCase):
                                                                            contains_string(mock_axis.name)))
 
 
-# Test when a component is not autosaved but has an engineering correction based on its setpoint
-# Test that changes a couple of parameters not in the mode, change a parameter with a correction that depends on both those parameters, then click move for a parameter, should not take into account correction
-# Same again but click move for all value should be taken into account
+class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
+
+    @patch("ReflectometryServer.parameters.read_autosave_value")
+    def test_GIVEN_beam_line_where_autosave_theta_and_engineering_correction_on_pd_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_sm_angle = 22.5
+        expected_theta = 2
+        file_io.return_value = expected_theta
+
+        bl, axes = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, autosave_theta_not_offset=True, sm_angle_engineering_correction=True)
+
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
+
+    @patch("ReflectometryServer.parameters.read_autosave_value")
+    def test_GIVEN_beam_line_where_autosave_offset_and_engineering_correction_on_offset_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        sm_angle = 22.5
+        expected_theta = 2
+        # Theta is not autosaved so the correction for theta will not be able to be calculated. Therefore the correction should be 0 and the
+        #  sm angle set will include the correction.
+        epected_sm_angle = sm_angle + expected_theta / 2
+
+        expected_det_offset = 0.0
+        file_io.return_value = expected_det_offset
+
+        bl, axes = DataMother.beamline_sm_theta_detector(sm_angle, expected_theta, autosave_theta_not_offset=False, sm_angle_engineering_correction=True)
+
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(epected_sm_angle, 1e-6)), "sm angle SP")

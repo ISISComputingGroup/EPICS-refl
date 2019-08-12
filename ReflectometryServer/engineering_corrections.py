@@ -71,8 +71,8 @@ class EngineeringCorrection:
 @six.add_metaclass(abc.ABCMeta)
 class SymmetricEngineeringCorrection(EngineeringCorrection):
     """
-    Base class for engineering correction which are symmetric for from component and from axis. Correction is add to
-    the value when sent to an axis.
+    Base class for engineering corrections which are symmetric for both to axis and from axis directions. Correction is
+    added to the value when sent to an axis.
     """
 
     def __init__(self):
@@ -99,7 +99,7 @@ class SymmetricEngineeringCorrection(EngineeringCorrection):
 
     def from_axis(self, value, setpoint):
         """
-        Correct a value from the axis using the correction
+        Correct a value read from the axis using the correction
         Args:
             value: value to correct
             setpoint: setpoint to use to calculate correction
@@ -119,7 +119,7 @@ class NoCorrection(SymmetricEngineeringCorrection):
     def correction(self, _):
         """
 
-        Returns: no correction
+        Returns: a correction of zero (i.e. no change to the value)
 
         """
         return 0
@@ -181,7 +181,7 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
 
     def correction(self, setpoint):
         """
-        Correction
+        Correction as calculated by the provided user function.
         Args:
             setpoint: setpoint to use to calculate correction
         Returns: the correction calculated using the users function.
@@ -285,6 +285,7 @@ class _DummyBeamlineParameter:
     """
     def __init__(self):
         self.sp_rbv = 0
+        self.name = COLUMN_NAME_FOR_DRIVER_SETPOINT
 
 
 class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
@@ -310,34 +311,34 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
         self._default_correction = 0
         self.description = "Interpolated"
 
-    def _find_parameter(self, beamline_name, beamline_parameters):
+    def _find_parameter(self, parameter_name, beamline_parameters):
         """
         Find the beamline parameter in the beamline parameters list
         Args:
-            beamline_name: name of the beamline parameter
+            parameter_name: name of the beamline parameter
             beamline_parameters: possible parameters
 
         Returns:
             special driver parameter if the name is driver otherwise the beamline parameter associated with the name
         """
-        if beamline_name.upper() == COLUMN_NAME_FOR_DRIVER_SETPOINT:
+        if parameter_name.upper() == COLUMN_NAME_FOR_DRIVER_SETPOINT:
             return self.set_point_value_as_parameter
 
         named_parameters = [beamline_parameter for beamline_parameter in beamline_parameters
-                            if beamline_parameter.name.upper() == beamline_name.upper()]
+                            if beamline_parameter.name.upper() == parameter_name.upper()]
         if len(named_parameters) != 1:
             parameter_names = [beamline_parameter.name for beamline_parameter in beamline_parameters]
             raise ValueError("Data for Interpolate Grid Data has column name '{}' which does not match either "
                              "'{}' or one of the beamline parameter '{}'".
-                             format(beamline_name, COLUMN_NAME_FOR_DRIVER_SETPOINT, parameter_names))
+                             format(parameter_name, COLUMN_NAME_FOR_DRIVER_SETPOINT, parameter_names))
         return named_parameters[0]
 
     def correction(self, setpoint):
         """
-        Correction
+        Correction as interpolated from the grid data provided
         Args:
             setpoint: setpoint to use to calculate correction
-        Returns: the correction calculated using the users function.
+        Returns: the correction calculated using the grid data.
         """
         self.set_point_value_as_parameter.sp_rbv = setpoint
         evaluation_point = [param.sp_rbv for param in self._beamline_parameters]
@@ -345,7 +346,7 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
             non_initialised_params = [param.name for param in self._beamline_parameters if param.sp_rbv is None]
             logger.error("Engineering correction, '{}', evaluated for non-autosaved value, {}".format(
                 self.description, non_initialised_params))
-            interpolated_value = [0]
+            interpolated_value = [0.0]
         else:
             interpolated_value = griddata(self._grid_data_provider.points, self._grid_data_provider.corrections,
                                           evaluation_point, 'linear', self._default_correction)

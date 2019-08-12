@@ -77,8 +77,17 @@ def observable(*allowed_listener_types):
                 listener(new_value)
 
         def _listener_last_value(self, listener_type):
-            listeners_and_value = _get_listeners_info(self, listener_type)
-            return listeners_and_value.last_value
+            """
+            Get the last triggered value of the listener for the given type.
+            Args:
+                self: instance of class
+                listener_type: type of the listener set to get
+
+            Returns: The last value that was triggered; None if this has not yet ben triggered.
+
+            """
+            listeners_info = _get_listeners_info(self, listener_type)
+            return listeners_info.last_value
 
         # add the method which allows observers of the class to add their listeners to it
         setattr(cls, "add_listener", _add_listener)

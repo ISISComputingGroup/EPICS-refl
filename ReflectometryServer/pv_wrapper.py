@@ -556,6 +556,7 @@ class JawsGapPVWrapper(_JawsAxisPVWrapper):
             base_pv (String): The name of the base PV
         """
         super(JawsGapPVWrapper, self).__init__(base_pv, is_vertical, ca)
+        self._name = "{}:{}GAP".format(self._name, self._direction_symbol)
 
     def _set_pvs(self):
         """
@@ -580,6 +581,7 @@ class JawsCentrePVWrapper(_JawsAxisPVWrapper):
             pv_name (String): The name of the PV
         """
         super(JawsCentrePVWrapper, self).__init__(base_pv, is_vertical, ca)
+        self._name = "{}:{}CENT".format(self._name, self._direction_symbol)
 
     def _set_pvs(self):
         """

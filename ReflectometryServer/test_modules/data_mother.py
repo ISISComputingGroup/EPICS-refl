@@ -1,8 +1,9 @@
 """
-Test data and classes.
+SimpleObservable data and classes.
 """
 from math import tan, radians
 
+from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider
 from utils import DEFAULT_TEST_TOLERANCE
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
@@ -10,7 +11,7 @@ from ReflectometryServer.components import Component, TiltingComponent, ThetaCom
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter
-
+import numpy as np
 
 
 class EmptyBeamlineParameter(BeamlineParameter):
@@ -124,15 +125,18 @@ class DataMother(object):
         return bl, axes
 
     @staticmethod
-    def beamline_sm_theta_detector(sm_angle, theta, det_offset=0, autosave_theta_not_offset=True):
+    def beamline_sm_theta_detector(sm_angle, theta, det_offset=0, autosave_theta_not_offset=True, sm_angle_engineering_correction=False):
         """
         Create beamline with Slits 1 and 3 a theta and a detector
         Args:
-            spacing: spacing between components
+            sm_angle: super mirror angle
+            theta: theta angle
+            det_offset: offset to detector
+            autosave_theta_not_offset: true to autosave theta and not the offset, false otherwise
 
         Returns: beamline, axes
-
         """
+
         # COMPONENTS
         z_sm_to_sample = 1
         z_sample_to_det = 2
@@ -151,17 +155,31 @@ class DataMother(object):
         params = [sm_angle_param, theta_param, detector_position_param, detector_angle_param]
 
         # DRIVERS
+        # engineering correction
+        if sm_angle_engineering_correction:
+            grid_data_provider = GridDataFileReader("linear_theta")
+            grid_data_provider.variables = ["Theta"]
+            grid_data_provider.points = np.array([[-90, ], [0.0, ], [90.0, ]])
+            grid_data_provider.corrections = np.array([-45, 0.0, 45])
+            grid_data_provider.read = lambda: None
+            correction = InterpolateGridDataCorrectionFromProvider(grid_data_provider, theta_param)
+            size_of_correction = theta / 2.0
+        else:
+            correction = None
+            size_of_correction = 0
+
+        # setup motors
         beam_angle_after_sample = theta * 2 + sm_angle * 2
         offset_from_sm_angle = z_sm_to_sample * tan(radians(sm_angle * 2))
         offset_from_theta = z_sample_to_det * tan(radians(beam_angle_after_sample))
-        sm_axis = create_mock_axis("MOT:MTR0101", sm_angle, 1)
+        sm_axis = create_mock_axis("MOT:MTR0101", sm_angle + size_of_correction, 1)
         det_axis = create_mock_axis("MOT:MTR0104", offset_from_sm_angle + offset_from_theta + det_offset, 1)
         det_angle_axis = create_mock_axis("MOT:MTR0105", beam_angle_after_sample, 1)
         axes = {"sm_axis": sm_axis,
                 "det_axis": det_axis,
                 "det_angle_axis": det_angle_axis}
 
-        drives = [AngleDriver(sm_comp, sm_axis),
+        drives = [AngleDriver(sm_comp, sm_axis, engineering_correction=correction),
                   DisplacementDriver(detector_comp, det_axis),
                   AngleDriver(detector_comp, det_angle_axis)]
 
@@ -169,7 +187,7 @@ class DataMother(object):
         nr_inits = {}
         nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
         modes = [nr_mode]
-        beam_start = PositionAndAngle(0.0, 0.0, -1)
+        beam_start = PositionAndAngle(0.0, 0.0, 0.0)
         bl = Beamline(comps, params, drives, modes, beam_start)
         bl.active_mode = nr_mode.name
         return bl, axes
