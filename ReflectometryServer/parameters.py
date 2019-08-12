@@ -130,10 +130,10 @@ class BeamlineParameter(object):
         """
         Returns: Does the read back value match the set point target within a defined tolerance
         """
-        if self.rbv is None or self._set_point_rbv is None or abs(self.rbv - self._set_point_rbv) > self._rbv_to_sp_tolerance:
+        if self.rbv is None or self._set_point_rbv is None:
             return False
-        else:
-            return True
+
+        return abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
 
     @property
     def sp_rbv(self):
@@ -372,7 +372,8 @@ class AngleParameter(BeamlineParameter):
     Angle is measure with +ve in the anti-clockwise direction)
     """
 
-    def __init__(self, name, reflection_component, sim=False, init=0, description=None, autosave=False, rbv_to_sp_tolerance=0.002):
+    def __init__(self, name, reflection_component, sim=False, init=0, description=None, autosave=False,
+                 rbv_to_sp_tolerance=0.002):
         """
         Initializer.
         Args:
@@ -383,7 +384,8 @@ class AngleParameter(BeamlineParameter):
         """
         if description is None:
             description = "{} angle".format(name)
-        super(AngleParameter, self).__init__(name, sim, init, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
+        super(AngleParameter, self).__init__(name, sim, init, description, autosave,
+                                             rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._reflection_component = reflection_component
 
         if self._autosave:
@@ -392,11 +394,12 @@ class AngleParameter(BeamlineParameter):
             self._reflection_component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
 
         self._reflection_component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._reflection_component.beam_path_rbv.add_after_is_changing_change_listener(self._trigger_after_is_changing_change)
+        self._reflection_component.beam_path_rbv.add_after_is_changing_change_listener(
+            self._trigger_after_is_changing_change)
 
     def _initialise_sp_from_file(self):
         """
-        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccesful.
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
         """
         sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
         if sp_init is not None:
@@ -460,7 +463,8 @@ class TrackingPosition(BeamlineParameter):
         """
         if description is None:
             description = "{} tracking position".format(name)
-        super(TrackingPosition, self).__init__(name, sim, init, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
+        super(TrackingPosition, self).__init__(name, sim, init, description, autosave,
+                                               rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._component = component
 
         if self._autosave:
@@ -648,7 +652,8 @@ class SlitGapParameter(BeamlineParameter):
     Parameter which sets the gap on a slit. This differs from other beamline parameters in that it is not linked to the
     beamline component layer but hooks directly into a motor axis.
     """
-    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False, rbv_to_sp_tolerance=0.002):
+    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False,
+                 rbv_to_sp_tolerance=0.002):
         """
         Args:
             name (str): The name of the parameter
@@ -657,7 +662,8 @@ class SlitGapParameter(BeamlineParameter):
             init (float): Initialisation value if simulated
             description (str): The description
         """
-        super(SlitGapParameter, self).__init__(name, sim, init, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
+        super(SlitGapParameter, self).__init__(name, sim, init, description, autosave,
+                                               rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._rbv_value = None
 
         self._pv_wrapper = pv_wrapper

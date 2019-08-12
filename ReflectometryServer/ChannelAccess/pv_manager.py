@@ -3,7 +3,7 @@ Reflectometry pv manager
 """
 from enum import Enum
 
-from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
+from ReflectometryServer.parameters import BeamlineParameterType
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
 from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY, compress_and_hex
 import json
@@ -114,7 +114,7 @@ class PvSort(Enum):
     def what(pv_sort):
         """
         Args:
-            pv_sort: pv sort to determin
+            pv_sort: pv sort to determine
 
         Returns: what the pv sort does
         """
@@ -385,7 +385,7 @@ class PVManager:
                                   'count': 2048,
                                   'value': compress_and_hex(json.dumps(driver_info))}
 
-    def param_names_pvnames_and_sort(self):
+    def param_names_pv_names_and_sort(self):
         """
 
         Returns:
@@ -422,8 +422,8 @@ class PVManager:
 
         Returns: True if this the beamline mode pv
         """
-        pvname_no_val = remove_from_end(pv_name, VAL_FIELD)
-        return pvname_no_val == BEAMLINE_MODE or pvname_no_val == BEAMLINE_MODE + SP_SUFFIX
+        pv_name_no_val = remove_from_end(pv_name, VAL_FIELD)
+        return pv_name_no_val == BEAMLINE_MODE or pv_name_no_val == BEAMLINE_MODE + SP_SUFFIX
 
     def is_beamline_move(self, pv_name):
         """
@@ -479,5 +479,5 @@ class PVManager:
         Returns: True if field name is pv name (with oe without VAL  field)
 
         """
-        pvname_no_val = remove_from_end(pv_name, VAL_FIELD)
-        return pvname_no_val == field_name
+        pv_name_no_val = remove_from_end(pv_name, VAL_FIELD)
+        return pv_name_no_val == field_name

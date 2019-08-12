@@ -216,10 +216,10 @@ class PVWrapper(object):
     @property
     def backlash_distance(self):
         """
-        Returns: the value of the underlying backlash distance PV
+        Returns(float): the value of the underlying backlash distance PV
         """
         if self._dir == "Pos":
-            return self._d_back * -1
+            return self._d_back * -1.0
         else:
             return self._d_back
 
@@ -275,7 +275,8 @@ class PVWrapper(object):
                 self._velocity_event.clear()
         self._moving_state = new_value
         self._state_init_event.set()
-        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value), alarm_severity, alarm_status)
+        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
+                                alarm_severity, alarm_status)
 
     def _dmov_to_bool(self, value):
         """
@@ -317,8 +318,10 @@ class PVWrapper(object):
 
     @property
     def is_moving(self):
+        """
+        Returns: True of the axis is moving
+        """
         return self._dmov_to_bool(self._moving_state)
-
 
     def _on_update_backlash_distance(self, value, alarm_severity, alarm_status):
         """
@@ -506,7 +509,8 @@ class _JawsAxisPVWrapper(PVWrapper):
             self.velocity = self._v_restore
         self._moving_state = new_value
         self._state_init_event.set()
-        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value), alarm_severity, alarm_status)
+        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
+                                alarm_severity, alarm_status)
 
     def _on_update_individual_velocity(self, value, alarm_severity, alarm_status, source=None):
         self._velocities[source] = value

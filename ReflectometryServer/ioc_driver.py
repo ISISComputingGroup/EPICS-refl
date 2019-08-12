@@ -92,54 +92,55 @@ class IocDriver(object):
         """
         return not self.at_target_setpoint() and self._is_changed()
 
-    def _get_duration_parameters(self):
-        """
-        Returns: gets the parameters used for calculating duration: readback value, setpoint, backlash distance, maximum
-        axis velocity and backlash velocity.
-        """
-        return self.rbv_cache(), self._get_set_point_position(), self._axis.backlash_distance, self._axis.max_velocity,\
-               self._axis.backlash_velocity
-
-    def _backlash_duration(self, (rbv, sp, bdst, vmax, bvel)):
+    def _backlash_duration(self):
         """
         Args:
-            rbv: the position read back value
-            sp: the set point
-            bdst: the backlash distance
-            vmax: the maximum velocity (not used)
-            bvel: the backlash velocity
         Returns: the duration of the backlash move
         """
-        # If the speeds are zero on a motor which is going to move, error as it makes no sense
-        # to move a non-zero distance with a zero velocity
-        if (bvel == 0 or bvel is None) and not (bdst == 0 or bdst is None):
-            raise ZeroDivisionError("Backlash speed is zero or none")
+        backlash_distance, distance_to_move, is_within_backlash_distance = self._get_movement_distances()
+        backlash_velocity = self._axis.backlash_velocity
 
-        if bvel == 0 or bvel is None:
+        if backlash_velocity is None or backlash_distance == 0:
             # Return 0 instead of error as when this is called by perform_move it can be on motors which are
             # not in fact moving, and may not have been set up yet
-            return 0
-        elif min([0, bdst]) <= rbv - sp <= max([0, bdst]):
-            # If the motor is already within the backlash distance
-            return math.fabs(rbv - sp) / bvel
-        else:
-            return math.fabs(bdst) / bvel
+            return 0.0
+        elif backlash_velocity == 0:
+            raise ZeroDivisionError("Backlash speed is zero")
 
-    def _base_move_duration(self, (rbv, sp, bdst, vmax, bvel)):
+        if is_within_backlash_distance:
+            # If the motor is already within the backlash distance
+            return math.fabs(distance_to_move) / backlash_velocity
+        else:
+            return math.fabs(backlash_distance) / backlash_velocity
+
+    def _base_move_duration(self):
         """
-        Args:
-            rbv: the position read back value
-            sp: the set point
-            bdst: the backlash distance
-            vmax: the maximum velocity
-            bvel: the backlash velocity (not used)
         Returns: the duration move without the backlash
         """
-        if not (min([0, bdst]) <= rbv - sp <= max([0, bdst])):
-            # If the motor is not already within the backlash distance
-            return math.fabs(rbv - (sp + bdst)) / vmax
+        max_velocity = self._axis.max_velocity
+        if max_velocity is None:
+            return 0.0
+
+        backlash_distance, distance_to_move, is_within_backlash_distance = self._get_movement_distances()
+        if is_within_backlash_distance:
+            return 0.0
         else:
-            return 0
+            # If the motor is not already within the backlash distance
+            if max_velocity == 0.0:
+                raise ZeroDivisionError("Motor max velocity is zero or none")
+            return math.fabs(distance_to_move - backlash_distance) / max_velocity
+
+    def _get_movement_distances(self):
+        """
+        Returns:
+            backlash_distance: backlash distance if set; 0 if not
+            distance_to_move: distance that the motor needs to move to be the same as the component set point
+            is_within_backlash_distance: True if the distance to move is within the backlash distance
+        """
+        backlash_distance = self._axis.backlash_distance or 0.0
+        distance_to_move = self.rbv_cache() - self._get_component_sp()
+        is_within_backlash_distance = min([0.0, backlash_distance]) <= distance_to_move <= max([0.0, backlash_distance])
+        return backlash_distance, distance_to_move, is_within_backlash_distance
 
     def get_max_move_duration(self):
         """
@@ -149,8 +150,8 @@ class IocDriver(object):
         if self._axis_will_move() and self._synchronised:
             if self._axis.max_velocity == 0 or self._axis.max_velocity is None:
                 raise ZeroDivisionError("Motor max velocity is zero or none")
-            backlash_duration = self._backlash_duration(self._get_duration_parameters())
-            base_move_duration = self._base_move_duration(self._get_duration_parameters())
+            backlash_duration = self._backlash_duration()
+            base_move_duration = self._base_move_duration()
 
             duration = base_move_duration + backlash_duration
 
@@ -169,7 +170,7 @@ class IocDriver(object):
         """
 
         if self._axis_will_move() or force:
-            move_duration -= self._backlash_duration(self._get_duration_parameters())
+            move_duration -= self._backlash_duration()
             logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
             if move_duration > 1e-6 and self._synchronised:
                 self._axis.initiate_move_with_change_of_velocity()
@@ -202,11 +203,12 @@ class IocDriver(object):
 
     def _get_distance(self):
         """
-        :return: The distance between the target component position and the actual motor position in y.
+        Returns:
+            The distance between the target component position and the actual motor position excluding the backlash.
         """
 
-        bdst = self._axis.backlash_distance
-        return math.fabs(self.rbv_cache() - (self._get_component_sp() + bdst))
+        backlash_distance = self._axis.backlash_distance
+        return math.fabs(self.rbv_cache() - (self._get_component_sp() + backlash_distance))
 
     def _get_component_sp(self):
         """
