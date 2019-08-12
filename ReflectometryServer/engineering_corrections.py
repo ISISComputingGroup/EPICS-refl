@@ -142,7 +142,7 @@ class ConstantCorrection(SymmetricEngineeringCorrection):
     def correction(self, _):
         """
 
-        Returns: no correction
+        Returns: a constant correction value.
 
         """
         return self._offset
