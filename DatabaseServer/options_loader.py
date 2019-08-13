@@ -69,7 +69,7 @@ class OptionsLoader(object):
                     iocs[name.upper()].macros[macro.attrib[TAG_NAME]] = {TAG_DESCRIPTION: macro.attrib[TAG_DESCRIPTION],
                                                                          TAG_PATTERN: macro.attrib.get(TAG_PATTERN),
                                                                          TAG_DEFAULT: macro.attrib.get(TAG_DEFAULT),
-                                                                         TAG_HAS_DEFAULT: macro.attrib[TAG_HAS_DEFAULT]}
+                                                                         TAG_HAS_DEFAULT: macro.attrib.get(TAG_HAS_DEFAULT)}
 
                 # Get any pvsets
                 for pvset in ioc.findall(PVSETS):
