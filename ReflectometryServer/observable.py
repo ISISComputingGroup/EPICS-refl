@@ -71,9 +71,9 @@ def observable(*allowed_listener_types):
                 self: instance of the class
                 new_value: the new value that the listeners should be informed of
             """
-            listeners_and_value = _get_listeners_info(self, type(new_value))
-            listeners_and_value.last_value = new_value
-            for listener in listeners_and_value.listeners:
+            listeners_info = _get_listeners_info(self, type(new_value))
+            listeners_info.last_value = new_value
+            for listener in listeners_info.listeners:
                 listener(new_value)
 
         def _listener_last_value(self, listener_type):

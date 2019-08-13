@@ -53,9 +53,11 @@ PARAM_FIELDS_MOVE = {'type': 'int', 'count': 1, 'value': 0}
 
 OUT_IN_ENUM_TEXT = ["OUT", "IN"]
 
+STANDARD_FLOAT_PV_FIELDS = {'type': 'float', 'prec': 3, 'value': 0.0}
+
 PARAMS_FIELDS_BEAMLINE_TYPES = {
     BeamlineParameterType.IN_OUT: {'type': 'enum', 'enums': OUT_IN_ENUM_TEXT},
-    BeamlineParameterType.FLOAT: {'type': 'float', 'prec': 3, 'value': 0.0}}
+    BeamlineParameterType.FLOAT: STANDARD_FLOAT_PV_FIELDS}
 
 
 def convert_to_epics_pv_value(parameter_type, value):
@@ -241,7 +243,7 @@ class PVManager:
         """
         Add PVs related to the footprint calculation to the server's PV database.
         """
-        self._add_pv_with_val(SAMPLE_LENGTH, None, PARAMS_FIELDS_BEAMLINE_TYPES[BeamlineParameterType.FLOAT],
+        self._add_pv_with_val(SAMPLE_LENGTH, None, STANDARD_FLOAT_PV_FIELDS,
                               "Sample Length", PvSort.SP_RBV, archive=True, interest="HIGH")
 
         for prefix in FOOTPRINT_PREFIXES:
@@ -250,7 +252,7 @@ class PVManager:
                                           (QMIN_TEMPLATE, "Minimum measurable Q with current setup"),
                                           (QMAX_TEMPLATE, "Maximum measurable Q with current setup")]:
                 self._add_pv_with_val(template.format(prefix), None,
-                                      PARAMS_FIELDS_BEAMLINE_TYPES[BeamlineParameterType.FLOAT],
+                                      STANDARD_FLOAT_PV_FIELDS,
                                       description, PvSort.RBV, archive=True, interest="HIGH")
 
     def _add_all_parameter_pvs(self):
@@ -370,12 +372,12 @@ class PVManager:
         self.drivers_pv = {}
         driver_info = []
         for driver in self._beamline.drivers:
-            if driver.has_engineering_correct:
+            if driver.has_engineering_correction:
                 correction_alias = create_pv_name(driver.name, self.PVDB.keys(), "COR", limit=12, allow_colon=True)
                 prepended_alias = "{}:{}".format("COR", correction_alias)
 
-                self.PVDB[prepended_alias] = {'type': 'float', 'value': 0}
-                self.PVDB[prepended_alias + VAL_FIELD] = {'type': 'float', 'value': 0}
+                self.PVDB[prepended_alias] = STANDARD_FLOAT_PV_FIELDS
+                self.PVDB[prepended_alias + VAL_FIELD] = STANDARD_FLOAT_PV_FIELDS
                 self.PVDB["{}.DESC".format(prepended_alias)] = {'type': 'char', 'count': 100, 'value': ""}
 
                 self.drivers_pv[driver] = prepended_alias

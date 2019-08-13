@@ -21,7 +21,7 @@ class IocDriver(object):
         """
         Drive the IOC based on a component
         Args:
-            component (ReflectometryServer.components.Component):
+            component (ReflectometryServer.components.Component): Component for IOC driver
             axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
             synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
                 time; if false they will move at their current speed.
@@ -34,9 +34,9 @@ class IocDriver(object):
         self._synchronised = synchronised
         if engineering_correction is None:
             self._engineering_correction = NoCorrection()
-            self.has_engineering_correct = False
+            self.has_engineering_correction = False
         else:
-            self.has_engineering_correct = True
+            self.has_engineering_correction = True
             self._engineering_correction = engineering_correction
             self._engineering_correction.add_listener(CorrectionUpdate, self._on_correction_update)
 
@@ -305,7 +305,11 @@ class DisplacementDriver(IocDriver):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        sp = self._engineering_correction.init_from_axis(self._axis.sp)
+        #TODO: do this for angular init setpoint too and add tests
+        if self._component.beam_path_set_point.autosaved_offset is not None:
+            sp = self._engineering_correction.from_axis(self._axis.sp, self._component.beam_path_set_point.autosaved_offset)
+        else:
+            sp = self._engineering_correction.init_from_axis(self._axis.sp)
         if self._out_of_beam_position is not None:
             in_beam_status = self._get_in_beam_status(self._axis.sp)
             self._component.beam_path_set_point.is_in_beam = in_beam_status

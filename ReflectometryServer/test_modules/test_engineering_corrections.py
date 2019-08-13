@@ -403,10 +403,10 @@ class TestEngineeringCorrectionsChangeListener(unittest.TestCase):
     def _setup_driver_axis_and_correction(self, correction):
         comp = Component("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        engineering_correct = ConstantCorrection(correction)
-        driver = DisplacementDriver(comp, mock_axis, engineering_correction=engineering_correct)
+        engineering_correction = ConstantCorrection(correction)
+        driver = DisplacementDriver(comp, mock_axis, engineering_correction=engineering_correction)
         driver._is_changed = lambda: True  # simulate that the component has requested a change
-        return driver, mock_axis, comp, engineering_correct
+        return driver, mock_axis, comp, engineering_correction
 
     def _record_event(self, engineering_correction_update):
         self.engineering_correction_update = engineering_correction_update
@@ -416,13 +416,13 @@ class TestEngineeringCorrectionsChangeListener(unittest.TestCase):
 
     def test_GIVEN_engineering_correction_offset_of_1_WHEN_driver_told_to_go_to_0_THEN_event_is_triggered_with_description_and_value(self):
         expected_correction = 1
-        driver, mock_axis, comp, engineering_correct = self._setup_driver_axis_and_correction(expected_correction)
+        driver, mock_axis, comp, engineering_correction = self._setup_driver_axis_and_correction(expected_correction)
         driver.add_listener(CorrectionUpdate, self._record_event)
 
         driver.perform_move(1)
 
         assert_that(self.engineering_correction_update.correction, is_(close_to(expected_correction, FLOAT_TOLERANCE)))
-        assert_that(self.engineering_correction_update.description, all_of(contains_string(engineering_correct.description),
+        assert_that(self.engineering_correction_update.description, all_of(contains_string(engineering_correction.description),
                                                                            contains_string(comp.name),
                                                                            contains_string(mock_axis.name)))
 
@@ -430,14 +430,14 @@ class TestEngineeringCorrectionsChangeListener(unittest.TestCase):
         expected_correct_value = 1
         correction = 1
         move_to = expected_correct_value + correction
-        driver, mock_axis, comp, engineering_correct = self._setup_driver_axis_and_correction(correction)
+        driver, mock_axis, comp, engineering_correction = self._setup_driver_axis_and_correction(correction)
         mock_axis.sp = move_to
         driver.add_listener(CorrectionUpdate, self._record_event)
 
         mock_axis.trigger_rbv_change()
 
         assert_that(self.engineering_correction_update.correction, is_(close_to(correction, FLOAT_TOLERANCE)))
-        assert_that(self.engineering_correction_update.description, all_of(contains_string(engineering_correct.description),
+        assert_that(self.engineering_correction_update.description, all_of(contains_string(engineering_correction.description),
                                                                            contains_string(comp.name),
                                                                            contains_string(mock_axis.name)))
 
@@ -445,7 +445,7 @@ class TestEngineeringCorrectionsChangeListener(unittest.TestCase):
 class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
 
     @patch("ReflectometryServer.parameters.read_autosave_value")
-    def test_GIVEN_beam_line_where_autosave_theta_and_engineering_correction_on_pd_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+    def test_GIVEN_beam_line_where_autosave_theta_and_engineering_correction_on_sm_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         expected_sm_angle = 22.5
         expected_theta = 2
         file_io.return_value = expected_theta
@@ -455,7 +455,7 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
 
     @patch("ReflectometryServer.parameters.read_autosave_value")
-    def test_GIVEN_beam_line_where_autosave_offset_and_engineering_correction_on_offset_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+    def test_GIVEN_beam_line_where_autosave_offset_and_engineering_correction_on_sm_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         sm_angle = 22.5
         expected_theta = 2
         # Theta is not autosaved so the correction for theta will not be able to be calculated. Therefore the correction should be 0 and the
