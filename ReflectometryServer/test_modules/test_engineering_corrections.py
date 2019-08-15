@@ -460,11 +460,47 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         expected_theta = 2
         # Theta is not autosaved so the correction for theta will not be able to be calculated. Therefore the correction should be 0 and the
         #  sm angle set will include the correction.
-        epected_sm_angle = sm_angle + expected_theta / 2
+        expected_sm_angle = sm_angle + expected_theta / 2
 
         expected_det_offset = 0.0
         file_io.return_value = expected_det_offset
 
         bl, axes = DataMother.beamline_sm_theta_detector(sm_angle, expected_theta, autosave_theta_not_offset=False, sm_angle_engineering_correction=True)
 
-        assert_that(bl.parameter("sm_angle").sp, is_(close_to(epected_sm_angle, 1e-6)), "sm angle SP")
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
+
+    @patch("ReflectometryServer.parameters.read_autosave_value")
+    def test_GIVEN_beam_line_where_autosave_and_engineering_correction_on_displacement_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_setpoint = 1.0
+        multiple = 2.0
+        offset = expected_setpoint / multiple
+        comp = Component("comp", PositionAndAngle(0.0, 0, 90))
+        param = TrackingPosition("param", comp, autosave=True)
+        axis = create_mock_axis("MOT:MTR0101", offset + expected_setpoint, 1)
+        driver = DisplacementDriver(comp, axis, engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
+        file_io.return_value = expected_setpoint
+        nr_mode = BeamlineMode("NR", [param.name], {})
+        bl = Beamline([comp], [param], [driver], [nr_mode])
+        bl.active_mode = nr_mode.name
+
+        result = comp.beam_path_set_point.get_displacement()
+
+        assert_that(result, is_(close_to(expected_setpoint, 1e-6)))
+
+    @patch("ReflectometryServer.parameters.read_autosave_value")
+    def test_GIVEN_beam_line_where_autosave_and_engineering_correction_on_angle_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_setpoint = 1.0
+        multiple = 2.0
+        offset = expected_setpoint / multiple
+        comp = TiltingComponent("comp", PositionAndAngle(0.0, 0, 90))
+        param = AngleParameter("param", comp, autosave=True)
+        axis = create_mock_axis("MOT:MTR0101", offset + expected_setpoint, 1)
+        driver = AngleDriver(comp, axis, engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
+        file_io.return_value = expected_setpoint
+        nr_mode = BeamlineMode("NR", [param.name], {})
+        bl = Beamline([comp], [param], [driver], [nr_mode])
+        bl.active_mode = nr_mode.name
+
+        result = comp.beam_path_set_point.angle
+
+        assert_that(result, is_(close_to(expected_setpoint, 1e-6)))

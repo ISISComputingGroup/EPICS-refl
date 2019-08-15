@@ -305,11 +305,12 @@ class DisplacementDriver(IocDriver):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        #TODO: do this for angular init setpoint too and add tests
-        if self._component.beam_path_set_point.autosaved_offset is not None:
-            sp = self._engineering_correction.from_axis(self._axis.sp, self._component.beam_path_set_point.autosaved_offset)
-        else:
+        autosaved_offset = self._component.beam_path_set_point.autosaved_offset
+        if autosaved_offset is None:
             sp = self._engineering_correction.init_from_axis(self._axis.sp)
+        else:
+            sp = self._engineering_correction.from_axis(self._axis.sp, autosaved_offset)
+
         if self._out_of_beam_position is not None:
             in_beam_status = self._get_in_beam_status(self._axis.sp)
             self._component.beam_path_set_point.is_in_beam = in_beam_status
@@ -394,7 +395,12 @@ class AngleDriver(IocDriver):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        corrected_axis_setpoint = self._engineering_correction.init_from_axis(self._axis.sp)
+        autosaved_angle = self._component.beam_path_set_point.autosaved_angle
+        if autosaved_angle is None:
+            corrected_axis_setpoint = self._engineering_correction.init_from_axis(self._axis.sp)
+        else:
+            corrected_axis_setpoint = self._engineering_correction.from_axis(self._axis.sp, autosaved_angle)
+
         self._component.beam_path_set_point.init_angle_from_motor(corrected_axis_setpoint)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
