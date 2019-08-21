@@ -377,7 +377,10 @@ class BlockServer(Driver):
                 # IOCs are restarted if and only if auto start is True. Note that auto restart instructs proc serv to
                 # restart an IOC if it terminates unexpectedly and does not apply here.
                 if ioc.autostart:
-                    self.start_iocs([name])
+                    if self._ioc_control.get_ioc_status(name) == "RUNNING":
+                        self._ioc_control.restart_iocs([name], reapply_auto=True)
+                    else:
+                        self.start_iocs([name])
             except Exception as err:
                 print_and_log("Could not (re)start IOC {}: {}".format(name, err), "MAJOR")
 
