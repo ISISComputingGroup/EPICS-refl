@@ -46,7 +46,7 @@ PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
 
 PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 
-PARAM_FIELDS_MOVE = {'type': 'int', 'count': 1, 'value': 0}
+PARAM_FIELDS_ACTION = {'type': 'int', 'count': 1, 'value': 0}
 
 OUT_IN_ENUM_TEXT = ["OUT", "IN"]
 
@@ -223,7 +223,7 @@ class PVManager:
             mode_names: The names of the modes in the current reflectometry configuration
             status_codes (list[ReflectometryServer.beamline.STATUS]): status codes of Beam line with severities
         """
-        self._add_pv_with_val(BEAMLINE_MOVE, None, PARAM_FIELDS_MOVE, "Move the beam line", PvSort.RBV, archive=True,
+        self._add_pv_with_val(BEAMLINE_MOVE, None, PARAM_FIELDS_ACTION, "Move the beam line", PvSort.RBV, archive=True,
                               interest="HIGH")
         # PVs for mode
         mode_fields = {'type': 'enum', 'enums': mode_names}
@@ -320,7 +320,7 @@ class PVManager:
                                   PvSort.CHANGED)
 
             # Action PV
-            self._add_pv_with_val(prepended_alias + ACTION_SUFFIX, param_name, PARAM_FIELDS_MOVE, description,
+            self._add_pv_with_val(prepended_alias + ACTION_SUFFIX, param_name, PARAM_FIELDS_ACTION, description,
                                   PvSort.ACTION)
 
             # Moving state PV
