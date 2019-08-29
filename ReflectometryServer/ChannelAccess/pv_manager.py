@@ -17,12 +17,15 @@ BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
 BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
 BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
 PARAM_INFO = "PARAM_INFO"
+IN_MODE_SUFFIX = ":IN_MODE"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
 ACTION_SUFFIX = ":ACTION"
 SET_AND_NO_ACTION_SUFFIX = ":SP_NO_ACTION"
+RBV_AT_SP = ":RBV:AT_SP"
+CHANGING = ":CHANGING"
 CHANGED_SUFFIX = ":CHANGED"
-IN_MODE_SUFFIX = ":IN_MODE"
+
 VAL_FIELD = ".VAL"
 
 FOOTPRINT_PREFIX = "FP"
@@ -39,7 +42,7 @@ FP_RBV_PREFIX = "RBV"
 
 FOOTPRINT_PREFIXES = [FP_SP_PREFIX, FP_SP_RBV_PREFIX, FP_RBV_PREFIX]
 
-PARAM_FIELDS_CHANGED = {'type': 'enum', 'enums': ["NO", "YES"]}
+PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
 
 PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 
@@ -101,6 +104,8 @@ class PvSort(Enum):
     SET_AND_NO_ACTION = 4
     CHANGED = 6
     IN_MODE = 7
+    CHANGING = 8
+    RBV_AT_SP = 9
 
     @staticmethod
     def what(pv_sort):
@@ -121,9 +126,13 @@ class PvSort(Enum):
         elif pv_sort == PvSort.SET_AND_NO_ACTION:
             return "(Set point with no action executed)"
         elif pv_sort == PvSort.CHANGED:
-            return "(is changed)"
+            return "(Is changed)"
         elif pv_sort == PvSort.IN_MODE:
-            return "(is in mode)"
+            return "(Is in mode)"
+        elif pv_sort == PvSort.CHANGING:
+            return "(Is changing)"
+        elif pv_sort == PvSort.RBV_AT_SP:
+            return "(Tolerance between RBV and target set point)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -148,6 +157,10 @@ class PvSort(Enum):
             return parameter.sp_changed
         elif self == PvSort.ACTION:
             return parameter.move
+        elif self == PvSort.CHANGING:
+            return parameter.is_changing
+        elif self == PvSort.RBV_AT_SP:
+            return parameter.rbv_at_sp
         return float("NaN")
 
 
@@ -224,7 +237,7 @@ class PVManager:
                          'states': [code.alarm_severity for code in status_codes]}
         self._add_pv_with_val(BEAMLINE_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV, archive=True,
                               interest="HIGH", alarm=True)
-        self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'string'}, "Message about the beamline", PvSort.RBV,
+        self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'char', 'count': 400}, "Message about the beamline", PvSort.RBV,
                               archive=True, interest="HIGH")
 
     def _add_footprint_calculator_pvs(self):
@@ -303,16 +316,24 @@ class PVManager:
                                   PvSort.SET_AND_NO_ACTION)
 
             # Changed PV
-            self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_CHANGED, description,
+            self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_BINARY, description,
                                   PvSort.CHANGED)
 
             # Action PV
             self._add_pv_with_val(prepended_alias + ACTION_SUFFIX, param_name, PARAM_FIELDS_MOVE, description,
                                   PvSort.ACTION)
 
+            # Moving state PV
+            self._add_pv_with_val(prepended_alias + CHANGING, param_name, PARAM_FIELDS_BINARY, description,
+                                  PvSort.CHANGING)
+
             # In mode PV
             self._add_pv_with_val(prepended_alias + IN_MODE_SUFFIX, param_name, PARAM_IN_MODE, description,
                                   PvSort.IN_MODE)
+
+            # RBV to SP:RBV tolerance once move completed
+            self._add_pv_with_val(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
+                                  PvSort.RBV_AT_SP)
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
@@ -438,7 +459,6 @@ class PVManager:
 
     def _is_pv_name_this_field(self, field_name, pv_name):
         """
-
         Args:
             field_name: field name to match
             pv_name: pv name to match

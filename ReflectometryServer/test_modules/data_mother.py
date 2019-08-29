@@ -1,14 +1,16 @@
 """
 Test data and classes.
 """
+from math import tan, radians
+
 from utils import DEFAULT_TEST_TOLERANCE
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
-from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent
+from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter
-from time import time
+
 
 class EmptyBeamlineParameter(BeamlineParameter):
     """
@@ -66,12 +68,13 @@ class DataMother(object):
         Returns: beamline, axes
 
         """
-        # components
+        # COMPONENTS
         s1 = Component("s1_comp", PositionAndAngle(0.0, 1 * spacing, 90))
         s3 = Component("s3_comp", PositionAndAngle(0.0, 3 * spacing, 90))
         detector = TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90))
         theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90), [detector])
         comps = [s1, theta, s3, detector]
+
         # BEAMLINE PARAMETERS
         slit1_pos = TrackingPosition("s1", s1, True)
         slit3_pos = TrackingPosition("s3", s3, True)
@@ -79,7 +82,8 @@ class DataMother(object):
         detector_position = TrackingPosition("det", detector, True)
         detector_angle = AngleParameter("det_angle", detector, True)
         params = [slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle]
-        # DRIVES
+
+        # DRIVERS
         s1_axis = create_mock_axis("MOT:MTR0101", 0, 1)
         s3_axis = create_mock_axis("MOT:MTR0102", 0, 1)
         det_axis = create_mock_axis("MOT:MTR0104", 0, 1)
@@ -102,32 +106,91 @@ class DataMother(object):
         bl.active_mode = nr_mode.name
         return bl, axes
 
+    @staticmethod
+    def beamline_sm_theta_detector(sm_angle, theta, det_offset=0, autosave_theta_not_offset=True):
+        """
+        Create beamline with Slits 1 and 3 a theta and a detector
+        Args:
+            spacing: spacing between components
 
-def create_mock_axis(name, init_position, max_velocity):
+        Returns: beamline, axes
+
+        """
+        # COMPONENTS
+        z_sm_to_sample = 1
+        z_sample_to_det = 2
+        sm_comp = ReflectingComponent("sm_comp", PositionAndAngle(0.0, 0, 90))
+        detector_comp = TiltingComponent("detector_comp", PositionAndAngle(0.0, z_sm_to_sample + z_sample_to_det, 90))
+        theta_comp = ThetaComponent("theta_comp", PositionAndAngle(0.0, z_sm_to_sample, 90), [detector_comp])
+
+        comps = [sm_comp, theta_comp, detector_comp]
+
+        # BEAMLINE PARAMETERS
+        sm_angle_param = AngleParameter("sm_angle", sm_comp)
+        theta_param = AngleParameter("theta", theta_comp, autosave=autosave_theta_not_offset)
+        detector_position_param = TrackingPosition("det_pos", detector_comp, autosave=not autosave_theta_not_offset)
+        detector_angle_param = AngleParameter("det_angle", detector_comp)
+
+        params = [sm_angle_param, theta_param, detector_position_param, detector_angle_param]
+
+        # DRIVERS
+        beam_angle_after_sample = theta * 2 + sm_angle * 2
+        offset_from_sm_angle = z_sm_to_sample * tan(radians(sm_angle * 2))
+        offset_from_theta = z_sample_to_det * tan(radians(beam_angle_after_sample))
+        sm_axis = create_mock_axis("MOT:MTR0101", sm_angle, 1)
+        det_axis = create_mock_axis("MOT:MTR0104", offset_from_sm_angle + offset_from_theta + det_offset, 1)
+        det_angle_axis = create_mock_axis("MOT:MTR0105", beam_angle_after_sample, 1)
+        axes = {"sm_axis": sm_axis,
+                "det_axis": det_axis,
+                "det_angle_axis": det_angle_axis}
+
+        drives = [AngleDriver(sm_comp, sm_axis),
+                  DisplacementDriver(detector_comp, det_axis),
+                  AngleDriver(detector_comp, det_angle_axis)]
+
+        # MODES
+        nr_inits = {}
+        nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
+        modes = [nr_mode]
+        beam_start = PositionAndAngle(0.0, 0.0, -1)
+        bl = Beamline(comps, params, drives, modes, beam_start)
+        bl.active_mode = nr_mode.name
+        return bl, axes
+
+
+def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):
     """
     Create a mock axis
     Args:
         name: pv name of axis
         init_position: initial position
         max_velocity: maximum velocity of the axis
-
+        backlash_distance: distance that the axis will backlash
+        backlash_velocity: velocity that the backlash is performed
+        direction: calibration direction of the axis, Pos or Neg
     Returns:
             mocked axis
     """
 
-    return MockMotorPVWrapper(name, init_position, max_velocity)
+    return MockMotorPVWrapper(name, init_position, max_velocity, True, backlash_distance, backlash_velocity, direction)
 
 
 class MockMotorPVWrapper(object):
-    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True):
+    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True, backlash_distance=0, backlash_velocity=1, direction="Neg"):
         self.name = pv_name
         self._value = init_position
         self.max_velocity = max_velocity
         self.velocity = None
+        self.direction = direction
+        self.backlash_distance = backlash_distance
+        if self.direction == "Pos":
+            self.backlash_distance = backlash_distance * -1
+        self.backlash_velocity = backlash_velocity
         self.resolution = DEFAULT_TEST_TOLERANCE
         self.after_rbv_change_listener = set()
         self.after_sp_change_listener = set()
         self.after_status_change_listener = set()
+        self.after_is_changing_change_listener = set()
         self.after_velocity_change_listener = set()
         self.is_vertical = is_vertical
 
@@ -142,6 +205,9 @@ class MockMotorPVWrapper(object):
 
     def add_after_status_change_listener(self, listener):
         self.after_status_change_listener.add(listener)
+
+    def add_after_is_changing_change_listener(self, listener):
+        self.after_is_changing_change_listener.add(listener)
 
     def add_after_velocity_change_listener(self, listener):
         self.after_velocity_change_listener.add(listener)
