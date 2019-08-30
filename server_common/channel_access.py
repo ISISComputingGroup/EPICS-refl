@@ -16,6 +16,7 @@ Make channel access not dependent on genie_python.
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+from multiprocessing.dummy import Pool
 from enum import Enum
 
 from server_common.utilities import print_and_log
@@ -82,6 +83,8 @@ class ChannelAccess(object):
     Channel access methods. Items from genie_python are imported locally so that this module can be imported without
     installing genie_python.
     """
+    POOL = Pool(4)
+
     @staticmethod
     def caget(name, as_string=False):
         """Uses CaChannelWrapper from genie_python to get a pv value. We import CaChannelWrapper when used as this means
@@ -150,7 +153,10 @@ class ChannelAccess(object):
                 alarm severity (AlarmSeverity),
                 alarm status (AlarmStatus)
         """
-        CaChannelWrapper.add_monitor(name, call_back_function)
+        def threaded_callback_function(*args, **kwargs):
+            ChannelAccess.POOL.apply_async(call_back_function, args, kwargs)
+
+        CaChannelWrapper.add_monitor(name, threaded_callback_function)
 
     @staticmethod
     def poll():

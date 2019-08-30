@@ -273,7 +273,7 @@ class PVWrapper(object):
             self.velocity = self._v_restore
         if new_value == MTR_MOVING:
             if self._move_initiated:
-                self._velocity_event.wait()
+                self._velocity_event.wait(5)
                 self._move_initiated = False
                 self._velocity_event.clear()
         self._moving_state = new_value
