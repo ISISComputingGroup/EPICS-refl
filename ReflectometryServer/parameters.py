@@ -645,11 +645,12 @@ class SlitGapParameter(BeamlineParameter):
         else:
             self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
 
-
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
             self._initialise_sp_from_motor()
+        if sim:
+            self._rbv_value = init
 
     def _initialise_sp_from_file(self):
         """
