@@ -9,7 +9,7 @@ from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
-from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter
+from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter, SlitGapParameter
 
 
 class EmptyBeamlineParameter(BeamlineParameter):
@@ -104,6 +104,41 @@ class DataMother(object):
         beam_start = PositionAndAngle(0.0, 0.0, 0.0)
         bl = Beamline(comps, params, drives, modes, beam_start)
         bl.active_mode = nr_mode.name
+        return bl, axes
+
+    @staticmethod
+    def beamline_s1_gaps_theta_detector(spacing):
+        """
+        Create beamline with Slits 1 and 3 a theta and a detector
+        Args:
+            spacing: spacing between components
+
+        Returns: beamline, axes
+
+        """
+        # DRIVERS
+        s1_gap_axis = create_mock_axis("MOT:MTR0101", 0, 1)
+        axes = {"s1_gap_axis": s1_gap_axis}
+        drives = []
+
+        # COMPONENTS
+        detector = TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90))
+        theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90), [detector])
+        comps = [theta]
+
+        # BEAMLINE PARAMETERS
+        s1_gap = SlitGapParameter("s1_gap", s1_gap_axis, sim=True)
+        theta_ang = AngleParameter("theta", theta, sim=True)
+        detector_position = TrackingPosition("det", detector, sim=True)
+        detector_angle = AngleParameter("det_angle", detector, sim=True)
+        params = [s1_gap, theta_ang, detector_position, detector_angle]
+
+        # MODES
+        nr_inits = {}
+        nr_mode = [BeamlineMode("NR", [param.name for param in params], nr_inits)]
+        beam_start = PositionAndAngle(0.0, 0.0, 0.0)
+        bl = Beamline(comps, params, drives, nr_mode, beam_start)
+
         return bl, axes
 
     @staticmethod
