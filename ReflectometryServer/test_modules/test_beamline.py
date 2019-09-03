@@ -225,7 +225,7 @@ class TestBeamlineValidation(unittest.TestCase):
 
     def test_GIVEN_enable_disable_parameter_with_driver_that_has_only_angle_driver_WHEN_construct_THEN_error(self):
         mode = BeamlineMode("mode", [])
-        component = Component("comp", PositionAndAngle(0, 0, 0))
+        component = TiltingComponent("comp", PositionAndAngle(0, 0, 0))
         beamline_parameter = InBeamParameter("param", component)
         motor_axis = create_mock_axis("axis", 0, 0)
         driver = AngleDriver(component, motor_axis)

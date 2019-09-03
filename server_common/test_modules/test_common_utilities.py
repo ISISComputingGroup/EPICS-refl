@@ -93,6 +93,20 @@ class TestCreatePVName(unittest.TestCase):
         self.assertEquals(pv_01, "CONFIG")
         self.assertEquals(pv_02, "CONF01")
 
+    def test_GIVEN_pv_name_contains_a_colon_WHEN_colons_not_allowed_THEN_colons_removed(self):
+        # Act
+        pv = create_pv_name("BL:AH:BL:", [], "PEEVEE", allow_colon=False)
+
+        # Assert
+        self.assertEquals(pv, "BLAHBL")
+
+    def test_GIVEN_pv_name_contains_a_colon_WHEN_colons_allowed_THEN_colons_retained(self):
+        # Act
+        pv = create_pv_name("BL:AH:BL:", [], "PEEVEE", allow_colon=True)
+
+        # Assert
+        self.assertEquals(pv, "BL:AH:BL"[:6])
+
     def test_WHEN_string_contains_ending_THEN_ending_removed(self):
         # Arrange
         ending = "END"
