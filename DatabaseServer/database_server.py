@@ -119,13 +119,13 @@ class DatabaseServer(Driver):
         Returns:
             Dictionary : Dictionary containing the information to construct PVs
         """
-        pv_size_64k = 64000
+        pv_size_128k = 128000
         pv_size_10k = 10000
         pv_info = {}
 
         for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.FACILITY,
                    DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS, DbPVNames.IOCS_NOT_TO_STOP]:
-            pv_info[pv] = char_waveform(pv_size_64k)
+            pv_info[pv] = char_waveform(pv_size_128k)
 
         for pv in [DbPVNames.SAMPLE_PARS, DbPVNames.BEAMLINE_PARS, DbPVNames.USER_PARS]:
             pv_info[pv] = char_waveform(pv_size_10k)
