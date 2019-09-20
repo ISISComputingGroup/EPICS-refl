@@ -22,7 +22,6 @@ class LinearMovementCalc(object):
         Args:
             setup (ReflectometryServer.geometry.PositionAndAngle):
         """
-        self._listeners = []
         self._angle = setup.angle
         self._position_at_zero = Position(setup.y, setup.z)
         self._displacement = 0
@@ -142,7 +141,7 @@ class LinearMovementCalc(object):
             position: the position relative to the beam that the component should be, e.g. height
         """
 
-        self._displacement = position + self._dist_along_axis_from_zero_to_beam_intercept(beam)
+        self._displacement = self.get_displacement_relative_to_beam_for(beam, position)
 
     def get_distance_relative_to_beam(self, beam):
         """
@@ -170,6 +169,19 @@ class LinearMovementCalc(object):
 
         """
         return self._displacement
+
+    def get_displacement_relative_to_beam_for(self, beam, position):
+        """
+        For a given position this will return the
+        Args:
+            beam:
+            position:
+
+        Returns:
+
+        """
+        return position + self._dist_along_axis_from_zero_to_beam_intercept(beam)
+
 
 # class ArcMovement(PositionAndAngle):
 #     """

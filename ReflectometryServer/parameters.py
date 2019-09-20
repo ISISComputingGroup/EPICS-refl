@@ -23,6 +23,33 @@ class ParameterNotInitializedException(Exception):
         return self.message
 
 
+class DefineCurrentValueAsParameter(object):
+    """
+    A helper class which allows the current parameter readback to be set to a particular value by passing it down to the
+    lower levels.
+    """
+    def __init__(self, define_current_value_as_fn):
+        self._new_value = 10
+        self._define_current_value_as_fn = define_current_value_as_fn
+
+    @property
+    def new_value(self):
+        """
+        Returns: The last value set
+        """
+        return self._new_value
+
+    @new_value.setter
+    def new_value(self, value):
+        """
+        Set the new value and pass it down to the next layer
+        Args:
+            value: the new value to set the parameter to
+        """
+        self._new_value = value
+        self._define_current_value_as_fn(value)
+
+
 class BeamlineParameterType(Enum):
     """
     Types of beamline parameters
@@ -83,6 +110,8 @@ class BeamlineParameter(object):
         self._after_rbv_at_sp_listeners = set()
         self._init_listeners = set()
         self._rbv_to_sp_tolerance = rbv_to_sp_tolerance
+
+        self.define_current_value_as = None
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
@@ -372,21 +401,21 @@ class AngleParameter(BeamlineParameter):
     Angle is measure with +ve in the anti-clockwise direction)
     """
 
-    def __init__(self, name, reflection_component, sim=False, init=0, description=None, autosave=False,
+    def __init__(self, name, angled_component, sim=False, init=0, description=None, autosave=False,
                  rbv_to_sp_tolerance=0.002):
         """
         Initializer.
         Args:
             name (str): Name of the reflection angle
-            reflection_component (ReflectometryServer.components.Component): the active component at the
-                reflection point
+            angled_component (ReflectometryServer.components.Component): the active component that can contain an angle
+                either because it is reflecting or tilting.
             description (str): description
         """
         if description is None:
             description = "{} angle".format(name)
         super(AngleParameter, self).__init__(name, sim, init, description, autosave,
                                              rbv_to_sp_tolerance=rbv_to_sp_tolerance)
-        self._reflection_component = reflection_component
+        self._reflection_component = angled_component
 
         if self._autosave:
             self._initialise_sp_from_file()
@@ -396,6 +425,10 @@ class AngleParameter(BeamlineParameter):
         self._reflection_component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
         self._reflection_component.beam_path_rbv.add_after_is_changing_change_listener(
             self._trigger_after_is_changing_change)
+
+        if self._reflection_component.can_define_current_angle_as:
+            self.define_current_value_as = DefineCurrentValueAsParameter(
+                self._reflection_component.define_current_angle_as)
 
     def _initialise_sp_from_file(self):
         """
@@ -476,6 +509,8 @@ class TrackingPosition(BeamlineParameter):
         self._component.beam_path_rbv.add_after_is_changing_change_listener(self._trigger_after_is_changing_change)
 
         self.group_names.append(BeamlineParameterGroup.TRACKING)
+
+        self.define_current_value_as = DefineCurrentValueAsParameter(self._component.define_current_position_as)
 
     def _initialise_sp_from_file(self):
         """
@@ -680,6 +715,8 @@ class SlitGapParameter(BeamlineParameter):
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
             self._initialise_sp_from_motor()
+
+        self.define_current_value_as = DefineCurrentValueAsParameter(self._pv_wrapper.define_current_value_as)
 
     def _initialise_sp_from_file(self):
         """

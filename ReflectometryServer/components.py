@@ -1,7 +1,11 @@
 """
 Components on a beam
 """
+from collections import namedtuple
+from ReflectometryServer.observable import observable
+
 from enum import Enum
+
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, BeamPathTilting, BeamPathCalcAngleReflecting, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
 from ReflectometryServer.movement_strategy import LinearMovementCalc
@@ -18,6 +22,12 @@ class ChangeAxis(Enum):
     ANGLE = 1
 
 
+DefineValueAs = namedtuple("DefineValueAs", [
+    "new_position",  # the new value
+    "change_axis"])  # the axis it applies to of type ChangeAxis
+
+
+@observable(DefineValueAs)
 class Component(object):
     """
     Base object for all components that can sit on a beam line
@@ -33,6 +43,7 @@ class Component(object):
         self._name = name
         self._init_beam_path_calcs(setup)
         self._changed = {ChangeAxis.POSITION: False}
+        self.can_define_current_angle_as = True
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = TrackingBeamPathCalc(LinearMovementCalc(setup))
@@ -101,6 +112,15 @@ class Component(object):
         self._beam_path_set_point.incoming_beam_can_change = can_change
         self._beam_path_rbv.incoming_beam_can_change = can_change
 
+    def define_current_position_as(self, new_value):
+        """
+        Define the current position of the component as the given value (e.g. set this in the motor)
+        Args:
+            new_value: new value of the position
+        """
+        motor_displacement = self.beam_path_rbv.get_displacement_for(new_value)
+        self.trigger_listeners(DefineValueAs(motor_displacement, ChangeAxis.POSITION))
+
 
 class TiltingComponent(Component):
     """
@@ -121,6 +141,15 @@ class TiltingComponent(Component):
         self._beam_path_set_point = BeamPathTilting(LinearMovementCalc(setup))
         self._beam_path_rbv = BeamPathTilting(LinearMovementCalc(setup))
 
+    def define_current_angle_as(self, new_angle):
+        """
+        Define the current angle of the component as the given value (e.g. set this in the motor)
+        Args:
+            new_angle: new angle of the component
+        """
+        room_angle = self._beam_path_rbv.get_angle_for(new_angle)
+        self.trigger_listeners(DefineValueAs(room_angle, ChangeAxis.ANGLE))
+
 
 class ReflectingComponent(Component):
     """
@@ -140,6 +169,15 @@ class ReflectingComponent(Component):
         self._beam_path_set_point = BeamPathCalcAngleReflecting(LinearMovementCalc(setup))
         self._beam_path_rbv = BeamPathCalcAngleReflecting(LinearMovementCalc(setup))
 
+    def define_current_angle_as(self, new_angle):
+        """
+        Define the current angle of the component as the given value (e.g. set this in the motor)
+        Args:
+            new_angle: new angle of the component
+        """
+        room_angle = self._beam_path_rbv.get_angle_for(new_angle)
+        self.trigger_listeners(DefineValueAs(room_angle, ChangeAxis.ANGLE))
+
 
 class ThetaComponent(ReflectingComponent):
     """
@@ -157,6 +195,7 @@ class ThetaComponent(ReflectingComponent):
         """
         self.angle_to_components = angle_to
         super(ReflectingComponent, self).__init__(name, setup)
+        self.can_define_current_angle_as = False
 
     def _init_beam_path_calcs(self, setup):
         beam_path_calcs = [(comp.beam_path_rbv, comp.beam_path_set_point) for comp in self.angle_to_components]
@@ -164,6 +203,18 @@ class ThetaComponent(ReflectingComponent):
         self._beam_path_set_point = BeamPathCalcThetaSP(linear_movement_calc,
                                                         [comp.beam_path_set_point for comp in self.angle_to_components])
         self._beam_path_rbv = BeamPathCalcThetaRBV(linear_movement_calc, beam_path_calcs, self._beam_path_set_point)
+
+    def define_current_angle_as(self, new_angle):
+        """
+        Define the current angle for the component in the hardware
+        Args:
+            new_angle: new angle to use
+
+        Raises: This is not allowed fr Theta at this time because of the complexity of coding this, and we don't think
+        it is needed since the scan is done over detector offset and detector angle.
+
+        """
+        raise NotImplementedError("Can not set Theta at a given value")
 
 
 # class Bench(Component):

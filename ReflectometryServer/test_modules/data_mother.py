@@ -3,7 +3,9 @@ SimpleObservable data and classes.
 """
 from math import tan, radians
 
-from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider
+from mock import Mock
+
+from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider, JawsCentrePVWrapper
 from utils import DEFAULT_TEST_TOLERANCE
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
@@ -287,3 +289,15 @@ class MockChannelAccess(object):
 
     def caput(self, pv, value):
         self._pvs[pv] = value
+
+
+def create_mock_JawsCentrePVWrapper():
+    """
+    Create a mock jaws centre pv wrapper for testing
+    Returns: mock
+    """
+
+    mock_jaws_wrapper = Mock(JawsCentrePVWrapper)
+    mock_jaws_wrapper.define_current_value_as = Mock()
+    mock_jaws_wrapper.is_vertical = False
+    return mock_jaws_wrapper

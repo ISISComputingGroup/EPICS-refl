@@ -215,6 +215,17 @@ class TrackingBeamPathCalc(object):
         """
         return self._movement_strategy.get_displacement()
 
+    def get_displacement_for(self, position_relative_to_beam):
+        """
+        Get the displacement for a given position relative to the beam
+        Args:
+            position_relative_to_beam: position to get the displacement for
+
+        Returns: displacement
+        """
+        return self._movement_strategy.get_displacement_relative_to_beam_for(self._incoming_beam,
+                                                                             position_relative_to_beam)
+
     def position_in_mantid_coordinates(self):
         """
         Returns (ReflectometryServer.geometry.Position): The set point position of this component in mantid coordinates.
@@ -345,13 +356,23 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Args:
             angle: angle to set the component at
         """
-        self._set_angle(angle + self._incoming_beam.angle)
+        self._set_angle(self.get_angle_for(angle))
 
     def get_angle_relative_to_beam(self):
         """
         Returns: the angle of the component relative to the beamline
         """
         return self._absolute_angle - self._incoming_beam.angle
+
+    def get_angle_for(self, angle_relative_to_the_beam):
+        """
+        Get the angle in the room coordinates from a given relative angle
+        Args:
+            angle_relative_to_the_beam: the angle relative to the beam
+
+        Returns: angle in mantid coordinates
+        """
+        return angle_relative_to_the_beam + self._incoming_beam.angle
 
 
 class BeamPathTilting(_BeamPathCalcWithAngle):
