@@ -1,14 +1,14 @@
 import unittest
 
-from math import tan, radians, sqrt, isnan
+from math import tan, radians, isnan
 from hamcrest import *
 from mock import Mock
 from parameterized import parameterized
 
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
-from ReflectometryServer.geometry import Position, PositionAndAngle, PositionAndAngle
+from ReflectometryServer.geometry import Position, PositionAndAngle
 from server_common.channel_access import AlarmSeverity, AlarmStatus
-from utils import position_and_angle, position,  DEFAULT_TEST_TOLERANCE
+from utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
 
 
 class TestComponent(unittest.TestCase):
@@ -261,8 +261,10 @@ class TestThetaComponent(unittest.TestCase):
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
+        theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.substitute_incoming_beam_for_displacement
 
         assert_that(result, is_(0.0))
+        assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component has defined theta rbv")
 
     def test_GIVEN_next_component_is_enabled_and_at_45_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
@@ -290,21 +292,52 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(result, is_(90/2.0))
 
-    def test_GIVEN_next_component_is_disabled_and_next_component_but_one_is_enabled_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
+    def test_GIVEN_next_component_is_disabled_and_next_component_but_one_is_enabled_WHEN_get_read_back_THEN_half_angle_to_component_is_readback_and_theta_calc_set_of_incoming_beam_is_set(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp1", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = False
+        next_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
 
         next_but_one_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_but_one_component.beam_path_rbv.is_in_beam = True
         next_but_one_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
+        next_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
+
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.angle
+        theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.substitute_incoming_beam_for_displacement
+        theta_calc_set_of_incoming_beam_next_comp_but_one = next_but_one_component.beam_path_rbv.substitute_incoming_beam_for_displacement
 
         assert_that(result, is_(45.0/2.0))
+        assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(None), "This component does not define theta rbv")
+        assert_that(theta_calc_set_of_incoming_beam_next_comp_but_one, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component has defined theta rbv")
+
+    def test_GIVEN_next_component_is_enabled_and_next_component_but_one_is_also_enabled_WHEN_get_read_back_THEN_half_angle_to_first_component_is_readback_and_theta_cal_set_only_on_first_component(self):
+
+        beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        next_component = Component("comp1", setup=PositionAndAngle(0, 10, 90))
+        next_component.beam_path_rbv.is_in_beam = True
+        next_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
+        next_component.beam_path_rbv.set_displacement(5, AlarmSeverity.No, AlarmStatus.No)
+
+        next_but_one_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
+        next_but_one_component.beam_path_rbv.is_in_beam = True
+        next_but_one_component.beam_path_rbv.set_displacement(0, AlarmSeverity.No, AlarmStatus.No)
+        next_but_one_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
+
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
+        theta.beam_path_rbv.set_incoming_beam(beam_start)
+
+        result = theta.beam_path_rbv.angle
+        theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.substitute_incoming_beam_for_displacement
+        theta_calc_set_of_incoming_beam_next_comp_but_one = next_but_one_component.beam_path_rbv.substitute_incoming_beam_for_displacement
+
+        assert_that(result, is_(45.0/2.0))
+        assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component does not define theta rbv")
+        assert_that(theta_calc_set_of_incoming_beam_next_comp_but_one, is_(None), "This component has defined theta rbv")
 
     def test_GIVEN_next_component_is_enabled_WHEN_set_next_component_displacement_THEN_change_in_beam_path_triggered(self):
 
@@ -349,6 +382,23 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(result, is_(close_to(45.0/2.0, DEFAULT_TEST_TOLERANCE)))
 
+    def test_GIVEN_next_component_is_enabled_theta_is_set_to_0_and_component_is_at_45_degrees_WHEN_get_read_back_from_component_THEN_component_readback_is_relative_to_setpoint_beam_not_readback_beam_and_is_not_0_and_outgoing_beam_is_readback_outgoing_beam(self):
+        beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
+        next_component.beam_path_rbv.is_in_beam = True
+        expected_position = 5
+        next_component.beam_path_rbv.set_displacement(expected_position, AlarmSeverity.No, AlarmStatus.No)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta.beam_path_set_point.set_incoming_beam(beam_start)
+        theta.beam_path_set_point.set_angle_relative_to_beam(0)
+        theta.beam_path_rbv.set_incoming_beam(beam_start)
+        next_component.beam_path_rbv.set_incoming_beam(theta.beam_path_rbv.get_outgoing_beam())
+
+        result_position = next_component.beam_path_rbv.get_position_relative_to_beam()
+        result_outgoing_beam = next_component.beam_path_rbv.get_outgoing_beam()
+
+        assert_that(result_position, is_(expected_position))
+        assert_that(result_outgoing_beam, is_(position_and_angle(theta.beam_path_rbv.get_outgoing_beam())))
 
 class TestComponentInitialisation(unittest.TestCase):
 

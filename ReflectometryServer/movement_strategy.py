@@ -1,10 +1,9 @@
 """
-Classes and objects decribing the movement of items
+Classes and objects describing the movement of items
 """
-from math import fabs, tan, radians, sin, cos, sqrt
+from math import fabs, tan, radians, sqrt
 
-from ReflectometryServer.geometry import PositionAndAngle, Position
-
+from ReflectometryServer.geometry import PositionAndAngle, Position, position_from_radial_coords
 
 # Tolerance to use when comparing an angle with another angle
 ANGULAR_TOLERANCE = 1e-12
@@ -122,10 +121,8 @@ class LinearMovementCalc(object):
         displacement = given_displacement
         if displacement is None:
             displacement = self._displacement
-        y_value = self._position_at_zero.y + displacement * sin(radians(self._angle))
-        z_value = self._position_at_zero.z + displacement * cos(radians(self._angle))
 
-        return Position(y_value, z_value)
+        return self._position_at_zero + position_from_radial_coords(displacement, self._angle)
 
     def set_displacement(self, displacement):
         """
@@ -158,6 +155,13 @@ class LinearMovementCalc(object):
 
         """
         return self._displacement - self._dist_along_axis_from_zero_to_beam_intercept(beam)
+
+    def get_distance_relative_to_beam_in_mantid_coordinates(self, incoming_beam):
+        """
+        Returns (ReflectometryServer.geometry.Position): distance to the beam in mantid coordinates as a vector
+        """
+        distance_relative_to_beam = self.get_distance_relative_to_beam(incoming_beam)
+        return position_from_radial_coords(distance_relative_to_beam, self._angle)
 
     def get_displacement(self):
         """

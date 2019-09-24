@@ -190,6 +190,7 @@ class Beamline(object):
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
 
+        self._active_mode = None
         self._initialise_mode(modes)
 
     def _validate(self, beamline_parameters, modes):
@@ -344,7 +345,7 @@ class Beamline(object):
     def _move_for_all_beamline_parameters(self):
         """
         Updates the beamline parameters to the latest set point value; reapplies if they are in the mode. Then moves to
-        latest postions.
+        latest positions.
         """
         parameters = self._beamline_parameters.values()
         parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
@@ -394,29 +395,34 @@ class Beamline(object):
         for key, value in self._active_mode.initial_setpoints.items():
             self._beamline_parameters[key].sp_no_move = value
 
-    def _get_drivers_not_at_setpoint(self):
-        """
-        Returns: A list of all drivers that are not already at their set point, i.e. need to be moved.
-        """
-        return [driver for driver in self._drivers if not driver.at_target_setpoint()]
-
     def _move_drivers(self):
         """
         Issue move for all drivers at the speed of the slowest axis and set appropriate status for failure/success.
         """
         try:
-            self._perform_move_for_all_drivers(self._get_max_move_duration())
-            self.set_status(STATUS.OKAY, "")
+
+            try:
+                self._perform_move_for_all_drivers(self._get_max_move_duration())
+                self.set_status(STATUS.OKAY, "")
+            except ZeroDivisionError as e:
+                logger.error("Failed to perform move: {}".format(e))
+                self.set_status(STATUS.CONFIG_ERROR, str(e))
+
         except (ValueError, UnableToConnectToPVException) as e:
             self.set_status(STATUS.GENERAL_ERROR, e.message)
 
     def _perform_move_for_all_drivers(self, move_duration):
-        for driver in self._get_drivers_not_at_setpoint():
+        for driver in self._drivers:
             driver.perform_move(move_duration)
 
     def _get_max_move_duration(self):
+        """
+        Returns: maximum time taken for all required moves, if axes are not synchronised this will return 0 but
+        movement will still be required
+
+        """
         max_move_duration = 0.0
-        for driver in self._get_drivers_not_at_setpoint():
+        for driver in self._drivers:
             max_move_duration = max(max_move_duration, driver.get_max_move_duration())
 
         return max_move_duration
@@ -511,3 +517,10 @@ class Beamline(object):
             listener: the listener function to add with parameters for new status and message
         """
         self._status_change_listeners.add(listener)
+
+    @property
+    def drivers(self):
+        """
+        Returns: list of drivers in the beamline
+        """
+        return self._drivers

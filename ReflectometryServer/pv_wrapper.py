@@ -1,7 +1,11 @@
 """
 Wrapper for motor PVs
 """
-from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX
+from functools import partial
+from threading import Event
+
+from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
+from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
 
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
@@ -11,39 +15,93 @@ logger = logging.getLogger(__name__)
 
 class PVWrapper(object):
     """
-    Wrap a single pv with readback and set point listeners.
+    Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
     """
-
-    def __init__(self, base_pv):
+    def __init__(self, base_pv, ca=None):
         """
         Creates a wrapper around a PV.
 
         Args:
             base_pv(String): The name of the PV
         """
+        if ca is None:
+            self._ca = ChannelAccess
+        else:
+            self._ca = ca
+        self._name = base_pv
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
-        self._set_pvs()
-        self._set_resolution()
-
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
+        self._after_is_changing_change_listeners = set()
 
-    def add_monitors(self):
-        """
-        Add monitors to the relevant motor PVs for readback and setpoint values.
-        """
-        self._monitor_pv(self._rbv_pv, self._trigger_after_rbv_change_listeners)
-        self._monitor_pv(self._sp_pv, self._trigger_after_sp_change_listeners)
+        self._move_initiated = False
+        self._moving_state = None
+        self._v_restore = None
+        self._v_curr = None
+        self._d_back = None
+        self._v_back = None
+        self._dir = None
+        self.max_velocity = None
+        self._state_init_event = Event()
+        self._velocity_event = Event()
+
+        self._set_pvs()
+        self._set_resolution()
+        self._set_max_velocity()
 
     def _set_pvs(self):
+        """
+        Define relevant PVs for this type of axis. Must be overridden in subclass.
+        """
         self._rbv_pv = ""
         self._sp_pv = ""
+        self._velo_pv = ""
+        self._vmax_pv = ""
+        self._dmov_pv = ""
+        self._bdst_pv = ""
+        self._bvel_pv = ""
+        self._dir_pv = ""
+        raise NotImplementedError()
 
     def _set_resolution(self):
+        """
+        Set the motor resolution for this axis. Must be overridden in subclass.
+        """
         self._resolution = 0
+        raise NotImplementedError()
 
-    @staticmethod
-    def _monitor_pv(pv, call_back_function):
+    def _set_max_velocity(self):
+        """
+        Sets the maximum velocity this axis can move at.
+        """
+        self.max_velocity = self._read_pv(self._vmax_pv)
+
+    def initialise(self):
+        """
+        Initialise PVWrapper values once the beamline is ready.
+        """
+        self._add_monitors()
+        self._v_curr = self._read_pv(self._velo_pv)
+        self._d_back = self._read_pv(self._bdst_pv)
+        self._v_back = self._read_pv(self._bvel_pv)
+        self._dir = self._read_pv(self._dir_pv)
+
+    def _add_monitors(self):
+        """
+        Add monitors to the relevant motor PVs.
+        """
+        self._monitor_pv(self._rbv_pv,
+                         partial(self._trigger_listeners, self._after_rbv_change_listeners))
+        self._monitor_pv(self._sp_pv,
+                         partial(self._trigger_listeners, self._after_sp_change_listeners))
+
+        self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
+        self._monitor_pv(self._velo_pv, self._on_update_velocity)
+        self._monitor_pv(self._bdst_pv, self._on_update_backlash_distance)
+        self._monitor_pv(self._bvel_pv, self._on_update_backlash_velocity)
+        self._monitor_pv(self._dir_pv, self._on_update_direction)
+
+    def _monitor_pv(self, pv, call_back_function):
         """
         Adds a monitor function to a given PV.
 
@@ -51,29 +109,27 @@ class PVWrapper(object):
             pv(String): The pv to monitor
             call_back_function: The function to execute on a pv value change
         """
-        if ChannelAccess.pv_exists(pv):
-            ChannelAccess.add_monitor(pv, call_back_function)
+        if self._ca.pv_exists(pv):
+            self._ca.add_monitor(pv, call_back_function)
             logger.debug("Monitoring {} for changes.".format(pv))
         else:
             logger.error("Error adding monitor to {}: PV does not exist".format(pv))
 
-    @staticmethod
-    def _read_pv(pv):
+    def _read_pv(self, pv):
         """
         Read the value from a given PV.
 
         Args:
             pv(String): The pv to read
         """
-        value = ChannelAccess.caget(pv)
+        value = self._ca.caget(pv)
         if value is not None:
             return value
         else:
             logger.error("Could not connect to PV {}.".format(pv))
             raise UnableToConnectToPVException(pv, "Check configuration is correct and IOC is running.")
 
-    @staticmethod
-    def _write_pv(pv, value):
+    def _write_pv(self, pv, value):
         """
         Write a value to a given PV.
 
@@ -81,7 +137,7 @@ class PVWrapper(object):
             pv(String): The PV to write to
             value: The new value
         """
-        ChannelAccess.caput(pv, value)
+        self._ca.caput(pv, value)
 
     def add_after_rbv_change_listener(self, listener):
         """
@@ -92,11 +148,6 @@ class PVWrapper(object):
         """
         self._after_rbv_change_listeners.add(listener)
 
-    def _trigger_after_rbv_change_listeners(self, new_value, alarm_severity, alarm_status):
-        logger.debug("Triggering after value change listeners. New value: {}.".format(new_value))
-        for value_change_listener in self._after_rbv_change_listeners:
-            value_change_listener(new_value, alarm_severity, alarm_status)
-
     def add_after_sp_change_listener(self, listener):
         """
         Add a listener which should be called after a change in the read back value of the motor.
@@ -105,9 +156,16 @@ class PVWrapper(object):
         """
         self._after_sp_change_listeners.add(listener)
 
-    def _trigger_after_sp_change_listeners(self, new_value, alarm_severity, alarm_status):
-        logger.debug("Triggered after setpoint readback value change listeners {}.".format(new_value))
-        for value_change_listener in self._after_sp_change_listeners:
+    def add_after_is_changing_change_listener(self, listener):
+        """
+        Add a listener which should be called after a change in the dmov (moving) status for a motor
+        Args:
+            listener: function to call should have two arguments which are the new value and new error state
+        """
+        self._after_is_changing_change_listeners.add(listener)
+
+    def _trigger_listeners(self, listeners, new_value, alarm_severity, alarm_status):
+        for value_change_listener in listeners:
             value_change_listener(new_value, alarm_severity, alarm_status)
 
     @property
@@ -115,7 +173,7 @@ class PVWrapper(object):
         """
         Returns: the name of the underlying PV
         """
-        return self._prefixed_pv
+        return self._name
 
     @property
     def resolution(self):
@@ -148,31 +206,36 @@ class PVWrapper(object):
         """
         return self._read_pv(self._rbv_pv)
 
-
-class MotorPVWrapper(PVWrapper):
-    """
-    Wrap the motor PVs to allow easy access to all motor PV values needed.
-    """
-    def __init__(self, base_pv):
-        """
-        Creates a wrapper around a motor PV for accessing its fields.
-        :param pv_name (string): The name of the PV
-        """
-        super(MotorPVWrapper, self).__init__(base_pv)
-
-    def _set_pvs(self):
-        self._sp_pv = self._prefixed_pv
-        self._rbv_pv = "{}.RBV".format(self._prefixed_pv)
-
-    def _set_resolution(self):
-        self._resolution = self._read_pv("{}.MRES".format(self._prefixed_pv))
-
     @property
     def velocity(self):
         """
         Returns: the value of the underlying velocity PV
         """
-        return self._read_pv(self._prefixed_pv + ".VELO")
+        return self._v_curr
+
+    @property
+    def backlash_distance(self):
+        """
+        Returns(float): the value of the underlying backlash distance PV
+        """
+        if self._dir == "Pos":
+            return self._d_back * -1.0
+        else:
+            return self._d_back
+
+    @property
+    def backlash_velocity(self):
+        """
+        Returns: the value of the underlying backlash velocity PV
+        """
+        return self._v_back
+
+    @property
+    def direction(self):
+        """
+        Returns: the value of the underlying direction PV
+        """
+        return self._dir
 
     @velocity.setter
     def velocity(self, value):
@@ -182,62 +245,227 @@ class MotorPVWrapper(PVWrapper):
         Args:
             value: The value to set
         """
-        self._write_pv(self._prefixed_pv + ".VELO", value)
+        self._write_pv(self._velo_pv, value)
+
+    def initiate_move_with_change_of_velocity(self):
+        """
+        Sets internal state of the pv wrapper to reflect that a move has just been initialised.
+        """
+        self._move_initiated = True
+        self._velocity_event.clear()
+        if self._moving_state == MTR_STOPPED:
+            self._v_restore = self.velocity
+            write_autosave_value(self.name, self._v_restore, AutosaveType.VELOCITY)
+
+    def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
+        """
+        React to an update in the motion status of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new motion status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        if new_value == MTR_STOPPED and self._v_restore is not None:
+            self.velocity = self._v_restore
+        if new_value == MTR_MOVING:
+            if self._move_initiated:
+                self._velocity_event.wait()
+                self._move_initiated = False
+                self._velocity_event.clear()
+        self._moving_state = new_value
+        self._state_init_event.set()
+        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
+                                alarm_severity, alarm_status)
+
+    def _dmov_to_bool(self, value):
+        """
+        Converts the inverted dmov (0=True, 1=False) to the standard format
+        """
+        return not value
+
+    def _on_update_velocity(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the velocity of the underlying motor axis: save value to be restored later if the update
+        is not issued by reflectometry server itself.
+
+        Params:
+            value (Boolean): The new motion status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._v_curr = value
+        if self._v_restore is None:
+            self._init_velocity_to_restore(value)
+        elif not self._move_initiated:
+            self._v_restore = value
+            write_autosave_value(self.name, value, AutosaveType.VELOCITY)
+        self._velocity_event.set()
+
+    def _init_velocity_to_restore(self, value):
+        """
+        Reads the velocity this axis should restore after a beamline move ends. Initialises to the current value unless
+        the motor is currently moving and an autosave value can be read.
+        """
+        v_init = value
+        v_autosaved = read_autosave_value(self.name, AutosaveType.VELOCITY)
+        self._state_init_event.wait()
+        if self._moving_state == MTR_MOVING:
+            if v_autosaved is not None:
+                v_init = v_autosaved
+        self._v_restore = v_init
+        write_autosave_value(self.name, v_init, AutosaveType.VELOCITY)
 
     @property
-    def max_velocity(self):
+    def is_moving(self):
         """
-        Returns: the value of the underlying max velocity PV
+        Returns: True of the axis is moving
         """
-        return self._read_pv(self._prefixed_pv + ".VMAX")
+        return self._dmov_to_bool(self._moving_state)
 
-
-class AxisPVWrapper(PVWrapper):
-    """
-    Wrap the axis PVs on top of a motor record to allow easy access to all axis PV values needed.
-    """
-    def __init__(self, base_pv):
+    def _on_update_backlash_distance(self, value, alarm_severity, alarm_status):
         """
-        Creates a wrapper around a motor PV for accessing its fields.
+        React to an update in the backlash distance of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new backlash distance
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._d_back = value
+
+    def _on_update_backlash_velocity(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the backlash velocity of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new backlash distance
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._v_back = value
+
+    def _on_update_direction(self, value, alarm_severity, alarm_status):
+        """
+        React to an update in the direction of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new backlash distance
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._dir = value
+
+    def get_distance(self, rbv, set_point_position):
+        """
         Args:
-            base_pv (string): The name of the base PV
+            rbv: the read back value
+            set_point_position: the set point position
+        Returns: The distance between the target component position and the actual motor position in y.
         """
-        super(AxisPVWrapper, self).__init__(base_pv)
+        raise NotImplemented("This should be implemented in the subclass")
+
+
+class MotorPVWrapper(PVWrapper):
+    """
+    Wrap a low level motor PV. Provides relevant listeners and synchronization utilities.
+    """
+    def __init__(self, base_pv, ca=None):
+        """
+        Creates a wrapper around a low level motor PV.
+
+        Params:
+            base_pv (String): The name of the PV
+        """
+        super(MotorPVWrapper, self).__init__(base_pv, ca)
 
     def _set_pvs(self):
-        self._sp_pv = "{}:SP".format(self._prefixed_pv)
-        self._rbv_pv = self._prefixed_pv
-
-
-class VerticalJawsPVWrapper(PVWrapper):
-    """
-    Wrap the vertical jaws PVs to allow easy access to all motor PV values needed, to allow the centre to track a
-    height.
-    """
-
-    def __init__(self, base_pv):
         """
-        Creates a wrapper around a motor PV for accessing its fields.
-        :param pv_name (string): The name of the PV
+        Define relevant PVs for this type of axis.
         """
-        super(VerticalJawsPVWrapper, self).__init__(base_pv)
-
-    def _set_pvs(self):
-        self._sp_pv = "{}:VCENT:SP".format(self._prefixed_pv)
-        self._rbv_pv = "{}:VCENT".format(self._prefixed_pv)
+        self._sp_pv = self._prefixed_pv
+        self._rbv_pv = "{}.RBV".format(self._prefixed_pv)
+        self._velo_pv = "{}.VELO".format(self._prefixed_pv)
+        self._vmax_pv = "{}.VMAX".format(self._prefixed_pv)
+        self._dmov_pv = "{}.DMOV".format(self._prefixed_pv)
+        self._bdst_pv = "{}.BDST".format(self._prefixed_pv)
+        self._bvel_pv = "{}.BVEL".format(self._prefixed_pv)
+        self._dir_pv = "{}.DIR".format(self._prefixed_pv)
 
     def _set_resolution(self):
+        """
+        Set the motor resolution for this axis.
+        """
+        self._resolution = self._read_pv("{}.MRES".format(self._prefixed_pv))
+
+
+class _JawsAxisPVWrapper(PVWrapper):
+    def __init__(self, base_pv, is_vertical, ca=None):
+        """
+        Creates a wrapper around a jaws axis.
+
+        Params:
+            base_pv (String): The name of the PV
+            is_vertical (Boolean): Whether the jaws axis moves in the horizontal or vertical direction.
+        """
+        self.is_vertical = is_vertical
+        self._individual_moving_states = {}
+        self._state_init_event = Event()
+
+        self._directions = []
+        self._set_directions()
+        self._velocities = {}
+
+        super(_JawsAxisPVWrapper, self).__init__(base_pv, ca)
+
+    def _set_directions(self):
+        """
+        Set the direction keys used in PVs for this jaws axis.
+        """
+        if self.is_vertical:
+            self._directions = ["JN", "JS"]
+            self._direction_symbol = "V"
+        else:
+            self._directions = ["JE", "JW"]
+            self._direction_symbol = "H"
+
+    def _set_resolution(self):
+        """
+        Set the motor resolution for this axis.
+        """
         motor_resolutions_pvs = self._pv_names_for_directions("MTR.MRES")
         motor_resolutions = [self._read_pv(motor_resolutions_pv) for motor_resolutions_pv in motor_resolutions_pvs]
         self._resolution = float(sum(motor_resolutions)) / len(motor_resolutions_pvs)
 
+    def initialise(self):
+        """
+        Initialise PVWrapper values once the beamline is ready.
+        """
+        self._add_monitors()
+        self._init_velocity_to_restore(self.velocity)
+        for velo_pv in self._pv_names_for_directions("MTR.VELO"):
+            self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
+
+    def _add_monitors(self):
+        """
+        Add monitors to the relevant motor PVs.
+        """
+        self._monitor_pv(self._rbv_pv, partial(self._trigger_listeners, self._after_rbv_change_listeners))
+        self._monitor_pv(self._sp_pv, partial(self._trigger_listeners, self._after_sp_change_listeners))
+        self._monitor_pv(self._dmov_pv, partial(self._on_update_moving_state))
+
+        for velo_pv in self._pv_names_for_directions("MTR.VELO"):
+            self._monitor_pv(velo_pv, partial(self._on_update_individual_velocity,
+                                              source=self._strip_source_pv(velo_pv)))
+
     @property
     def velocity(self):
         """
-        Returns: the value of the underlying velocity PV
+        Returns: the value of the underlying velocity PV. We use the minimum between the two jaw blades to
+        ensure we do not create crash conditions (i.e. one jaw blade going faster than the other one can).
         """
-        motor_velocities = self._pv_names_for_directions("MTR.VELO")
-        return max([self._read_pv(pv) for pv in motor_velocities])
+        motor_velocities = self._velocities.values()
+        return min([motor_velocities])
 
     @velocity.setter
     def velocity(self, value):
@@ -251,22 +479,114 @@ class VerticalJawsPVWrapper(PVWrapper):
         for pv in motor_velocities:
             self._write_pv(pv, value)
 
-    @property
-    def max_velocity(self):
+    def _set_max_velocity(self):
         """
-        Returns: the value of the underlying max velocity PV
+        Sets the maximum velocity this axis can move at.
         """
         motor_velocities = self._pv_names_for_directions("MTR.VMAX")
-        return min([self._read_pv(pv) for pv in motor_velocities])
+        self.max_velocity = min([self._read_pv(pv) for pv in motor_velocities])
 
     def _pv_names_for_directions(self, suffix):
         """
         Args:
             suffix: pv to read
 
-        Returns:
-            list of pv names for the different directions
+        Returns: list of pv names for the different directions
         """
-        directions = ["JN", "JS"]
         return ["{}:{}:{}".format(self._prefixed_pv, direction, suffix)
-                for direction in directions]
+                for direction in self._directions]
+
+    def _on_update_moving_state(self, new_value, alarm_severity, alarm_status, source=None):
+        """
+        React to an update in the motion status of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new motion status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        if new_value == MTR_STOPPED and self._v_restore is not None:
+            self.velocity = self._v_restore
+        self._moving_state = new_value
+        self._state_init_event.set()
+        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
+                                alarm_severity, alarm_status)
+
+    def _on_update_individual_velocity(self, value, alarm_severity, alarm_status, source=None):
+        self._velocities[source] = value
+
+    def _init_velocity_to_restore(self, value):
+        """
+        Reads the velocity this axis should restore after a beamline move ends. Initialises to the given value unless
+        the motor is currently moving and an autosave value can be read.
+        """
+        v_init = value
+        v_autosaved = read_autosave_value(self.name, AutosaveType.VELOCITY)
+        self._state_init_event.wait()
+        if self._moving_state == MTR_MOVING:
+            if v_autosaved is not None:
+                v_init = v_autosaved
+        self._v_restore = v_init
+        write_autosave_value(self.name, v_init, AutosaveType.VELOCITY)
+
+    def _strip_source_pv(self, pv):
+        """
+        Extracts the direction key from a given pv.
+
+        Params:
+            pv (String): The source pv
+
+        Returns: The direction key embedded within the pv
+        """
+        for key in self._directions:
+            if key in pv:
+                return key
+        logger.error("Unexpected event source: {}".format(pv))
+        logger.error("Unexpected event source: {}".format(pv))
+
+
+class JawsGapPVWrapper(_JawsAxisPVWrapper):
+    """
+    Wrap the axis PVs on top of a motor record to allow easy access to all axis PV values needed.
+    """
+    def __init__(self, base_pv, is_vertical, ca=None):
+        """
+        Creates a wrapper around a motor PV for accessing its fields.
+        Args:
+            base_pv (String): The name of the base PV
+        """
+        super(JawsGapPVWrapper, self).__init__(base_pv, is_vertical, ca)
+        self._name = "{}:{}GAP".format(self._name, self._direction_symbol)
+
+    def _set_pvs(self):
+        """
+        Define relevant PVs for this type of axis.
+        """
+        self._sp_pv = "{}:{}GAP:SP".format(self._prefixed_pv, self._direction_symbol)
+        self._rbv_pv = "{}:{}GAP".format(self._prefixed_pv, self._direction_symbol)
+        self._dmov_pv = "{}:{}GAP:DMOV".format(self._prefixed_pv, self._direction_symbol)
+
+
+class JawsCentrePVWrapper(_JawsAxisPVWrapper):
+    """
+    Wrap the vertical jaws PVs to allow easy access to all motor PV values needed, to allow the centre to track a
+    height.
+    """
+
+    def __init__(self, base_pv, is_vertical, ca=None):
+        """
+        Creates a wrapper around a motor PV for accessing its fields.
+
+        Params:
+            pv_name (String): The name of the PV
+        """
+        super(JawsCentrePVWrapper, self).__init__(base_pv, is_vertical, ca)
+        self._name = "{}:{}CENT".format(self._name, self._direction_symbol)
+
+    def _set_pvs(self):
+        """
+        Define relevant PVs for this type of axis.
+        """
+        self._sp_pv = "{}:{}CENT:SP".format(self._prefixed_pv, self._direction_symbol)
+        self._rbv_pv = "{}:{}CENT".format(self._prefixed_pv, self._direction_symbol)
+        self._dmov_pv = "{}:{}CENT:DMOV".format(self._prefixed_pv, self._direction_symbol)

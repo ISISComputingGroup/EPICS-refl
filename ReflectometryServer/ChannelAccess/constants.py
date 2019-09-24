@@ -1,5 +1,5 @@
 """
-constants for the reflecometry server.
+constants for the reflectometry server.
 """
 import os
 
@@ -15,7 +15,11 @@ MYPVPREFIX = _get_env_var('MYPVPREFIX')
 REFLECTOMETRY_PREFIX = "{}REFL:".format(MYPVPREFIX)
 
 # Reflectometry configuration file path
-REFL_CONFIG_PATH = "{}".format(_get_env_var('ICPCONFIGROOT'))
+REFL_CONFIG_PATH = os.path.abspath(os.path.join("{}".format(_get_env_var('ICPCONFIGROOT')), "refl"))
 
 # Reflectometry configuration file path
 REFL_AUTOSAVE_PATH = os.path.join("{}".format(_get_env_var('ICPVARDIR')), "refl")
+
+# alias motor DMOV values
+MTR_MOVING = 0
+MTR_STOPPED = 1

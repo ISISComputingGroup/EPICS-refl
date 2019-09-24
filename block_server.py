@@ -301,15 +301,26 @@ class BlockServer(Driver):
         self._initialise_config()
 
     def _set_curr_config(self, details):
-        """Sets the current configuration details to that defined in the XML, saves to disk, then initialises it.
+        """Sets the current configuration details to that defined in the JSON, saves to disk,
+        then re-initialises the current configuration.
 
         Args:
-            details (string): the configuration XML
+            details (string): the configuration JSON
         """
-        # Need to save the config to file before we initialize or the changes won't be propagated to IOCS
 
+        current_name = self._active_configserver.get_config_name()
+        details_name = convert_from_json(details)["name"]
+
+        # This method saves the given details and then reloads the current config.
+        # Sending the details of a new config to this method, as was being done incorrectly (see #4606)
+        # will save the details as a new config, but not load it. A warning is sent in case this happens again.
+        if current_name != details_name:
+            print_and_log("Config details to be set ({}) did not match current config ({})"
+                          .format(details_name, current_name), "MINOR")
+
+        # Need to save the config to file before we initialize or the changes won't be propagated to IOCS
         self.save_inactive_config(details)
-        self.load_config(self._active_configserver.get_config_name(), full_init=False)
+        self.load_config(current_name, full_init=False)
 
     def _initialise_config(self, full_init=False):
         """Responsible for initialising the configuration.
@@ -370,23 +381,12 @@ class BlockServer(Driver):
                 # IOCs are restarted if and only if auto start is True. Note that auto restart instructs proc serv to
                 # restart an IOC if it terminates unexpectedly and does not apply here.
                 if ioc.autostart:
-                    # Throws if IOC does not exist
                     if self._ioc_control.get_ioc_status(name) == "RUNNING":
-                        self._ioc_control.restart_ioc(name)
+                        self._ioc_control.restart_iocs([name], reapply_auto=True)
                     else:
-                        self._ioc_control.start_ioc(name)
+                        self.start_iocs([name])
             except Exception as err:
                 print_and_log("Could not (re)start IOC {}: {}".format(name, err), "MAJOR")
-
-        # Give it time to start as IOC has to be running to be able to set restart property
-        print_and_log("Beginning arbitrary wait for IOCs to start.")
-        sleep(2)
-        print_and_log("Finished arbitrary wait for IOCs to start.")
-        for name, ioc in self._active_configserver.get_all_ioc_details().iteritems():
-            if ioc.autostart:
-                # Set the restart property
-                print_and_log("Setting IOC %s's auto-restart to %s" % (name, ioc.restart))
-                self._ioc_control.set_autorestart(name, ioc.restart)
 
     def load_config(self, config, full_init=True):
         """Load a configuration.
