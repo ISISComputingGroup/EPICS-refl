@@ -16,7 +16,7 @@ from RemoteIocServer.utilities import print_and_log, get_hostname_from_prefix
 from BlockServer.core.ioc_control import IocControl
 
 
-DEFAULT_GATEWAY_START_BAT = os.path.join("C:\\", "Instrument", "Apps", "EPICS", "gateway", "start_remoteioc_server.bat")
+DEFAULT_GATEWAY_START_BAT = os.path.join(os.getenv("EPICS_KIT_ROOT"), "gateway", "start_remoteioc_server.bat")
 
 
 def _error_handler(func):
@@ -30,7 +30,21 @@ def _error_handler(func):
 
 
 class RemoteIocListDriver(Driver):
+    """
+    A driver for a list of remote IOCs
+    """
+
     def __init__(self, ioc_names, pv_prefix, gateway_pvlist_path, gateway_acf_path, gateway_restart_script_path):
+        """
+        A driver for a list of remote IOCs
+
+        Args:
+            ioc_names: a list of ioc names
+            pv_prefix: the pv prefix
+            gateway_pvlist_path: the path to the gateway pv list
+            gateway_acf_path: the path to the gateway ACF file
+            gateway_restart_script_path: the path to the script to restart the gateway
+        """
         super(RemoteIocListDriver, self).__init__()
         self._remote_pv_prefix = None
 

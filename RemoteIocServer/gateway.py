@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals, division, absolute_impo
 import os
 import sys
 import subprocess
+import textwrap
 import traceback
 
 import six
@@ -76,29 +77,29 @@ class GateWay(object):
 
     def _get_access_security_file_content(self):
         hostname = get_hostname_from_prefix(self._remote_pv_prefix)
-        return """
-HAG(allowed_write) { localhost, 127.0.0.1, """ + six.binary_type(hostname) + """ }
-
-ASG(DEFAULT) {
-   RULE(1, READ)
-   RULE(1, WRITE, TRAPWRITE)
-   {
-       HAG(allowed_write)
-   }
-}
-
-ASG(GWEXT) {
-    RULE(1, READ)
-    RULE(1, WRITE, TRAPWRITE)
-    {
-        HAG(allowed_write)
-    }
-}
-
-ASG(ANYBODY) {
-    RULE(1, READ)
-}
-""".encode("ascii") if hostname is not None else ""
+        return textwrap.dedent("""\
+            HAG(allowed_write) { localhost, 127.0.0.1, """ + six.binary_type(hostname) + """ }
+            
+            ASG(DEFAULT) {
+               RULE(1, READ)
+               RULE(1, WRITE, TRAPWRITE)
+               {
+                   HAG(allowed_write)
+               }
+            }
+            
+            ASG(GWEXT) {
+                RULE(1, READ)
+                RULE(1, WRITE, TRAPWRITE)
+                {
+                    HAG(allowed_write)
+                }
+            }
+            
+            ASG(ANYBODY) {
+                RULE(1, READ)
+            }
+            """.encode("ascii") if hostname is not None else "")
 
     def _restart_gateway(self):
         print_and_log("Gateway: restarting")

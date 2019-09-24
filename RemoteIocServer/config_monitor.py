@@ -1,7 +1,6 @@
 from __future__ import print_function, unicode_literals, division, absolute_import
 
 import json
-import sys
 import os
 import zlib
 
@@ -27,7 +26,6 @@ META_XML = """<?xml version="1.0" ?>
 </meta>
 """
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from RemoteIocServer.utilities import print_and_log, get_hostname_from_prefix
 from server_common.channel_access import ChannelAccess
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper
@@ -42,13 +40,28 @@ class _EpicsMonitor(object):
     Wrapper around an EPICS monitor.
     """
     def __init__(self, pv):
+        """
+        Initialise an epics monitor object without starting the monitor.
+
+        Args:
+            pv: the pv to monitor
+        """
         self._pv = pv
 
     def start(self, callback):
+        """
+        Starts an EPICS monitor with the provided callback function on value.
+
+        Args:
+            callback (func): function to call on value change
+        """
         ChannelAccess.add_monitor(self._pv, callback)
         ChannelAccess.poll()  # Needed to get first monitor immediately
 
     def end(self):
+        """
+        Ends an EPICS monitor
+        """
         try:
             CaChannelWrapper.get_chan(self._pv).clear_channel()
         except UnableToConnectToPVException:
@@ -71,6 +84,12 @@ class ConfigurationMonitor(object):
         self._remote_hostname = None
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
+        """
+        Sets the remote PV prefix
+
+        Args:
+            remote_pv_prefix (str): the remote pv prefix
+        """
         self._remote_pv_prefix = remote_pv_prefix
         self._remote_hostname = get_hostname_from_prefix(remote_pv_prefix)
 
@@ -124,7 +143,8 @@ class ConfigurationMonitor(object):
 
         if "component_iocs" in config and config["component_iocs"] is not None:
             for ioc in config["component_iocs"]:
-                iocs_list.append(ioc)
+                if ioc["remotePvPrefix"] == self._local_pv_prefix:  # If the IOC is meant to run on this machine...
+                    iocs_list.append(ioc)
 
         if "iocs" in config and config["iocs"] is not None:
             for ioc in config["iocs"]:

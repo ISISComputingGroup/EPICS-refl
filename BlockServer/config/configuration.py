@@ -92,6 +92,7 @@ class Configuration(object):
             pvs (, optional):
             pvsets (, optional): Any PV values that should be set at start up
             simlevel (, optional): Sets the simulation level
+            remotePvPrefix (str, optional): Sets the remote PV prefix to use for this IOC
 
         """
         # Only add it if it has not been added before

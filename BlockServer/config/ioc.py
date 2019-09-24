@@ -44,6 +44,7 @@ class IOC(object):
             pvs (dict): The IOC's PVs
             pvsets (dict): The IOC's PV sets
             simlevel (string): The level of simulation
+            remotePvPrefix (str): The remote pv prefix
         """
         self.name = name
         self.autostart = autostart

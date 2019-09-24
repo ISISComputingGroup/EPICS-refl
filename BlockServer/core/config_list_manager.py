@@ -16,6 +16,8 @@
 
 import os
 import json
+import traceback
+
 from threading import RLock
 
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
@@ -120,8 +122,7 @@ class ConfigListManager(object):
                 self.update_a_config_in_list(config, True)
             except Exception as err:
                 print_and_log("Error in loading component: {}".format(err), "MINOR")
-                import traceback
-                traceback.print_exc()
+                print_and_log(traceback.format_exc())
 
         # Create default if it does not exist
         if DEFAULT_COMPONENT.lower() not in comp_list:
@@ -134,8 +135,7 @@ class ConfigListManager(object):
                 self.update_a_config_in_list(config)
             except Exception as err:
                 print_and_log("Error in loading config: {}".format(err), "MINOR")
-                import traceback
-                traceback.print_exc()
+                print_and_log(traceback.format_exc())
 
     def load_config(self, name, is_component=False):
         """Loads an inactive configuration or component.

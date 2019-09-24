@@ -38,6 +38,7 @@ class IocControl(object):
 
         Args:
             ioc (string): The name of the IOC
+            restart_alarm_server (bool): whether to also restart the alarm server
         """
         try:
             self._proc.start_ioc(ioc)
@@ -55,6 +56,7 @@ class IocControl(object):
         Args:
             ioc (string): The name of the IOC
             force (bool): Force it to restart even if it is an IOC not to stop
+            restart_alarm_server (bool): whether to also restart the alarm server
         """
         # Check it is okay to stop it
         if not force and ioc.startswith(IOCS_NOT_TO_STOP):
