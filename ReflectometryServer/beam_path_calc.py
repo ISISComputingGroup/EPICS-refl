@@ -17,7 +17,7 @@ class TrackingBeamPathCalc(object):
 
     def __init__(self, movement_strategy):
         """
-        Initialiser.
+        Initialise.
         Args:
             movement_strategy (ReflectometryServer.movement_strategy.LinearMovementCalc): strategy for calculating the
                 interception between the movement of the component and the beam.
@@ -451,7 +451,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
 
     def __init__(self, movement_strategy, angle_to, theta_setpoint_beam_path_calc):
         """
-        Initialiser.
+        Initialise.
         Args:
             movement_strategy: movement strategy to use
             angle_to (list[(ReflectometryServer.beam_path_calc.TrackingBeamPathCalc, ReflectometryServer.beam_path_calc.TrackingBeamPathCalc)]):
@@ -516,8 +516,8 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
 
     def _on_set_incoming_beam(self, incoming_beam):
         """
-        Function called between incoming beam having been set and the change listners being triggered.
-        In this case we need to calulcate a new angle because out angle is the angle of the mirror needed to bounce the
+        Function called between incoming beam having been set and the change listeners being triggered.
+        In this case we need to calculate a new angle because out angle is the angle of the mirror needed to bounce the
         beam from the incoming beam to the outgoing beam.
 
         Args:
@@ -543,7 +543,7 @@ class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
 
     def __init__(self, movement_strategy, angle_to):
         """
-        Initialiser.
+        Initialise.
         Args:
             movement_strategy: movement strategy to use
             angle_to (list[ReflectometryServer.beam_path_calc.TrackingBeamPathCalc]):

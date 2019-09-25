@@ -377,23 +377,12 @@ class BlockServer(Driver):
                 # IOCs are restarted if and only if auto start is True. Note that auto restart instructs proc serv to
                 # restart an IOC if it terminates unexpectedly and does not apply here.
                 if ioc.autostart:
-                    # Throws if IOC does not exist
                     if self._ioc_control.get_ioc_status(name) == "RUNNING":
-                        self._ioc_control.restart_ioc(name)
+                        self._ioc_control.restart_iocs([name], reapply_auto=True)
                     else:
-                        self._ioc_control.start_ioc(name)
+                        self.start_iocs([name])
             except Exception as err:
                 print_and_log("Could not (re)start IOC {}: {}".format(name, err), "MAJOR")
-
-        # Give it time to start as IOC has to be running to be able to set restart property
-        print_and_log("Beginning arbitrary wait for IOCs to start.")
-        sleep(2)
-        print_and_log("Finished arbitrary wait for IOCs to start.")
-        for name, ioc in self._active_configserver.get_all_ioc_details().iteritems():
-            if ioc.autostart:
-                # Set the restart property
-                print_and_log("Setting IOC %s's auto-restart to %s" % (name, ioc.restart))
-                self._ioc_control.set_autorestart(name, ioc.restart)
 
     def load_config(self, config, full_init=True):
         """Load a configuration.

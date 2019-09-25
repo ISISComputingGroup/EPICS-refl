@@ -1,8 +1,9 @@
 """
-Test data and classes.
+SimpleObservable data and classes.
 """
 from math import tan, radians, sin, cos
 
+from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider
 from utils import DEFAULT_TEST_TOLERANCE
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
@@ -10,12 +11,29 @@ from ReflectometryServer.components import Component, TiltingComponent, ThetaCom
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter
+import numpy as np
 
 
 class EmptyBeamlineParameter(BeamlineParameter):
     """
     A Bemline Parameter Stub. Counts the number of time it is asked to move
     """
+
+    def _initialise_sp_from_file(self):
+        pass
+
+    def _initialise_sp_from_motor(self):
+        pass
+
+    def _set_changed_flag(self):
+        pass
+
+    def _move_component(self):
+        pass
+
+    def _rbv(self):
+        pass
+
     def __init__(self, name):
         super(EmptyBeamlineParameter, self).__init__(name)
         self.move_component_count = 0
@@ -107,7 +125,7 @@ class DataMother(object):
         return bl, axes
 
     @staticmethod
-    def beamline_sm_theta_detector(sm_angle, theta, det_offset=0, autosave_theta_not_offset=True, beam_angle=0.0):
+    def beamline_sm_theta_detector(sm_angle, theta, det_offset=0, autosave_theta_not_offset=True, beam_angle=0.0, sm_angle_engineering_correction=False):
         """
         Create beamline with supermirror, theta and a tilting detector.
 
@@ -115,11 +133,10 @@ class DataMother(object):
             sm_angle (float): The initialisation value for supermirror angle
             theta (float): The initialisation value for theta
             det_offset (float): The initialisation value for detector offset
-            autosave_theta_not_offset (bool):
-            beam_start (PositionAndAngle):
+            autosave_theta_not_offset (bool): true to autosave theta and not the offset, false otherwise
+            beam_angle (float): angle of the beam, worked out as the angle the components run along + 90
 
         Returns: beamline, axes
-
         """
         beam_start = PositionAndAngle(0.0, 0.0, 0.0)
         perp_to_floor_angle_in_mantid = 90 + beam_angle
@@ -142,18 +159,33 @@ class DataMother(object):
         params = [sm_angle_param, theta_param, detector_position_param, detector_angle_param]
 
         # DRIVERS
+        # engineering correction
+        if sm_angle_engineering_correction:
+            grid_data_provider = GridDataFileReader("linear_theta")
+            grid_data_provider.variables = ["Theta"]
+            grid_data_provider.points = np.array([[-90, ], [0.0, ], [90.0, ]])
+            grid_data_provider.corrections = np.array([-45, 0.0, 45])
+            grid_data_provider.read = lambda: None
+            correction = InterpolateGridDataCorrectionFromProvider(grid_data_provider, theta_param)
+            size_of_correction = theta / 2.0
+        else:
+            correction = None
+            size_of_correction = 0
+
+        # setup motors
         beam_angle_after_sample = theta * 2 + sm_angle * 2
         supermirror_segment = (z_sm_to_sample, sm_angle)
         theta_segment = (z_sample_to_det, theta)
         reflection_offset = DataMother._calc_reflection_offset(beam_angle, [supermirror_segment, theta_segment])
-        sm_axis = create_mock_axis("MOT:MTR0101", sm_angle, 1)
+        sm_axis = create_mock_axis("MOT:MTR0101", sm_angle + size_of_correction, 1)
         det_axis = create_mock_axis("MOT:MTR0104", reflection_offset + det_offset, 1)
         det_angle_axis = create_mock_axis("MOT:MTR0105",  beam_start.angle + beam_angle_after_sample, 1)
+
         axes = {"sm_axis": sm_axis,
                 "det_axis": det_axis,
                 "det_angle_axis": det_angle_axis}
 
-        drives = [AngleDriver(sm_comp, sm_axis),
+        drives = [AngleDriver(sm_comp, sm_axis, engineering_correction=correction),
                   DisplacementDriver(detector_comp, det_axis),
                   AngleDriver(detector_comp, det_angle_axis)]
 
@@ -161,6 +193,7 @@ class DataMother(object):
         nr_inits = {}
         nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
         modes = [nr_mode]
+        beam_start = PositionAndAngle(0.0, 0.0, 0.0)
         bl = Beamline(comps, params, drives, modes, beam_start)
         bl.active_mode = nr_mode.name
         return bl, axes
@@ -260,8 +293,11 @@ class MockMotorPVWrapper(object):
         self._value = new_value
         for listener in self.after_sp_change_listener:
             listener(new_value, None, None)
+        self.trigger_rbv_change()
+
+    def trigger_rbv_change(self):
         for listener in self.after_rbv_change_listener:
-            listener(new_value, None, None)
+            listener(self._value, None, None)
 
     @property
     def rbv(self):
