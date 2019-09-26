@@ -79,6 +79,8 @@ class GateWay(object):
             for ioc in self._ioc_names:
                 lines.append(r'{remote_prefix}{ioc}:\(.*\)    ALIAS    {local_prefix}{ioc}:\1'
                              .format(remote_prefix=self._remote_pv_prefix, local_prefix=self._local_pv_prefix, ioc=ioc))
+                lines.append(r'{remote_prefix}CS:IOC:{ioc}:\(.*\)    ALIAS    {local_prefix}CS:IOC:{ioc}:\1'
+                             .format(remote_prefix=self._remote_pv_prefix, local_prefix=self._local_pv_prefix, ioc=ioc))
         return lines
 
     def _get_access_security_file_content(self):
