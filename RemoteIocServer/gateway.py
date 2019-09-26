@@ -4,12 +4,17 @@ import os
 import sys
 import subprocess
 import textwrap
+import threading
 import traceback
 
 import six
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
-from RemoteIocServer.utilities import print_and_log, get_hostname_from_prefix
+from RemoteIocServer.utilities import print_and_log, get_hostname_from_prefix, THREADPOOL
+
+
+GATEWAY_FILESYSTEM_WRITE_LOCK = threading.RLock()
+GATEWAY_RESTART_LOCK = threading.RLock()
 
 
 class GateWay(object):
@@ -51,21 +56,22 @@ class GateWay(object):
 
     def _reapply_gateway_settings(self):
         self._recreate_gateway_config_files()
-        self._restart_gateway()
+        THREADPOOL.submit(lambda: self._restart_gateway())
 
     def _recreate_gateway_config_files(self):
-        print_and_log("Gateway: rewriting gateway configuration file at '{}'".format(self._gateway_pvlist_file_path))
+        with GATEWAY_FILESYSTEM_WRITE_LOCK:
+            print_and_log("Gateway: rewriting gateway configuration file at '{}'".format(self._gateway_pvlist_file_path))
 
-        if not os.path.exists(os.path.dirname(self._gateway_pvlist_file_path)):
-            os.makedirs(os.path.dirname(self._gateway_pvlist_file_path))
+            if not os.path.exists(os.path.dirname(self._gateway_pvlist_file_path)):
+                os.makedirs(os.path.dirname(self._gateway_pvlist_file_path))
 
-        with open(self._gateway_pvlist_file_path, "w") as f:
-            f.write("EVALUATION ORDER DENY, ALLOW\n")
-            f.write("\n".join(self._get_alias_file_lines()))
-            f.write("\n")
+            with open(self._gateway_pvlist_file_path, "w") as f:
+                f.write("EVALUATION ORDER DENY, ALLOW\n")
+                f.write("\n".join(self._get_alias_file_lines()))
+                f.write("\n")
 
-        with open(self._gateway_acf_file_path, "w") as f:
-            f.write(self._get_access_security_file_content())
+            with open(self._gateway_acf_file_path, "w") as f:
+                f.write(self._get_access_security_file_content())
 
     def _get_alias_file_lines(self):
         lines = []
@@ -102,11 +108,12 @@ class GateWay(object):
             """.encode("ascii") if hostname is not None else "")
 
     def _restart_gateway(self):
-        print_and_log("Gateway: restarting")
-        try:
-            with open(os.devnull, "w") as devnull:
-                status = subprocess.call(self._gateway_restart_script_path, stdout=devnull, stderr=devnull)
-            print_and_log("Gateway: restart complete (exit code: {})".format(status))
-        except subprocess.CalledProcessError:
-            print_and_log("Gateway: restart failed (path to script: {})".format(self._gateway_restart_script_path))
-            print_and_log(traceback.format_exc())
+        with GATEWAY_RESTART_LOCK:
+            print_and_log("Gateway: restarting")
+            try:
+                with open(os.devnull, "w") as devnull:
+                    status = subprocess.call(self._gateway_restart_script_path, stdout=devnull, stderr=devnull)
+                print_and_log("Gateway: restart complete (exit code: {})".format(status))
+            except subprocess.CalledProcessError:
+                print_and_log("Gateway: restart failed (path to script: {})".format(self._gateway_restart_script_path))
+                print_and_log(traceback.format_exc())

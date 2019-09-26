@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pa
 from RemoteIocServer.config_monitor import ConfigurationMonitor
 from RemoteIocServer.gateway import GateWay
 from RemoteIocServer.pvdb import STATIC_PV_DATABASE, PvNames
-from RemoteIocServer.utilities import print_and_log, get_hostname_from_prefix
+from RemoteIocServer.utilities import print_and_log, THREADPOOL
 from BlockServer.core.ioc_control import IocControl
 
 
@@ -94,9 +94,9 @@ class RemoteIocListDriver(Driver):
                       .format(remote_pv_prefix, self._remote_pv_prefix))
         self._remote_pv_prefix = remote_pv_prefix
 
-        self._configuration_monitor.set_remote_pv_prefix(remote_pv_prefix)
-        self.restart_all_iocs()
-        self._gateway.set_remote_pv_prefix(remote_pv_prefix)
+        THREADPOOL.submit(self._configuration_monitor.set_remote_pv_prefix, remote_pv_prefix)
+        THREADPOOL.submit(self.restart_all_iocs)
+        THREADPOOL.submit(self._gateway.set_remote_pv_prefix, remote_pv_prefix)
         self.updatePVs()
         print_and_log("RemoteIocListDriver: Finished setting instrument to {}".format(self._remote_pv_prefix))
 
@@ -109,7 +109,8 @@ class RemoteIocListDriver(Driver):
                 self._ioc_controller.start_ioc(ioc_name, restart_alarm_server=False)
 
 
-def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_pvlist_path, gateway_acf_path, gateway_restart_script_path):
+def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_pvlist_path, gateway_acf_path,
+                  gateway_restart_script_path):
     server = SimpleServer()
 
     server.createPV("{}{}".format(pv_prefix, subsystem_prefix).encode('ascii'), STATIC_PV_DATABASE)
@@ -128,7 +129,6 @@ def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_pvlist_path, g
 
 
 def main():
-    print(get_hostname_from_prefix("TE:NDW1799:"))
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Runs a remote IOC server.",

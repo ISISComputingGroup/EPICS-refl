@@ -4,13 +4,17 @@ import functools
 import sys
 import os
 
+from concurrent.futures import ThreadPoolExecutor
 from genie_python.channel_access_exceptions import UnableToConnectToPVException, ReadAccessException
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.utilities import print_and_log as _common_print_and_log
 
-__all__ = ['print_and_log', 'get_hostname_from_prefix']
+
+THREADPOOL = ThreadPoolExecutor()
+
+__all__ = ['print_and_log', 'get_hostname_from_prefix', 'THREADPOOL']
 
 print_and_log = functools.partial(_common_print_and_log, src="REMIOC")
 

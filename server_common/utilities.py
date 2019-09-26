@@ -16,7 +16,7 @@
 """
 Utilities for running block server and related ioc's.
 """
-
+import threading
 import time
 import zlib
 import re
@@ -29,6 +29,7 @@ from server_common.common_exceptions import MaxAttemptsExceededException
 
 # Default to base class - does not actually log anything
 LOGGER = Logger()
+_LOGGER_LOCK = threading.RLock()  # To prevent message interleaving between different threads.
 
 
 class SEVERITY(object):
@@ -72,9 +73,10 @@ def print_and_log(message, severity=SEVERITY.INFO, src="BLOCKSVR"):
                                     Default severity is INFO.
         src (string, optional): Gives the source of the message. Default source is BLOCKSVR.
     """
-    message = "[{:.2f}] {}: {}".format(time.time(), severity, message)
-    print(message)
-    LOGGER.write_to_log(message, severity, src)
+    with _LOGGER_LOCK:
+        message = "[{:.2f}] {}: {}".format(time.time(), severity, message)
+        print(message)
+        LOGGER.write_to_log(message, severity, src)
 
 
 def compress_and_hex(value):

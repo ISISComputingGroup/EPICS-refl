@@ -3,6 +3,18 @@ from __future__ import print_function, unicode_literals, division, absolute_impo
 import json
 import os
 import zlib
+import threading
+
+import six
+
+from RemoteIocServer.utilities import print_and_log, get_hostname_from_prefix, THREADPOOL
+from server_common.channel_access import ChannelAccess
+from genie_python.genie_cachannel_wrapper import CaChannelWrapper
+from genie_python.channel_access_exceptions import UnableToConnectToPVException
+from server_common.utilities import dehex_and_decompress, waveform_to_string
+from BlockServer.config.xml_converter import ConfigurationXmlConverter
+from BlockServer.config.ioc import IOC
+
 
 REMOTE_IOC_CONFIG_NAME = "_REMOTE_IOC"
 
@@ -26,13 +38,16 @@ META_XML = """<?xml version="1.0" ?>
 </meta>
 """
 
-from RemoteIocServer.utilities import print_and_log, get_hostname_from_prefix
-from server_common.channel_access import ChannelAccess
-from genie_python.genie_cachannel_wrapper import CaChannelWrapper
-from genie_python.channel_access_exceptions import UnableToConnectToPVException
-from server_common.utilities import dehex_and_decompress, waveform_to_string
-from BlockServer.config.xml_converter import ConfigurationXmlConverter
-from BlockServer.config.ioc import IOC
+
+CONFIG_UPDATING_LOCK = threading.RLock()
+
+
+def needs_config_updating_lock(func):
+    @six.wraps(func)
+    def wrapper(*args, **kwargs):
+        with CONFIG_UPDATING_LOCK:
+            return func(*args, **kwargs)
+    return wrapper
 
 
 class _EpicsMonitor(object):
@@ -56,7 +71,6 @@ class _EpicsMonitor(object):
             callback (func): function to call on value change
         """
         ChannelAccess.add_monitor(self._pv, callback)
-        ChannelAccess.poll()  # Needed to get first monitor immediately
 
     def end(self):
         """
@@ -75,6 +89,13 @@ class ConfigurationMonitor(object):
     Calls back to the RemoteIocServer class on change of config.
     """
     def __init__(self, local_pv_prefix, restart_iocs_callback):
+        """
+        Init.
+
+        Args:
+            local_pv_prefix: the local pv prefix
+            restart_iocs_callback: callback function to call when pv value changes
+        """
         self._monitor = None
         self._local_pv_prefix = local_pv_prefix
         self.restart_iocs_callback_func = restart_iocs_callback
@@ -112,16 +133,18 @@ class ConfigurationMonitor(object):
             self._monitor.end()
         self._monitor = None
 
+    @needs_config_updating_lock
     def _config_updated(self, value, *_, **__):
         try:
             new_config = dehex_and_decompress(waveform_to_string(value))
             self._write_new_config_as_xml(new_config)
-            self.restart_iocs_callback_func()
+            THREADPOOL.submit(self.restart_iocs_callback_func)
         except (TypeError, ValueError, IOError, zlib.error) as e:
             print_and_log("ConfigMonitor: Config JSON from instrument not decoded correctly: {}: {}"
                           .format(e.__class__.__name__, e))
             print_and_log("ConfigMonitor: Raw PV value was: {}".format(value))
 
+    @needs_config_updating_lock
     def _write_new_config_as_xml(self, config_json):
         print_and_log("ConfigMonitor: Got new config monitor, writing new config files")
         config = json.loads(config_json, "ascii")
@@ -138,6 +161,7 @@ class ConfigurationMonitor(object):
 
         print_and_log("ConfigMonitor: Finished writing new config")
 
+    @needs_config_updating_lock
     def _write_iocs_xml(self, config_dir, config):
         iocs_list = []
 
@@ -178,6 +202,7 @@ class ConfigurationMonitor(object):
         with open(os.path.join(config_dir, "iocs.xml"), "w") as f:
             f.write(str(iocs_xml))
 
+    @needs_config_updating_lock
     def _write_standard_config_files(self, config_dir):
         print_and_log("ConfigMonitor: Writing components.xml")
         with open(os.path.join(config_dir, "components.xml"), "w") as f:
@@ -195,6 +220,7 @@ class ConfigurationMonitor(object):
         with open(os.path.join(config_dir, "meta.xml"), "w") as f:
             f.write(META_XML)
 
+    @needs_config_updating_lock
     def _update_last_config(self, config_base):
         print_and_log("ConfigMonitor: Writing last_config.txt")
         with open(os.path.join(config_base, "last_config.txt"), "w") as f:
