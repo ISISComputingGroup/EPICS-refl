@@ -146,7 +146,8 @@ class Beamline(object):
                 the beamline
             modes(list[BeamlineMode])
             incoming_beam (ReflectometryServer.geometry.PositionAndAngle): the incoming beam point
-                (defaults to position 0,0 and angle 0)
+                Defaults to position 0,0 and angle 0 in mantid coordinates, i.e the natural beam as it enters the
+                blockhouse.
             footprint_setup (ReflectometryServer.BaseFootprintSetup.BaseFootprintSetup): the foot print setup
         """
 
@@ -184,11 +185,11 @@ class Beamline(object):
 
         self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
 
-        for driver in self._drivers:
-            driver.initialise()
-
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
+
+        for driver in self._drivers:
+            driver.initialise()
 
         self._active_mode = None
         self._initialise_mode(modes)
