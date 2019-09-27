@@ -14,6 +14,10 @@ from RemoteIocServer.gateway import GateWay
 from RemoteIocServer.pvdb import STATIC_PV_DATABASE, PvNames
 from RemoteIocServer.utilities import print_and_log, THREADPOOL
 from BlockServer.core.ioc_control import IocControl
+from server_common.autosave import AutosaveFile
+
+
+AUTOSAVE_REMOTE_PREFIX_NAME = "remote_pv_prefix"
 
 
 DEFAULT_GATEWAY_START_BAT = os.path.join(os.getenv("EPICS_KIT_ROOT"), "gateway", "start_remoteioc_server.bat")
@@ -46,7 +50,8 @@ class RemoteIocListDriver(Driver):
             gateway_restart_script_path: the path to the script to restart the gateway
         """
         super(RemoteIocListDriver, self).__init__()
-        self._remote_pv_prefix = None
+        self._autosave = AutosaveFile(service_name="RemoteIocServer", file_name="settings")
+        self._remote_pv_prefix = self._autosave.read_parameter(AUTOSAVE_REMOTE_PREFIX_NAME, None)
 
         self._ioc_controller = IocControl(pv_prefix)
 
@@ -65,6 +70,7 @@ class RemoteIocListDriver(Driver):
             local_pv_prefix=pv_prefix,
             restart_iocs_callback=self.restart_all_iocs
         )
+        self._configuration_monitor.set_remote_pv_prefix(self._remote_pv_prefix)
 
         self.updatePVs()
 
@@ -93,6 +99,7 @@ class RemoteIocListDriver(Driver):
         print_and_log("RemoteIocListDriver: setting instrument to {} (old: {})"
                       .format(remote_pv_prefix, self._remote_pv_prefix))
         self._remote_pv_prefix = remote_pv_prefix
+        self._autosave.write_parameter(AUTOSAVE_REMOTE_PREFIX_NAME, remote_pv_prefix)
 
         THREADPOOL.submit(self._configuration_monitor.set_remote_pv_prefix, remote_pv_prefix)
         THREADPOOL.submit(self.restart_all_iocs)
