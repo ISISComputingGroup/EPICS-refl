@@ -1,3 +1,5 @@
+from __future__ import unicode_literals, print_function, division, absolute_import
+
 import os
 import threading
 
@@ -58,9 +60,7 @@ class AutosaveFile(object):
             default: The value to return if the requested parameter does not have an autosaved value
         """
         with self._file_lock:
-            p = self._file_to_dict().get(parameter, default)
-            print("Returning parameter {} as {} from {}".format(parameter, p, self._filepath))
-            return p
+            return self._file_to_dict().get(parameter, default)
 
     def _file_to_dict(self):
         """
@@ -92,7 +92,7 @@ class AutosaveFile(object):
         if not os.path.exists(self._folder):
             os.makedirs(self._folder)
 
-        file_content = self.line_separator.join("{}{}{}".format(param, self.autosave_separator, value)
+        file_content = "\r\n".join("{}{}{}".format(param, self.autosave_separator, value)
                                                 for param, value in six.iteritems(parameters))
         with self._file_lock, open(self._filepath, "w+") as f:
             return f.write(file_content)

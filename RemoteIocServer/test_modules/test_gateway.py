@@ -1,3 +1,4 @@
+from __future__ import unicode_literals, print_function, division, absolute_import
 import os
 import unittest
 
@@ -38,5 +39,7 @@ class GatewayTests(unittest.TestCase):
         alias_file_lines = gateway._get_alias_file_lines()
         self.assertEqual([
             'REMOTEINST:BLAH:DEVICE1:\\(.*\\)    ALIAS    LOCALINST:BLAH:DEVICE1:\\1',
-            'REMOTEINST:BLAH:DEVICE2:\\(.*\\)    ALIAS    LOCALINST:BLAH:DEVICE2:\\1'
+            'REMOTEINST:BLAH:CS:IOC:DEVICE1:\\(.*\\)    ALIAS    LOCALINST:BLAH:CS:IOC:DEVICE1:\\1',
+            'REMOTEINST:BLAH:DEVICE2:\\(.*\\)    ALIAS    LOCALINST:BLAH:DEVICE2:\\1',
+            'REMOTEINST:BLAH:CS:IOC:DEVICE2:\\(.*\\)    ALIAS    LOCALINST:BLAH:CS:IOC:DEVICE2:\\1'
         ], alias_file_lines)
