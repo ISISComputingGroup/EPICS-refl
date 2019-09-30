@@ -13,4 +13,4 @@ set EPICS_CA_MAX_ARRAY_BYTES=65536
 
 set PYTHONUNBUFFERED=TRUE
 
-C:\instrument\apps\python\python.exe %MYDIRBLOCK%RemoteIocServer\remote_ioc_server.py --pv_prefix %MYPVPREFIX% --ioc_names AMINT2L_01
+C:\instrument\apps\python\python.exe %MYDIRBLOCK%RemoteIocServer\remote_ioc_server.py --pv_prefix %MYPVPREFIX%

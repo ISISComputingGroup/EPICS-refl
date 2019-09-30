@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pa
 from RemoteIocServer.config_monitor import ConfigurationMonitor
 from RemoteIocServer.gateway import GateWay
 from RemoteIocServer.pvdb import STATIC_PV_DATABASE, PvNames
-from RemoteIocServer.utilities import print_and_log, THREADPOOL
+from RemoteIocServer.utilities import print_and_log, THREADPOOL, read_startup_file
 from BlockServer.core.ioc_control import IocControl
 from server_common.autosave import AutosaveFile
 
@@ -38,7 +38,7 @@ class RemoteIocListDriver(Driver):
     A driver for a list of remote IOCs
     """
 
-    def __init__(self, ioc_names, pv_prefix, gateway_pvlist_path, gateway_acf_path, gateway_restart_script_path):
+    def __init__(self, pv_prefix, gateway_pvlist_path, gateway_acf_path, gateway_restart_script_path):
         """
         A driver for a list of remote IOCs
 
@@ -55,7 +55,7 @@ class RemoteIocListDriver(Driver):
 
         self._ioc_controller = IocControl(pv_prefix)
 
-        self._iocs = ioc_names
+        self._iocs = read_startup_file()
 
         self._gateway = GateWay(
             local_pv_prefix=pv_prefix,
@@ -64,7 +64,7 @@ class RemoteIocListDriver(Driver):
             gateway_restart_script_path=gateway_restart_script_path
         )
         self._gateway.set_remote_pv_prefix(self._remote_pv_prefix)
-        self._gateway.set_ioc_list(ioc_names)
+        self._gateway.set_ioc_list(self._iocs)
 
         self._configuration_monitor = ConfigurationMonitor(
             local_pv_prefix=pv_prefix,
@@ -116,7 +116,7 @@ class RemoteIocListDriver(Driver):
                 self._ioc_controller.start_ioc(ioc_name, restart_alarm_server=False)
 
 
-def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_pvlist_path, gateway_acf_path,
+def serve_forever(pv_prefix, subsystem_prefix, gateway_pvlist_path, gateway_acf_path,
                   gateway_restart_script_path):
     server = SimpleServer()
 
@@ -125,7 +125,7 @@ def serve_forever(pv_prefix, subsystem_prefix, ioc_names, gateway_pvlist_path, g
     # Looks like it does nothing, but this creates *and automatically registers* the driver
     # (via metaclasses in pcaspy). See declaration of DriverType in pcaspy/driver.py for details
     # of how it achieves this.
-    RemoteIocListDriver(ioc_names, pv_prefix, gateway_pvlist_path, gateway_acf_path, gateway_restart_script_path)
+    RemoteIocListDriver(pv_prefix, gateway_pvlist_path, gateway_acf_path, gateway_restart_script_path)
 
     try:
         while True:
@@ -141,9 +141,6 @@ def main():
         description="Runs a remote IOC server.",
     )
 
-    parser.add_argument("--ioc_names", type=six.text_type, nargs="+", default=[],
-                        help="The list of IOCS to be managed by this remote IOC server. The names should be in the"
-                             " same format as the names in the IOC list.")
     parser.add_argument("--pv_prefix", required=True, type=six.text_type,
                         help="The PV prefix of this instrument.")
     parser.add_argument("--subsystem_prefix", type=six.text_type,
@@ -166,7 +163,6 @@ def main():
     serve_forever(
         args.pv_prefix,
         args.subsystem_prefix,
-        args.ioc_names,
         args.gateway_pvlist_path,
         args.gateway_acf_path,
         args.gateway_restart_script_path

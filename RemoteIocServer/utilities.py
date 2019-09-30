@@ -12,6 +12,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pa
 from server_common.utilities import print_and_log as _common_print_and_log
 
 
+CONFIG_DIR = os.getenv("ICPCONFIGROOT")
+
+
 THREADPOOL = ThreadPoolExecutor()
 
 __all__ = ['print_and_log', 'get_hostname_from_prefix', 'THREADPOOL']
@@ -32,3 +35,11 @@ def get_hostname_from_prefix(pv_prefix):
     except (UnableToConnectToPVException, ReadAccessException) as e:
         print_and_log("get_hostname_from_prefix: Unable to get hostname because {}.".format(e))
         return None
+
+
+def read_startup_file():
+    """
+    Reads the configuration file in <config dir>/startup.txt and returns a list of IOC names.
+    """
+    with open(os.path.join(CONFIG_DIR, "startup.txt")) as f:
+        return [name.strip() for name in f.readlines() if name.strip() != ""]
