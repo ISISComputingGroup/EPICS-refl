@@ -1,5 +1,5 @@
 """
-Classes and objects decribing the movement of items
+Classes and objects describing the movement of items
 """
 from math import fabs, tan, radians, sqrt
 

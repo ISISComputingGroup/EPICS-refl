@@ -146,7 +146,8 @@ class Beamline(object):
                 the beamline
             modes(list[BeamlineMode])
             incoming_beam (ReflectometryServer.geometry.PositionAndAngle): the incoming beam point
-                (defaults to position 0,0 and angle 0)
+                Defaults to position 0,0 and angle 0 in mantid coordinates, i.e the natural beam as it enters the
+                blockhouse.
             footprint_setup (ReflectometryServer.BaseFootprintSetup.BaseFootprintSetup): the foot print setup
         """
 
@@ -184,11 +185,11 @@ class Beamline(object):
 
         self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
 
-        for driver in self._drivers:
-            driver.initialise()
-
         self.update_next_beam_component(None, self._beam_path_calcs_rbv)
         self.update_next_beam_component(None, self._beam_path_calcs_set_point)
+
+        for driver in self._drivers:
+            driver.initialise()
 
         self._active_mode = None
         self._initialise_mode(modes)
@@ -345,7 +346,7 @@ class Beamline(object):
     def _move_for_all_beamline_parameters(self):
         """
         Updates the beamline parameters to the latest set point value; reapplies if they are in the mode. Then moves to
-        latest postions.
+        latest positions.
         """
         parameters = self._beamline_parameters.values()
         parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
@@ -517,3 +518,10 @@ class Beamline(object):
             listener: the listener function to add with parameters for new status and message
         """
         self._status_change_listeners.add(listener)
+
+    @property
+    def drivers(self):
+        """
+        Returns: list of drivers in the beamline
+        """
+        return self._drivers

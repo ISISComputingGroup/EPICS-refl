@@ -1,16 +1,12 @@
 """
 Wrapper for motor PVs
 """
-from time import sleep
-
-from enum import Enum
 from functools import partial
 from threading import Event
 
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
 from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
-import math
 
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
 
@@ -32,6 +28,7 @@ class PVWrapper(object):
             self._ca = ChannelAccess
         else:
             self._ca = ca
+        self._name = base_pv
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
         self._after_rbv_change_listeners = set()
         self._after_sp_change_listeners = set()
@@ -176,7 +173,7 @@ class PVWrapper(object):
         """
         Returns: the name of the underlying PV
         """
-        return self._prefixed_pv
+        return self._name
 
     @property
     def resolution(self):
@@ -219,10 +216,10 @@ class PVWrapper(object):
     @property
     def backlash_distance(self):
         """
-        Returns: the value of the underlying backlash distance PV
+        Returns(float): the value of the underlying backlash distance PV
         """
         if self._dir == "Pos":
-            return self._d_back * -1
+            return self._d_back * -1.0
         else:
             return self._d_back
 
@@ -278,7 +275,8 @@ class PVWrapper(object):
                 self._velocity_event.clear()
         self._moving_state = new_value
         self._state_init_event.set()
-        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value), alarm_severity, alarm_status)
+        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
+                                alarm_severity, alarm_status)
 
     def _dmov_to_bool(self, value):
         """
@@ -320,8 +318,10 @@ class PVWrapper(object):
 
     @property
     def is_moving(self):
+        """
+        Returns: True of the axis is moving
+        """
         return self._dmov_to_bool(self._moving_state)
-
 
     def _on_update_backlash_distance(self, value, alarm_severity, alarm_status):
         """
@@ -455,7 +455,8 @@ class _JawsAxisPVWrapper(PVWrapper):
         self._monitor_pv(self._dmov_pv, partial(self._on_update_moving_state))
 
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
-            self._monitor_pv(velo_pv, partial(self._on_update_individual_velocity, source=self._strip_source_pv(velo_pv)))
+            self._monitor_pv(velo_pv, partial(self._on_update_individual_velocity,
+                                              source=self._strip_source_pv(velo_pv)))
 
     @property
     def velocity(self):
@@ -508,7 +509,8 @@ class _JawsAxisPVWrapper(PVWrapper):
             self.velocity = self._v_restore
         self._moving_state = new_value
         self._state_init_event.set()
-        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value), alarm_severity, alarm_status)
+        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
+                                alarm_severity, alarm_status)
 
     def _on_update_individual_velocity(self, value, alarm_severity, alarm_status, source=None):
         self._velocities[source] = value
@@ -554,6 +556,7 @@ class JawsGapPVWrapper(_JawsAxisPVWrapper):
             base_pv (String): The name of the base PV
         """
         super(JawsGapPVWrapper, self).__init__(base_pv, is_vertical, ca)
+        self._name = "{}:{}GAP".format(self._name, self._direction_symbol)
 
     def _set_pvs(self):
         """
@@ -578,6 +581,7 @@ class JawsCentrePVWrapper(_JawsAxisPVWrapper):
             pv_name (String): The name of the PV
         """
         super(JawsCentrePVWrapper, self).__init__(base_pv, is_vertical, ca)
+        self._name = "{}:{}CENT".format(self._name, self._direction_symbol)
 
     def _set_pvs(self):
         """
