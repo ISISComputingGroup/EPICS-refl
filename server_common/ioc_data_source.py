@@ -164,6 +164,8 @@ class IocDataSource(object):
                 interest = 'HIGH'
             elif level.lower().startswith('m'):
                 interest = 'MEDIUM'
+            elif level.lower().startswith('l'):
+                interest = 'LOW'
             elif level.lower().startswith('f'):
                 interest = 'FACILITY'
             else:
