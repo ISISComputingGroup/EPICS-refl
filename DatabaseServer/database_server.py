@@ -190,7 +190,7 @@ class DatabaseServer(Driver):
             if self._iocs is not None:
                 self._iocs.update_iocs_status()
                 for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.FACILITY,
-                            DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS]:
+                           DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS]:
                     encoded_data = self.get_data_for_pv(pv)
                     self.setParam(pv, encoded_data)
                 # Update them
