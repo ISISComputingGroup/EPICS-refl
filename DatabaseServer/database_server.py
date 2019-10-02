@@ -101,6 +101,7 @@ class DatabaseServer(Driver):
         add_get_method(DbPVNames.IOCS, self._get_iocs_info)
         add_get_method(DbPVNames.HIGH_INTEREST, partial(self._get_interesting_pvs, "HIGH"))
         add_get_method(DbPVNames.MEDIUM_INTEREST, partial(self._get_interesting_pvs, "MEDIUM"))
+        add_get_method(DbPVNames.LOW_INTEREST, partial(self._get_interesting_pvs, "LOW"))
         add_get_method(DbPVNames.FACILITY, partial(self._get_interesting_pvs, "FACILITY"))
         add_get_method(DbPVNames.ACTIVE_PVS, self._get_active_pvs)
         add_get_method(DbPVNames.ALL_PVS, partial(self._get_interesting_pvs, ""))
@@ -123,8 +124,8 @@ class DatabaseServer(Driver):
         pv_size_10k = 10000
         pv_info = {}
 
-        for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.FACILITY,
-                   DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS, DbPVNames.IOCS_NOT_TO_STOP]:
+        for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.LOW_INTEREST,
+                   DbPVNames.FACILITY, DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS, DbPVNames.IOCS_NOT_TO_STOP]:
             pv_info[pv] = char_waveform(pv_size_64k)
 
         for pv in [DbPVNames.SAMPLE_PARS, DbPVNames.BEAMLINE_PARS, DbPVNames.USER_PARS]:
