@@ -12,6 +12,13 @@ MEDIUM_PVS = [
     [MEDIUM_PV_NAMES[2], "ai", "MED PV 3", "SomeIOC"]
 ]
 
+LOW_PV_NAMES = ["LOW_PV1", "LOW_PV2", "LOW_PV3"]
+LOW_PVS = [
+    [LOW_PV_NAMES[0], "ai", "LOW PV 1", "SomeIOC"],
+    [LOW_PV_NAMES[1], "ai", "LOW PV 2", "SomeIOC"],
+    [LOW_PV_NAMES[2], "ai", "LOW PV 3", "SomeIOC"]
+]
+
 FACILITY_PV_NAMES = ["FAC_PV1", "FAC_PV2", "FAC_PV3"]
 FACILITY_PVS = [
     [FACILITY_PV_NAMES[0], "ai", "FACILITY PV 1", "SomeIOC"],
