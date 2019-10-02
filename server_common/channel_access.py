@@ -17,6 +17,8 @@ Make channel access not dependent on genie_python.
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 from multiprocessing.dummy import Pool
+
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 
 from server_common.utilities import print_and_log
@@ -153,10 +155,7 @@ class ChannelAccess(object):
                 alarm severity (AlarmSeverity),
                 alarm status (AlarmStatus)
         """
-        def threaded_callback_function(*args, **kwargs):
-            ChannelAccess.POOL.apply_async(call_back_function, args, kwargs)
-
-        CaChannelWrapper.add_monitor(name, threaded_callback_function)
+        CaChannelWrapper.add_monitor(name, call_back_function)
 
     @staticmethod
     def poll():

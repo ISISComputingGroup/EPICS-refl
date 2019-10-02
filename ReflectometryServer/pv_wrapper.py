@@ -42,8 +42,6 @@ class PVWrapper(object):
         self._v_back = None
         self._dir = None
         self.max_velocity = None
-        self._state_init_event = Event()
-        self._velocity_event = Event()
 
         self._set_pvs()
         self._set_resolution()
@@ -213,6 +211,16 @@ class PVWrapper(object):
         """
         return self._v_curr
 
+    @velocity.setter
+    def velocity(self, value):
+        """
+        Writes a value to the underlying velocity PV's VAL field.
+
+        Args:
+            value: The value to set
+        """
+        self._write_pv(self._velo_pv, value)
+
     @property
     def backlash_distance(self):
         """
@@ -237,22 +245,11 @@ class PVWrapper(object):
         """
         return self._dir
 
-    @velocity.setter
-    def velocity(self, value):
-        """
-        Writes a value to the underlying velocity PV's VAL field.
-
-        Args:
-            value: The value to set
-        """
-        self._write_pv(self._velo_pv, value)
-
     def initiate_move_with_change_of_velocity(self):
         """
         Sets internal state of the pv wrapper to reflect that a move has just been initialised.
         """
         self._move_initiated = True
-        self._velocity_event.clear()
         if self._moving_state == MTR_STOPPED:
             self._v_restore = self.velocity
             write_autosave_value(self.name, self._v_restore, AutosaveType.VELOCITY)
@@ -270,11 +267,8 @@ class PVWrapper(object):
             self.velocity = self._v_restore
         if new_value == MTR_MOVING:
             if self._move_initiated:
-                self._velocity_event.wait(5)
                 self._move_initiated = False
-                self._velocity_event.clear()
         self._moving_state = new_value
-        self._state_init_event.set()
         self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
                                 alarm_severity, alarm_status)
 
@@ -290,7 +284,7 @@ class PVWrapper(object):
         is not issued by reflectometry server itself.
 
         Params:
-            value (Boolean): The new motion status
+            value (float): The new velocity value
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
@@ -300,7 +294,6 @@ class PVWrapper(object):
         elif not self._move_initiated:
             self._v_restore = value
             write_autosave_value(self.name, value, AutosaveType.VELOCITY)
-        self._velocity_event.set()
 
     def _init_velocity_to_restore(self, value):
         """
@@ -309,7 +302,6 @@ class PVWrapper(object):
         """
         v_init = value
         v_autosaved = read_autosave_value(self.name, AutosaveType.VELOCITY)
-        self._state_init_event.wait()
         if self._moving_state == MTR_MOVING:
             if v_autosaved is not None:
                 v_init = v_autosaved
@@ -445,6 +437,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         self._init_velocity_to_restore(self.velocity)
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
+        self._d_back = 0  # No backlash used as source of clash conditions on jaws sets
 
     def _add_monitors(self):
         """
@@ -508,7 +501,6 @@ class _JawsAxisPVWrapper(PVWrapper):
         if new_value == MTR_STOPPED and self._v_restore is not None:
             self.velocity = self._v_restore
         self._moving_state = new_value
-        self._state_init_event.set()
         self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
                                 alarm_severity, alarm_status)
 
@@ -522,7 +514,6 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         v_init = value
         v_autosaved = read_autosave_value(self.name, AutosaveType.VELOCITY)
-        self._state_init_event.wait()
         if self._moving_state == MTR_MOVING:
             if v_autosaved is not None:
                 v_init = v_autosaved
