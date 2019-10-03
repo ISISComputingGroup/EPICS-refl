@@ -73,7 +73,7 @@ class MockIocDataSource(object):
         pvs = []
 
         if level == "":
-            pvs = [pv_name for pv_list in [HIGH_PVS, MEDIUM_PVS, LOW_PVS, FACILITY_PVS] for pv_name in pv_list]
+            pvs = HIGH_PVS + MEDIUM_PVS + LOW_PVS + FACILITY_PVS
         elif level.lower().startswith('h'):
             pvs.extend(HIGH_PVS)
         elif level.lower().startswith('m'):
