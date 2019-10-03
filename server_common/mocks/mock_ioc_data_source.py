@@ -54,12 +54,21 @@ class MockIocDataSource(object):
 
     def get_interesting_pvs(self, level="", ioc=None):
         pvs = []
-        if level == "" or level.lower().startswith('h'):
+
+        if level == "":
+            pvs = [pv_name for pv_list in [HIGH_PVS, MEDIUM_PVS, LOW_PVS, FACILITY_PVS] for pv_name in pv_list]
+        elif level.lower().startswith('h'):
             pvs.extend(HIGH_PVS)
-        if level == "" or level.lower().startswith('m'):
+        elif level.lower().startswith('m'):
             pvs.extend(MEDIUM_PVS)
-        if level == "" or level.lower().startswith('f'):
+        elif level.lower().startswith('l'):
+            pvs.extend(LOW_PVS)
+        elif level.lower().startswith('f'):
             pvs.extend(FACILITY_PVS)
+        else:
+            raise ValueError("Value of level argument can only start with h for high, m for medium, l for low or f for"
+                             " facility")
+
         return pvs
 
     def get_active_pvs(self):

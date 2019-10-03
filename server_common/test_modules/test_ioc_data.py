@@ -17,7 +17,7 @@
 import unittest
 from DatabaseServer.mocks.mock_procserv_utils import MockProcServWrapper
 from server_common.ioc_data import IOCData
-from server_common.mocks.mock_ioc_data_source import (MockIocDataSource, HIGH_PV_NAMES, MEDIUM_PV_NAMES,
+from server_common.mocks.mock_ioc_data_source import (MockIocDataSource, HIGH_PV_NAMES, MEDIUM_PV_NAMES, LOW_PV_NAMES,
                                                       FACILITY_PV_NAMES, SAMPLE_PVS, BL_PVS, USER_PVS)
 
 
@@ -58,6 +58,7 @@ class TestIocDataSequence(unittest.TestCase):
 
         all_names = HIGH_PV_NAMES
         all_names.extend(MEDIUM_PV_NAMES)
+        all_names.extend(LOW_PV_NAMES)
         all_names.extend(FACILITY_PV_NAMES)
 
         # Check all pvs are in all names
@@ -65,26 +66,34 @@ class TestIocDataSequence(unittest.TestCase):
             self.assertTrue(pv[0] in all_names)
 
     def test_get_interesting_pvs_high(self):
-        # Get all PVs
         pvs = self.ioc_data.get_interesting_pvs("HIGH")
 
         for pv in pvs:
             self.assertTrue(pv[0] in HIGH_PV_NAMES)
 
     def test_get_interesting_pvs_medium(self):
-        # Get all PVs
         pvs = self.ioc_data.get_interesting_pvs("MEDIUM")
+
         for pv in pvs:
             self.assertTrue(pv[0] in MEDIUM_PV_NAMES)
+
+    def test_WHEN_asked_for_low_THEN_get_low_interesting_pvs(self):
+        pvs = self.ioc_data.get_interesting_pvs("LOW")
+
+        for pv in pvs:
+            self.assertTrue(pv[0] in LOW_PV_NAMES)
 
     def test_get_interesting_pvs_facility(self):
         # Get all PVs
         pvs = self.ioc_data.get_interesting_pvs("FACILITY")
+
         for pv in pvs:
             self.assertTrue(pv[0] in FACILITY_PV_NAMES)
 
     def test_get_active_pvs(self):
-        # Get all Active PVs
+        # Get all Active PVs. Note that MockIOCDataSource get_active_pvs() returns the contents of HIGH_PV_NAMES, so
+        # this is why this test compares pv names with the contents of that list. It is not because in general active
+        # pvs are the high interesting pvs.
         pvs = self.ioc_data.get_active_pvs()
         for pv in pvs:
             self.assertTrue(pv in HIGH_PV_NAMES)
