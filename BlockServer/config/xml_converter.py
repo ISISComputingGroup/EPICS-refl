@@ -425,7 +425,7 @@ class ConfigurationXmlConverter(object):
 
         isProtected = root_xml.find("./" + TAG_PROTECTED)
         if isProtected is not None:
-            data.isProtected = isProtected.text if isProtected.text is not None else ""
+            data.isProtected = isProtected.text if isProtected.text is not None else "false"
 
         edits = root_xml.findall("./" + TAG_EDITS + "/" + TAG_EDIT)
         data.history = [e.text for e in edits]
