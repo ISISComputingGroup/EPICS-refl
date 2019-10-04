@@ -16,9 +16,6 @@ Make channel access not dependent on genie_python.
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-from multiprocessing.dummy import Pool
-
-from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 
 from server_common.utilities import print_and_log
@@ -85,8 +82,6 @@ class ChannelAccess(object):
     Channel access methods. Items from genie_python are imported locally so that this module can be imported without
     installing genie_python.
     """
-    POOL = Pool(4)
-
     @staticmethod
     def caget(name, as_string=False):
         """Uses CaChannelWrapper from genie_python to get a pv value. We import CaChannelWrapper when used as this means
