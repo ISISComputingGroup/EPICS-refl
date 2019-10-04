@@ -169,7 +169,7 @@ class ConfigurationXmlConverter(object):
             edit.text = e
 
         protect_xml = ElementTree.SubElement(root, TAG_PROTECTED)
-        protect_xml.text = repr(data.isProtected).lower()
+        protect_xml.text = str(data.isProtected).lower()
 
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
