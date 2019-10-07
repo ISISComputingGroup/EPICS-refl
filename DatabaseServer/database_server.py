@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -16,30 +17,34 @@
 
 # Add root path for access to server_commons
 import os
+import six
 import sys
+import json
+import argparse
 
-sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
-
-# Standard imports
 from functools import partial
 from pcaspy import Driver
 from time import sleep
-import argparse
+from threading import Thread, RLock
+
+sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
+
+from DatabaseServer.exp_data import ExpData, ExpDataSource
+from DatabaseServer.procserv_utils import ProcServWrapper
+from DatabaseServer.options_holder import OptionsHolder
+from DatabaseServer.options_loader import OptionsLoader
+
 from server_common.mysql_abstraction_layer import SQLAbstraction
-from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, dehex_and_decompress, \
-    char_waveform
+from server_common.utilities import compress_and_hex, print_and_log, set_logger, convert_to_json, \
+    dehex_and_decompress, char_waveform
 from server_common.channel_access_server import CAServer
 from server_common.constants import IOCS_NOT_TO_STOP
 from server_common.ioc_data import IOCData
 from server_common.ioc_data_source import IocDataSource
 from server_common.pv_names import DatabasePVNames as DbPVNames
-from exp_data import ExpData, ExpDataSource
-import json
-from threading import Thread, RLock
-from procserv_utils import ProcServWrapper
-from options_holder import OptionsHolder
-from options_loader import OptionsLoader
 from server_common.loggers.isis_logger import IsisLogger
+
+
 set_logger(IsisLogger())
 
 MACROS = {
@@ -143,7 +148,7 @@ class DatabaseServer(Driver):
             The data, compressed and hexed.
         """
         data = self._pv_info[pv]['get']()
-        data = compress_and_hex(json.dumps(data).encode('ascii', 'replace'))
+        data = compress_and_hex(six.text_type(json.dumps(data)))
         self._check_pv_capacity(pv, len(data), self._blockserver_prefix)
         return data
 
@@ -157,7 +162,10 @@ class DatabaseServer(Driver):
         Returns:
             string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
-        return self.get_data_for_pv(reason) if reason in self._pv_info.keys() else self.getParam(reason)
+        return six.binary_type(
+            self.get_data_for_pv(reason) if reason in self._pv_info.keys() else self.getParam(reason),
+            "ascii"
+        )
 
     def write(self, reason, value):
         """
@@ -190,7 +198,7 @@ class DatabaseServer(Driver):
             if self._iocs is not None:
                 self._iocs.update_iocs_status()
                 for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.FACILITY,
-                            DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS]:
+                           DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS]:
                     encoded_data = self.get_data_for_pv(pv)
                     self.setParam(pv, encoded_data)
                 # Update them
@@ -227,7 +235,7 @@ class DatabaseServer(Driver):
                 pv_data = [p.replace(MACROS["$(MYPVPREFIX)"], "") for p in pv_data]
             return pv_data
         else:
-            return list()
+            return []
 
     def _get_interesting_pvs(self, level):
         return self._get_pvs(self._iocs.get_interesting_pvs, False, level)

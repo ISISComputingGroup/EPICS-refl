@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -15,6 +16,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import json
+import six
 import unicodedata
 
 from server_common.channel_access import ChannelAccess
@@ -147,7 +149,7 @@ class ExpData(object):
         Returns:
             string : The encoded data
         """
-        return compress_and_hex(json.dumps(data).encode('utf-8', 'replace'))
+        return compress_and_hex(json.dumps(six.binary_type(data)).encode('utf-8', 'replace'))
 
     def _get_surname_from_fullname(self, fullname):
         try:
@@ -187,9 +189,9 @@ class ExpData(object):
             teammembers = self._db.get_team(experiment_id)
             # Generate the lists/similar for conversion to JSON
             for member in teammembers:
-                fullname = unicode(member[0])
-                org = unicode(member[1])
-                role = unicode(member[2])
+                fullname = six.text_type(member[0])
+                org = six.text_type(member[1])
+                role = six.text_type(member[2])
                 if not role == "Contact":
                     surnames.append(self._get_surname_from_fullname(fullname))
                 orgs.append(org)
@@ -232,9 +234,9 @@ class ExpData(object):
             # Loop through the list of strings to generate the lists/similar for conversion to JSON
             for teammember in users:
                 member = json.loads(teammember)
-                fullname = unicode(member['name'])
-                org = unicode(member['institute'])
-                role = unicode(member['role'])
+                fullname = six.text_type(member['name'])
+                org = six.text_type(member['institute'])
+                role = six.text_type(member['role'])
                 if not role == "Contact":
                     surnames.append(self._get_surname_from_fullname(fullname))
                 orgs.append(org)

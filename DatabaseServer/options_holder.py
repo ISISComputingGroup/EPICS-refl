@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -13,6 +14,8 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+import six
+
 
 class OptionsHolder(object):
     """Holds all the IOC options"""
@@ -31,4 +34,4 @@ class OptionsHolder(object):
         Returns:
             dict : IOCs and their associated options as a dictionary
         """
-        return {name: options.to_dict() for name, options in self._config_options.iteritems()}
+        return {name: options.to_dict() for name, options in six.iteritems(self._config_options)}

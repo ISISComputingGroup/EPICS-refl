@@ -16,11 +16,12 @@
 """
 Utilities for running block server and related ioc's.
 """
-
+import six
 import time
 import zlib
 import re
 import json
+import codecs
 from xml.etree import ElementTree
 
 from server_common.loggers.logger import Logger
@@ -85,8 +86,8 @@ def compress_and_hex(value):
     Returns:
         string : A compressed and hexed version of the inputted string
     """
-    compr = zlib.compress(value)
-    return compr.encode('hex')
+    compr = zlib.compress(six.binary_type(value, "ascii"))
+    return codecs.encode(compr, 'hex')
 
 
 def dehex_and_decompress(value):
@@ -247,7 +248,7 @@ def waveform_to_string(data):
     for i in data:
         if i == 0:
             break
-        output += str(unichr(i))
+        output += str(six.unichr(i))
     return output
 
 
@@ -261,7 +262,7 @@ def ioc_restart_pending(ioc_pv, channel_access):
     Return
         bool: True if restarting, else False
     """
-    return True if channel_access.caget(ioc_pv + ":RESTART", as_string=True) is "Busy" else False
+    return channel_access.caget(ioc_pv + ":RESTART", as_string=True) == "Busy"
 
 
 def retry(max_attempts, interval, exception):

@@ -1,3 +1,7 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
+
+import six
+
 """
 Data source for ioc data
 """
@@ -125,7 +129,7 @@ class IocDataSource(object):
         """
         try:
             values = self._query_and_normalise(GET_PVNAMES_IN_PVCATEGORY, ("%{0}%".format(category),))
-            return [str(val[0]) for val in values]
+            return [six.text_type(val[0]) for val in values]
         except Exception as err:
             print_and_log("could not get parameters category %s from database: %s" % (category, err), "MAJOR", "DBSVR")
             return []
