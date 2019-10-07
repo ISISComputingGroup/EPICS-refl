@@ -2,7 +2,6 @@
 Wrapper for motor PVs
 """
 from functools import partial
-#from threading import Event
 
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
 from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
@@ -88,10 +87,19 @@ class PVWrapper(object):
     def _init_velocity_cache(self):
         if self._velocity_cache is None:
             try:
-                self._velocity_cache = float(read_autosave_value(self.name, AutosaveType.VELOCITY))
+                # Explanation: autosave read can return the string '[value]' so strip square brackets
+                autosave_value = read_autosave_value(self.name, AutosaveType.VELOCITY)
+                if autosave_value[0] == "[":
+                    autosave_value = autosave_value[1:-1]
+                self._velocity_cache = float(autosave_value)
+                logger.debug(
+                    "_velocity_cache: PV: {}, value: {}, type: {}".format(self.name, self._velocity_cache, type(self._velocity_cache)))
                 self._velocity_cache_restored = True
             except ValueError as error:
                 logger.error("Error: Cache velocity of wrong type: {error_message}".format(error_message=error))
+        if self._velocity_cache is None:
+            logger.error("Error: _velocity_cache is None")
+            self._velocity_cache = 0.0
 
     def _add_monitors(self):
         """
@@ -117,8 +125,10 @@ class PVWrapper(object):
             call_back_function: The function to execute on a pv value change
         """
         if self._ca.pv_exists(pv):
+            logger.debug("\nAttempting to monitor {pv_name}".format(pv_name=pv))
             self._ca.add_monitor(pv, call_back_function)
-            logger.debug("Monitoring {} for changes.".format(pv))
+            logger.debug("Monitoring {} for changes.\n".format(pv))
+
         else:
             logger.error("Error adding monitor to {}: PV does not exist".format(pv))
 
@@ -266,9 +276,8 @@ class PVWrapper(object):
             write_autosave_value(self.name, self._velocity_cache, AutosaveType.VELOCITY)
             self._velocity_cache_restored = False
         elif not self._velocity_cache_restored and self._moving_state == MTR_STOPPED:
-            logger.error("Velocity for PV {pv_name} has not been cached as existing cache has not been restored and "
-                         "is is stationary. Hint: Are you moving the axis outside of the refectory server."
-                         .format(pv_name=self.name))
+            logger.error("Velocity for PV {} has not been cached as existing cache has not been restored and "
+                         "is is stationary. Hint: Are you moving the axis outside of the refectory server.".format(self.name))
         elif not self._velocity_cache_restored and self._moving_state == MTR_MOVING:
             # Move interrupting current move. Leave the original cache so it can be restored once all
             # moves have been completed.
@@ -414,7 +423,6 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         self.is_vertical = is_vertical
         self._individual_moving_states = {}
-        #self._state_init_event = Event()
 
         self._directions = []
         self._set_directions()
@@ -445,6 +453,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         Initialise PVWrapper values once the beamline is ready.
         """
+        self._init_velocity_cache()
         self._add_monitors()
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
