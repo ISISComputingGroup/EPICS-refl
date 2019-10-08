@@ -84,32 +84,12 @@ class PVWrapper(object):
         self._moving_direction = self._read_pv(self._dir_pv)
         self._init_velocity_cache()
 
-    def _init_velocity_cache(self):
-        if self._velocity_cache is None:
-            try:
-                # Explanation: autosave read can return the string '[value]' so strip square brackets
-                autosave_value = read_autosave_value(self.name, AutosaveType.VELOCITY)
-                if autosave_value[0] == "[":
-                    autosave_value = autosave_value[1:-1]
-                self._velocity_cache = float(autosave_value)
-                logger.debug(
-                    "_velocity_cache: PV: {}, value: {}, type: {}".format(self.name, self._velocity_cache, type(self._velocity_cache)))
-                self._velocity_cache_restored = True
-            except ValueError as error:
-                logger.error("Error: Cache velocity of wrong type: {error_message}".format(error_message=error))
-        if self._velocity_cache is None:
-            logger.error("Error: _velocity_cache is None")
-            self._velocity_cache = 0.0
-
     def _add_monitors(self):
         """
         Add monitors to the relevant motor PVs.
         """
-        self._monitor_pv(self._rbv_pv,
-                         partial(self._trigger_listeners, self._after_rbv_change_listeners))
-        self._monitor_pv(self._sp_pv,
-                         partial(self._trigger_listeners, self._after_sp_change_listeners))
-
+        self._monitor_pv(self._rbv_pv, partial(self._trigger_listeners, self._after_rbv_change_listeners))
+        self._monitor_pv(self._sp_pv, partial(self._trigger_listeners, self._after_sp_change_listeners))
         self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._velo_pv, self._on_update_velocity)
         self._monitor_pv(self._bdst_pv, self._on_update_backlash_distance)
@@ -263,6 +243,24 @@ class PVWrapper(object):
         Returns: the value of the underlying direction PV
         """
         return self._moving_direction
+
+    def _init_velocity_cache(self):
+        """
+        Initialise the velocity cache for the current axis.
+
+        If no velocity cache exists then load the last velocity value from the auto-save file.
+        """
+        if self._velocity_cache is None:
+            try:
+                autosave_value = read_autosave_value(self.name, AutosaveType.VELOCITY)
+                # Explanation: autosave read can return the string '[value]' so strip square brackets if present
+                if autosave_value[0] == "[":
+                    autosave_value = autosave_value[1:-1]
+                self._velocity_cache = float(autosave_value)
+                self._velocity_cache_restored = True
+            except ValueError as error:
+                logger.error("Error: Unable to initialise velocity cache from autosave ({error_message})."
+                             .format(error_message=error))
 
     def cache_velocity(self):
         """
