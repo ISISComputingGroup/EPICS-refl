@@ -48,9 +48,8 @@ class MockIocDataSource(object):
         Gets IOC names together with IOC's run status.
         :return: a list of tuples.
         """
-        iocs_and_run_status = []
-        for ioc_name, ioc_info in self.iocs.iteritems():
-            iocs_and_run_status.append((ioc_name, ioc_info["running"]))
+        iocs_and_run_status = [(ioc_name, ioc_info["running"]) for ioc_name, ioc_info in self.iocs.iteritems()]
+
         return iocs_and_run_status
 
     def update_ioc_is_running(self, iocname, running):
