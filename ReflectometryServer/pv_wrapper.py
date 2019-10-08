@@ -134,6 +134,7 @@ class PVWrapper(object):
             pv(String): The PV to write to
             value: The new value
         """
+
         self._ca.caput(pv, value)
 
     def add_after_rbv_change_listener(self, listener):
@@ -253,14 +254,14 @@ class PVWrapper(object):
         if self._velocity_cache is None:
             try:
                 autosave_value = read_autosave_value(self.name, AutosaveType.VELOCITY)
-                # Explanation: autosave read can return the string '[value]' so strip square brackets if present
-                if autosave_value[0] == "[":
-                    autosave_value = autosave_value[1:-1]
-                self._velocity_cache = float(autosave_value)
-                self._velocity_cache_restored = True
-            except ValueError as error:
+                if autosave_value is not None:
+                    logger.debug("{} autosave_value: {}".format(self.name, autosave_value))
+                    self._velocity_cache = float(autosave_value)
+                    self._velocity_cache_restored = True
+            except (ValueError, TypeError) as error:
                 logger.error("Error: Unable to initialise velocity cache from autosave ({error_message})."
                              .format(error_message=error))
+        #TODO: init _velocity_cache_restored from autosave
 
     def cache_velocity(self):
         """
@@ -273,6 +274,7 @@ class PVWrapper(object):
             self._velocity_cache = self.velocity
             write_autosave_value(self.name, self._velocity_cache, AutosaveType.VELOCITY)
             self._velocity_cache_restored = False
+            # TODO: autosave velocity_cache_restored
         elif not self._velocity_cache_restored and self._moving_state == MTR_STOPPED:
             logger.error("Velocity for PV {} has not been cached as existing cache has not been restored and "
                          "is is stationary. Hint: Are you moving the axis outside of the refectory server.".format(self.name))
@@ -290,9 +292,14 @@ class PVWrapper(object):
         if self._velocity_cache_restored:
             logger.error("Velocity for PV {pv_name} has not been restored from cache. The cache has already been "
                          "restored previously. Hint: Are you moving the axis outside of the refectory server.")
-        elif not self._velocity_cache_restored:
-            self.velocity = self._velocity_cache
+        else:
+            if self._velocity_cache is None:
+                logger.error("Velocity cache is None for {} not restoring".format(self.name))
+            else:
+                logger.debug("Resoring velocity cache of value {} for PV {}".format(self._velocity_cache, self.name))
+                self.velocity = self._velocity_cache
             self._velocity_cache_restored = True
+            #TODO: autosave velocity_cache_restored
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
         """
@@ -451,7 +458,6 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         Initialise PVWrapper values once the beamline is ready.
         """
-        self._init_velocity_cache()
         self._add_monitors()
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
@@ -488,7 +494,10 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         motor_velocities = self._pv_names_for_directions("MTR.VELO")
         for pv in motor_velocities:
-            self._write_pv(pv, value)
+            if value is not None:
+                self._write_pv(pv, value)
+            else:
+                print("Rubbish!!!!")
 
     def _set_max_velocity(self):
         """
@@ -519,8 +528,6 @@ class _JawsAxisPVWrapper(PVWrapper):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        if new_value == MTR_STOPPED:
-            self.restore_cached_velocity()
         self._moving_state = new_value
         self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
                                 alarm_severity, alarm_status)

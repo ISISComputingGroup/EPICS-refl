@@ -92,7 +92,7 @@ def read_autosave_value(value_id, autosave_type):
         param_name (string): The name of the parameter
 
     Returns:
-         The autosaved value for this parameter
+         The autosaved value for this parameter; None for no value
     """
     autosave_file_path = AutosaveType.path(autosave_type)
     type_desc = AutosaveType.description(autosave_type)
@@ -100,7 +100,8 @@ def read_autosave_value(value_id, autosave_type):
         with open(autosave_file_path) as f:
             lines = f.readlines()
             for line in lines:
-                key, val = line.split()
+                # Split the line into a key and string value pair (where the string is a single value or list)
+                key, val = line.split(" ", 1)
                 if key.upper() == value_id.upper():
                     return val
         logger.info("No autosave value found for key {} (type: {})".format(value_id, type_desc))
