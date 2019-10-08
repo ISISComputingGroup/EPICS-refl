@@ -164,7 +164,7 @@ class DatabaseServer(Driver):
         Returns:
             A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
-        return str(self.get_data_for_pv(reason) if reason in self._pv_info.keys() else self.getParam(reason))
+        return self.get_data_for_pv(reason) if reason in self._pv_info.keys() else self.getParam(reason)
 
     def write(self, reason: str, value: str) -> bool:
         """

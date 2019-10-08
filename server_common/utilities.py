@@ -22,6 +22,7 @@ import zlib
 import re
 import json
 import codecs
+import binascii
 from xml.etree import ElementTree
 
 from server_common.loggers.logger import Logger
@@ -87,19 +88,19 @@ def compress_and_hex(value):
         bytes : A compressed and hexed version of the inputted string
     """
     compr = zlib.compress(bytes(value) if six.PY2 else bytes(value, "utf-8"))
-    return codecs.encode(compr, 'hex')
+    return binascii.hexlify(compr)
 
 
 def dehex_and_decompress(value):
     """Decompresses the inputted string, assuming it is in hex encoding.
 
     Args:
-        value (string): The string to be decompressed, encoded in hex
+        value (bytes): The string to be decompressed, encoded in hex
 
     Returns:
-        string : A decompressed version of the inputted string
+        bytes : A decompressed version of the inputted string
     """
-    return zlib.decompress(value.decode("hex"))
+    return zlib.decompress(binascii.unhexlify(value))
 
 
 def convert_to_json(value):

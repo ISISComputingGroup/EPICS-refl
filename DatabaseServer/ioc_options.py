@@ -36,7 +36,7 @@ class IocOptions(object):
     def _dict_to_list(self, in_dict):
         # Convert into format for better GUI parsing (I know it's messy but it's what the GUI wants)
         out_list = []
-        for k, v in six.iteritems(in_dict):
+        for k, v in in_dict.items():
             v['name'] = k
             out_list.append(v)
         return out_list
