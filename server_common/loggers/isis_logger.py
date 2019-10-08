@@ -16,10 +16,10 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import datetime
-import six
 import socket
 import contextlib
 import traceback
+import codecs
 
 
 class IsisLogger(object):
@@ -55,6 +55,6 @@ class IsisLogger(object):
         with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
             try:
                 sock.connect((self.ioclog_host, self.ioclog_port))
-                sock.sendall(six.binary_type(xml, "ascii"))
+                sock.sendall(codecs.encode(xml, "utf-8"))
             except Exception:
                 traceback.print_exc()

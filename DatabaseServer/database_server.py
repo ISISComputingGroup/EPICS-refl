@@ -21,6 +21,7 @@ import six
 import sys
 import json
 import argparse
+import codecs
 
 from functools import partial
 from pcaspy import Driver
@@ -62,17 +63,18 @@ class DatabaseServer(Driver):
     """
     The class for handling all the static PV access and monitors etc.
     """
-    def __init__(self, ca_server, ioc_data, exp_data, options_folder, blockserver_prefix, test_mode=False):
+    def __init__(self, ca_server: CAServer, ioc_data: IOCData, exp_data: ExpData, options_folder: str,
+                 blockserver_prefix: str, test_mode: bool = False):
         """
         Constructor.
 
         Args:
-            ca_server (CAServer): The CA server used for generating PVs on the fly
-            ioc_data (IOCData): The data source for IOC information
-            exp_data (ExpData): The data source for experiment information
-            options_folder (string): The location of the folder containing the config.xml file that holds IOC options
-            blockserver_prefix (string): The PV prefix to use
-            test_mode (bool): Enables starting the server in a mode suitable for unit tests
+            ca_server: The CA server used for generating PVs on the fly
+            ioc_data: The data source for IOC information
+            exp_data: The data source for experiment information
+            options_folder: The location of the folder containing the config.xml file that holds IOC options
+            blockserver_prefix: The PV prefix to use
+            test_mode: Enables starting the server in a mode suitable for unit tests
         """
         if not test_mode:
             super(DatabaseServer, self).__init__()
@@ -91,12 +93,12 @@ class DatabaseServer(Driver):
             monitor_thread.daemon = True  # Daemonise thread
             monitor_thread.start()
 
-    def _generate_pv_acquisition_info(self):
+    def _generate_pv_acquisition_info(self) -> dict:
         """
         Generates information needed to get the data for the DB PVs.
 
         Returns:
-            Dictionary : Dictionary containing the information to get the information for the PVs
+            Dictionary containing the information to get the information for the PVs
         """
         enhanced_info = DatabaseServer.generate_pv_info()
 
@@ -116,13 +118,13 @@ class DatabaseServer(Driver):
         return enhanced_info
 
     @staticmethod
-    def generate_pv_info():
+    def generate_pv_info() -> dict:
         """
         Generates information needed to construct PVs. Must be consumed by Server before
         DatabaseServer is initialized so must be static
 
         Returns:
-            Dictionary : Dictionary containing the information to construct PVs
+            Dictionary containing the information to construct PVs
         """
         pv_size_64k = 64000
         pv_size_10k = 10000
@@ -137,7 +139,7 @@ class DatabaseServer(Driver):
 
         return pv_info
 
-    def get_data_for_pv(self, pv):
+    def get_data_for_pv(self, pv: str) -> bytes:
         """
         Get the data for the given pv name.
 
@@ -152,31 +154,28 @@ class DatabaseServer(Driver):
         self._check_pv_capacity(pv, len(data), self._blockserver_prefix)
         return data
 
-    def read(self, reason):
+    def read(self, reason: str) -> str:
         """
         A method called by SimpleServer when a PV is read from the DatabaseServer over Channel Access.
 
         Args:
-            reason (string): The PV that is being requested (without the PV prefix)
+            reason: The PV that is being requested (without the PV prefix)
 
         Returns:
-            string : A compressed and hexed JSON formatted string that gives the desired information based on reason.
+            A compressed and hexed JSON formatted string that gives the desired information based on reason.
         """
-        return six.binary_type(
-            self.get_data_for_pv(reason) if reason in self._pv_info.keys() else self.getParam(reason),
-            "ascii"
-        )
+        return str(self.get_data_for_pv(reason) if reason in self._pv_info.keys() else self.getParam(reason))
 
-    def write(self, reason, value):
+    def write(self, reason: str, value: str) -> bool:
         """
         A method called by SimpleServer when a PV is written to the DatabaseServer over Channel Access.
 
         Args:
-            reason (string): The PV that is being requested (without the PV prefix)
-            value (string): The data being written to the 'reason' PV
+            reason: The PV that is being requested (without the PV prefix)
+            value: The data being written to the 'reason' PV
 
         Returns:
-            bool : True
+            True
         """
         try:
             if reason == 'ED:RBNUMBER:SP':
@@ -190,7 +189,7 @@ class DatabaseServer(Driver):
         self.setParam(reason, value)
         return True
 
-    def _update_ioc_monitors(self):
+    def _update_ioc_monitors(self) -> None:
         """
         Updates all the PVs that hold information on the IOCS and their associated PVs.
         """
@@ -206,21 +205,21 @@ class DatabaseServer(Driver):
                     self.updatePVs()
             sleep(1)
 
-    def _check_pv_capacity(self, pv, size, prefix):
+    def _check_pv_capacity(self, pv: str, size: int, prefix: str) -> None:
         """
         Check the capacity of a PV and write to the log if it is too small.
         
         Args:
-            pv (string): The PV that is being requested (without the PV prefix)
-            size (int): The required size
-            prefix (string): The PV prefix
+            pv: The PV that is being requested (without the PV prefix)
+            size: The required size
+            prefix: The PV prefix
         """
         if size > self._pv_info[pv]['count']:
             print_and_log("Too much data to encode PV {0}. Current size is {1} characters but {2} are required"
                           .format(prefix + pv, self._pv_info[pv]['count'], size),
                           MAJOR_MSG, LOG_TARGET)
 
-    def _get_iocs_info(self):
+    def _get_iocs_info(self) -> dict:
         iocs = self._iocs.get_iocs()
         options = self._options_holder.get_config_options()
         for iocname in iocs.keys():
@@ -228,7 +227,7 @@ class DatabaseServer(Driver):
                 iocs[iocname].update(options[iocname])
         return iocs
 
-    def _get_pvs(self, get_method, replace_pv_prefix, *get_args):
+    def _get_pvs(self, get_method: callable, replace_pv_prefix: bool, *get_args: list) -> list:
         if self._iocs is not None:
             pv_data = get_method(*get_args)
             if replace_pv_prefix:
@@ -237,46 +236,46 @@ class DatabaseServer(Driver):
         else:
             return []
 
-    def _get_interesting_pvs(self, level):
+    def _get_interesting_pvs(self, level) -> list:
         return self._get_pvs(self._iocs.get_interesting_pvs, False, level)
 
-    def _get_active_pvs(self):
+    def _get_active_pvs(self) -> list:
         return self._get_pvs(self._iocs.get_active_pvs, False)
 
-    def _get_sample_par_names(self):
+    def _get_sample_par_names(self) -> list:
         """
         Returns the sample parameters from the database, replacing the MYPVPREFIX macro.
 
         Returns:
-            list : A list of sample parameter names, an empty list if the database does not exist
+            A list of sample parameter names, an empty list if the database does not exist
         """
         return self._get_pvs(self._iocs.get_sample_pars, True)
 
-    def _get_beamline_par_names(self):
+    def _get_beamline_par_names(self) -> list:
         """
         Returns the beamline parameters from the database, replacing the MYPVPREFIX macro.
 
         Returns:
-            list : A list of beamline parameter names, an empty list if the database does not exist
+            A list of beamline parameter names, an empty list if the database does not exist
         """
         return self._get_pvs(self._iocs.get_beamline_pars, True)
 
-    def _get_user_par_names(self):
+    def _get_user_par_names(self) -> list:
         """
         Returns the user parameters from the database, replacing the MYPVPREFIX macro.
 
         Returns:
-            list : A list of user parameter names, an empty list if the database does not exist
+            A list of user parameter names, an empty list if the database does not exist
         """
         return self._get_pvs(self._iocs.get_user_pars, True)
 
     @staticmethod
-    def _get_iocs_not_to_stop():
+    def _get_iocs_not_to_stop() -> list:
         """
         Get the IOCs that are not to be stopped.
 
         Returns: 
-            list: A list of IOCs not to stop
+            A list of IOCs not to stop
         """
         return IOCS_NOT_TO_STOP
 

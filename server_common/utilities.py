@@ -82,11 +82,11 @@ def compress_and_hex(value):
     """Compresses the inputted string and encodes it as hex.
 
     Args:
-        value (string): The string to be compressed
+        value (str): The string to be compressed
     Returns:
-        string : A compressed and hexed version of the inputted string
+        bytes : A compressed and hexed version of the inputted string
     """
-    compr = zlib.compress(six.binary_type(value, "ascii"))
+    compr = zlib.compress(bytes(value) if six.PY2 else bytes(value, "utf-8"))
     return codecs.encode(compr, 'hex')
 
 
@@ -113,7 +113,7 @@ def convert_to_json(value):
     """
 # TODO: we may want to use 'utf-8' here in future, not needed 
 #       this time as functionality previously duplicated in exp_data.py
-    return json.dumps(value).encode('ascii', 'replace')
+    return json.dumps(value).encode('utf-8', 'replace')
 
 
 def convert_from_json(value):

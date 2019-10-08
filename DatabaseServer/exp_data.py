@@ -149,7 +149,7 @@ class ExpData(object):
         Returns:
             string : The encoded data
         """
-        return compress_and_hex(json.dumps(six.binary_type(data)).encode('utf-8', 'replace'))
+        return compress_and_hex(json.dumps(bytes(data)).encode('utf-8', 'replace'))
 
     def _get_surname_from_fullname(self, fullname):
         try:
