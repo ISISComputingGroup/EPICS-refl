@@ -18,6 +18,7 @@ import os
 from collections import OrderedDict
 from server_common.utilities import print_and_log, parse_xml_removing_namespace
 from DatabaseServer.ioc_options import IocOptions
+import xml
 
 TAG_NAME = 'name'
 TAG_VALUE = 'value'
@@ -29,7 +30,7 @@ TAG_DEFAULT = 'defaultValue'
 TAG_HAS_DEFAULT = 'hasDefault'
 
 
-def create_xpath_search(group, individual):
+def create_xpath_search(group: str, individual: str) -> str:
     return "./{}/{}/{}".format(CONFIG_PART, group, individual)
 
 
@@ -40,14 +41,14 @@ PVSETS = create_xpath_search('pvsets', 'pvset')
 
 class OptionsLoader(object):
     @staticmethod
-    def get_options(path):
+    def get_options(path: str) -> OrderedDict:
         """Loads the IOC options from file and converts them into IocOptions objects
 
         Args:
-            path (string): The path to the xml file to be loaded
+            path: The path to the xml file to be loaded
 
         Returns:
-            OrderedDict : A dict of IOCs and their associated options
+            An ordered dict of IOCs and their associated options
         """
         iocs = OrderedDict()
         if os.path.isfile(path):
@@ -58,7 +59,7 @@ class OptionsLoader(object):
         return iocs
 
     @staticmethod
-    def _options_from_xml(root_xml, iocs):
+    def _options_from_xml(root_xml: xml.etree.ElementTree.Element, iocs: OrderedDict) -> None:
         """Populates the supplied list of iocs based on an XML tree within a config.xml file"""
         for ioc in root_xml.findall("./" + TAG_IOC_CONFIG):
             name = ioc.attrib[TAG_NAME]

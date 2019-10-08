@@ -17,10 +17,9 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 
 import unittest
 import json
-import mock
 from server_common.mocks.mock_ca import MockChannelAccess
 from server_common.utilities import dehex_and_decompress
-from DatabaseServer.exp_data import ExpData, ExpDataSource
+from DatabaseServer.exp_data import ExpData
 
 
 class MockExpDataSource(object):

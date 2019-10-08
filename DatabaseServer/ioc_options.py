@@ -20,11 +20,11 @@ import six
 class IocOptions(object):
     """Contains the possible macros and pvsets of an IOC."""
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         """Constructor
 
         Args:
-            name (string): The name of the IOC the options are associated with
+            name: The name of the IOC the options are associated with
         """
         self.name = name
 
@@ -33,7 +33,7 @@ class IocOptions(object):
         self.pvsets = dict()
         self.pvs = dict()
 
-    def _dict_to_list(self, in_dict):
+    def _dict_to_list(self, in_dict: dict) -> list:
         # Convert into format for better GUI parsing (I know it's messy but it's what the GUI wants)
         out_list = []
         for k, v in in_dict.items():
@@ -41,7 +41,7 @@ class IocOptions(object):
             out_list.append(v)
         return out_list
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """Get a dictionary of the possible macros and pvsets for an IOC
 
         Returns:

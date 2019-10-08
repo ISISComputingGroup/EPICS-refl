@@ -26,26 +26,26 @@ class MockProcServWrapper(object):
         self.ps_status["stopdioc"] = "SHUTDOWN"
 
     @staticmethod
-    def generate_prefix(prefix, ioc):
+    def generate_prefix(prefix: str, ioc: str) -> str:
         return "%sCS:PS:%s" % (prefix, ioc)
 
-    def start_ioc(self, prefix, ioc):
+    def start_ioc(self, prefix: str, ioc: str) -> None:
         self.ps_status[ioc.lower()] = "RUNNING"
 
-    def stop_ioc(self, prefix, ioc):
+    def stop_ioc(self, prefix: str, ioc: str) -> None:
         """Stops the specified IOC"""
         self.ps_status[ioc.lower()] = "SHUTDOWN"
 
-    def restart_ioc(self, prefix, ioc):
+    def restart_ioc(self, prefix: str, ioc: str) -> None:
         self.ps_status[ioc.lower()] = "RUNNING"
 
-    def get_ioc_status(self, prefix, ioc):
+    def get_ioc_status(self, prefix: str, ioc: str) -> str:
         if not ioc.lower() in self.ps_status.keys():
             raise Exception("Could not find IOC (%s)" % self.generate_prefix(prefix, ioc))
         else:
             return self.ps_status[ioc.lower()]
 
-    def ioc_exists(self, prefix, ioc):
+    def ioc_exists(self, prefix: str, ioc: str) -> bool:
         try:
             self.get_ioc_status(prefix, ioc)
             return True

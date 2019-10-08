@@ -18,17 +18,18 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 import json
 import six
 import unicodedata
+import traceback
 
 from server_common.channel_access import ChannelAccess
 from server_common.mysql_abstraction_layer import SQLAbstraction
-from server_common.utilities import compress_and_hex, char_waveform
+from server_common.utilities import compress_and_hex, char_waveform, print_and_log
 
 
 class User(object):
     """
     A user class to allow for easier conversions from database to json.
     """
-    def __init__(self, name="UNKNOWN", institute="UNKNOWN", role="UNKNOWN"):
+    def __init__(self, name: str = "UNKNOWN", institute: str = "UNKNOWN", role: str = "UNKNOWN"):
         self.name = name
         self.institute = institute
         self.role = role
@@ -41,15 +42,15 @@ class ExpDataSource(object):
     def __init__(self):
         self._db = SQLAbstraction('exp_data', "exp_data", "$exp_data")
 
-    def get_team(self, experiment_id):
+    def get_team(self, experiment_id: str) -> list:
         """
         Gets the team members.
 
         Args:
-            experiment_id (string): the id of the experiment to load related data from
+            experiment_id: the id of the experiment to load related data from
 
         Returns:
-            team (list): the team data found by the SQL query
+            team: the team data found by the SQL query
         """
         try:
             sqlquery = "SELECT user.name, user.organisation, role.name"
@@ -61,33 +62,32 @@ class ExpDataSource(object):
             sqlquery += " ORDER BY role.priority"
             team = [list(element) for element in self._db.query(sqlquery, (experiment_id,))]
             if len(team) == 0:
-                raise Exception("unable to find team details for experiment ID %s" % experiment_id)
+                raise ValueError("unable to find team details for experiment ID {}".format(experiment_id))
             else:
                 return team
-        except Exception as err:
-            raise Exception("issue getting experimental team: %s" % err)
+        except Exception:
+            print_and_log(traceback.format_exc())
+            return []
 
-    def experiment_exists(self, experiment_id):
+    def experiment_exists(self, experiment_id: str) -> bool:
         """
         Gets the experiment.
 
         Args:
-            experiment_id (string): the id of the experiment to load related data from
+            experiment_id: the id of the experiment to load related data from
 
         Returns:
-            exists (boolean): TRUE if the experiment exists, FALSE otherwise
+            exists: TRUE if the experiment exists, FALSE otherwise
         """
         try:
             sqlquery = "SELECT experiment.experimentID"
             sqlquery += " FROM experiment "
             sqlquery += " WHERE experiment.experimentID = %s"
             id = self._db.query(sqlquery, (experiment_id,))
-            if len(id) >= 1:
-                return True
-            else:
-                return False
-        except Exception as err:
-            raise Exception("error finding the experiment: %s" % err)
+            return len(id) >= 1
+        except Exception:
+            print_and_log(traceback.format_exc())
+            return False
 
 
 class ExpData(object):
@@ -101,14 +101,14 @@ class ExpData(object):
 
     _to_ascii = {}
 
-    def __init__(self, prefix, db, ca=ChannelAccess):
+    def __init__(self, prefix: str, db: ExpDataSource, ca: type = ChannelAccess):
         """
         Constructor.
 
         Args:
-            prefix (string): The pv prefix of the instrument the server is being run on
-            db (ExpDataSource): The source of the experiment data
-            ca (ChannelAccess): The channel access server to use
+            prefix: The pv prefix of the instrument the server is being run on
+            db: The source of the experiment data
+            ca: The channel access server to use
         """
         # Build the PV names to be used
         self._simrbpv = prefix + "ED:SIM:RBNUMBER"
@@ -128,7 +128,7 @@ class ExpData(object):
         ExpData._to_ascii = self._make_ascii_mappings()
 
     @staticmethod
-    def _make_ascii_mappings():
+    def _make_ascii_mappings() -> dict:
         """
         Create mapping for characters not converted to 7 bit by NFKD.
         """
@@ -139,30 +139,30 @@ class ExpData(object):
         d[ord(u'\xe6')] = u'ae'
         return d
 
-    def encode_for_return(self, data):
+    def encode_for_return(self, data: str) -> bytes:
         """
         Converts data to JSON, compresses it and converts it to hex.
 
         Args:
-            data (string): The data to encode
+            data: The data to encode
 
         Returns:
-            string : The encoded data
+            The encoded data
         """
         return compress_and_hex(json.dumps(bytes(data)).encode('utf-8', 'replace'))
 
-    def _get_surname_from_fullname(self, fullname):
+    def _get_surname_from_fullname(self, fullname: str) -> str:
         try:
             return fullname.split(" ")[-1]
         except:
             return fullname
 
-    def update_experiment_id(self, experiment_id):
+    def update_experiment_id(self, experiment_id: str) -> None:
         """
         Updates the associated PVs when an experiment ID is set.
 
         Args:
-            experiment_id (string): the id of the experiment to load related data from
+            experiment_id: the id of the experiment to load related data from
 
         Returns:
             None specifically, but the following information external to the server is set
@@ -205,12 +205,12 @@ class ExpData(object):
             # this is not available at this time in the ICP
             self.ca.caput(self._daenamespv, ExpData.make_name_list_ascii(surnames))
 
-    def update_username(self, users):
+    def update_username(self, users: str) -> None:
         """
         Updates the associated PVs when the User Names are altered.
 
         Args:
-            users (string): uncompressed and dehexed json string with the user details
+            users: uncompressed and dehexed json string with the user details
 
         Returns:
             None specifically, but the following information external to the server is set
@@ -254,13 +254,13 @@ class ExpData(object):
             self.ca.caput(self._daenamespv, ExpData.make_name_list_ascii(surnames))
 
     @staticmethod
-    def make_name_list_ascii(names):
+    def make_name_list_ascii(names: list) -> bytes:
         """
         Takes a unicode list of names and creates a best ascii comma separated list this implementation is a temporary
         fix until we install the PyPi unidecode module.
         
         Args:
-            name(list): list of unicode names
+            names: list of unicode names
 
         Returns:
             comma separated ascii string of names with special characters adjusted
