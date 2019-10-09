@@ -284,6 +284,12 @@ class MockMotorPVWrapper(object):
     def initiate_move_with_change_of_velocity(self):
         pass
 
+    def cache_velocity(self):
+        pass
+
+    def restore_velocity(self):
+        pass
+
     @property
     def sp(self):
         return self._value
