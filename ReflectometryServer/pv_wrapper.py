@@ -107,7 +107,7 @@ class PVWrapper(object):
         if self._ca.pv_exists(pv):
             logger.debug("\nAttempting to monitor {pv_name}".format(pv_name=pv))
             self._ca.add_monitor(pv, call_back_function)
-            logger.debug("Monitoring {} for changes.\n".format(pv))
+            logger.debug("Monitoring {} for changes.".format(pv))
 
         else:
             logger.error("Error adding monitor to {}: PV does not exist".format(pv))
@@ -131,7 +131,7 @@ class PVWrapper(object):
         Write a value to a given PV.
 
         Args:
-            pv(String): The PV to write to
+            pv (String): The PV to write to
             value: The new value
         """
 
@@ -207,7 +207,7 @@ class PVWrapper(object):
     @property
     def velocity(self):
         """
-        Returns: the value of the underlying velocity PV
+        Returns (float): the value of the underlying velocity PV
         """
         return self._velocity
 
@@ -217,7 +217,7 @@ class PVWrapper(object):
         Writes a value to the underlying velocity PV's VAL field.
 
         Args:
-            value: The value to set
+            value (float): The value to set
         """
         self._write_pv(self._velo_pv, value)
 
@@ -249,19 +249,24 @@ class PVWrapper(object):
         """
         Initialise the velocity cache for the current axis.
 
-        If no velocity cache exists then load the last velocity value from the auto-save file.
+        Initialise the velocity cache and its restored status. If no cache exists then load the last velocity value
+        from the auto-save file.
         """
         if self._velocity_cache is None:
             try:
                 autosave_value = read_autosave_value(self.name, AutosaveType.VELOCITY)
                 if autosave_value is not None:
-                    logger.debug("{} autosave_value: {}".format(self.name, autosave_value))
+                    logger.debug("Restoring {pv_name} velocity_cache with auto-save value {value}"
+                                 .format(pv_name=self.name, value=autosave_value))
                     self._velocity_cache = float(autosave_value)
-                    self._velocity_cache_restored = True
+                autosave_value = read_autosave_value(self.name+"_velocity_cache_restored", AutosaveType.VELOCITY)
+                if autosave_value is not None:
+                    logger.debug("Restoring {pv_name} velocity_cache_restored with auto-save value {value}"
+                                 .format(pv_name=self.name, value=autosave_value))
+                    self._velocity_cache_restored = bool(autosave_value)
             except (ValueError, TypeError) as error:
-                logger.error("Error: Unable to initialise velocity cache from autosave ({error_message})."
+                logger.error("Error: Unable to initialise velocity cache from auto-save ({error_message})."
                              .format(error_message=error))
-        #TODO: init _velocity_cache_restored from autosave
 
     def cache_velocity(self):
         """
@@ -274,10 +279,11 @@ class PVWrapper(object):
             self._velocity_cache = self.velocity
             write_autosave_value(self.name, self._velocity_cache, AutosaveType.VELOCITY)
             self._velocity_cache_restored = False
-            # TODO: autosave velocity_cache_restored
+            write_autosave_value(self.name+"_velocity_cache_restored", self._velocity_cache_restored, AutosaveType.VELOCITY)
         elif not self._velocity_cache_restored and self._moving_state == MTR_STOPPED:
-            logger.error("Velocity for PV {} has not been cached as existing cache has not been restored and "
-                         "is is stationary. Hint: Are you moving the axis outside of the refectory server.".format(self.name))
+            logger.error("Velocity for {pv_name} has not been cached as existing cache has not been restored and "
+                         "is stationary. Hint: Are you moving the axis outside of the refectory server."
+                         .format(pv_name=self.name))
         elif not self._velocity_cache_restored and self._moving_state == MTR_MOVING:
             # Move interrupting current move. Leave the original cache so it can be restored once all
             # moves have been completed.
@@ -287,19 +293,21 @@ class PVWrapper(object):
         """
         Restore the cached axis velocity.
 
-        Restore the cached axis velocity from the value stored on the server or, if uninitialised, the autosave file.
+        Restore the cached axis velocity from the value stored on the server and update the restored cache status.
         """
         if self._velocity_cache_restored:
             logger.error("Velocity for PV {pv_name} has not been restored from cache. The cache has already been "
-                         "restored previously. Hint: Are you moving the axis outside of the refectory server.")
+                         "restored previously. Hint: Are you moving the axis outside of the refectory server."
+                         .format(pv_name=self.name))
         else:
             if self._velocity_cache is None:
-                logger.error("Velocity cache is None for {} not restoring".format(self.name))
+                logger.error("Velocity cache is None for {pv_name} not restoring".format(pv_name=self.name))
             else:
-                logger.debug("Resoring velocity cache of value {} for PV {}".format(self._velocity_cache, self.name))
+                logger.debug("Restoring velocity cache of {value} for PV {pv_name}"
+                             .format(value=self._velocity_cache, pv_name=self.name))
                 self.velocity = self._velocity_cache
             self._velocity_cache_restored = True
-            #TODO: autosave velocity_cache_restored
+            write_autosave_value(self.name+"_velocity_cache_restored", self._velocity_cache_restored, AutosaveType.VELOCITY)
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
         """
