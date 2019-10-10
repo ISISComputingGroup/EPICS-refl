@@ -92,6 +92,12 @@ class IocDataSource(object):
         self.mysql_abstraction_layer = mysql_abstraction_layer
 
     def _query_and_normalise(self, sqlquery, bind_vars=None):
+        """
+        Executes the given query to the database and converts the data in each row from bytearray to a normal string.
+        :param sqlquery: The query to execute.
+        :param bind_vars: Any variables to bind to query. Defaults to None.
+        :return: A list of lists of strings, representing the data from the table.
+        """
         # Get as a plain list of lists
         values = [list(element) for element in self.mysql_abstraction_layer.query(sqlquery, bind_vars)]
 
@@ -151,8 +157,8 @@ class IocDataSource(object):
         Queries the database for PVs based on their interest level and their IOC.
 
         Args:
-            level (string, optional): The interest level to search for, either High, Medium or Facility. Default to
-                                    all interest levels
+            level (string, optional): The interest level to search for, either High, Medium, Low or Facility. Default to
+                                    all interest levels.
             ioc (string, optional): The IOC to search. Default is all IOCs.
 
         Returns:
@@ -164,6 +170,8 @@ class IocDataSource(object):
                 interest = 'HIGH'
             elif level.lower().startswith('m'):
                 interest = 'MEDIUM'
+            elif level.lower().startswith('l'):
+                interest = 'LOW'
             elif level.lower().startswith('f'):
                 interest = 'FACILITY'
             else:
@@ -173,16 +181,16 @@ class IocDataSource(object):
             if ioc is not None and ioc != "":
                 bind_vars = (ioc, )
                 if interest is not None:
-                    sqlquery = GET_PVS_WITH_TEMPLATED_INTEREST_FOR_AN_IOC.format(interest=interest)
+                    sql_query = GET_PVS_WITH_TEMPLATED_INTEREST_FOR_AN_IOC.format(interest=interest)
                 else:
-                    sqlquery = GET_PVS_WITH_DETAILS_FOR_AN_IOC
+                    sql_query = GET_PVS_WITH_DETAILS_FOR_AN_IOC
             else:
                 bind_vars = None
                 if interest is not None:
-                    sqlquery = GET_PVS_WITH_TEMPLATED_INTEREST.format(interest=interest)
+                    sql_query = GET_PVS_WITH_TEMPLATED_INTEREST.format(interest=interest)
                 else:
-                    sqlquery = GET_PVS_WITH_DETAILS
-            return self._query_and_normalise(sqlquery, bind_vars)
+                    sql_query = GET_PVS_WITH_DETAILS
+            return self._query_and_normalise(sql_query, bind_vars)
         except Exception as err:
             print_and_log("issue with getting interesting PVs: %s" % err, "MAJOR", "DBSVR")
             return []
@@ -257,7 +265,7 @@ class IocDataSource(object):
             info_field_value: value of the info field
             pv_fullname: full pv name with prefix
 
-        Returns:
+        Returns: nothing.
 
         """
         try:
