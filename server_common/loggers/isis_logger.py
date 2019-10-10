@@ -15,6 +15,7 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
+from builtins import object
 import datetime
 import socket
 import contextlib

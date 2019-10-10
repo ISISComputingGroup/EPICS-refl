@@ -14,6 +14,7 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
+from builtins import str
 from pcaspy import SimpleServer, Driver, cas
 import re
 

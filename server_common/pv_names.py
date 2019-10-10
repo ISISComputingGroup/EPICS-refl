@@ -14,6 +14,7 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
+from builtins import object
 BLOCKSERVER = "BLOCKSERVER:"
 
 
@@ -21,7 +22,7 @@ def prepend_blockserver(base_name):
     return BLOCKSERVER + base_name
 
 
-class DatabasePVNames:
+class DatabasePVNames(object):
     """
     Holds and manages database server PV names.
     """
@@ -37,7 +38,7 @@ class DatabasePVNames:
     IOCS_NOT_TO_STOP = prepend_blockserver('IOCS_NOT_TO_STOP')
 
 
-class BlockserverPVNames:
+class BlockserverPVNames(object):
     """Holds and manages blockserver PV names
     """
     BLOCKNAMES = prepend_blockserver('BLOCKNAMES')

@@ -15,6 +15,7 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 
+from builtins import object
 class Logger(object):
     def __init__(self):
         pass
