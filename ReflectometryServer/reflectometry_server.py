@@ -38,8 +38,6 @@ logging.config.dictConfig({
     }
 })
 
-raw_input("start .... (press a key)")
-
 try:
     from ReflectometryServer.ChannelAccess.reflectometry_driver import ReflectometryDriver
 except ImportError:

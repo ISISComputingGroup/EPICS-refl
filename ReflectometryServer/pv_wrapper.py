@@ -101,7 +101,7 @@ class PVWrapper(object):
         Adds a monitor function to a given PV.
 
         Args:
-            pv(String): The pv to monitor
+            pv (String): The pv to monitor
             call_back_function: The function to execute on a pv value change
         """
         if self._ca.pv_exists(pv):
@@ -117,7 +117,7 @@ class PVWrapper(object):
         Read the value from a given PV.
 
         Args:
-            pv(String): The pv to read
+            pv (String): The pv to read
         """
         value = self._ca.caget(pv)
         if value is not None:
@@ -169,7 +169,7 @@ class PVWrapper(object):
     @property
     def name(self):
         """
-        Returns: the name of the underlying PV
+        Returns (String): the name of the underlying PV
         """
         return self._name
 
@@ -200,7 +200,7 @@ class PVWrapper(object):
     @property
     def rbv(self):
         """
-        Returns: the value of the underlying readback PV
+        Returns (float): the value of the underlying readback PV
         """
         return self._read_pv(self._rbv_pv)
 
@@ -234,7 +234,7 @@ class PVWrapper(object):
     @property
     def backlash_velocity(self):
         """
-        Returns: the value of the underlying backlash velocity PV
+        Returns (float): the value of the underlying backlash velocity PV
         """
         return self._backlash_velocity
 
@@ -345,7 +345,7 @@ class PVWrapper(object):
     @property
     def is_moving(self):
         """
-        Returns: True of the axis is moving
+        Returns (Bool): True of the axis is moving
         """
         return self._dmov_to_bool(self._moving_state)
 
@@ -354,7 +354,7 @@ class PVWrapper(object):
         React to an update in the backlash distance of the underlying motor axis.
 
         Params:
-            value (Boolean): The new backlash distance
+            value (float): The new backlash distance
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
@@ -365,7 +365,7 @@ class PVWrapper(object):
         React to an update in the backlash velocity of the underlying motor axis.
 
         Params:
-            value (Boolean): The new backlash distance
+            value (float): The new backlash velocity
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
@@ -376,7 +376,7 @@ class PVWrapper(object):
         React to an update in the direction of the underlying motor axis.
 
         Params:
-            value (Boolean): The new backlash distance
+            value (String): The new backlash distance
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
@@ -385,9 +385,10 @@ class PVWrapper(object):
     def get_distance(self, rbv, set_point_position):
         """
         Args:
-            rbv: the read back value
-            set_point_position: the set point position
-        Returns: The distance between the target component position and the actual motor position in y.
+            rbv (float): the read back value
+            set_point_position (float): the set point position
+
+        Returns (float): The distance between the target component position and the actual motor position in y.
         """
         raise NotImplemented("This should be implemented in the subclass")
 
@@ -498,14 +499,15 @@ class _JawsAxisPVWrapper(PVWrapper):
         Writes a value to the underlying velocity PV's VAL field.
 
         Args:
-            value: The value to set
+            value (float): The value to set
         """
         motor_velocities = self._pv_names_for_directions("MTR.VELO")
         for pv in motor_velocities:
             if value is not None:
                 self._write_pv(pv, value)
             else:
-                print("Rubbish!!!!")
+                logger.error("Error: An attempt was made to write a velocity with type {value_type} to {pv_name}. "
+                             "Unable to action this.".format(pv_name=pv, value_type=type(value)))
 
     def _set_max_velocity(self):
         """
@@ -517,9 +519,9 @@ class _JawsAxisPVWrapper(PVWrapper):
     def _pv_names_for_directions(self, suffix):
         """
         Args:
-            suffix: pv to read
+            suffix (String): pv to read
 
-        Returns: list of pv names for the different directions
+        Returns (String): list of pv names for the different directions
         """
         return ["{}:{}:{}".format(self._prefixed_pv, direction, suffix)
                 for direction in self._directions]
