@@ -15,7 +15,6 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 
-from builtins import object
 class MockChannelAccess(object):
     def __init__(self, starting_values=None):
         if starting_values is None:

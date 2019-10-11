@@ -17,8 +17,6 @@ Abstracting out the sql connection.
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-from builtins import str
-from builtins import object
 import mysql.connector
 from server_common.utilities import print_and_log
 

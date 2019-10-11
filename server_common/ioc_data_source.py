@@ -1,6 +1,5 @@
 from __future__ import print_function, absolute_import, division, unicode_literals
 
-from builtins import object
 import six
 
 """
@@ -247,11 +246,11 @@ class IocDataSource(object):
         self._remove_ioc_from_db(ioc_name)
         self._add_ioc_start_to_db(exe_path, ioc_name, pid)
 
-        for pvname, pv in list(pv_database.items()):
+        for pvname, pv in pv_database.items():
             pv_fullname = "{}{}".format(prefix, pvname)
             self._add_pv_to_db(ioc_name, pv, pv_fullname)
 
-            for info_field_name, info_field_value in list(pv.get(PV_INFO_FIELD_NAME, {}).items()):
+            for info_field_name, info_field_value in pv.get(PV_INFO_FIELD_NAME, {}).items():
                 self._add_pv_info_to_db(info_field_name, info_field_value, pv_fullname)
 
     def _add_pv_info_to_db(self, info_field_name, info_field_value, pv_fullname):

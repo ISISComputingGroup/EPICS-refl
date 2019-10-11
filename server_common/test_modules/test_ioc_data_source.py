@@ -28,7 +28,7 @@ class SQLAbstractionStubForIOC(AbstratSQLCommands):
         self.sql_param = []
         self.sql = []
         self.query_return = []
-        for ioc, values in list(query_return.items()):
+        for ioc, values in query_return.items():
             for value in values:
                 pv_info = [ioc]
                 pv_info.extend(value)

@@ -14,7 +14,6 @@
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
 
-from builtins import object
 class MockCAServer(object):
     def __init__(self):
         self.pv_list = dict()

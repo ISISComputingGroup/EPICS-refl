@@ -16,10 +16,6 @@
 """
 Utilities for running block server and related ioc's.
 """
-from __future__ import print_function
-from builtins import bytes
-from builtins import str
-from builtins import object
 import six
 import time
 import zlib
@@ -163,10 +159,10 @@ def value_list_to_xml(value_list, grp, group_tag, item_tag):
     """
     xml_list = ElementTree.SubElement(grp, group_tag)
     if len(value_list) > 0:
-        for n, c in list(value_list.items()):
+        for n, c in value_list.items():
             xml_item = ElementTree.SubElement(xml_list, item_tag)
             xml_item.set("name", n)
-            for cn, cv in list(c.items()):
+            for cn, cv in c.items():
                 xml_item.set(str(cn), str(cv))
 
 
@@ -251,7 +247,7 @@ def waveform_to_string(data):
     for i in data:
         if i == 0:
             break
-        output += str(six.chr(i))
+        output += str(six.unichr(i))
     return output
 
 
