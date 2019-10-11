@@ -14,5 +14,3 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
-

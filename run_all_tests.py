@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     cov = Coverage()
 
-    test_suite = unittest.TestLoader().discover(os.path.dirname(__file__), pattern="test_*.py")
+    test_suite = unittest.TestLoader().discover(os.path.dirname(__file__), pattern="test_*")
     print ("\n\n------ BEGINNING INST SERVERS UNIT TESTS ------")
     cov.start()
     ret_vals = xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite)

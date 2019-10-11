@@ -1,3 +1,5 @@
+import six
+
 HIGH_PV_NAMES = ["HIGH_PV1", "HIGH_PV2", "HIGH_PV3"]
 HIGH_PVS = [
     [HIGH_PV_NAMES[0], "ai", "HIGH PV 1", "SomeIOC"],
@@ -38,7 +40,7 @@ class MockIocDataSource(object):
 
     def get_iocs_and_running_status(self):
         d = []
-        for k, v in self.iocs.iteritems():
+        for k, v in six.iteritems(self.iocs):
             d.append((k, v["running"]))
         return d
 
