@@ -17,6 +17,8 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 
 # Add root path for access to server_commons
 import os
+import traceback
+
 import six
 import sys
 import json
@@ -181,7 +183,7 @@ class DatabaseServer(Driver):
             if reason == 'ED:RBNUMBER:SP':
                 self._ed.update_experiment_id(value)
             elif reason == 'ED:USERNAME:SP':
-                self._ed.update_username(dehex_and_decompress(value))
+                self._ed.update_username(dehex_and_decompress(value.encode('utf-8')).decode('utf-8'))
         except Exception as e:
             value = compress_and_hex(convert_to_json("Error: " + str(e)))
             print_and_log(str(e), MAJOR_MSG)
@@ -315,7 +317,8 @@ if __name__ == '__main__':
         print_and_log("Connected to IOCData database", INFO_MSG, LOG_TARGET)
     except Exception as e:
         ioc_data = None
-        print_and_log("Problem initialising IOCData DB connection: %s" % e, MAJOR_MSG, LOG_TARGET)
+        print_and_log("Problem initialising IOCData DB connection: {}".format(traceback.format_exc()),
+                      MAJOR_MSG, LOG_TARGET)
 
     # Initialise experimental database connection
     try:
@@ -323,7 +326,8 @@ if __name__ == '__main__':
         print_and_log("Connected to experimental details database", INFO_MSG, LOG_TARGET)
     except Exception as e:
         exp_data = None
-        print_and_log("Problem connecting to experimental details database: %s" % e, MAJOR_MSG, LOG_TARGET)
+        print_and_log("Problem connecting to experimental details database: {}".format(traceback.format_exc()),
+                      MAJOR_MSG, LOG_TARGET)
 
     DRIVER = DatabaseServer(SERVER, ioc_data, exp_data, OPTIONS_DIR, BLOCKSERVER_PREFIX)
 
@@ -332,5 +336,5 @@ if __name__ == '__main__':
         try:
             SERVER.process(0.1)
         except Exception as err:
-            print_and_log(err, MAJOR_MSG)
+            print_and_log(traceback.format_exc(), MAJOR_MSG)
             break

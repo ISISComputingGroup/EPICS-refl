@@ -16,6 +16,8 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import json
+import typing
+
 import six
 import unicodedata
 import traceback
@@ -23,6 +25,8 @@ import traceback
 from server_common.channel_access import ChannelAccess
 from server_common.mysql_abstraction_layer import SQLAbstraction
 from server_common.utilities import compress_and_hex, char_waveform, print_and_log
+
+from typing import Type, Union
 
 
 class User(object):
@@ -101,7 +105,9 @@ class ExpData(object):
 
     _to_ascii = {}
 
-    def __init__(self, prefix: str, db: ExpDataSource, ca: type = ChannelAccess):
+    def __init__(self, prefix: str,
+                 db: Union[ExpDataSource, 'MockExpDataSource'],
+                 ca: Union[ChannelAccess, 'MockChannelAccess'] = ChannelAccess()):
         """
         Constructor.
 
@@ -139,7 +145,7 @@ class ExpData(object):
         d[ord(u'\xe6')] = u'ae'
         return d
 
-    def encode_for_return(self, data: str) -> bytes:
+    def encode_for_return(self, data: typing.Any) -> bytes:
         """
         Converts data to JSON, compresses it and converts it to hex.
 
@@ -149,7 +155,7 @@ class ExpData(object):
         Returns:
             The encoded data
         """
-        return compress_and_hex(json.dumps(bytes(data)).encode('utf-8', 'replace'))
+        return compress_and_hex(json.dumps(data))
 
     def _get_surname_from_fullname(self, fullname: str) -> str:
         try:
@@ -179,9 +185,9 @@ class ExpData(object):
         orgs = []
 
         if not self._db.experiment_exists(experiment_id):
-            self.ca.caput(self._simnames, self.encode_for_return(names))
-            self.ca.caput(self._surnamepv, self.encode_for_return(surnames))
-            self.ca.caput(self._orgspv, self.encode_for_return(orgs))
+            self.ca.caput(self._simnames, self.encode_for_return(str(names)))
+            self.ca.caput(self._surnamepv, self.encode_for_return(str(surnames)))
+            self.ca.caput(self._orgspv, self.encode_for_return(str(orgs)))
             raise Exception("error finding the experiment: %s" % experiment_id)
 
         # Get the user information from the database and update the associated PVs
@@ -198,9 +204,9 @@ class ExpData(object):
                 name = User(fullname, org, role.lower())
                 names.append(name.__dict__)
             orgs = list(set(orgs))
-            self.ca.caput(self._simnames, self.encode_for_return(names))
-            self.ca.caput(self._surnamepv, self.encode_for_return(surnames))
-            self.ca.caput(self._orgspv, self.encode_for_return(orgs))
+            self.ca.caput(self._simnames, self.encode_for_return(str(names)))
+            self.ca.caput(self._surnamepv, self.encode_for_return(str(surnames)))
+            self.ca.caput(self._orgspv, self.encode_for_return(str(orgs)))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
             self.ca.caput(self._daenamespv, ExpData.make_name_list_ascii(surnames))

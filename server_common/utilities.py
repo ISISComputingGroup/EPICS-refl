@@ -87,6 +87,9 @@ def compress_and_hex(value):
     Returns:
         bytes : A compressed and hexed version of the inputted string
     """
+    assert type(value) == str, \
+        "Non-str argument passed to compress_and_hex, maybe Python 2/3 compatibility issue\n" \
+        "Argument was type {} with value {}".format(value.__class__.__name__, value)
     compr = zlib.compress(bytes(value) if six.PY2 else bytes(value, "utf-8"))
     return binascii.hexlify(compr)
 
@@ -100,6 +103,9 @@ def dehex_and_decompress(value):
     Returns:
         bytes : A decompressed version of the inputted string
     """
+    assert type(value) == bytes, \
+        "Non-bytes argument passed to dehex_and_decompress, maybe Python 2/3 compatibility issue\n" \
+        "Argument was type {} with value {}".format(value.__class__.__name__, value)
     return zlib.decompress(binascii.unhexlify(value))
 
 
@@ -112,7 +118,7 @@ def convert_to_json(value):
     Returns:
         string : The JSON representation of the inputted object
     """
-    return json.dumps(value).encode('utf-8', 'replace')
+    return json.dumps(value)
 
 
 def convert_from_json(value):
@@ -247,7 +253,7 @@ def waveform_to_string(data):
     for i in data:
         if i == 0:
             break
-        output += str(six.unichr(i))
+        output += six.unichr(i)
     return output
 
 

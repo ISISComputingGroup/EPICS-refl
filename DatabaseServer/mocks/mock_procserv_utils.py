@@ -17,6 +17,11 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 
 
 class MockProcServWrapper(object):
+    """
+    Note: this file cannot currently be given type hints as it is included from the "server_common" tests.
+
+    It can get type hints added once server_common has been migrated to Py3.
+    """
 
     def __init__(self):
         self.ps_status = dict()
@@ -26,26 +31,26 @@ class MockProcServWrapper(object):
         self.ps_status["stopdioc"] = "SHUTDOWN"
 
     @staticmethod
-    def generate_prefix(prefix: str, ioc: str) -> str:
+    def generate_prefix(prefix, ioc):
         return "%sCS:PS:%s" % (prefix, ioc)
 
-    def start_ioc(self, prefix: str, ioc: str) -> None:
+    def start_ioc(self, prefix, ioc):
         self.ps_status[ioc.lower()] = "RUNNING"
 
-    def stop_ioc(self, prefix: str, ioc: str) -> None:
+    def stop_ioc(self, prefix, ioc):
         """Stops the specified IOC"""
         self.ps_status[ioc.lower()] = "SHUTDOWN"
 
-    def restart_ioc(self, prefix: str, ioc: str) -> None:
+    def restart_ioc(self, prefix, ioc):
         self.ps_status[ioc.lower()] = "RUNNING"
 
-    def get_ioc_status(self, prefix: str, ioc: str) -> str:
+    def get_ioc_status(self, prefix, ioc):
         if not ioc.lower() in self.ps_status.keys():
             raise Exception("Could not find IOC (%s)" % self.generate_prefix(prefix, ioc))
         else:
             return self.ps_status[ioc.lower()]
 
-    def ioc_exists(self, prefix: str, ioc: str) -> bool:
+    def ioc_exists(self, prefix, ioc):
         try:
             self.get_ioc_status(prefix, ioc)
             return True

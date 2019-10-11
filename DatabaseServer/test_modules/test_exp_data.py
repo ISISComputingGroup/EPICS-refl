@@ -14,7 +14,7 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
+import typing
 import unittest
 import json
 from server_common.mocks.mock_ca import MockChannelAccess
@@ -39,13 +39,13 @@ class TestExpData(unittest.TestCase):
         self.mock_data_source = MockExpDataSource()
         self.exp_data = ExpData("TEST_PREFIX", self.mock_data_source, self.ca)
 
-    def decode_pv(self, pv):
+    def decode_pv(self, pv: str) -> typing.Any:
         return json.loads(dehex_and_decompress(self.ca.caget(pv)))
 
     def test_update_experiment_id_set_surnames_if_experiment_exists_but_skips_contact(self):
         self.exp_data.update_experiment_id("123456")
         data = self.ca.caget(self.exp_data._daenamespv)
-        self.assertEquals("Matt,Dom", data)
+        self.assertEquals(b"Matt,Dom", data)
 
     def test_update_experiment_id_throws_if_experiment_does_not_exists(self):
         try:
@@ -139,12 +139,12 @@ class TestExpData(unittest.TestCase):
     def test_remove_accents_from_name(self):
         # Arrange
         # list of names in unicode code points, which is the same as ISO-8859-1 encoding 
-        names_uni = [ u'Somebody', u'S\xf8rina', u'\xe9\xe5\xf5\xf6\xc6' ]
+        names_uni = [u'Somebody', u'S\xf8rina', u'\xe9\xe5\xf5\xf6\xc6']
         # best ascii equivalents of names 
-        names_ascii = [ 'Somebody', 'Sorina', 'eaooAE' ]
+        names_ascii = [b'Somebody', b'Sorina', b'eaooAE']
 
         # Act
-        conv_names = ExpData.make_name_list_ascii(names_uni).split(',')
+        conv_names = ExpData.make_name_list_ascii(names_uni).split(b',')
 
         # Assert
-        self.assertTrue(conv_names == names_ascii)
+        self.assertEqual(conv_names, names_ascii)
