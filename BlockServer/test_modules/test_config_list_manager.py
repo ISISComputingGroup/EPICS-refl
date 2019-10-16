@@ -232,12 +232,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self._create_components(["TEST_COMPONENT1", "TEST_COMPONENT2"])
         comps = self.clm.get_components()
         for comp in comps:
-            self.assertEqual(len(comp), 5)
+            self.assertEqual(len(comp), 6)
             self.assertTrue("name" in comp)
             self.assertTrue("pv" in comp)
             self.assertTrue("description" in comp)
             self.assertTrue("synoptic" in comp)
             self.assertTrue("history" in comp)
+            self.assertTrue("isProtected" in comp)
         self.assertTrue("TEST_COMPONENT1" in [comp.get('name') for comp in comps])
         self.assertTrue("TEST_COMPONENT2" in [comp.get('name') for comp in comps])
 
