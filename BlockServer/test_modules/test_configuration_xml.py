@@ -135,6 +135,7 @@ META_XML = u"""<?xml version="1.0" ?>
 <edits>
 <edit>1992-02-07</edit>
 </edits>
+<isProtected>false</isProtected>
 </meta>
 """
 
