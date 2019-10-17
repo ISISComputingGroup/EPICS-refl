@@ -24,6 +24,7 @@ from BlockServer.core.macros import MACROS
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.config_list_manager_exceptions import InvalidDeleteException
+from server_common.channel_access import verify_manager_mode
 
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json, \
     lowercase_and_make_unique
@@ -261,7 +262,7 @@ class ConfigListManager(object):
 
     def _remove_config_from_dependencies(self, config):
         # Remove old config from dependencies list
-        for comp, confs in self._comp_dependencies.iteritems():
+        for comp, confs in six.iteritems(self._comp_dependencies):
             if config in confs:
                 self._comp_dependencies[comp.lower()].remove(config)
                 self._update_component_dependencies_pv(comp.lower())
@@ -291,6 +292,10 @@ class ConfigListManager(object):
             raise InvalidDeleteException("Cannot delete currently active configuration")
         if not lower_delete_list.issubset(self._config_metas.keys()):
             raise InvalidDeleteException("Delete list contains unknown configurations")
+
+        for config in lower_delete_list:
+            if self._config_metas[config].isProtected:
+                verify_manager_mode(message="Attempting to delete protected configuration ('{}')".format(config))
 
         for config in delete_list:
             self._delete_single_config(config)
@@ -323,6 +328,10 @@ class ConfigListManager(object):
 
         if not lower_delete_list.issubset(self._component_metas.keys()):
             raise InvalidDeleteException("Delete list contains unknown components")
+
+        for component in lower_delete_list:
+            if self._component_metas[component].isProtected:
+                verify_manager_mode(message="Attempting to delete protected component ('{}')".format(component))
 
         for component in delete_list:
             self._delete_single_component(component)
