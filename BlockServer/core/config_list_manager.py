@@ -24,7 +24,7 @@ from BlockServer.core.macros import MACROS
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from BlockServer.core.constants import DEFAULT_COMPONENT
 from BlockServer.core.config_list_manager_exceptions import InvalidDeleteException
-from server_common.channel_access import verify_manager_mode
+from server_common.channel_access import verify_manager_mode, ChannelAccess
 
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json, \
     lowercase_and_make_unique
@@ -66,7 +66,7 @@ class ConfigListManager(object):
         active_config_name (string): The name of the active configuration
         active_components (list): The names of the components in the active configuration
     """
-    def __init__(self, block_server, schema_folder, file_manager):
+    def __init__(self, block_server, schema_folder, file_manager, channel_access=ChannelAccess()):
         """Constructor.
 
         Args:
@@ -83,6 +83,7 @@ class ConfigListManager(object):
         self.active_components = []
         self.all_components = dict()
         self._lock = RLock()
+        self.channel_access = channel_access
         self.schema_folder = schema_folder
         self.file_manager = file_manager
 
@@ -295,7 +296,8 @@ class ConfigListManager(object):
 
         for config in lower_delete_list:
             if self._config_metas[config].isProtected:
-                verify_manager_mode(message="Attempting to delete protected configuration ('{}')".format(config))
+                verify_manager_mode(self.channel_access,
+                                    message="Attempting to delete protected configuration ('{}')".format(config))
 
         for config in delete_list:
             self._delete_single_config(config)
@@ -331,7 +333,8 @@ class ConfigListManager(object):
 
         for component in lower_delete_list:
             if self._component_metas[component].isProtected:
-                verify_manager_mode(message="Attempting to delete protected component ('{}')".format(component))
+                verify_manager_mode(self.channel_access,
+                                    message="Attempting to delete protected component ('{}')".format(component))
 
         for component in delete_list:
             self._delete_single_component(component)

@@ -18,6 +18,7 @@ import unittest
 
 from BlockServer.core.config_list_manager import ConfigListManager, InvalidDeleteException
 from BlockServer.core.active_config_holder import ActiveConfigHolder
+from BlockServer.mocks.mock_channel_access import MockChannelAccess
 from server_common.pv_names import BlockserverPVNames, prepend_blockserver
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
@@ -87,7 +88,9 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def setUp(self):
         self.bs = MockBlockServer()
         self.file_manager = MockConfigurationFileManager()
-        self.clm = ConfigListManager(self.bs, SCHEMA_PATH, self.file_manager)
+        self.mock_channel_access = MockChannelAccess()
+        self.mock_channel_access.caput(MACROS["$(MYPVPREFIX)"] + "CS:MANAGER", "Yes")
+        self.clm = ConfigListManager(self.bs, SCHEMA_PATH, self.file_manager, channel_access=self.mock_channel_access)
 
     def tearDown(self):
         pass
@@ -338,11 +341,11 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.clm.active_config_name = "TEST_ACTIVE"
 
         self._check_no_configs_deleted(True)
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_COMPONENT1"], True)
+        self.assertRaises(InvalidDeleteException, self.clm.delete_components, ["TEST_COMPONENT1"])
         self._check_no_configs_deleted(True)
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_COMPONENT1", "TEST_COMPONENT2"], True)
+        self.assertRaises(InvalidDeleteException, self.clm.delete_components, ["TEST_COMPONENT1", "TEST_COMPONENT2"])
         self._check_no_configs_deleted(True)
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_CONFIG2", "TEST_COMPONENT1"], True)
+        self.assertRaises(InvalidDeleteException, self.clm.delete_components, ["TEST_CONFIG2", "TEST_COMPONENT1"])
         self._check_no_configs_deleted(True)
 
     def test_delete_one_inactive_config_works(self):
