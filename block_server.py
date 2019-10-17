@@ -431,7 +431,7 @@ class BlockServer(Driver):
                 "component" if as_comp else "config", config_name))
 
         inactive = InactiveConfigHolder(MACROS, ConfigurationFileManager())
-        
+
         # Is the config we're overwriting (if any) marked with the protected flag?
         try:
             inactive.load_inactive(new_details["name"], is_component=as_comp)

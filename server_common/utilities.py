@@ -314,6 +314,6 @@ def lowercase_and_make_unique(in_list):
         in_list (List[str]): the collection of strings to operate on
 
     Returns:
-        set[str]: the lowercased set of strings.
+        set[str]: the lowercased unique set of strings.
     """
     return {x.lower() for x in in_list}

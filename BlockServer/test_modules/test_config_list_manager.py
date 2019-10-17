@@ -268,7 +268,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"], self.clm)
 
         self.clm.active_config_name = "TEST_ACTIVE"
-        self.clm.delete([])
+        self.clm.delete_configs([])
 
         config_names = [c["name"] for c in self.clm.get_configs()]
         self.assertEqual(len(config_names), 2)
@@ -280,7 +280,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self._create_components(comp_names)
 
         self.clm.active_config_name = "TEST_ACTIVE"
-        self.clm.delete([], True)
+        self.clm.delete_configs([])
 
         config_names = [c["name"] for c in self.clm.get_components()]
         self.assertEqual(len(config_names), 2)
@@ -302,11 +302,11 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.clm.active_config_name = "TEST_ACTIVE"
 
         self._check_no_configs_deleted()
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_ACTIVE"])
+        self.assertRaises(InvalidDeleteException, self.clm.delete_configs, ["TEST_ACTIVE"])
         self._check_no_configs_deleted()
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_ACTIVE", "TEST_CONFIG1"])
+        self.assertRaises(InvalidDeleteException, self.clm.delete_configs, ["TEST_ACTIVE", "TEST_CONFIG1"])
         self._check_no_configs_deleted()
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_CONFIG1", "TEST_ACTIVE"])
+        self.assertRaises(InvalidDeleteException, self.clm.delete_configs, ["TEST_CONFIG1", "TEST_ACTIVE"])
         self._check_no_configs_deleted()
 
     def test_delete_active_component_throws(self):
@@ -320,11 +320,11 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.clm.update_a_config_in_list(active)
 
         self._check_no_configs_deleted(True)
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_COMPONENT1"], True)
+        self.assertRaises(InvalidDeleteException, self.clm.delete_components, ["TEST_COMPONENT1"])
         self._check_no_configs_deleted(True)
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_COMPONENT1", "TEST_COMPONENT2"], True)
+        self.assertRaises(InvalidDeleteException, self.clm.delete_components, ["TEST_COMPONENT1", "TEST_COMPONENT2"])
         self._check_no_configs_deleted(True)
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_CONFIG2", "TEST_COMPONENT1"], True)
+        self.assertRaises(InvalidDeleteException, self.clm.delete_components, ["TEST_CONFIG2", "TEST_COMPONENT1"])
         self._check_no_configs_deleted(True)
 
     def test_delete_used_component_throws(self):
@@ -348,7 +348,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_delete_one_inactive_config_works(self):
         self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"], self.clm)
 
-        self.clm.delete(["TEST_CONFIG1"])
+        self.clm.delete_configs(["TEST_CONFIG1"])
         self.clm.active_config_name = "TEST_ACTIVE"
 
         config_names = [c["name"] for c in self.clm.get_configs()]
@@ -360,7 +360,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         comps = ["TEST_COMPONENT1", "TEST_COMPONENT2"]
         self._create_components(comps)
 
-        self.clm.delete(["TEST_COMPONENT1"], True)
+        self.clm.delete_components(["TEST_COMPONENT1"])
         self.clm.active_config_name = "TEST_ACTIVE"
 
         config_names = [c["name"] for c in self.clm.get_components()]
@@ -385,7 +385,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_CONFIG2" in config_names)
         self.assertTrue("TEST_CONFIG3" in config_names)
 
-        self.clm.delete(["TEST_CONFIG1", "TEST_CONFIG3"])
+        self.clm.delete_configs(["TEST_CONFIG1", "TEST_CONFIG3"])
         config_names = [c["name"] for c in self.clm.get_configs()]
 
         self.assertEqual(len(config_names), 1)
@@ -404,7 +404,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.assertTrue("TEST_COMPONENT2" in config_names)
         self.assertTrue("TEST_COMPONENT3" in config_names)
 
-        self.clm.delete(["TEST_COMPONENT2", "TEST_COMPONENT3"], True)
+        self.clm.delete_components(["TEST_COMPONENT2", "TEST_COMPONENT3"])
 
         config_names = [c["name"] for c in self.clm.get_components()]
         self.assertEqual(len(config_names), 1)
@@ -425,7 +425,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_cant_delete_non_existent_config(self):
         self.clm.active_config_name = "TEST_ACTIVE"
 
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_CONFIG1"])
+        self.assertRaises(InvalidDeleteException, self.clm.delete_configs, ["TEST_CONFIG1"])
 
         config_names = [c["name"] for c in self.clm.get_configs()]
         self.assertEqual(len(config_names), 0)
@@ -433,7 +433,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_cant_delete_non_existent_component(self):
         self.clm.active_config_name = "TEST_ACTIVE"
 
-        self.assertRaises(InvalidDeleteException, self.clm.delete, ["TEST_COMPONENT1"], True)
+        self.assertRaises(InvalidDeleteException, self.clm.delete_components, ["TEST_COMPONENT1"])
 
         config_names = [c["name"] for c in self.clm.get_components()]
         self.assertEqual(len(config_names), 0)
@@ -457,7 +457,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         for pv in pvs:
             self.assertTrue(self._does_pv_exist(pv))
 
-        self.clm.delete(comp_names, True)
+        self.clm.delete_components(comp_names)
 
         for pv in pvs:
             self.assertFalse(self._does_pv_exist(pv))
@@ -506,13 +506,13 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         inactive.add_component("TEST_COMPONENT1", Configuration(MACROS))
         inactive.save_inactive("TEST_INACTIVE", False)
         self.clm.update_a_config_in_list(inactive)
-        self.clm.delete(["TEST_INACTIVE"])
+        self.clm.delete_configs(["TEST_INACTIVE"])
         self.assertFalse("TEST_INACTIVE" in self.clm.get_dependencies("TEST_COMPONENT1"))
 
     def test_cannot_delete_default(self):
         self._create_components(["TEST_COMPONENT1"])
 
-        self.assertRaises(InvalidDeleteException, self.clm.delete, [DEFAULT_COMPONENT], True)
+        self.assertRaises(InvalidDeleteException, self.clm.delete_components, [DEFAULT_COMPONENT])
 
     def test_update_inactive_config_from_filewatcher(self):
         inactive = self._create_inactive_config_holder()
