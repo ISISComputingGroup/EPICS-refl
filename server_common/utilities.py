@@ -304,3 +304,16 @@ def remove_from_end(string, text_to_remove):
     if string is not None and string.endswith(text_to_remove):
         return string[:-len(text_to_remove)]
     return string
+
+
+def lowercase_and_make_unique(in_list):
+    """
+    Takes a collection of strings, and returns it with all strings lowercased and with duplicates removed.
+
+    Args:
+        in_list (List[str]): the collection of strings to operate on
+
+    Returns:
+        set[str]: the lowercased set of strings.
+    """
+    return {x.lower() for x in in_list}
