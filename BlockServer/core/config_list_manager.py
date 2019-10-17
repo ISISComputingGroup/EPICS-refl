@@ -66,30 +66,29 @@ class ConfigListManager(object):
         active_config_name (string): The name of the active configuration
         active_components (list): The names of the components in the active configuration
     """
-    def __init__(self, block_server, schema_folder, file_manager, channel_access=ChannelAccess()):
+    def __init__(self, block_server, file_manager, channel_access=ChannelAccess()):
         """Constructor.
 
         Args:
             block_server (block_server.BlockServer): A reference to the BlockServer itself
-            schema_folder (string): The location of the schemas for validation
             file_manager (ConfigurationFileManager): Deals with writing the config files
+            channel_access (ChannelAccess): The channel access class to use
         """
 
-        self._config_metas = dict()
-        self._component_metas = dict()
-        self._comp_dependencies = dict()
+        self._config_metas = {}
+        self._component_metas = {}
+        self._comp_dependencies = {}
         self._bs = block_server
         self.active_config_name = ""
         self.active_components = []
-        self.all_components = dict()
+        self.all_components = {}
         self._lock = RLock()
         self.channel_access = channel_access
-        self.schema_folder = schema_folder
         self.file_manager = file_manager
 
         self._conf_path = FILEPATH_MANAGER.config_dir
         self._comp_path = FILEPATH_MANAGER.component_dir
-        self._import_configs(self.schema_folder)
+        self._import_configs()
 
     def _update_pv_value(self, fullname, data):
         # First check PV exists if not create it
@@ -135,7 +134,7 @@ class ConfigListManager(object):
                 comps.append(cv.to_dict())
         return comps
 
-    def _import_configs(self, schema_folder):
+    def _import_configs(self):
         # Create the pvs and get meta data
         config_list = self._get_config_names()
         comp_list = self._get_component_names()
@@ -336,7 +335,7 @@ class ConfigListManager(object):
                 verify_manager_mode(self.channel_access,
                                     message="Attempting to delete protected component ('{}')".format(component))
 
-        for component in delete_list:
+        for component in lower_delete_list:
             self._delete_single_component(component)
 
     def _delete_single_component(self, component):

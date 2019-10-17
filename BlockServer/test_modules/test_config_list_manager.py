@@ -90,7 +90,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.file_manager = MockConfigurationFileManager()
         self.mock_channel_access = MockChannelAccess()
         self.mock_channel_access.caput(MACROS["$(MYPVPREFIX)"] + "CS:MANAGER", "Yes")
-        self.clm = ConfigListManager(self.bs, SCHEMA_PATH, self.file_manager, channel_access=self.mock_channel_access)
+        self.clm = ConfigListManager(self.bs, self.file_manager, channel_access=self.mock_channel_access)
 
     def tearDown(self):
         pass
@@ -510,7 +510,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         inactive.save_inactive("TEST_INACTIVE", False)
         self.clm.update_a_config_in_list(inactive)
         self.clm.delete_configs(["TEST_INACTIVE"])
-        self.assertFalse("TEST_INACTIVE" in self.clm.get_dependencies("TEST_COMPONENT1"))
+        self.assertNotIn("TEST_INACTIVE", self.clm.get_dependencies("TEST_COMPONENT1"))
 
     def test_cannot_delete_default(self):
         self._create_components(["TEST_COMPONENT1"])

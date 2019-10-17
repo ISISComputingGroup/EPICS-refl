@@ -133,12 +133,12 @@ class BlockServer(Driver):
 
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(self, SCHEMA_DIR, ConfigurationFileManager())
+            self._config_list = ConfigListManager(self, ConfigurationFileManager())
         except Exception as err:
             print_and_log(
                 "Error creating inactive config list. Configuration list changes will not be stored " +
                 "in version control: %s " % str(err), "MINOR")
-            self._config_list = ConfigListManager(self, SCHEMA_DIR, ConfigurationFileManager())
+            self._config_list = ConfigListManager(self, ConfigurationFileManager())
 
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
