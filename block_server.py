@@ -20,6 +20,8 @@ import os
 import sys
 import traceback
 
+from server_common.channel_access import verify_manager_mode
+
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 # Standard imports
@@ -418,17 +420,26 @@ class BlockServer(Driver):
             as_comp (bool): Whether it is a component or not
         """
         new_details = convert_from_json(json_data)
-        inactive = InactiveConfigHolder(MACROS, ConfigurationFileManager())
 
-        history = self._get_inactive_history(new_details["name"], as_comp)
+        config_name = new_details["name"]
+
+        new_config_is_protected = new_details.get("isProtected", False)
+        if new_config_is_protected:
+            verify_manager_mode(message="Attempt to save protected config ('{}')".format(config_name))
+
+        inactive = InactiveConfigHolder(MACROS, ConfigurationFileManager())
+        inactive.load_inactive(new_details["name"], is_component=as_comp)
+
+        if inactive.is_protected():
+            verify_manager_mode(message="Attempt to overwrite protected config ('{}')".format(config_name))
+
+        history = self._get_inactive_history(config_name, as_comp)
 
         inactive.set_config_details(new_details)
 
         # Set updated history
         history.append(self._get_timestamp())
         inactive.set_history(history)
-
-        config_name = inactive.get_config_name()
 
         try:
             if not as_comp:
@@ -515,7 +526,6 @@ class BlockServer(Driver):
                 print_and_log(
                     "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
                     "MAJOR")
-                import traceback
                 traceback.print_exc()
             self.update_server_status("")
 

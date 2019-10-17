@@ -21,11 +21,11 @@ from threading import RLock
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.core.macros import MACROS
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
+from BlockServer.core.constants import DEFAULT_COMPONENT
+from BlockServer.core.config_list_manager_exceptions import InvalidDeleteException
 from server_common.utilities import print_and_log, compress_and_hex, create_pv_name, convert_to_json
 from server_common.common_exceptions import MaxAttemptsExceededException
-from BlockServer.core.constants import DEFAULT_COMPONENT
 from server_common.pv_names import BlockserverPVNames
-from config_list_manager_exceptions import InvalidDeleteException
 
 
 class ConfigListManager(object):

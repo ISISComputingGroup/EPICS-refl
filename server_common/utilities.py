@@ -16,13 +16,11 @@
 """
 Utilities for running block server and related ioc's.
 """
-
 import time
 import zlib
 import re
 import json
 from xml.etree import ElementTree
-
 from server_common.loggers.logger import Logger
 from server_common.common_exceptions import MaxAttemptsExceededException
 
@@ -256,7 +254,7 @@ def ioc_restart_pending(ioc_pv, channel_access):
 
     Args:
         ioc_pv: The base PV for the IOC with instrument PV prefix
-        channel_access: The channel access object to be used for accessing PVs
+        channel_access (ChannelAccess): The channel access object to be used for accessing PVs
 
     Return
         bool: True if restarting, else False
