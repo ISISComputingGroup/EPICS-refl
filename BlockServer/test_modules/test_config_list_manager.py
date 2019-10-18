@@ -19,6 +19,7 @@ import unittest
 from BlockServer.core.config_list_manager import ConfigListManager, InvalidDeleteException
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.mocks.mock_channel_access import MockChannelAccess
+from server_common.channel_access import ManagerModeRequiredException
 from server_common.pv_names import BlockserverPVNames, prepend_blockserver
 from BlockServer.mocks.mock_block_server import MockBlockServer
 from BlockServer.core.inactive_config_holder import InactiveConfigHolder
@@ -572,3 +573,38 @@ class TestInactiveConfigsSequence(unittest.TestCase):
     def test_default_filtered(self):
         comps = self.clm.get_components()
         self.assertTrue(DEFAULT_COMPONENT not in comps)
+
+    def test_GIVEN_manager_mode_active_WHEN_protected_config_deleted_THEN_successful(self):
+        self.mock_channel_access.caput(MACROS["$(MYPVPREFIX)"] + "CS:MANAGER", "Yes")
+
+        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"], self.clm)
+
+        self.clm._config_metas["test_config1"].isProtected = True
+
+        self.clm.delete_configs(["TEST_CONFIG1"])
+        # Passes if exception not raised
+
+    def test_GIVEN_manager_mode_inactive_WHEN_protected_config_deleted_THEN_error_raised(self):
+        self.mock_channel_access.caput(MACROS["$(MYPVPREFIX)"] + "CS:MANAGER", "No")
+
+        self._create_configs(["TEST_CONFIG1", "TEST_CONFIG2"], self.clm)
+
+        self.clm._config_metas["test_config1"].isProtected = True
+
+        with self.assertRaises(ManagerModeRequiredException):
+            self.clm.delete_configs(["TEST_CONFIG1"])
+
+    def test_GIVEN_manager_mode_active_WHEN_protected_component_deleted_THEN_successful(self):
+        self.mock_channel_access.caput(MACROS["$(MYPVPREFIX)"] + "CS:MANAGER", "Yes")
+        comps = ["TEST_COMPONENT1", "TEST_COMPONENT2"]
+        self._create_components(comps)
+
+        self.clm.delete_components(["TEST_COMPONENT1"])
+
+    def test_GIVEN_manager_mode_inactive_WHEN_protected_component_deleted_THEN_error_raised(self):
+        self.mock_channel_access.caput(MACROS["$(MYPVPREFIX)"] + "CS:MANAGER", "No")
+        comps = ["TEST_COMPONENT1", "TEST_COMPONENT2"]
+        self._create_components(comps)
+
+        with self.assertRaises(ManagerModeRequiredException):
+            self.clm.delete_components(["TEST_COMPONENT1"])
