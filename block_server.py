@@ -436,6 +436,7 @@ class BlockServer(Driver):
         try:
             inactive.load_inactive(new_details["name"], is_component=as_comp)
             if inactive.is_protected():
+                print(inactive.is_protected().__class__.__name__)
                 verify_manager_mode(message="Attempt to overwrite protected {} ('{}')".format(
                     "component" if as_comp else "config", config_name))
         except IOError:

@@ -602,6 +602,7 @@ class TestInactiveConfigsSequence(unittest.TestCase):
         self.clm._component_metas["test_component1"].isProtected = True
 
         self.clm.delete_components(["TEST_COMPONENT1"])
+        # Passes if exception not raised
 
     def test_GIVEN_manager_mode_inactive_WHEN_protected_component_deleted_THEN_error_raised(self):
         self.mock_channel_access.caput(MACROS["$(MYPVPREFIX)"] + "CS:MANAGER", "No")
