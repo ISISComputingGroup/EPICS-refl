@@ -482,7 +482,7 @@ class TestBeamlineOnMove(unittest.TestCase):
     @parameterized.expand([("s3_gap", 2.452, "theta", 4.012), ("s3_gap", 4.223, "theta", 1.632)])
     def test_GIVEN_slit_gap_parameter_WHEN_theta_moved_independently_THEN_slit_gap_parameter_unchanged(self, param, param_sp, theta, theta_sp):
         spacing = 2.0
-        bl, drives = DataMother.beamline_s1_gaps_theta_detector(spacing)
+        bl, drives = DataMother.beamline_s1_gap_theta_s3_gap_detector(spacing)
 
         param_init_position = bl.parameter(param).rbv
 
