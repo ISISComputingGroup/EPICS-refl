@@ -125,7 +125,7 @@ class DataMother(object):
         return bl, axes
 
     @staticmethod
-    def beamline_s1_gaps_theta_detector(spacing):
+    def beamline_s1_gap_theta_s3_gap_detector(spacing):
         """
         Create beamline with Slits 1 and 3 a theta and a detector
         Args:
@@ -136,6 +136,7 @@ class DataMother(object):
         """
         # DRIVERS
         s1_gap_axis = create_mock_axis("MOT:MTR0101", 0, 1)
+        s3_gap_axis = create_mock_axis("MOT:MTR0103", 0, 1)
         axes = {"s1_gap_axis": s1_gap_axis}
         drives = []
 
@@ -147,9 +148,10 @@ class DataMother(object):
         # BEAMLINE PARAMETERS
         s1_gap = SlitGapParameter("s1_gap", s1_gap_axis, sim=True)
         theta_ang = AngleParameter("theta", theta, sim=True)
+        s3_gap = SlitGapParameter("s3_gap", s3_gap_axis, sim=True)
         detector_position = TrackingPosition("det", detector, sim=True)
         detector_angle = AngleParameter("det_angle", detector, sim=True)
-        params = [s1_gap, theta_ang, detector_position, detector_angle]
+        params = [s1_gap, theta_ang, s3_gap, detector_position, detector_angle]
 
         # MODES
         nr_inits = {}

@@ -479,7 +479,7 @@ class TestBeamlineOnMove(unittest.TestCase):
 
         assert_that(param_init_position, is_(close_to(param_final_position, delta=1e-6)))
 
-    @parameterized.expand([("s1_gap", 2.452, "theta", 4.012), ("s1_gap", 4.223, "theta", 1.632)])
+    @parameterized.expand([("s3_gap", 2.452, "theta", 4.012), ("s3_gap", 4.223, "theta", 1.632)])
     def test_GIVEN_slit_gap_parameter_WHEN_theta_moved_independently_THEN_slit_gap_parameter_unchanged(self, param, param_sp, theta, theta_sp):
         spacing = 2.0
         bl, drives = DataMother.beamline_s1_gaps_theta_detector(spacing)
@@ -492,7 +492,7 @@ class TestBeamlineOnMove(unittest.TestCase):
 
         param_final_position = bl.parameter(param).rbv
 
-        assert_that(param_init_position, is_(close_to(param_final_position, delta=1e-6)))
+        assert_that(param_final_position, is_(close_to(param_init_position, delta=1e-6)))
 
 
 class TestBeamlineParameterReadback(unittest.TestCase):
