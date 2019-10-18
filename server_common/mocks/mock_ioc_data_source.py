@@ -12,6 +12,13 @@ MEDIUM_PVS = [
     [MEDIUM_PV_NAMES[2], "ai", "MED PV 3", "SomeIOC"]
 ]
 
+LOW_PV_NAMES = ["LOW_PV1", "LOW_PV2", "LOW_PV3"]
+LOW_PVS = [
+    [LOW_PV_NAMES[0], "ai", "LOW PV 1", "SomeIOC"],
+    [LOW_PV_NAMES[1], "ai", "LOW PV 2", "SomeIOC"],
+    [LOW_PV_NAMES[2], "ai", "LOW PV 3", "SomeIOC"]
+]
+
 FACILITY_PV_NAMES = ["FAC_PV1", "FAC_PV2", "FAC_PV3"]
 FACILITY_PVS = [
     [FACILITY_PV_NAMES[0], "ai", "FACILITY PV 1", "SomeIOC"],
@@ -37,25 +44,55 @@ class MockIocDataSource(object):
         return self.iocs
 
     def get_iocs_and_running_status(self):
-        d = []
-        for k, v in self.iocs.iteritems():
-            d.append((k, v["running"]))
-        return d
+        """
+        Gets IOC names together with IOC's run status.
+        :return: a list of tuples.
+        """
+        iocs_and_run_status = [(ioc_name, ioc_info["running"]) for ioc_name, ioc_info in self.iocs.iteritems()]
+
+        return iocs_and_run_status
 
     def update_ioc_is_running(self, iocname, running):
         self.iocs[iocname]["running"] = running
 
     def get_interesting_pvs(self, level="", ioc=None):
+        """
+        Gets a list of interesting pvs based on their level. The interesting pvs are fake pvs with data defined at the
+        beginning of this module.
+        Args:
+            level (string, optional): The interest level to search for, either High, Medium, Low or Facility. Default to
+                                    all interest levels.
+            ioc (string, optional): The IOC to search. Default is all IOCs. This argument is not actually used in this
+            mock method, but it is used in the method of the real IOCDataSource class, so we need this argument to
+            completely imitate the real method.
+        Returns:
+            list : A list of the PVs that match the search given by level and ioc
+
+        """
         pvs = []
-        if level == "" or level.lower().startswith('h'):
+
+        if level == "":
+            pvs = HIGH_PVS + MEDIUM_PVS + LOW_PVS + FACILITY_PVS
+        elif level.lower().startswith('h'):
             pvs.extend(HIGH_PVS)
-        if level == "" or level.lower().startswith('m'):
+        elif level.lower().startswith('m'):
             pvs.extend(MEDIUM_PVS)
-        if level == "" or level.lower().startswith('f'):
+        elif level.lower().startswith('l'):
+            pvs.extend(LOW_PVS)
+        elif level.lower().startswith('f'):
             pvs.extend(FACILITY_PVS)
+        else:
+            raise ValueError("Value of level argument can only start with h for high, m for medium, l for low or f for"
+                             " facility")
+
         return pvs
 
     def get_active_pvs(self):
+        """
+        Returns names of fake high pvs, because the active pv test compares the result of this method to those fake pvs.
+        Returns:
+            list : A list of the PVs in running IOCs
+        """
         return HIGH_PV_NAMES
 
     def get_pars(self, category):

@@ -101,6 +101,7 @@ class DatabaseServer(Driver):
         add_get_method(DbPVNames.IOCS, self._get_iocs_info)
         add_get_method(DbPVNames.HIGH_INTEREST, partial(self._get_interesting_pvs, "HIGH"))
         add_get_method(DbPVNames.MEDIUM_INTEREST, partial(self._get_interesting_pvs, "MEDIUM"))
+        add_get_method(DbPVNames.LOW_INTEREST, partial(self._get_interesting_pvs, "LOW"))
         add_get_method(DbPVNames.FACILITY, partial(self._get_interesting_pvs, "FACILITY"))
         add_get_method(DbPVNames.ACTIVE_PVS, self._get_active_pvs)
         add_get_method(DbPVNames.ALL_PVS, partial(self._get_interesting_pvs, ""))
@@ -119,13 +120,13 @@ class DatabaseServer(Driver):
         Returns:
             Dictionary : Dictionary containing the information to construct PVs
         """
-        pv_size_64k = 64000
+        pv_size_128k = 128000
         pv_size_10k = 10000
         pv_info = {}
 
-        for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.FACILITY,
-                   DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS, DbPVNames.IOCS_NOT_TO_STOP]:
-            pv_info[pv] = char_waveform(pv_size_64k)
+        for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.LOW_INTEREST,
+                   DbPVNames.FACILITY, DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS, DbPVNames.IOCS_NOT_TO_STOP]:
+            pv_info[pv] = char_waveform(pv_size_128k)
 
         for pv in [DbPVNames.SAMPLE_PARS, DbPVNames.BEAMLINE_PARS, DbPVNames.USER_PARS]:
             pv_info[pv] = char_waveform(pv_size_10k)
@@ -190,7 +191,7 @@ class DatabaseServer(Driver):
             if self._iocs is not None:
                 self._iocs.update_iocs_status()
                 for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.FACILITY,
-                            DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS]:
+                           DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS]:
                     encoded_data = self.get_data_for_pv(pv)
                     self.setParam(pv, encoded_data)
                 # Update them
@@ -221,6 +222,14 @@ class DatabaseServer(Driver):
         return iocs
 
     def _get_pvs(self, get_method, replace_pv_prefix, *get_args):
+        """
+        Method to get pv data using the given method called with the given arguments and optionally remove instrument
+        prefixes from pv names.
+        :param get_method: The method used to get pv data.
+        :param replace_pv_prefix: True to remove pv prefixes, False if not.
+        :param get_args: The arguments to be applied to get_method.
+        :return: a list of names of pvs.
+        """
         if self._iocs is not None:
             pv_data = get_method(*get_args)
             if replace_pv_prefix:
@@ -230,9 +239,19 @@ class DatabaseServer(Driver):
             return list()
 
     def _get_interesting_pvs(self, level):
+        """
+        Gets interesting pvs of the current instrument.
+        :param level: The level of high interesting pvs, can be high, low, medium or facility. If level is an empty
+        string, it returns all interesting pvs of all levels.
+        :return: a list of names of pvs.
+        """
         return self._get_pvs(self._iocs.get_interesting_pvs, False, level)
 
     def _get_active_pvs(self):
+        """
+        Gets all pvs belonging to IOCs that are currently running on the current instrument.
+        :return: a list of names of pvs.
+        """
         return self._get_pvs(self._iocs.get_active_pvs, False)
 
     def _get_sample_par_names(self):

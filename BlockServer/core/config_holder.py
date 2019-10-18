@@ -303,6 +303,7 @@ class ConfigHolder(object):
             'description': self._config.meta.description,
             'synoptic': self._config.meta.synoptic,
             'history': self._config.meta.history,
+            'isProtected': self._config.meta.isProtected
         }
 
     def _comps_to_list(self):
