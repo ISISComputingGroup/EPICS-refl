@@ -4,6 +4,7 @@ from math import isnan
 
 from hamcrest import *
 from mock import Mock
+from parameterized import parameterized
 
 from ReflectometryServer import *
 from ReflectometryServer import file_io
@@ -462,6 +463,36 @@ class TestBeamlineOnMove(unittest.TestCase):
         moves = [beamline_parameter.move_component_count for beamline_parameter in beamline_parameters]
 
         assert_that(moves, contains(1, 1, 1), "beamline parameter move counts")
+
+    @parameterized.expand([("s1", 12.132, "theta", 4.012), ("s3", 1.123, "theta", 2.342)])
+    def test_GIVEN_parameter_with_new_sp_WHEN_theta_moved_independently_THEN_parameter_unchanged(self, param, param_sp, theta, theta_sp):
+        spacing = 2.0
+        bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
+
+        param_init_position = bl.parameter(param).rbv
+
+        bl.parameter(param).sp_no_move = param_sp
+        bl.parameter(theta).sp_no_move = theta_sp
+        bl.parameter(theta).move = 1  # Move only theta
+
+        param_final_position = bl.parameter(param).rbv
+
+        assert_that(param_init_position, is_(close_to(param_final_position, delta=1e-6)))
+
+    @parameterized.expand([("s3_gap", 2.452, "theta", 4.012), ("s3_gap", 4.223, "theta", 1.632)])
+    def test_GIVEN_slit_gap_parameter_WHEN_theta_moved_independently_THEN_slit_gap_parameter_unchanged(self, param, param_sp, theta, theta_sp):
+        spacing = 2.0
+        bl, drives = DataMother.beamline_s1_gaps_theta_detector(spacing)
+
+        param_init_position = bl.parameter(param).rbv
+
+        bl.parameter(param).sp_no_move = param_sp
+        bl.parameter(theta).sp_no_move = theta_sp
+        bl.parameter(theta).move = 1  # Move only theta
+
+        param_final_position = bl.parameter(param).rbv
+
+        assert_that(param_final_position, is_(close_to(param_init_position, delta=1e-6)))
 
 
 class TestBeamlineParameterReadback(unittest.TestCase):
