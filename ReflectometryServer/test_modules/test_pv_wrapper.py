@@ -1,7 +1,10 @@
+from hamcrest import *
+
 import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
+from ReflectometryServer.ChannelAccess.constants import MTR_STOPPED
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess
 
 from server_common.channel_access import UnableToConnectToPVException
@@ -212,3 +215,12 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
 
         self.assertEqual(expected_sp, actual_sp)
         self.assertEqual(expected_rbv, actual_rbv)
+
+    def test_GIVEN_initialised_jaw_gap_WHEN_get_backlash_distance_THEN_distance_is_0_because_jaws_do_not_backlash(self):
+        wrapper = JawsGapPVWrapper(self.jaws_name, is_vertical=False, ca=self.mock_ca)
+        wrapper._on_update_moving_state(MTR_STOPPED, None, None)  # fake call from monitor initialisation TODO: remove after 4588
+        wrapper.initialise()
+
+        result = wrapper.backlash_distance
+
+        assert_that(result, is_(0), "Jaws should not have backlash distance")
