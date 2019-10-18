@@ -26,6 +26,7 @@ SET_AND_NO_ACTION_SUFFIX = ":SP_NO_ACTION"
 RBV_AT_SP = ":RBV:AT_SP"
 CHANGING = ":CHANGING"
 CHANGED_SUFFIX = ":CHANGED"
+DEFINE_POSITION_AS = ":DEFINE_POSITION_AS"
 
 VAL_FIELD = ".VAL"
 
@@ -109,6 +110,7 @@ class PvSort(Enum):
     IN_MODE = 7
     CHANGING = 8
     RBV_AT_SP = 9
+    DEFINE_POS_AS = 10
 
     @staticmethod
     def what(pv_sort):
@@ -136,6 +138,8 @@ class PvSort(Enum):
             return "(Is changing)"
         elif pv_sort == PvSort.RBV_AT_SP:
             return "(Tolerance between RBV and target set point)"
+        elif pv_sort == PvSort.DEFINE_POS_AS:
+            return "(Define the value of current position)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -234,8 +238,8 @@ class PVManager:
                          'states': [code.alarm_severity for code in self._beamline.status_codes]}
         self._add_pv_with_val(BEAMLINE_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV, archive=True,
                               interest="HIGH", alarm=True)
-        self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'char', 'count': 400}, "Message about the beamline", PvSort.RBV,
-                              archive=True, interest="HIGH")
+        self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'char', 'count': 400}, "Message about the beamline",
+                              PvSort.RBV, archive=True, interest="HIGH")
 
     def _add_footprint_calculator_pvs(self):
         """
@@ -322,6 +326,11 @@ class PVManager:
             # RBV to SP:RBV tolerance
             self._add_pv_with_val(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
                                   PvSort.RBV_AT_SP)
+
+            # define position at
+            self._add_pv_with_val(prepended_alias + DEFINE_POSITION_AS, param_name, STANDARD_FLOAT_PV_FIELDS,
+                                  description, PvSort.DEFINE_POS_AS)
+
             return {"name": param_name,
                     "prepended_alias": prepended_alias,
                     "type": BeamlineParameterType.name_for_param_list(param_type)}
