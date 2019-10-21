@@ -110,6 +110,7 @@ class DatabaseServer(Driver):
         add_get_method(DbPVNames.IOCS, self._get_iocs_info)
         add_get_method(DbPVNames.HIGH_INTEREST, partial(self._get_interesting_pvs, "HIGH"))
         add_get_method(DbPVNames.MEDIUM_INTEREST, partial(self._get_interesting_pvs, "MEDIUM"))
+        add_get_method(DbPVNames.LOW_INTEREST, partial(self._get_interesting_pvs, "LOW"))
         add_get_method(DbPVNames.FACILITY, partial(self._get_interesting_pvs, "FACILITY"))
         add_get_method(DbPVNames.ACTIVE_PVS, self._get_active_pvs)
         add_get_method(DbPVNames.ALL_PVS, partial(self._get_interesting_pvs, ""))
@@ -128,13 +129,13 @@ class DatabaseServer(Driver):
         Returns:
             Dictionary containing the information to construct PVs
         """
-        pv_size_64k = 64000
+        pv_size_128k = 128000
         pv_size_10k = 10000
         pv_info = {}
 
-        for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.FACILITY,
-                   DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS, DbPVNames.IOCS_NOT_TO_STOP]:
-            pv_info[pv] = char_waveform(pv_size_64k)
+        for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.LOW_INTEREST,
+                   DbPVNames.FACILITY, DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS, DbPVNames.IOCS_NOT_TO_STOP]:
+            pv_info[pv] = char_waveform(pv_size_128k)
 
         for pv in [DbPVNames.SAMPLE_PARS, DbPVNames.BEAMLINE_PARS, DbPVNames.USER_PARS]:
             pv_info[pv] = char_waveform(pv_size_10k)
@@ -230,6 +231,17 @@ class DatabaseServer(Driver):
         return iocs
 
     def _get_pvs(self, get_method: callable, replace_pv_prefix: bool, *get_args: list) -> list:
+        """
+        Method to get pv data using the given method called with the given arguments and optionally remove instrument
+        prefixes from pv names.
+
+        Args:
+            get_method: The method used to get pv data.
+            replace_pv_prefix: True to remove pv prefixes, False if not.
+            get_args: The arguments to be applied to get_method.
+        Returns:
+            a list of names of pvs.
+        """
         if self._iocs is not None:
             pv_data = get_method(*get_args)
             if replace_pv_prefix:
@@ -239,9 +251,22 @@ class DatabaseServer(Driver):
             return []
 
     def _get_interesting_pvs(self, level) -> list:
+        """
+        Gets interesting pvs of the current instrument.
+
+        Args:
+            level: The level of high interesting pvs, can be high, low, medium or facility. If level is an empty
+                   string, it returns all interesting pvs of all levels.
+        Returns:
+            a list of names of pvs with given level of interest.
+        """
         return self._get_pvs(self._iocs.get_interesting_pvs, False, level)
 
     def _get_active_pvs(self) -> list:
+        """
+        Gets all pvs belonging to IOCs that are currently running on the current instrument.
+        :return: a list of names of pvs.
+        """
         return self._get_pvs(self._iocs.get_active_pvs, False)
 
     def _get_sample_par_names(self) -> list:

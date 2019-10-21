@@ -28,6 +28,7 @@ class DatabasePVNames:
     IOCS = prepend_blockserver('IOCS')
     HIGH_INTEREST = prepend_blockserver('PVS:INTEREST:HIGH')
     MEDIUM_INTEREST = prepend_blockserver('PVS:INTEREST:MEDIUM')
+    LOW_INTEREST = prepend_blockserver('PVS:INTEREST:LOW')
     FACILITY = prepend_blockserver('PVS:INTEREST:FACILITY')
     ACTIVE_PVS = prepend_blockserver('PVS:ACTIVE')
     ALL_PVS = prepend_blockserver('PVS:ALL')

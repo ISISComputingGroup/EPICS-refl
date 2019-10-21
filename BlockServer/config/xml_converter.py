@@ -37,6 +37,7 @@ BANNER_SCHEMA = "banner/1.0"
 TAG_META = "meta"
 TAG_DESC = "description"
 TAG_SYNOPTIC = "synoptic"
+TAG_PROTECTED = "isProtected"
 
 NS_TAG_BLOCK = 'blk'
 NS_TAG_IOC = 'ioc'
@@ -166,6 +167,9 @@ class ConfigurationXmlConverter(object):
         for e in data.history:
             edit = ElementTree.SubElement(edits_xml, TAG_EDIT)
             edit.text = e
+
+        protect_xml = ElementTree.SubElement(root, TAG_PROTECTED)
+        protect_xml.text = str(data.isProtected).lower()
 
         return minidom.parseString(ElementTree.tostring(root)).toprettyxml()
 
@@ -418,6 +422,10 @@ class ConfigurationXmlConverter(object):
         synoptic = root_xml.find("./" + TAG_SYNOPTIC)
         if synoptic is not None:
             data.synoptic = synoptic.text if synoptic.text is not None else ""
+
+        isProtected = root_xml.find("./" + TAG_PROTECTED)
+        if isProtected is not None:
+            data.isProtected = isProtected.text if isProtected.text is not None else "false"
 
         edits = root_xml.findall("./" + TAG_EDITS + "/" + TAG_EDIT)
         data.history = [e.text for e in edits]
