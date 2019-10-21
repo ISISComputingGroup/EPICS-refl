@@ -265,7 +265,9 @@ class DatabaseServer(Driver):
     def _get_active_pvs(self) -> list:
         """
         Gets all pvs belonging to IOCs that are currently running on the current instrument.
-        :return: a list of names of pvs.
+
+        Returns:
+             a list of names of pvs.
         """
         return self._get_pvs(self._iocs.get_active_pvs, False)
 
