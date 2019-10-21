@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -16,6 +17,11 @@
 
 
 class MockProcServWrapper(object):
+    """
+    Note: this file cannot currently be given type hints as it is included from the "server_common" tests.
+
+    It can get type hints added once server_common has been migrated to Py3.
+    """
 
     def __init__(self):
         self.ps_status = dict()

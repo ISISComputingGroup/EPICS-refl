@@ -17,7 +17,6 @@
 import ca
 import time
 import sys
-import zlib
 import json
 import threading
 import copy
@@ -26,7 +25,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 from pcaspy import SimpleServer, Driver
-from CaChannel import ca, CaChannel, CaChannelException
+from CaChannel import ca, CaChannel
 from server_common.utilities import compress_and_hex, convert_to_json, waveform_to_string, dehex_and_decompress,  print_and_log
 
 EXISTS_TIMEOUT = 3 
