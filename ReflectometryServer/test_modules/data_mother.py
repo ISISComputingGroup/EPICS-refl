@@ -229,7 +229,7 @@ class MockMotorPVWrapper(object):
         self.after_is_changing_change_listener = set()
         self.after_velocity_change_listener = set()
         self.is_vertical = is_vertical
-        self.last_define_current_value = (None, None)
+        self.set_position_as_value = None
 
     def initialise(self):
         pass
@@ -259,9 +259,12 @@ class MockMotorPVWrapper(object):
     @sp.setter
     def sp(self, new_value):
         self._value = new_value
-        for listener in self.after_sp_change_listener:
-            listener(new_value, None, None)
+        self.trigger_sp_change()
         self.trigger_rbv_change()
+
+    def trigger_sp_change(self):
+        for listener in self.after_sp_change_listener:
+            listener(self._value, None, None)
 
     def trigger_rbv_change(self):
         for listener in self.after_rbv_change_listener:
@@ -270,6 +273,12 @@ class MockMotorPVWrapper(object):
     @property
     def rbv(self):
         return self._value
+
+    def define_position_as(self, new_value):
+        self.set_position_as_value = new_value
+        self._value = new_value
+        self.trigger_sp_change()
+        self.trigger_rbv_change()
 
 
 class MockChannelAccess(object):

@@ -22,12 +22,12 @@ class ChangeAxis(Enum):
     ANGLE = 1
 
 
-DefineValueAs = namedtuple("DefineValueAs", [
+DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
     "new_position",  # the new value
     "change_axis"])  # the axis it applies to of type ChangeAxis
 
 
-@observable(DefineValueAs)
+@observable(DefineValueAsEvent)
 class Component(object):
     """
     Base object for all components that can sit on a beam line
@@ -119,7 +119,7 @@ class Component(object):
             new_value: new value of the position
         """
         motor_displacement = self.beam_path_rbv.get_displacement_for(new_value)
-        self.trigger_listeners(DefineValueAs(motor_displacement, ChangeAxis.POSITION))
+        self.trigger_listeners(DefineValueAsEvent(motor_displacement, ChangeAxis.POSITION))
 
 
 class TiltingComponent(Component):
@@ -148,7 +148,7 @@ class TiltingComponent(Component):
             new_angle: new angle of the component
         """
         room_angle = self._beam_path_rbv.get_angle_for(new_angle)
-        self.trigger_listeners(DefineValueAs(room_angle, ChangeAxis.ANGLE))
+        self.trigger_listeners(DefineValueAsEvent(room_angle, ChangeAxis.ANGLE))
 
 
 class ReflectingComponent(Component):
@@ -176,7 +176,7 @@ class ReflectingComponent(Component):
             new_angle: new angle of the component
         """
         room_angle = self._beam_path_rbv.get_angle_for(new_angle)
-        self.trigger_listeners(DefineValueAs(room_angle, ChangeAxis.ANGLE))
+        self.trigger_listeners(DefineValueAsEvent(room_angle, ChangeAxis.ANGLE))
 
 
 class ThetaComponent(ReflectingComponent):

@@ -1,8 +1,11 @@
 """
 Wrapper for motor PVs
 """
+import abc
 from functools import partial
 from threading import Event
+
+import six
 
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
 from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
@@ -13,6 +16,7 @@ from server_common.channel_access import ChannelAccess, UnableToConnectToPVExcep
 logger = logging.getLogger(__name__)
 
 
+@six.add_metaclass(abc.ABCMeta)
 class PVWrapper(object):
     """
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
@@ -49,25 +53,17 @@ class PVWrapper(object):
         self._set_resolution()
         self._set_max_velocity()
 
+    @abc.abstractmethod
     def _set_pvs(self):
         """
         Define relevant PVs for this type of axis. Must be overridden in subclass.
         """
-        self._rbv_pv = ""
-        self._sp_pv = ""
-        self._velo_pv = ""
-        self._vmax_pv = ""
-        self._dmov_pv = ""
-        self._bdst_pv = ""
-        self._bvel_pv = ""
-        self._dir_pv = ""
-        raise NotImplementedError()
 
+    @abc.abstractmethod
     def _set_resolution(self):
         """
         Set the motor resolution for this axis. Must be overridden in subclass.
         """
-        self._resolution = 0
         raise NotImplementedError()
 
     def _set_max_velocity(self):
@@ -356,17 +352,13 @@ class PVWrapper(object):
         """
         self._dir = value
 
-    def get_distance(self, rbv, set_point_position):
+    @abc.abstractmethod
+    def define_position_as(self, new_position):
         """
+        Set the current position in the underlying hardware as the new position without moving anything
         Args:
-            rbv: the read back value
-            set_point_position: the set point position
-        Returns: The distance between the target component position and the actual motor position in y.
+            new_position: position to move to
         """
-        raise NotImplemented("This should be implemented in the subclass")
-
-    def define_current_value_as(self, new_position):
-        pass
 
 
 class MotorPVWrapper(PVWrapper):
@@ -400,6 +392,9 @@ class MotorPVWrapper(PVWrapper):
         Set the motor resolution for this axis.
         """
         self._resolution = self._read_pv("{}.MRES".format(self._prefixed_pv))
+
+    def define_position_as(self, new_position):
+        raise NotImplementedError()
 
 
 class _JawsAxisPVWrapper(PVWrapper):
@@ -546,6 +541,9 @@ class _JawsAxisPVWrapper(PVWrapper):
                 return key
         logger.error("Unexpected event source: {}".format(pv))
         logger.error("Unexpected event source: {}".format(pv))
+
+    def define_position_as(self, new_position):
+        raise NotImplementedError()
 
 
 class JawsGapPVWrapper(_JawsAxisPVWrapper):

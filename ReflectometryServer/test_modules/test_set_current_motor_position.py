@@ -7,7 +7,7 @@ import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
-from ReflectometryServer.components import DefineValueAs, ChangeAxis
+from ReflectometryServer.components import DefineValueAsEvent, ChangeAxis
 from ReflectometryServer.pv_wrapper import _JawsAxisPVWrapper
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_JawsCentrePVWrapper, \
     create_mock_axis
@@ -16,7 +16,7 @@ from server_common.channel_access import UnableToConnectToPVException
 from hamcrest import *
 
 
-class TestCurrentMotorPosition(unittest.TestCase):
+class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
     """
     Test for setting the current motor position
     """
@@ -36,7 +36,7 @@ class TestCurrentMotorPosition(unittest.TestCase):
         component = Component("comp", PositionAndAngle(0, 0, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
         parameter = TrackingPosition("param", component)
-        component.add_listener(DefineValueAs, _listener)
+        component.add_listener(DefineValueAsEvent, _listener)
 
         parameter.define_current_value_as.new_value = position_to_set
 
@@ -56,7 +56,7 @@ class TestCurrentMotorPosition(unittest.TestCase):
         component = ReflectingComponent("comp", PositionAndAngle(0, 0, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
         parameter = AngleParameter("param", component)
-        component.add_listener(DefineValueAs, _listener)
+        component.add_listener(DefineValueAsEvent, _listener)
 
         parameter.define_current_value_as.new_value = position_to_set
 
@@ -76,7 +76,7 @@ class TestCurrentMotorPosition(unittest.TestCase):
         component = TiltingComponent("comp", PositionAndAngle(0, 0, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
         parameter = AngleParameter("param", component)
-        component.add_listener(DefineValueAs, _listener)
+        component.add_listener(DefineValueAsEvent, _listener)
 
         parameter.define_current_value_as.new_value = position_to_set
 
@@ -112,14 +112,52 @@ class TestCurrentMotorPosition(unittest.TestCase):
         assert_that(parameter.define_current_value_as, is_(None))
 
 
-class TestRespondToDefinePositionEvent(unittest.TestCase):
-    def test_GIVEN_displacement_driver_WHEN_set_position_to_event_THEN_define_position_is_called(self):
-        expected_value = 10
-        component = Component("comp", PositionAndAngle(0, 0, 90))
-        original_value = 0
-        axis = create_mock_axis("MOT:MTR0101", original_value, 1)
-        DisplacementDriver(component, axis)
+class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
+    """
+    Test for setting the current motor position
+    """
 
-        component.define_current_position_as(expected_value)
+    def test_GIVEN_displacement_driver_no_engineering_correction_WHEN_recieve_set_position_as_event_for_positionset_THEN_motor_position_is_set(self):
+        expected_position = 1
 
-        assert_that(axis.last_define_current_value, is_((original_value, expected_value)))
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        mock_axis = create_mock_axis("axis", 0, 1)
+        driver = DisplacementDriver(component, mock_axis)
+
+        component.trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.POSITION))
+
+        assert_that(mock_axis.set_position_as_value, is_(expected_position))
+
+    def test_GIVEN_displacement_driver_with_engineering_correction_WHEN_recieve_set_position_as_event_for_positionset_THEN_motor_position_is_set_with_correction(self):
+        expected_position = 1
+        correction = 1
+
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        mock_axis = create_mock_axis("axis", 0, 1)
+        driver = DisplacementDriver(component, mock_axis, engineering_correction=ConstantCorrection(correction))
+
+        component.trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.POSITION))
+
+        assert_that(mock_axis.set_position_as_value, is_(expected_position + correction))
+
+    def test_GIVEN_displacement_driver_no_engineering_correction_WHEN_recieve_set_angle_as_event_for_position_set_THEN_motor_position_is_not_set(self):
+        expected_position = 1
+
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        mock_axis = create_mock_axis("axis", 0, 1)
+        driver = DisplacementDriver(component, mock_axis)
+
+        component.trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.ANGLE))
+
+        assert_that(mock_axis.set_position_as_value, is_(None))
+
+    def test_GIVEN_angle_driver_no_engineering_correction_WHEN_receive_set_angle_as_event_for_positionset_THEN_motor_position_is_set(self):
+        expected_position = 1
+
+        component = TiltingComponent("comp", PositionAndAngle(0, 0, 0))
+        mock_axis = create_mock_axis("axis", 0, 1)
+        driver = AngleDriver(component, mock_axis)
+
+        component.trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.ANGLE))
+
+        assert_that(mock_axis.set_position_as_value, is_(expected_position))
