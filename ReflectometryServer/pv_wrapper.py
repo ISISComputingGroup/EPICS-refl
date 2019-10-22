@@ -365,6 +365,9 @@ class PVWrapper(object):
         """
         raise NotImplemented("This should be implemented in the subclass")
 
+    def define_current_value_as(self, new_position):
+        pass
+
 
 class MotorPVWrapper(PVWrapper):
     """

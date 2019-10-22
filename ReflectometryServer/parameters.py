@@ -29,7 +29,7 @@ class DefineCurrentValueAsParameter(object):
     lower levels.
     """
     def __init__(self, define_current_value_as_fn):
-        self._new_value = 10
+        self._new_value = 0.0
         self._define_current_value_as_fn = define_current_value_as_fn
 
     @property

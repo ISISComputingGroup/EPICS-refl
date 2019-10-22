@@ -292,6 +292,7 @@ class DisplacementDriver(IocDriver):
         super(DisplacementDriver, self).__init__(component, motor_axis, synchronised, engineering_correction)
         self._out_of_beam_position = out_of_beam_position
         self._tolerance_on_out_of_beam_position = tolerance_on_out_of_beam_position
+        component.add_listener()
 
     def _get_in_beam_status(self, value):
         if self._out_of_beam_position is not None:

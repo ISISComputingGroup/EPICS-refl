@@ -9,7 +9,8 @@ import unittest
 from ReflectometryServer import *
 from ReflectometryServer.components import DefineValueAs, ChangeAxis
 from ReflectometryServer.pv_wrapper import _JawsAxisPVWrapper
-from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_JawsCentrePVWrapper
+from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_JawsCentrePVWrapper, \
+    create_mock_axis
 
 from server_common.channel_access import UnableToConnectToPVException
 from hamcrest import *
@@ -109,3 +110,16 @@ class TestCurrentMotorPosition(unittest.TestCase):
         parameter = InBeamParameter("param", Component("comp", PositionAndAngle(0, 0, 0)))
 
         assert_that(parameter.define_current_value_as, is_(None))
+
+
+class TestRespondToDefinePositionEvent(unittest.TestCase):
+    def test_GIVEN_displacement_driver_WHEN_set_position_to_event_THEN_define_position_is_called(self):
+        expected_value = 10
+        component = Component("comp", PositionAndAngle(0, 0, 90))
+        original_value = 0
+        axis = create_mock_axis("MOT:MTR0101", original_value, 1)
+        DisplacementDriver(component, axis)
+
+        component.define_current_position_as(expected_value)
+
+        assert_that(axis.last_define_current_value, is_((original_value, expected_value)))

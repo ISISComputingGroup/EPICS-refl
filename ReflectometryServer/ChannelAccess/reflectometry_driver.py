@@ -102,6 +102,10 @@ class ReflectometryDriver(Driver):
                 param.sp = convert_from_epics_pv_value(param.parameter_type, value)
             elif param_sort == PvSort.SET_AND_NO_ACTION:
                 param.sp_no_move = convert_from_epics_pv_value(param.parameter_type, value)
+            elif param_sort == PvSort.DEFINE_POS_AS:
+                param.define_current_value_as = convert_from_epics_pv_value(param.parameter_type, value)
+            else:
+                logger.error("Error: PV {} is read only".format(reason))
         elif self._pv_manager.is_beamline_move(reason):
             self._beamline.move = 1
         elif self._pv_manager.is_beamline_mode(reason):

@@ -229,6 +229,7 @@ class MockMotorPVWrapper(object):
         self.after_is_changing_change_listener = set()
         self.after_velocity_change_listener = set()
         self.is_vertical = is_vertical
+        self.last_define_current_value = (None, None)
 
     def initialise(self):
         pass
