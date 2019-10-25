@@ -282,7 +282,7 @@ class PVWrapper(object):
             write_autosave_value(self.name+"_velocity_cache_restored", self._velocity_cache_restored, AutosaveType.VELOCITY)
         elif not self._velocity_cache_restored and self._moving_state == MTR_STOPPED:
             logger.error("Velocity for {pv_name} has not been cached as existing cache has not been restored and "
-                         "is stationary. Hint: Are you moving the axis outside of the refectory server."
+                         "is stationary."
                          .format(pv_name=self.name))
         elif not self._velocity_cache_restored and self._moving_state == MTR_MOVING:
             # Move interrupting current move. Leave the original cache so it can be restored once all
