@@ -297,7 +297,7 @@ class PVWrapper(object):
         """
         if self._velocity_cache_restored:
             logger.error("Velocity for PV {pv_name} has not been restored from cache. The cache has already been "
-                         "restored previously. Hint: Are you moving the axis outside of the refectory server."
+                         "restored previously. Hint: Are you moving the axis outside of the reflectometry server?"
                          .format(pv_name=self.name))
         else:
             if self._velocity_cache is None:
