@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2017 Science & Technology Facilities Council.
 # All rights reserved.
@@ -13,6 +14,8 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
+import six
+
 """
 Module for reading data from the ioc database.
 """
@@ -49,14 +52,11 @@ class IOCData(object):
         """
         iocs = self._ioc_data_source.get_iocs_and_descriptions()
         for ioc in iocs.keys():
-            ioc = ioc.encode('ascii', 'replace')
+            ioc = six.text_type(ioc)
             with self._running_iocs_lock:
                 # Create a copy so we don't lock the list for longer than necessary (do we need to do this?)
                 running = list(self._running_iocs)
-            if ioc in running:
-                iocs[ioc]["running"] = True
-            else:
-                iocs[ioc]["running"] = False
+            iocs[ioc]["running"] = ioc in running
         return iocs
 
     def get_active_iocs(self):

@@ -16,10 +16,13 @@
 """
 Utilities for running block server and related ioc's.
 """
+import six
 import time
 import zlib
 import re
 import json
+import codecs
+import binascii
 from xml.etree import ElementTree
 from server_common.loggers.logger import Logger
 from server_common.common_exceptions import MaxAttemptsExceededException
@@ -79,24 +82,30 @@ def compress_and_hex(value):
     """Compresses the inputted string and encodes it as hex.
 
     Args:
-        value (string): The string to be compressed
+        value (str): The string to be compressed
     Returns:
-        string : A compressed and hexed version of the inputted string
+        bytes : A compressed and hexed version of the inputted string
     """
-    compr = zlib.compress(value)
-    return compr.encode('hex')
+    assert type(value) == str, \
+        "Non-str argument passed to compress_and_hex, maybe Python 2/3 compatibility issue\n" \
+        "Argument was type {} with value {}".format(value.__class__.__name__, value)
+    compr = zlib.compress(bytes(value) if six.PY2 else bytes(value, "utf-8"))
+    return binascii.hexlify(compr)
 
 
 def dehex_and_decompress(value):
     """Decompresses the inputted string, assuming it is in hex encoding.
 
     Args:
-        value (string): The string to be decompressed, encoded in hex
+        value (bytes): The string to be decompressed, encoded in hex
 
     Returns:
-        string : A decompressed version of the inputted string
+        bytes : A decompressed version of the inputted string
     """
-    return zlib.decompress(value.decode("hex"))
+    assert type(value) == bytes, \
+        "Non-bytes argument passed to dehex_and_decompress, maybe Python 2/3 compatibility issue\n" \
+        "Argument was type {} with value {}".format(value.__class__.__name__, value)
+    return zlib.decompress(binascii.unhexlify(value))
 
 
 def convert_to_json(value):
@@ -108,9 +117,7 @@ def convert_to_json(value):
     Returns:
         string : The JSON representation of the inputted object
     """
-# TODO: we may want to use 'utf-8' here in future, not needed 
-#       this time as functionality previously duplicated in exp_data.py
-    return json.dumps(value).encode('ascii', 'replace')
+    return json.dumps(value)
 
 
 def convert_from_json(value):
@@ -245,7 +252,7 @@ def waveform_to_string(data):
     for i in data:
         if i == 0:
             break
-        output += str(unichr(i))
+        output += six.unichr(i)
     return output
 
 
@@ -259,7 +266,7 @@ def ioc_restart_pending(ioc_pv, channel_access):
     Return
         bool: True if restarting, else False
     """
-    return True if channel_access.caget(ioc_pv + ":RESTART", as_string=True) is "Busy" else False
+    return channel_access.caget(ioc_pv + ":RESTART", as_string=True) == "Busy"
 
 
 def retry(max_attempts, interval, exception):
