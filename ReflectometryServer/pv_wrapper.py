@@ -252,21 +252,20 @@ class PVWrapper(object):
         Initialise the velocity cache and its restored status. If no cache exists then load the last velocity value
         from the auto-save file.
         """
-        if self._velocity_cache is None:
-            try:
-                autosave_value = read_autosave_value(self.name, AutosaveType.VELOCITY)
-                if autosave_value is not None:
-                    logger.debug("Restoring {pv_name} velocity_cache with auto-save value {value}"
-                                 .format(pv_name=self.name, value=autosave_value))
-                    self._velocity_cache = float(autosave_value)
-                autosave_value = read_autosave_value(self.name+"_velocity_cache_restored", AutosaveType.VELOCITY)
-                if autosave_value is not None:
-                    logger.debug("Restoring {pv_name} velocity_cache_restored with auto-save value {value}"
-                                 .format(pv_name=self.name, value=autosave_value))
-                    self._velocity_cache_restored = bool(autosave_value)
-            except (ValueError, TypeError) as error:
-                logger.error("Error: Unable to initialise velocity cache from auto-save ({error_message})."
-                             .format(error_message=error))
+        try:
+            autosave_value = read_autosave_value(self.name, AutosaveType.VELOCITY)
+            if autosave_value is not None:
+                logger.debug("Restoring {pv_name} velocity_cache with auto-save value {value}"
+                             .format(pv_name=self.name, value=autosave_value))
+                self._velocity_cache = float(autosave_value)
+            autosave_value = read_autosave_value(self.name+"_velocity_cache_restored", AutosaveType.VELOCITY)
+            if autosave_value is not None:
+                logger.debug("Restoring {pv_name} velocity_cache_restored with auto-save value {value}"
+                             .format(pv_name=self.name, value=autosave_value))
+                self._velocity_cache_restored = bool(autosave_value)
+        except (ValueError, TypeError) as error:
+            logger.error("Error: Unable to initialise velocity cache from auto-save ({error_message})."
+                         .format(error_message=error))
 
     def cache_velocity(self):
         """
