@@ -28,9 +28,10 @@ class DefineCurrentValueAsParameter(object):
     A helper class which allows the current parameter readback to be set to a particular value by passing it down to the
     lower levels.
     """
-    def __init__(self, define_current_value_as_fn):
+    def __init__(self, define_current_value_as_fn, set_point_change_fn):
         self._new_value = 0.0
         self._define_current_value_as_fn = define_current_value_as_fn
+        self._set_point_change_fn = set_point_change_fn
 
     @property
     def new_value(self):
@@ -48,6 +49,7 @@ class DefineCurrentValueAsParameter(object):
         """
         self._new_value = value
         self._define_current_value_as_fn(value)
+        self._set_point_change_fn(value)
 
 
 class BeamlineParameterType(Enum):
@@ -206,6 +208,14 @@ class BeamlineParameter(object):
     def sp(self, value):
         """
         Set the set point and move to it.
+        Args:
+            value: new set point
+        """
+        self._set_sp(value)
+
+    def _set_sp(self, value):
+        """
+        Set the set point and move to do, private function needed for define position
         Args:
             value: new set point
         """
@@ -428,7 +438,7 @@ class AngleParameter(BeamlineParameter):
 
         if self._reflection_component.can_define_current_angle_as:
             self.define_current_value_as = DefineCurrentValueAsParameter(
-                self._reflection_component.define_current_angle_as)
+                self._reflection_component.define_current_angle_as, self._set_sp)
 
     def _initialise_sp_from_file(self):
         """
@@ -510,7 +520,8 @@ class TrackingPosition(BeamlineParameter):
 
         self.group_names.append(BeamlineParameterGroup.TRACKING)
 
-        self.define_current_value_as = DefineCurrentValueAsParameter(self._component.define_current_position_as)
+        self.define_current_value_as = DefineCurrentValueAsParameter(
+            self._component.define_current_position_as, self._set_sp)
 
     def _initialise_sp_from_file(self):
         """
@@ -716,7 +727,9 @@ class SlitGapParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._initialise_sp_from_motor()
 
-        self.define_current_value_as = DefineCurrentValueAsParameter(self._pv_wrapper.define_current_value_as)
+        self._no_move_because_is_define = False
+        self.define_current_value_as = DefineCurrentValueAsParameter(self._pv_wrapper.define_position_as,
+                                                                     self._set_sp_perform_no_move)
 
     def _initialise_sp_from_file(self):
         """
@@ -751,7 +764,21 @@ class SlitGapParameter(BeamlineParameter):
         pass
 
     def _move_component(self):
-        self._pv_wrapper.sp = self._set_point
+        if not self._no_move_because_is_define:
+            self._pv_wrapper.sp = self._set_point
+
+    def _set_sp_perform_no_move(self, new_value):
+        """
+        This is a work around because this does not have a component. See ticket 4902
+        When stripping out get rid of _no_move_because_is_define
+        Args:
+            new_value: the new value for the setpoint
+        """
+        try:
+            self._no_move_because_is_define = True
+            self._set_sp(new_value)
+        finally:
+            self._no_move_because_is_define = False
 
     def _rbv(self):
         return self._rbv_value

@@ -168,6 +168,10 @@ class PvSort(Enum):
             return parameter.is_changing
         elif self == PvSort.RBV_AT_SP:
             return parameter.rbv_at_sp
+        elif self == PvSort.DEFINE_POS_AS:
+            if parameter.define_current_value_as is None:
+                return float("NaN")
+            return parameter.define_current_value_as.new_value
         return float("NaN")
 
 

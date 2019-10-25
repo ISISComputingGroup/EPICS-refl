@@ -480,8 +480,10 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
         self._angle_to = angle_to
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
+            # add to the physical change for the rbv so that we don't get an infinite loop
             readback_beam_path_calc.add_after_physical_move_listener(self._update_angle)
-            setpoint_beam_path_calc.add_after_physical_move_listener(self._update_angle)
+            # add to beamline change of set point because no loop is created from the setpoint action
+            setpoint_beam_path_calc.add_after_beam_path_update_listener(self._update_angle)
             readback_beam_path_calc.add_after_is_changing_change_listener(self._on_is_changing_change)
 
     def _on_is_changing_change(self):

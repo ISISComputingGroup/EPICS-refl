@@ -6,6 +6,7 @@ from functools import partial
 from threading import Event
 
 import six
+from contextlib2 import contextmanager
 
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
 from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
@@ -125,15 +126,16 @@ class PVWrapper(object):
             logger.error("Could not connect to PV {}.".format(pv))
             raise UnableToConnectToPVException(pv, "Check configuration is correct and IOC is running.")
 
-    def _write_pv(self, pv, value):
+    def _write_pv(self, pv, value, wait=False):
         """
         Write a value to a given PV.
 
         Args:
             pv(String): The PV to write to
             value: The new value
+            wait: wait for call back
         """
-        self._ca.caput(pv, value)
+        self._ca.caput(pv, value, wait=wait)
 
     def add_after_rbv_change_listener(self, listener):
         """
@@ -386,6 +388,8 @@ class MotorPVWrapper(PVWrapper):
         self._bdst_pv = "{}.BDST".format(self._prefixed_pv)
         self._bvel_pv = "{}.BVEL".format(self._prefixed_pv)
         self._dir_pv = "{}.DIR".format(self._prefixed_pv)
+        self._calibration_set = "{}.SET".format(self._prefixed_pv)
+        self._offset_freeze_switch = "{}.FOFF".format(self._prefixed_pv)
 
     def _set_resolution(self):
         """
@@ -394,7 +398,49 @@ class MotorPVWrapper(PVWrapper):
         self._resolution = self._read_pv("{}.MRES".format(self._prefixed_pv))
 
     def define_position_as(self, new_position):
-        raise NotImplementedError()
+        """
+        Set the current position in the underlying hardware as the new position without moving anything
+        Args:
+            new_position: position to move to
+        """
+        with self._motor_in_set_mode():
+            self._write_pv(self._sp_pv, new_position)
+
+    @contextmanager
+    def _motor_in_set_mode(self):
+        """
+        Place motor into set mode an ensure that it leaves set mode. If it can not set the mode correctly will not run
+        the mode
+        """
+        # set set
+        # set frozen
+        try:
+            self._ensure_pv_write(self._calibration_set, "Set")
+            offset_freeze_switch = self._read_pv(self._offset_freeze_switch)
+            self._ensure_pv_write(self._offset_freeze_switch, "Frozen")
+        except ValueError as ex:
+            logger.error("Can not define zero can not put motor into SET mode: {}".format(ex))
+            return
+
+        try:
+            yield
+        finally:
+            try:
+                self._ensure_pv_write(self._calibration_set, "Use")
+                self._ensure_pv_write(self._offset_freeze_switch, offset_freeze_switch)
+            except ValueError as ex:
+                logger.error("Problem in define zero can not put motor back to correct settings: {}".format(ex))
+                return
+
+    def _ensure_pv_write(self, pv_name, value, retry_count=5):
+        current_value = None
+        for _ in range(retry_count):
+            self._write_pv(pv_name, value, wait=True)
+            current_value = self._read_pv(pv_name)
+            if current_value == value:
+                break
+        else:
+            raise ValueError("PV value can not be set, pv {}, was {} expected {}".format(pv_name, current_value, value))
 
 
 class _JawsAxisPVWrapper(PVWrapper):
@@ -543,6 +589,11 @@ class _JawsAxisPVWrapper(PVWrapper):
         logger.error("Unexpected event source: {}".format(pv))
 
     def define_position_as(self, new_position):
+        """
+        Set the current position in the underlying hardware as the new position without moving anything
+        Args:
+            new_position: position to move to
+        """
         raise NotImplementedError()
 
 

@@ -230,6 +230,7 @@ class MockMotorPVWrapper(object):
         self.after_velocity_change_listener = set()
         self.is_vertical = is_vertical
         self.set_position_as_value = None
+        self._last_set_point_set = None
 
     def initialise(self):
         pass
@@ -258,6 +259,7 @@ class MockMotorPVWrapper(object):
 
     @sp.setter
     def sp(self, new_value):
+        self._last_set_point_set = new_value
         self._value = new_value
         self.trigger_sp_change()
         self.trigger_rbv_change()
@@ -301,13 +303,14 @@ class MockChannelAccess(object):
         self._pvs[pv] = value
 
 
-def create_mock_JawsCentrePVWrapper():
+def create_mock_JawsCentrePVWrapper(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):
     """
     Create a mock jaws centre pv wrapper for testing
     Returns: mock
     """
 
-    mock_jaws_wrapper = Mock(JawsCentrePVWrapper)
-    mock_jaws_wrapper.define_current_value_as = Mock()
+    mock_jaws_wrapper = create_mock_axis(name, init_position, max_velocity, backlash_distance, backlash_velocity, direction)
+    mock_jaws_wrapper.define_position_as = Mock()
     mock_jaws_wrapper.is_vertical = False
+
     return mock_jaws_wrapper

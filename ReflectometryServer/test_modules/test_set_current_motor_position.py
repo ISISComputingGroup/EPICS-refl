@@ -93,17 +93,16 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
     def test_GIVEN_beamline_parameter_and_SlitGapParameter_component_WHEN_set_position_to_THEN_component_has_set_position_on(self):
 
-
         def _listener(set_position_to):
             self.set_position_to = set_position_to
 
         expected_position = 1
-        mock_jaws_wrapper = create_mock_JawsCentrePVWrapper()
+        mock_jaws_wrapper = create_mock_JawsCentrePVWrapper("jaws_centre", expected_position, 1)
         parameter = SlitGapParameter("param", mock_jaws_wrapper)
 
         parameter.define_current_value_as.new_value = expected_position
 
-        mock_jaws_wrapper.define_current_value_as.assert_called_once_with(expected_position)
+        mock_jaws_wrapper.define_position_as.assert_called_once_with(expected_position)
 
     def test_GIVEN_InOutParameter_WHEN_get_set_position_to_THEN_it_is_none(self):
 
@@ -111,13 +110,59 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         assert_that(parameter.define_current_value_as, is_(None))
 
+    def test_GIVEN_tracking_beamline_parameter_and_component_WHEN_set_position_to_THEN_component_and_parameter_set_points_are_new_values(self):
+        incoming_beam = PositionAndAngle(0, 0, 0)
+        expected_position = 1
+        component = Component("comp", PositionAndAngle(0, 0, 90))
+        component.beam_path_rbv.set_incoming_beam(incoming_beam)
+        parameter = TrackingPosition("param", component)
+        parameter.sp = 0
+        parameter.move = 0
+
+        parameter.define_current_value_as.new_value = expected_position
+
+        assert_that(component.beam_path_set_point.get_position_relative_to_beam(), is_(expected_position),
+                    "component setpoint")
+        assert_that(parameter.sp, is_(expected_position), "Parameter setpoint")
+        assert_that(parameter.sp_rbv, is_(expected_position), "Parameter setpoint read back")
+
+    def test_GIVEN_angle_beamline_parameter_and_component_WHEN_set_position_to_THEN_component_and_parameter_set_points_are_new_values(self):
+        incoming_beam = PositionAndAngle(0, 0, 0)
+        expected_position = 1
+        component = TiltingComponent("comp", PositionAndAngle(0, 0, 90))
+        component.beam_path_rbv.set_incoming_beam(incoming_beam)
+        parameter = AngleParameter("param", component)
+        parameter.sp = 0
+        parameter.move = 0
+
+        parameter.define_current_value_as.new_value = expected_position
+
+        assert_that(component.beam_path_set_point.get_angle_relative_to_beam(), is_(expected_position),
+                    "component setpoint")
+        assert_that(parameter.sp, is_(expected_position), "Parameter setpoint")
+        assert_that(parameter.sp_rbv, is_(expected_position), "Parameter setpoint read back")
+
+    def test_GIVEN_beamline_parameter_and_SlitGapParameter_component_WHEN_set_position_to_THEN_setpoint_is_set_to_new_position(self):
+
+        expected_position = 1
+        expected_mock_jaws_wrapper_value = 10
+        mock_jaws_wrapper = create_mock_JawsCentrePVWrapper("jaws_centre", expected_mock_jaws_wrapper_value, 1)
+
+        parameter = SlitGapParameter("param", mock_jaws_wrapper)
+        parameter.sp = expected_mock_jaws_wrapper_value
+
+        parameter.define_current_value_as.new_value = expected_position
+
+        assert_that(parameter.sp, is_(expected_position))
+        assert_that(parameter.sp_rbv, is_(expected_position))
+        assert_that(mock_jaws_wrapper._last_set_point_set, is_(expected_mock_jaws_wrapper_value), "sp should not be set")
 
 class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
     """
     Test for setting the current motor position
     """
 
-    def test_GIVEN_displacement_driver_no_engineering_correction_WHEN_recieve_set_position_as_event_for_positionset_THEN_motor_position_is_set(self):
+    def test_GIVEN_displacement_driver_no_engineering_correction_WHEN_receive_set_position_as_event_for_positionset_THEN_motor_position_is_set(self):
         expected_position = 1
 
         component = Component("comp", PositionAndAngle(0, 0, 0))
