@@ -301,7 +301,7 @@ class PVWrapper(object):
                          .format(pv_name=self.name))
         else:
             if self._velocity_cache is None:
-                logger.error("Velocity cache is None for {pv_name} not restoring".format(pv_name=self.name))
+                logger.error("Cannot restore velocity: velocity cache is None for {pv_name}".format(pv_name=self.name))
             else:
                 logger.debug("Restoring velocity cache of {value} for PV {pv_name}"
                              .format(value=self._velocity_cache, pv_name=self.name))
