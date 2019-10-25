@@ -602,3 +602,7 @@ class JawsCentrePVWrapper(_JawsAxisPVWrapper):
         self._sp_pv = "{}:{}CENT:SP".format(self._prefixed_pv, self._direction_symbol)
         self._rbv_pv = "{}:{}CENT".format(self._prefixed_pv, self._direction_symbol)
         self._dmov_pv = "{}:{}CENT:DMOV".format(self._prefixed_pv, self._direction_symbol)
+
+    def cache_velocity(self):
+        # Velocities for jaws centers are not cached
+        pass
