@@ -39,6 +39,7 @@ class MetaData(object):
         self.description = description
         self.synoptic = synoptic
         self.history = []
+        self.isProtected = False
 
     def to_dict(self):
         """ Puts the metadata into a dictionary.
@@ -47,4 +48,4 @@ class MetaData(object):
             dict : The metadata
         """
         return {'name': self.name, 'pv': self.pv, 'description': self.description, 'synoptic': self.synoptic,
-                'history': self.history}
+                'history': self.history, 'isProtected': self.isProtected}

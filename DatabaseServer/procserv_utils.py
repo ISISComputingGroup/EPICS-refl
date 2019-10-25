@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -21,74 +22,71 @@ from server_common.utilities import print_and_log
 class ProcServWrapper(object):
     """A wrapper for ProcSev to allow for control of IOCs"""
 
-    def __init__(self):
-        pass
-
     @staticmethod
-    def generate_prefix(prefix, ioc):
+    def generate_prefix(prefix: str, ioc: str) -> str:
         """Creates a PV based on the given prefix and IOC name
 
         Args:
-            prefix (string): The prefix of the instrument the IOC is being run on
-            ioc (string): The name of the requested IOC
+            prefix: The prefix of the instrument the IOC is being run on
+            ioc: The name of the requested IOC
         """
-        return "%sCS:PS:%s" % (prefix, ioc)
+        return "{}CS:PS:{}".format(prefix, ioc)
 
-    def start_ioc(self, prefix, ioc):
+    def start_ioc(self, prefix: str, ioc: str) -> None:
         """Starts the specified IOC
 
         Args:
-            prefix (string): The prefix of the instrument the IOC is being run on
-            ioc (string): The name of the IOC to start
+            prefix: The prefix of the instrument the IOC is being run on
+            ioc: The name of the IOC to start
         """
-        print_and_log("Starting IOC %s" % ioc)
+        print_and_log("Starting IOC {}".format(ioc))
         ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":START", 1)
 
-    def stop_ioc(self, prefix, ioc):
+    def stop_ioc(self, prefix: str, ioc: str) -> None:
         """Stops the specified IOC
 
         Args:
-            prefix (string): The prefix of the instrument the IOC is being run on
-            ioc (string): The name of the IOC to stop
+            prefix: The prefix of the instrument the IOC is being run on
+            ioc: The name of the IOC to stop
         """
-        print_and_log("Stopping IOC %s" % ioc)
+        print_and_log("Stopping IOC {}".format(ioc))
         ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":STOP", 1)
 
-    def restart_ioc(self, prefix, ioc):
+    def restart_ioc(self, prefix: str, ioc: str) -> None:
         """Restarts the specified IOC
 
         Args:
-            prefix (string): The prefix of the instrument the IOC is being run on
-            ioc (string): The name of the IOC to restart
+            prefix: The prefix of the instrument the IOC is being run on
+            ioc: The name of the IOC to restart
         """
-        print_and_log("Restarting IOC %s" % ioc)
+        print_and_log("Restarting IOC {}".format(ioc))
         ChannelAccess.caput(self.generate_prefix(prefix, ioc) + ":RESTART", 1)
 
-    def get_ioc_status(self, prefix, ioc):
+    def get_ioc_status(self, prefix: str, ioc: str) -> str:
         """Gets the status of the specified IOC
 
         Args:
-            prefix (string): The prefix of the instrument the IOC is being run on
-            ioc (string): The name of the IOC
+            prefix: The prefix of the instrument the IOC is being run on
+            ioc: The name of the IOC
 
         Returns:
-            string : The status of the requested IOC
+            The status of the requested IOC
         """
         pv = self.generate_prefix(prefix, ioc) + ":STATUS"
         ans = ChannelAccess.caget(pv, as_string=True)
         if ans is None:
-            raise Exception("Could not find IOC (%s)" % pv)
+            raise IOError("Could not find IOC (%s)" % pv)
         return ans.upper()
 
-    def ioc_exists(self, prefix, ioc):
+    def ioc_exists(self, prefix: str, ioc: str) -> bool:
         """Checks if the IOC exists on ProcServ
 
         Args:
-            prefix (string): The prefix of the instrument the IOC is being run on
-            ioc (string): The name of the IOC
+            prefix: The prefix of the instrument the IOC is being run on
+            ioc: The name of the IOC
 
         Returns:
-            bool : True if IOC exists, False otherwise
+            True if IOC exists, False otherwise
         """
         try:
             self.get_ioc_status(prefix, ioc)

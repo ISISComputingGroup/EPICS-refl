@@ -469,6 +469,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         self._add_monitors()
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
+
         self._backlash_distance = 0  # No backlash used as source of clash conditions on jaws sets
 
     def _add_monitors(self):
