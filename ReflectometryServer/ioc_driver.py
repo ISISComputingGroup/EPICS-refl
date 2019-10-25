@@ -7,7 +7,8 @@ import logging
 
 from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
 from ReflectometryServer.components import ChangeAxis
-from ReflectometryServer.observable import observable
+from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
+from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +44,9 @@ class IocDriver(object):
         self._sp_cache = None
         self._rbv_cache = self._engineering_correction.from_axis(self._axis.rbv, self._get_component_sp())
 
-        self._axis.add_after_rbv_change_listener(self._on_update_rbv)
-        self._axis.add_after_sp_change_listener(self._on_update_sp)
-        self._axis.add_after_is_changing_change_listener(self._on_update_is_changing)
+        self._axis.add_listener(SetpointUpdate, self._on_update_sp)
+        self._axis.add_listener(ReadbackUpdate, self._on_update_rbv)
+        self._axis.add_listener(IsChangingUpdate, self._on_update_is_changing)
 
     def _on_correction_update(self, new_correction_value):
         """
@@ -216,18 +217,16 @@ class IocDriver(object):
         """
         raise NotImplemented()
 
-    def _on_update_rbv(self, new_value, alarm_severity, alarm_status):
+    def _on_update_rbv(self, update):
         """
         Listener to trigger on a change of the readback value of the underlying motor.
 
         Args:
-            new_value: new axis readback value that is given
-            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
-            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+            update (ReflectometryServer.pv_wrapper.ReadbackUpdate): update of the readback value of the axis
         """
-        corrected_new_value = self._engineering_correction.from_axis(new_value, self._get_component_sp())
+        corrected_new_value = self._engineering_correction.from_axis(update.value, self._get_component_sp())
         self._rbv_cache = corrected_new_value
-        self._propagate_rbv_change(corrected_new_value, alarm_severity, alarm_status)
+        self._propagate_rbv_change(corrected_new_value, update.alarm_severity, update.alarm_status)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
         """
@@ -241,19 +240,21 @@ class IocDriver(object):
         """
         raise NotImplemented()
 
-    def _on_update_sp(self, value, alarm_severity, alarm_status):
+    def _on_update_sp(self, update):
         """
         Updates the cached set point from the axis with a new value.
-        Args:
-            value: The new set point value.
-        """
-        self._sp_cache = self._engineering_correction.from_axis(value, self._get_component_sp())
 
-    def _on_update_is_changing(self, value, alarm_severity, alarm_status):
+        Args:
+            update (ReflectometryServer.pv_wrapper.SetpointUpdate): update of the setpoint value of the axis
+        """
+        self._sp_cache = self._engineering_correction.from_axis(update.value, self._get_component_sp())
+
+    def _on_update_is_changing(self, update):
         """
         Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
+
         Args:
-            value: The new is_moving value
+            update (ReflectometryServer.pv_wrapper.IsChangingUpdate): update of the is_moving status of the axis
         """
         raise NotImplemented()
 
@@ -350,13 +351,14 @@ class DisplacementDriver(IocDriver):
         """
         return self._out_of_beam_position is not None
 
-    def _on_update_is_changing(self, value, alarm_severity, alarm_status):
+    def _on_update_is_changing(self, update):
         """
         Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
+
         Args:
-            value: The new is_moving value
+            update (ReflectometryServer.pv_wrapper.IsChangingUpdate): update of the is_moving status of the axis
         """
-        self._component.beam_path_rbv.is_displacing = value
+        self._component.beam_path_rbv.is_displacing = update.value
 
     def _component_changed(self):
         return self._component.read_changed_flag(ChangeAxis.POSITION)
@@ -417,13 +419,14 @@ class AngleDriver(IocDriver):
     def _get_component_sp(self):
         return self._component.beam_path_set_point.angle
 
-    def _on_update_is_changing(self, value, alarm_severity, alarm_status):
+    def _on_update_is_changing(self, update):
         """
         Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
+
         Args:
-            value: The new is_moving value
+            update (ReflectometryServer.pv_wrapper.IsChangingUpdate): update of the is_moving status of the axis
         """
-        self._component.beam_path_rbv.is_rotating = value
+        self._component.beam_path_rbv.is_rotating = update.value
 
     def _is_changed(self):
         """

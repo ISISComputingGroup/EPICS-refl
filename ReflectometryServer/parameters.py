@@ -9,6 +9,8 @@ from ReflectometryServer.components import ChangeAxis
 import abc
 import six
 
+from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate
+
 logger = logging.getLogger(__name__)
 
 
@@ -667,8 +669,8 @@ class SlitGapParameter(BeamlineParameter):
         self._rbv_value = None
 
         self._pv_wrapper = pv_wrapper
-        self._pv_wrapper.add_after_rbv_change_listener(self.update_rbv)
-        self._pv_wrapper.add_after_is_changing_change_listener(self._on_is_changing_change)
+        self._pv_wrapper.add_listener(ReadbackUpdate, self.update_rbv)
+        self._pv_wrapper.add_listener(IsChangingUpdate, self._on_is_changing_change)
         self._pv_wrapper.initialise()
         if pv_wrapper.is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
@@ -700,16 +702,14 @@ class SlitGapParameter(BeamlineParameter):
         """
         self._set_initial_sp(self._pv_wrapper.sp)
 
-    def update_rbv(self, new_value, alarm_severity, alarm_status):
+    def update_rbv(self, update):
         """
         Update the readback value.
 
         Args:
-            new_value: new readback value that is given
-            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
-            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+            update (ReflectometryServer.pv_wrapper.ReadbackUpdate): update of the readback value of the axis
         """
-        self._rbv_value = new_value
+        self._rbv_value = update.value
         self._trigger_rbv_listeners(self)
 
     def _set_changed_flag(self):
@@ -734,7 +734,7 @@ class SlitGapParameter(BeamlineParameter):
         """
         return []
 
-    def _on_is_changing_change(self, new_value, alarm_severity, alarm_status):
+    def _on_is_changing_change(self, update):
         self._trigger_after_is_changing_change()
 
     @property

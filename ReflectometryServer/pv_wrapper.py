@@ -1,6 +1,7 @@
 """
 Wrapper for motor PVs
 """
+from collections import namedtuple
 from functools import partial
 from threading import Event
 
@@ -9,10 +10,16 @@ from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write
 import logging
 
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
+from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 
+SetpointUpdate = namedtuple("SetpointUpdate", ["value", "alarm_status", "alarm_severity"])
+ReadbackUpdate = namedtuple("ReadbackUpdate", ["value", "alarm_status", "alarm_severity"])
+IsChangingUpdate = namedtuple("IsChangingUpdate", ["value", "alarm_status", "alarm_severity"])
 
+
+@observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)
 class PVWrapper(object):
     """
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
@@ -30,9 +37,6 @@ class PVWrapper(object):
             self._ca = ca
         self._name = base_pv
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
-        self._after_rbv_change_listeners = set()
-        self._after_sp_change_listeners = set()
-        self._after_is_changing_change_listeners = set()
 
         self._move_initiated = False
         self._moving_state = None
@@ -90,11 +94,8 @@ class PVWrapper(object):
         """
         Add monitors to the relevant motor PVs.
         """
-        self._monitor_pv(self._rbv_pv,
-                         partial(self._trigger_listeners, self._after_rbv_change_listeners))
-        self._monitor_pv(self._sp_pv,
-                         partial(self._trigger_listeners, self._after_sp_change_listeners))
-
+        self._monitor_pv(self._rbv_pv, self._on_update_readback_value)
+        self._monitor_pv(self._sp_pv, self._on_update_setpoint_value)
         self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._velo_pv, self._on_update_velocity)
         self._monitor_pv(self._bdst_pv, self._on_update_backlash_distance)
@@ -138,35 +139,6 @@ class PVWrapper(object):
             value: The new value
         """
         self._ca.caput(pv, value)
-
-    def add_after_rbv_change_listener(self, listener):
-        """
-        Add a listener which should be called after a change in the read back value of the motor.
-        Args:
-            listener: function to call should have two arguments which are the new value and new error state
-
-        """
-        self._after_rbv_change_listeners.add(listener)
-
-    def add_after_sp_change_listener(self, listener):
-        """
-        Add a listener which should be called after a change in the read back value of the motor.
-        Args:
-            listener: function to call should have two arguments which are the new value and new error state
-        """
-        self._after_sp_change_listeners.add(listener)
-
-    def add_after_is_changing_change_listener(self, listener):
-        """
-        Add a listener which should be called after a change in the dmov (moving) status for a motor
-        Args:
-            listener: function to call should have two arguments which are the new value and new error state
-        """
-        self._after_is_changing_change_listeners.add(listener)
-
-    def _trigger_listeners(self, listeners, new_value, alarm_severity, alarm_status):
-        for value_change_listener in listeners:
-            value_change_listener(new_value, alarm_severity, alarm_status)
 
     @property
     def name(self):
@@ -257,6 +229,28 @@ class PVWrapper(object):
             self._v_restore = self.velocity
             write_autosave_value(self.name, self._v_restore, AutosaveType.VELOCITY)
 
+    def _on_update_setpoint_value(self, new_value, alarm_severity, alarm_status):
+        """
+        React to an update in the setpoint value of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new setpoint value
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self.trigger_listeners(SetpointUpdate(new_value, alarm_severity, alarm_status))
+
+    def _on_update_readback_value(self, new_value, alarm_severity, alarm_status):
+        """
+        React to an update in the readback value of the underlying motor axis.
+
+        Params:
+            value (Boolean): The new readback value
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self.trigger_listeners(ReadbackUpdate(new_value, alarm_severity, alarm_status))
+
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
         """
         React to an update in the motion status of the underlying motor axis.
@@ -275,8 +269,7 @@ class PVWrapper(object):
                 self._velocity_event.clear()
         self._moving_state = new_value
         self._state_init_event.set()
-        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
-                                alarm_severity, alarm_status)
+        self.trigger_listeners(IsChangingUpdate(self._dmov_to_bool(new_value), alarm_severity, alarm_status))
 
     def _dmov_to_bool(self, value):
         """
@@ -451,9 +444,9 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         Add monitors to the relevant motor PVs.
         """
-        self._monitor_pv(self._rbv_pv, partial(self._trigger_listeners, self._after_rbv_change_listeners))
-        self._monitor_pv(self._sp_pv, partial(self._trigger_listeners, self._after_sp_change_listeners))
-        self._monitor_pv(self._dmov_pv, partial(self._on_update_moving_state))
+        self._monitor_pv(self._rbv_pv, self._on_update_readback_value)
+        self._monitor_pv(self._sp_pv, self._on_update_setpoint_value)
+        self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
 
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._monitor_pv(velo_pv, partial(self._on_update_individual_velocity,
@@ -510,8 +503,7 @@ class _JawsAxisPVWrapper(PVWrapper):
             self.velocity = self._v_restore
         self._moving_state = new_value
         self._state_init_event.set()
-        self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
-                                alarm_severity, alarm_status)
+        self.trigger_listeners(IsChangingUpdate(self._dmov_to_bool(new_value), alarm_severity, alarm_status))
 
     def _on_update_individual_velocity(self, value, alarm_severity, alarm_status, source=None):
         self._velocities[source] = value
