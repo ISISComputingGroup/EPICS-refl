@@ -56,6 +56,9 @@ def update_monitors_when_finished(func):
 
 
 def deletion_context(func):
+    """
+    Decorator which takes out the config manager lock, and updates monitors after decorated function has finished
+    """
     return needs_lock(update_monitors_when_finished(func))
 
 
@@ -93,7 +96,7 @@ class ConfigListManager(object):
     def _update_pv_value(self, fullname, data):
         # First check PV exists if not create it
         if not self._bs.does_pv_exist(fullname):
-            self._bs.add_string_pv_to_db(fullname, 16000)
+            self._bs.add_string_pv_to_db(fullname, count=16000)
 
         self._bs.setParam(fullname, data)
         self._bs.updatePVs()
@@ -315,6 +318,16 @@ class ConfigListManager(object):
 
     @deletion_context
     def delete_components(self, delete_list):
+        """
+        Deletes all components in supplied list
+
+        Args:
+            delete_list : List containing the names of components to remove
+
+        Returns:
+            None
+
+        """
         print_and_log("Deleting components: {}".format(', '.join(list(delete_list)), "INFO"))
         lower_delete_list = lowercase_and_make_unique(delete_list)
 
@@ -339,6 +352,16 @@ class ConfigListManager(object):
             self._delete_single_component(component)
 
     def _delete_single_component(self, component):
+        """
+        Deletes a single component
+
+        Args:
+            component (string): Name of component to delete
+
+        Returns:
+            None
+
+        """
         try:
             self.file_manager.delete(component, is_component=True)
         except MaxAttemptsExceededException:
