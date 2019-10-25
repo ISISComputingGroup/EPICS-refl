@@ -44,7 +44,7 @@ class PVWrapper(object):
 
         self._set_pvs()
         self._set_resolution()
-        self._set_max_velocity()
+        self._cache_max_velocity()
 
     def _set_pvs(self):
         """
@@ -67,7 +67,7 @@ class PVWrapper(object):
         self._resolution = 0
         raise NotImplementedError()
 
-    def _set_max_velocity(self):
+    def _cache_max_velocity(self):
         """
         Sets the maximum velocity this axis can move at.
         """
@@ -501,15 +501,10 @@ class _JawsAxisPVWrapper(PVWrapper):
         Args:
             value (float): The value to set
         """
-        motor_velocities = self._pv_names_for_directions("MTR.VELO")
-        for pv in motor_velocities:
-            if value is not None:
-                self._write_pv(pv, value)
-            else:
-                logger.error("Error: An attempt was made to write a velocity with type {value_type} to {pv_name}. "
-                             "Unable to action this.".format(pv_name=pv, value_type=type(value)))
+        logger.error("Error: An attempt was made to write a velocity with type {value_type} to {pv_name}. "
+                     "We do not support setting velocities for jaws axis.".format(pv_name=pv, value_type=type(value)))
 
-    def _set_max_velocity(self):
+    def _cache_max_velocity(self):
         """
         Sets the maximum velocity this axis can move at.
         """
@@ -603,7 +598,3 @@ class JawsCentrePVWrapper(_JawsAxisPVWrapper):
         self._sp_pv = "{}:{}CENT:SP".format(self._prefixed_pv, self._direction_symbol)
         self._rbv_pv = "{}:{}CENT".format(self._prefixed_pv, self._direction_symbol)
         self._dmov_pv = "{}:{}CENT:DMOV".format(self._prefixed_pv, self._direction_symbol)
-
-    def cache_velocity(self):
-        # Velocities for jaws centers are not cached
-        pass
