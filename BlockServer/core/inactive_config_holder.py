@@ -59,6 +59,7 @@ class InactiveConfigHolder(ConfigHolder):
         Args:
             details (dict): A dictionary containing the new configuration settings
         """
+
         self._cache_config()
 
         try:

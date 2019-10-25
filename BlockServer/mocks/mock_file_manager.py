@@ -56,8 +56,8 @@ class MockConfigurationFileManager(object):
         else:
             self.confs[configuration.get_name().lower()] = configuration
 
-    def delete(self, name, is_comp):
-        if is_comp:
+    def delete(self, name, is_component):
+        if is_component:
             del self.comps[name.lower()]
         else:
             del self.confs[name.lower()]
