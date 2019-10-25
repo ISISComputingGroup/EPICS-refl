@@ -69,6 +69,7 @@ class TestMotorPVWrapper(unittest.TestCase):
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_max_velocity_is_initialised_correctly(self):
         expected_max_velocity = self.vmax
 
+        self.wrapper.initialise()
         actual_max_velocity = self.wrapper.max_velocity
 
         self.assertEqual(expected_max_velocity, actual_max_velocity)

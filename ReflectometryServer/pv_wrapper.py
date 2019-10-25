@@ -33,18 +33,17 @@ class PVWrapper(object):
         self._after_sp_change_listeners = set()
         self._after_is_changing_change_listeners = set()
 
-        self._moving_state = None
-        self._moving_direction = None
-        self._velocity_cache_restored = None
+        self._moving_state_cache = None
+        self._moving_direction_cache = None
+        self._velocity_restored = None
+        self._velocity_to_restore = None
         self._velocity_cache = None
-        self._velocity = None
-        self._backlash_distance = None
-        self._backlash_velocity = None
-        self.max_velocity = None
+        self._backlash_distance_cache = None
+        self._backlash_velocity_cache = None
+        self._max_velocity_cache = None
 
         self._set_pvs()
         self._set_resolution()
-        self._cache_max_velocity()
 
     def _set_pvs(self):
         """
@@ -67,21 +66,16 @@ class PVWrapper(object):
         self._resolution = 0
         raise NotImplementedError()
 
-    def _cache_max_velocity(self):
-        """
-        Sets the maximum velocity this axis can move at.
-        """
-        self.max_velocity = self._read_pv(self._vmax_pv)
-
     def initialise(self):
         """
         Initialise PVWrapper values once the beamline is ready.
         """
         self._add_monitors()
-        self._velocity = self._read_pv(self._velo_pv)
-        self._backlash_distance = self._read_pv(self._bdst_pv)
-        self._backlash_velocity = self._read_pv(self._bvel_pv)
-        self._moving_direction = self._read_pv(self._dir_pv)
+        self._velocity_cache = self._read_pv(self._velo_pv)
+        self._backlash_distance_cache = self._read_pv(self._bdst_pv)
+        self._backlash_velocity_cache = self._read_pv(self._bvel_pv)
+        self._moving_direction_cache = self._read_pv(self._dir_pv)
+        self._max_velocity_cache = self._read_pv(self._vmax_pv)
         self._init_velocity_cache()
 
     def _add_monitors(self):
@@ -209,7 +203,7 @@ class PVWrapper(object):
         """
         Returns (float): the value of the underlying velocity PV
         """
-        return self._velocity
+        return self._velocity_cache
 
     @velocity.setter
     def velocity(self, value):
@@ -222,28 +216,35 @@ class PVWrapper(object):
         self._write_pv(self._velo_pv, value)
 
     @property
+    def max_velocity(self):
+        """
+        Gets the maximum velocity for the axis
+        """
+        return self._max_velocity_cache
+
+    @property
     def backlash_distance(self):
         """
         Returns(float): the value of the underlying backlash distance PV
         """
-        if self._moving_direction == "Pos":
-            return self._backlash_distance * -1.0
+        if self._moving_direction_cache == "Pos":
+            return self._backlash_distance_cache * -1.0
         else:
-            return self._backlash_distance
+            return self._backlash_distance_cache
 
     @property
     def backlash_velocity(self):
         """
         Returns (float): the value of the underlying backlash velocity PV
         """
-        return self._backlash_velocity
+        return self._backlash_velocity_cache
 
     @property
     def direction(self):
         """
         Returns: the value of the underlying direction PV
         """
-        return self._moving_direction
+        return self._moving_direction_cache
 
     def _init_velocity_cache(self):
         """
@@ -257,12 +258,12 @@ class PVWrapper(object):
             if autosave_value is not None:
                 logger.debug("Restoring {pv_name} velocity_cache with auto-save value {value}"
                              .format(pv_name=self.name, value=autosave_value))
-                self._velocity_cache = float(autosave_value)
-            autosave_value = read_autosave_value(self.name+"_velocity_cache_restored", AutosaveType.VELOCITY)
+                self._velocity_to_restore = float(autosave_value)
+            autosave_value = read_autosave_value(self.name+"_velocity_restored", AutosaveType.VELOCITY)
             if autosave_value is not None:
                 logger.debug("Restoring {pv_name} velocity_cache_restored with auto-save value {value}"
                              .format(pv_name=self.name, value=autosave_value))
-                self._velocity_cache_restored = bool(autosave_value)
+                self._velocity_restored = bool(autosave_value)
         except (ValueError, TypeError) as error:
             logger.error("Error: Unable to initialise velocity cache from auto-save ({error_message})."
                          .format(error_message=error))
@@ -274,16 +275,16 @@ class PVWrapper(object):
         Cache the current axis velocity unless a previously stored cache has not been restored. If the previous cache
         has not been restored then we suspect that a move has been made from outside of the reflectometry server.
         """
-        if self._velocity_cache_restored:
-            self._velocity_cache = self.velocity
-            write_autosave_value(self.name, self._velocity_cache, AutosaveType.VELOCITY)
-            self._velocity_cache_restored = False
-            write_autosave_value(self.name+"_velocity_cache_restored", self._velocity_cache_restored, AutosaveType.VELOCITY)
-        elif not self._velocity_cache_restored and self._moving_state == MTR_STOPPED:
+        if self._velocity_restored:
+            self._velocity_to_restore = self.velocity
+            write_autosave_value(self.name, self._velocity_to_restore, AutosaveType.VELOCITY)
+            self._velocity_restored = False
+            write_autosave_value(self.name +"_velocity_restored", self._velocity_restored, AutosaveType.VELOCITY)
+        elif not self._velocity_restored and self._moving_state_cache == MTR_STOPPED:
             logger.error("Velocity for {pv_name} has not been cached as existing cache has not been restored and "
                          "is stationary."
                          .format(pv_name=self.name))
-        elif not self._velocity_cache_restored and self._moving_state == MTR_MOVING:
+        elif not self._velocity_restored and self._moving_state_cache == MTR_MOVING:
             # Move interrupting current move. Leave the original cache so it can be restored once all
             # moves have been completed.
             pass
@@ -294,19 +295,19 @@ class PVWrapper(object):
 
         Restore the cached axis velocity from the value stored on the server and update the restored cache status.
         """
-        if self._velocity_cache_restored:
+        if self._velocity_restored:
             logger.error("Velocity for PV {pv_name} has not been restored from cache. The cache has already been "
                          "restored previously. Hint: Are you moving the axis outside of the reflectometry server?"
                          .format(pv_name=self.name))
         else:
-            if self._velocity_cache is None:
+            if self._velocity_to_restore is None:
                 logger.error("Cannot restore velocity: velocity cache is None for {pv_name}".format(pv_name=self.name))
             else:
                 logger.debug("Restoring velocity cache of {value} for PV {pv_name}"
-                             .format(value=self._velocity_cache, pv_name=self.name))
-                self.velocity = self._velocity_cache
-            self._velocity_cache_restored = True
-            write_autosave_value(self.name+"_velocity_cache_restored", self._velocity_cache_restored, AutosaveType.VELOCITY)
+                             .format(value=self._velocity_to_restore, pv_name=self.name))
+                self.velocity = self._velocity_to_restore
+            self._velocity_restored = True
+            write_autosave_value(self.name +"_velocity_cache_restored", self._velocity_restored, AutosaveType.VELOCITY)
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
         """
@@ -319,7 +320,7 @@ class PVWrapper(object):
         """
         if new_value == MTR_STOPPED:
             self.restore_cached_velocity()
-        self._moving_state = new_value
+        self._moving_state_cache = new_value
         self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
                                 alarm_severity, alarm_status)
 
@@ -339,14 +340,14 @@ class PVWrapper(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self._velocity = value
+        self._velocity_cache = value
 
     @property
     def is_moving(self):
         """
         Returns (Bool): True of the axis is moving
         """
-        return self._dmov_to_bool(self._moving_state)
+        return self._dmov_to_bool(self._moving_state_cache)
 
     def _on_update_backlash_distance(self, value, alarm_severity, alarm_status):
         """
@@ -357,7 +358,7 @@ class PVWrapper(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self._backlash_distance = value
+        self._backlash_distance_cache = value
 
     def _on_update_backlash_velocity(self, value, alarm_severity, alarm_status):
         """
@@ -368,7 +369,7 @@ class PVWrapper(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self._backlash_velocity = value
+        self._backlash_velocity_cache = value
 
     def _on_update_direction(self, value, alarm_severity, alarm_status):
         """
@@ -379,7 +380,7 @@ class PVWrapper(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self._moving_direction = value
+        self._moving_direction_cache = value
 
     def get_distance(self, rbv, set_point_position):
         """
@@ -470,7 +471,10 @@ class _JawsAxisPVWrapper(PVWrapper):
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
 
-        self._backlash_distance = 0  # No backlash used as source of clash conditions on jaws sets
+        motor_velocities = self._pv_names_for_directions("MTR.VMAX")
+        self._max_velocity_cache = min([self._read_pv(pv) for pv in motor_velocities])
+
+        self._backlash_distance_cache = 0  # No backlash used as source of clash conditions on jaws sets
 
     def _add_monitors(self):
         """
@@ -501,15 +505,15 @@ class _JawsAxisPVWrapper(PVWrapper):
         Args:
             value (float): The value to set
         """
-        logger.error("Error: An attempt was made to write a velocity with type {value_type} to {pv_name}. "
-                     "We do not support setting velocities for jaws axis.".format(pv_name=pv, value_type=type(value)))
+        logger.error("Error: An attempt was made to write a velocity to a Jaws Axis. We do not support this"
+                     "as we do not expect jaws to be synchronised.")
 
-    def _cache_max_velocity(self):
+    @property
+    def max_velocity(self):
         """
         Sets the maximum velocity this axis can move at.
         """
-        motor_velocities = self._pv_names_for_directions("MTR.VMAX")
-        self.max_velocity = min([self._read_pv(pv) for pv in motor_velocities])
+        return self._max_velocity_cache
 
     def _pv_names_for_directions(self, suffix):
         """

@@ -40,8 +40,8 @@ class IocDriver(object):
             self._engineering_correction = engineering_correction
             self._engineering_correction.add_listener(CorrectionUpdate, self._on_correction_update)
 
-        self._sp = None
-        self._rbv = self._engineering_correction.from_axis(self._axis.rbv, self._get_component_sp())
+        self._sp_cache = None
+        self._rbv_cache = self._engineering_correction.from_axis(self._axis.rbv, self._get_component_sp())
 
         self._axis.add_after_rbv_change_listener(self._on_update_rbv)
         self._axis.add_after_sp_change_listener(self._on_update_sp)
@@ -94,7 +94,6 @@ class IocDriver(object):
 
     def _backlash_duration(self):
         """
-        Args:
         Returns: the duration of the backlash move
         """
         backlash_distance, distance_to_move, is_within_backlash_distance = self._get_movement_distances()
@@ -195,10 +194,10 @@ class IocDriver(object):
 
         Returns: The cached readback value for the motor
         """
-        if self._rbv is None:
+        if self._rbv_cache is None:
             raise ValueError("Axis {} not initialised. Check configuration is correct and motor IOC is running."
                              .format(self._axis.name))
-        return self._rbv
+        return self._rbv_cache
 
     def _get_distance(self):
         """
@@ -225,7 +224,7 @@ class IocDriver(object):
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         corrected_new_value = self._engineering_correction.from_axis(new_value, self._get_component_sp())
-        self._rbv = corrected_new_value
+        self._rbv_cache = corrected_new_value
         self._propagate_rbv_change(corrected_new_value, alarm_severity, alarm_status)
 
     def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
@@ -246,7 +245,7 @@ class IocDriver(object):
         Args:
             value: The new set point value.
         """
-        self._sp = self._engineering_correction.from_axis(value, self._get_component_sp())
+        self._sp_cache = self._engineering_correction.from_axis(value, self._get_component_sp())
 
     def _on_update_is_changing(self, value, alarm_severity, alarm_status):
         """
@@ -261,10 +260,10 @@ class IocDriver(object):
         Returns: True if the setpoint on the component and the one on the motor PV are the same (within tolerance),
             False if they differ.
         """
-        if self._sp is None:
+        if self._sp_cache is None:
             return False
 
-        difference = abs(self._get_component_sp() - self._sp)
+        difference = abs(self._get_component_sp() - self._sp_cache)
         return difference < self._axis.resolution
 
 
