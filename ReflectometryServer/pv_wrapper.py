@@ -362,6 +362,58 @@ class PVWrapper(object):
             new_position: position to move to
         """
 
+    @contextmanager
+    def _motor_in_set_mode(self, motor_pv):
+        """
+        Uses a context to place motor into set mode and ensure that it leaves set mode after context has ended. If it
+        can not set the mode correctly will not run the yield.
+        Args:
+            motor_pv: motor pv on which to set the mode
+
+        Returns:
+
+
+        """
+        calibration_set_pv = "{}.SET".format(motor_pv)
+        offset_freeze_switch_pv = "{}.FOFF".format(motor_pv)
+
+        try:
+            self._pv_write_retry_on_fail(calibration_set_pv, "Set")
+            offset_freeze_switch = self._read_pv(offset_freeze_switch_pv)
+            self._pv_write_retry_on_fail(offset_freeze_switch_pv, "Frozen")
+        except ValueError as ex:
+            raise ValueError("Can not set motor set and frozen offset mode: {}".format(ex))
+
+        try:
+            yield
+        finally:
+            try:
+                self._pv_write_retry_on_fail(calibration_set_pv, "Use")
+                self._pv_write_retry_on_fail(offset_freeze_switch_pv, offset_freeze_switch)
+            except ValueError as ex:
+                raise ValueError("Can not reset motor set and frozen offset mode: {}".format(ex))
+
+    def _pv_write_retry_on_fail(self, pv_name, value, retry_count=5):
+        """
+        Write to a pv and check the value is set, retry of not
+        Args:
+            pv_name: pv name to write to
+            value: value to write
+            retry_count: number of retries
+
+        Raises:
+            ValueError: if pv can not be set
+
+        """
+        current_value = None
+        for _ in range(retry_count):
+            self._write_pv(pv_name, value, wait=True)
+            current_value = self._read_pv(pv_name)
+            if current_value == value:
+                break
+        else:
+            raise ValueError("PV value can not be set, pv {}, was {} expected {}".format(pv_name, current_value, value))
+
 
 class MotorPVWrapper(PVWrapper):
     """
@@ -388,8 +440,6 @@ class MotorPVWrapper(PVWrapper):
         self._bdst_pv = "{}.BDST".format(self._prefixed_pv)
         self._bvel_pv = "{}.BVEL".format(self._prefixed_pv)
         self._dir_pv = "{}.DIR".format(self._prefixed_pv)
-        self._calibration_set = "{}.SET".format(self._prefixed_pv)
-        self._offset_freeze_switch = "{}.FOFF".format(self._prefixed_pv)
 
     def _set_resolution(self):
         """
@@ -403,44 +453,11 @@ class MotorPVWrapper(PVWrapper):
         Args:
             new_position: position to move to
         """
-        with self._motor_in_set_mode():
-            self._write_pv(self._sp_pv, new_position)
-
-    @contextmanager
-    def _motor_in_set_mode(self):
-        """
-        Place motor into set mode an ensure that it leaves set mode. If it can not set the mode correctly will not run
-        the mode
-        """
-        # set set
-        # set frozen
         try:
-            self._ensure_pv_write(self._calibration_set, "Set")
-            offset_freeze_switch = self._read_pv(self._offset_freeze_switch)
-            self._ensure_pv_write(self._offset_freeze_switch, "Frozen")
+            with self._motor_in_set_mode(self._prefixed_pv):
+                self._write_pv(self._sp_pv, new_position)
         except ValueError as ex:
-            logger.error("Can not define zero can not put motor into SET mode: {}".format(ex))
-            return
-
-        try:
-            yield
-        finally:
-            try:
-                self._ensure_pv_write(self._calibration_set, "Use")
-                self._ensure_pv_write(self._offset_freeze_switch, offset_freeze_switch)
-            except ValueError as ex:
-                logger.error("Problem in define zero can not put motor back to correct settings: {}".format(ex))
-                return
-
-    def _ensure_pv_write(self, pv_name, value, retry_count=5):
-        current_value = None
-        for _ in range(retry_count):
-            self._write_pv(pv_name, value, wait=True)
-            current_value = self._read_pv(pv_name)
-            if current_value == value:
-                break
-        else:
-            raise ValueError("PV value can not be set, pv {}, was {} expected {}".format(pv_name, current_value, value))
+            logger.error("Can not define zero: {}".format(ex))
 
 
 class _JawsAxisPVWrapper(PVWrapper):
@@ -594,7 +611,12 @@ class _JawsAxisPVWrapper(PVWrapper):
         Args:
             new_position: position to move to
         """
-        raise NotImplementedError()
+        try:
+            mtr1, mtr2 = self._pv_names_for_directions("MTR")
+            with self._motor_in_set_mode(mtr1), self._motor_in_set_mode(mtr2):
+                    self._write_pv(self._sp_pv, new_position)
+        except ValueError as ex:
+            logger.error("Can not define zero: {}".format(ex))
 
 
 class JawsGapPVWrapper(_JawsAxisPVWrapper):
