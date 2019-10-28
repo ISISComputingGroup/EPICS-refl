@@ -18,7 +18,6 @@ class TestComponentBeamline(unittest.TestCase):
         frame_overlap_mirror.beam_path_set_point.is_in_beam = False
         self.polarising_mirror = ReflectingComponent("Polariser", setup=PositionAndAngle(0, 3, 90))
         self.polarising_mirror.beam_path_set_point.is_in_beam = False
-        self.polarising_mirror.angle = 0
         s2 = Component("s2", setup=PositionAndAngle(0, 4, 90))
         self.ideal_sample_point = ReflectingComponent("ideal sample point", setup=PositionAndAngle(0, 5, 90))
         s3 = Component("s3", setup=PositionAndAngle(0, 6, 90))

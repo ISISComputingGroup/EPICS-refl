@@ -414,10 +414,10 @@ class AngleDriver(IocDriver):
             alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
             alarm_status (CaChannel._ca.AlarmCondition): the alarm status
         """
-        self._component.beam_path_rbv.angle = new_value
+        self._component.beam_path_rbv.set_angular_displacement(new_value)
 
     def _get_component_sp(self):
-        return self._component.beam_path_set_point.angle
+        return self._component.beam_path_set_point.get_angular_displacement()
 
     def _on_update_is_changing(self, update):
         """

@@ -224,7 +224,7 @@ class TestHeightAndAngleDriver(unittest.TestCase):
     def test_GIVEN_multiple_axes_need_to_move_WHEN_computing_move_duration_THEN_maximum_duration_is_returned(self):
         target_angle = 30.0
         expected = 3.0
-        self.supermirror.beam_path_set_point.angle = target_angle
+        self.supermirror.beam_path_set_point.set_angular_displacement(target_angle)
         self.supermirror.beam_path_set_point.set_position_relative_to_beam(10.0)
         self.supermirror.set_changed_flag(ChangeAxis.POSITION, True)
         self.supermirror.set_changed_flag(ChangeAxis.ANGLE, True)
@@ -241,7 +241,7 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         target_position_height = 10.0
         expected_velocity_angle = 3.0
         target_position_angle = 30.0
-        self.supermirror.beam_path_set_point.angle = 30.0
+        self.supermirror.beam_path_set_point.set_angular_displacement(30.0)
         self.supermirror.beam_path_set_point.set_position_relative_to_beam(10.0)  # move component into beam
 
         self.supermirror_driver_disp.perform_move(target_duration, True)
@@ -260,7 +260,7 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         self.angle_axis.sp = expected_value
 
         listener.assert_called_once()
-        assert_that(self.supermirror.beam_path_rbv.angle, is_(expected_value))
+        assert_that(self.supermirror.beam_path_rbv.get_angular_displacement(), is_(expected_value))
 
 
 class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
@@ -393,7 +393,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         supermirror = ReflectingComponent("supermirror", setup=PositionAndAngle(y=0.0, z=10.0, angle=90.0))
         sm_height_axis = create_mock_axis("SM:HEIGHT", 0.0, 10.0)
         sm_angle_axis = create_mock_axis("SM:ANGLE", sm_angle, 10.0)
-        supermirror.beam_path_set_point.angle = sm_angle
+        supermirror.beam_path_set_point.set_angular_displacement(sm_angle)
         supermirror_driver_disp = DisplacementDriver(supermirror, sm_height_axis)
         supermirror_driver_ang = AngleDriver(supermirror, sm_angle_axis)
 

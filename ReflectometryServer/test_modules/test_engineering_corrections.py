@@ -103,7 +103,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         driver = AngleDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction))
         driver.initialise()
 
-        result = comp.beam_path_set_point.angle
+        result = comp.beam_path_set_point.get_angular_displacement()
 
         assert_that(result, is_(-1 * correction))
 
@@ -501,6 +501,6 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         bl = Beamline([comp], [param], [driver], [nr_mode])
         bl.active_mode = nr_mode.name
 
-        result = comp.beam_path_set_point.angle
+        result = comp.beam_path_set_point.get_angular_displacement()
 
         assert_that(result, is_(close_to(expected_setpoint, 1e-6)))

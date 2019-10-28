@@ -314,6 +314,13 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         self._is_rotating = False
         self._is_reflecting = is_reflecting
 
+    def get_angular_displacement(self):
+        """
+        Returns: the angle of the component relative to the natural (straight through) beam measured clockwise from the
+            horizon in the incoming beam direction.
+        """
+        return self._angular_displacement
+
     @property
     def is_rotating(self):
         """
@@ -344,14 +351,15 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         if self._is_reflecting:
             self._trigger_after_beam_path_update_on_init()
 
-    def _set_angle(self, angle):
+    def _set_angular_displacement(self, angle):
         """
-        Set the angle
+        Set the angular displacement relative to the straight-through beam.
         Args:
             angle: angle to set
         """
         self._angular_displacement = angle
-        self._trigger_after_beam_path_update()
+        if self._is_reflecting:
+            self._trigger_after_beam_path_update()
 
     def set_angle_relative_to_beam(self, angle):
         """
@@ -359,7 +367,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Args:
             angle: angle to set the component at
         """
-        self._set_angle(angle + self._incoming_beam.angle)
+        self._set_angular_displacement(angle + self._incoming_beam.angle)
 
     def get_angle_relative_to_beam(self):
         """
@@ -388,22 +396,13 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
     def __init__(self, movement_strategy, is_reflecting):
         super(SettableBeamPathCalcWithAngle, self).__init__(movement_strategy, is_reflecting)
 
-    @property
-    def angle(self):
-        """
-        Returns: the angle of the component relative to the natural (straight through) beam measured clockwise from the
-            horizon in the incoming beam direction.
-        """
-        return self._angular_displacement
-
-    @angle.setter
-    def angle(self, angle):
+    def set_angular_displacement(self, angle):
         """
         Updates the component angle and notifies the beam path update listener
         Args:
             angle: The modified angle
         """
-        self._set_angle(angle)
+        self._set_angular_displacement(angle)
         self._trigger_after_physical_move_listener()
 
 
@@ -443,7 +442,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         Args:
             source: the beam calc that changed
         """
-        self._set_angle(self._calc_angle_from_next_component(self._incoming_beam))
+        self._set_angular_displacement(self._calc_angle_from_next_component(self._incoming_beam))
 
     def _calc_angle_from_next_component(self, incoming_beam):
         """

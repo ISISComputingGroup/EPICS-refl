@@ -82,7 +82,7 @@ class TestTiltingJaws(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
         jaws = TiltingComponent("tilting jaws", setup=PositionAndAngle(0, 20, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
-        jaws.beam_path_set_point.angle = 123
+        jaws.beam_path_set_point.set_angular_displacement(123)
 
         result = jaws.beam_path_set_point.get_outgoing_beam()
 
@@ -98,7 +98,7 @@ class TestActiveComponents(unittest.TestCase):
         expected = beam_start
 
         mirror = ReflectingComponent("component", setup=PositionAndAngle(0, mirror_z_position, 90))
-        mirror.beam_path_set_point.angle = mirror_angle
+        mirror.beam_path_set_point.set_angular_displacement(mirror_angle)
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
         mirror.beam_path_set_point.is_in_beam = False
 
@@ -114,7 +114,7 @@ class TestActiveComponents(unittest.TestCase):
         expected = PositionAndAngle(y=0, z=mirror_z_position, angle=2 * mirror_angle)
 
         mirror = ReflectingComponent("component", setup=PositionAndAngle(0, mirror_z_position, 90))
-        mirror.beam_path_set_point.angle = mirror_angle
+        mirror.beam_path_set_point.set_angular_displacement(mirror_angle)
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = mirror.beam_path_set_point.get_outgoing_beam()
@@ -133,7 +133,7 @@ class TestActiveComponents(unittest.TestCase):
         expected = PositionAndAngle(y=0, z=0, angle=outgoing_angle)
 
         mirror = ReflectingComponent("component", setup=PositionAndAngle(0, 0, 90))
-        mirror.beam_path_set_point.angle = mirror_angle
+        mirror.beam_path_set_point.set_angular_displacement(mirror_angle)
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = mirror.beam_path_set_point.get_outgoing_beam()
