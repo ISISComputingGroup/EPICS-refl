@@ -2,7 +2,7 @@
 Components on a beam
 """
 from enum import Enum
-from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, BeamPathTilting, BeamPathCalcAngleReflecting, \
+from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
 from ReflectometryServer.movement_strategy import LinearMovementCalc
 import logging
@@ -75,7 +75,7 @@ class Component(object):
         """
         The beam path calculation for the set points. This is readonly and can only be set during construction
         Returns:
-            (TrackingBeamPathCalc|BeamPathTilting|BeamPathCalcThetaRBV|BeamPathCalcThetaSP|BeamPathCalcAngleReflecting):
+            (TrackingBeamPathCalc|SettableBeamPathCalcWithAngle|BeamPathCalcThetaRBV|BeamPathCalcThetaSP|BeamPathCalcAngleReflecting):
                 set points beam path calculation
         """
         return self._beam_path_set_point
@@ -85,7 +85,7 @@ class Component(object):
         """
         The beam path calculation for the read backs. This is readonly and can only be set during construction
         Returns:
-            (TrackingBeamPathCalc|BeamPathTilting|BeamPathCalcThetaRBV|BeamPathCalcThetaSP|BeamPathCalcAngleReflecting):
+            (TrackingBeamPathCalc|SettableBeamPathCalcWithAngle|BeamPathCalcThetaRBV|BeamPathCalcThetaSP|BeamPathCalcAngleReflecting):
                 read backs beam path calculation
 
         """
@@ -118,8 +118,8 @@ class TiltingComponent(Component):
         self._changed[ChangeAxis.ANGLE] = False
 
     def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = BeamPathTilting(LinearMovementCalc(setup))
-        self._beam_path_rbv = BeamPathTilting(LinearMovementCalc(setup))
+        self._beam_path_set_point = SettableBeamPathCalcWithAngle(LinearMovementCalc(setup), is_reflecting=False)
+        self._beam_path_rbv = SettableBeamPathCalcWithAngle(LinearMovementCalc(setup), is_reflecting=False)
 
 
 class ReflectingComponent(Component):
@@ -137,8 +137,8 @@ class ReflectingComponent(Component):
         self._changed[ChangeAxis.ANGLE] = False
 
     def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = BeamPathCalcAngleReflecting(LinearMovementCalc(setup))
-        self._beam_path_rbv = BeamPathCalcAngleReflecting(LinearMovementCalc(setup))
+        self._beam_path_set_point = SettableBeamPathCalcWithAngle(LinearMovementCalc(setup), is_reflecting=True)
+        self._beam_path_rbv = SettableBeamPathCalcWithAngle(LinearMovementCalc(setup), is_reflecting=True)
 
 
 class ThetaComponent(ReflectingComponent):

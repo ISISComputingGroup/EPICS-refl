@@ -643,7 +643,7 @@ class InBeamParameter(BeamlineParameter):
         """
         Returns: Is the parameter changing (rotating, displacing etc.)
         """
-        if self._component.beam_path_rbv.is_displacing or self._component.beam_path_rbv.is_rotating:
+        if self._component.beam_path_rbv.is_displacing:
             return True
         else:
             return False
