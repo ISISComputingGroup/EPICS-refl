@@ -4,6 +4,7 @@ The driving layer communicates between the component layer and underlying pvs.
 
 import math
 import logging
+from collections import namedtuple
 
 from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
 from ReflectometryServer.components import ChangeAxis
@@ -12,8 +13,10 @@ from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 
+CorrectedReadbackUpdate = namedtuple("CorrectedReadbackUpdate", ["value", "alarm_status", "alarm_severity"])
 
-@observable(CorrectionUpdate)
+
+@observable(CorrectionUpdate, CorrectedReadbackUpdate)
 class IocDriver(object):
     """
     Drives an actual motor axis based on a component in the beamline model.
@@ -226,17 +229,16 @@ class IocDriver(object):
         """
         corrected_new_value = self._engineering_correction.from_axis(update.value, self._get_component_sp())
         self._rbv_cache = corrected_new_value
-        self._propagate_rbv_change(corrected_new_value, update.alarm_severity, update.alarm_status)
+        self._propagate_rbv_change(
+            CorrectedReadbackUpdate(corrected_new_value, update.alarm_severity, update.alarm_status))
 
-    def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
+    def _propagate_rbv_change(self, update):
         """
         Signal that the motor readback value has changed to the middle component layer. Subclass must implement this
         method.
 
         Args:
-            new_value: new axis value that is given
-            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
-            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+            update TODO
         """
         raise NotImplemented()
 
@@ -320,18 +322,16 @@ class DisplacementDriver(IocDriver):
                 sp = self._axis.sp
         self._component.beam_path_set_point.init_displacement_from_motor(sp)
 
-    def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
+    def _propagate_rbv_change(self, update):
         """
         Propagate the new height readback value to the middle component layer.
 
         Args:
-            new_value: new height readback value that is given
-            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
-            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+            update TODO
         """
         if self._out_of_beam_position is not None:
-            self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(new_value)
-        self._component.beam_path_rbv.set_displacement(new_value, alarm_severity, alarm_status)
+            self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(update.value)
+        self._component.beam_path_rbv.displacement_update(update)
 
     def _get_component_sp(self):
         if self._component.beam_path_set_point.is_in_beam:
@@ -405,16 +405,14 @@ class AngleDriver(IocDriver):
 
         self._component.beam_path_set_point.init_angle_from_motor(corrected_axis_setpoint)
 
-    def _propagate_rbv_change(self, new_value, alarm_severity, alarm_status):
+    def _propagate_rbv_change(self, update):
         """
         Propagate the new angle readback value to the middle component layer.
 
         Args:
-            new_value: new angle readback value that is given
-            alarm_severity (CaChannel._ca.AlarmSeverity): severity of any alarm
-            alarm_status (CaChannel._ca.AlarmCondition): the alarm status
+            update TODO
         """
-        self._component.beam_path_rbv.set_angular_displacement(new_value)
+        self._component.beam_path_rbv.angle_update(update)
 
     def _get_component_sp(self):
         return self._component.beam_path_set_point.get_angular_displacement()

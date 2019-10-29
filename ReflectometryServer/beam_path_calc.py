@@ -2,10 +2,13 @@
 Objects to help with calculating the beam path when interacting with a component. This is used for instance for the
 set points or readbacks etc.
 """
+from collections import namedtuple
 from math import degrees, atan2
 
 from ReflectometryServer.geometry import PositionAndAngle
 import logging
+
+from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +197,10 @@ class TrackingBeamPathCalc(object):
             beam = self.substitute_incoming_beam_for_displacement
         return beam
 
-    def set_displacement(self, displacement, alarm_severity, alarm_status):
+    def displacement_update(self, update):
+        self.set_displacement(update.value)
+
+    def set_displacement(self, displacement):
         """
         Set the displacement of the component from the zero position, E.g. The distance along the movement
             axis of the component from the set zero position.
@@ -395,6 +401,9 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
     """
     def __init__(self, movement_strategy, is_reflecting):
         super(SettableBeamPathCalcWithAngle, self).__init__(movement_strategy, is_reflecting)
+
+    def angle_update(self, update):
+        self.set_angular_displacement(update.value)
 
     def set_angular_displacement(self, angle):
         """

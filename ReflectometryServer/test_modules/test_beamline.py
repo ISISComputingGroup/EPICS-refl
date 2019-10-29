@@ -88,7 +88,7 @@ class TestComponentBeamlineReadbacks(unittest.TestCase):
 
         callback = Mock()
         comp2.beam_path_rbv.set_incoming_beam = callback
-        comp1.beam_path_rbv.set_displacement(1.0, AlarmSeverity.No, AlarmStatus.No)
+        comp1.beam_path_rbv.set_displacement(1.0)
 
         assert_that(callback.called, is_(True))
 

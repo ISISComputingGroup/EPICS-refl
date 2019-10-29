@@ -504,7 +504,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         beam_height = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
         beamline_position = TrackingPosition("param", sample)
-        sample.beam_path_rbv.set_displacement(displacement, AlarmSeverity.No, AlarmStatus.No)
+        sample.beam_path_rbv.set_displacement(displacement)
 
         result = beamline_position.rbv
 
@@ -519,7 +519,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         beamline_position = TrackingPosition("param", sample)
         listener = Mock()
         beamline_position.add_rbv_change_listener(listener)
-        sample.beam_path_rbv.set_displacement(displacement, AlarmSeverity.No, AlarmStatus.No)
+        sample.beam_path_rbv.set_displacement(displacement)
 
         listener.assert_called_once_with(displacement - beam_height)
 

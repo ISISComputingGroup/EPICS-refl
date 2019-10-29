@@ -62,7 +62,7 @@ class TestEngineeringCorrections(unittest.TestCase):
     def test_GIVEN_engineering_correction_offset_of_1_WHEN_at_set_point_THEN_at_target_setpoint_is_true(self):
         correction = 4
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
-        comp.beam_path_set_point.set_displacement(2, None, None)
+        comp.beam_path_set_point.set_displacement(2)
         driver.perform_move(1)
 
         result = driver.at_target_setpoint()
