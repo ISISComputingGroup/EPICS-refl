@@ -45,7 +45,7 @@ except ImportError:
     from ReflectometryServer.ChannelAccess.reflectometry_driver import ReflectometryDriver
 
 from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
-from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX
+from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, MYPVPREFIX, DEFAULT_ASG_RULES
 from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 from server_common.ioc_data_source import IocDataSource
 from server_common.channel_access import ChannelAccess
@@ -56,6 +56,7 @@ beamline = create_beamline_from_configuration()
 
 pv_db = PVManager(beamline)
 SERVER = SimpleServer()
+SERVER.initAccessSecurityFile(DEFAULT_ASG_RULES, P=MYPVPREFIX)
 
 print("Prefix: {}".format(REFLECTOMETRY_PREFIX))
 SERVER.createPV(REFLECTOMETRY_PREFIX, pv_db.PVDB)

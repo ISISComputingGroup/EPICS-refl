@@ -18,6 +18,7 @@ BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
 BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
 PARAM_INFO = "PARAM_INFO"
 DRIVER_INFO = "DRIVER_INFO"
+ALIGN_INFO = "ALIGN_INFO"
 IN_MODE_SUFFIX = ":IN_MODE"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
@@ -266,23 +267,33 @@ class PVManager:
         Add PVs for each beamline parameter in the reflectometry configuration to the server's PV database.
         """
         param_info = []
-        for param, (param_type, group_names, description) in self._beamline.parameter_types.items():
-            param_info_record = self._add_parameter_pvs(param, group_names, description, param_type)
+        align_info = []
+        for param, (param_type, group_names, description, has_define_position_as) in self._beamline.parameter_types.items():
+            param_info_record = self._add_parameter_pvs(param, group_names, description, param_type, has_define_position_as)
             param_info.append(param_info_record)
+            if has_define_position_as:
+                align_info_record = param_info_record.copy()
+                align_info_record["type"] = "align"
+                align_info.append(align_info_record)
         self.PVDB[PARAM_INFO] = {'type': 'char',
                                  'count': 2048,
                                  'value': compress_and_hex(json.dumps(param_info))
                                  }
+        self.PVDB[ALIGN_INFO] = {'type': 'char',
+                                 'count': 2048,
+                                 'value': compress_and_hex(json.dumps(align_info))
+                                 }
     
-    def _add_parameter_pvs(self, param_name, group_names, description, param_type):
+    def _add_parameter_pvs(self, param_name, group_names, description, param_type, has_define_position_as):
         """
         Adds all PVs needed for one beamline parameter to the PV database.
 
         Args:
             param_name: The name of the beamline parameter
-            param_type: The type of the parameter
             group_names: list of groups to which this parameter belong
             description: description of the pv
+            param_type: The type of the parameter
+            has_define_position_as: parameter can have zero defined
 
         Returns:
             parameter information
@@ -332,8 +343,11 @@ class PVManager:
                                   PvSort.RBV_AT_SP)
 
             # define position at
-            self._add_pv_with_val(prepended_alias + DEFINE_POSITION_AS, param_name, STANDARD_FLOAT_PV_FIELDS,
-                                  description, PvSort.DEFINE_POS_AS)
+            if has_define_position_as:
+                align_fields = STANDARD_FLOAT_PV_FIELDS.copy()
+                align_fields["asg"] = "MANAGER"
+                self._add_pv_with_val(prepended_alias + DEFINE_POSITION_AS, param_name, align_fields, description,
+                                      PvSort.DEFINE_POS_AS)
 
             return {"name": param_name,
                     "prepended_alias": prepended_alias,
