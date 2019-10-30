@@ -5,6 +5,7 @@ from hamcrest import *
 from mock import Mock
 from parameterized import parameterized
 
+from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle
 from server_common.channel_access import AlarmSeverity, AlarmStatus
@@ -189,7 +190,7 @@ class TestObservationOfComponentReadback(unittest.TestCase):
 
     def test_GIVEN_listener_WHEN_readback_changes_THEN_listener_is_informed(self):
         expected_value = 10
-        self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value)
+        self.component.beam_path_rbv.add_listener(BeamPathUpdate, self.listen_for_value)
         self.component.beam_path_rbv.set_displacement(1)
 
         result = self.component.beam_path_rbv.get_displacement()
@@ -199,8 +200,8 @@ class TestObservationOfComponentReadback(unittest.TestCase):
 
     def test_GIVEN_two_listeners_WHEN_readback_changes_THEN_listener_is_informed(self):
         expected_value = 10
-        self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value)
-        self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value2)
+        self.component.beam_path_rbv.add_listener(BeamPathUpdate, self.listen_for_value)
+        self.component.beam_path_rbv.add_listener(BeamPathUpdate, self.listen_for_value2)
         self.component.beam_path_rbv.set_displacement(1)
 
         result = self.component.beam_path_rbv.get_displacement()
@@ -216,7 +217,7 @@ class TestObservationOfComponentReadback(unittest.TestCase):
 
     def test_GIVEN_listener_WHEN_beam_changes_THEN_listener_is_informed(self):
         expected_value = 10
-        self.component.beam_path_rbv.add_after_beam_path_update_listener(self.listen_for_value)
+        self.component.beam_path_rbv.add_listener(BeamPathUpdate, self.listen_for_value)
         beam_y = 1
         self.component.beam_path_rbv.set_displacement(expected_value + beam_y)
 
@@ -348,11 +349,11 @@ class TestThetaComponent(unittest.TestCase):
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
         listener = Mock()
-        theta.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        theta.beam_path_rbv.add_listener(BeamPathUpdate, listener)
 
         next_component.beam_path_rbv.set_displacement(1)
 
-        listener.assert_called_once_with(theta.beam_path_rbv)
+        listener.assert_called_once_with(BeamPathUpdate(theta.beam_path_rbv))
 
     def test_GIVEN_next_component_is_enabled_WHEN_set_next_component_incoming_beam_THEN_change_in_beam_path_is_not_triggered(self):
 
@@ -363,7 +364,7 @@ class TestThetaComponent(unittest.TestCase):
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
         listener = Mock()
-        theta.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        theta.beam_path_rbv.add_listener(BeamPathUpdate, listener)
 
         next_component.beam_path_rbv.set_incoming_beam(PositionAndAngle(y=1, z=1, angle=1))
 

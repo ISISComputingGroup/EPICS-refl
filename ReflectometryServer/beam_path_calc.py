@@ -12,7 +12,14 @@ from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 
+BeamPathUpdate = namedtuple("BeamPathUpdate", ["source"])
+BeamPathUpdateOnInit = namedtuple("BeamPathUpdateOnInit", ["source"])
+PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", ["source"])
+ComponentChangingUpdate = namedtuple("ComponentChangingUpdate", [])
+InitUpdate = namedtuple("OnInitUpdate", [])
 
+
+@observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, ComponentChangingUpdate, InitUpdate)
 class TrackingBeamPathCalc(object):
     """
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
@@ -26,11 +33,6 @@ class TrackingBeamPathCalc(object):
                 interception between the movement of the component and the beam.
         """
         self._incoming_beam = PositionAndAngle(0, 0, 0)
-        self._after_beam_path_update_listeners = set()
-        self._after_beam_path_update_on_init_listeners = set()
-        self._after_physical_move_listeners = set()
-        self._after_is_changing_change_listeners = set()
-        self._init_listeners = set()
         self._is_in_beam = True
         self._is_displacing = False
         self._movement_strategy = movement_strategy
@@ -49,11 +51,11 @@ class TrackingBeamPathCalc(object):
         """
         Sets the displacement read from the motor axis on startup.
 
-        Params:
+        Args:
             value(float): The motor position
         """
         self._movement_strategy.set_displacement(value)
-        self._trigger_init_listeners()  # Tell Parameter layer and Theta
+        self.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
 
     def add_init_listener(self, listener):
         """
@@ -63,13 +65,6 @@ class TrackingBeamPathCalc(object):
         """
         self._init_listeners.add(listener)
 
-    def _trigger_init_listeners(self):
-        """
-        Runs initialisation listeners because an initial value has been read.
-        """
-        for listener in self._init_listeners:
-            listener()
-
     def add_after_is_changing_change_listener(self, listener):
         """
         Add a listener which is triggered if the changing (rotating, displacing etc) state is changed.
@@ -78,46 +73,6 @@ class TrackingBeamPathCalc(object):
             listener: listener with a single argument which is the calling calculation.
         """
         self._after_is_changing_change_listeners.add(listener)
-
-    def _trigger_after_is_changing_change(self):
-        """
-        Runs all the current listeners on the changing state because something has changed.
-        """
-        for listener in self._after_is_changing_change_listeners:
-            listener()
-
-    def add_after_beam_path_update_listener(self, listener):
-        """
-        Add a listener which is triggered if the beam path is changed. For example if displacement is set or incoming
-        beam is changed.
-        Args:
-            listener: listener with a single argument which is the calling calculation.
-        """
-        self._after_beam_path_update_listeners.add(listener)
-
-    def _trigger_after_beam_path_update(self):
-        """
-        Runs all the current listeners on the beam path because something about it has changed.
-        """
-        for listener in self._after_beam_path_update_listeners:
-            listener(self)
-
-    def add_after_beam_path_update_on_init_listener(self, listener):
-        """
-        Add a listener which is triggered if the beam path is changed after a component reads an initial value on
-        startup. For example if incoming beam is changed.
-        Args:
-            listener: listener with a single argument which is the calling calculation.
-        """
-        self._after_beam_path_update_on_init_listeners.add(listener)
-
-    def _trigger_after_beam_path_update_on_init(self):
-        """
-        Runs all the current listeners because something about the beam path has changed after a component reads an
-        initial value on startup.
-        """
-        for listener in self._after_beam_path_update_on_init_listeners:
-            listener(self)
 
     def set_incoming_beam(self, incoming_beam, force=False, on_init=False):
         """
@@ -134,10 +89,10 @@ class TrackingBeamPathCalc(object):
         if on_init:
             if self.autosaved_offset is not None:
                 self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, self.autosaved_offset)
-            self._trigger_init_listeners()
-            self._trigger_after_beam_path_update_on_init()
+            self.trigger_listeners(InitUpdate())
+            self.trigger_listeners(BeamPathUpdateOnInit(self))
         else:
-            self._trigger_after_beam_path_update()
+            self.trigger_listeners(BeamPathUpdate(self))
 
     def _on_set_incoming_beam(self, incoming_beam):
         """
@@ -172,7 +127,7 @@ class TrackingBeamPathCalc(object):
             displacement: the value to set away from the beam, e.g. height
         """
         self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, displacement)
-        self._trigger_after_beam_path_update()
+        self.trigger_listeners(BeamPathUpdate(self))
 
     def get_position_relative_to_beam(self):
         """
@@ -210,8 +165,8 @@ class TrackingBeamPathCalc(object):
             alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
         """
         self._movement_strategy.set_displacement(displacement)
-        self._trigger_after_beam_path_update()
-        self._trigger_after_physical_move_listener()
+        self.trigger_listeners(BeamPathUpdate(self))
+        self.trigger_listeners(PhysicalMoveUpdate(self))
 
     def get_displacement(self):
         """
@@ -238,7 +193,7 @@ class TrackingBeamPathCalc(object):
         """
         Calculates the position of the intercept between the incoming beam and the movement axis of this component.
 
-        Params:
+        Args:
             on_init(Boolean): Whether this is being called on initialisation
 
         Returns (ReflectometryServer.geometry.Position): The position of the beam intercept in mantid coordinates.
@@ -265,8 +220,8 @@ class TrackingBeamPathCalc(object):
             is_in_beam: True if set the component to be in the beam; False otherwise
         """
         self._is_in_beam = is_in_beam
-        self._trigger_after_beam_path_update()
-        self._trigger_after_physical_move_listener()
+        self.trigger_listeners(BeamPathUpdate(self))
+        self.trigger_listeners(PhysicalMoveUpdate(self))
 
     @property
     def is_displacing(self):
@@ -284,21 +239,7 @@ class TrackingBeamPathCalc(object):
              value: the new displacing state
         """
         self._is_displacing = value
-        self._trigger_after_is_changing_change()
-
-    def add_after_physical_move_listener(self, listener):
-        """
-        Add a listener which is called when a move is generated from a location change not from a incoming beam path
-        change. For example when a height is increased by the motor. This is used by the Theta readback to determine if
-        a component has changed height.
-        Args:
-            listener: listener takes the source of the change
-        """
-        self._after_physical_move_listeners.add(listener)
-
-    def _trigger_after_physical_move_listener(self):
-        for listener in self._after_physical_move_listeners:
-            listener(self)
+        self.trigger_listeners(ComponentChangingUpdate())
 
 
 class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
@@ -343,19 +284,19 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
              value: the new rotating state
         """
         self._is_rotating = value
-        self._trigger_after_is_changing_change()
+        self.trigger_listeners(ComponentChangingUpdate())
 
     def init_angle_from_motor(self, angle):
         """
         Initialise the angle of this component from a motor axis value.
 
-        Params:
+        Args:
             value(float): The angle read from the motor
         """
         self._angular_displacement = angle
-        self._trigger_init_listeners()
+        self.trigger_listeners(InitUpdate())
         if self._is_reflecting:
-            self._trigger_after_beam_path_update_on_init()
+            self.trigger_listeners(BeamPathUpdateOnInit(self))
 
     def _set_angular_displacement(self, angle):
         """
@@ -365,7 +306,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         """
         self._angular_displacement = angle
         if self._is_reflecting:
-            self._trigger_after_beam_path_update()
+            self.trigger_listeners(BeamPathUpdate(self))
 
     def set_angle_relative_to_beam(self, angle):
         """
@@ -412,7 +353,7 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
             angle: The modified angle
         """
         self._set_angular_displacement(angle)
-        self._trigger_after_physical_move_listener()
+        self.trigger_listeners(PhysicalMoveUpdate(self))
 
 
 class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
@@ -434,22 +375,28 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         self._angle_to = angle_to
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
-            readback_beam_path_calc.add_after_physical_move_listener(self._update_angle)
-            setpoint_beam_path_calc.add_after_physical_move_listener(self._update_angle)
-            readback_beam_path_calc.add_after_is_changing_change_listener(self._on_is_changing_change)
+            readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self._update_angle)
+            setpoint_beam_path_calc.add_listener(PhysicalMoveUpdate, self._update_angle)
+            readback_beam_path_calc.add_listener(ComponentChangingUpdate, self._on_is_changing_change)
 
-    def _on_is_changing_change(self):
+    def _on_is_changing_change(self, update):
+        """
+        Updates the changing state of this component.
+
+        Args:
+            update (ComponentChangingUpdate): The update event
+        """
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
                 self.is_rotating = readback_beam_path_calc.is_displacing
-                self._trigger_after_is_changing_change()
+                self.trigger_listeners(ComponentChangingUpdate())
                 break
 
-    def _update_angle(self, source):
+    def _update_angle(self, update):
         """
         A listener for the beam update from another beam calc.
         Args:
-            source: the beam calc that changed
+            update (PhysicalMoveUpdate): The update event
         """
         self._set_angular_displacement(self._calc_angle_from_next_component(self._incoming_beam))
 
@@ -524,19 +471,23 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         super(BeamPathCalcThetaSP, self).__init__(movement_strategy, is_reflecting=True)
         self._angle_to = angle_to
         for comp in self._angle_to:
-            comp.add_init_listener(self._init_listener)
+            comp.add_listener(InitUpdate, self._init_listener)
+        self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
 
-    def _init_listener(self):
+    def _init_listener(self, update):
         """
         Initialises the theta angle. Listens on the component(s) this theta is angled to, and is triggered once that
         component has read an initial position.
+
+        Args:
+            update (InitUpdate): The update event
         """
         if self.autosaved_angle is None:
             self._angular_displacement = self._calc_angle_from_next_component(self._incoming_beam)
         else:
             self._angular_displacement = self._incoming_beam.angle + self.autosaved_angle
-        self._trigger_init_listeners()
-        self._trigger_after_beam_path_update()
+        self.trigger_listeners(InitUpdate())
+        self.trigger_listeners(BeamPathUpdate(self))
 
     def _calc_angle_from_next_component(self, incoming_beam):
         """
@@ -563,15 +514,11 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
             angle = float("NaN")
         return angle
 
-    def _trigger_after_beam_path_update(self):
+    def _set_incoming_beam_at_next_angled_to_component(self):
         """
-        Before triggering movement, set the disabled components angle which we point at.
-        This is because it will not get the altered beam path.
+        Sets the incoming beam at the next disabled component in beam that this theta component is angled to.
         """
-
         for angle_to in self._angle_to:
             if not angle_to.incoming_beam_can_change and angle_to.is_in_beam:
                 angle_to.set_incoming_beam(self.get_outgoing_beam(), force=True)
                 break
-
-        super(BeamPathCalcThetaSP, self)._trigger_after_beam_path_update()

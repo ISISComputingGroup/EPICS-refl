@@ -12,6 +12,7 @@ class _ListenerInfo:
     def __init__(self):
         self.listeners = set()
         self.last_value = None
+        self.pre_trigger_function = None
 
 
 def observable(*allowed_listener_types):
@@ -38,9 +39,20 @@ def observable(*allowed_listener_types):
             Add a listener of the given type to this class
             Args:
                 self: instance of the class
+                listener_type: the type of listener
                 listener: listener to add
             """
             _get_listeners_info(self, listener_type).listeners.add(listener)
+
+        def _add_pre_trigger_function(self, listener_type, pre_trigger_function):
+            """
+            Add a function to be executed before triggering the listeners for a given type.
+            Args:
+                self: instance of the class
+                listener_type: the type of listener
+                pre_trigger_function: the function to execute before triggering listeners
+            """
+            _get_listeners_info(self, listener_type).pre_trigger_function = pre_trigger_function
 
         def _get_listeners_info(self, listener_type):
             """
@@ -72,6 +84,10 @@ def observable(*allowed_listener_types):
                 new_value: the new value that the listeners should be informed of
             """
             listeners_info = _get_listeners_info(self, type(new_value))
+
+            if listeners_info.pre_trigger_function is not None:
+                listeners_info.pre_trigger_function()
+
             listeners_info.last_value = new_value
             for listener in listeners_info.listeners:
                 listener(new_value)
@@ -88,6 +104,10 @@ def observable(*allowed_listener_types):
             """
             listeners_info = _get_listeners_info(self, listener_type)
             return listeners_info.last_value
+
+        # add the method which allows the observable to add a custom pre-trigger function to be executed on an event for
+        # the given listener type.
+        setattr(cls, "_add_pre_trigger_function", _add_pre_trigger_function)
 
         # add the method which allows observers of the class to add their listeners to it
         setattr(cls, "add_listener", _add_listener)

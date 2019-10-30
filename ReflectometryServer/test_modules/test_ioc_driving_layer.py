@@ -7,6 +7,7 @@ from mock import MagicMock, patch
 from hamcrest import *
 
 from ReflectometryServer import *
+from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.beamline import STATUS
 from ReflectometryServer.components import ChangeAxis
 from server_common.channel_access import UnableToConnectToPVException
@@ -59,7 +60,7 @@ class TestHeightDriver(unittest.TestCase):
 
     def test_GIVEN_displacement_changed_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered(self):
         listener = MagicMock()
-        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = 10.1
 
         self.height_axis.sp = expected_value
@@ -254,7 +255,7 @@ class TestHeightAndAngleDriver(unittest.TestCase):
 
     def test_GIVEN_angle_changed_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered(self):
         listener = MagicMock()
-        self.supermirror.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        self.supermirror.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = 10.1
 
         self.angle_axis.sp = expected_value
@@ -302,7 +303,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
 
     def test_GIVEN_displacement_changed_to_out_of_beam_position_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_false(self):
         listener = MagicMock()
-        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = False
 
         self.height_axis.sp = self.out_of_beam_position
@@ -312,7 +313,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
 
     def test_GIVEN_displacement_changed_to_an_in_beam_position_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_true(self):
         listener = MagicMock()
-        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = True
 
         self.height_axis.sp = self.out_of_beam_position + 2 * self.tolerance_on_out_of_beam_position
@@ -322,7 +323,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
 
     def test_GIVEN_displacement_changed_to_out_of_beam_position_within_tolerance_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_false(self):
         listener = MagicMock()
-        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = False
 
         self.height_axis.sp = self.out_of_beam_position + self.tolerance_on_out_of_beam_position * 0.9

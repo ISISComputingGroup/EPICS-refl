@@ -1,6 +1,7 @@
 """
 Parameters that the user would interact with
 """
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate
 from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
 
@@ -12,7 +13,6 @@ import six
 from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate
 
 logger = logging.getLogger(__name__)
-
 
 class ParameterNotInitializedException(Exception):
     """
@@ -98,16 +98,19 @@ class BeamlineParameter(object):
         """
 
     @abc.abstractmethod
-    def _initialise_sp_from_motor(self):
+    def _initialise_sp_from_motor(self, update):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
+
+        Args:
+            update (ReflectometryServer.beam_path_calc.InitUpdate): The update event
         """
 
     def _set_initial_sp(self, sp_init):
         """
         Populate the setpoint and setpoint readback with a value and trigger relevant listeners.
 
-        Params:
+        Args:
             sp_init: The setpoint value to set
         """
         self._set_point = sp_init
@@ -256,9 +259,12 @@ class BeamlineParameter(object):
         """
         self._after_is_changing_change_listeners.add(listener)
 
-    def _trigger_after_is_changing_change(self):
+    def _trigger_after_is_changing_change(self, update):
         """
         Runs all the current listeners on the changing state because something has changed.
+
+        Args:
+            update (ReflectometryServer.beam_path_calc.ComponentChangingUpdate): The update event
         """
         for listener in self._after_is_changing_change_listeners:
             listener(self.is_changing)
@@ -393,11 +399,11 @@ class AngleParameter(BeamlineParameter):
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
-            self._reflection_component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
+            self._reflection_component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
 
-        self._reflection_component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._reflection_component.beam_path_rbv.add_after_is_changing_change_listener(
-            self._trigger_after_is_changing_change)
+        self._reflection_component.beam_path_rbv.add_listener(BeamPathUpdate, self._trigger_rbv_listeners)
+        self._reflection_component.beam_path_rbv.add_listener(ComponentChangingUpdate,
+                                                              self._trigger_after_is_changing_change)
 
     def _initialise_sp_from_file(self):
         """
@@ -413,9 +419,12 @@ class AngleParameter(BeamlineParameter):
             except ValueError:
                 self._log_autosave_type_error()
 
-    def _initialise_sp_from_motor(self):
+    def _initialise_sp_from_motor(self, update):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
+
+        Args:
+            update (ReflectometryServer.beam_path_calc.InitUpdate): The update event
         """
         init_sp = self._reflection_component.beam_path_set_point.get_angle_relative_to_beam()
         self._set_initial_sp(init_sp)
@@ -472,10 +481,10 @@ class TrackingPosition(BeamlineParameter):
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
-            self._component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
+            self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
 
-        self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._component.beam_path_rbv.add_after_is_changing_change_listener(self._trigger_after_is_changing_change)
+        self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._trigger_rbv_listeners)
+        self._component.beam_path_rbv.add_listener(ComponentChangingUpdate, self._trigger_after_is_changing_change)
 
         self.group_names.append(BeamlineParameterGroup.TRACKING)
 
@@ -493,9 +502,12 @@ class TrackingPosition(BeamlineParameter):
             except ValueError:
                 self._log_autosave_type_error()
 
-    def _initialise_sp_from_motor(self):
+    def _initialise_sp_from_motor(self, update):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
+
+        Args:
+            update (ReflectometryServer.beam_path_calc.InitUpdate): The update event
         """
         if self._component.beam_path_set_point.is_in_beam:
             init_sp = self._component.beam_path_set_point.get_position_relative_to_beam()
@@ -569,9 +581,9 @@ class InBeamParameter(BeamlineParameter):
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
-            self._component.beam_path_set_point.add_init_listener(self._initialise_sp_from_motor)
-        self._component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
-        self._component.beam_path_rbv.add_after_is_changing_change_listener(self._trigger_after_is_changing_change)
+            self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
+        self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._trigger_rbv_listeners)
+        self._component.beam_path_rbv.add_listener(ComponentChangingUpdate, self._trigger_after_is_changing_change)
 
         self.parameter_type = BeamlineParameterType.IN_OUT
 
@@ -589,9 +601,12 @@ class InBeamParameter(BeamlineParameter):
         elif sp_init is not None:
             self._log_autosave_type_error()
 
-    def _initialise_sp_from_motor(self):
+    def _initialise_sp_from_motor(self, update):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
+
+        Args:
+            update (ReflectometryServer.beam_path_calc.InitUpdate): The update event
         """
         init_sp = self._component.beam_path_set_point.is_in_beam
         self._set_initial_sp(init_sp)
@@ -681,7 +696,7 @@ class SlitGapParameter(BeamlineParameter):
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
-            self._initialise_sp_from_motor()
+            self._initialise_sp_from_motor(None)
         if sim:
             self._rbv_value = init
 
@@ -696,9 +711,12 @@ class SlitGapParameter(BeamlineParameter):
             except ValueError:
                 self._log_autosave_type_error()
 
-    def _initialise_sp_from_motor(self):
+    def _initialise_sp_from_motor(self, update):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
+
+        Args:
+            update (ReflectometryServer.beam_path_calc.InitUpdate): The update event
         """
         self._set_initial_sp(self._pv_wrapper.sp)
 
