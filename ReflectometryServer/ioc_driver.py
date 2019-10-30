@@ -60,7 +60,12 @@ class IocDriver(object):
 
         """
         if new_event.change_axis == self._change_axis_type:
-            self._axis.define_position_as(self._engineering_correction.to_axis(new_event.new_position))
+            correct_position = self._engineering_correction.to_axis(new_event.new_position)
+            logger.info("Defining position for axis {name} to {corrected_value} (uncorrected {new_value}). "
+                        "From sp {sp} and rbv {rbv}".format(name=self._axis.name, corrected_value=correct_position,
+                                                            new_value=new_event.new_position, sp=self._sp_cache,
+                                                            rbv=self._rbv_cache))
+            self._axis.define_position_as(correct_position)
 
     def _on_correction_update(self, new_correction_value):
         """

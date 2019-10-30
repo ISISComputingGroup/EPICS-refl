@@ -613,8 +613,21 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         try:
             mtr1, mtr2 = self._pv_names_for_directions("MTR")
+            logger.info("Defining position for axis {name} to {corrected_value}. "
+                        "From sp {sp} and rbv {rbv}.".format(name=self.name, corrected_value=new_position,
+                                                             sp=self.sp, rbv=self.rbv))
+            for motor in self._pv_names_for_directions("MTR"):
+                rbv = self._read_pv("{}.RBV".format(motor))
+                sp = self._read_pv("{}".format(motor))
+                logger.info("    Motor {name} initially at rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
+
             with self._motor_in_set_mode(mtr1), self._motor_in_set_mode(mtr2):
                     self._write_pv(self._sp_pv, new_position)
+
+            for motor in self._pv_names_for_directions("MTR"):
+                rbv = self._read_pv("{}.RBV".format(motor))
+                sp = self._read_pv("{}".format(motor))
+                logger.info("    Motor {name} moved to rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
         except ValueError as ex:
             logger.error("Can not define zero: {}".format(ex))
 

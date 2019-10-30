@@ -28,10 +28,11 @@ class DefineCurrentValueAsParameter(object):
     A helper class which allows the current parameter readback to be set to a particular value by passing it down to the
     lower levels.
     """
-    def __init__(self, define_current_value_as_fn, set_point_change_fn):
+    def __init__(self, define_current_value_as_fn, set_point_change_fn, parameter):
         self._new_value = 0.0
         self._define_current_value_as_fn = define_current_value_as_fn
         self._set_point_change_fn = set_point_change_fn
+        self._parameter = parameter
 
     @property
     def new_value(self):
@@ -47,6 +48,14 @@ class DefineCurrentValueAsParameter(object):
         Args:
             value: the new value to set the parameter to
         """
+        logger.info("Defining position for parameter {name} to {new_value}. "
+                    "From sp {sp}, sp_rbv {sp_rbv} and rbv {rbv}"
+                    .format(name=self._parameter.name,
+                            new_value=value,
+                            sp=self._parameter.sp,
+                            sp_rbv=self._parameter.sp_rbv,
+                            rbv=self._parameter.rbv))
+
         self._new_value = value
         self._define_current_value_as_fn(value)
         self._set_point_change_fn(value)
@@ -438,7 +447,7 @@ class AngleParameter(BeamlineParameter):
 
         if self._reflection_component.can_define_current_angle_as:
             self.define_current_value_as = DefineCurrentValueAsParameter(
-                self._reflection_component.define_current_angle_as, self._set_sp)
+                self._reflection_component.define_current_angle_as, self._set_sp, self)
 
     def _initialise_sp_from_file(self):
         """
@@ -521,7 +530,7 @@ class TrackingPosition(BeamlineParameter):
         self.group_names.append(BeamlineParameterGroup.TRACKING)
 
         self.define_current_value_as = DefineCurrentValueAsParameter(
-            self._component.define_current_position_as, self._set_sp)
+            self._component.define_current_position_as, self._set_sp, self)
 
     def _initialise_sp_from_file(self):
         """
@@ -729,7 +738,7 @@ class SlitGapParameter(BeamlineParameter):
 
         self._no_move_because_is_define = False
         self.define_current_value_as = DefineCurrentValueAsParameter(self._pv_wrapper.define_position_as,
-                                                                     self._set_sp_perform_no_move)
+                                                                     self._set_sp_perform_no_move, self)
 
     def _initialise_sp_from_file(self):
         """
