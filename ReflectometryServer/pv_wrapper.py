@@ -378,41 +378,20 @@ class PVWrapper(object):
         offset_freeze_switch_pv = "{}.FOFF".format(motor_pv)
 
         try:
-            self._pv_write_retry_on_fail(calibration_set_pv, "Set")
+            self._ca.caput_retry_on_fail(calibration_set_pv, "Set")
             offset_freeze_switch = self._read_pv(offset_freeze_switch_pv)
-            self._pv_write_retry_on_fail(offset_freeze_switch_pv, "Frozen")
-        except ValueError as ex:
+            self._ca.caput_retry_on_fail(offset_freeze_switch_pv, "Frozen")
+        except IOError as ex:
             raise ValueError("Can not set motor set and frozen offset mode: {}".format(ex))
 
         try:
             yield
         finally:
             try:
-                self._pv_write_retry_on_fail(calibration_set_pv, "Use")
-                self._pv_write_retry_on_fail(offset_freeze_switch_pv, offset_freeze_switch)
-            except ValueError as ex:
+                self._ca.caput_retry_on_fail(calibration_set_pv, "Use")
+                self._ca.caput_retry_on_fail(offset_freeze_switch_pv, offset_freeze_switch)
+            except IOError as ex:
                 raise ValueError("Can not reset motor set and frozen offset mode: {}".format(ex))
-
-    def _pv_write_retry_on_fail(self, pv_name, value, retry_count=5):
-        """
-        Write to a pv and check the value is set, retry of not
-        Args:
-            pv_name: pv name to write to
-            value: value to write
-            retry_count: number of retries
-
-        Raises:
-            ValueError: if pv can not be set
-
-        """
-        current_value = None
-        for _ in range(retry_count):
-            self._write_pv(pv_name, value, wait=True)
-            current_value = self._read_pv(pv_name)
-            if current_value == value:
-                break
-        else:
-            raise ValueError("PV value can not be set, pv {}, was {} expected {}".format(pv_name, current_value, value))
 
 
 class MotorPVWrapper(PVWrapper):

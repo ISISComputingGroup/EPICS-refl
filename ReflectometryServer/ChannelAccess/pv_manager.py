@@ -268,13 +268,17 @@ class PVManager:
         """
         param_info = []
         align_info = []
-        for param, (param_type, group_names, description, has_define_position_as) in self._beamline.parameter_types.items():
-            param_info_record = self._add_parameter_pvs(param, group_names, description, param_type, has_define_position_as)
+        for parameter in self._beamline.parameters.values():
+            param_info_record = self._add_parameter_pvs(parameter)
             param_info.append(param_info_record)
-            if has_define_position_as:
-                align_info_record = param_info_record.copy()
-                align_info_record["type"] = "align"
+            if parameter.has_define_position_as:
+                align_info_record = {
+                    "name": param_info_record["name"],
+                    "prepended_alias": param_info_record["prepended_alias"],
+                    "type": "align"
+                    }
                 align_info.append(align_info_record)
+
         self.PVDB[PARAM_INFO] = {'type': 'char',
                                  'count': 2048,
                                  'value': compress_and_hex(json.dumps(param_info))
@@ -284,25 +288,24 @@ class PVManager:
                                  'value': compress_and_hex(json.dumps(align_info))
                                  }
     
-    def _add_parameter_pvs(self, param_name, group_names, description, param_type, has_define_position_as):
+    def _add_parameter_pvs(self, parameter):
         """
         Adds all PVs needed for one beamline parameter to the PV database.
 
         Args:
-            param_name: The name of the beamline parameter
-            group_names: list of groups to which this parameter belong
-            description: description of the pv
-            param_type: The type of the parameter
-            has_define_position_as: parameter can have zero defined
+            parameter (ReflectometryServer.parameters.BeamlineParameter): the beamline parameter
 
         Returns:
             parameter information
         """
         try:
+            param_name = parameter.name
+            description = parameter.description
             param_alias = create_pv_name(param_name, self.PVDB.keys(), PARAM_PREFIX, limit=10)
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
-           
-            fields = PARAMS_FIELDS_BEAMLINE_TYPES[param_type]
+
+            parameter_type = parameter.parameter_type
+            fields = PARAMS_FIELDS_BEAMLINE_TYPES[parameter_type]
 
             self.PVDB["{}.DESC".format(prepended_alias)] = {'type': 'string',
                                                             'value': description
@@ -343,7 +346,7 @@ class PVManager:
                                   PvSort.RBV_AT_SP)
 
             # define position at
-            if has_define_position_as:
+            if parameter.has_define_position_as:
                 align_fields = STANDARD_FLOAT_PV_FIELDS.copy()
                 align_fields["asg"] = "MANAGER"
                 self._add_pv_with_val(prepended_alias + DEFINE_POSITION_AS, param_name, align_fields, description,
@@ -351,7 +354,7 @@ class PVManager:
 
             return {"name": param_name,
                     "prepended_alias": prepended_alias,
-                    "type": BeamlineParameterType.name_for_param_list(param_type)}
+                    "type": BeamlineParameterType.name_for_param_list(parameter_type)}
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)

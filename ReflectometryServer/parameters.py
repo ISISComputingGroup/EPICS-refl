@@ -360,7 +360,8 @@ class BeamlineParameter(object):
     @property
     def name(self):
         """
-        Returns: name of this beamline parameter
+        Returns:
+            (str): name of this beamline parameter
         """
         return self._name
 

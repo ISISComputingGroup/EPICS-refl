@@ -56,6 +56,9 @@ beamline = create_beamline_from_configuration()
 
 pv_db = PVManager(beamline)
 SERVER = SimpleServer()
+
+# Add security access to pvs. NB this is only for local rules because we have not substituted in the correct macros for
+# remote host access to the pvs
 SERVER.initAccessSecurityFile(DEFAULT_ASG_RULES, P=MYPVPREFIX)
 
 print("Prefix: {}".format(REFLECTOMETRY_PREFIX))

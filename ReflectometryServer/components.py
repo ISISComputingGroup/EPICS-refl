@@ -22,6 +22,7 @@ class ChangeAxis(Enum):
     ANGLE = 1
 
 
+# Event that happens when a value is redefine to a different value, e.g. offset is set from 2 to 3
 DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
     "new_position",  # the new value
     "change_axis"])  # the axis it applies to of type ChangeAxis
@@ -43,7 +44,7 @@ class Component(object):
         self._name = name
         self._init_beam_path_calcs(setup)
         self._changed = {ChangeAxis.POSITION: False}
-        self.can_define_current_angle_as = True
+        self.can_define_current_angle_as = False
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = TrackingBeamPathCalc(LinearMovementCalc(setup))
@@ -136,6 +137,7 @@ class TiltingComponent(Component):
         """
         super(TiltingComponent, self).__init__(name, setup)
         self._changed[ChangeAxis.ANGLE] = False
+        self.can_define_current_angle_as = True
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = BeamPathTilting(LinearMovementCalc(setup))
@@ -164,6 +166,7 @@ class ReflectingComponent(Component):
         """
         super(ReflectingComponent, self).__init__(name, setup)
         self._changed[ChangeAxis.ANGLE] = False
+        self.can_define_current_angle_as = True
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = BeamPathCalcAngleReflecting(LinearMovementCalc(setup))
