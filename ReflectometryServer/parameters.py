@@ -1,6 +1,8 @@
 """
 Parameters that the user would interact with
 """
+from collections import namedtuple
+
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate
 from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
@@ -11,8 +13,16 @@ import abc
 import six
 
 from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate
+from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
+
+ParameterReadbackUpdate = namedtuple("ParameterReadbackUpdate", ["value", "alarm_severity", "alarm_status"])
+ParameterSetpointReadbackUpdate = namedtuple("ParameterSetpointReadbackUpdate", ["value"])
+ParameterAtSetpointUpdate = namedtuple("ParameterAtSetpointUpdate", ["value"])
+ParameterChangingUpdate = namedtuple("ParameterChangingUpdate", ["value"])
+ParameterInitUpdate = namedtuple("ParameterInitUpdate", ["value"])
+
 
 class ParameterNotInitializedException(Exception):
     """
@@ -55,12 +65,14 @@ class BeamlineParameterGroup(Enum):
     GAP_HORIZONTAL = 4
 
 
+@observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate, ParameterChangingUpdate, ParameterInitUpdate)
 @six.add_metaclass(abc.ABCMeta)
 class BeamlineParameter(object):
     """
     General beamline parameter that can be set. Subclass must implement _move_component to decide what to do with the
     value that is set.
     """
+
     def __init__(self, name, sim=False, init=None, description=None, autosave=False, rbv_to_sp_tolerance=0.01):
         if sim:
             self._set_point = init
@@ -71,6 +83,8 @@ class BeamlineParameter(object):
 
         self._sp_is_changed = False
         self._name = name
+        self.alarm_status = None
+        self.alarm_severity = None
         self.after_move_listener = lambda x: None
         self.parameter_type = BeamlineParameterType.FLOAT
         if description is None:
@@ -79,11 +93,6 @@ class BeamlineParameter(object):
             self.description = description
         self._autosave = autosave
         self.group_names = []
-        self._rbv_change_listeners = set()
-        self._sp_rbv_change_listeners = set()
-        self._after_is_changing_change_listeners = set()
-        self._after_rbv_at_sp_listeners = set()
-        self._init_listeners = set()
         self._rbv_to_sp_tolerance = rbv_to_sp_tolerance
 
     def __repr__(self):
@@ -115,7 +124,7 @@ class BeamlineParameter(object):
         """
         self._set_point = sp_init
         self._set_point_rbv = sp_init
-        self._trigger_init_listeners()
+        self.trigger_listeners(ParameterInitUpdate(self._set_point))
 
     @abc.abstractmethod
     def _set_changed_flag(self):
@@ -215,7 +224,7 @@ class BeamlineParameter(object):
         self._sp_is_changed = False
         if self._autosave:
             write_autosave_value(self._name, self._set_point_rbv, AutosaveType.PARAM)
-        self._trigger_sp_rbv_listeners(self)
+        self._on_update_sp_rbv()
 
     def move_to_sp_rbv_no_callback(self):
         """
@@ -223,15 +232,7 @@ class BeamlineParameter(object):
         """
         self._check_and_move_component()
 
-    def add_rbv_change_listener(self, listener):
-        """
-        Add a listener which should be called if the rbv value changes.
-        Args:
-            listener: the function to call with one argument which is the new rbv value
-        """
-        self._rbv_change_listeners.add(listener)
-
-    def _trigger_rbv_listeners(self, source):
+    def _on_update_rbv(self, source):
         """
         Trigger all rbv listeners
 
@@ -239,9 +240,24 @@ class BeamlineParameter(object):
             source: source of change which is not used
         """
         rbv = self._rbv()
-        for listener in self._rbv_change_listeners:
-            listener(rbv)
-        self._trigger_after_sp_at_rbv_update()
+        self._update_alarms()
+        self.trigger_listeners(ParameterReadbackUpdate(rbv, self.alarm_severity, self.alarm_status))
+        self.trigger_listeners(ParameterAtSetpointUpdate(self.rbv_at_sp))
+
+    def _update_alarms(self):
+        """
+        To be implemented in subclass
+        """
+        alarm_info = self._get_alarm_info()
+        if alarm_info is not None:
+            self.alarm_severity = alarm_info[0]
+            self.alarm_status = alarm_info[1]
+
+    def _get_alarm_info(self):
+        """
+        To be implemented in subclass
+        """
+        raise NotImplemented()
 
     @property
     def is_changing(self):
@@ -250,72 +266,21 @@ class BeamlineParameter(object):
         """
         raise NotImplemented()
 
-    def add_after_is_changing_change_listener(self, listener):
-        """
-        Add a listener which is triggered if the changing (rotating, displacing etc) state is changed.
-
-        Args:
-            listener: listener with a single argument which is the calling calculation.
-        """
-        self._after_is_changing_change_listeners.add(listener)
-
-    def _trigger_after_is_changing_change(self, update):
+    def _on_update_changing_state(self, update):
         """
         Runs all the current listeners on the changing state because something has changed.
 
         Args:
             update (ReflectometryServer.beam_path_calc.ComponentChangingUpdate): The update event
         """
-        for listener in self._after_is_changing_change_listeners:
-            listener(self.is_changing)
+        self.trigger_listeners(ParameterChangingUpdate(self.is_changing))
 
-    def add_after_rbv_at_sp_listener(self, listener):
-        """
-        Add a listener which is triggered to check if the rbv is at the sp target within some tolerance.
-
-        Args:
-            listener: listener with a single argument which is the calling calculation.
-        """
-        self._after_rbv_at_sp_listeners.add(listener)
-
-    def _trigger_after_sp_at_rbv_update(self):
-        """
-        Runs all the current listeners on the rbv_at_sp because something has changed.
-        """
-        for listener in self._after_rbv_at_sp_listeners:
-            listener(self.rbv_at_sp)
-
-    def add_sp_rbv_change_listener(self, listener):
-        """
-        Add a listener which should be called if the rbv value changes.
-        Args:
-            listener: the function to call with one argument which is the new rbv value
-        """
-        self._sp_rbv_change_listeners.add(listener)
-
-    def _trigger_sp_rbv_listeners(self, source):
+    def _on_update_sp_rbv(self):
         """
         Trigger all rbv listeners
-
-        Args:
-            source: source of change which is not used
         """
-        for listener in self._sp_rbv_change_listeners:
-            listener(self._set_point_rbv)
-        self._trigger_after_sp_at_rbv_update()
-
-    def add_init_listener(self, listener):
-        """
-        Add a new initialise listener to be triggered when the parameter is initialised.
-        Args:
-            listener: listener to add
-
-        """
-        self._init_listeners.add(listener)
-
-    def _trigger_init_listeners(self):
-        for listener in self._init_listeners:
-            listener(self._set_point)
+        self.trigger_listeners(ParameterSetpointReadbackUpdate(self._set_point_rbv))
+        self.trigger_listeners(ParameterAtSetpointUpdate(self.rbv_at_sp))
 
     @property
     def name(self):
@@ -401,9 +366,9 @@ class AngleParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._reflection_component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
 
-        self._reflection_component.beam_path_rbv.add_listener(BeamPathUpdate, self._trigger_rbv_listeners)
+        self._reflection_component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         self._reflection_component.beam_path_rbv.add_listener(ComponentChangingUpdate,
-                                                              self._trigger_after_is_changing_change)
+                                                              self._on_update_changing_state)
 
     def _initialise_sp_from_file(self):
         """
@@ -437,6 +402,12 @@ class AngleParameter(BeamlineParameter):
 
     def _rbv(self):
         return self._reflection_component.beam_path_rbv.get_angle_relative_to_beam()
+
+    def _get_alarm_info(self):
+        """
+        Returns the alarm information for the angle axis of this component.
+        """
+        return self._reflection_component.beam_path_rbv.angle_alarm
 
     @property
     def is_changing(self):
@@ -483,8 +454,8 @@ class TrackingPosition(BeamlineParameter):
         if self._set_point_rbv is None:
             self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
 
-        self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._trigger_rbv_listeners)
-        self._component.beam_path_rbv.add_listener(ComponentChangingUpdate, self._trigger_after_is_changing_change)
+        self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
+        self._component.beam_path_rbv.add_listener(ComponentChangingUpdate, self._on_update_changing_state)
 
         self.group_names.append(BeamlineParameterGroup.TRACKING)
 
@@ -527,6 +498,12 @@ class TrackingPosition(BeamlineParameter):
         """
         return self._component.beam_path_rbv.get_position_relative_to_beam()
 
+    def _get_alarm_info(self):
+        """
+        Returns the alarm information for the displacement axis of this component.
+        """
+        return self._component.beam_path_rbv.displacement_alarm
+
     @property
     def rbv_at_sp(self):
         """
@@ -537,7 +514,7 @@ class TrackingPosition(BeamlineParameter):
             return False
 
         return not self._component.beam_path_set_point.is_in_beam or \
-            abs(self.rbv - self._set_point_rbv) <= self._rbv_to_sp_tolerance
+               abs(self.rbv - self._set_point_rbv) <= self._rbv_to_sp_tolerance
 
     @property
     def is_changing(self):
@@ -582,8 +559,8 @@ class InBeamParameter(BeamlineParameter):
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
             self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
-        self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._trigger_rbv_listeners)
-        self._component.beam_path_rbv.add_listener(ComponentChangingUpdate, self._trigger_after_is_changing_change)
+        self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
+        self._component.beam_path_rbv.add_listener(ComponentChangingUpdate, self._on_update_changing_state)
 
         self.parameter_type = BeamlineParameterType.IN_OUT
 
@@ -643,6 +620,12 @@ class InBeamParameter(BeamlineParameter):
     def _rbv(self):
         return self._component.beam_path_rbv.is_in_beam
 
+    def _get_alarm_info(self):
+        """
+        Returns the alarm information for the displacement axis of this component.
+        """
+        return self._component.beam_path_rbv.displacement_alarm
+
     @property
     def rbv_at_sp(self):
         """
@@ -669,6 +652,7 @@ class SlitGapParameter(BeamlineParameter):
     Parameter which sets the gap on a slit. This differs from other beamline parameters in that it is not linked to the
     beamline component layer but hooks directly into a motor axis.
     """
+
     def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False,
                  rbv_to_sp_tolerance=0.002):
         """
@@ -681,10 +665,10 @@ class SlitGapParameter(BeamlineParameter):
         """
         super(SlitGapParameter, self).__init__(name, sim, init, description, autosave,
                                                rbv_to_sp_tolerance=rbv_to_sp_tolerance)
-        self._rbv_value = None
+        self._last_update = None
 
         self._pv_wrapper = pv_wrapper
-        self._pv_wrapper.add_listener(ReadbackUpdate, self.update_rbv)
+        self._pv_wrapper.add_listener(ReadbackUpdate, self._on_update_slit_rbv)
         self._pv_wrapper.add_listener(IsChangingUpdate, self._on_is_changing_change)
         self._pv_wrapper.initialise()
         if pv_wrapper.is_vertical:
@@ -698,7 +682,7 @@ class SlitGapParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._initialise_sp_from_motor(None)
         if sim:
-            self._rbv_value = init
+            self._last_update = ReadbackUpdate(init, None, None)
 
     def _initialise_sp_from_file(self):
         """
@@ -720,15 +704,15 @@ class SlitGapParameter(BeamlineParameter):
         """
         self._set_initial_sp(self._pv_wrapper.sp)
 
-    def update_rbv(self, update):
+    def _on_update_slit_rbv(self, update):
         """
         Update the readback value.
 
         Args:
             update (ReflectometryServer.pv_wrapper.ReadbackUpdate): update of the readback value of the axis
         """
-        self._rbv_value = update.value
-        self._trigger_rbv_listeners(self)
+        self._last_update = update
+        self._on_update_rbv(self)
 
     def _set_changed_flag(self):
         pass
@@ -737,7 +721,13 @@ class SlitGapParameter(BeamlineParameter):
         self._pv_wrapper.sp = self._set_point_rbv
 
     def _rbv(self):
-        return self._rbv_value
+        return self._last_update.value
+
+    def _get_alarm_info(self):
+        """
+        Returns the alarm information for this slit gap.
+        """
+        return (self._last_update.alarm_severity, self._last_update.alarm_status)
 
     def validate(self, drivers):
         """
@@ -753,7 +743,13 @@ class SlitGapParameter(BeamlineParameter):
         return []
 
     def _on_is_changing_change(self, update):
-        self._trigger_after_is_changing_change()
+        """
+        Trigger an update for the is_changing status of this parameter on such an event in the PV wrapper.
+
+        Args:
+            update (ReflectometryServer.pv_wrapper.IsChangingUpdate): The update event
+        """
+        self._on_update_changing_state(None)
 
     @property
     def is_changing(self):

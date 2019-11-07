@@ -2,6 +2,7 @@
 Wrapper for motor PVs
 """
 from collections import namedtuple
+import time
 from functools import partial
 from threading import Event
 
@@ -14,9 +15,9 @@ from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 
-SetpointUpdate = namedtuple("SetpointUpdate", ["value", "alarm_status", "alarm_severity"])
-ReadbackUpdate = namedtuple("ReadbackUpdate", ["value", "alarm_status", "alarm_severity"])
-IsChangingUpdate = namedtuple("IsChangingUpdate", ["value", "alarm_status", "alarm_severity"])
+SetpointUpdate = namedtuple("SetpointUpdate", ["value", "alarm_severity", "alarm_status"])
+ReadbackUpdate = namedtuple("ReadbackUpdate", ["value", "alarm_severity", "alarm_status"])
+IsChangingUpdate = namedtuple("IsChangingUpdate", ["value", "alarm_severity", "alarm_status"])
 
 
 @observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)

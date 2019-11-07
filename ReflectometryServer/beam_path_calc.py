@@ -16,7 +16,7 @@ BeamPathUpdate = namedtuple("BeamPathUpdate", ["source"])
 BeamPathUpdateOnInit = namedtuple("BeamPathUpdateOnInit", ["source"])
 PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", ["source"])
 ComponentChangingUpdate = namedtuple("ComponentChangingUpdate", [])
-InitUpdate = namedtuple("OnInitUpdate", [])
+InitUpdate = namedtuple("InitUpdate", [])
 
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, ComponentChangingUpdate, InitUpdate)
@@ -35,6 +35,8 @@ class TrackingBeamPathCalc(object):
         self._incoming_beam = PositionAndAngle(0, 0, 0)
         self._is_in_beam = True
         self._is_displacing = False
+        self._displacement_alarm = (None, None)
+        self._angle_alarm = (None, None)
         self._movement_strategy = movement_strategy
 
         self.autosaved_offset = None
@@ -153,6 +155,13 @@ class TrackingBeamPathCalc(object):
         return beam
 
     def displacement_update(self, update):
+        """
+        Update value and alarms of the displacement axis.
+
+        Args:
+            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
+        """
+        self.set_displacement_alarm(update.alarm_severity, update.alarm_status)
         self.set_displacement(update.value)
 
     def set_displacement(self, displacement):
@@ -161,8 +170,6 @@ class TrackingBeamPathCalc(object):
             axis of the component from the set zero position.
         Args:
             displacement: the displacement to set
-            alarm_severity (ReflectometryServer.pv_wrapper.AlarmSeverity): severity of any alarm
-            alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
         """
         self._movement_strategy.set_displacement(displacement)
         self.trigger_listeners(BeamPathUpdate(self))
@@ -240,6 +247,20 @@ class TrackingBeamPathCalc(object):
         """
         self._is_displacing = value
         self.trigger_listeners(ComponentChangingUpdate())
+
+    @property
+    def displacement_alarm(self):
+        return self._displacement_alarm
+
+    def set_displacement_alarm(self, alarm_severity, alarm_status):
+        """
+        Update the alarm info for the displacement axis of this component.
+
+        Args:
+            alarm_severity (ReflectometryServer.pv_wrapper.AlarmSeverity): severity of any alarm
+            alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
+        """
+        self._displacement_alarm = (alarm_severity, alarm_status)
 
 
 class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
@@ -334,6 +355,20 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         angle = angle_between_beam_and_component * 2 + self._incoming_beam.angle
         return PositionAndAngle(target_position.y, target_position.z, angle)
 
+    @property
+    def angle_alarm(self):
+        return self._angle_alarm
+
+    def set_angle_alarm(self, alarm_severity, alarm_status):
+        """
+        Update the alarm info for the angle axis of this component.
+
+        Args:
+            alarm_severity (ReflectometryServer.pv_wrapper.AlarmSeverity): severity of any alarm
+            alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
+        """
+        self._angle_alarm = (alarm_severity, alarm_status)
+
 
 class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
     """
@@ -344,6 +379,13 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
         super(SettableBeamPathCalcWithAngle, self).__init__(movement_strategy, is_reflecting)
 
     def angle_update(self, update):
+        """
+        Update value and alarms of the angle axis.
+
+        Args:
+            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
+        """
+        self.set_angle_alarm(update.alarm_severity, update.alarm_status)
         self.set_angular_displacement(update.value)
 
     def set_angular_displacement(self, angle):
@@ -375,8 +417,8 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         self._angle_to = angle_to
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
-            readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self._update_angle)
-            setpoint_beam_path_calc.add_listener(PhysicalMoveUpdate, self._update_angle)
+            readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self.angle_update)
+            setpoint_beam_path_calc.add_listener(PhysicalMoveUpdate, self.angle_update)
             readback_beam_path_calc.add_listener(ComponentChangingUpdate, self._on_is_changing_change)
 
     def _on_is_changing_change(self, update):
@@ -392,12 +434,14 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
                 self.trigger_listeners(ComponentChangingUpdate())
                 break
 
-    def _update_angle(self, update):
+    def angle_update(self, update):
         """
         A listener for the beam update from another beam calc.
         Args:
             update (PhysicalMoveUpdate): The update event
         """
+        alarm_severity, alarm_status = update.source.displacement_alarm
+        self.set_angle_alarm(alarm_severity, alarm_status)
         self._set_angular_displacement(self._calc_angle_from_next_component(self._incoming_beam))
 
     def _calc_angle_from_next_component(self, incoming_beam):

@@ -166,6 +166,20 @@ class PvSort(Enum):
             return parameter.rbv_at_sp
         return float("NaN")
 
+    def get_parameter_alarm(self, parameter):
+        """
+        Get the alarm status of this parameter. Only applicable for Readback PVs.
+
+        Args:
+            parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter to get the value from
+
+        Returns: the value of the parameter of the correct sort
+        """
+        if self == PvSort.RBV:
+            return parameter.alarm_status, parameter.alarm_severity
+        else:
+            return None, None
+
 
 class FootprintSort(Enum):
     """

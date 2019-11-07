@@ -10,7 +10,8 @@ from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, 
     BEAMLINE_MESSAGE, SP_SUFFIX, FootprintSort, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
     convert_from_epics_pv_value, IN_MODE_SUFFIX
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
-from ReflectometryServer.parameters import BeamlineParameterGroup
+from ReflectometryServer.parameters import BeamlineParameterGroup, ParameterReadbackUpdate, \
+    ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate, ParameterChangingUpdate, ParameterInitUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -127,13 +128,15 @@ class ReflectometryDriver(Driver):
 
     def update_monitors(self):
         """
-        Updates the PV values for each parameter so that changes are visible to monitors.
+        Updates the PV values and alarms for each parameter so that changes are visible to monitors.
         """
         # with self.monitor_lock:
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pv_names_and_sort():
             parameter = self._beamline.parameter(param_name)
             if param_sort not in [PvSort.IN_MODE, PvSort.CHANGING]:
-                self._update_param_both_pv_and_pv_val(pv_name, param_sort.get_from_parameter(parameter))
+                value = param_sort.get_from_parameter(parameter)
+                alarm_status, alarm_severity = param_sort.get_parameter_alarm(parameter)
+                self._update_param_both_pv_and_pv_val(pv_name, value, alarm_status, alarm_severity)
 
         self._update_all_footprints()
         self.updatePVs()
@@ -160,9 +163,9 @@ class ReflectometryDriver(Driver):
         self._update_param_both_pv_and_pv_val(QMAX_TEMPLATE.format(prefix), self._footprint_manager.get_q_max(sort))
         self.updatePVs()
 
-    def _update_param_both_pv_and_pv_val(self, pv_name, value):
+    def _update_param_both_pv_and_pv_val(self, pv_name, value,  alarm_status=None, alarm_severity=None):
         """
-        Update a parameter value (both it and .VAL)
+        Update a parameter value (both base and .VAL) and its alarms.
 
         Args:
             pv_name: name of the pv
@@ -170,16 +173,40 @@ class ReflectometryDriver(Driver):
         """
         self.setParam(pv_name, value)
         self.setParam(pv_name + VAL_FIELD, value)
+        self.setParamStatus(pv_name, alarm_status, alarm_severity)
 
-    def _update_param_listener(self, pv_name, value):
+    def _update_param_listener(self, pv_name, update):
         """
         Listener for responding to updates from the command line parameter
         Args:
             pv_name: name of the pv
-            value: new value
+            update (NamedTuple): update from this parameter, expected to have at least a "value" attribute.
         """
-        self._update_param_both_pv_and_pv_val(pv_name, value)
+        value, alarm_status, alarm_severity = self._unpack_update(update)
+        self._update_param_both_pv_and_pv_val(pv_name, value, alarm_status, alarm_severity)
         self.updatePVs()
+
+    @staticmethod
+    def _unpack_update(update):
+        """
+        Unpack a parameter update into value, alarm status and alarm severity properties.
+
+        Args:
+            update (NamedTuple): The update object. Expected to have at least a "value" attribute.
+
+        Returns:
+            value: The value of the source parameter
+            alarm_status: The alarm status of the source parameter (if applicable for this type of PV)
+            alarm_severity: The alarm severity of the source parameter (if applicable for this type of PV)
+        """
+        print(update)
+        try:
+            alarm_status = update.alarm_status
+            alarm_severity = update.alarm_severity
+        except AttributeError:
+            alarm_status = None
+            alarm_severity = None
+        return update.value, alarm_status, alarm_severity
 
     def add_param_listeners(self):
         """
@@ -187,18 +214,18 @@ class ReflectometryDriver(Driver):
         """
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pv_names_and_sort():
             parameter = self._beamline.parameter(param_name)
-            parameter.add_init_listener(partial(self._update_param_listener, pv_name))
+            parameter.add_listener(ParameterInitUpdate, partial(self._update_param_listener, pv_name))
             if param_sort == PvSort.RBV:
-                parameter.add_rbv_change_listener(partial(self._update_param_listener, pv_name))
+                parameter.add_listener(ParameterReadbackUpdate, partial(self._update_param_listener, pv_name))
             if param_sort == PvSort.SP_RBV:
-                parameter.add_sp_rbv_change_listener(partial(self._update_param_listener, pv_name))
+                parameter.add_listener(ParameterSetpointReadbackUpdate, partial(self._update_param_listener, pv_name))
             if param_sort == PvSort.CHANGING:
-                parameter.add_after_is_changing_change_listener(partial(self._update_binary_listener, pv_name))
+                parameter.add_listener(ParameterChangingUpdate, partial(self._update_binary_listener, pv_name))
             if param_sort == PvSort.RBV_AT_SP:
-                parameter.add_after_rbv_at_sp_listener(partial(self._update_binary_listener, pv_name))
+                parameter.add_listener(ParameterAtSetpointUpdate, partial(self._update_binary_listener, pv_name))
 
-    def _update_binary_listener(self, pv_name, value):
-        self.setParam(pv_name, value)
+    def _update_binary_listener(self, pv_name, update):
+        self.setParam(pv_name, update.value)
         self.updatePVs()
 
     def _bl_mode_change(self, mode, params_in_mode):
@@ -250,8 +277,8 @@ class ReflectometryDriver(Driver):
             if BeamlineParameterGroup.FOOTPRINT_PARAMETER in parameter.group_names:
                 parameters_to_monitor.add(parameter)
         for parameter in parameters_to_monitor:
-            parameter.add_rbv_change_listener(partial(self._update_footprint, FootprintSort.RBV))
-            parameter.add_sp_rbv_change_listener(partial(self._update_footprint, FootprintSort.SP_RBV))
+            parameter.add_listener(ParameterReadbackUpdate, partial(self._update_footprint, FootprintSort.RBV))
+            parameter.add_listener(ParameterSetpointReadbackUpdate, partial(self._update_footprint, FootprintSort.SP_RBV))
 
     def _add_trigger_on_engineering_correction_change(self):
         """

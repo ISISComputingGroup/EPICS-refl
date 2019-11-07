@@ -13,7 +13,7 @@ from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 
-CorrectedReadbackUpdate = namedtuple("CorrectedReadbackUpdate", ["value", "alarm_status", "alarm_severity"])
+CorrectedReadbackUpdate = namedtuple("CorrectedReadbackUpdate", ["value", "alarm_severity", "alarm_status"])
 
 
 @observable(CorrectionUpdate, CorrectedReadbackUpdate)
@@ -327,7 +327,7 @@ class DisplacementDriver(IocDriver):
         Propagate the new height readback value to the middle component layer.
 
         Args:
-            update TODO
+            update (CorrectedReadbackUpdate): The PV update for this axis.
         """
         if self._out_of_beam_position is not None:
             self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(update.value)

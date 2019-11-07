@@ -8,6 +8,7 @@ from parameterized import parameterized
 
 from ReflectometryServer import *
 from ReflectometryServer import file_io
+from ReflectometryServer.parameters import ParameterReadbackUpdate
 
 from data_mother import DataMother, create_mock_axis
 from server_common.channel_access import AlarmSeverity, AlarmStatus
@@ -518,10 +519,10 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
         beamline_position = TrackingPosition("param", sample)
         listener = Mock()
-        beamline_position.add_rbv_change_listener(listener)
+        beamline_position.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.set_displacement(displacement)
 
-        listener.assert_called_once_with(displacement - beam_height)
+        listener.assert_called_once_with(ParameterReadbackUpdate(displacement - beam_height, None, None))
 
     def test_GIVEN_reflection_angle_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
 
@@ -531,10 +532,10 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, beam_angle))
         beamline_position = AngleParameter("param", sample)
         listener = Mock()
-        beamline_position.add_rbv_change_listener(listener)
+        beamline_position.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.set_angular_displacement(angle)
 
-        listener.assert_called_once_with(angle-beam_angle)
+        listener.assert_called_once_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
 
     def test_GIVEN_component_enabled_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
 
@@ -543,10 +544,10 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         beamline_position = InBeamParameter("param", sample)
         listener = Mock()
-        beamline_position.add_rbv_change_listener(listener)
+        beamline_position.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.is_in_beam = state
 
-        listener.assert_called_once_with(state)
+        listener.assert_called_once_with(ParameterReadbackUpdate(state, None, None))
 
     def test_GIVEN_theta_WHEN_no_next_component_THEN_value_is_nan(self):
 
