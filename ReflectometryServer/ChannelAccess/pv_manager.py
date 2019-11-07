@@ -173,10 +173,10 @@ class PvSort(Enum):
         Args:
             parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter to get the value from
 
-        Returns: the value of the parameter of the correct sort
+        Returns: the alarm severity and status of this parameter.
         """
         if self == PvSort.RBV:
-            return parameter.alarm_status, parameter.alarm_severity
+            return parameter.alarm_severity, parameter.alarm_status
         else:
             return None, None
 

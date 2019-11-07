@@ -135,8 +135,8 @@ class ReflectometryDriver(Driver):
             parameter = self._beamline.parameter(param_name)
             if param_sort not in [PvSort.IN_MODE, PvSort.CHANGING]:
                 value = param_sort.get_from_parameter(parameter)
-                alarm_status, alarm_severity = param_sort.get_parameter_alarm(parameter)
-                self._update_param_both_pv_and_pv_val(pv_name, value, alarm_status, alarm_severity)
+                alarm_severity, alarm_status = param_sort.get_parameter_alarm(parameter)
+                self._update_param_both_pv_and_pv_val(pv_name, value, alarm_severity, alarm_status)
 
         self._update_all_footprints()
         self.updatePVs()
@@ -163,13 +163,15 @@ class ReflectometryDriver(Driver):
         self._update_param_both_pv_and_pv_val(QMAX_TEMPLATE.format(prefix), self._footprint_manager.get_q_max(sort))
         self.updatePVs()
 
-    def _update_param_both_pv_and_pv_val(self, pv_name, value,  alarm_status=None, alarm_severity=None):
+    def _update_param_both_pv_and_pv_val(self, pv_name, value, alarm_severity=None,  alarm_status=None):
         """
         Update a parameter value (both base and .VAL) and its alarms.
 
         Args:
             pv_name: name of the pv
             value: value of the parameter
+            alarm_severity: current alarm severity of the parameter
+            alarm_status: current alarm status of the parameter
         """
         self.setParam(pv_name, value)
         self.setParam(pv_name + VAL_FIELD, value)
@@ -182,8 +184,8 @@ class ReflectometryDriver(Driver):
             pv_name: name of the pv
             update (NamedTuple): update from this parameter, expected to have at least a "value" attribute.
         """
-        value, alarm_status, alarm_severity = self._unpack_update(update)
-        self._update_param_both_pv_and_pv_val(pv_name, value, alarm_status, alarm_severity)
+        value, alarm_severity, alarm_status = self._unpack_update(update)
+        self._update_param_both_pv_and_pv_val(pv_name, value, alarm_severity, alarm_status)
         self.updatePVs()
 
     @staticmethod
@@ -196,17 +198,16 @@ class ReflectometryDriver(Driver):
 
         Returns:
             value: The value of the source parameter
-            alarm_status: The alarm status of the source parameter (if applicable for this type of PV)
             alarm_severity: The alarm severity of the source parameter (if applicable for this type of PV)
+            alarm_status: The alarm status of the source parameter (if applicable for this type of PV)
         """
-        print(update)
         try:
             alarm_status = update.alarm_status
             alarm_severity = update.alarm_severity
         except AttributeError:
             alarm_status = None
             alarm_severity = None
-        return update.value, alarm_status, alarm_severity
+        return update.value, alarm_severity, alarm_status
 
     def add_param_listeners(self):
         """
