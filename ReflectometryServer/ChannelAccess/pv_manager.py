@@ -271,7 +271,7 @@ class PVManager:
         for parameter in self._beamline.parameters.values():
             param_info_record = self._add_parameter_pvs(parameter)
             param_info.append(param_info_record)
-            if parameter.has_define_position_as:
+            if parameter.define_current_value_as is not None:
                 align_info_record = {
                     "name": param_info_record["name"],
                     "prepended_alias": param_info_record["prepended_alias"],
@@ -346,7 +346,7 @@ class PVManager:
                                   PvSort.RBV_AT_SP)
 
             # define position at
-            if parameter.has_define_position_as:
+            if parameter.define_current_value_as is not None:
                 align_fields = STANDARD_FLOAT_PV_FIELDS.copy()
                 align_fields["asg"] = "MANAGER"
                 self._add_pv_with_val(prepended_alias + DEFINE_POSITION_AS, param_name, align_fields, description,
