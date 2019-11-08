@@ -59,6 +59,7 @@ class InactiveConfigHolder(ConfigHolder):
         Args:
             details (dict): A dictionary containing the new configuration settings
         """
+
         self._cache_config()
 
         try:
@@ -101,6 +102,8 @@ class InactiveConfigHolder(ConfigHolder):
                 for args in details["components"]:
                     comp = self.load_configuration(args['name'], True)
                     self.add_component(comp.get_name(), comp)
+            if "isProtected" in details:
+                self._config.meta.isProtected = details["isProtected"]
         except Exception:
             self._retrieve_cache()
             raise

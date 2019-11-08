@@ -680,6 +680,8 @@ class SlitGapParameter(BeamlineParameter):
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
             self._initialise_sp_from_motor()
+        if sim:
+            self._rbv_value = init
 
     def _initialise_sp_from_file(self):
         """
@@ -714,7 +716,7 @@ class SlitGapParameter(BeamlineParameter):
         pass
 
     def _move_component(self):
-        self._pv_wrapper.sp = self._set_point
+        self._pv_wrapper.sp = self._set_point_rbv
 
     def _rbv(self):
         return self._rbv_value

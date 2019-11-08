@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -16,6 +17,9 @@
 
 import datetime
 import socket
+import contextlib
+import traceback
+import codecs
 
 
 class IsisLogger(object):
@@ -48,12 +52,9 @@ class IsisLogger(object):
         xml += "<eventTime>%s</eventTime>" % msg_time_str
         xml += "</message>\n"
 
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((self.ioclog_host, self.ioclog_port))
-            sock.sendall(xml)
-        except Exception as err:
-            print("Could not send message to IOC log: %s" % err)
-        finally:
-            if sock is not None:
-                sock.close()
+        with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+            try:
+                sock.connect((self.ioclog_host, self.ioclog_port))
+                sock.sendall(codecs.encode(xml, "utf-8"))
+            except Exception:
+                traceback.print_exc()

@@ -21,11 +21,31 @@ Run all inst server tests
 import os
 import sys
 import unittest
+
+import six
 import xmlrunner
 import argparse
 from coverage import Coverage
+try:
+    from contextlib import contextmanager, nullcontext
+except ImportError:
+    from contextlib2 import contextmanager, nullcontext
 
 DEFAULT_DIRECTORY = os.path.join('..', '..', '..', 'test-reports')
+
+
+@contextmanager
+def coverage_analysis():
+    cov = Coverage()
+    cov.start()
+    try:
+        yield
+    finally:
+        cov.stop()
+        cov.report()
+        print("------  SAVING COVERAGE REPORTS ------ ")
+        cov.xml_report(outfile=os.path.join(".", 'cobertura.xml'))
+
 
 if __name__ == '__main__':
     # get output directory from command line arguments
@@ -35,17 +55,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
     xml_dir = args.output_dir[0]
 
-    cov = Coverage()
+    test_suite = unittest.TestLoader().discover(os.path.dirname(__file__), pattern="test_*")
 
-    test_suite = unittest.TestLoader().discover(os.path.dirname(__file__), pattern="test_*.py")
-    print ("\n\n------ BEGINNING INST SERVERS UNIT TESTS ------")
-    cov.start()
-    ret_vals = xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite)
-    cov.stop()
-    print ("------ INST SERVERS UNIT TESTS COMPLETE ------\n\n")
-    cov.report()
-    print("------  SAVING COVERAGE REPORTS ------ ")
-    cov.xml_report(outfile=os.path.join(".", 'cobertura.xml'))
+    ret_vals = None
+
+    # Python 2 coverage analysis does not understand the Py3 code in some modules, and crashes out.
+    with nullcontext() if six.PY2 else coverage_analysis():
+        print("\n\n------ BEGINNING INST SERVERS UNIT TESTS ------")
+        ret_vals = xmlrunner.XMLTestRunner(output=xml_dir).run(test_suite)
+        print("------ INST SERVERS UNIT TESTS COMPLETE ------\n\n")
 
     # Return failure exit code if a test errored or failed
     sys.exit(bool(ret_vals.errors or ret_vals.failures))

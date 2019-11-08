@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -15,6 +16,9 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 import os
 import unittest
+
+import six
+
 from DatabaseServer.options_holder import OptionsHolder
 from DatabaseServer.options_loader import OptionsLoader
 
@@ -29,7 +33,7 @@ class TestOptionsHolderSequence(unittest.TestCase):
         options = oh.get_config_options()
 
         self.assertTrue(len(options) > 1, "No options found")
-        for n, ioc in options.iteritems():
+        for n, ioc in six.iteritems(options):
             self.assertTrue(len(ioc) == 3, "Unexpected details in config")
             self.assertTrue("macros" in ioc)
             self.assertTrue("pvsets" in ioc)

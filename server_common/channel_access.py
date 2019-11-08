@@ -1,3 +1,4 @@
+from __future__ import absolute_import, print_function, unicode_literals, division
 """
 Make channel access not dependent on genie_python.
 """
@@ -18,10 +19,13 @@ Make channel access not dependent on genie_python.
 # http://opensource.org/licenses/eclipse-1.0.php
 from enum import Enum
 
+from BlockServer.core.macros import MACROS
 from server_common.utilities import print_and_log
 import threading
+
+
 try:
-    from genie_python.channel_access_exceptions import UnableToConnectToPVException
+    from genie_python.channel_access_exceptions import UnableToConnectToPVException, ReadAccessException
 except ImportError:
     class UnableToConnectToPVException(IOError):
         """
@@ -159,3 +163,38 @@ class ChannelAccess(object):
         NB Connected pv is one which is in the cache
         """
         CaChannelWrapper.poll()
+
+
+class ManagerModeRequiredException(Exception):
+    """
+    Exception to be thrown if manager mode was required, but not enabled, for an operation.
+    """
+    def __init__(self, *args, **kwargs):
+        super(ManagerModeRequiredException, self).__init__(*args, **kwargs)
+
+
+def verify_manager_mode(channel_access=ChannelAccess(), message="Operation must be performed in manager mode"):
+    """
+    Verifies that manager mode is active, throwing an error if it was not active.
+
+    Args:
+        channel_access (ChannelAccess, optional): the channel access class to use
+        message (str): Message given to exception if manager mode was not enabled.
+
+    Raises:
+        ManagerModeRequiredException: if manager mode was not enabled or was unable to connect
+    """
+    try:
+        is_manager = channel_access.caget("{}CS:MANAGER".format(MACROS["$(MYPVPREFIX)"])).lower() == "yes"
+    except UnableToConnectToPVException as e:
+        raise ManagerModeRequiredException("Manager mode is required, but the manager mode PV did not connect "
+                                           "(caused by: {})".format(e))
+    except ReadAccessException as e:
+        raise ManagerModeRequiredException("Manager mode is required, but the manager mode PV could not be read "
+                                           "(caused by: {})".format(e))
+    except Exception as e:
+        raise ManagerModeRequiredException("Manager mode is required, but an unknown exception occured "
+                                           "(caused by: {})".format(e))
+
+    if not is_manager:
+        raise ManagerModeRequiredException(message)
