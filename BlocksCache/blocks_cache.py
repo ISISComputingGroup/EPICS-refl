@@ -35,7 +35,7 @@ PEND_EVENT_TIMEOUT = 0.1
 PVDB = {
     'CS:BLOCKSERVER:BLOCKVALUES': {
         'type': 'char',
-        'count': 64000,
+        'count': 1000000,
         'value': [0],
     },
 }
