@@ -8,7 +8,9 @@ from parameterized import parameterized
 
 from ReflectometryServer import *
 from ReflectometryServer import file_io
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.parameters import ParameterReadbackUpdate
+from ReflectometryServer.pv_wrapper import ReadbackUpdate
 
 from data_mother import DataMother, create_mock_axis
 from server_common.channel_access import AlarmSeverity, AlarmStatus
@@ -504,10 +506,10 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         displacement = 3.0
         beam_height = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
-        beamline_position = TrackingPosition("param", sample)
+        displacement_parameter = TrackingPosition("param", sample)
         sample.beam_path_rbv.set_displacement(displacement)
 
-        result = beamline_position.rbv
+        result = displacement_parameter.rbv
 
         assert_that(result, is_(displacement - beam_height))
 
@@ -517,9 +519,9 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         displacement = 3.0
         beam_height = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
-        beamline_position = TrackingPosition("param", sample)
+        displacement_parameter = TrackingPosition("param", sample)
         listener = Mock()
-        beamline_position.add_listener(ParameterReadbackUpdate, listener)
+        displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.set_displacement(displacement)
 
         listener.assert_called_once_with(ParameterReadbackUpdate(displacement - beam_height, None, None))
@@ -530,9 +532,9 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         angle = 3.0
         beam_angle = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, beam_angle))
-        beamline_position = AngleParameter("param", sample)
+        displacement_parameter = AngleParameter("param", sample)
         listener = Mock()
-        beamline_position.add_listener(ParameterReadbackUpdate, listener)
+        displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.set_angular_displacement(angle)
 
         listener.assert_called_once_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
@@ -542,9 +544,9 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 10, 90))
         state = True
 
-        beamline_position = InBeamParameter("param", sample)
+        displacement_parameter = InBeamParameter("param", sample)
         listener = Mock()
-        beamline_position.add_listener(ParameterReadbackUpdate, listener)
+        displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.is_in_beam = state
 
         listener.assert_called_once_with(ParameterReadbackUpdate(state, None, None))
@@ -595,8 +597,113 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         assert_that(result, is_(expected_theta))
 
+    def test_GIVEN_position_parameter_WHEN_updating_displacement_with_alarms_on_component_THEN_parameter_is_in_alarm_and_propagates_alarm(self):
+        component = Component("component", setup=PositionAndAngle(0, 10, 90))
+        new_displacement = 1.0
+        alarm_severity = 1
+        alarm_status = 2
+        displacement_parameter = TrackingPosition("param", component)
+        listener = Mock()
+        displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-class TestBeamlineThetaComponetWhenDisabled(unittest.TestCase):
+        component.beam_path_rbv.displacement_update(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
+
+        listener.assert_called_once_with(ParameterReadbackUpdate(new_displacement, alarm_severity, alarm_status))
+        self.assertEqual(displacement_parameter.alarm_severity, alarm_severity)
+        self.assertEqual(displacement_parameter.alarm_status, alarm_status)
+
+    def test_GIVEN_position_parameter_WHEN_updating_angle_with_alarms_on_component_THEN_parameter_value_and_alarms_are_unchanged(self):
+        component = ReflectingComponent("component", setup=PositionAndAngle(0, 10, 90))
+        new_displacement = 1.0
+        alarm_severity = 1
+        alarm_status = 2
+        displacement_parameter = TrackingPosition("param", component)
+        listener = Mock()
+        displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
+
+        component.beam_path_rbv.angle_update(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
+
+        listener.assert_called_once_with(ParameterReadbackUpdate(0.0, None, None))
+        self.assertEqual(displacement_parameter.alarm_severity, None)
+        self.assertEqual(displacement_parameter.alarm_status, None)
+
+    def test_GIVEN_angle_parameter_WHEN_updating_angle_with_alarms_on_component_THEN_parameter_is_in_alarm_and_propagates_alarm(self):
+        component = ReflectingComponent("component", setup=PositionAndAngle(0, 10, 90))
+        new_angle = 1.0
+        alarm_severity = 1
+        alarm_status = 2
+        angle_parameter = AngleParameter("param", component)
+        listener = Mock()
+        angle_parameter.add_listener(ParameterReadbackUpdate, listener)
+
+        component.beam_path_rbv.angle_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
+
+        listener.assert_called_once_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
+        self.assertEqual(angle_parameter.alarm_severity, alarm_severity)
+        self.assertEqual(angle_parameter.alarm_status, alarm_status)
+
+    def test_GIVEN_angle_parameter_WHEN_updating_displacement_with_alarms_on_component_THEN_parameter_value_and_alarms_are_unchanged(self):
+        component = ReflectingComponent("component", setup=PositionAndAngle(0, 10, 90))
+        new_angle = 1.0
+        alarm_severity = 1
+        alarm_status = 2
+        angle_parameter = AngleParameter("param", component)
+        listener = Mock()
+        angle_parameter.add_listener(ParameterReadbackUpdate, listener)
+
+        component.beam_path_rbv.displacement_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
+
+        listener.assert_called_once_with(ParameterReadbackUpdate(0.0, None, None))
+        self.assertEqual(angle_parameter.alarm_severity, None)
+        self.assertEqual(angle_parameter.alarm_status, None)
+
+    def test_GIVEN_inbeam_parameter_WHEN_updating_displacement_with_alarms_on_component_THEN_parameter_is_in_alarm_and_propagates_alarm(self):
+        component = ReflectingComponent("component", setup=PositionAndAngle(0, 10, 90))
+        new_value = 1.0
+        alarm_severity = 1
+        alarm_status = 2
+        in_beam_parameter = InBeamParameter("param", component)
+        listener = Mock()
+        in_beam_parameter.add_listener(ParameterReadbackUpdate, listener)
+
+        component.beam_path_rbv.displacement_update(CorrectedReadbackUpdate(new_value, alarm_severity, alarm_status))
+
+        listener.assert_called_once_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
+        self.assertEqual(in_beam_parameter.alarm_severity, alarm_severity)
+        self.assertEqual(in_beam_parameter.alarm_status, alarm_status)
+
+    def test_GIVEN_angle_parameter_WHEN_updating_angle_with_alarms_on_component_THEN_parameter_value_and_alarms_are_unchanged(self):
+        component = ReflectingComponent("component", setup=PositionAndAngle(0, 10, 90))
+        new_angle = 1.0
+        alarm_severity = 1
+        alarm_status = 2
+        in_beam_parameter = InBeamParameter("param", component)
+        listener = Mock()
+        in_beam_parameter.add_listener(ParameterReadbackUpdate, listener)
+
+        component.beam_path_rbv.angle_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
+
+        listener.assert_called_once_with(ParameterReadbackUpdate(True, None, None))
+        self.assertEqual(in_beam_parameter.alarm_severity, None)
+        self.assertEqual(in_beam_parameter.alarm_status, None)
+
+    def test_GIVEN_slit_gap_parameter_WHEN_updating_gap_with_alarm_on_pv_wrapper_THEN_parameter_is_in_alarm_and_propagates_alarm(self):
+        pv_wrapper = create_mock_axis("s1vg", 0.0, 1)
+        new_value = 1.0
+        alarm_severity = 1
+        alarm_status = 2
+        in_beam_parameter = SlitGapParameter("param", pv_wrapper)
+        listener = Mock()
+        in_beam_parameter.add_listener(ParameterReadbackUpdate, listener)
+
+        pv_wrapper.trigger_listeners(ReadbackUpdate(new_value, alarm_severity, alarm_status))
+
+        listener.assert_called_once_with(ParameterReadbackUpdate(new_value, alarm_severity, alarm_status))
+        self.assertEqual(in_beam_parameter.alarm_severity, alarm_severity)
+        self.assertEqual(in_beam_parameter.alarm_status, alarm_status)
+
+
+class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
 
     def test_GIVEN_theta_with_0_deg_beam_and_next_component_in_beam_but_disabled_WHEN_set_theta_to_45_THEN_component_sp_is_at_45_degrees(self):
 
@@ -688,7 +795,7 @@ class TestInitSetpoints(unittest.TestCase):
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
 
-    def test_GIVEN_autosave_is_true_and_autosave_value_exists_WHEN_creating_tracking_position_parameter_THEN_sp_is_autosave_value(self):
+    def test_GIVEN_autosave_is_true_and_autosave_value_exists_WHEN_creating_tracking_displacement_parameter_THEN_sp_is_autosave_value(self):
         expected = 0.1
         param_name = "param_float"
 
@@ -697,7 +804,7 @@ class TestInitSetpoints(unittest.TestCase):
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
 
-    def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_tracking_position_parameter_THEN_sp_is_none(self):
+    def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_tracking_displacement_parameter_THEN_sp_is_none(self):
         param_name = "param_not_in_file"
 
         param = TrackingPosition(param_name, self.component, autosave=True)
@@ -705,7 +812,7 @@ class TestInitSetpoints(unittest.TestCase):
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
 
-    def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_tracking_position_parameter_THEN_sp_is_none(self):
+    def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_tracking_displacement_parameter_THEN_sp_is_none(self):
         param_name = "param_bool"
 
         param = TrackingPosition(param_name, self.component, autosave=True)
