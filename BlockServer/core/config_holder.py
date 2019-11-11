@@ -306,6 +306,15 @@ class ConfigHolder(object):
             'isProtected': self._config.meta.isProtected
         }
 
+    def is_protected(self):
+        """
+        Whether this config has been marked as "protected" or not.
+
+        Returns:
+            (bool): whether the configuration is protected.
+        """
+        return self._config.meta.isProtected
+
     def _comps_to_list(self):
         comps = []
         for component_name, component_value in six.iteritems(self._components):

@@ -20,6 +20,8 @@ import os
 import sys
 import traceback
 
+from server_common.channel_access import verify_manager_mode, ManagerModeRequiredException
+
 sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 # Standard imports
@@ -131,12 +133,12 @@ class BlockServer(Driver):
 
         # Import data about all configs
         try:
-            self._config_list = ConfigListManager(self, SCHEMA_DIR, ConfigurationFileManager())
+            self._config_list = ConfigListManager(self, ConfigurationFileManager())
         except Exception as err:
             print_and_log(
                 "Error creating inactive config list. Configuration list changes will not be stored " +
                 "in version control: %s " % str(err), "MINOR")
-            self._config_list = ConfigListManager(self, SCHEMA_DIR, ConfigurationFileManager())
+            self._config_list = ConfigListManager(self, ConfigurationFileManager())
 
         # Start a background thread for handling write commands
         write_thread = Thread(target=self.consume_write_queue, args=())
@@ -263,9 +265,9 @@ class BlockServer(Driver):
             elif reason == BlockserverPVNames.SAVE_NEW_COMPONENT:
                 self.write_queue.put((self.save_inactive_config, (data, True), "SAVING_NEW_COMP"))
             elif reason == BlockserverPVNames.DELETE_CONFIGS:
-                self.write_queue.put((self._config_list.delete, (convert_from_json(data),), "DELETE_CONFIGS"))
+                self.write_queue.put((self._config_list.delete_configs, (convert_from_json(data),), "DELETE_CONFIGS"))
             elif reason == BlockserverPVNames.DELETE_COMPONENTS:
-                self.write_queue.put((self._config_list.delete, (convert_from_json(data), True), "DELETE_COMPONENTS"))
+                self.write_queue.put((self._config_list.delete_components, (convert_from_json(data),), "DELETE_COMPONENTS"))
             else:
                 status = False
                 # Check to see if it is a on-the-fly PV
@@ -418,17 +420,34 @@ class BlockServer(Driver):
             as_comp (bool): Whether it is a component or not
         """
         new_details = convert_from_json(json_data)
+
+        config_name = new_details["name"]
+
+        new_config_is_protected = new_details.get("isProtected", False)
+
+        # Is the config we've been sent marked with the "protected" flag?
+        if new_config_is_protected:
+            verify_manager_mode(message="Attempt to save protected {} ('{}')".format(
+                "component" if as_comp else "config", config_name))
+
         inactive = InactiveConfigHolder(MACROS, ConfigurationFileManager())
 
-        history = self._get_inactive_history(new_details["name"], as_comp)
+        # Is the config we're overwriting (if any) marked with the protected flag?
+        try:
+            inactive.load_inactive(new_details["name"], is_component=as_comp)
+            if inactive.is_protected():
+                verify_manager_mode(message="Attempt to overwrite protected {} ('{}')".format(
+                    "component" if as_comp else "config", config_name))
+        except IOError:
+            pass  # IOError thrown if config we're overwriting didn't exist, i.e. this is a brand new config/component.
+
+        history = self._get_inactive_history(config_name, as_comp)
 
         inactive.set_config_details(new_details)
 
         # Set updated history
         history.append(self._get_timestamp())
         inactive.set_history(history)
-
-        config_name = inactive.get_config_name()
 
         try:
             if not as_comp:
@@ -442,10 +461,8 @@ class BlockServer(Driver):
 
             print_and_log("Finished saving ({})".format(config_name))
 
-        except Exception as e:
-            print_and_log("Problem occurred saving configuration: {}".format(e), "MAJOR")
-            import traceback
-            traceback.print_exc()
+        except Exception:
+            print_and_log("Problem occurred saving configuration: {}".format(traceback.format_exc()), "MAJOR")
 
         # Reload configuration if a component has changed
         if as_comp and new_details["name"] in self._active_configserver.get_component_names():
@@ -511,11 +528,12 @@ class BlockServer(Driver):
             self.update_server_status(state)
             try:
                 cmd(*arg) if arg is not None else cmd()
+            except ManagerModeRequiredException as err:
+                print_and_log("Error, operation requires manager mode: {}".format(err), "MAJOR")
             except Exception as err:
                 print_and_log(
                     "Error executing write queue command %s for state %s: %s" % (cmd.__name__, state, err.message),
                     "MAJOR")
-                import traceback
                 traceback.print_exc()
             self.update_server_status("")
 

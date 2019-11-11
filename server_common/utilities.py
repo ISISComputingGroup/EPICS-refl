@@ -24,7 +24,6 @@ import json
 import codecs
 import binascii
 from xml.etree import ElementTree
-
 from server_common.loggers.logger import Logger
 from server_common.common_exceptions import MaxAttemptsExceededException
 
@@ -262,7 +261,7 @@ def ioc_restart_pending(ioc_pv, channel_access):
 
     Args:
         ioc_pv: The base PV for the IOC with instrument PV prefix
-        channel_access: The channel access object to be used for accessing PVs
+        channel_access (ChannelAccess): The channel access object to be used for accessing PVs
 
     Return
         bool: True if restarting, else False
@@ -312,3 +311,16 @@ def remove_from_end(string, text_to_remove):
     if string is not None and string.endswith(text_to_remove):
         return string[:-len(text_to_remove)]
     return string
+
+
+def lowercase_and_make_unique(in_list):
+    """
+    Takes a collection of strings, and returns it with all strings lowercased and with duplicates removed.
+
+    Args:
+        in_list (List[str]): the collection of strings to operate on
+
+    Returns:
+        set[str]: the lowercased unique set of strings.
+    """
+    return {x.lower() for x in in_list}
