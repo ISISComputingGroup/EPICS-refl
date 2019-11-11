@@ -8,6 +8,7 @@ from parameterized import parameterized
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
 
@@ -401,6 +402,7 @@ class TestThetaComponent(unittest.TestCase):
         assert_that(result_position, is_(expected_position))
         assert_that(result_outgoing_beam, is_(position_and_angle(theta.beam_path_rbv.get_outgoing_beam())))
 
+
 class TestComponentInitialisation(unittest.TestCase):
 
     def setUp(self):
@@ -463,6 +465,72 @@ class TestComponentInitialisation(unittest.TestCase):
         actual = self.theta.beam_path_set_point.get_angle_relative_to_beam()
 
         assert_that(actual, is_(close_to(expected, DEFAULT_TEST_TOLERANCE)))
+
+
+class TestComponentAlarms(unittest.TestCase):
+    ALARM_SEVERITY = 1
+    ALARM_STATUS = 2
+    ALARM = (ALARM_SEVERITY, ALARM_STATUS)
+    NO_ALARM = (None, None)
+
+    def setUp(self):
+        self.component = ReflectingComponent("component", setup=PositionAndAngle(0, 2, 90))
+
+    def test_WHEN_init_THEN_component_alarms_are_none(self):
+        self.assertEqual(self.component.beam_path_rbv.displacement_alarm, self.NO_ALARM)
+        self.assertEqual(self.component.beam_path_rbv.angle_alarm, self.NO_ALARM)
+        self.assertEqual(self.component.beam_path_set_point.displacement_alarm, self.NO_ALARM)
+        self.assertEqual(self.component.beam_path_set_point.angle_alarm, self.NO_ALARM)
+
+    def test_GIVEN_alarms_WHEN_updating_displacement_THEN_component_displacement_alarm_is_set(self):
+        update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
+        
+        self.component.beam_path_rbv.displacement_update(update)
+        actual_alarm_info = self.component.beam_path_rbv.displacement_alarm
+
+        self.assertEqual(self.ALARM, actual_alarm_info)
+
+    def test_GIVEN_alarms_WHEN_updating_displacement_THEN_component_angle_alarm_is_unchanged(self):
+        update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
+
+        self.component.beam_path_rbv.displacement_update(update)
+        actual_alarm_info = self.component.beam_path_rbv.angle_alarm
+
+        self.assertEqual(self.NO_ALARM, actual_alarm_info)
+
+    def test_GIVEN_alarms_WHEN_updating_angle_THEN_component_angle_alarm_is_set(self):
+        update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
+
+        self.component.beam_path_rbv.angle_update(update)
+        actual_alarm_info = self.component.beam_path_rbv.angle_alarm
+
+        self.assertEqual(self.ALARM, actual_alarm_info)
+
+    def test_GIVEN_alarms_WHEN_updating_angle_THEN_component_displacement_alarm_is_unchanged(self):
+        update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
+
+        self.component.beam_path_rbv.angle_update(update)
+        actual_alarm_info = self.component.beam_path_rbv.displacement_alarm
+
+        self.assertEqual(self.NO_ALARM, actual_alarm_info)
+
+    def test_GIVEN_theta_angled_to_component_WHEN_updating_displacement_with_alarms_on_component_THEN_theta_angle_alarm_set(self):
+        self.theta = ThetaComponent("theta", setup=PositionAndAngle(0, 1, 90), angle_to=[self.component])
+        update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
+
+        self.component.beam_path_rbv.displacement_update(update)
+        actual_alarm_info = self.theta.beam_path_rbv.angle_alarm
+
+        self.assertEqual(self.ALARM, actual_alarm_info)
+
+    def test_GIVEN_theta_angled_to_component_WHEN_updating_angle_with_alarms_on_component_THEN_theta_angle_is_unchanged(self):
+        self.theta = ThetaComponent("theta", setup=PositionAndAngle(0, 1, 90), angle_to=[self.component])
+        update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
+
+        self.component.beam_path_rbv.angle_update(update)
+        actual_alarm_info = self.theta.beam_path_rbv.angle_alarm
+
+        self.assertEqual(self.NO_ALARM, actual_alarm_info)
 
 
 if __name__ == '__main__':
