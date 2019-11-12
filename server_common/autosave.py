@@ -45,7 +45,7 @@ class AutosaveFile(object):
             # Disallow embedding the separator inside the value as this will cause a read to fail later.
             raise ValueError("Parameter name '{}' contains autosave separator which is not allowed".format(parameter))
 
-        if "\n" in value or "\n" in parameter:
+        if "\n" in str(value) or "\n" in parameter:
             # Autosave parameters are saved one-per-line, newlines would interfere with this.
             raise ValueError("Value or parameter contains line separator which is now allowed")
 
