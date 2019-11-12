@@ -8,7 +8,7 @@ from pcaspy import Driver, Alarm, Severity
 
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, \
     BEAMLINE_MESSAGE, SP_SUFFIX, FootprintSort, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
-    convert_from_epics_pv_value, IN_MODE_SUFFIX
+    convert_from_epics_pv_value, IN_MODE_SUFFIX, MAX_ALARM_ID
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
 from ReflectometryServer.parameters import BeamlineParameterGroup, ParameterReadbackUpdate, \
     ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate, ParameterChangingUpdate, ParameterInitUpdate
@@ -80,6 +80,10 @@ class ReflectometryDriver(Driver):
             return self._beamline.message
         elif self._pv_manager.is_sample_length(reason):
             return self._footprint_manager.get_sample_length()
+        elif self._pv_manager.is_alarm_status(reason):
+            return self.getParamDB(self._pv_manager.strip_fields_from_pv(reason)).alarm
+        elif self._pv_manager.is_alarm_severity(reason):
+            return self.getParamDB(self._pv_manager.strip_fields_from_pv(reason)).severity
         else:
             return self.getParam(reason)
 
@@ -202,7 +206,7 @@ class ReflectometryDriver(Driver):
             alarm_status: The alarm status of the source parameter (if applicable for this type of PV)
         """
         try:
-            alarm_status = update.alarm_status
+            alarm_status = min(MAX_ALARM_ID, update.alarm_status)
             alarm_severity = update.alarm_severity
         except AttributeError:
             alarm_status = None
