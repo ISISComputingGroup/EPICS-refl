@@ -11,6 +11,9 @@ ICP_VAR_DIR = os.path.normpath(os.environ.get("ICPVARDIR", os.path.join("C:\\", 
 
 
 class AutosaveFile(object):
+    """
+    An Autosave object useful for saving values that can be read and written at sensible points in time.
+    """
 
     def __init__(self, service_name, file_name, folder=None):
         """
@@ -92,7 +95,7 @@ class AutosaveFile(object):
         if not os.path.exists(self._folder):
             os.makedirs(self._folder)
 
-        file_content = "\r\n".join("{}{}{}".format(param, self.autosave_separator, value)
+        file_content = "\n".join("{}{}{}".format(param, self.autosave_separator, value)
                                                 for param, value in six.iteritems(parameters))
         with self._file_lock, open(self._filepath, "w+") as f:
             return f.write(file_content)

@@ -97,9 +97,10 @@ class Configuration(object):
         """
         # Only add it if it has not been added before
         if name.upper() in self.iocs.keys():
-            print_and_log("Warning: IOC '{}' is already part of the configuration. Not adding it again.")
+            print_and_log("Warning: IOC '{}' is already part of the configuration. Not adding it again.".format(name))
         else:
-            self.iocs[name.upper()] = IOC(name, autostart, restart, component, macros, pvs, pvsets, simlevel, remotePvPrefix)
+            self.iocs[name.upper()] = IOC(name, autostart, restart, component, macros, pvs, pvsets, simlevel,
+                                          remotePvPrefix)
 
     def update_runcontrol_settings_for_saving(self, rc_data):
         """ Updates the run-control settings for the configuration's blocks.
@@ -108,7 +109,7 @@ class Configuration(object):
             rc_data (dict): A dictionary containing all the run-control settings
         """
         # Only do it for blocks that are not in a component
-        for bn, blk in self.blocks.iteritems():
+        for bn, blk in self.blocks.items():
             if blk.component is None and blk.name in rc_data.keys():
                 blk.rc_enabled = rc_data[blk.name]['ENABLE']
                 blk.rc_lowlimit = rc_data[blk.name]['LOW']

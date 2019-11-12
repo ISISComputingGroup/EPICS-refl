@@ -147,7 +147,6 @@ class ConfigListManager(object):
         # Must load components first for them all to be known in dependencies
         for comp_name in comp_list:
             try:
-                path = FILEPATH_MANAGER.get_component_path(comp_name)
                 # load_config checks the schema
                 config = self.load_config(comp_name, True)
                 self.update_a_config_in_list(config, True)

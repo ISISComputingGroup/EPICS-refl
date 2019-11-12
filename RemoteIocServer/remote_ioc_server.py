@@ -14,6 +14,7 @@ from RemoteIocServer.gateway import GateWay
 from RemoteIocServer.pvdb import STATIC_PV_DATABASE, PvNames
 from RemoteIocServer.utilities import print_and_log, THREADPOOL, read_startup_file
 from BlockServer.core.ioc_control import IocControl
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from server_common.autosave import AutosaveFile
 
 
@@ -25,12 +26,12 @@ DEFAULT_GATEWAY_START_BAT = os.path.join(os.getenv("EPICS_KIT_ROOT"), "gateway",
 
 def _error_handler(func):
     @six.wraps(func)
-    def wrapper(*args, **kwargs):
+    def _wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception:
             print_and_log(traceback.format_exc())
-    return wrapper
+    return _wrapper
 
 
 class RemoteIocListDriver(Driver):
@@ -76,6 +77,12 @@ class RemoteIocListDriver(Driver):
 
     @_error_handler
     def write(self, reason, value):
+        """
+        Handle write to PV
+        Args:
+            reason: PV to set value of
+            value: Value to set
+        """
         print_and_log("RemoteIocListDriver: Processing PV write for reason {}".format(reason))
         if reason == PvNames.INSTRUMENT:
             self.set_remote_pv_prefix(value)
@@ -87,6 +94,11 @@ class RemoteIocListDriver(Driver):
 
     @_error_handler
     def read(self, reason):
+        """
+        Handle read of PV
+        Args:
+            reason: PV to read value of
+        """
         print_and_log("RemoteIocListDriver: Processing PV read for reason {}".format(reason))
         self.updatePVs()  # Update PVs before any read so that they are up to date.
 
@@ -96,6 +108,14 @@ class RemoteIocListDriver(Driver):
             print_and_log("RemoteIocListDriver: Could not read from PV '{}': not known".format(reason), "MAJOR")
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
+        """
+        Set the pv prefix for the remote server.
+        Args:
+            remote_pv_prefix: new prefix to use
+
+        Returns:
+
+        """
         print_and_log("RemoteIocListDriver: setting instrument to {} (old: {})"
                       .format(remote_pv_prefix, self._remote_pv_prefix))
         self._remote_pv_prefix = remote_pv_prefix
@@ -108,6 +128,9 @@ class RemoteIocListDriver(Driver):
         print_and_log("RemoteIocListDriver: Finished setting instrument to {}".format(self._remote_pv_prefix))
 
     def restart_all_iocs(self):
+        """
+        Restart all the IOCs on the remote server.
+        """
         print_and_log("RemoteIocListDriver: Restarting all IOCs")
         for ioc_name in self._iocs:
             if self._ioc_controller.get_ioc_status(ioc_name) == "RUNNING":
@@ -118,6 +141,18 @@ class RemoteIocListDriver(Driver):
 
 def serve_forever(pv_prefix, subsystem_prefix, gateway_pvlist_path, gateway_acf_path,
                   gateway_restart_script_path):
+    """
+    Server the PVs for the remote ioc server
+    Args:
+        pv_prefix: prefex for the pvs
+        subsystem_prefix: prefix for the PVs published by the remote IOC server
+        gateway_pvlist_path: The path to the gateway pvlist file to generate
+        gateway_acf_path: The path to the gateway access security file to generate
+        gateway_restart_script_path: The path to the script to call to restart the remote ioc gateway
+
+    Returns:
+
+    """
     server = SimpleServer()
 
     server.createPV("{}{}".format(pv_prefix, subsystem_prefix).encode('ascii'), STATIC_PV_DATABASE)
@@ -136,6 +171,9 @@ def serve_forever(pv_prefix, subsystem_prefix, gateway_pvlist_path, gateway_acf_
 
 
 def main():
+    """
+    Parse the command line argumnts and run the remote IOC server.
+    """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Runs a remote IOC server.",
@@ -153,12 +191,14 @@ def main():
     parser.add_argument("--gateway_acf_path", type=six.text_type,
                         default=os.path.normpath(
                             os.path.join(os.getenv("ICPCONFIGROOT"), "AccessSecurity", "gwremoteioc.acf")),
-                        help="The path to the gateway pvlist file to generate")
+                        help="The path to the gateway access security file to generate")
     parser.add_argument("--gateway_restart_script_path", type=six.text_type,
                         default=DEFAULT_GATEWAY_START_BAT,
                         help="The path to the script to call to restart the remote ioc gateway")
 
     args = parser.parse_args()
+
+    FILEPATH_MANAGER.initialise(os.path.normpath(os.getenv("ICPCONFIGROOT")), "", "")
 
     serve_forever(
         args.pv_prefix,

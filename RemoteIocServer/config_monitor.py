@@ -1,53 +1,41 @@
+"""
+Module to help monitor and react to the configuration on the instrument server.
+"""
 from __future__ import print_function, unicode_literals, division, absolute_import
 
 import json
-import os
 import zlib
 import threading
 
 import six
 
+from BlockServer.config.configuration import Configuration
+from BlockServer.core.file_path_manager import FILEPATH_MANAGER
+from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from RemoteIocServer.utilities import print_and_log, get_hostname_from_prefix, THREADPOOL
 from server_common.channel_access import ChannelAccess
 from genie_python.genie_cachannel_wrapper import CaChannelWrapper
 from genie_python.channel_access_exceptions import UnableToConnectToPVException
-from server_common.utilities import dehex_and_decompress, waveform_to_string
-from BlockServer.config.xml_converter import ConfigurationXmlConverter
+from server_common.utilities import dehex_and_decompress, waveform_to_string, dehex_and_decompress_waveform
 from BlockServer.config.ioc import IOC
 
 
 REMOTE_IOC_CONFIG_NAME = "_REMOTE_IOC"
 
-EMPTY_COMPONENTS_XML = """<?xml version="1.0" ?>
-<components xmlns="http://epics.isis.rl.ac.uk/schema/components/1.0" xmlns:comp="http://epics.isis.rl.ac.uk/schema/components/1.0" xmlns:xi="http://www.w3.org/2001/XInclude"/>
-"""
-
-EMPTY_GROUPS_XML = """<?xml version="1.0" ?>
-<groups xmlns="http://epics.isis.rl.ac.uk/schema/groups/1.0" xmlns:grp="http://epics.isis.rl.ac.uk/schema/groups/1.0" xmlns:xi="http://www.w3.org/2001/XInclude"/>
-"""
-
-EMPTY_BLOCKS_XML = """<?xml version="1.0" ?>
-<blocks xmlns="http://epics.isis.rl.ac.uk/schema/blocks/1.0" xmlns:blk="http://epics.isis.rl.ac.uk/schema/blocks/1.0" xmlns:xi="http://www.w3.org/2001/XInclude"></blocks>
-"""
-
-META_XML = """<?xml version="1.0" ?>
-<meta>
-    <description>Configuration for remote IOC</description>
-    <synoptic>-- NONE --</synoptic>
-    <edits></edits>
-</meta>
-"""
-
-
 CONFIG_UPDATING_LOCK = threading.RLock()
 
 
 def needs_config_updating_lock(func):
+    """
+    Add thread locking to this function to stop it being accessed in parallel
+    Args:
+        func: function to lock
+    """
     @six.wraps(func)
-    def wrapper(*args, **kwargs):
+    def _wrapper(*args, **kwargs):
         with CONFIG_UPDATING_LOCK:
             return func(*args, **kwargs)
-    return wrapper
+    return _wrapper
 
 
 class _EpicsMonitor(object):
@@ -103,6 +91,7 @@ class ConfigurationMonitor(object):
 
         self._remote_pv_prefix = None
         self._remote_hostname = None
+        self._file_manager = ConfigurationFileManager()
 
     def set_remote_pv_prefix(self, remote_pv_prefix):
         """
@@ -136,8 +125,8 @@ class ConfigurationMonitor(object):
     @needs_config_updating_lock
     def _config_updated(self, value, *_, **__):
         try:
-            new_config = dehex_and_decompress(waveform_to_string(value))
-            self._write_new_config_as_xml(new_config)
+            new_config = dehex_and_decompress_waveform(value)
+            self.write_new_config_as_xml(new_config)
             THREADPOOL.submit(self.restart_iocs_callback_func)
         except (TypeError, ValueError, IOError, zlib.error) as e:
             print_and_log("ConfigMonitor: Config JSON from instrument not decoded correctly: {}: {}"
@@ -145,33 +134,39 @@ class ConfigurationMonitor(object):
             print_and_log("ConfigMonitor: Raw PV value was: {}".format(value))
 
     @needs_config_updating_lock
-    def _write_new_config_as_xml(self, config_json):
+    def write_new_config_as_xml(self, config_json_as_str):
+        """
+        Write new config files for the remote IOC configuration based on configuration json for a blockserver config pv.
+        This uses just those IOCs on this remote server that are referred to as being remote in the blockserver config.
+
+        Args:
+            config_json_as_str: remote configuration on which to base the xml
+        """
         print_and_log("ConfigMonitor: Got new config monitor, writing new config files")
-        config = json.loads(config_json, "ascii")
+        config_json = json.loads(config_json_as_str, "ascii")
 
-        config_base = os.path.normpath(os.getenv("ICPCONFIGROOT"))
-        config_dir = os.path.join(config_base, "configurations", REMOTE_IOC_CONFIG_NAME)
+        config = self._create_config_from_instrument_config(config_json)
 
-        if not os.path.exists(config_dir):
-            os.mkdir(config_dir)
-
-        self._write_iocs_xml(config_dir, config)
-        self._write_standard_config_files(config_dir)
-        self._update_last_config(config_base)
+        self._file_manager.save_config(config, False)
+        self._update_last_config()
 
         print_and_log("ConfigMonitor: Finished writing new config")
 
-    @needs_config_updating_lock
-    def _write_iocs_xml(self, config_dir, config):
+    def _create_config_from_instrument_config(self, config_from_json):
+
+        config = Configuration({})
+        config.set_name(REMOTE_IOC_CONFIG_NAME)
+        config.meta.description = "Configuration for remote IOC"
+
         iocs_list = []
 
-        if "component_iocs" in config and config["component_iocs"] is not None:
-            for ioc in config["component_iocs"]:
+        if "component_iocs" in config_from_json and config_from_json["component_iocs"] is not None:
+            for ioc in config_from_json["component_iocs"]:
                 if ioc["remotePvPrefix"] == self._local_pv_prefix:  # If the IOC is meant to run on this machine...
                     iocs_list.append(ioc)
 
-        if "iocs" in config and config["iocs"] is not None:
-            for ioc in config["iocs"]:
+        if "iocs" in config_from_json and config_from_json["iocs"] is not None:
+            for ioc in config_from_json["iocs"]:
                 if ioc["remotePvPrefix"] == self._local_pv_prefix:  # If the IOC is meant to run on this machine...
                     iocs_list.append(ioc)
 
@@ -196,32 +191,12 @@ class ConfigurationMonitor(object):
                 print_and_log("ConfigMonitor: not all attributes could be extracted from config."
                               "The config may not have been updated to the correct schema. Ignoring this IOC.")
 
-        iocs_xml = ConfigurationXmlConverter.iocs_to_xml(iocs)
+        config.iocs = iocs
 
-        print_and_log("ConfigMonitor: Writing iocs.xml")
-        with open(os.path.join(config_dir, "iocs.xml"), "w") as f:
-            f.write(str(iocs_xml))
+        return config
 
     @needs_config_updating_lock
-    def _write_standard_config_files(self, config_dir):
-        print_and_log("ConfigMonitor: Writing components.xml")
-        with open(os.path.join(config_dir, "components.xml"), "w") as f:
-            f.write(EMPTY_COMPONENTS_XML)
-
-        print_and_log("ConfigMonitor: Writing blocks.xml")
-        with open(os.path.join(config_dir, "blocks.xml"), "w") as f:
-            f.write(EMPTY_BLOCKS_XML)
-
-        print_and_log("ConfigMonitor: Writing groups.xml")
-        with open(os.path.join(config_dir, "groups.xml"), "w") as f:
-            f.write(EMPTY_GROUPS_XML)
-
-        print_and_log("ConfigMonitor: Writing meta.xml")
-        with open(os.path.join(config_dir, "meta.xml"), "w") as f:
-            f.write(META_XML)
-
-    @needs_config_updating_lock
-    def _update_last_config(self, config_base):
+    def _update_last_config(self):
         print_and_log("ConfigMonitor: Writing last_config.txt")
-        with open(os.path.join(config_base, "last_config.txt"), "w") as f:
+        with open(FILEPATH_MANAGER.get_last_config_file_path(), "w") as f:
             f.write("{}\n".format(REMOTE_IOC_CONFIG_NAME))

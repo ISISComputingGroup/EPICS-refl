@@ -39,7 +39,7 @@ class IOC(object):
             autostart (bool): Whether the IOC should automatically start/restart when the configuration is
             loaded/changed
             restart (bool): If auto start is true, then proc serv will restart the IOC if it terminates unexpectedly
-            component (string): The component the IOC belongs to
+            component (string|None): The component the IOC belongs to
             macros (dict): The IOC's macros
             pvs (dict): The IOC's PVs
             pvsets (dict): The IOC's PV sets

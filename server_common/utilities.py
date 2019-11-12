@@ -111,6 +111,24 @@ def dehex_and_decompress(value):
     return zlib.decompress(binascii.unhexlify(value))
 
 
+def dehex_and_decompress_waveform(value):
+    """Decompresses the inputted waveform, assuming it is a array of integers representing characters (null terminated).
+
+    Args:
+        value (list[int]): The string to be decompressed
+
+    Returns:
+        bytes : A decompressed version of the inputted string
+    """
+    assert type(value) == list, \
+        "Non-list argument passed to dehex_and_decompress_waveform\n" \
+        "Argument was type {} with value {}".format(value.__class__.__name__, value)
+
+    unicode_rep = waveform_to_string(value)
+    bytes_rep = unicode_rep.encode("ascii")
+    return dehex_and_decompress(bytes_rep)
+
+
 def convert_to_json(value):
     """Converts the inputted object to JSON format.
 
@@ -251,7 +269,7 @@ def waveform_to_string(data):
     Returns: waveform as a sting
 
     """
-    output = ""
+    output = six.text_type()
     for i in data:
         if i == 0:
             break
