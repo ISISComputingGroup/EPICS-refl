@@ -33,20 +33,21 @@ class IocControl(object):
         """
         self._proc = ProcServWrapper(prefix)
 
-    def start_ioc(self, ioc):
+    def start_ioc(self, ioc, restart_alarm_server=True):
         """Start an IOC.
 
         Args:
             ioc (string): The name of the IOC
+            restart_alarm_server (bool): whether to also restart the alarm server
         """
         try:
             self._proc.start_ioc(ioc)
-            if ioc != "ALARM":
+            if ioc != "ALARM" and restart_alarm_server:
                 AlarmConfigLoader.restart_alarm_server(self)
         except Exception as err:
             print_and_log("Could not start IOC %s: %s" % (ioc, str(err)), "MAJOR")
 
-    def restart_ioc(self, ioc, force=False):
+    def restart_ioc(self, ioc, force=False, restart_alarm_server=True):
         """Restart an IOC.
 
         Note: restarting an IOC automatically sets the IOC to auto-restart, so it is neccessary to reapply the
@@ -55,14 +56,14 @@ class IocControl(object):
         Args:
             ioc (string): The name of the IOC
             force (bool): Force it to restart even if it is an IOC not to stop
+            restart_alarm_server (bool): whether to also restart the alarm server
         """
         # Check it is okay to stop it
         if not force and ioc.startswith(IOCS_NOT_TO_STOP):
             return
         try:
-            auto = self._proc.get_autorestart(ioc)
             self._proc.restart_ioc(ioc)
-            if ioc != "ALARM":
+            if ioc != "ALARM" and restart_alarm_server:
                 AlarmConfigLoader.restart_alarm_server(self)
         except Exception as err:
             print_and_log("Could not restart IOC %s: %s" % (ioc, str(err)), "MAJOR")

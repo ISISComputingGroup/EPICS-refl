@@ -1,1 +1,1 @@
-pnr
+mode pnr
