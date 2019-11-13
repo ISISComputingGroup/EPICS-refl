@@ -8,6 +8,7 @@ class _ListenerInfo:
     Information on listeners.
     Listeners is the set of listeners which should be informed on trigger.
     last_value: the last value that was sent to the listeners
+    pre_trigger_function: an optional piece of code to execute before triggering updates for this listener type.
     """
     def __init__(self):
         self.listeners = set()

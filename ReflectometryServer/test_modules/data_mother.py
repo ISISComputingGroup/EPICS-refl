@@ -24,7 +24,7 @@ class EmptyBeamlineParameter(BeamlineParameter):
     def _initialise_sp_from_file(self):
         pass
 
-    def _initialise_sp_from_motor(self):
+    def _initialise_sp_from_motor(self, _):
         pass
 
     def _set_changed_flag(self):

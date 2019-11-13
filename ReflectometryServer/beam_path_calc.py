@@ -488,14 +488,6 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         """
         self._angular_displacement = self._calc_angle_from_next_component(incoming_beam)
 
-    @property
-    def angle(self):
-        """
-        Returns: the angle of the component relative to the natural (straight through) beam measured clockwise from the
-            horizon in the incoming beam direction.
-        """
-        return self._angular_displacement
-
 
 class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
     """

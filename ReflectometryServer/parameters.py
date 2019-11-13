@@ -107,12 +107,9 @@ class BeamlineParameter(object):
         """
 
     @abc.abstractmethod
-    def _initialise_sp_from_motor(self, update):
+    def _initialise_sp_from_motor(self, _):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
-
-        Args:
-            update (ReflectometryServer.beam_path_calc.InitUpdate): The update event
         """
 
     def _set_initial_sp(self, sp_init):
@@ -384,12 +381,9 @@ class AngleParameter(BeamlineParameter):
             except ValueError:
                 self._log_autosave_type_error()
 
-    def _initialise_sp_from_motor(self, update):
+    def _initialise_sp_from_motor(self, _):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
-
-        Args:
-            update (ReflectometryServer.beam_path_calc.InitUpdate): The update event
         """
         init_sp = self._reflection_component.beam_path_set_point.get_angle_relative_to_beam()
         self._set_initial_sp(init_sp)
@@ -473,12 +467,9 @@ class TrackingPosition(BeamlineParameter):
             except ValueError:
                 self._log_autosave_type_error()
 
-    def _initialise_sp_from_motor(self, update):
+    def _initialise_sp_from_motor(self, _):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
-
-        Args:
-            update (ReflectometryServer.beam_path_calc.InitUpdate): The update event
         """
         if self._component.beam_path_set_point.is_in_beam:
             init_sp = self._component.beam_path_set_point.get_position_relative_to_beam()
@@ -514,7 +505,7 @@ class TrackingPosition(BeamlineParameter):
             return False
 
         return not self._component.beam_path_set_point.is_in_beam or \
-               abs(self.rbv - self._set_point_rbv) <= self._rbv_to_sp_tolerance
+            abs(self.rbv - self._set_point_rbv) <= self._rbv_to_sp_tolerance
 
     @property
     def is_changing(self):
@@ -578,12 +569,9 @@ class InBeamParameter(BeamlineParameter):
         elif sp_init is not None:
             self._log_autosave_type_error()
 
-    def _initialise_sp_from_motor(self, update):
+    def _initialise_sp_from_motor(self, _):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
-
-        Args:
-            update (ReflectometryServer.beam_path_calc.InitUpdate): The update event
         """
         init_sp = self._component.beam_path_set_point.is_in_beam
         self._set_initial_sp(init_sp)
@@ -641,10 +629,7 @@ class InBeamParameter(BeamlineParameter):
         """
         Returns: Is the parameter changing (rotating, displacing etc.)
         """
-        if self._component.beam_path_rbv.is_displacing:
-            return True
-        else:
-            return False
+        return self._component.beam_path_rbv.is_displacing
 
 
 class SlitGapParameter(BeamlineParameter):
@@ -695,12 +680,9 @@ class SlitGapParameter(BeamlineParameter):
             except ValueError:
                 self._log_autosave_type_error()
 
-    def _initialise_sp_from_motor(self, update):
+    def _initialise_sp_from_motor(self, _):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
-
-        Args:
-            update (ReflectometryServer.beam_path_calc.InitUpdate): The update event
         """
         self._set_initial_sp(self._pv_wrapper.sp)
 
@@ -725,7 +707,7 @@ class SlitGapParameter(BeamlineParameter):
 
     def _get_alarm_info(self):
         """
-        Returns the alarm information for this slit gap.
+        Returns the alarm information for this slit gap parameter.
         """
         return (self._last_update.alarm_severity, self._last_update.alarm_status)
 
@@ -742,7 +724,7 @@ class SlitGapParameter(BeamlineParameter):
         """
         return []
 
-    def _on_is_changing_change(self, update):
+    def _on_is_changing_change(self, _):
         """
         Trigger an update for the is_changing status of this parameter on such an event in the PV wrapper.
 

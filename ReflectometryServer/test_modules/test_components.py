@@ -237,7 +237,7 @@ class TestThetaComponent(unittest.TestCase):
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 10, 90), angle_to=[])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
-        result = theta.beam_path_rbv.angle
+        result = theta.beam_path_rbv.get_angular_displacement()
 
         assert_that(isnan(result), is_(True), "Is not a number")
 
@@ -249,7 +249,7 @@ class TestThetaComponent(unittest.TestCase):
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
-        result = theta.beam_path_rbv.angle
+        result = theta.beam_path_rbv.get_angular_displacement()
 
         assert_that(isnan(result), is_(True), "Is not a number")
 
@@ -262,7 +262,7 @@ class TestThetaComponent(unittest.TestCase):
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
-        result = theta.beam_path_rbv.angle
+        result = theta.beam_path_rbv.get_angular_displacement()
         theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.substitute_incoming_beam_for_displacement
 
         assert_that(result, is_(0.0))
@@ -277,7 +277,7 @@ class TestThetaComponent(unittest.TestCase):
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
-        result = theta.beam_path_rbv.angle
+        result = theta.beam_path_rbv.get_angular_displacement()
 
         assert_that(result, is_(45.0/2.0))
 
@@ -290,7 +290,7 @@ class TestThetaComponent(unittest.TestCase):
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
-        result = theta.beam_path_rbv.angle
+        result = theta.beam_path_rbv.get_angular_displacement()
 
         assert_that(result, is_(90/2.0))
 
@@ -309,7 +309,7 @@ class TestThetaComponent(unittest.TestCase):
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
-        result = theta.beam_path_rbv.angle
+        result = theta.beam_path_rbv.get_angular_displacement()
         theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.substitute_incoming_beam_for_displacement
         theta_calc_set_of_incoming_beam_next_comp_but_one = next_but_one_component.beam_path_rbv.substitute_incoming_beam_for_displacement
 
@@ -333,7 +333,7 @@ class TestThetaComponent(unittest.TestCase):
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
-        result = theta.beam_path_rbv.angle
+        result = theta.beam_path_rbv.get_angular_displacement()
         theta_calc_set_of_incoming_beam_next_comp = next_component.beam_path_rbv.substitute_incoming_beam_for_displacement
         theta_calc_set_of_incoming_beam_next_comp_but_one = next_but_one_component.beam_path_rbv.substitute_incoming_beam_for_displacement
 
@@ -380,7 +380,7 @@ class TestThetaComponent(unittest.TestCase):
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
-        result = theta.beam_path_rbv.angle
+        result = theta.beam_path_rbv.get_angular_displacement()
 
         assert_that(result, is_(close_to(45.0/2.0, DEFAULT_TEST_TOLERANCE)))
 

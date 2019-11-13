@@ -236,9 +236,6 @@ class IocDriver(object):
         """
         Signal that the motor readback value has changed to the middle component layer. Subclass must implement this
         method.
-
-        Args:
-            update TODO
         """
         raise NotImplemented()
 
@@ -410,7 +407,7 @@ class AngleDriver(IocDriver):
         Propagate the new angle readback value to the middle component layer.
 
         Args:
-            update TODO
+            update (CorrectedReadbackUpdate): The PV update for this axis.
         """
         self._component.beam_path_rbv.angle_update(update)
 
