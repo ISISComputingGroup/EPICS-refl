@@ -31,8 +31,8 @@ pipeline {
     stage("Run All Tests") {
       steps {
         bat """
-            robocopy "\\isis\inst$\Kits$\CompGroup\ICP\EPICS_UTILS" "C:\Instrument\Apps\EPICS_UTILS" /E /PURGE /R:2 /MT /XF "install.log" /NFL /NDL /NP
-            set "PATH=%PATH%;C:\Instrument\Apps\EPICS_UTILS"
+            robocopy "\\\\isis\\inst$\\Kits$\\CompGroup\\ICP\\EPICS_UTILS" "C:\\Instrument\\Apps\\EPICS_UTILS" /E /PURGE /R:2 /MT /XF "install.log" /NFL /NDL /NP
+            set "PATH=%PATH%;C:\\Instrument\\Apps\\EPICS_UTILS"
             
             set PYTHON_PATH=${env.PYTHON_PATH}
             %PYTHON_PATH%\\Python\\python run_all_tests.py --output_dir ./test-reports
