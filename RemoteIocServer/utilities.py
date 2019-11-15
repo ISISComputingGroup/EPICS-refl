@@ -6,7 +6,11 @@ import os
 
 from concurrent.futures import ThreadPoolExecutor
 from genie_python.channel_access_exceptions import UnableToConnectToPVException, ReadAccessException
-from genie_python.genie_cachannel_wrapper import CaChannelWrapper
+try:
+    # noinspection PyUnresolvedReferences
+    from genie_python.genie_cachannel_wrapper import CaChannelWrapper, EXIST_TIMEOUT
+except ImportError:
+    print("ERROR: No genie_python on the system can not import CaChannelWrapper! (OK for unit testing)")
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.utilities import print_and_log as _common_print_and_log

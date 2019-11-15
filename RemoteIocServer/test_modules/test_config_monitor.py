@@ -37,11 +37,12 @@ META_XML = u'<?xml version="1.0" ?>\n<meta>\n\t<description>Configuration for re
 
 class TestConfigMonitor(unittest.TestCase):
 
+    @patch("RemoteIocServer.config_monitor.get_hostname_from_prefix")
     @patch("RemoteIocServer.config_monitor._EpicsMonitor")
-    def test_WHEN_start_monitoring_THEN_monitor_called(self, epicsmonitor):
+    def test_WHEN_start_monitoring_THEN_monitor_called(self, epicsmonitor, get_hostname_from_prefix_mock):
+        get_hostname_from_prefix_mock.return_value = "server"
         mon = ConfigurationMonitor(LOCAL_TEST_PREFIX, lambda *a, **k: None)
         mon.set_remote_pv_prefix(REMOTE_TEST_PREFIX)
-        mon._start_monitoring()
 
         epicsmonitor.assert_called_with("{}CS:BLOCKSERVER:GET_CURR_CONFIG_DETAILS".format(REMOTE_TEST_PREFIX))
         epicsmonitor.return_value.start.assert_called_once()
