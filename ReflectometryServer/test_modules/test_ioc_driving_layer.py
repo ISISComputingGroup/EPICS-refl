@@ -30,15 +30,15 @@ class TestHeightDriver(unittest.TestCase):
 
     def test_GIVEN_backlash_distance_is_none_WHEN_backlash_distance_checked_THEN_returned_value_is_zero(self):
         expected = 0.0
-        self.jaws_driver._axis._backlash_distance = None
-        duration = self.jaws_driver._backlash_duration()
+        self.height_axis.backlash_distance = None
+        duration = self.jaws_driver.get_max_move_duration()
 
         assert_that(duration, is_(expected))
 
     def test_GIVEN_backlash_velocity_is_none_WHEN_backlash_distance_checked_THEN_returned_value_is_zero(self):
         expected = 0.0
-        self.jaws_driver._axis._backlash_velocity = None
-        duration = self.jaws_driver._backlash_duration()
+        self.height_axis.backlash_distance = None
+        duration = self.jaws_driver.get_max_move_duration()
 
         assert_that(duration, is_(expected))
 
