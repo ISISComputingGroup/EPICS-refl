@@ -278,12 +278,12 @@ class ConfigHolder(object):
         self._config.add_block(**blockargs)
 
     def _add_ioc(self, name, component=None, autostart=True, restart=True, macros=None, pvs=None, pvsets=None,
-                 simlevel=None):
+                 simlevel=None, remotePvPrefix=None):
         # TODO: use IOC object instead?
         if component is None:
-            self._config.add_ioc(name, None, autostart, restart, macros, pvs, pvsets, simlevel)
+            self._config.add_ioc(name, None, autostart, restart, macros, pvs, pvsets, simlevel, remotePvPrefix)
         elif component.lower() in self._components:
-            self._components[component.lower()].add_ioc(name, component, autostart, restart, macros, pvs, pvsets, simlevel)
+            self._components[component.lower()].add_ioc(name, component, autostart, restart, macros, pvs, pvsets, simlevel, remotePvPrefix)
         else:
             raise ValueError("Can't add IOC '{}' to component '{}': component does not exist".format(name, component))
 
@@ -305,6 +305,15 @@ class ConfigHolder(object):
             'history': self._config.meta.history,
             'isProtected': self._config.meta.isProtected
         }
+
+    def is_protected(self):
+        """
+        Whether this config has been marked as "protected" or not.
+
+        Returns:
+            (bool): whether the configuration is protected.
+        """
+        return self._config.meta.isProtected
 
     def _comps_to_list(self):
         comps = []

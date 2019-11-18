@@ -26,7 +26,8 @@ sys.path.insert(0, os.path.abspath(os.environ["MYDIRBLOCK"]))
 
 from pcaspy import SimpleServer, Driver
 from CaChannel import ca, CaChannel
-from server_common.utilities import compress_and_hex, convert_to_json, waveform_to_string, dehex_and_decompress,  print_and_log
+from server_common.utilities import compress_and_hex, convert_to_json, waveform_to_string, dehex_and_decompress, \
+    print_and_log, dehex_and_decompress_waveform
 
 EXISTS_TIMEOUT = 3 
 PEND_EVENT_TIMEOUT = 0.1
@@ -35,7 +36,7 @@ PEND_EVENT_TIMEOUT = 0.1
 PVDB = {
     'CS:BLOCKSERVER:BLOCKVALUES': {
         'type': 'char',
-        'count': 64000,
+        'count': 1000000,
         'value': [0],
     },
 }
@@ -122,7 +123,7 @@ class BlocksMonitor(Driver):
         """Connects amonitor to the block-server to get the names of the blocks.
         """
         def _blocknames_callback(epics_args, user_args):
-            names = json.loads(dehex_and_decompress(waveform_to_string(epics_args['pv_value'])))
+            names = json.loads(dehex_and_decompress_waveform(epics_args['pv_value']))
             if self.block_names is None or names != self.block_names:
                 self.block_names = names
                 print "Updated"

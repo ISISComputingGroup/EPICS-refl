@@ -28,6 +28,7 @@ class IocDriver(object):
             engineering_correction (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv. None for no correction
         """
+        self._out_of_beam_position = None
         self._component = component
         self._axis = axis
         self.name = axis.name

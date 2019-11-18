@@ -240,21 +240,29 @@ class TestBeamlineValidation(unittest.TestCase):
 class TestBeamlineModeInitialization(unittest.TestCase):
 
     def setUp(self):
+        ReflectometryServer.file_io.REFL_AUTOSAVE_PATH = \
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config"))
         self.nr_mode = BeamlineMode("nr", [])
         self.pnr_mode = BeamlineMode("pnr", [])
 
     def test_GIVEN_no_autosaved_mode_WHEN_instantiating_beamline_THEN_defaults_to_first_in_list(self):
-        expected = "nr"
-        ReflectometryServer.file_io.MODE_AUTOSAVE_PATH = "NONSENSICAL_PATH"
-        beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
+        try:
+            expected = "nr"
+            ReflectometryServer.file_io.MODE_AUTOSAVE_FILE = "NONSENSICAL_PATH"
+            beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
 
-        actual = beamline.active_mode
+            actual = beamline.active_mode
 
-        self.assertEqual(expected, actual)
+            self.assertEqual(expected, actual)
+        finally:
+            try:
+                os.remove(os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "NONSENSICAL_PATH")))
+            except:
+                pass
 
     def test_GIVEN_autosaved_mode_exists_WHEN_instantiating_beamline_THEN_active_mode_is_saved_mode(self):
         expected = "pnr"
-        ReflectometryServer.file_io.MODE_AUTOSAVE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "mode_pnr.txt"))
+        ReflectometryServer.file_io.MODE_AUTOSAVE_FILE = "mode_pnr"
         beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
 
         actual = beamline.active_mode
@@ -263,7 +271,7 @@ class TestBeamlineModeInitialization(unittest.TestCase):
 
     def test_GIVEN_autosaved_mode_does_not_exist_in_config_WHEN_instantiating_beamline_THEN_mode_defaults_to_first_in_list(self):
         expected = "nr"
-        ReflectometryServer.file_io.MODE_AUTOSAVE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "mode_nonexistent.txt"))
+        ReflectometryServer.file_io.MODE_AUTOSAVE_FILE = "mode_nonexistent"
         beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
 
         actual = beamline.active_mode
@@ -271,7 +279,7 @@ class TestBeamlineModeInitialization(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_GIVEN_autosaved_mode_exists_WHEN_instantiating_beamline_THEN_mode_inits_are_not_applied(self):
-        ReflectometryServer.file_io.MODE_AUTOSAVE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "mode_pnr.txt"))
+        ReflectometryServer.file_io.MODE_AUTOSAVE_FILE = "mode_pnr"
 
         with patch.object(Beamline, '_init_params_from_mode') as mock_mode_inits:
             beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
@@ -279,11 +287,17 @@ class TestBeamlineModeInitialization(unittest.TestCase):
         mock_mode_inits.assert_not_called()
 
     def test_GIVEN_default_mode_applied_WHEN_instantiating_beamline_THEN_mode_inits_are_not_applied(self):
-        ReflectometryServer.file_io.MODE_AUTOSAVE_PATH = "NONSENSICAL_PATH"
-        with patch.object(Beamline, '_init_params_from_mode') as mock_mode_inits:
-            beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
+        try:
+            ReflectometryServer.file_io.MODE_AUTOSAVE_FILE = "NONSENSICAL_PATH"
+            with patch.object(Beamline, '_init_params_from_mode') as mock_mode_inits:
+                beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
 
-        mock_mode_inits.assert_not_called()
+            mock_mode_inits.assert_not_called()
+        finally:
+            try:
+                os.remove(os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "NONSENSICAL_PATH")))
+            except:
+                pass
 
 
 class TestRealisticWithAutosaveInit(unittest.TestCase):

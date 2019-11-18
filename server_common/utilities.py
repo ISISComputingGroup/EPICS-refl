@@ -16,6 +16,7 @@
 """
 Utilities for running block server and related ioc's.
 """
+import threading
 import six
 import time
 import zlib
@@ -24,13 +25,13 @@ import json
 import codecs
 import binascii
 from xml.etree import ElementTree
-
 from server_common.loggers.logger import Logger
 from server_common.common_exceptions import MaxAttemptsExceededException
 
 
 # Default to base class - does not actually log anything
 LOGGER = Logger()
+_LOGGER_LOCK = threading.RLock()  # To prevent message interleaving between different threads.
 
 
 class SEVERITY(object):
@@ -74,9 +75,10 @@ def print_and_log(message, severity=SEVERITY.INFO, src="BLOCKSVR"):
                                     Default severity is INFO.
         src (string, optional): Gives the source of the message. Default source is BLOCKSVR.
     """
-    message = "[{:.2f}] {}: {}".format(time.time(), severity, message)
-    print(message)
-    LOGGER.write_to_log(message, severity, src)
+    with _LOGGER_LOCK:
+        message = "[{:.2f}] {}: {}".format(time.time(), severity, message)
+        print(message)
+        LOGGER.write_to_log(message, severity, src)
 
 
 def compress_and_hex(value):
@@ -107,6 +109,24 @@ def dehex_and_decompress(value):
         "Non-bytes argument passed to dehex_and_decompress, maybe Python 2/3 compatibility issue\n" \
         "Argument was type {} with value {}".format(value.__class__.__name__, value)
     return zlib.decompress(binascii.unhexlify(value))
+
+
+def dehex_and_decompress_waveform(value):
+    """Decompresses the inputted waveform, assuming it is a array of integers representing characters (null terminated).
+
+    Args:
+        value (list[int]): The string to be decompressed
+
+    Returns:
+        bytes : A decompressed version of the inputted string
+    """
+    assert type(value) == list, \
+        "Non-list argument passed to dehex_and_decompress_waveform\n" \
+        "Argument was type {} with value {}".format(value.__class__.__name__, value)
+
+    unicode_rep = waveform_to_string(value)
+    bytes_rep = unicode_rep.encode("ascii")
+    return dehex_and_decompress(bytes_rep)
 
 
 def convert_to_json(value):
@@ -249,7 +269,7 @@ def waveform_to_string(data):
     Returns: waveform as a sting
 
     """
-    output = ""
+    output = six.text_type()
     for i in data:
         if i == 0:
             break
@@ -262,7 +282,7 @@ def ioc_restart_pending(ioc_pv, channel_access):
 
     Args:
         ioc_pv: The base PV for the IOC with instrument PV prefix
-        channel_access: The channel access object to be used for accessing PVs
+        channel_access (ChannelAccess): The channel access object to be used for accessing PVs
 
     Return
         bool: True if restarting, else False
@@ -312,3 +332,16 @@ def remove_from_end(string, text_to_remove):
     if string is not None and string.endswith(text_to_remove):
         return string[:-len(text_to_remove)]
     return string
+
+
+def lowercase_and_make_unique(in_list):
+    """
+    Takes a collection of strings, and returns it with all strings lowercased and with duplicates removed.
+
+    Args:
+        in_list (List[str]): the collection of strings to operate on
+
+    Returns:
+        set[str]: the lowercased unique set of strings.
+    """
+    return {x.lower() for x in in_list}

@@ -74,16 +74,16 @@ class ProcServWrapper(object):
         Returns:
             string : The status
         """
-        ans = ChannelAccess.caget(self.procserv_prefix + ioc + ":STATUS", as_string=True)
+        pv_name = self.procserv_prefix + ioc + ":STATUS"
+        ans = ChannelAccess.caget(pv_name, as_string=True)
         if ans is None:
-            raise Exception("Could not find IOC ({})".format(self.procserv_prefix + ioc))
+            raise Exception("Could not find IOC {} (using pv {})".format(ioc, pv_name))
         return ans.upper()
 
     def toggle_autorestart(self, ioc):
         """Toggles the auto-restart property.
 
         Args:
-            prefix (string): The prefix for the instrument
             ioc (string): The name of the IOC
         """
         # Check IOC is running, otherwise command is ignored

@@ -238,6 +238,8 @@ class ConfigurationXmlConverter(object):
             grp.set(TAG_AUTOSTART, str(ioc.autostart).lower())
         if ioc.restart is not None:
             grp.set(TAG_RESTART, str(ioc.restart).lower())
+        if ioc.remotePvPrefix is not None:
+            grp.set(TAG_REMOTE_PREFIX, str(ioc.remotePvPrefix))
 
         grp.set(TAG_SIMLEVEL, str(ioc.simlevel))
 
@@ -375,6 +377,8 @@ class ConfigurationXmlConverter(object):
                     level = i.attrib[TAG_SIMLEVEL].lower()
                     if level in SIMLEVELS:
                         iocs[n.upper()].simlevel = level
+                if TAG_REMOTE_PREFIX in options:
+                    iocs[n.upper()].remotePvPrefix = i.attrib[TAG_REMOTE_PREFIX]
 
                 try:
                     # Get any macros
@@ -425,7 +429,10 @@ class ConfigurationXmlConverter(object):
 
         isProtected = root_xml.find("./" + TAG_PROTECTED)
         if isProtected is not None:
-            data.isProtected = isProtected.text if isProtected.text is not None else "false"
+            if isProtected.text is not None:
+                data.isProtected = isProtected.text.lower() == "true"
+            else:
+                data.isProtected = False
 
         edits = root_xml.findall("./" + TAG_EDITS + "/" + TAG_EDIT)
         data.history = [e.text for e in edits]
