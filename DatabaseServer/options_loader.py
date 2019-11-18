@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -13,11 +14,11 @@
 # along with this program; if not, you can obtain a copy from
 # https://www.eclipse.org/org/documents/epl-v10.php or
 # http://opensource.org/licenses/eclipse-1.0.php
-
+import os
 from collections import OrderedDict
 from server_common.utilities import print_and_log, parse_xml_removing_namespace
-import os
-from ioc_options import IocOptions
+from DatabaseServer.ioc_options import IocOptions
+import xml
 
 TAG_NAME = 'name'
 TAG_VALUE = 'value'
@@ -25,9 +26,11 @@ TAG_IOC_CONFIG = 'ioc_config'
 CONFIG_PART = 'config_part'
 TAG_PATTERN = 'pattern'
 TAG_DESCRIPTION = 'description'
+TAG_DEFAULT = 'defaultValue'
+TAG_HAS_DEFAULT = 'hasDefault'
 
 
-def create_xpath_search(group, individual):
+def create_xpath_search(group: str, individual: str) -> str:
     return "./{}/{}/{}".format(CONFIG_PART, group, individual)
 
 
@@ -38,14 +41,14 @@ PVSETS = create_xpath_search('pvsets', 'pvset')
 
 class OptionsLoader(object):
     @staticmethod
-    def get_options(path):
+    def get_options(path: str) -> OrderedDict:
         """Loads the IOC options from file and converts them into IocOptions objects
 
         Args:
-            path (string): The path to the xml file to be loaded
+            path: The path to the xml file to be loaded
 
         Returns:
-            OrderedDict : A dict of IOCs and their associated options
+            An ordered dict of IOCs and their associated options
         """
         iocs = OrderedDict()
         if os.path.isfile(path):
@@ -56,7 +59,7 @@ class OptionsLoader(object):
         return iocs
 
     @staticmethod
-    def _options_from_xml(root_xml, iocs):
+    def _options_from_xml(root_xml: xml.etree.ElementTree.Element, iocs: OrderedDict) -> None:
         """Populates the supplied list of iocs based on an XML tree within a config.xml file"""
         for ioc in root_xml.findall("./" + TAG_IOC_CONFIG):
             name = ioc.attrib[TAG_NAME]
@@ -65,7 +68,9 @@ class OptionsLoader(object):
                 # Get any macros
                 for macro in ioc.findall(MACROS):
                     iocs[name.upper()].macros[macro.attrib[TAG_NAME]] = {TAG_DESCRIPTION: macro.attrib[TAG_DESCRIPTION],
-                                                                            TAG_PATTERN: macro.attrib.get(TAG_PATTERN)}
+                                                                         TAG_PATTERN: macro.attrib.get(TAG_PATTERN),
+                                                                         TAG_DEFAULT: macro.attrib.get(TAG_DEFAULT),
+                                                                         TAG_HAS_DEFAULT: macro.attrib.get(TAG_HAS_DEFAULT)}
 
                 # Get any pvsets
                 for pvset in ioc.findall(PVSETS):

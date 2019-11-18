@@ -33,6 +33,9 @@ pipeline {
         bat """
             set PYTHON_PATH=${env.PYTHON_PATH}
             %PYTHON_PATH%\\Python\\python run_all_tests.py --output_dir ./test-reports
+            
+            set PYTHON3_PATH=${env.PYTHON3_PATH}
+            %PYTHON3_PATH%\\Python\\python run_all_tests.py --output_dir ./test-reports
          """
       }
     }
@@ -85,5 +88,10 @@ def setLatestGeniePath() {
     def fileContents = readFile basePath + 'LATEST_BUILD.txt'
     def pythonPath = basePath + "BUILD-$fileContents"
     env.PYTHON_PATH = pythonPath
+    
+    def basePath3 = '\\\\isis\\inst$\\Kits\$\\CompGroup\\ICP\\genie_python\\'
+    def fileContents3 = readFile basePath + 'LATEST_BUILD.txt'
+    def pythonPath3 = basePath + "BUILD-$fileContents"
+    env.PYTHON3_PATH = pythonPath
 }
 

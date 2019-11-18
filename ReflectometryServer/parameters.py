@@ -736,6 +736,8 @@ class SlitGapParameter(BeamlineParameter):
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
             self._initialise_sp_from_motor()
+        if sim:
+            self._rbv_value = init
 
         self._no_move_because_is_define = False
         self.define_current_value_as = DefineCurrentValueAsParameter(self._pv_wrapper.define_position_as,

@@ -1,18 +1,20 @@
+from __future__ import print_function, absolute_import, division, unicode_literals
 import json
+
 from server_common.utilities import compress_and_hex
 
 
 class MockExpData(object):
-    def encode_for_return(self, data):
+    def encode_for_return(self, data: str) -> bytes:
         return compress_and_hex(json.dumps(data).encode('utf-8', 'replace'))
 
-    def _get_surname_from_fullname(self, fullname):
+    def _get_surname_from_fullname(self, fullname: str) -> str:
         try:
             return fullname.split(" ")[-1]
         except:
             return fullname
 
-    def update_experiment_id(self, experiment_id):
+    def update_experiment_id(self, experiment_id: str) -> None:
         """
         Updates the associated PVs when an experiment ID is set.
 
@@ -26,9 +28,9 @@ class MockExpData(object):
         """
         pass
 
-    def update_username(self, users):
+    def update_username(self, users: str) -> None:
         pass
 
     @staticmethod
-    def make_name_list_ascii(names):
-        pass
+    def make_name_list_ascii(names: list) -> bytes:
+        return b""
