@@ -288,9 +288,9 @@ class ConfigurationFileManager(object):
     @staticmethod
     def get_path(name, is_component):
         if is_component:
-            path = os.path.abspath(FILEPATH_MANAGER.get_component_path(name))
+            path = FILEPATH_MANAGER.get_component_path(name)
         else:
-            path = os.path.abspath(FILEPATH_MANAGER.get_config_path(name))
+            path = FILEPATH_MANAGER.get_config_path(name)
 
         return path
 

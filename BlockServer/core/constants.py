@@ -53,6 +53,7 @@ TAG_LOG_DEADBAND = 'log_deadband'
 TAG_AUTOSTART = 'autostart'
 TAG_RESTART = 'restart'
 TAG_SIMLEVEL = 'simlevel'
+TAG_REMOTE_PREFIX = 'remotePvPrefix'
 
 TAG_RC_LOW = ":RC:LOW"
 TAG_RC_HIGH = ":RC:HIGH"

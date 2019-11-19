@@ -16,6 +16,8 @@
 
 import os
 import json
+
+import traceback
 import six
 from threading import RLock
 
@@ -145,12 +147,12 @@ class ConfigListManager(object):
         # Must load components first for them all to be known in dependencies
         for comp_name in comp_list:
             try:
-                path = FILEPATH_MANAGER.get_component_path(comp_name)
                 # load_config checks the schema
                 config = self.load_config(comp_name, True)
                 self.update_a_config_in_list(config, True)
             except Exception as err:
-                print_and_log("Error in loading component: %s" % err, "MINOR")
+                print_and_log("Error in loading component: {}".format(err), "MINOR")
+                print_and_log(traceback.format_exc())
 
         # Create default if it does not exist
         if DEFAULT_COMPONENT.lower() not in comp_list:
@@ -162,7 +164,8 @@ class ConfigListManager(object):
                 config = self.load_config(config_name)
                 self.update_a_config_in_list(config)
             except Exception as err:
-                print_and_log("Error in loading config: %s" % err, "MINOR")
+                print_and_log("Error in loading config: {}".format(err), "MINOR")
+                print_and_log(traceback.format_exc())
 
     def load_config(self, name, is_component=False):
         """Loads an inactive configuration or component.

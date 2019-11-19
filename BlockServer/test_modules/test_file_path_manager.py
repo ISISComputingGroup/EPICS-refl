@@ -49,12 +49,12 @@ class TestFilePathManagerSequence(unittest.TestCase):
 
     def test_config_folder_path_correct(self):
         config = "test"
-        self.assertEqual(os.path.join(self.config_path, CONFIG_DIRECTORY, config) + os.sep,
+        self.assertEqual(os.path.join(self.config_path, CONFIG_DIRECTORY, config),
                          FILEPATH_MANAGER.get_config_path(config))
 
     def test_component_folder_path_correct(self):
         component = "test"
-        self.assertEqual(os.path.join(self.config_path, COMPONENT_DIRECTORY, component) + os.sep,
+        self.assertEqual(os.path.join(self.config_path, COMPONENT_DIRECTORY, component),
                          FILEPATH_MANAGER.get_component_path(component))
 
     def test_synoptic_file_path_correct(self):

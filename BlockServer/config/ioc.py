@@ -31,7 +31,7 @@ class IOC(object):
         simlevel (string): The level of simulation
     """
     def __init__(self, name, autostart=True, restart=True, component=None, macros=None, pvs=None, pvsets=None,
-                 simlevel=None):
+                 simlevel=None, remotePvPrefix=None):
         """ Constructor.
 
         Args:
@@ -39,16 +39,18 @@ class IOC(object):
             autostart (bool): Whether the IOC should automatically start/restart when the configuration is
             loaded/changed
             restart (bool): If auto start is true, then proc serv will restart the IOC if it terminates unexpectedly
-            component (string): The component the IOC belongs to
+            component (string|None): The component the IOC belongs to
             macros (dict): The IOC's macros
             pvs (dict): The IOC's PVs
             pvsets (dict): The IOC's PV sets
             simlevel (string): The level of simulation
+            remotePvPrefix (str): The remote pv prefix
         """
         self.name = name
         self.autostart = autostart
         self.restart = restart
         self.component = component
+        self.remotePvPrefix = remotePvPrefix
 
         if simlevel is None:
             self.simlevel = "none"
@@ -106,7 +108,8 @@ class IOC(object):
             'pvs': self._dict_to_list(self.pvs),
             'pvsets': self._dict_to_list(self.pvsets),
             'macros': self._dict_to_list(self.macros),
-            'component': self.component
+            'component': self.component,
+            'remotePvPrefix': self.remotePvPrefix,
         }
 
     def get(self, name):
@@ -114,5 +117,3 @@ class IOC(object):
 
     def __getitem__(self, name):
         return self.__getattribute__(name)
-
-

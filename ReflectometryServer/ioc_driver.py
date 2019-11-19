@@ -28,6 +28,7 @@ class IocDriver(object):
             engineering_correction (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv. None for no correction
         """
+        self._out_of_beam_position = None
         self._component = component
         self._axis = axis
         self.name = axis.name
@@ -114,13 +115,12 @@ class IocDriver(object):
 
     def _backlash_duration(self):
         """
-        Args:
         Returns: the duration of the backlash move
         """
         backlash_distance, distance_to_move, is_within_backlash_distance = self._get_movement_distances()
         backlash_velocity = self._axis.backlash_velocity
 
-        if backlash_velocity is None or backlash_distance == 0:
+        if backlash_velocity is None or backlash_distance == 0 or backlash_distance is None:
             # Return 0 instead of error as when this is called by perform_move it can be on motors which are
             # not in fact moving, and may not have been set up yet
             return 0.0
@@ -188,12 +188,11 @@ class IocDriver(object):
             move_duration (float): The duration in which to perform this move
             force (bool): move even if component does not report changed
         """
-
         if self._axis_will_move() or force:
             move_duration -= self._backlash_duration()
             logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
             if move_duration > 1e-6 and self._synchronised:
-                self._axis.initiate_move_with_change_of_velocity()
+                self._axis.cache_velocity()
                 self._axis.velocity = self._get_distance() / move_duration
             self._axis.sp = self._engineering_correction.to_axis(self._get_component_sp())
         self._clear_changed()

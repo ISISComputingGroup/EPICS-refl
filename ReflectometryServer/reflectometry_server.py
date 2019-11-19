@@ -52,6 +52,7 @@ from server_common.channel_access import ChannelAccess
 from server_common.mysql_abstraction_layer import SQLAbstraction
 
 logger.info("Initialising...")
+
 beamline = create_beamline_from_configuration()
 
 pv_db = PVManager(beamline)

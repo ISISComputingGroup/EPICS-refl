@@ -1,3 +1,6 @@
+"""
+Manager to capture file paths within the ibex system.
+"""
 # This file is part of the ISIS IBEX application.
 # Copyright (C) 2012-2016 Science & Technology Facilities Council.
 # All rights reserved.
@@ -24,6 +27,10 @@ DEVICES_DIRECTORY = "devices"
 
 # Do not create an instance of this class, instead use FILEPATH_MANAGER as a singleton
 class FilePathManager(object):
+    """
+    Manager for file paths
+    """
+
     def __init__(self):
         self.config_root_dir = ""
         self.config_dir = ""
@@ -34,6 +41,13 @@ class FilePathManager(object):
         self.scripts_dir = ""
 
     def initialise(self, config_root, scripts_root, schema_folder):
+        """
+        Init.
+        Args:
+            config_root: configuration root directory
+            scripts_root: script root directory
+            schema_folder: folder for the xml schema
+        """
         self.config_root_dir = config_root
         self.schema_dir = os.path.abspath(schema_folder)
         self.config_dir = os.path.join(config_root, CONFIG_DIRECTORY)
@@ -52,16 +66,51 @@ class FilePathManager(object):
                 os.makedirs(os.path.abspath(p))
 
     def get_component_path(self, component_name):
-        return os.path.join(self.component_dir, component_name) + os.sep
+        """
+        Args:
+            component_name: the component name
+
+        Returns: The full path to the directory of the named component
+
+        """
+        return os.path.abspath(os.path.join(self.component_dir, component_name))
 
     def get_config_path(self, config_name):
-        return os.path.join(self.config_dir, config_name) + os.sep
+        """
+        Args:
+            config_name: the configurations name
+
+        Returns: The full path to the directory of the named configuration
+
+        """
+        return os.path.abspath(os.path.join(self.config_dir, config_name))
 
     def get_synoptic_path(self, synoptic_name):
-        return os.path.join(self.synoptic_dir, synoptic_name) + ".xml"
+        """
+
+        Args:
+            synoptic_name: name of the synoptic
+
+        Returns: File path to the synoptic of the given name
+
+        """
+        return os.path.join(self.synoptic_dir, "{}.xml".format(synoptic_name))
 
     def get_banner_path(self):
+        """
+        Returns: the file path to the banner definition file. The banner is the information bar at the bottom of the gui
+
+        """
         return os.path.join(self.config_root_dir, "banner.xml")
+
+    def get_last_config_file_path(self):
+        """
+        Returns: File path of the last config file, this is the file which indicates the last configuration that was
+        loaded by the block server (this should be the current config)
+
+        """
+        return os.path.abspath(os.path.join(FILEPATH_MANAGER.config_root_dir, "last_config.txt"))
+
 
 # This is the singleton to use
 FILEPATH_MANAGER = FilePathManager()
