@@ -70,7 +70,7 @@ class TestConfigMonitor(unittest.TestCase):
         self.assertEqual(epicsmonitor.return_value.start.call_count, 2)
 
     @patch("RemoteIocServer.config_monitor.print_and_log")
-    @patch("RemoteIocServer.config_monitor.dehex_and_decompress", return_value="abc")
+    @patch("RemoteIocServer.config_monitor.dehex_and_decompress_waveform", return_value="abc")
     @patch("RemoteIocServer.config_monitor._EpicsMonitor")
     def test_WHEN_config_updated_called_with_valid_value_THEN_no_errors_logger_and_calls_write_config(
             self, epicsmonitor, dehex, print_and_log):
@@ -84,7 +84,7 @@ class TestConfigMonitor(unittest.TestCase):
         print_and_log.assert_not_called()
 
     @patch("RemoteIocServer.config_monitor.print_and_log")
-    @patch("RemoteIocServer.config_monitor.dehex_and_decompress", side_effect=ValueError)
+    @patch("RemoteIocServer.config_monitor.dehex_and_decompress_waveform", side_effect=ValueError)
     @patch("RemoteIocServer.config_monitor._EpicsMonitor")
     def test_WHEN_config_updated_called_with_invalid_value_THEN_error_logged_and_no_call_to_write_config(
             self, epicsmonitor, dehex, print_and_log):
