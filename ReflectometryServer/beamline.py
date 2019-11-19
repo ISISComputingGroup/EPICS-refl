@@ -218,17 +218,12 @@ class Beamline(object):
             raise ValueError("Problem with beamline configuration: {}".format(";".join(errors)))
 
     @property
-    def parameter_types(self):
+    def parameters(self):
         """
         Returns:
-            dict[str, ReflectometryServer.parameters.BeamlineParameterType]: a dictionary of parameter type,
-                keyed by their name
+            dict[str, ReflectometryServer.parameters.BeamlineParameter]: a dictionary of beamline parameters
         """
-        types = OrderedDict()
-        for beamline_parameter in self._beamline_parameters.values():
-            types[beamline_parameter.name] = (beamline_parameter.parameter_type, beamline_parameter.group_names,
-                                              beamline_parameter.description)
-        return types
+        return self._beamline_parameters
 
     @property
     def mode_names(self):

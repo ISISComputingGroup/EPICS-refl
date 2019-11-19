@@ -6,7 +6,7 @@ import math
 import logging
 
 from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
-from ReflectometryServer.components import ChangeAxis
+from ReflectometryServer.components import ChangeAxis, DefineValueAsEvent
 from ReflectometryServer.observable import observable
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ class IocDriver(object):
         Drive the IOC based on a component
         Args:
             component (ReflectometryServer.components.Component): Component for IOC driver
-            axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
+            axis (ReflectometryServer.pv_wrapper.PVWrapper): The PV that this driver controls.
             synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
                 time; if false they will move at their current speed.
             engineering_correction (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
@@ -48,13 +48,30 @@ class IocDriver(object):
         self._axis.add_after_sp_change_listener(self._on_update_sp)
         self._axis.add_after_is_changing_change_listener(self._on_update_is_changing)
 
+        self._component.add_listener(DefineValueAsEvent, self._on_define_value_as)
+        self._change_axis_type = None
+
+    def _on_define_value_as(self, new_event):
+        """
+        When a define value as occurs then set the value on the axis
+
+        Args:
+            new_event (DefineValueAsEvent): The events value and axis
+
+        """
+        if new_event.change_axis == self._change_axis_type:
+            correct_position = self._engineering_correction.to_axis(new_event.new_position)
+            logger.info("Defining position for axis {name} to {corrected_value} (uncorrected {new_value}). "
+                        "From sp {sp} and rbv {rbv}".format(name=self._axis.name, corrected_value=correct_position,
+                                                            new_value=new_event.new_position, sp=self._sp_cache,
+                                                            rbv=self._rbv_cache))
+            self._axis.define_position_as(correct_position)
+
     def _on_correction_update(self, new_correction_value):
         """
 
         Args:
             new_correction_value (CorrectionUpdate): the new correction value
-
-        Returns:
 
         """
         description = "{} on {} for {}".format(new_correction_value.description, self.name, self._component.name)
@@ -291,6 +308,7 @@ class DisplacementDriver(IocDriver):
         super(DisplacementDriver, self).__init__(component, motor_axis, synchronised, engineering_correction)
         self._out_of_beam_position = out_of_beam_position
         self._tolerance_on_out_of_beam_position = tolerance_on_out_of_beam_position
+        self._change_axis_type = ChangeAxis.POSITION
 
     def _get_in_beam_status(self, value):
         if self._out_of_beam_position is not None:
@@ -389,6 +407,7 @@ class AngleDriver(IocDriver):
                 correction to apply to the value from the component before it is sent to the pv.
         """
         super(AngleDriver, self).__init__(component, angle_axis, synchronised, engineering_correction)
+        self._change_axis_type = ChangeAxis.ANGLE
 
     def initialise_setpoint(self):
         """

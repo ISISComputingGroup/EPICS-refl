@@ -18,6 +18,7 @@ BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
 BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
 PARAM_INFO = "PARAM_INFO"
 DRIVER_INFO = "DRIVER_INFO"
+ALIGN_INFO = "ALIGN_INFO"
 IN_MODE_SUFFIX = ":IN_MODE"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
@@ -26,6 +27,7 @@ SET_AND_NO_ACTION_SUFFIX = ":SP_NO_ACTION"
 RBV_AT_SP = ":RBV:AT_SP"
 CHANGING = ":CHANGING"
 CHANGED_SUFFIX = ":CHANGED"
+DEFINE_POSITION_AS = ":DEFINE_POSITION_AS"
 
 VAL_FIELD = ".VAL"
 
@@ -109,6 +111,7 @@ class PvSort(Enum):
     IN_MODE = 7
     CHANGING = 8
     RBV_AT_SP = 9
+    DEFINE_POS_AS = 10
 
     @staticmethod
     def what(pv_sort):
@@ -136,6 +139,8 @@ class PvSort(Enum):
             return "(Is changing)"
         elif pv_sort == PvSort.RBV_AT_SP:
             return "(Tolerance between RBV and target set point)"
+        elif pv_sort == PvSort.DEFINE_POS_AS:
+            return "(Define the value of current position)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -164,6 +169,10 @@ class PvSort(Enum):
             return parameter.is_changing
         elif self == PvSort.RBV_AT_SP:
             return parameter.rbv_at_sp
+        elif self == PvSort.DEFINE_POS_AS:
+            if parameter.define_current_value_as is None:
+                return float("NaN")
+            return parameter.define_current_value_as.new_value
         return float("NaN")
 
 
@@ -234,8 +243,8 @@ class PVManager:
                          'states': [code.alarm_severity for code in self._beamline.status_codes]}
         self._add_pv_with_val(BEAMLINE_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV, archive=True,
                               interest="HIGH", alarm=True)
-        self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'char', 'count': 400}, "Message about the beamline", PvSort.RBV,
-                              archive=True, interest="HIGH")
+        self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'char', 'count': 400}, "Message about the beamline",
+                              PvSort.RBV, archive=True, interest="HIGH")
 
     def _add_footprint_calculator_pvs(self):
         """
@@ -258,32 +267,45 @@ class PVManager:
         Add PVs for each beamline parameter in the reflectometry configuration to the server's PV database.
         """
         param_info = []
-        for param, (param_type, group_names, description) in self._beamline.parameter_types.items():
-            param_info_record = self._add_parameter_pvs(param, group_names, description, param_type)
+        align_info = []
+        for parameter in self._beamline.parameters.values():
+            param_info_record = self._add_parameter_pvs(parameter)
             param_info.append(param_info_record)
+            if parameter.define_current_value_as is not None:
+                align_info_record = {
+                    "name": param_info_record["name"],
+                    "prepended_alias": param_info_record["prepended_alias"],
+                    "type": "align"
+                    }
+                align_info.append(align_info_record)
+
         self.PVDB[PARAM_INFO] = {'type': 'char',
                                  'count': 2048,
                                  'value': compress_and_hex(json.dumps(param_info))
                                  }
+        self.PVDB[ALIGN_INFO] = {'type': 'char',
+                                 'count': 2048,
+                                 'value': compress_and_hex(json.dumps(align_info))
+                                 }
     
-    def _add_parameter_pvs(self, param_name, group_names, description, param_type):
+    def _add_parameter_pvs(self, parameter):
         """
         Adds all PVs needed for one beamline parameter to the PV database.
 
         Args:
-            param_name: The name of the beamline parameter
-            param_type: The type of the parameter
-            group_names: list of groups to which this parameter belong
-            description: description of the pv
+            parameter (ReflectometryServer.parameters.BeamlineParameter): the beamline parameter
 
         Returns:
             parameter information
         """
         try:
+            param_name = parameter.name
+            description = parameter.description
             param_alias = create_pv_name(param_name, self.PVDB.keys(), PARAM_PREFIX, limit=10)
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
-           
-            fields = PARAMS_FIELDS_BEAMLINE_TYPES[param_type]
+
+            parameter_type = parameter.parameter_type
+            fields = PARAMS_FIELDS_BEAMLINE_TYPES[parameter_type]
 
             self.PVDB["{}.DESC".format(prepended_alias)] = {'type': 'string',
                                                             'value': description
@@ -322,9 +344,17 @@ class PVManager:
             # RBV to SP:RBV tolerance
             self._add_pv_with_val(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
                                   PvSort.RBV_AT_SP)
+
+            # define position at
+            if parameter.define_current_value_as is not None:
+                align_fields = STANDARD_FLOAT_PV_FIELDS.copy()
+                align_fields["asg"] = "MANAGER"
+                self._add_pv_with_val(prepended_alias + DEFINE_POSITION_AS, param_name, align_fields, description,
+                                      PvSort.DEFINE_POS_AS)
+
             return {"name": param_name,
                     "prepended_alias": prepended_alias,
-                    "type": BeamlineParameterType.name_for_param_list(param_type)}
+                    "type": BeamlineParameterType.name_for_param_list(parameter_type)}
 
         except Exception as err:
             print("Error adding parameter PV: " + err.message)

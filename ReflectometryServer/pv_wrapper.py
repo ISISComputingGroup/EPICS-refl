@@ -1,7 +1,11 @@
 """
 Wrapper for motor PVs
 """
+import abc
 from functools import partial
+
+import six
+from contextlib2 import contextmanager
 
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
 from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
@@ -12,6 +16,7 @@ from server_common.channel_access import ChannelAccess, UnableToConnectToPVExcep
 logger = logging.getLogger(__name__)
 
 
+@six.add_metaclass(abc.ABCMeta)
 class PVWrapper(object):
     """
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
@@ -45,25 +50,17 @@ class PVWrapper(object):
         self._set_pvs()
         self._set_resolution()
 
+    @abc.abstractmethod
     def _set_pvs(self):
         """
         Define relevant PVs for this type of axis. Must be overridden in subclass.
         """
-        self._rbv_pv = ""
-        self._sp_pv = ""
-        self._velo_pv = ""
-        self._vmax_pv = ""
-        self._dmov_pv = ""
-        self._bdst_pv = ""
-        self._bvel_pv = ""
-        self._dir_pv = ""
-        raise NotImplementedError()
 
+    @abc.abstractmethod
     def _set_resolution(self):
         """
         Set the motor resolution for this axis. Must be overridden in subclass.
         """
-        self._resolution = 0
         raise NotImplementedError()
 
     def initialise(self):
@@ -120,16 +117,16 @@ class PVWrapper(object):
             logger.error("Could not connect to PV {}.".format(pv))
             raise UnableToConnectToPVException(pv, "Check configuration is correct and IOC is running.")
 
-    def _write_pv(self, pv, value):
+    def _write_pv(self, pv, value, wait=False):
         """
         Write a value to a given PV.
 
         Args:
             pv (String): The PV to write to
             value: The new value
+            wait: wait for call back
         """
-
-        self._ca.caput(pv, value)
+        self._ca.caput(pv, value, wait=wait)
 
     def add_after_rbv_change_listener(self, listener):
         """
@@ -279,7 +276,7 @@ class PVWrapper(object):
             self._velocity_to_restore = self.velocity
             write_autosave_value(self.name, self._velocity_to_restore, AutosaveType.VELOCITY)
             self._velocity_restored = False
-            write_autosave_value(self.name +"_velocity_restored", self._velocity_restored, AutosaveType.VELOCITY)
+            write_autosave_value(self.name + "_velocity_restored", self._velocity_restored, AutosaveType.VELOCITY)
         elif not self._velocity_restored and self._moving_state_cache == MTR_STOPPED:
             logger.error("Velocity for {pv_name} has not been cached as existing cache has not been restored and "
                          "is stationary."
@@ -307,7 +304,7 @@ class PVWrapper(object):
                              .format(value=self._velocity_to_restore, pv_name=self.name))
                 self._write_pv(self._velo_pv, self._velocity_to_restore)
             self._velocity_restored = True
-            write_autosave_value(self.name +"_velocity_restored", self._velocity_restored, AutosaveType.VELOCITY)
+            write_autosave_value(self.name + "_velocity_restored", self._velocity_restored, AutosaveType.VELOCITY)
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
         """
@@ -382,15 +379,43 @@ class PVWrapper(object):
         """
         self._moving_direction_cache = value
 
-    def get_distance(self, rbv, set_point_position):
+    @abc.abstractmethod
+    def define_position_as(self, new_position):
         """
+        Set the current position in the underlying hardware as the new position without moving anything
         Args:
-            rbv (float): the read back value
-            set_point_position (float): the set point position
-
-        Returns (float): The distance between the target component position and the actual motor position in y.
+            new_position: position to move to
         """
-        raise NotImplemented("This should be implemented in the subclass")
+
+    @contextmanager
+    def _motor_in_set_mode(self, motor_pv):
+        """
+        Uses a context to place motor into set mode and ensure that it leaves set mode after context has ended. If it
+        can not set the mode correctly will not run the yield.
+        Args:
+            motor_pv: motor pv on which to set the mode
+
+        Returns:
+        """
+
+        calibration_set_pv = "{}.SET".format(motor_pv)
+        offset_freeze_switch_pv = "{}.FOFF".format(motor_pv)
+
+        try:
+            self._ca.caput_retry_on_fail(calibration_set_pv, "Set")
+            offset_freeze_switch = self._read_pv(offset_freeze_switch_pv)
+            self._ca.caput_retry_on_fail(offset_freeze_switch_pv, "Frozen")
+        except IOError as ex:
+            raise ValueError("Can not set motor set and frozen offset mode: {}".format(ex))
+
+        try:
+            yield
+        finally:
+            try:
+                self._ca.caput_retry_on_fail(calibration_set_pv, "Use")
+                self._ca.caput_retry_on_fail(offset_freeze_switch_pv, offset_freeze_switch)
+            except IOError as ex:
+                raise ValueError("Can not reset motor set and frozen offset mode: {}".format(ex))
 
 
 class MotorPVWrapper(PVWrapper):
@@ -425,7 +450,20 @@ class MotorPVWrapper(PVWrapper):
         """
         self._resolution = self._read_pv("{}.MRES".format(self._prefixed_pv))
 
+    def define_position_as(self, new_position):
+        """
+        Set the current position in the underlying hardware as the new position without moving anything
+        Args:
+            new_position: position to move to
+        """
+        try:
+            with self._motor_in_set_mode(self._prefixed_pv):
+                self._write_pv(self._sp_pv, new_position)
+        except ValueError as ex:
+            logger.error("Can not define zero: {}".format(ex))
 
+
+@six.add_metaclass(abc.ABCMeta)
 class _JawsAxisPVWrapper(PVWrapper):
     def __init__(self, base_pv, is_vertical, ca=None):
         """
@@ -554,6 +592,32 @@ class _JawsAxisPVWrapper(PVWrapper):
                 return key
         logger.error("Unexpected event source: {}".format(pv))
         logger.error("Unexpected event source: {}".format(pv))
+
+    def define_position_as(self, new_position):
+        """
+        Set the current position in the underlying hardware as the new position without moving anything
+        Args:
+            new_position: position to move to
+        """
+        try:
+            mtr1, mtr2 = self._pv_names_for_directions("MTR")
+            logger.info("Defining position for axis {name} to {corrected_value}. "
+                        "From sp {sp} and rbv {rbv}.".format(name=self.name, corrected_value=new_position,
+                                                             sp=self.sp, rbv=self.rbv))
+            for motor in self._pv_names_for_directions("MTR"):
+                rbv = self._read_pv("{}.RBV".format(motor))
+                sp = self._read_pv("{}".format(motor))
+                logger.info("    Motor {name} initially at rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
+
+            with self._motor_in_set_mode(mtr1), self._motor_in_set_mode(mtr2):
+                    self._write_pv(self._sp_pv, new_position)
+
+            for motor in self._pv_names_for_directions("MTR"):
+                rbv = self._read_pv("{}.RBV".format(motor))
+                sp = self._read_pv("{}".format(motor))
+                logger.info("    Motor {name} moved to rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
+        except ValueError as ex:
+            logger.error("Can not define zero: {}".format(ex))
 
 
 class JawsGapPVWrapper(_JawsAxisPVWrapper):

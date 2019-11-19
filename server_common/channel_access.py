@@ -128,6 +128,28 @@ class ChannelAccess(object):
             thread.start()
 
     @staticmethod
+    def caput_retry_on_fail(pv_name, value, retry_count=5):
+        """
+        Write to a pv and check the value is set, retry if not; raise if run out of retries
+        Args:
+            pv_name: pv name to write to
+            value: value to write
+            retry_count: number of retries
+
+        Raises:
+            IOError: if pv can not be set
+
+        """
+        current_value = None
+        for _ in range(retry_count):
+            ChannelAccess.caput(pv_name, value, wait=True)
+            current_value = ChannelAccess.caget(pv_name)
+            if current_value == value:
+                break
+        else:
+            raise IOError("PV value can not be set, pv {}, was {} expected {}".format(pv_name, current_value, value))
+
+    @staticmethod
     def pv_exists(name, timeout=None):
         """
         See if the PV exists.

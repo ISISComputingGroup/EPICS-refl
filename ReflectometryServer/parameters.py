@@ -23,6 +23,44 @@ class ParameterNotInitializedException(Exception):
         return self.message
 
 
+class DefineCurrentValueAsParameter(object):
+    """
+    A helper class which allows the current parameter readback to be set to a particular value by passing it down to the
+    lower levels.
+    """
+    def __init__(self, define_current_value_as_fn, set_point_change_fn, parameter):
+        self._new_value = 0.0
+        self._define_current_value_as_fn = define_current_value_as_fn
+        self._set_point_change_fn = set_point_change_fn
+        self._parameter = parameter
+
+    @property
+    def new_value(self):
+        """
+        Returns: The last value set
+        """
+        return self._new_value
+
+    @new_value.setter
+    def new_value(self, value):
+        """
+        Set the new value and pass it down to the next layer
+        Args:
+            value: the new value to set the parameter to
+        """
+        logger.info("Defining position for parameter {name} to {new_value}. "
+                    "From sp {sp}, sp_rbv {sp_rbv} and rbv {rbv}"
+                    .format(name=self._parameter.name,
+                            new_value=value,
+                            sp=self._parameter.sp,
+                            sp_rbv=self._parameter.sp_rbv,
+                            rbv=self._parameter.rbv))
+
+        self._new_value = value
+        self._define_current_value_as_fn(value)
+        self._set_point_change_fn(value)
+
+
 class BeamlineParameterType(Enum):
     """
     Types of beamline parameters
@@ -83,6 +121,8 @@ class BeamlineParameter(object):
         self._after_rbv_at_sp_listeners = set()
         self._init_listeners = set()
         self._rbv_to_sp_tolerance = rbv_to_sp_tolerance
+
+        self.define_current_value_as = None
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
@@ -177,6 +217,14 @@ class BeamlineParameter(object):
     def sp(self, value):
         """
         Set the set point and move to it.
+        Args:
+            value: new set point
+        """
+        self._set_sp(value)
+
+    def _set_sp(self, value):
+        """
+        Set the set point and move to do, private function needed for define position
         Args:
             value: new set point
         """
@@ -312,7 +360,8 @@ class BeamlineParameter(object):
     @property
     def name(self):
         """
-        Returns: name of this beamline parameter
+        Returns:
+            (str): name of this beamline parameter
         """
         return self._name
 
@@ -372,21 +421,21 @@ class AngleParameter(BeamlineParameter):
     Angle is measure with +ve in the anti-clockwise direction)
     """
 
-    def __init__(self, name, reflection_component, sim=False, init=0, description=None, autosave=False,
+    def __init__(self, name, angled_component, sim=False, init=0, description=None, autosave=False,
                  rbv_to_sp_tolerance=0.002):
         """
         Initializer.
         Args:
             name (str): Name of the reflection angle
-            reflection_component (ReflectometryServer.components.Component): the active component at the
-                reflection point
+            angled_component (ReflectometryServer.components.Component): the active component that can contain an angle
+                either because it is reflecting or tilting.
             description (str): description
         """
         if description is None:
             description = "{} angle".format(name)
         super(AngleParameter, self).__init__(name, sim, init, description, autosave,
                                              rbv_to_sp_tolerance=rbv_to_sp_tolerance)
-        self._reflection_component = reflection_component
+        self._reflection_component = angled_component
 
         if self._autosave:
             self._initialise_sp_from_file()
@@ -396,6 +445,10 @@ class AngleParameter(BeamlineParameter):
         self._reflection_component.beam_path_rbv.add_after_beam_path_update_listener(self._trigger_rbv_listeners)
         self._reflection_component.beam_path_rbv.add_after_is_changing_change_listener(
             self._trigger_after_is_changing_change)
+
+        if self._reflection_component.can_define_current_angle_as:
+            self.define_current_value_as = DefineCurrentValueAsParameter(
+                self._reflection_component.define_current_angle_as, self._set_sp, self)
 
     def _initialise_sp_from_file(self):
         """
@@ -476,6 +529,9 @@ class TrackingPosition(BeamlineParameter):
         self._component.beam_path_rbv.add_after_is_changing_change_listener(self._trigger_after_is_changing_change)
 
         self.group_names.append(BeamlineParameterGroup.TRACKING)
+
+        self.define_current_value_as = DefineCurrentValueAsParameter(
+            self._component.define_current_position_as, self._set_sp, self)
 
     def _initialise_sp_from_file(self):
         """
@@ -683,6 +739,10 @@ class SlitGapParameter(BeamlineParameter):
         if sim:
             self._rbv_value = init
 
+        self._no_move_because_is_define = False
+        self.define_current_value_as = DefineCurrentValueAsParameter(self._pv_wrapper.define_position_as,
+                                                                     self._set_sp_perform_no_move, self)
+
     def _initialise_sp_from_file(self):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
@@ -716,7 +776,21 @@ class SlitGapParameter(BeamlineParameter):
         pass
 
     def _move_component(self):
-        self._pv_wrapper.sp = self._set_point_rbv
+        if not self._no_move_because_is_define:
+            self._pv_wrapper.sp = self._set_point_rbv
+
+    def _set_sp_perform_no_move(self, new_value):
+        """
+        This is a work around because this does not have a component. See ticket 4902
+        When stripping out get rid of _no_move_because_is_define
+        Args:
+            new_value: the new value for the setpoint
+        """
+        try:
+            self._no_move_because_is_define = True
+            self._set_sp(new_value)
+        finally:
+            self._no_move_because_is_define = False
 
     def _rbv(self):
         return self._rbv_value
