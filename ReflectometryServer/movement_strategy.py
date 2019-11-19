@@ -30,9 +30,9 @@ class LinearMovementCalc(object):
         """
         Calculate the interception point of the beam and component
         Args:
-            beam(PositionAndAngle) : beam to intercept
+            beam (PositionAndAngle) : beam to intercept
 
-        Returns: position of the interception
+        Returns (float): position of the interception
 
         """
         assert beam is not None
@@ -95,7 +95,7 @@ class LinearMovementCalc(object):
         """
         Distance along the axis of movement from the zero point to where the beam hits that axis.
         Args:
-            beam: the beam ray
+            beam (PositionAndAngle): the beam ray
 
         Returns: the distance in the positive sense from the zero point to the intercept with the beam
 
@@ -137,8 +137,8 @@ class LinearMovementCalc(object):
         Set the position of the component relative to the beam for the given value based on its movement strategy.
         For instance this could set the height above the beam for a vertically moving component
         Args:
-            beam: the current beam ray to set relative to
-            position: the position relative to the beam that the component should be, e.g. height
+            beam (PositionAndAngle): the current beam ray to set relative to
+            position (float): the position relative to the beam that the component should be, e.g. height
         """
 
         self._displacement = self.get_displacement_relative_to_beam_for(beam, position)
@@ -148,9 +148,9 @@ class LinearMovementCalc(object):
         Given a beam get the distance of the component along the axis of movement from the intercept of the
         beam with the axis of movement.
         Args:
-            beam: beam that the rbv is relative to
+            beam (PositionAndAngle): beam that the rbv is relative to
 
-        Returns: distance of the component from the beam along the axis of movement
+        Returns (float): distance of the component from the beam along the axis of movement
 
         """
         return self._displacement - self._dist_along_axis_from_zero_to_beam_intercept(beam)
@@ -164,21 +164,20 @@ class LinearMovementCalc(object):
 
     def get_displacement(self):
         """
-
-        Returns: displacement along a axis from the zero position.
-
+        Returns (float): displacement along a axis from the zero position.
         """
         return self._displacement
 
     def get_displacement_relative_to_beam_for(self, beam, position):
         """
         For a given position this will return the
+
         Args:
-            beam:
-            position:
+            beam (PositionAndAngle) : the beam ray
+            position (float): the position relative to the beam that the component should be, e.g. height
 
         Returns:
-
+            (float): The sum of the position and distance along axis from 0 to beam intercept
         """
         return position + self._dist_along_axis_from_zero_to_beam_intercept(beam)
 

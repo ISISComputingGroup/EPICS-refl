@@ -54,10 +54,9 @@ class IocDriver(object):
     def _on_define_value_as(self, new_event):
         """
         When a define value as occurs then set the value on the axis
-        Args:
-            new_event (DefineValueAsEvent):
 
-        Returns:
+        Args:
+            new_event (DefineValueAsEvent): The events value and axis
 
         """
         if new_event.change_axis == self._change_axis_type:
@@ -73,8 +72,6 @@ class IocDriver(object):
 
         Args:
             new_correction_value (CorrectionUpdate): the new correction value
-
-        Returns:
 
         """
         description = "{} on {} for {}".format(new_correction_value.description, self.name, self._component.name)

@@ -219,9 +219,9 @@ class TrackingBeamPathCalc(object):
         """
         Get the displacement for a given position relative to the beam
         Args:
-            position_relative_to_beam: position to get the displacement for
+            position_relative_to_beam (float): position to get the displacement for
 
-        Returns: displacement
+        Returns (float): displacement
         """
         return self._movement_strategy.get_displacement_relative_to_beam_for(self._incoming_beam,
                                                                              position_relative_to_beam)
@@ -360,7 +360,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
 
     def get_angle_relative_to_beam(self):
         """
-        Returns: the angle of the component relative to the incoming beam
+        Returns (float): the angle of the component relative to the incoming beam
         """
         return self._angle_to_natural_beam - self._incoming_beam.angle
 
@@ -368,9 +368,9 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         """
         Get the angle in the room coordinates from a given relative angle
         Args:
-            angle_relative_to_the_beam: the angle relative to the beam
+            angle_relative_to_the_beam (float): the angle relative to the beam
 
-        Returns: angle in mantid coordinates
+        Returns (float): angle in mantid coordinates
         """
         return angle_relative_to_the_beam + self._incoming_beam.angle
 

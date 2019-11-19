@@ -146,8 +146,9 @@ class TiltingComponent(Component):
     def define_current_angle_as(self, new_angle):
         """
         Define the current angle of the component as the given value (e.g. set this in the motor)
+
         Args:
-            new_angle: new angle of the component
+            new_angle (float): new angle of the component
         """
         room_angle = self._beam_path_rbv.get_angle_for(new_angle)
         self.trigger_listeners(DefineValueAsEvent(room_angle, ChangeAxis.ANGLE))
@@ -175,8 +176,9 @@ class ReflectingComponent(Component):
     def define_current_angle_as(self, new_angle):
         """
         Define the current angle of the component as the given value (e.g. set this in the motor)
+
         Args:
-            new_angle: new angle of the component
+            new_angle (float): new angle of the component
         """
         room_angle = self._beam_path_rbv.get_angle_for(new_angle)
         self.trigger_listeners(DefineValueAsEvent(room_angle, ChangeAxis.ANGLE))
@@ -210,10 +212,11 @@ class ThetaComponent(ReflectingComponent):
     def define_current_angle_as(self, new_angle):
         """
         Define the current angle for the component in the hardware
-        Args:
-            new_angle: new angle to use
 
-        Raises: This is not allowed fr Theta at this time because of the complexity of coding this, and we don't think
+        Args:
+            new_angle (float): new angle to use
+
+        Raises: This is not allowed for Theta at this time because of the complexity of coding this, and we don't think
         it is needed since the scan is done over detector offset and detector angle.
 
         """
