@@ -74,7 +74,7 @@ def read_autosave_value(value_id, autosave_type):
         param_name (string): The name of the parameter
 
     Returns:
-         The autosaved value for this parameter
+         The autosaved value for this parameter; None for no value
     """
     autosave = AutosaveFile(
         service_name="refl", file_name=AutosaveType.filename(autosave_type), folder=REFL_AUTOSAVE_PATH)

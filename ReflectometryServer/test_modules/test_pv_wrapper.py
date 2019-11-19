@@ -49,45 +49,42 @@ class TestMotorPVWrapper(unittest.TestCase):
                                self.dir_pv: self.dir
                                }
         self.mock_ca = MockChannelAccess(self.mock_motor_pvs)
+        self.wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
 
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_resolution_is_initialised_correctly(self):
         expected_resolution = self.mres
 
-        wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
-        actual_resolution = wrapper.resolution
+        actual_resolution = self.wrapper.resolution
 
         self.assertEqual(expected_resolution, actual_resolution)
 
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_velocity_is_initialised_correctly(self):
         expected_velocity = self.velo
 
-        wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
-        wrapper.initialise()
-        actual_velocity = wrapper.velocity
+        self.wrapper.initialise()
+        actual_velocity = self.wrapper.velocity
 
         self.assertEqual(expected_velocity, actual_velocity)
 
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_max_velocity_is_initialised_correctly(self):
         expected_max_velocity = self.vmax
 
-        wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
-        actual_max_velocity = wrapper.max_velocity
+        self.wrapper.initialise()
+        actual_max_velocity = self.wrapper.max_velocity
 
         self.assertEqual(expected_max_velocity, actual_max_velocity)
 
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_setpoint_is_initialised_correctly(self):
         expected_sp = self.sp
 
-        wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
-        actual_sp = wrapper.sp
+        actual_sp = self.wrapper.sp
 
         self.assertEqual(expected_sp, actual_sp)
 
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_readback_is_initialised_correctly(self):
         expected_rbv = self.rbv
 
-        wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
-        actual_rbv = wrapper.rbv
+        actual_rbv = self.wrapper.rbv
 
         self.assertEqual(expected_rbv, actual_rbv)
 
@@ -95,9 +92,8 @@ class TestMotorPVWrapper(unittest.TestCase):
         self.mock_ca.caput(self.dir_pv, "Pos")
         expected_bdst = self.bdst * -1
 
-        wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
-        wrapper.initialise()
-        actual_bdst = wrapper.backlash_distance
+        self.wrapper.initialise()
+        actual_bdst = self.wrapper.backlash_distance
 
         self.assertEqual(expected_bdst, actual_bdst)
 
@@ -105,27 +101,24 @@ class TestMotorPVWrapper(unittest.TestCase):
         self.mock_ca.caput(self.dir_pv, "Neg")
         expected_bdst = self.bdst
 
-        wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
-        wrapper.initialise()
-        actual_bdst = wrapper.backlash_distance
+        self.wrapper.initialise()
+        actual_bdst = self.wrapper.backlash_distance
 
         self.assertEqual(expected_bdst, actual_bdst)
 
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_backlash_velocity_is_initialised_correctly(self):
         expected_bvel = self.bvel
 
-        wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
-        wrapper.initialise()
-        actual_bvel = wrapper.backlash_velocity
+        self.wrapper.initialise()
+        actual_bvel = self.wrapper.backlash_velocity
 
         self.assertEqual(expected_bvel, actual_bvel)
 
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_direction_is_initialised_correctly(self):
         expected_dir = self.dir
 
-        wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
-        wrapper.initialise()
-        actual_dir = wrapper.direction
+        self.wrapper.initialise()
+        actual_dir = self.wrapper.direction
 
         self.assertEqual(expected_dir, actual_dir)
 
