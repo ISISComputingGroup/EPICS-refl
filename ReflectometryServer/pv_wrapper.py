@@ -289,7 +289,7 @@ class PVWrapper(object):
             # moves have been completed.
             pass
 
-    def restore_cached_velocity(self):
+    def restore_pre_move_velocity(self):
         """
         Restore the cached axis velocity.
 
@@ -305,9 +305,9 @@ class PVWrapper(object):
             else:
                 logger.debug("Restoring velocity cache of {value} for PV {pv_name}"
                              .format(value=self._velocity_to_restore, pv_name=self.name))
-                self.velocity = self._velocity_to_restore
+                self._write_pv(self._velo_pv, self._velocity_to_restore)
             self._velocity_restored = True
-            write_autosave_value(self.name +"_velocity_cache_restored", self._velocity_restored, AutosaveType.VELOCITY)
+            write_autosave_value(self.name +"_velocity_restored", self._velocity_restored, AutosaveType.VELOCITY)
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
         """
@@ -319,7 +319,7 @@ class PVWrapper(object):
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         if new_value == MTR_STOPPED:
-            self.restore_cached_velocity()
+            self.restore_pre_move_velocity()
         self._moving_state_cache = new_value
         self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
                                 alarm_severity, alarm_status)
@@ -436,7 +436,6 @@ class _JawsAxisPVWrapper(PVWrapper):
             is_vertical (Boolean): Whether the jaws axis moves in the horizontal or vertical direction.
         """
         self.is_vertical = is_vertical
-        self._individual_moving_states = {}
 
         self._directions = []
         self._set_directions()
@@ -482,7 +481,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         self._monitor_pv(self._rbv_pv, partial(self._trigger_listeners, self._after_rbv_change_listeners))
         self._monitor_pv(self._sp_pv, partial(self._trigger_listeners, self._after_sp_change_listeners))
-        self._monitor_pv(self._dmov_pv, partial(self._on_update_moving_state))
+        self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
 
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._monitor_pv(velo_pv, partial(self._on_update_individual_velocity,
@@ -528,7 +527,7 @@ class _JawsAxisPVWrapper(PVWrapper):
     def _on_update_individual_velocity(self, value, alarm_severity, alarm_status, source=None):
         self._velocities[source] = value
 
-    def _on_update_moving_state(self, new_value, alarm_severity, alarm_status, source=None):
+    def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
         """
         React to an update in the motion status of the underlying motor axis.
 
@@ -537,7 +536,7 @@ class _JawsAxisPVWrapper(PVWrapper):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self._moving_state = new_value
+        self._moving_state_cache = new_value
         self._trigger_listeners(self._after_is_changing_change_listeners, self._dmov_to_bool(new_value),
                                 alarm_severity, alarm_status)
 
