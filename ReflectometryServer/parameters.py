@@ -777,7 +777,7 @@ class SlitGapParameter(BeamlineParameter):
 
     def _move_component(self):
         if not self._no_move_because_is_define:
-            self._pv_wrapper.sp = self._set_point
+            self._pv_wrapper.sp = self._set_point_rbv
 
     def _set_sp_perform_no_move(self, new_value):
         """
