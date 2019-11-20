@@ -14,8 +14,6 @@ from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.file_manager import ConfigurationFileManager
 from RemoteIocServer.utilities import print_and_log, get_hostname_from_prefix, THREADPOOL
 from server_common.channel_access import ChannelAccess
-from genie_python.genie_cachannel_wrapper import CaChannelWrapper
-from genie_python.channel_access_exceptions import UnableToConnectToPVException
 from server_common.utilities import dehex_and_decompress_waveform
 from BlockServer.config.ioc import IOC
 
@@ -64,10 +62,7 @@ class _EpicsMonitor(object):
         """
         Ends an EPICS monitor
         """
-        try:
-            CaChannelWrapper.get_chan(self._pv).clear_channel()
-        except UnableToConnectToPVException:
-            pass
+        ChannelAccess.clear_monitor(self._pv)
 
 
 class ConfigurationMonitor(object):

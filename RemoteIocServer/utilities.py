@@ -5,16 +5,9 @@ import sys
 import os
 
 from concurrent.futures import ThreadPoolExecutor
-
-try:
-    # noinspection PyUnresolvedReferences
-    from genie_python.channel_access_exceptions import UnableToConnectToPVException, ReadAccessException
-    from genie_python.genie_cachannel_wrapper import CaChannelWrapper, EXIST_TIMEOUT
-except ImportError:
-    print("ERROR: No genie_python on the system can not import CaChannelWrapper! (OK for unit testing)")
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 from server_common.utilities import print_and_log as _common_print_and_log
+from server_common.channel_access import ChannelAccess
 
 
 CONFIG_DIR = os.getenv("ICPCONFIGROOT")
@@ -31,15 +24,14 @@ def get_hostname_from_prefix(pv_prefix):
     """
     DevIocStats on any IOC publishes the hostname of the computer it's running on over channel access.
     """
-    try:
-        # Choose an IOC which should always be up (INSTETC) and use the deviocstats hostname record.
-        name = CaChannelWrapper.get_pv_value("{}CS:IOC:INSTETC_01:DEVIOS:HOSTNAME".format(pv_prefix),
-                                             to_string=True, timeout=5)
+    pv_name = "{}CS:IOC:INSTETC_01:DEVIOS:HOSTNAME".format(pv_prefix)
+    name = ChannelAccess.caget(pv_name, as_string=True, timeout=5)
+    if name is None:
+        print_and_log("get_hostname_from_prefix: Unable to get hostname because of error reading pv {}.".format(
+            pv_name))
+    else:
         print_and_log("get_hostname_from_prefix: hostname is '{}' (from DevIocStats)".format(name))
-        return name
-    except (UnableToConnectToPVException, ReadAccessException) as e:
-        print_and_log("get_hostname_from_prefix: Unable to get hostname because {}.".format(e))
-        return None
+    return name
 
 
 def read_startup_file():
