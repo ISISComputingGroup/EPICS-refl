@@ -542,7 +542,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         Args:
             value (float): The value to set
         """
-        logger.error("Error: An attempt was made to write a velocity to a Jaws Axis. We do not support this"
+        logger.error("Error: An attempt was made to write a velocity to a Jaws Axis. We do not support this "
                      "as we do not expect jaws to be synchronised.")
 
     @property
