@@ -2,7 +2,8 @@ import os
 import unittest
 
 from ReflectometryServer import beamline_configuration
-from ReflectometryServer.beamline import Beamline, STATUS
+from ReflectometryServer.beamline import Beamline
+from ReflectometryServer.ChannelAccess.pv_manager import STATUS
 
 
 class TestConfiguration(unittest.TestCase):

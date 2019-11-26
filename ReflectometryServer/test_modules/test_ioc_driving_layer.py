@@ -7,7 +7,7 @@ from mock import MagicMock, patch
 from hamcrest import *
 
 from ReflectometryServer import *
-from ReflectometryServer.beamline import STATUS
+from ReflectometryServer.ChannelAccess.pv_manager import STATUS
 from ReflectometryServer.components import ChangeAxis
 from server_common.channel_access import UnableToConnectToPVException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis

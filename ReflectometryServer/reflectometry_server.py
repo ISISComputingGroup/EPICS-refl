@@ -4,6 +4,7 @@ Reflectometry Server
 
 import sys
 import os
+from threading import Thread
 
 from pcaspy import SimpleServer
 import logging.config
@@ -51,33 +52,50 @@ from server_common.ioc_data_source import IocDataSource
 from server_common.channel_access import ChannelAccess
 from server_common.mysql_abstraction_layer import SQLAbstraction
 
+
+def process_ca_loop():
+    print("Server processing requests")
+    while True:
+        try:
+            SERVER.process(0.1)
+            ChannelAccess.poll()
+        except Exception as err:
+            print(err)
+            break
+
+
 logger.info("Initialising...")
+print("Prefix: {}".format(REFLECTOMETRY_PREFIX))
 
-beamline = create_beamline_from_configuration()
-
-pv_db = PVManager(beamline)
 SERVER = SimpleServer()
-
 # Add security access to pvs. NB this is only for local rules because we have not substituted in the correct macros for
 # remote host access to the pvs
 SERVER.initAccessSecurityFile(DEFAULT_ASG_RULES, P=MYPVPREFIX)
+logger.info("Starting Reflectometry Driver")
+
+pv_manager = PVManager()
 
 print("Prefix: {}".format(REFLECTOMETRY_PREFIX))
-SERVER.createPV(REFLECTOMETRY_PREFIX, pv_db.PVDB)
 
-DRIVER = ReflectometryDriver(SERVER, beamline, pv_db)
+SERVER.createPV(REFLECTOMETRY_PREFIX, pv_manager.PVDB)
+driver = ReflectometryDriver(SERVER, pv_manager)
+
+process_ca_thread = Thread(target=process_ca_loop)
+process_ca_thread.daemon = True
+process_ca_thread.start()
+
+logger.info("Instantiating Beamline Model")
+
+beamline = create_beamline_from_configuration()
+
+pv_manager.set_beamline(beamline)
+SERVER.createPV(REFLECTOMETRY_PREFIX, pv_manager.PVDB)
+driver.set_beamline(beamline)
 
 ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
-ioc_data_source.insert_ioc_start("REFL", os.getpid(), sys.argv[0], pv_db.PVDB, REFLECTOMETRY_PREFIX)
+ioc_data_source.insert_ioc_start("REFL", os.getpid(), sys.argv[0], pv_manager.PVDB, REFLECTOMETRY_PREFIX)
 
 logger.info("Reflectometry IOC started")
 
 # Process CA transactions
-
-while True:
-    try:
-        SERVER.process(0.1)
-        ChannelAccess.poll()
-    except Exception as err:
-        print(err)
-        break
+process_ca_thread.join()

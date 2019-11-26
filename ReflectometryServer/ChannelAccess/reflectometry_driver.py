@@ -5,10 +5,11 @@ import logging
 from functools import partial
 
 from pcaspy import Driver, Alarm, Severity
+from pcaspy.driver import manager, Data
 
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, \
     BEAMLINE_MESSAGE, SP_SUFFIX, FootprintSort, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
-    convert_from_epics_pv_value, IN_MODE_SUFFIX
+    convert_from_epics_pv_value, IN_MODE_SUFFIX, STATUS
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
 from ReflectometryServer.parameters import BeamlineParameterGroup
 
@@ -20,7 +21,7 @@ class ReflectometryDriver(Driver):
     The driver which provides an interface for the reflectometry server to channel access by creating PVs and processing
     incoming CA get and put requests.
     """
-    def __init__(self, server, beamline, pv_manager):
+    def __init__(self, server, pv_manager):
         """
         The Constructor.
         Args:
@@ -30,11 +31,32 @@ class ReflectometryDriver(Driver):
                 the beamline.
         """
         super(ReflectometryDriver, self).__init__()
+        self._ca_server = server
+        self._initialised = False
+        self._beamline = None
+        self._pv_manager = pv_manager
+        self._footprint_manager = None
+
+        self._bl_status_change(STATUS.INITIALISING, "Reflectometry Server is initialising. Check all motor IOCs are "
+                                                    "running if this is taking longer than expected.")
+
+    def set_beamline(self, beamline):
+        """
+        Set the beamline model to which the reflectometry server should provide an interface.
+
+        Args:
+            beamline(ReflectometryServer.beamline.Beamline): The beamline configuration.
+            pv_manager(ReflectometryServer.ChannelAccess.pv_manager.PVManager): The manager mapping PVs to objects in
+                the beamline.
+        """
 
         self._beamline = beamline
-        self._ca_server = server
-        self._pv_manager = pv_manager
         self._footprint_manager = beamline.footprint_manager
+
+        for reason, pv in manager.pvs[self.port].items():
+            data = Data()
+            data.value = pv.info.value
+            self.pvDB[reason] = data
 
         for reason in self._pv_manager.PVDB.keys():
             self.setParamStatus(reason, severity=Severity.NO_ALARM, alarm=Alarm.NO_ALARM)
@@ -46,41 +68,46 @@ class ReflectometryDriver(Driver):
         self.add_trigger_status_change_listener()
         self.add_footprint_param_listeners()
         self._add_trigger_on_engineering_correction_change()
+        self._initialised = True
 
     def read(self, reason):
         """
         Processes an incoming caget request.
-        :param reason: The PV that is being read.
-        :return: The value associated to this PV
+
+        Args:
+            reason (str): The PV that is being read.
+
+        Returns: The value associated to this PV
         """
-        if self._pv_manager.is_param(reason):
-            param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
-            param = self._beamline.parameter(param_name)
-            value = param_sort.get_from_parameter(param)
-            if param_sort is PvSort.IN_MODE:
-                return self.getParam(reason)
-            else:
-                return value
+        if self._initialised:
+            if self._pv_manager.is_param(reason):
+                param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
+                param = self._beamline.parameter(param_name)
+                value = param_sort.get_from_parameter(param)
+                if param_sort is PvSort.IN_MODE:
+                    return self.getParam(reason)
+                else:
+                    return value
 
-        elif self._pv_manager.is_beamline_mode(reason):
-            return self._beamline_mode_value(self._beamline.active_mode)
+            elif self._pv_manager.is_beamline_mode(reason):
+                return self._beamline_mode_value(self._beamline.active_mode)
 
-        elif self._pv_manager.is_beamline_move(reason):
-            return self._beamline.move
+            elif self._pv_manager.is_beamline_move(reason):
+                return self._beamline.move
 
-        elif self._pv_manager.is_beamline_status(reason):
-            beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
-            new_value = beamline_status_enums.index(self._beamline.status.display_string)
-            #  Set the value so that the error condition is set
-            self.setParam(reason, new_value)
-            return new_value
+            elif self._pv_manager.is_beamline_status(reason):
+                beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
+                new_value = beamline_status_enums.index(self._beamline.status.display_string)
+                #  Set the value so that the error condition is set
+                self.setParam(reason, new_value)
+                return new_value
 
-        elif self._pv_manager.is_beamline_message(reason):
-            return self._beamline.message
-        elif self._pv_manager.is_sample_length(reason):
-            return self._footprint_manager.get_sample_length()
-        else:
-            return self.getParam(reason)
+            elif self._pv_manager.is_beamline_message(reason):
+                return self._beamline.message
+            elif self._pv_manager.is_sample_length(reason):
+                return self._footprint_manager.get_sample_length()
+
+        return self.getParam(reason)
 
     def _beamline_mode_value(self, mode):
         beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
@@ -225,6 +252,20 @@ class ReflectometryDriver(Driver):
         self._update_param_both_pv_and_pv_val(BEAMLINE_MODE + SP_SUFFIX, mode_value)
         self.updatePVs()
 
+    def _bl_status_change(self, status, message):
+        """
+        Update the overall status of the beamline.
+
+        Args:
+            status (ReflectometryServer.ChannelAccess.pv_manager.STATUS): The new status.
+            message (str): The new server status message.
+        """
+        beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
+        status_id = beamline_status_enums.index(status.display_string)
+        self._update_param_both_pv_and_pv_val(BEAMLINE_STATUS, status_id)
+        self._update_param_both_pv_and_pv_val(BEAMLINE_MESSAGE, message)
+        self.updatePVs()
+
     def add_trigger_active_mode_change_listener(self):
         """
         Adds the monitor on the active mode, if this changes a monitor update is posted.
@@ -236,13 +277,7 @@ class ReflectometryDriver(Driver):
         """
         Adds the monitor on the beamline status, if this changes a monitor update is posted.
         """
-        def _bl_status_change(status, message):
-            beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
-            status_id = beamline_status_enums.index(status.display_string)
-            self._update_param_both_pv_and_pv_val(BEAMLINE_STATUS, status_id)
-            self._update_param_both_pv_and_pv_val(BEAMLINE_MESSAGE, message)
-            self.updatePVs()
-        self._beamline.add_status_change_listener(_bl_status_change)
+        self._beamline.add_status_change_listener(self._bl_status_change)
 
     def add_footprint_param_listeners(self):
         """
