@@ -20,6 +20,7 @@
         <xs:element ref="blk:rc_enabled" minOccurs="0"/>
         <xs:element ref="blk:rc_lowlimit" minOccurs="0"/>
         <xs:element ref="blk:rc_highlimit" minOccurs="0"/>
+        <xs:element ref="blk:rc_suspend_on_invalid" minOccurs="0"/>
         <xs:element ref="blk:log_periodic" minOccurs="0"/>
         <xs:element ref="blk:log_rate" minOccurs="0"/>
         <xs:element ref="blk:log_deadband" minOccurs="0"/>
@@ -33,6 +34,7 @@
   <xs:element name="rc_lowlimit" type="xs:decimal"/>
   <xs:element name="rc_highlimit" type="xs:decimal"/>
   <xs:element name="rc_enabled" type="xs:string"/>
+  <xs:element name="rc_suspend_on_invalid" type="xs:string"/>
   <xs:element name="log_periodic" type="xs:string"/>
   <xs:element name="log_rate" type="xs:decimal"/>
   <xs:element name="log_deadband" type="xs:decimal"/>

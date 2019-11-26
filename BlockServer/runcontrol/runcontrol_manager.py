@@ -20,15 +20,22 @@ import os
 from datetime import datetime
 from time import sleep
 
+import six
 from BlockServer.core.constants import TAG_RC_LOW, TAG_RC_HIGH, \
-    TAG_RC_ENABLE, TAG_RC_OUT_LIST
+    TAG_RC_ENABLE, TAG_RC_OUT_LIST, TAG_RC_SUSPEND_ON_INVALID
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface
 from server_common.utilities import print_and_log, compress_and_hex, \
     convert_to_json, ioc_restart_pending
 from server_common.channel_access import ChannelAccess
 from server_common.pv_names import prepend_blockserver
 
-TAG_RC_DICT = {"LOW": TAG_RC_LOW, "HIGH": TAG_RC_HIGH, "ENABLE": TAG_RC_ENABLE}
+TAG_RC_DICT = {
+    "LOW": TAG_RC_LOW,
+    "HIGH": TAG_RC_HIGH,
+    "ENABLE": TAG_RC_ENABLE,
+    "SUSPEND_ON_INVALID": TAG_RC_SUSPEND_ON_INVALID,
+}
+
 RC_IOC_PREFIX = "CS:PS:RUNCTRL_01"
 RC_START_PV = "CS:IOC:RUNCTRL_01:DEVIOS:STARTTOD"
 RUNCONTROL_SETTINGS = "rc_settings.cmd"
@@ -200,7 +207,7 @@ class RunControlManager(OnTheFlyPvInterface):
         """
         try:
             with open(self._settings_file, 'w') as f:
-                for bn, blk in blocks.iteritems():
+                for bn, blk in six.iteritems(blocks):
                     f.write('dbLoadRecords("$(RUNCONTROL)/db/runcontrol.db",'
                             '"P=$(MYPVPREFIX),PV=$(MYPVPREFIX)CS:SB:%s")\n'
                             % blk.name)
@@ -220,13 +227,12 @@ class RunControlManager(OnTheFlyPvInterface):
             list : A list of PVs that are out of range
 
         """
-        raw = self._channel_access.caget(self._prefix + TAG_RC_OUT_LIST,
-                                         True).strip()
-        raw = raw.split(" ")
+        raw = self._channel_access.caget(self._prefix + TAG_RC_OUT_LIST, True).strip().split(" ")
+
         if raw is not None and len(raw) > 0:
             return [pv for pv in raw if len(pv) > 0]
         else:
-            return list()
+            return []
 
     def get_current_settings(self):
         """
@@ -238,7 +244,7 @@ class RunControlManager(OnTheFlyPvInterface):
         """
         blocks = self._active_configholder.get_block_details()
         settings = dict()
-        for bn, blk in blocks.iteritems():
+        for bn, blk in six.iteritems(blocks):
             low = self._channel_access.caget(self._block_prefix
                                              + blk.name + TAG_RC_LOW)
             high = self._channel_access.caget(self._block_prefix +
@@ -256,7 +262,7 @@ class RunControlManager(OnTheFlyPvInterface):
         Args:
             blocks (OrderedDict): The blocks for the configuration
         """
-        for n, blk in blocks.iteritems():
+        for n, blk in six.iteritems(blocks):
             settings = dict()
             if blk.rc_enabled:
                 settings["ENABLE"] = True
@@ -266,20 +272,12 @@ class RunControlManager(OnTheFlyPvInterface):
                 settings["LOW"] = blk.rc_lowlimit
             if blk.rc_highlimit is not None:
                 settings["HIGH"] = blk.rc_highlimit
+            if blk.rc_suspend_on_invalid is not None:
+                settings["SUSPEND_ON_INVALID"] = blk.rc_suspend_on_invalid
             self._set_rc_values(blk.name, settings)
 
-    def set_runcontrol_settings(self, data):
-        """
-        Replace the run-control settings with new values.
-
-        Args:
-            data (dict): The new run-control settings to set (dictionary of
-                dictionaries)
-        """
-        [self._set_rc_values(block_name, settings) for block_name, settings in data.iteritems() if settings is not None]
-
     def _set_rc_values(self, block_name, settings):
-        for key, value in settings.iteritems():
+        for key, value in six.iteritems(settings):
             if key.upper() in TAG_RC_DICT.keys():
                 try:
                     self._channel_access.caput(self._block_prefix + block_name + TAG_RC_DICT[key.upper()], value)
