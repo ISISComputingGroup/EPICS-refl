@@ -31,6 +31,7 @@ class TestMotorPVWrapper(unittest.TestCase):
         self.bdst_pv = _create_pv(self.motor_name, ".BDST")
         self.bvel_pv = _create_pv(self.motor_name, ".BVEL")
         self.dir_pv = _create_pv(self.motor_name, ".DIR")
+        self.dmov_pv = _create_pv(self.motor_name, ".DMOV")
         self.sp = 1.0
         self.rbv = 1.1
         self.mres = 0.1
@@ -39,6 +40,7 @@ class TestMotorPVWrapper(unittest.TestCase):
         self.bdst = 0.05
         self.bvel = 0.1
         self.dir = "Pos"
+        self.dmov = 1
         self.mock_motor_pvs = {self.sp_pv: self.sp,
                                self.rbv_pv: self.rbv,
                                self.mres_pv: self.mres,
@@ -46,7 +48,8 @@ class TestMotorPVWrapper(unittest.TestCase):
                                self.velo_pv: self.velo,
                                self.bdst_pv: self.bdst,
                                self.bvel_pv: self.bvel,
-                               self.dir_pv: self.dir
+                               self.dir_pv: self.dir,
+                               self.dmov_pv: self.dmov
                                }
         self.mock_ca = MockChannelAccess(self.mock_motor_pvs)
         self.wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
@@ -131,12 +134,16 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
         self.jaws_name = "JAWS"
         self.vgap_sp_pv = _create_pv(self.jaws_name, ":VGAP:SP")
         self.vgap_rbv_pv = _create_pv(self.jaws_name, ":VGAP")
+        self.vgap_dmov_pv = _create_pv(self.jaws_name, ":VGAP:DMOV")
         self.vcent_sp_pv = _create_pv(self.jaws_name, ":VCENT:SP")
         self.vcent_rbv_pv = _create_pv(self.jaws_name, ":VCENT")
+        self.vcent_dmov_pv = _create_pv(self.jaws_name, ":VCENT:DMOV")
         self.hgap_sp_pv = _create_pv(self.jaws_name, ":HGAP:SP")
         self.hgap_rbv_pv = _create_pv(self.jaws_name, ":HGAP")
+        self.hgap_dmov_pv = _create_pv(self.jaws_name, ":HGAP:DMOV")
         self.hcent_sp_pv = _create_pv(self.jaws_name, ":HCENT:SP")
         self.hcent_rbv_pv = _create_pv(self.jaws_name, ":HCENT")
+        self.hcent_dmov_pv = _create_pv(self.jaws_name, ":HCENT:DMOV")
         self.vgap_sp = 1.0
         self.vgap_rbv = 1.1
         self.vcent_sp = 2.0
@@ -145,14 +152,19 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
         self.hgap_rbv = 3.1
         self.hcent_sp = 4.0
         self.hcent_rbv = 4.1
+        self.dmov = 1
         self.mock_axis_pvs = {self.vgap_sp_pv: self.vgap_sp,
                               self.vgap_rbv_pv: self.vgap_rbv,
+                              self.vgap_dmov_pv: self.dmov,
                               self.vcent_sp_pv: self.vcent_sp,
                               self.vcent_rbv_pv: self.vcent_rbv,
+                              self.vcent_dmov_pv: self.dmov,
                               self.hgap_sp_pv: self.hgap_sp,
                               self.hgap_rbv_pv: self.hgap_rbv,
+                              self.hgap_dmov_pv: self.dmov,
                               self.hcent_sp_pv: self.hcent_sp,
-                              self.hcent_rbv_pv: self.hcent_rbv}
+                              self.hcent_rbv_pv: self.hcent_rbv,
+                              self.hcent_dmov_pv: self.dmov}
         for direction in ["JN", "JE", "JS", "JW"]:
             direction_pv = "{}:{}".format(self.jaws_name, direction)
             mres_pv = _create_pv(direction_pv, ":MTR.MRES")

@@ -122,6 +122,7 @@ class STATUS(Enum):
         """
         return self.value.alarm_severity
 
+
 class PvSort(Enum):
     """
     Enum for the type of PV
