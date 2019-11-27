@@ -11,11 +11,11 @@ from server_common.utilities import create_pv_name, remove_from_end, print_and_l
 import json
 from collections import OrderedDict
 
-BEAMLINE_STATUS = "BL:STAT"
-BEAMLINE_MESSAGE = "BL:MSG"
 
 PARAM_PREFIX = "PARAM"
 BEAMLINE_PREFIX = "BL:"
+BEAMLINE_STATUS = BEAMLINE_PREFIX + "STAT"
+BEAMLINE_MESSAGE = BEAMLINE_PREFIX + "MSG"
 BEAMLINE_MODE = BEAMLINE_PREFIX + "MODE"
 BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
 PARAM_INFO = "PARAM_INFO"
@@ -87,6 +87,19 @@ def convert_from_epics_pv_value(parameter_type, value):
         return value == OUT_IN_ENUM_TEXT.index("IN")
     else:
         return value
+
+
+def is_pv_name_this_field(field_name, pv_name):
+        """
+        Args:
+            field_name: field name to match
+            pv_name: pv name to match
+
+        Returns: True if field name is pv name (with oe without VAL  field)
+
+        """
+        pv_name_no_val = remove_from_end(pv_name, VAL_FIELD)
+        return pv_name_no_val == field_name
 
 
 class PvSort(Enum):
@@ -467,16 +480,3 @@ class PVManager:
         Returns: True if this the beamline message pv
         """
         return is_pv_name_this_field(BEAMLINE_MESSAGE, pv_name)
-
-
-def is_pv_name_this_field(field_name, pv_name):
-        """
-        Args:
-            field_name: field name to match
-            pv_name: pv name to match
-
-        Returns: True if field name is pv name (with oe without VAL  field)
-
-        """
-        pv_name_no_val = remove_from_end(pv_name, VAL_FIELD)
-        return pv_name_no_val == field_name
