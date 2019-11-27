@@ -2,13 +2,14 @@
 Reflectometry pv manager
 """
 from enum import Enum
-from pcaspy import Severity
 
+from ReflectometryServer.beamline import STATUS
+from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY
 from ReflectometryServer.parameters import BeamlineParameterType
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
 from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY, compress_and_hex
 import json
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 
 BEAMLINE_STATUS = "BL:STAT"
 BEAMLINE_MESSAGE = "BL:MSG"
@@ -38,10 +39,7 @@ FP_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "FOOTPRINT")
 DQQ_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "DQQ")
 QMIN_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "QMIN")
 QMAX_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "QMAX")
-FP_SP_PREFIX = "SP"
-FP_SP_RBV_PREFIX = "SP_RBV"
-FP_RBV_PREFIX = "RBV"
-FOOTPRINT_PREFIXES = [FP_SP_PREFIX, FP_SP_RBV_PREFIX, FP_RBV_PREFIX]
+FOOTPRINT_PREFIXES = [FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY]
 
 PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
@@ -89,38 +87,6 @@ def convert_from_epics_pv_value(parameter_type, value):
         return value == OUT_IN_ENUM_TEXT.index("IN")
     else:
         return value
-
-
-BeamlineStatus = namedtuple("Status", ['display_string', 'alarm_severity'])
-
-
-class STATUS(Enum):
-    """
-    Beamline States.
-    """
-    INITIALISING = BeamlineStatus("INITIALISING", Severity.MINOR_ALARM)
-    OKAY = BeamlineStatus("OKAY", Severity.NO_ALARM)
-    CONFIG_ERROR = BeamlineStatus("CONFIG_ERROR", Severity.MAJOR_ALARM)
-    GENERAL_ERROR = BeamlineStatus("ERROR", Severity.MAJOR_ALARM)
-
-    @staticmethod
-    def status_codes():
-        # noinspection PyTypeChecker
-        return [status.value for status in STATUS]
-
-    @property
-    def display_string(self):
-        """
-        Returns: display string for the enum
-        """
-        return self.value.display_string
-
-    @property
-    def alarm_severity(self):
-        """
-        Returns: Alarm severity of beamline status
-        """
-        return self.value.alarm_severity
 
 
 class PvSort(Enum):
@@ -199,31 +165,6 @@ class PvSort(Enum):
                 return float("NaN")
             return parameter.define_current_value_as.new_value
         return float("NaN")
-
-
-class FootprintSort(Enum):
-    """
-    Enum for the type of footprint calculator
-    """
-    SP = 0
-    RBV = 1
-    SP_RBV = 2
-
-    @staticmethod
-    def prefix(sort):
-        """
-        Args:
-            sort: The sort of footprint value
-
-        Returns: The pv suffix for this sort of value
-        """
-        if sort == FootprintSort.SP:
-            return FP_SP_PREFIX
-        elif sort == FootprintSort.SP_RBV:
-            return FP_SP_RBV_PREFIX
-        elif sort == FootprintSort.RBV:
-            return FP_RBV_PREFIX
-        return None
 
 
 class PVManager:

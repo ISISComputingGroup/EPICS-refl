@@ -8,8 +8,10 @@ from pcaspy import Driver, Alarm, Severity
 from pcaspy.driver import manager, Data
 
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, \
-    BEAMLINE_MESSAGE, SP_SUFFIX, FootprintSort, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
-    convert_from_epics_pv_value, IN_MODE_SUFFIX, STATUS
+    BEAMLINE_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
+    convert_from_epics_pv_value, IN_MODE_SUFFIX
+from ReflectometryServer.beamline import STATUS
+from ReflectometryServer.footprint_manager import FootprintSort
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
 from ReflectometryServer.parameters import BeamlineParameterGroup
 
@@ -258,7 +260,7 @@ class ReflectometryDriver(Driver):
         Update the overall status of the beamline.
 
         Args:
-            status (ReflectometryServer.ChannelAccess.pv_manager.STATUS): The new status.
+            status (ReflectometryServer.beamline.STATUS): The new status.
             message (str): The new server status message.
         """
         beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]

@@ -2,10 +2,12 @@
 Resources at a beamline level
 """
 import logging
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from functools import partial
 
-from ReflectometryServer.ChannelAccess.pv_manager import STATUS
+from enum import Enum
+from pcaspy import Severity
+
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.file_io import read_mode, save_mode
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
@@ -15,6 +17,38 @@ from ReflectometryServer.parameters import ParameterNotInitializedException
 from server_common.channel_access import UnableToConnectToPVException
 
 logger = logging.getLogger(__name__)
+
+
+BeamlineStatus = namedtuple("Status", ['display_string', 'alarm_severity'])
+
+
+class STATUS(Enum):
+    """
+    Beamline States.
+    """
+    INITIALISING = BeamlineStatus("INITIALISING", Severity.MINOR_ALARM)
+    OKAY = BeamlineStatus("OKAY", Severity.NO_ALARM)
+    CONFIG_ERROR = BeamlineStatus("CONFIG_ERROR", Severity.MAJOR_ALARM)
+    GENERAL_ERROR = BeamlineStatus("ERROR", Severity.MAJOR_ALARM)
+
+    @staticmethod
+    def status_codes():
+        # noinspection PyTypeChecker
+        return [status.value for status in STATUS]
+
+    @property
+    def display_string(self):
+        """
+        Returns: display string for the enum
+        """
+        return self.value.display_string
+
+    @property
+    def alarm_severity(self):
+        """
+        Returns: Alarm severity of beamline status
+        """
+        return self.value.alarm_severity
 
 
 class BeamlineMode(object):
