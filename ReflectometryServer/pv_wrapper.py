@@ -2,6 +2,7 @@
 Wrapper for motor PVs
 """
 import abc
+import time
 from functools import partial
 
 import six
@@ -14,6 +15,7 @@ import logging
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
 
 logger = logging.getLogger(__name__)
+RETRY_INTERVAL = 5
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -46,9 +48,21 @@ class PVWrapper(object):
         self._backlash_distance_cache = None
         self._backlash_velocity_cache = None
         self._max_velocity_cache = None
+        self._resolution = None
 
         self._set_pvs()
-        self._set_resolution()
+
+        self._block_until_pv_available()
+
+    def _block_until_pv_available(self):
+        """
+        Blocks the process until the PV this driver is pointing at is available.
+        """
+        while not self._ca.pv_exists(self._rbv_pv):
+            logger.error(
+                "{} does not exist. Check the PV is correct and the IOC is running. Retrying in {} s.".format(
+                    self._rbv_pv, RETRY_INTERVAL))
+            time.sleep(RETRY_INTERVAL)
 
     @abc.abstractmethod
     def _set_pvs(self):
@@ -67,6 +81,7 @@ class PVWrapper(object):
         """
         Initialise PVWrapper values once the beamline is ready.
         """
+        self._set_resolution()
         self._add_monitors()
         self._velocity_cache = self._read_pv(self._velo_pv)
         self._backlash_distance_cache = self._read_pv(self._bdst_pv)
@@ -95,13 +110,16 @@ class PVWrapper(object):
             pv (String): The pv to monitor
             call_back_function: The function to execute on a pv value change
         """
-        if self._ca.pv_exists(pv):
-            logger.debug("\nAttempting to monitor {pv_name}".format(pv_name=pv))
-            self._ca.add_monitor(pv, call_back_function)
-            logger.debug("Monitoring {} for changes.".format(pv))
-
-        else:
-            logger.error("Error adding monitor to {}: PV does not exist".format(pv))
+        while True:
+            if self._ca.pv_exists(pv):
+                self._ca.add_monitor(pv, call_back_function)
+                logger.debug("Monitoring {} for changes.".format(pv))
+                break
+            else:
+                logger.error(
+                    "Error adding monitor to {}: PV does not exist. Check the PV is correct and the IOC is running. Retrying in {} s.".format(
+                        pv, RETRY_INTERVAL))
+                time.sleep(RETRY_INTERVAL)
 
     def _read_pv(self, pv):
         """

@@ -54,6 +54,7 @@ class TestMotorPVWrapper(unittest.TestCase):
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_resolution_is_initialised_correctly(self):
         expected_resolution = self.mres
 
+        self.wrapper.initialise()
         actual_resolution = self.wrapper.resolution
 
         self.assertEqual(expected_resolution, actual_resolution)

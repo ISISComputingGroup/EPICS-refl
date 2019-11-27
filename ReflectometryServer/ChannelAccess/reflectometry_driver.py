@@ -61,13 +61,14 @@ class ReflectometryDriver(Driver):
         for reason in self._pv_manager.PVDB.keys():
             self.setParamStatus(reason, severity=Severity.NO_ALARM, alarm=Alarm.NO_ALARM)
 
-        self.update_monitors()
-
         self.add_param_listeners()
         self.add_trigger_active_mode_change_listener()
         self.add_trigger_status_change_listener()
         self.add_footprint_param_listeners()
         self._add_trigger_on_engineering_correction_change()
+
+        self.update_monitors()
+        self._bl_status_change(self._beamline.status, self._beamline.message)
         self._initialised = True
 
     def read(self, reason):
