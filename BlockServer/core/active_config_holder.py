@@ -115,7 +115,6 @@ class ActiveConfigHolder(ConfigHolder):
         self._archive_manager = archive_manager
         self._ioc_control = ioc_control
         self._db = None
-        self._last_config_file = os.path.abspath(os.path.join(FILEPATH_MANAGER.config_root_dir, "last_config.txt"))
 
     def save_active(self, name, as_comp=False):
         """ Save the active configuration.
@@ -150,16 +149,16 @@ class ActiveConfigHolder(ConfigHolder):
             self._archive_manager.update_archiver(MACROS["$(MYPVPREFIX)"] + BLOCK_PREFIX,
                                                   self.get_block_details().values())
 
-    def set_last_config(self, config):
+    def set_last_config(self, config_name):
         """ Save the last configuration used to file.
 
         The last configuration is saved without any file path.
 
         Args:
-            config (string): The name of the last configuration used
+            config_name (string): The name of the last configuration used
         """
-        with open(os.path.abspath(self._last_config_file), 'w') as f:
-            f.write(config + "\n")
+        with open(FILEPATH_MANAGER.get_last_config_file_path(), 'w') as f:
+            f.write(config_name + "\n")
 
     def load_last_config(self):
         """ Load the last used configuration.
@@ -171,7 +170,7 @@ class ActiveConfigHolder(ConfigHolder):
         Returns:
             The name of the configuration that was loaded
         """
-        last_config_file_location = os.path.abspath(self._last_config_file)
+        last_config_file_location = FILEPATH_MANAGER.get_last_config_file_path()
 
         if not os.path.isfile(last_config_file_location):
             return None

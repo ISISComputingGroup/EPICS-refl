@@ -29,6 +29,20 @@ class TestHeightDriver(unittest.TestCase):
 
         self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis)
 
+    def test_GIVEN_backlash_distance_is_none_WHEN_backlash_distance_checked_THEN_returned_value_is_zero(self):
+        expected = 0.0
+        self.height_axis.backlash_distance = None
+        duration = self.jaws_driver.get_max_move_duration()
+
+        assert_that(duration, is_(expected))
+
+    def test_GIVEN_backlash_velocity_is_none_WHEN_backlash_distance_checked_THEN_returned_value_is_zero(self):
+        expected = 0.0
+        self.height_axis.backlash_distance = None
+        duration = self.jaws_driver.get_max_move_duration()
+
+        assert_that(duration, is_(expected))
+
     def test_GIVEN_component_with_height_setpoint_above_current_position_WHEN_calculating_move_duration_THEN_returned_duration_is_correct(self):
         target_position = 20.0
         expected = 2.0
@@ -205,6 +219,7 @@ class TestNonSynchronisedHeightAndTiltDriver(unittest.TestCase):
         assert_that(self.height_axis.sp, is_(close_to(target_position_height, FLOAT_TOLERANCE)))
         assert_that(self.tilt_axis.velocity, is_(close_to(expected_velocity_tilt, FLOAT_TOLERANCE)))
         assert_that(self.tilt_axis.sp, is_(close_to(target_position_tilt, FLOAT_TOLERANCE)))
+
 
 class TestHeightAndAngleDriver(unittest.TestCase):
     def setUp(self):

@@ -16,6 +16,7 @@
 """
 Utilities for running block server and related ioc's.
 """
+import threading
 import six
 import time
 import zlib
@@ -30,6 +31,7 @@ from server_common.common_exceptions import MaxAttemptsExceededException
 
 # Default to base class - does not actually log anything
 LOGGER = Logger()
+_LOGGER_LOCK = threading.RLock()  # To prevent message interleaving between different threads.
 
 
 class SEVERITY(object):
@@ -73,9 +75,10 @@ def print_and_log(message, severity=SEVERITY.INFO, src="BLOCKSVR"):
                                     Default severity is INFO.
         src (string, optional): Gives the source of the message. Default source is BLOCKSVR.
     """
-    message = "[{:.2f}] {}: {}".format(time.time(), severity, message)
-    print(message)
-    LOGGER.write_to_log(message, severity, src)
+    with _LOGGER_LOCK:
+        message = "[{:.2f}] {}: {}".format(time.time(), severity, message)
+        print(message)
+        LOGGER.write_to_log(message, severity, src)
 
 
 def compress_and_hex(value):
@@ -106,6 +109,24 @@ def dehex_and_decompress(value):
         "Non-bytes argument passed to dehex_and_decompress, maybe Python 2/3 compatibility issue\n" \
         "Argument was type {} with value {}".format(value.__class__.__name__, value)
     return zlib.decompress(binascii.unhexlify(value))
+
+
+def dehex_and_decompress_waveform(value):
+    """Decompresses the inputted waveform, assuming it is a array of integers representing characters (null terminated).
+
+    Args:
+        value (list[int]): The string to be decompressed
+
+    Returns:
+        bytes : A decompressed version of the inputted string
+    """
+    assert type(value) == list, \
+        "Non-list argument passed to dehex_and_decompress_waveform\n" \
+        "Argument was type {} with value {}".format(value.__class__.__name__, value)
+
+    unicode_rep = waveform_to_string(value)
+    bytes_rep = unicode_rep.encode("ascii")
+    return dehex_and_decompress(bytes_rep)
 
 
 def convert_to_json(value):
@@ -248,7 +269,7 @@ def waveform_to_string(data):
     Returns: waveform as a sting
 
     """
-    output = ""
+    output = six.text_type()
     for i in data:
         if i == 0:
             break

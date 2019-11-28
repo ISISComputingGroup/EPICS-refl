@@ -18,8 +18,10 @@ from server_common.channel_access import UnableToConnectToPVException
 
 logger = logging.getLogger(__name__)
 
-
-BeamlineStatus = namedtuple("Status", ['display_string', 'alarm_severity'])
+# An update of the overall status of the beamline
+BeamlineStatus = namedtuple("Status", [
+    'display_string',   # A string representation of the beamline state
+    'alarm_severity'])  # The alarm severity associated to this state, represented as an int (see Channel Access doc)
 
 
 class STATUS(Enum):
@@ -218,17 +220,12 @@ class Beamline(object):
             raise ValueError("Problem with beamline configuration: {}".format(";".join(errors)))
 
     @property
-    def parameter_types(self):
+    def parameters(self):
         """
         Returns:
-            dict[str, ReflectometryServer.parameters.BeamlineParameterType]: a dictionary of parameter type,
-                keyed by their name
+            dict[str, ReflectometryServer.parameters.BeamlineParameter]: a dictionary of beamline parameters
         """
-        types = OrderedDict()
-        for beamline_parameter in self._beamline_parameters.values():
-            types[beamline_parameter.name] = (beamline_parameter.parameter_type, beamline_parameter.group_names,
-                                              beamline_parameter.description)
-        return types
+        return self._beamline_parameters
 
     @property
     def mode_names(self):

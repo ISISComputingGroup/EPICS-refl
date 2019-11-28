@@ -87,19 +87,24 @@ class ChannelAccess(object):
     installing genie_python.
     """
     @staticmethod
-    def caget(name, as_string=False):
+    def caget(name, as_string=False, timeout=None):
         """Uses CaChannelWrapper from genie_python to get a pv value. We import CaChannelWrapper when used as this means
         the tests can run without having genie_python installed
 
         Args:
             name (string): The name of the PV to be read
             as_string (bool, optional): Set to read a char array as a string, defaults to false
+            timeout (float, None): timeout value to use; None for use default timeout
 
         Returns:
             obj : The value of the requested PV, None if no value was read
         """
         try:
-            return CaChannelWrapper.get_pv_value(name, as_string)
+            if timeout is None:
+                return CaChannelWrapper.get_pv_value(name, as_string)
+            else:
+                return CaChannelWrapper.get_pv_value(name, as_string, timeout=timeout)
+
         except Exception as err:
             # Probably has timed out
             print_and_log(str(err))
@@ -126,6 +131,28 @@ class ChannelAccess(object):
             # Even if not waiting genie_python sometimes takes a while to return from a set_pv_value call.
             thread = threading.Thread(target=_put_value)
             thread.start()
+
+    @staticmethod
+    def caput_retry_on_fail(pv_name, value, retry_count=5):
+        """
+        Write to a pv and check the value is set, retry if not; raise if run out of retries
+        Args:
+            pv_name: pv name to write to
+            value: value to write
+            retry_count: number of retries
+
+        Raises:
+            IOError: if pv can not be set
+
+        """
+        current_value = None
+        for _ in range(retry_count):
+            ChannelAccess.caput(pv_name, value, wait=True)
+            current_value = ChannelAccess.caget(pv_name)
+            if current_value == value:
+                break
+        else:
+            raise IOError("PV value can not be set, pv {}, was {} expected {}".format(pv_name, current_value, value))
 
     @staticmethod
     def pv_exists(name, timeout=None):
@@ -163,6 +190,16 @@ class ChannelAccess(object):
         NB Connected pv is one which is in the cache
         """
         CaChannelWrapper.poll()
+
+    @staticmethod
+    def clear_monitor(name):
+        """
+        Clears the monitor on a pv if it exists
+        """
+        try:
+            CaChannelWrapper.get_chan(name).clear_channel()
+        except UnableToConnectToPVException:
+            pass
 
 
 class ManagerModeRequiredException(Exception):

@@ -3,7 +3,9 @@ SimpleObservable data and classes.
 """
 from math import tan, radians, sin, cos
 
-from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider
+from mock import Mock
+
+from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider, JawsCentrePVWrapper
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from server_common.observable import observable
 from utils import DEFAULT_TEST_TOLERANCE
@@ -299,6 +301,8 @@ class MockMotorPVWrapper(object):
         self.after_status_change_listener = set()
         self.after_velocity_change_listener = set()
         self.is_vertical = is_vertical
+        self.set_position_as_value = None
+        self._last_set_point_set = None
 
     def initialise(self):
         pass
@@ -312,12 +316,19 @@ class MockMotorPVWrapper(object):
     def initiate_move_with_change_of_velocity(self):
         pass
 
+    def cache_velocity(self):
+        pass
+
+    def restore_velocity(self):
+        pass
+
     @property
     def sp(self):
         return self._value
 
     @sp.setter
     def sp(self, new_value):
+        self._last_set_point_set = new_value
         self._value = new_value
         self.trigger_listeners(SetpointUpdate(new_value, None, None))
         self.trigger_listeners(ReadbackUpdate(new_value, None, None))
@@ -328,6 +339,12 @@ class MockMotorPVWrapper(object):
     @property
     def rbv(self):
         return self._value
+
+    def define_position_as(self, new_value):
+        self.set_position_as_value = new_value
+        self._value = new_value
+        self.trigger_listeners(SetpointUpdate(new_value, None, None))
+        self.trigger_listeners(ReadbackUpdate(new_value, None, None))
 
 
 class MockChannelAccess(object):
@@ -348,3 +365,17 @@ class MockChannelAccess(object):
 
     def caput(self, pv, value):
         self._pvs[pv] = value
+
+
+def create_mock_JawsCentrePVWrapper(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):
+    """
+    Create a mock jaws centre pv wrapper for testing
+    Returns: mock
+    """
+
+    mock_jaws_wrapper = create_mock_axis(name, init_position, max_velocity, backlash_distance, backlash_velocity, direction)
+    mock_jaws_wrapper.define_position_as = Mock()
+    mock_jaws_wrapper.is_vertical = False
+
+    return mock_jaws_wrapper
+

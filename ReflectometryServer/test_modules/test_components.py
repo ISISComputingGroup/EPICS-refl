@@ -79,7 +79,7 @@ class TestComponent(unittest.TestCase):
 
 
 class TestTiltingJaws(unittest.TestCase):
-    def test_GIVEN_tilting_jaw_input_beam_is_at_60_deg_WHEN_set_angle_THEN_beam_no_altered(self):
+    def test_GIVEN_tilting_jaw_input_beam_is_at_60_deg_WHEN_set_angular_displacement_THEN_beam_no_altered(self):
         beam_angle = 60.0
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
         jaws = TiltingComponent("tilting jaws", setup=PositionAndAngle(0, 20, 90))

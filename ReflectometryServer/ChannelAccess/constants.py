@@ -20,6 +20,11 @@ REFL_CONFIG_PATH = os.path.abspath(os.path.join("{}".format(_get_env_var('ICPCON
 # Reflectometry configuration file path
 REFL_AUTOSAVE_PATH = os.path.join("{}".format(_get_env_var('ICPVARDIR')), "refl")
 
+# Path to security access rules file
+DEFAULT_ASG_RULES = os.path.join("{}".format(
+    os.environ.get('KIT_ROOT', os.path.join('C:\Instrument', 'Apps', 'EPICS'))),
+    "support", "AccessSecurity", "master", "default.acf")
+
 # alias motor DMOV values
 MTR_MOVING = 0
 MTR_STOPPED = 1

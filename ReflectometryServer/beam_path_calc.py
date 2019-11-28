@@ -12,10 +12,22 @@ from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 
-BeamPathUpdate = namedtuple("BeamPathUpdate", ["source"])
-BeamPathUpdateOnInit = namedtuple("BeamPathUpdateOnInit", ["source"])
-PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", ["source"])
+# Event that is triggered when the path of the beam has changed.
+BeamPathUpdate = namedtuple("BeamPathUpdate", [
+    "source"])  # The source of the beam path change. (the component itself)
+
+# Event that is triggered when the path of the beam has changed as a result of being initialised from file or motor rbv.
+BeamPathUpdateOnInit = namedtuple("BeamPathUpdateOnInit", [
+    "source"])  # The source of the beam path change. (the component itself)
+
+# Event that is triggered when the physical position of this component changes.
+PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", [
+    "source"])  # The source of the beam path change. (the component itself)
+
+# Event that is triggered when the changing state of the component is updated (i.e. it starts or stops moving)
 ComponentChangingUpdate = namedtuple("ComponentChangingUpdate", [])
+
+# Event that is triggered when the position or angle of the beam path calc gets an initial value.
 InitUpdate = namedtuple("InitUpdate", [])
 
 
@@ -182,6 +194,17 @@ class TrackingBeamPathCalc(object):
         """
         return self._movement_strategy.get_displacement()
 
+    def get_displacement_for(self, position_relative_to_beam):
+        """
+        Get the displacement for a given position relative to the beam
+        Args:
+            position_relative_to_beam (float): position to get the displacement for
+
+        Returns (float): displacement
+        """
+        return self._movement_strategy.get_displacement_relative_to_beam_for(self._incoming_beam,
+                                                                             position_relative_to_beam)
+
     def position_in_mantid_coordinates(self):
         """
         Returns (ReflectometryServer.geometry.Position): The set point position of this component in mantid coordinates.
@@ -335,13 +358,24 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Args:
             angle: angle to set the component at
         """
-        self._set_angular_displacement(angle + self._incoming_beam.angle)
+        self._set_angular_displacement(self.get_angle_for(angle))
 
     def get_angle_relative_to_beam(self):
         """
-        Returns: the angle of the component relative to the incoming beam
+        Returns (float): the angle of the component relative to the incoming beam
         """
         return self._angular_displacement - self._incoming_beam.angle
+
+    def get_angle_for(self, angle_relative_to_the_beam):
+        """
+        Get the angle in the room coordinates from a given relative angle
+        Args:
+            angle_relative_to_the_beam (float): the angle relative to the beam
+
+        Returns (float): angle in mantid coordinates
+        """
+        return angle_relative_to_the_beam + self._incoming_beam.angle
+
 
     def get_outgoing_beam(self):
         """
@@ -417,8 +451,10 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         self._angle_to = angle_to
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
+            # add to the physical change for the rbv so that we don't get an infinite loop
             readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self.angle_update)
-            setpoint_beam_path_calc.add_listener(PhysicalMoveUpdate, self.angle_update)
+            # add to beamline change of set point because no loop is created from the setpoint action
+            setpoint_beam_path_calc.add_listener(BeamPathUpdate, self.angle_update)
             readback_beam_path_calc.add_listener(ComponentChangingUpdate, self._on_is_changing_change)
 
     def _on_is_changing_change(self, update):
