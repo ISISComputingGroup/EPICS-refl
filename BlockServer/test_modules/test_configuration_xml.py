@@ -41,6 +41,7 @@ BLOCKS_XML = u"""
         <rc_enabled>True</rc_enabled>
         <rc_lowlimit>1</rc_lowlimit>
         <rc_highlimit>2</rc_highlimit>
+        <rc_suspend_on_invalid>False</rc_suspend_on_invalid>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -53,6 +54,7 @@ BLOCKS_XML = u"""
         <rc_enabled>True</rc_enabled>
         <rc_lowlimit>1</rc_lowlimit>
         <rc_highlimit>2</rc_highlimit>
+        <rc_suspend_on_invalid>False</rc_suspend_on_invalid>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -65,6 +67,7 @@ BLOCKS_XML = u"""
         <rc_enabled>True</rc_enabled>
         <rc_lowlimit>1</rc_lowlimit>
         <rc_highlimit>2</rc_highlimit>
+        <rc_suspend_on_invalid>False</rc_suspend_on_invalid>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
@@ -77,6 +80,7 @@ BLOCKS_XML = u"""
         <rc_enabled>True</rc_enabled>
         <rc_lowlimit>1</rc_lowlimit>
         <rc_highlimit>2</rc_highlimit>
+        <rc_suspend_on_invalid>False</rc_suspend_on_invalid>
         <log_periodic>False</log_periodic>
         <log_rate>5</log_rate>
         <log_deadband>0</log_deadband>
