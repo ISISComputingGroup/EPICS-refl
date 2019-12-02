@@ -17,6 +17,7 @@
 import os
 import re
 import unittest
+import six
 from xml.etree import ElementTree
 from collections import OrderedDict
 
@@ -291,7 +292,7 @@ class TestConfigurationXmlConverterSequence(unittest.TestCase):
 
         # Assert
         self.assertEqual(len(blocks), len(expected_blocks))
-        for key, value in blocks.iteritems():
+        for key, value in six.iteritems(blocks):
             self.assertTrue(key in expected_blocks)
             expected = expected_blocks[key]
             self.assertEqual(value.name, expected.name)
