@@ -15,13 +15,15 @@ from server_common.channel_access import ChannelAccess, UnableToConnectToPVExcep
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_SCALE_LEVEL = 2
+
 
 @six.add_metaclass(abc.ABCMeta)
 class PVWrapper(object):
     """
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
     """
-    def __init__(self, base_pv, ca=None):
+    def __init__(self, base_pv, ca=None, min_velocity_scale_level=None):
         """
         Creates a wrapper around a PV.
 
@@ -38,6 +40,10 @@ class PVWrapper(object):
         self._after_sp_change_listeners = set()
         self._after_is_changing_change_listeners = set()
 
+        if min_velocity_scale_level is None or min_velocity_scale_level < 0:
+            min_velocity_scale_level = DEFAULT_SCALE_LEVEL
+        self._min_velocity_scale_factor = 1.0 / (10.0 ** min_velocity_scale_level)
+
         self._moving_state_cache = None
         self._moving_direction_cache = None
         self._velocity_restored = None
@@ -46,6 +52,7 @@ class PVWrapper(object):
         self._backlash_distance_cache = None
         self._backlash_velocity_cache = None
         self._max_velocity_cache = None
+        self._base_velocity_cache = None
 
         self._set_pvs()
         self._set_resolution()
@@ -73,6 +80,7 @@ class PVWrapper(object):
         self._backlash_velocity_cache = self._read_pv(self._bvel_pv)
         self._moving_direction_cache = self._read_pv(self._dir_pv)
         self._max_velocity_cache = self._read_pv(self._vmax_pv)
+        self._base_velocity_cache = self._read_pv(self._vbas_pv)
         self._init_velocity_cache()
 
     def _add_monitors(self):
@@ -215,9 +223,19 @@ class PVWrapper(object):
     @property
     def max_velocity(self):
         """
-        Gets the maximum velocity for the axis
+        Returns (float): The maximum velocity for the axis
         """
         return self._max_velocity_cache
+
+    @property
+    def min_velocity(self):
+        """
+        Returns (float): the minimum velocity at which this axis is allowed to move.
+        """
+        if self._base_velocity_cache:
+            return self._base_velocity_cache
+        else:
+            return self._max_velocity_cache * self._min_velocity_scale_factor
 
     @property
     def backlash_distance(self):
@@ -422,14 +440,14 @@ class MotorPVWrapper(PVWrapper):
     """
     Wrap a low level motor PV. Provides relevant listeners and synchronization utilities.
     """
-    def __init__(self, base_pv, ca=None):
+    def __init__(self, base_pv, ca=None, min_velocity_scale_level=None):
         """
         Creates a wrapper around a low level motor PV.
 
         Params:
             base_pv (String): The name of the PV
         """
-        super(MotorPVWrapper, self).__init__(base_pv, ca)
+        super(MotorPVWrapper, self).__init__(base_pv, ca, min_velocity_scale_level)
 
     def _set_pvs(self):
         """
@@ -439,6 +457,7 @@ class MotorPVWrapper(PVWrapper):
         self._rbv_pv = "{}.RBV".format(self._prefixed_pv)
         self._velo_pv = "{}.VELO".format(self._prefixed_pv)
         self._vmax_pv = "{}.VMAX".format(self._prefixed_pv)
+        self._vbas_pv = "{}.VBAS".format(self._prefixed_pv)
         self._dmov_pv = "{}.DMOV".format(self._prefixed_pv)
         self._bdst_pv = "{}.BDST".format(self._prefixed_pv)
         self._bvel_pv = "{}.BVEL".format(self._prefixed_pv)
@@ -465,7 +484,7 @@ class MotorPVWrapper(PVWrapper):
 
 @six.add_metaclass(abc.ABCMeta)
 class _JawsAxisPVWrapper(PVWrapper):
-    def __init__(self, base_pv, is_vertical, ca=None):
+    def __init__(self, base_pv, is_vertical, ca=None, min_velocity_scale_level=None):
         """
         Creates a wrapper around a jaws axis.
 
@@ -479,7 +498,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         self._set_directions()
         self._velocities = {}
 
-        super(_JawsAxisPVWrapper, self).__init__(base_pv, ca)
+        super(_JawsAxisPVWrapper, self).__init__(base_pv, ca, min_velocity_scale_level)
 
     def _set_directions(self):
         """
@@ -508,8 +527,11 @@ class _JawsAxisPVWrapper(PVWrapper):
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
 
-        motor_velocities = self._pv_names_for_directions("MTR.VMAX")
-        self._max_velocity_cache = min([self._read_pv(pv) for pv in motor_velocities])
+        motor_max_velocities = self._pv_names_for_directions("MTR.VMAX")
+        self._max_velocity_cache = min([self._read_pv(pv) for pv in motor_max_velocities])
+
+        motor_base_velocities = self._pv_names_for_directions("MTR.VBAS")
+        self._base_velocity_cache = max([self._read_pv(pv) for pv in motor_base_velocities])
 
         self._backlash_distance_cache = 0  # No backlash used as source of clash conditions on jaws sets
 

@@ -288,6 +288,7 @@ class MockMotorPVWrapper(object):
         self.name = pv_name
         self._value = init_position
         self.max_velocity = max_velocity
+        self.min_velocity = max_velocity / 100.0
         self.velocity = None
         self.direction = direction
         self.backlash_distance = backlash_distance

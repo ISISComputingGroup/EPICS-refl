@@ -1,10 +1,12 @@
 from hamcrest import *
+from parameterized import parameterized
 
 import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
 from ReflectometryServer.ChannelAccess.constants import MTR_STOPPED
+from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_LEVEL
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess
 
 from server_common.channel_access import UnableToConnectToPVException
@@ -27,6 +29,7 @@ class TestMotorPVWrapper(unittest.TestCase):
         self.rbv_pv = _create_pv(self.motor_name, ".RBV")
         self.mres_pv = _create_pv(self.motor_name, ".MRES")
         self.vmax_pv = _create_pv(self.motor_name, ".VMAX")
+        self.vbas_pv = _create_pv(self.motor_name, ".VBAS")
         self.velo_pv = _create_pv(self.motor_name, ".VELO")
         self.bdst_pv = _create_pv(self.motor_name, ".BDST")
         self.bvel_pv = _create_pv(self.motor_name, ".BVEL")
@@ -35,6 +38,7 @@ class TestMotorPVWrapper(unittest.TestCase):
         self.rbv = 1.1
         self.mres = 0.1
         self.vmax = 1
+        self.vbas = 0.0
         self.velo = 0.5
         self.bdst = 0.05
         self.bvel = 0.1
@@ -43,10 +47,11 @@ class TestMotorPVWrapper(unittest.TestCase):
                                self.rbv_pv: self.rbv,
                                self.mres_pv: self.mres,
                                self.vmax_pv: self.vmax,
+                               self.vbas_pv: self.vbas,
                                self.velo_pv: self.velo,
                                self.bdst_pv: self.bdst,
                                self.bvel_pv: self.bvel,
-                               self.dir_pv: self.dir
+                               self.dir_pv: self.dir,
                                }
         self.mock_ca = MockChannelAccess(self.mock_motor_pvs)
         self.wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
@@ -122,6 +127,46 @@ class TestMotorPVWrapper(unittest.TestCase):
 
         self.assertEqual(expected_dir, actual_dir)
 
+    def test_GIVEN_base_velocity_is_non_zero_WHEN_initialising_motor_pv_wrapper_THEN_min_velocity_set_to_vbas(self):
+        vbas = 0.125
+        self.mock_ca.caput(self.vbas_pv, vbas)
+        expected_min_velocity = vbas
+
+        self.wrapper.initialise()
+        actual_min_velocity = self.wrapper.min_velocity
+
+        assert_that(expected_min_velocity, is_(close_to(actual_min_velocity, FLOAT_TOLERANCE)))
+
+    @parameterized.expand([(1,), (2.5,), (5,), (10,)])
+    def test_GIVEN_base_velocity_is_zero_and_scale_factor_is_custom_WHEN_initialising_motor_pv_wrapper_THEN_min_velocity_set_to_custom_fraction_of_vmax(self, scale_level):
+        expected_scale_factor = 1.0 / (10.0 ** scale_level)
+        expected_min_velocity = self.vmax * expected_scale_factor
+        self.wrapper_with_custom_scale_level = MotorPVWrapper(self.motor_name, ca=self.mock_ca, min_velocity_scale_level=scale_level)
+
+        self.wrapper_with_custom_scale_level.initialise()
+        actual_min_velocity = self.wrapper_with_custom_scale_level.min_velocity
+
+        assert_that(expected_min_velocity, is_(close_to(actual_min_velocity, FLOAT_TOLERANCE)))
+
+    def test_GIVEN_base_velocity_is_zero_and_scale_factor_is_nonsensical_WHEN_initialising_motor_pv_wrapper_THEN_min_velocity_set_to_default_fraction_of_vmax(self):
+        scale_level = -4
+        expected_scale_factor = 1.0 / (10.0 ** DEFAULT_SCALE_LEVEL)
+        expected_min_velocity = self.vmax * expected_scale_factor
+        self.wrapper_with_custom_scale_level = MotorPVWrapper(self.motor_name, ca=self.mock_ca, min_velocity_scale_level=scale_level)
+
+        self.wrapper_with_custom_scale_level.initialise()
+        actual_min_velocity = self.wrapper_with_custom_scale_level.min_velocity
+
+        assert_that(expected_min_velocity, is_(close_to(actual_min_velocity, FLOAT_TOLERANCE)))
+
+    def test_GIVEN_base_velocity_is_zero_and_scale_factor_is_default_WHEN_initialising_motor_pv_wrapper_THEN_min_velocity_set_to_default_fraction_of_vmax(self):
+        expected_min_velocity = self.vmax / 100.0
+
+        self.wrapper.initialise()
+        actual_min_velocity = self.wrapper.min_velocity
+
+        assert_that(expected_min_velocity, is_(close_to(actual_min_velocity, FLOAT_TOLERANCE)))
+
 
 class TestJawsAxisPVWrapper(unittest.TestCase):
 
@@ -156,12 +201,15 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
             direction_pv = "{}:{}".format(self.jaws_name, direction)
             mres_pv = _create_pv(direction_pv, ":MTR.MRES")
             vmax_pv = _create_pv(direction_pv, ":MTR.VMAX")
+            vbas_pv = _create_pv(direction_pv, ":MTR.VBAS")
             velo_pv = _create_pv(direction_pv, ":MTR.VELO")
             mres = 0.1
             vmax = 1
+            vbas = 0.0
             velo = 0.5
             self.mock_axis_pvs[mres_pv] = mres
             self.mock_axis_pvs[vmax_pv] = vmax
+            self.mock_axis_pvs[vbas_pv] = vbas
             self.mock_axis_pvs[velo_pv] = velo
         self.mock_ca = MockChannelAccess(self.mock_axis_pvs)
 
