@@ -37,7 +37,7 @@ class Block(object):
             arch_deadband (float): Deadband for the block to be archived
     """
     def __init__(self, name, pv, local=True, visible=True, component=None, runcontrol=False, lowlimit=None,
-                 highlimit=None, log_periodic=False, log_rate=5, log_deadband=0):
+                 highlimit=None, suspend_on_invalid=False, log_periodic=False, log_rate=5, log_deadband=0):
         """ Constructor.
 
         Args:
@@ -50,6 +50,7 @@ class Block(object):
             runcontrol (bool): Whether run-control is enabled
             lowlimt (float): The low limit for run-control
             highlimit (float): The high limit for run-control
+            suspend_on_invalid (bool): Whether to suspend run-control on invalid values
 
             arch_periodic (bool): Whether the block is sampled periodically in the archiver
             arch_rate (float): Time between archive samples (in seconds)
@@ -63,6 +64,7 @@ class Block(object):
         self.rc_lowlimit = lowlimit
         self.rc_highlimit = highlimit
         self.rc_enabled = runcontrol
+        self.rc_suspend_on_invalid = suspend_on_invalid
         self.log_periodic = log_periodic
         self.log_rate = log_rate
         self.log_deadband = log_deadband
@@ -95,7 +97,17 @@ class Block(object):
         Returns:
             dict : The block's details
         """
-        return {"name": self.name, "pv": self._get_pv(), "local": self.local,
-                "visible": self.visible, "component": self.component, "runcontrol": self.rc_enabled,
-                "lowlimit": self.rc_lowlimit, "highlimit": self.rc_highlimit,
-                "log_periodic": self.log_periodic, "log_rate": self.log_rate, "log_deadband": self.log_deadband}
+        return {
+            "name": self.name,
+            "pv": self._get_pv(),
+            "local": self.local,
+            "visible": self.visible,
+            "component": self.component,
+            "runcontrol": self.rc_enabled,
+            "lowlimit": self.rc_lowlimit,
+            "highlimit": self.rc_highlimit,
+            "log_periodic": self.log_periodic,
+            "log_rate": self.log_rate,
+            "log_deadband": self.log_deadband,
+            "suspend_on_invalid": self.rc_suspend_on_invalid,
+        }

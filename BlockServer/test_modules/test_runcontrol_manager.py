@@ -130,22 +130,6 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertTrue(ans["TESTBLOCK1"]["HIGH"] == 5)
         self.assertTrue(ans["TESTBLOCK1"]["LOW"] == -5)
 
-    @patch("BlockServer.runcontrol.runcontrol_manager.sleep")
-    def test_set_runcontrol_settings_limits(self, sleep_patch):
-        data = {'name': "TESTBLOCK1", 'pv': "PV1",
-                'runcontrol': True, 'lowlimit': -5, 'highlimit': 5}
-        add_block(self.activech, data)
-        self.set_start_time_of_run_control()
-        self.rcm.create_runcontrol_pvs(False, 0)
-        ans = self.rcm.get_current_settings()
-        ans["TESTBLOCK1"]["LOW"] = 0
-        ans["TESTBLOCK1"]["HIGH"] = 10
-        ans["TESTBLOCK1"]["ENABLE"] = False
-        self.rcm.set_runcontrol_settings(ans)
-        ans = self.rcm.get_current_settings()
-        self.assertEqual(ans["TESTBLOCK1"]["HIGH"], 10)
-        self.assertEqual(ans["TESTBLOCK1"]["LOW"], 0)
-
     def test_GIVEN_non_restarting_runcontrol_WHEN_create_PVs_THAT_code_is_not_stuck_in_loop(self):
         rc_pv = RC_START_PV
 
