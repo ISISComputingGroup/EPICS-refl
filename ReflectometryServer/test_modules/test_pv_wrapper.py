@@ -189,6 +189,10 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
         self.hgap_rbv = 3.1
         self.hcent_sp = 4.0
         self.hcent_rbv = 4.1
+        self.mres = 0.1
+        self.vmax = 1
+        self.vbas = 0.0
+        self.velo = 0.5
         self.mock_axis_pvs = {self.vgap_sp_pv: self.vgap_sp,
                               self.vgap_rbv_pv: self.vgap_rbv,
                               self.vcent_sp_pv: self.vcent_sp,
@@ -203,14 +207,10 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
             vmax_pv = _create_pv(direction_pv, ":MTR.VMAX")
             vbas_pv = _create_pv(direction_pv, ":MTR.VBAS")
             velo_pv = _create_pv(direction_pv, ":MTR.VELO")
-            mres = 0.1
-            vmax = 1
-            vbas = 0.0
-            velo = 0.5
-            self.mock_axis_pvs[mres_pv] = mres
-            self.mock_axis_pvs[vmax_pv] = vmax
-            self.mock_axis_pvs[vbas_pv] = vbas
-            self.mock_axis_pvs[velo_pv] = velo
+            self.mock_axis_pvs[mres_pv] = self.mres
+            self.mock_axis_pvs[vmax_pv] = self.vmax
+            self.mock_axis_pvs[vbas_pv] = self.vbas
+            self.mock_axis_pvs[velo_pv] = self.velo
         self.mock_ca = MockChannelAccess(self.mock_axis_pvs)
 
     def test_GIVEN_base_pv_and_motor_is_vertical_WHEN_creating_jawgap_wrapper_THEN_pvs_are_correct(self):
@@ -259,9 +259,30 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
 
     def test_GIVEN_initialised_jaw_gap_WHEN_get_backlash_distance_THEN_distance_is_0_because_jaws_do_not_backlash(self):
         wrapper = JawsGapPVWrapper(self.jaws_name, is_vertical=False, ca=self.mock_ca)
-        wrapper._on_update_moving_state(MTR_STOPPED, None, None)  # fake call from monitor initialisation TODO: remove after 4588
         wrapper.initialise()
 
         result = wrapper.backlash_distance
 
         assert_that(result, is_(0), "Jaws should not have backlash distance")
+
+    def test_GIVEN_vbas_not_set_and_jaw_gap_initialised_WHEN_get_minimum_velocity_THEN_minimum_velocity_is_default(self):
+        expected = self.vmax / (10.0 ** DEFAULT_SCALE_LEVEL)
+        wrapper = JawsGapPVWrapper(self.jaws_name, is_vertical=False, ca=self.mock_ca)
+        wrapper.initialise()
+
+        result = wrapper.min_velocity
+
+        assert_that(result, is_(expected), "Jaws should not have backlash distance")
+
+    def test_GIVEN_vbas_set_and_jaw_gap_initialised_WHEN_get_minimum_velocity_THEN_minimum_velocity_is_default(self):
+        expected = 0.123
+        for direction in ["JN", "JE", "JS", "JW"]:
+            direction_pv = "{}:{}".format(self.jaws_name, direction)
+            vbas_pv = _create_pv(direction_pv, ":MTR.VBAS")
+            self.mock_axis_pvs[vbas_pv] = expected
+        wrapper = JawsGapPVWrapper(self.jaws_name, is_vertical=False, ca=self.mock_ca)
+        wrapper.initialise()
+
+        result = wrapper.min_velocity
+
+        assert_that(result, is_(expected), "Jaws should not have backlash distance")

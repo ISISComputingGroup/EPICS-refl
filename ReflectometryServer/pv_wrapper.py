@@ -42,6 +42,10 @@ class PVWrapper(object):
 
         if min_velocity_scale_level is None or min_velocity_scale_level < 0:
             min_velocity_scale_level = DEFAULT_SCALE_LEVEL
+        if min_velocity_scale_level < 0:
+            logger.error("Minimum velocity scale level {} is invalid (Should be > 0). "
+                         "Setting default level of 2 (factor 100)".format(min_velocity_scale_level))
+            min_velocity_scale_level = DEFAULT_SCALE_LEVEL
         self._min_velocity_scale_factor = 1.0 / (10.0 ** min_velocity_scale_level)
 
         self._moving_state_cache = None
@@ -230,7 +234,7 @@ class PVWrapper(object):
     @property
     def min_velocity(self):
         """
-        Returns (float): the minimum velocity at which this axis is allowed to move.
+        Returns (float): the minimum velocity at which this axis is allowed to move to prevent stalling.
         """
         if self._base_velocity_cache:
             return self._base_velocity_cache

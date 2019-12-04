@@ -5,7 +5,8 @@ from math import tan, radians, sin, cos
 
 from mock import Mock
 
-from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider, JawsCentrePVWrapper
+from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider
+from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_LEVEL
 from utils import DEFAULT_TEST_TOLERANCE
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
@@ -288,7 +289,7 @@ class MockMotorPVWrapper(object):
         self.name = pv_name
         self._value = init_position
         self.max_velocity = max_velocity
-        self.min_velocity = max_velocity / 100.0
+        self.min_velocity = max_velocity / (10.0 ** DEFAULT_SCALE_LEVEL)
         self.velocity = None
         self.direction = direction
         self.backlash_distance = backlash_distance
