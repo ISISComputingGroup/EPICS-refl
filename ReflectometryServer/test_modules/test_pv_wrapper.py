@@ -6,7 +6,7 @@ import unittest
 
 from ReflectometryServer import *
 from ReflectometryServer.ChannelAccess.constants import MTR_STOPPED
-from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_LEVEL
+from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess
 
 from server_common.channel_access import UnableToConnectToPVException
@@ -137,11 +137,10 @@ class TestMotorPVWrapper(unittest.TestCase):
 
         assert_that(expected_min_velocity, is_(close_to(actual_min_velocity, FLOAT_TOLERANCE)))
 
-    @parameterized.expand([(1,), (2.5,), (5,), (10,)])
-    def test_GIVEN_base_velocity_is_zero_and_scale_factor_is_custom_WHEN_initialising_motor_pv_wrapper_THEN_min_velocity_set_to_custom_fraction_of_vmax(self, scale_level):
-        expected_scale_factor = 1.0 / (10.0 ** scale_level)
-        expected_min_velocity = self.vmax * expected_scale_factor
-        self.wrapper_with_custom_scale_level = MotorPVWrapper(self.motor_name, ca=self.mock_ca, min_velocity_scale_level=scale_level)
+    @parameterized.expand([(1,), (8,), (50,), (1000,)])
+    def test_GIVEN_base_velocity_is_zero_and_scale_factor_is_custom_WHEN_initialising_motor_pv_wrapper_THEN_min_velocity_set_to_custom_fraction_of_vmax(self, scale_factor):
+        expected_min_velocity = self.vmax / scale_factor
+        self.wrapper_with_custom_scale_level = MotorPVWrapper(self.motor_name, ca=self.mock_ca, min_velocity_scale_factor=scale_factor)
 
         self.wrapper_with_custom_scale_level.initialise()
         actual_min_velocity = self.wrapper_with_custom_scale_level.min_velocity
@@ -150,9 +149,9 @@ class TestMotorPVWrapper(unittest.TestCase):
 
     def test_GIVEN_base_velocity_is_zero_and_scale_factor_is_nonsensical_WHEN_initialising_motor_pv_wrapper_THEN_min_velocity_set_to_default_fraction_of_vmax(self):
         scale_level = -4
-        expected_scale_factor = 1.0 / (10.0 ** DEFAULT_SCALE_LEVEL)
+        expected_scale_factor = 1.0 / DEFAULT_SCALE_FACTOR
         expected_min_velocity = self.vmax * expected_scale_factor
-        self.wrapper_with_custom_scale_level = MotorPVWrapper(self.motor_name, ca=self.mock_ca, min_velocity_scale_level=scale_level)
+        self.wrapper_with_custom_scale_level = MotorPVWrapper(self.motor_name, ca=self.mock_ca, min_velocity_scale_factor=scale_level)
 
         self.wrapper_with_custom_scale_level.initialise()
         actual_min_velocity = self.wrapper_with_custom_scale_level.min_velocity
@@ -266,13 +265,13 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
         assert_that(result, is_(0), "Jaws should not have backlash distance")
 
     def test_GIVEN_vbas_not_set_and_jaw_gap_initialised_WHEN_get_minimum_velocity_THEN_minimum_velocity_is_default(self):
-        expected = self.vmax / (10.0 ** DEFAULT_SCALE_LEVEL)
+        expected = self.vmax / DEFAULT_SCALE_FACTOR
         wrapper = JawsGapPVWrapper(self.jaws_name, is_vertical=False, ca=self.mock_ca)
         wrapper.initialise()
 
         result = wrapper.min_velocity
 
-        assert_that(result, is_(expected), "Jaws should not have backlash distance")
+        assert_that(result, is_(expected))
 
     def test_GIVEN_vbas_set_and_jaw_gap_initialised_WHEN_get_minimum_velocity_THEN_minimum_velocity_is_default(self):
         expected = 0.123
@@ -285,4 +284,4 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
 
         result = wrapper.min_velocity
 
-        assert_that(result, is_(expected), "Jaws should not have backlash distance")
+        assert_that(result, is_(expected))
