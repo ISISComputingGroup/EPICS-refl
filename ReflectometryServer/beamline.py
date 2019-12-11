@@ -4,6 +4,7 @@ Resources at a beamline level
 import logging
 from collections import OrderedDict, namedtuple
 from functools import partial
+
 from enum import Enum
 from pcaspy import Severity
 
@@ -28,9 +29,19 @@ class STATUS(Enum):
     """
     Beamline States.
     """
+    INITIALISING = BeamlineStatus("INITIALISING", Severity.MINOR_ALARM)
     OKAY = BeamlineStatus("OKAY", Severity.NO_ALARM)
     CONFIG_ERROR = BeamlineStatus("CONFIG_ERROR", Severity.MAJOR_ALARM)
     GENERAL_ERROR = BeamlineStatus("ERROR", Severity.MAJOR_ALARM)
+
+    @staticmethod
+    def status_codes():
+        """
+        Returns:
+            (list[str]) status codes for the beamline
+        """
+        # noinspection PyTypeChecker
+        return [status.value for status in STATUS]
 
     @property
     def display_string(self):
@@ -159,13 +170,10 @@ class Beamline(object):
         self._beam_path_calcs_rbv = []
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
-        self._status = STATUS.OKAY
-        self._message = ""
         self._active_mode_change_listeners = set()
         self._status_change_listeners = set()
         footprint_setup = footprint_setup if footprint_setup is not None else BaseFootprintSetup()
         self.footprint_manager = FootprintManager(footprint_setup)
-
         for beamline_parameter in beamline_parameters:
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
             beamline_parameter.after_move_listener = self._move_for_single_beamline_parameters
@@ -195,6 +203,9 @@ class Beamline(object):
 
         self._active_mode = None
         self._initialise_mode(modes)
+
+        self._status = STATUS.OKAY
+        self._message = ""
 
     def _validate(self, beamline_parameters, modes):
         errors = []
@@ -459,14 +470,6 @@ class Beamline(object):
         Returns: the message which has been set
         """
         return self._message
-
-    @property
-    def status_codes(self):
-        """
-        Returns: the status codes which have display properties and alarm severities
-        """
-        # noinspection PyTypeChecker
-        return [status.value for status in STATUS]
 
     def _initialise_mode(self, modes):
         """
