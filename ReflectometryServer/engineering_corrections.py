@@ -13,7 +13,7 @@ import six
 from scipy.interpolate import griddata
 
 from ReflectometryServer import beamline_configuration
-from ReflectometryServer.observable import observable
+from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 

@@ -102,19 +102,6 @@ class Configuration(object):
             self.iocs[name.upper()] = IOC(name, autostart, restart, component, macros, pvs, pvsets, simlevel,
                                           remotePvPrefix)
 
-    def update_runcontrol_settings_for_saving(self, rc_data):
-        """ Updates the run-control settings for the configuration's blocks.
-
-        Args:
-            rc_data (dict): A dictionary containing all the run-control settings
-        """
-        # Only do it for blocks that are not in a component
-        for bn, blk in self.blocks.items():
-            if blk.component is None and blk.name in rc_data.keys():
-                blk.rc_enabled = rc_data[blk.name]['ENABLE']
-                blk.rc_lowlimit = rc_data[blk.name]['LOW']
-                blk.rc_highlimit = rc_data[blk.name]['HIGH']
-
     def get_name(self):
         """ Gets the name of the configuration.
 

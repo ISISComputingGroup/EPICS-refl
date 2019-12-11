@@ -5,12 +5,40 @@ from enum import Enum
 
 from ReflectometryServer.beamline import STATUS
 from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY
+from pcaspy.alarm import SeverityStrings
 from ReflectometryServer.parameters import BeamlineParameterType
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
 from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY, compress_and_hex
 import json
 from collections import OrderedDict
 
+MAX_ALARM_ID = 15
+
+AlarmStringsTruncated = [
+    "NO_ALARM",
+    "READ",
+    "WRITE",
+    "HIHI",
+    "HIGH",
+    "LOLO",
+    "LOW",
+    "STATE",
+    "COS",
+    "COMM",
+    "TIMEOUT",
+    "HWLIMIT",
+    "CALC",
+    "SCAN",
+    "LINK",
+    "OTHER",
+    # "SOFT",
+    # "BAD_SUB",
+    # "UDF",
+    # "DISABLE",
+    # "SIMM",
+    # "READ_ACCESS",
+    # "WRITE_ACCESS"
+]
 
 PARAM_PREFIX = "PARAM"
 BEAMLINE_PREFIX = "BL:"
@@ -32,6 +60,8 @@ CHANGED_SUFFIX = ":CHANGED"
 DEFINE_POSITION_AS = ":DEFINE_POSITION_AS"
 
 VAL_FIELD = ".VAL"
+STAT_FIELD = ".STAT"
+SEVR_FIELD = ".SEVR"
 
 FOOTPRINT_PREFIX = "FP"
 SAMPLE_LENGTH = "{}:{}".format(FOOTPRINT_PREFIX, "SAMPLE_LENGTH")
@@ -46,6 +76,9 @@ PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_FIELDS_ACTION = {'type': 'int', 'count': 1, 'value': 0}
 OUT_IN_ENUM_TEXT = ["OUT", "IN"]
 STANDARD_FLOAT_PV_FIELDS = {'type': 'float', 'prec': 3, 'value': 0.0}
+ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStringsTruncated}
+ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
+
 PARAMS_FIELDS_BEAMLINE_TYPES = {
     BeamlineParameterType.IN_OUT: {'type': 'enum', 'enums': OUT_IN_ENUM_TEXT},
     BeamlineParameterType.FLOAT: STANDARD_FLOAT_PV_FIELDS}
@@ -179,6 +212,20 @@ class PvSort(Enum):
             return parameter.define_current_value_as.new_value
         return float("NaN")
 
+    def get_parameter_alarm(self, parameter):
+        """
+        Get the alarm status of this parameter. Only applicable for Readback PVs.
+
+        Args:
+            parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter to get the value from
+
+        Returns: the alarm severity and status of this parameter.
+        """
+        if self == PvSort.RBV:
+            return parameter.alarm_severity, parameter.alarm_status
+        else:
+            return None, None
+
 
 class PVManager:
     """
@@ -187,8 +234,6 @@ class PVManager:
     def __init__(self):
         """
         The constructor.
-        Args:
-            beamline (ReflectometryServer.beamline.Beamline): the beamline to create the manager for
         """
         self._beamline = None
         self.PVDB = {}
@@ -198,16 +243,28 @@ class PVManager:
         self._add_status_pvs()
 
     def _add_status_pvs(self):
-        # PVs for server status
+        """
+        PVs for server status
+
+        """
         status_fields = {'type': 'enum',
                          'enums': [code.display_string for code in STATUS.status_codes()],
                          'states': [code.alarm_severity for code in STATUS.status_codes()]}
-        self._add_pv_with_val(BEAMLINE_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV, archive=True,
-                              interest="HIGH", alarm=True)
-        self._add_pv_with_val(BEAMLINE_MESSAGE, None, {'type': 'char', 'count': 400}, "Message about the beamline", PvSort.RBV,
-                              archive=True, interest="HIGH")
+        self._add_pv_with_fields(BEAMLINE_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV,
+                                 archive=True,
+                                 interest="HIGH", alarm=True)
+        self._add_pv_with_fields(BEAMLINE_MESSAGE, None, {'type': 'char', 'count': 400}, "Message about the beamline",
+                                 PvSort.RBV,
+                                 archive=True, interest="HIGH")
 
     def set_beamline(self, beamline):
+        """
+        Set the beamline for the manager and add needed pvs
+
+        Args:
+            beamline: beamline to set
+
+        """
         self._beamline = beamline
 
         self._add_global_pvs()
@@ -223,29 +280,29 @@ class PVManager:
         Add PVs that affect the whole of the reflectometry system to the server's PV database.
 
         """
-        self._add_pv_with_val(BEAMLINE_MOVE, None, PARAM_FIELDS_ACTION, "Move the beam line", PvSort.RBV, archive=True,
-                              interest="HIGH")
+        self._add_pv_with_fields(BEAMLINE_MOVE, None, PARAM_FIELDS_ACTION, "Move the beam line", PvSort.RBV,
+                                 archive=True, interest="HIGH")
         # PVs for mode
         mode_fields = {'type': 'enum', 'enums': self._beamline.mode_names}
-        self._add_pv_with_val(BEAMLINE_MODE, None, mode_fields, "Beamline mode", PvSort.RBV, archive=True,
-                              interest="HIGH")
-        self._add_pv_with_val(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
+        self._add_pv_with_fields(BEAMLINE_MODE, None, mode_fields, "Beamline mode", PvSort.RBV, archive=True,
+                                 interest="HIGH")
+        self._add_pv_with_fields(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
 
     def _add_footprint_calculator_pvs(self):
         """
         Add PVs related to the footprint calculation to the server's PV database.
         """
-        self._add_pv_with_val(SAMPLE_LENGTH, None, STANDARD_FLOAT_PV_FIELDS,
-                              "Sample Length", PvSort.SP_RBV, archive=True, interest="HIGH")
+        self._add_pv_with_fields(SAMPLE_LENGTH, None, STANDARD_FLOAT_PV_FIELDS,
+                                 "Sample Length", PvSort.SP_RBV, archive=True, interest="HIGH")
 
         for prefix in FOOTPRINT_PREFIXES:
             for template, description in [(FP_TEMPLATE, "Beam Footprint"),
                                           (DQQ_TEMPLATE, "Beam Resolution dQ/Q"),
                                           (QMIN_TEMPLATE, "Minimum measurable Q with current setup"),
                                           (QMAX_TEMPLATE, "Maximum measurable Q with current setup")]:
-                self._add_pv_with_val(template.format(prefix), None,
-                                      STANDARD_FLOAT_PV_FIELDS,
-                                      description, PvSort.RBV, archive=True, interest="HIGH")
+                self._add_pv_with_fields(template.format(prefix), None,
+                                         STANDARD_FLOAT_PV_FIELDS,
+                                         description, PvSort.RBV, archive=True, interest="HIGH")
 
     def _add_all_parameter_pvs(self):
         """
@@ -297,45 +354,46 @@ class PVManager:
                                                             }
 
             # Readback PV
-            self._add_pv_with_val(prepended_alias, param_name, fields, description, PvSort.RBV, archive=True,
-                                  interest="HIGH")
+            self._add_pv_with_fields(prepended_alias, param_name, fields, description, PvSort.RBV, archive=True,
+                                     interest="HIGH")
 
             # Setpoint PV
-            self._add_pv_with_val(prepended_alias + SP_SUFFIX, param_name, fields, description, PvSort.SP, archive=True)
+            self._add_pv_with_fields(prepended_alias + SP_SUFFIX, param_name, fields, description, PvSort.SP,
+                                     archive=True)
 
             # Setpoint readback PV
-            self._add_pv_with_val(prepended_alias + SP_RBV_SUFFIX, param_name, fields, description, PvSort.SP_RBV)
+            self._add_pv_with_fields(prepended_alias + SP_RBV_SUFFIX, param_name, fields, description, PvSort.SP_RBV)
 
             # Set value and do not action PV
-            self._add_pv_with_val(prepended_alias + SET_AND_NO_ACTION_SUFFIX, param_name, fields, description,
-                                  PvSort.SET_AND_NO_ACTION)
+            self._add_pv_with_fields(prepended_alias + SET_AND_NO_ACTION_SUFFIX, param_name, fields, description,
+                                     PvSort.SET_AND_NO_ACTION)
 
             # Changed PV
-            self._add_pv_with_val(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_BINARY, description,
-                                  PvSort.CHANGED)
+            self._add_pv_with_fields(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_BINARY, description,
+                                     PvSort.CHANGED)
 
             # Action PV
-            self._add_pv_with_val(prepended_alias + ACTION_SUFFIX, param_name, PARAM_FIELDS_ACTION, description,
-                                  PvSort.ACTION)
+            self._add_pv_with_fields(prepended_alias + ACTION_SUFFIX, param_name, PARAM_FIELDS_ACTION, description,
+                                     PvSort.ACTION)
 
             # Moving state PV
-            self._add_pv_with_val(prepended_alias + CHANGING, param_name, PARAM_FIELDS_BINARY, description,
-                                  PvSort.CHANGING)
+            self._add_pv_with_fields(prepended_alias + CHANGING, param_name, PARAM_FIELDS_BINARY, description,
+                                     PvSort.CHANGING)
 
             # In mode PV
-            self._add_pv_with_val(prepended_alias + IN_MODE_SUFFIX, param_name, PARAM_IN_MODE, description,
-                                  PvSort.IN_MODE)
+            self._add_pv_with_fields(prepended_alias + IN_MODE_SUFFIX, param_name, PARAM_IN_MODE, description,
+                                     PvSort.IN_MODE)
 
             # RBV to SP:RBV tolerance
-            self._add_pv_with_val(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
-                                  PvSort.RBV_AT_SP)
+            self._add_pv_with_fields(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
+                                     PvSort.RBV_AT_SP)
 
             # define position at
             if parameter.define_current_value_as is not None:
                 align_fields = STANDARD_FLOAT_PV_FIELDS.copy()
                 align_fields["asg"] = "MANAGER"
-                self._add_pv_with_val(prepended_alias + DEFINE_POSITION_AS, param_name, align_fields, description,
-                                      PvSort.DEFINE_POS_AS)
+                self._add_pv_with_fields(prepended_alias + DEFINE_POSITION_AS, param_name, align_fields, description,
+                                         PvSort.DEFINE_POS_AS)
 
             return {"name": param_name,
                     "prepended_alias": prepended_alias,
@@ -344,8 +402,8 @@ class PVManager:
         except Exception as err:
             print("Error adding parameter PV: " + err.message)
 
-    def _add_pv_with_val(self, pv_name, param_name, pv_fields, description, sort, archive=False, interest=None,
-                         alarm=False):
+    def _add_pv_with_fields(self, pv_name, param_name, pv_fields, description, sort, archive=False, interest=None,
+                            alarm=False):
         """
         Add param to pv list with .val and correct fields and to parm look up
         Args:
@@ -374,6 +432,8 @@ class PVManager:
 
         self.PVDB[pv_name] = pv_fields_mod
         self.PVDB[pv_name + VAL_FIELD] = pv_fields
+        self.PVDB[pv_name + STAT_FIELD] = ALARM_STAT_PV_FIELDS
+        self.PVDB[pv_name + SEVR_FIELD] = ALARM_SEVR_PV_FIELDS
 
         if param_name is not None:
             self._params_pv_lookup[pv_name] = (param_name, sort)
@@ -428,7 +488,20 @@ class PVManager:
         Returns:
             (str, PvSort): parameter name and sort for the given pv
         """
-        return self._params_pv_lookup[remove_from_end(pv_name, VAL_FIELD)]
+        return self._params_pv_lookup[self.strip_fields_from_pv(pv_name)]
+
+    def strip_fields_from_pv(self, pv_name):
+        """
+        Remove suffixes for fields from the end of a given PV.
+
+        Args:
+            pv_name: name of the pv
+
+        Returns: The PV name with any of the known field suffixes stripped off the end.
+        """
+        for field in [VAL_FIELD, STAT_FIELD, SEVR_FIELD]:
+            pv_name = remove_from_end(pv_name, field)
+        return pv_name
 
     @staticmethod
     def is_beamline_mode(pv_name):
@@ -480,3 +553,23 @@ class PVManager:
         Returns: True if this the beamline message pv
         """
         return is_pv_name_this_field(BEAMLINE_MESSAGE, pv_name)
+
+    @staticmethod
+    def is_alarm_status(pv_name):
+        """
+        Args:
+            pv_name: name of the pv
+
+        Returns: True if this is an alarm status pv
+        """
+        return pv_name.endswith(STAT_FIELD)
+
+    @staticmethod
+    def is_alarm_severity(pv_name):
+        """
+        Args:
+            pv_name: name of the pv
+
+        Returns: True if this is an alarm severity pv
+        """
+        return pv_name.endswith(SEVR_FIELD)

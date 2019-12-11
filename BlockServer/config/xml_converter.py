@@ -208,6 +208,9 @@ class ConfigurationXmlConverter(object):
             high = ElementTree.SubElement(block_xml, TAG_RUNCONTROL_HIGH)
             high.text = str(block.rc_highlimit)
 
+        suspend_on_invalid = ElementTree.SubElement(block_xml, TAG_RUNCONTROL_SUSPEND_ON_INVALID)
+        suspend_on_invalid.text = str(block.rc_suspend_on_invalid)
+
         # Logging
         log_periodic = ElementTree.SubElement(block_xml, TAG_LOG_PERIODIC)
         log_periodic.text = str(block.log_periodic)
@@ -283,12 +286,12 @@ class ConfigurationXmlConverter(object):
 
                 # Check to see if not local
                 loc = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_LOCAL)
-                if not (loc is None) and loc.text == "False":
+                if loc is not None and loc.text == "False":
                     blocks[name.lower()].local = False
 
                 # Check for visibility
                 vis = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_VISIBLE)
-                if not (vis is None) and vis.text == "False":
+                if vis is not None and vis.text == "False":
                     blocks[name.lower()].visible = False
 
                 # Runcontrol
@@ -302,6 +305,10 @@ class ConfigurationXmlConverter(object):
                 rc_high = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_RUNCONTROL_HIGH)
                 if rc_high is not None:
                     blocks[name.lower()].rc_highlimit = float(rc_high.text)
+
+                rc_suspend_on_invalid = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_RUNCONTROL_SUSPEND_ON_INVALID)
+                if rc_suspend_on_invalid is not None:
+                    blocks[name.lower()].rc_suspend_on_invalid = (rc_suspend_on_invalid.text == "True")
 
                 # Logging
                 log_periodic = ConfigurationXmlConverter._find_single_node(b, NS_TAG_BLOCK, TAG_LOG_PERIODIC)

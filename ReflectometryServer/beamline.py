@@ -8,6 +8,7 @@ from functools import partial
 from enum import Enum
 from pcaspy import Severity
 
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.file_io import read_mode, save_mode
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
@@ -18,8 +19,10 @@ from server_common.channel_access import UnableToConnectToPVException
 
 logger = logging.getLogger(__name__)
 
-
-BeamlineStatus = namedtuple("Status", ['display_string', 'alarm_severity'])
+# An update of the overall status of the beamline
+BeamlineStatus = namedtuple("Status", [
+    'display_string',   # A string representation of the beamline state
+    'alarm_severity'])  # The alarm severity associated to this state, represented as an int (see Channel Access doc)
 
 
 class STATUS(Enum):
@@ -33,6 +36,10 @@ class STATUS(Enum):
 
     @staticmethod
     def status_codes():
+        """
+        Returns:
+            (list[str]) status codes for the beamline
+        """
         # noinspection PyTypeChecker
         return [status.value for status in STATUS]
 
@@ -180,17 +187,16 @@ class Beamline(object):
         for component in components:
             self._beam_path_calcs_set_point.append(component.beam_path_set_point)
             self._beam_path_calcs_rbv.append(component.beam_path_rbv)
-            component.beam_path_set_point.add_after_beam_path_update_on_init_listener(
-                self.update_next_beam_component_on_init)
-            component.beam_path_set_point.add_after_beam_path_update_listener(
-                partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_set_point))
-            component.beam_path_rbv.add_after_beam_path_update_listener(
-                partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_rbv))
+            component.beam_path_set_point.add_listener(BeamPathUpdateOnInit, self.update_next_beam_component_on_init)
+            component.beam_path_set_point.add_listener(BeamPathUpdate, partial(
+                self.update_next_beam_component, calc_path_list=self._beam_path_calcs_set_point))
+            component.beam_path_rbv.add_listener(BeamPathUpdate, partial(
+                self.update_next_beam_component, calc_path_list=self._beam_path_calcs_rbv))
 
         self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
 
-        self.update_next_beam_component(None, self._beam_path_calcs_rbv)
-        self.update_next_beam_component(None, self._beam_path_calcs_set_point)
+        self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_rbv)
+        self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_set_point)
 
         for driver in self._drivers:
             driver.initialise()
@@ -302,42 +308,43 @@ class Beamline(object):
             param_names_in_mode.append(param.name)
         return param_names_in_mode
 
-    def update_next_beam_component(self, source_component, calc_path_list):
+    def update_next_beam_component(self, update, calc_path_list):
         """
         Updates the next component in the beamline.
+
         Args:
-            source_component(None|ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): source component of the
-                update or None for not from component change
+            update(ReflectometryServer.beam_path_calc.BeamPathUpdateOnInit): Update event with source component of the
+                update (or None for source if change is not originating from a component)
             calc_path_list(List[ReflectometryServer.components.BeamPathCalc]): list of beam calcs order in the same
                 order as components
         """
-        if source_component is None:
+        if update.source is None:
             outgoing = self._incoming_beam
             comp_index = -1
         else:
-            outgoing = source_component.get_outgoing_beam()
-            comp_index = calc_path_list.index(source_component)
+            outgoing = update.source.get_outgoing_beam()
+            comp_index = calc_path_list.index(update.source)
 
         try:
             calc_path_list[comp_index + 1].set_incoming_beam(outgoing)
         except IndexError:
             pass  # no more components to update
 
-    def update_next_beam_component_on_init(self, source_component):
+    def update_next_beam_component_on_init(self, update):
         """
         Updates the next component in the beamline after an initialisation event, recalculating the setpoint beam path
         while preserving autosaved values.
 
         Args:
-            source_component(None|ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): source component of the
-                update or None for not from component change
+            update(ReflectometryServer.beam_path_calc.BeamPathUpdateOnInit): Update event with source component of the
+                update (or None for source if change is not originating from a component)
         """
-        if source_component is None:
+        if update.source is None:
             outgoing = self._incoming_beam
             comp_index = -1
         else:
-            outgoing = source_component.get_outgoing_beam()
-            comp_index = self._beam_path_calcs_set_point.index(source_component)
+            outgoing = update.source.get_outgoing_beam()
+            comp_index = self._beam_path_calcs_set_point.index(update.source)
 
         try:
             next_component = self._beam_path_calcs_set_point[comp_index + 1]
@@ -468,7 +475,7 @@ class Beamline(object):
         """
         Tries to read and apply the last active mode from autosave file. Defaults to first mode in list if unsuccessful.
 
-        Params:
+        Args:
             modes(list[BeamlineMode]): A list of all the modes in this configuration.
         """
         mode_name = read_mode()

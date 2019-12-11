@@ -54,7 +54,7 @@ def generate_theta_movement():
 
     beamline[3].beam_path_set_point.is_in_beam = True
     sm_angle = 5
-    beamline[3].beam_path_set_point.angle = sm_angle
+    beamline[3].beam_path_set_point.set_angular_displacement(sm_angle)
     for theta in range(0, 20, 1):
         beamline.parameter("theta").sp_move = theta * 1.0
         positions_y = [component.beam_path_set_point.calculate_beam_interception().y for component in beamline]
