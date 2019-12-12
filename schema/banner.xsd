@@ -19,14 +19,56 @@
   </xs:element>
   <xs:element name="item">
     <xs:complexType>
+      <xs:choice>
+        <xs:element ref="banner:display"/>
+        <xs:element ref="banner:button"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="display">
+    <xs:complexType>
       <xs:sequence>
         <xs:element ref="banner:name"/>
         <xs:element ref="banner:pv"/>
         <xs:element ref="banner:local"/>
+        <xs:element ref="banner:width"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="button">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="banner:name"/>
+        <xs:element ref="banner:pv"/>
+        <xs:element ref="banner:local"/>
+        <xs:element ref="banner:pvValue"/>
+        <xs:element ref="banner:textColour"/>
+        <xs:element ref="banner:buttonColour"/>
+        <xs:element ref="banner:fontSize"/>
+        <xs:element ref="banner:width"/>
+        <xs:element ref="banner:height"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
   <xs:element name="name" type="xs:string"/>
   <xs:element name="pv" type="xs:string"/>
   <xs:element name="local" type="xs:boolean"/>
+  <xs:element name="pvValue" type="xs:integer"/>
+  <xs:element name="textColour">
+    <xs:simpleType>
+      <xs:restriction base="xs:string">
+        <xs:pattern value="#[0-9a-fA-F]{6}"/>
+      </xs:restriction>
+    </xs:simpleType>
+  </xs:element>
+  <xs:element name="buttonColour">
+    <xs:simpleType>
+      <xs:restriction base="xs:string">
+        <xs:pattern value="#[0-9a-fA-F]{6}"/>
+      </xs:restriction>
+    </xs:simpleType>
+  </xs:element>
+  <xs:element name="fontSize" type="xs:int"/>
+  <xs:element name="width" type="xs:int"/>
+  <xs:element name="height" type="xs:int"/>
 </xs:schema>

@@ -1,9 +1,38 @@
 """
 Manager for the footprint calc.
 """
+from enum import Enum
 
 from ReflectometryServer.footprint_calc import *
-from ReflectometryServer.ChannelAccess.pv_manager import FootprintSort
+
+FP_SP_KEY = "SP"
+FP_SP_RBV_KEY = "SP_RBV"
+FP_RBV_KEY = "RBV"
+
+
+class FootprintSort(Enum):
+    """
+    Enum for the type of footprint calculator
+    """
+    SP = 0
+    RBV = 1
+    SP_RBV = 2
+
+    @staticmethod
+    def prefix(sort):
+        """
+        Args:
+            sort: The sort of footprint value
+
+        Returns: The pv suffix for this sort of value
+        """
+        if sort == FootprintSort.SP:
+            return FP_SP_KEY
+        elif sort == FootprintSort.SP_RBV:
+            return FP_SP_RBV_KEY
+        elif sort == FootprintSort.RBV:
+            return FP_RBV_KEY
+        return None
 
 
 class FootprintManager(object):
@@ -107,3 +136,5 @@ class FootprintManager(object):
         elif sort is FootprintSort.RBV:
             return self._footprint_calc_rbv
         return None
+
+

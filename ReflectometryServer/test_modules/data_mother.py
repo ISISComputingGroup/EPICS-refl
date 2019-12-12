@@ -7,6 +7,8 @@ from mock import Mock
 
 from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
+from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
+from server_common.observable import observable
 from utils import DEFAULT_TEST_TOLERANCE
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
@@ -25,7 +27,7 @@ class EmptyBeamlineParameter(BeamlineParameter):
     def _initialise_sp_from_file(self):
         pass
 
-    def _initialise_sp_from_motor(self):
+    def _initialise_sp_from_motor(self, _):
         pass
 
     def _set_changed_flag(self):
@@ -284,6 +286,7 @@ def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, bac
     return MockMotorPVWrapper(name, init_position, max_velocity, True, backlash_distance, backlash_velocity, direction)
 
 
+@observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)
 class MockMotorPVWrapper(object):
     def __init__(self, pv_name, init_position, max_velocity, is_vertical=True, backlash_distance=0, backlash_velocity=1, direction="Neg"):
         self.name = pv_name
@@ -297,10 +300,7 @@ class MockMotorPVWrapper(object):
             self.backlash_distance = backlash_distance * -1
         self.backlash_velocity = backlash_velocity
         self.resolution = DEFAULT_TEST_TOLERANCE
-        self.after_rbv_change_listener = set()
-        self.after_sp_change_listener = set()
         self.after_status_change_listener = set()
-        self.after_is_changing_change_listener = set()
         self.after_velocity_change_listener = set()
         self.is_vertical = is_vertical
         self.set_position_as_value = None
@@ -309,17 +309,8 @@ class MockMotorPVWrapper(object):
     def initialise(self):
         pass
 
-    def add_after_rbv_change_listener(self, listener):
-        self.after_rbv_change_listener.add(listener)
-
-    def add_after_sp_change_listener(self, listener):
-        self.after_sp_change_listener.add(listener)
-
     def add_after_status_change_listener(self, listener):
         self.after_status_change_listener.add(listener)
-
-    def add_after_is_changing_change_listener(self, listener):
-        self.after_is_changing_change_listener.add(listener)
 
     def add_after_velocity_change_listener(self, listener):
         self.after_velocity_change_listener.add(listener)
@@ -341,16 +332,11 @@ class MockMotorPVWrapper(object):
     def sp(self, new_value):
         self._last_set_point_set = new_value
         self._value = new_value
-        self.trigger_sp_change()
-        self.trigger_rbv_change()
-
-    def trigger_sp_change(self):
-        for listener in self.after_sp_change_listener:
-            listener(self._value, None, None)
+        self.trigger_listeners(SetpointUpdate(new_value, None, None))
+        self.trigger_listeners(ReadbackUpdate(new_value, None, None))
 
     def trigger_rbv_change(self):
-        for listener in self.after_rbv_change_listener:
-            listener(self._value, None, None)
+        self.trigger_listeners(ReadbackUpdate(self._value, None, None))
 
     @property
     def rbv(self):
@@ -359,8 +345,8 @@ class MockMotorPVWrapper(object):
     def define_position_as(self, new_value):
         self.set_position_as_value = new_value
         self._value = new_value
-        self.trigger_sp_change()
-        self.trigger_rbv_change()
+        self.trigger_listeners(SetpointUpdate(new_value, None, None))
+        self.trigger_listeners(ReadbackUpdate(new_value, None, None))
 
 
 class MockChannelAccess(object):

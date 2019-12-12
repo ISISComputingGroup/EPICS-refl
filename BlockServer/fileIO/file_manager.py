@@ -23,7 +23,7 @@ from BlockServer.config.group import Group
 from BlockServer.config.xml_converter import ConfigurationXmlConverter
 from BlockServer.config.configuration import Configuration, MetaData
 from BlockServer.core.constants import FILENAME_BLOCKS, FILENAME_GROUPS, FILENAME_IOCS, FILENAME_COMPONENTS, \
-    FILENAME_META
+    FILENAME_META, FILENAME_BANNER
 from BlockServer.core.constants import GRP_NONE, DEFAULT_COMPONENT, EXAMPLE_DEFAULT
 from BlockServer.core.file_path_manager import FILEPATH_MANAGER
 from BlockServer.fileIO.schema_checker import ConfigurationSchemaChecker, ConfigurationIncompleteException
@@ -81,7 +81,7 @@ class ConfigurationFileManager(object):
             root = self._read_element_tree(blocks_path)
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_BLOCKS)
+            self._check_against_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_BLOCKS)
 
             ConfigurationXmlConverter.blocks_from_xml(root, blocks, groups)
         else:
@@ -93,7 +93,7 @@ class ConfigurationFileManager(object):
             root = self._read_element_tree(groups_path)
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_GROUPS)
+            self._check_against_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_GROUPS)
 
             ConfigurationXmlConverter.groups_from_xml(root, groups, blocks)
         else:
@@ -110,7 +110,7 @@ class ConfigurationFileManager(object):
                                                                               'simlevel="none"')
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(correct_xml, FILENAME_IOCS)
+            self._check_against_schema(correct_xml, FILENAME_IOCS)
 
             ConfigurationXmlConverter.ioc_from_xml(root, iocs)
         else:
@@ -122,7 +122,7 @@ class ConfigurationFileManager(object):
             root = self._read_element_tree(component_path)
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_COMPONENTS)
+            self._check_against_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_COMPONENTS)
 
             ConfigurationXmlConverter.components_from_xml(root, components)
         elif not is_component:
@@ -136,7 +136,7 @@ class ConfigurationFileManager(object):
             root = self._read_element_tree(meta_path)
 
             # Check against the schema - raises if incorrect
-            self._check_againgst_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_META)
+            self._check_against_schema(ElementTree.tostring(root, encoding='utf8'), FILENAME_META)
 
             ConfigurationXmlConverter.meta_from_xml(root, meta)
         else:
@@ -155,7 +155,8 @@ class ConfigurationFileManager(object):
         print_and_log("Configuration ('{}') loaded.".format(name))
         return configuration
 
-    def _check_againgst_schema(self, xml, filename):
+    @staticmethod
+    def _check_against_schema(xml, filename):
         regex = re.compile(re.escape('.xml'), re.IGNORECASE)
         name = regex.sub('.xsd', filename)
         schema_path = os.path.join(FILEPATH_MANAGER.schema_dir, name)
@@ -234,9 +235,10 @@ class ConfigurationFileManager(object):
         shutil.copytree(os.path.abspath(os.path.join(os.environ["MYDIRBLOCK"], EXAMPLE_DEFAULT)),
                         os.path.join(dest_path, DEFAULT_COMPONENT))
 
-    def _read_element_tree(self, file_path):
+    @staticmethod
+    def _read_element_tree(file_path):
         try:
-            return self._attempt_read(file_path)
+            return ConfigurationFileManager._attempt_read(file_path)
         except MaxAttemptsExceededException:
             raise IOError("Could not open file at {path}. Please check the file "
                           "is not in use by another process.".format(path=file_path))
@@ -295,22 +297,28 @@ class ConfigurationFileManager(object):
         return path
 
     @staticmethod
-    def get_bumpstrip_config():
+    def get_banner_config():
         """
-        Parses the bump strip config file into a list of BoolStr objects.
+        Parses the banner config file into a dictionary of lists of dictionaries containing the items and buttons.
 
         Returns:
-            XML root node of the file if it exists, empty list if it doesn't exist or fails to parse.
+            Dictionary containing information about banner items and buttons,
+            empty dictionary if it doesn't exist or fails to parse.
         """
         if os.path.exists(FILEPATH_MANAGER.get_banner_path()):
+            root = ConfigurationFileManager._read_element_tree(FILEPATH_MANAGER.get_banner_path())
+
+            # Check against the schema - raises if incorrect
+            ConfigurationFileManager._check_against_schema(ElementTree.tostring(root, encoding='utf8'),
+                                                           FILENAME_BANNER)
             try:
-                bumpstrip = ConfigurationXmlConverter.banner_config_from_xml(
+                banner = ConfigurationXmlConverter.banner_config_from_xml(
                     ConfigurationFileManager._attempt_read(FILEPATH_MANAGER.get_banner_path())
                 )
             except Exception as ex:
                 # XML failed to parse. Log the error and return an empty list
                 print_and_log("Failed to parse banner xml file. Error was {} {}".format(ex.__class__.__name__, ex))
-                bumpstrip = []
+                banner = {}
         else:
-            bumpstrip = []
-        return bumpstrip
+            banner = {}
+        return banner

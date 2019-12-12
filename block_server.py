@@ -58,6 +58,7 @@ from WebServer.simple_webserver import Server
 from BlockServer.core.database_client import get_iocs
 from Queue import Queue
 
+CURR_CONFIG_NAME_SEVR_VALUE = 0
 
 # For documentation on these commands see the wiki
 initial_dbs = {
@@ -80,7 +81,9 @@ initial_dbs = {
     BlockserverPVNames.DELETE_COMPONENTS: char_waveform(64000),
     BlockserverPVNames.BLANK_CONFIG: char_waveform(64000),
     BlockserverPVNames.ALL_COMPONENT_DETAILS: char_waveform(64000),
-    BlockserverPVNames.BANNER_DESCRIPTION: char_waveform(16000)
+    BlockserverPVNames.BANNER_DESCRIPTION: char_waveform(16000),
+    BlockserverPVNames.CURR_CONFIG_NAME: char_waveform(500),
+    BlockserverPVNames.CURR_CONFIG_NAME_SEVR: {'type': 'enum', 'count': 1, 'value': CURR_CONFIG_NAME_SEVR_VALUE, "enums": ["NO_ALARM"]}
 }
 
 
@@ -114,7 +117,7 @@ class BlockServer(Driver):
         self.block_rules = BlockRules(self)
         self.group_rules = GroupRules(self)
         self.config_desc = ConfigurationDescriptionRules(self)
-        self.spangle_banner = json.dumps(ConfigurationFileManager.get_bumpstrip_config())
+        self.spangle_banner = json.dumps(ConfigurationFileManager.get_banner_config())
 
         # Connect to version control
         try:
@@ -221,6 +224,10 @@ class BlockServer(Driver):
                 value = compress_and_hex(self.spangle_banner)
             elif reason == BlockserverPVNames.ALL_COMPONENT_DETAILS:
                 value = compress_and_hex(convert_to_json(self._config_list.all_components.values()))
+            elif reason == BlockserverPVNames.CURR_CONFIG_NAME:
+                value = self._active_configserver.get_config_name()
+            elif reason == BlockserverPVNames.CURR_CONFIG_NAME_SEVR:
+                value = CURR_CONFIG_NAME_SEVR_VALUE
             else:
                 # Check to see if it is a on-the-fly PV
                 for handler in self.on_the_fly_handlers:
@@ -350,6 +357,7 @@ class BlockServer(Driver):
         self.update_blocks_monitors()
 
         self.update_get_details_monitors()
+        self.update_curr_config_name_monitors()
         self._active_configserver.update_archiver(full_init)
         for h in self.on_the_fly_handlers:
                 h.on_config_change(full_init)
@@ -516,6 +524,14 @@ class BlockServer(Driver):
         with self.monitor_lock:
             config_details_json = convert_to_json(self._active_configserver.get_config_details())
             self.setParam(BlockserverPVNames.GET_CURR_CONFIG_DETAILS, compress_and_hex(config_details_json))
+            self.updatePVs()
+
+    def update_curr_config_name_monitors(self):
+        """Updates the monitor for the active configuration name, so the clients can see any changes.
+        """
+        with self.monitor_lock:
+            self.setParam(BlockserverPVNames.CURR_CONFIG_NAME, self._active_configserver.get_config_name())
+            self.setParam(BlockserverPVNames.CURR_CONFIG_NAME_SEVR, CURR_CONFIG_NAME_SEVR_VALUE)
             self.updatePVs()
 
     def consume_write_queue(self):

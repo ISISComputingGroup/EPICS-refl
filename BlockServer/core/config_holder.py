@@ -457,14 +457,6 @@ class ConfigHolder(object):
         else:
             self._is_component = False
 
-    def update_runcontrol_settings_for_saving(self, rc_data):
-        """ Updates the run-control settings stored in the configuration so they can be saved.
-
-        Args:
-            rc_data (dict): The current run-control settings
-        """
-        self._config.update_runcontrol_settings_for_saving(rc_data)
-
     def _cache_config(self):
         self._cached_config = copy.deepcopy(self._config)
         self._cached_components = copy.deepcopy(self._components)

@@ -2,17 +2,39 @@
 Objects to help with calculating the beam path when interacting with a component. This is used for instance for the
 set points or readbacks etc.
 """
+from collections import namedtuple
 from math import degrees, atan2
 
 from ReflectometryServer.geometry import PositionAndAngle
 import logging
 
+from server_common.observable import observable
+
 logger = logging.getLogger(__name__)
 
+# Event that is triggered when the path of the beam has changed.
+BeamPathUpdate = namedtuple("BeamPathUpdate", [
+    "source"])  # The source of the beam path change. (the component itself)
 
+# Event that is triggered when the path of the beam has changed as a result of being initialised from file or motor rbv.
+BeamPathUpdateOnInit = namedtuple("BeamPathUpdateOnInit", [
+    "source"])  # The source of the beam path change. (the component itself)
+
+# Event that is triggered when the physical position of this component changes.
+PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", [
+    "source"])  # The source of the beam path change. (the component itself)
+
+# Event that is triggered when the changing state of the component is updated (i.e. it starts or stops moving)
+ComponentChangingUpdate = namedtuple("ComponentChangingUpdate", [])
+
+# Event that is triggered when the position or angle of the beam path calc gets an initial value.
+InitUpdate = namedtuple("InitUpdate", [])
+
+
+@observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, ComponentChangingUpdate, InitUpdate)
 class TrackingBeamPathCalc(object):
     """
-    Calculator for the beam path when it interacts with a component that can track the beam.
+    Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
     """
 
     def __init__(self, movement_strategy):
@@ -23,14 +45,10 @@ class TrackingBeamPathCalc(object):
                 interception between the movement of the component and the beam.
         """
         self._incoming_beam = PositionAndAngle(0, 0, 0)
-        self._after_beam_path_update_listeners = set()
-        self._after_beam_path_update_on_init_listeners = set()
-        self._after_physical_move_listeners = set()
-        self._after_is_changing_change_listeners = set()
-        self._init_listeners = set()
         self._is_in_beam = True
         self._is_displacing = False
-        self._is_rotating = False
+        self._displacement_alarm = (None, None)
+        self._angle_alarm = (None, None)
         self._movement_strategy = movement_strategy
 
         self.autosaved_offset = None
@@ -47,11 +65,11 @@ class TrackingBeamPathCalc(object):
         """
         Sets the displacement read from the motor axis on startup.
 
-        Params:
+        Args:
             value(float): The motor position
         """
         self._movement_strategy.set_displacement(value)
-        self._trigger_init_listeners()  # Tell Parameter layer and Theta
+        self.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
 
     def add_init_listener(self, listener):
         """
@@ -61,13 +79,6 @@ class TrackingBeamPathCalc(object):
         """
         self._init_listeners.add(listener)
 
-    def _trigger_init_listeners(self):
-        """
-        Runs initialisation listeners because an initial value has been read.
-        """
-        for listener in self._init_listeners:
-            listener()
-
     def add_after_is_changing_change_listener(self, listener):
         """
         Add a listener which is triggered if the changing (rotating, displacing etc) state is changed.
@@ -76,46 +87,6 @@ class TrackingBeamPathCalc(object):
             listener: listener with a single argument which is the calling calculation.
         """
         self._after_is_changing_change_listeners.add(listener)
-
-    def _trigger_after_is_changing_change(self):
-        """
-        Runs all the current listeners on the changing state because something has changed.
-        """
-        for listener in self._after_is_changing_change_listeners:
-            listener()
-
-    def add_after_beam_path_update_listener(self, listener):
-        """
-        Add a listener which is triggered if the beam path is changed. For example if displacement is set or incoming
-        beam is changed.
-        Args:
-            listener: listener with a single argument which is the calling calculation.
-        """
-        self._after_beam_path_update_listeners.add(listener)
-
-    def _trigger_after_beam_path_update(self):
-        """
-        Runs all the current listeners on the beam path because something about it has changed.
-        """
-        for listener in self._after_beam_path_update_listeners:
-            listener(self)
-
-    def add_after_beam_path_update_on_init_listener(self, listener):
-        """
-        Add a listener which is triggered if the beam path is changed after a component reads an initial value on
-        startup. For example if incoming beam is changed.
-        Args:
-            listener: listener with a single argument which is the calling calculation.
-        """
-        self._after_beam_path_update_on_init_listeners.add(listener)
-
-    def _trigger_after_beam_path_update_on_init(self):
-        """
-        Runs all the current listeners because something about the beam path has changed after a component reads an
-        initial value on startup.
-        """
-        for listener in self._after_beam_path_update_on_init_listeners:
-            listener(self)
 
     def set_incoming_beam(self, incoming_beam, force=False, on_init=False):
         """
@@ -132,10 +103,10 @@ class TrackingBeamPathCalc(object):
         if on_init:
             if self.autosaved_offset is not None:
                 self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, self.autosaved_offset)
-            self._trigger_init_listeners()
-            self._trigger_after_beam_path_update_on_init()
+            self.trigger_listeners(InitUpdate())
+            self.trigger_listeners(BeamPathUpdateOnInit(self))
         else:
-            self._trigger_after_beam_path_update()
+            self.trigger_listeners(BeamPathUpdate(self))
 
     def _on_set_incoming_beam(self, incoming_beam):
         """
@@ -170,7 +141,7 @@ class TrackingBeamPathCalc(object):
             displacement: the value to set away from the beam, e.g. height
         """
         self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, displacement)
-        self._trigger_after_beam_path_update()
+        self.trigger_listeners(BeamPathUpdate(self))
 
     def get_position_relative_to_beam(self):
         """
@@ -195,18 +166,26 @@ class TrackingBeamPathCalc(object):
             beam = self.substitute_incoming_beam_for_displacement
         return beam
 
-    def set_displacement(self, displacement, alarm_severity, alarm_status):
+    def displacement_update(self, update):
+        """
+        Update value and alarms of the displacement axis.
+
+        Args:
+            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
+        """
+        self.set_displacement_alarm(update.alarm_severity, update.alarm_status)
+        self.set_displacement(update.value)
+
+    def set_displacement(self, displacement):
         """
         Set the displacement of the component from the zero position, E.g. The distance along the movement
             axis of the component from the set zero position.
         Args:
             displacement: the displacement to set
-            alarm_severity (ReflectometryServer.pv_wrapper.AlarmSeverity): severity of any alarm
-            alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
         """
         self._movement_strategy.set_displacement(displacement)
-        self._trigger_after_beam_path_update()
-        self._trigger_after_physical_move_listener()
+        self.trigger_listeners(BeamPathUpdate(self))
+        self.trigger_listeners(PhysicalMoveUpdate(self))
 
     def get_displacement(self):
         """
@@ -244,7 +223,7 @@ class TrackingBeamPathCalc(object):
         """
         Calculates the position of the intercept between the incoming beam and the movement axis of this component.
 
-        Params:
+        Args:
             on_init(Boolean): Whether this is being called on initialisation
 
         Returns (ReflectometryServer.geometry.Position): The position of the beam intercept in mantid coordinates.
@@ -271,8 +250,8 @@ class TrackingBeamPathCalc(object):
             is_in_beam: True if set the component to be in the beam; False otherwise
         """
         self._is_in_beam = is_in_beam
-        self._trigger_after_beam_path_update()
-        self._trigger_after_physical_move_listener()
+        self.trigger_listeners(BeamPathUpdate(self))
+        self.trigger_listeners(PhysicalMoveUpdate(self))
 
     @property
     def is_displacing(self):
@@ -290,65 +269,88 @@ class TrackingBeamPathCalc(object):
              value: the new displacing state
         """
         self._is_displacing = value
-        self._trigger_after_is_changing_change()
+        self.trigger_listeners(ComponentChangingUpdate())
+
+    @property
+    def displacement_alarm(self):
+        return self._displacement_alarm
+
+    def set_displacement_alarm(self, alarm_severity, alarm_status):
+        """
+        Update the alarm info for the displacement axis of this component.
+
+        Args:
+            alarm_severity (ReflectometryServer.pv_wrapper.AlarmSeverity): severity of any alarm
+            alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
+        """
+        self._displacement_alarm = (alarm_severity, alarm_status)
+
+
+class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
+    """
+    Calculator for the beam path when it interacts with a component that can be displaced and rotated relative to the
+    beam. The rotation angle is set implicitly and is read only.
+    """
+    def __init__(self, movement_strategy, is_reflecting):
+        """
+        Initialise.
+        Args:
+            movement_strategy (ReflectometryServer.movement_strategy.LinearMovementCalc): strategy for calculating the
+                interception between the movement of the component and the beam.
+                is_reflecting (bool): Whether the component reflects or just tracks the beam.
+        """
+        super(_BeamPathCalcWithAngle, self).__init__(movement_strategy)
+        self._angular_displacement = 0.0
+        self.autosaved_angle = None
+        self._is_rotating = False
+        self._is_reflecting = is_reflecting
+
+    def get_angular_displacement(self):
+        """
+        Returns: the angle of the component relative to the natural (straight through) beam measured clockwise from the
+            horizon in the incoming beam direction.
+        """
+        return self._angular_displacement
 
     @property
     def is_rotating(self):
         """
-        Returns: Is the angular component currently rotating
+        Returns: Is the component with angle currently rotating
         """
         return self._is_rotating
 
     @is_rotating.setter
     def is_rotating(self, value):
         """
-         Update the angular components rotating state and triggers the changing state listeners
+         Update the rotating state of the component with angle and notifies relevant listeners
 
          Args:
              value: the new rotating state
         """
         self._is_rotating = value
-        self._trigger_after_is_changing_change()
-
-    def add_after_physical_move_listener(self, listener):
-        """
-        Add a listener which is called when a move is generated from a location change not from a incoming beam path
-        change. For example when a height is increased by the motor. This is used by the Theta readback to determine if
-        a component has changed height.
-        Args:
-            listener: listener takes the source of the change
-        """
-        self._after_physical_move_listeners.add(listener)
-
-    def _trigger_after_physical_move_listener(self):
-        for listener in self._after_physical_move_listeners:
-            listener(self)
-
-
-class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
-    def __init__(self, movement_strategy):
-        super(_BeamPathCalcWithAngle, self).__init__(movement_strategy)
-        self._angle_to_natural_beam = 0.0
-        self.autosaved_angle = None
+        self.trigger_listeners(ComponentChangingUpdate())
 
     def init_angle_from_motor(self, angle):
         """
         Initialise the angle of this component from a motor axis value.
 
-        Params:
+        Args:
             value(float): The angle read from the motor
         """
-        self._angle_to_natural_beam = angle
-        self._trigger_init_listeners()
+        self._angular_displacement = angle
+        self.trigger_listeners(InitUpdate())
+        if self._is_reflecting:
+            self.trigger_listeners(BeamPathUpdateOnInit(self))
 
-    def _set_angle(self, angle):
+    def _set_angular_displacement(self, angle):
         """
-        Set the angle
+        Set the angular displacement relative to the straight-through beam.
         Args:
             angle: angle to set
         """
-        self._angle_to_natural_beam = angle
-        self._trigger_after_beam_path_update()
+        self._angular_displacement = angle
+        if self._is_reflecting:
+            self.trigger_listeners(BeamPathUpdate(self))
 
     def set_angle_relative_to_beam(self, angle):
         """
@@ -356,13 +358,13 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Args:
             angle: angle to set the component at
         """
-        self._set_angle(self.get_angle_for(angle))
+        self._set_angular_displacement(self.get_angle_for(angle))
 
     def get_angle_relative_to_beam(self):
         """
         Returns (float): the angle of the component relative to the incoming beam
         """
-        return self._angle_to_natural_beam - self._incoming_beam.angle
+        return self._angular_displacement - self._incoming_beam.angle
 
     def get_angle_for(self, angle_relative_to_the_beam):
         """
@@ -375,96 +377,62 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         return angle_relative_to_the_beam + self._incoming_beam.angle
 
 
-class BeamPathTilting(_BeamPathCalcWithAngle):
-    """
-    A beam path calculation which includes an angle it can tilt at. Beam path is unaffected by the angle.
-    """
-
-    def __init__(self, movement_strategy):
-        super(BeamPathTilting, self).__init__(movement_strategy)
-
-    @property
-    def angle(self):
-        """
-        Returns: the angle of the component relative to the natural (straight through) beam measured clockwise from the
-            horizon in the incoming beam direction.
-        """
-        return self._angle_to_natural_beam
-
-    @angle.setter
-    def angle(self, angle):
-        """
-        Updates the component angle and notifies the beam path update listener
-        Args:
-            angle: The modified angle
-        """
-        self._set_angle(angle)
-        self._trigger_after_physical_move_listener()
-
-
-class _BeamPathCalcReflecting(_BeamPathCalcWithAngle):
-    """
-    A beam path calculation which includes an angle of the component and that reflects the beam from that angle.
-    This is used for theta and reflecting component.
-    """
-
-    def __init__(self, movement_strategy):
-        super(_BeamPathCalcReflecting, self).__init__(movement_strategy)
-
-    def init_angle_from_motor(self, angle):
-        """
-        Initialise the angle of this component from a motor axis value.
-
-        Params:
-            value(float): The angle read from the motor
-        """
-        super(_BeamPathCalcReflecting, self).init_angle_from_motor(angle)
-        self._trigger_after_beam_path_update_on_init()
-
     def get_outgoing_beam(self):
         """
         Returns: the outgoing beam based on the last set incoming beam and any interaction with the component
         """
-        if not self._is_in_beam:
+        if not self._is_in_beam or not self._is_reflecting:
             return self._incoming_beam
 
         target_position = self.calculate_beam_interception()
-        angle_between_beam_and_component = (self._angle_to_natural_beam - self._incoming_beam.angle)
+        angle_between_beam_and_component = (self._angular_displacement - self._incoming_beam.angle)
         angle = angle_between_beam_and_component * 2 + self._incoming_beam.angle
         return PositionAndAngle(target_position.y, target_position.z, angle)
 
-
-class BeamPathCalcAngleReflecting(_BeamPathCalcReflecting):
-    """
-    A reflecting beam path calculation which includes an angle of the component that can be set,
-    e.g. a reflecting mirror.
-    """
-
-    def __init__(self, movement_strategy):
-        super(BeamPathCalcAngleReflecting, self).__init__(movement_strategy)
-        self._angle_to_natural_beam = 0.0
-
     @property
-    def angle(self):
-        """
-        Returns: the angle of the component relative to the natural (straight through) beam measured clockwise from the
-            horizon in the incoming beam direction.
-        """
-        return self._angle_to_natural_beam
+    def angle_alarm(self):
+        return self._angle_alarm
 
-    @angle.setter
-    def angle(self, angle):
+    def set_angle_alarm(self, alarm_severity, alarm_status):
+        """
+        Update the alarm info for the angle axis of this component.
+
+        Args:
+            alarm_severity (ReflectometryServer.pv_wrapper.AlarmSeverity): severity of any alarm
+            alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
+        """
+        self._angle_alarm = (alarm_severity, alarm_status)
+
+
+class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
+    """
+    Calculator for the beam path when it interacts with a component that can be displaced and rotated relative to the
+    beam, and where the angle can be both read and set explicitly.
+    """
+    def __init__(self, movement_strategy, is_reflecting):
+        super(SettableBeamPathCalcWithAngle, self).__init__(movement_strategy, is_reflecting)
+
+    def angle_update(self, update):
+        """
+        Update value and alarms of the angle axis.
+
+        Args:
+            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
+        """
+        self.set_angle_alarm(update.alarm_severity, update.alarm_status)
+        self.set_angular_displacement(update.value)
+
+    def set_angular_displacement(self, angle):
         """
         Updates the component angle and notifies the beam path update listener
-
         Args:
             angle: The modified angle
         """
-        self._set_angle(angle)
-        self._trigger_after_physical_move_listener()
+        self._set_angular_displacement(angle)
+        self.trigger_listeners(PhysicalMoveUpdate(self))
 
 
-class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
+class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
     """
     A reflecting beam path calculator which has a read only angle based on the angle to a list of beam path
     calculations. This is used for example for Theta where the angle is the angle to the next enabled component.
@@ -479,30 +447,38 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
                 readback beam path calc on which to base the angle and setpoint on which the offset is taken
             theta_setpoint_beam_path_calc (ReflectometryServer.beam_path_calc.BeamPathCalcThetaSP)
         """
-        super(BeamPathCalcThetaRBV, self).__init__(movement_strategy)
+        super(BeamPathCalcThetaRBV, self).__init__(movement_strategy, is_reflecting=True)
         self._angle_to = angle_to
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             # add to the physical change for the rbv so that we don't get an infinite loop
-            readback_beam_path_calc.add_after_physical_move_listener(self._update_angle)
+            readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self.angle_update)
             # add to beamline change of set point because no loop is created from the setpoint action
-            setpoint_beam_path_calc.add_after_beam_path_update_listener(self._update_angle)
-            readback_beam_path_calc.add_after_is_changing_change_listener(self._on_is_changing_change)
+            setpoint_beam_path_calc.add_listener(BeamPathUpdate, self.angle_update)
+            readback_beam_path_calc.add_listener(ComponentChangingUpdate, self._on_is_changing_change)
 
-    def _on_is_changing_change(self):
+    def _on_is_changing_change(self, update):
+        """
+        Updates the changing state of this component.
+
+        Args:
+            update (ComponentChangingUpdate): The update event
+        """
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
                 self.is_rotating = readback_beam_path_calc.is_displacing
-                self._trigger_after_is_changing_change()
+                self.trigger_listeners(ComponentChangingUpdate())
                 break
 
-    def _update_angle(self, source):
+    def angle_update(self, update):
         """
         A listener for the beam update from another beam calc.
         Args:
-            source: the beam calc that changed
+            update (PhysicalMoveUpdate): The update event
         """
-        self._set_angle(self._calc_angle_from_next_component(self._incoming_beam))
+        alarm_severity, alarm_status = update.source.displacement_alarm
+        self.set_angle_alarm(alarm_severity, alarm_status)
+        self._set_angular_displacement(self._calc_angle_from_next_component(self._incoming_beam))
 
     def _calc_angle_from_next_component(self, incoming_beam):
         """
@@ -546,18 +522,10 @@ class BeamPathCalcThetaRBV(_BeamPathCalcReflecting):
         Args:
             incoming_beam(PositionAndAngle): incoming beam
         """
-        self._angle_to_natural_beam = self._calc_angle_from_next_component(incoming_beam)
-
-    @property
-    def angle(self):
-        """
-        Returns: the angle of the component relative to the natural (straight through) beam measured clockwise from the
-            horizon in the incoming beam direction.
-        """
-        return self._angle_to_natural_beam
+        self._angular_displacement = self._calc_angle_from_next_component(incoming_beam)
 
 
-class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
+class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
     """
     A calculation for theta SP which takes an angle to parameter. This allows changes in theta to change the incoming
     beam on the component it is pointing at when in disable mode. It will only change the beam if the component is in
@@ -572,22 +540,26 @@ class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
             angle_to (list[ReflectometryServer.beam_path_calc.TrackingBeamPathCalc]):
                 beam path calc on which to base the angle
         """
-        super(BeamPathCalcThetaSP, self).__init__(movement_strategy)
+        super(BeamPathCalcThetaSP, self).__init__(movement_strategy, is_reflecting=True)
         self._angle_to = angle_to
         for comp in self._angle_to:
-            comp.add_init_listener(self._init_listener)
+            comp.add_listener(InitUpdate, self._init_listener)
+        self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
 
-    def _init_listener(self):
+    def _init_listener(self, update):
         """
         Initialises the theta angle. Listens on the component(s) this theta is angled to, and is triggered once that
         component has read an initial position.
+
+        Args:
+            update (InitUpdate): The update event
         """
         if self.autosaved_angle is None:
-            self._angle_to_natural_beam = self._calc_angle_from_next_component(self._incoming_beam)
+            self._angular_displacement = self._calc_angle_from_next_component(self._incoming_beam)
         else:
-            self._angle_to_natural_beam = self._incoming_beam.angle + self.autosaved_angle
-        self._trigger_init_listeners()
-        self._trigger_after_beam_path_update()
+            self._angular_displacement = self._incoming_beam.angle + self.autosaved_angle
+        self.trigger_listeners(InitUpdate())
+        self.trigger_listeners(BeamPathUpdate(self))
 
     def _calc_angle_from_next_component(self, incoming_beam):
         """
@@ -614,15 +586,11 @@ class BeamPathCalcThetaSP(BeamPathCalcAngleReflecting):
             angle = float("NaN")
         return angle
 
-    def _trigger_after_beam_path_update(self):
+    def _set_incoming_beam_at_next_angled_to_component(self):
         """
-        Before triggering movement, set the disabled components angle which we point at.
-        This is because it will not get the altered beam path.
+        Sets the incoming beam at the next disabled component in beam that this theta component is angled to.
         """
-
         for angle_to in self._angle_to:
             if not angle_to.incoming_beam_can_change and angle_to.is_in_beam:
                 angle_to.set_incoming_beam(self.get_outgoing_beam(), force=True)
                 break
-
-        super(BeamPathCalcThetaSP, self)._trigger_after_beam_path_update()
