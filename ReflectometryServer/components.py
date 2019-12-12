@@ -2,7 +2,7 @@
 Components on a beam
 """
 from collections import namedtuple
-from ReflectometryServer.observable import observable
+from server_common.observable import observable
 
 from enum import Enum
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \

@@ -4,7 +4,7 @@ from hamcrest import *
 
 import unittest
 
-from ReflectometryServer import observable
+from server_common.observable import observable
 
 ValueUpdate = namedtuple("ValueUpdate", ["value"])
 NotValueUpdate = namedtuple("NotValueUpdate", ["value"])
