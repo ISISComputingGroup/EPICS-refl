@@ -163,10 +163,20 @@ class TestMotorPVWrapper(unittest.TestCase):
         assert_that(expected_min_velocity, is_(close_to(actual_min_velocity, FLOAT_TOLERANCE)))
 
     def test_GIVEN_base_velocity_is_zero_and_scale_factor_is_default_WHEN_initialising_motor_pv_wrapper_THEN_min_velocity_set_to_default_fraction_of_vmax(self):
-        expected_min_velocity = self.vmax / 100.0
+        expected_min_velocity = self.vmax / DEFAULT_SCALE_FACTOR
 
         self.wrapper.initialise()
         actual_min_velocity = self.wrapper.min_velocity
+
+        assert_that(expected_min_velocity, is_(close_to(actual_min_velocity, FLOAT_TOLERANCE)))
+
+    def test_GIVEN_base_velocity_is_zero_and_scale_factor_is_zero_WHEN_initialising_motor_pv_wrapper_THEN_min_velocity_set_to_default(self):
+        expected_min_velocity = self.vmax / DEFAULT_SCALE_FACTOR
+        scale_factor = 0
+        self.wrapper_with_custom_scale_level = MotorPVWrapper(self.motor_name, ca=self.mock_ca, min_velocity_scale_factor=scale_factor)
+
+        self.wrapper_with_custom_scale_level.initialise()
+        actual_min_velocity = self.wrapper_with_custom_scale_level.min_velocity
 
         assert_that(expected_min_velocity, is_(close_to(actual_min_velocity, FLOAT_TOLERANCE)))
 
