@@ -198,7 +198,7 @@ class IocDriver(object):
             logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
             if move_duration > 1e-6 and self._synchronised:
                 self._axis.cache_velocity()
-                self._axis.velocity = self._get_distance() / move_duration
+                self._axis.velocity = max(self._axis.min_velocity, self._get_distance() / move_duration)
             self._axis.sp = self._engineering_correction.to_axis(self._get_component_sp())
         self._clear_changed()
 

@@ -19,6 +19,9 @@ from server_common.observable import observable
 logger = logging.getLogger(__name__)
 RETRY_INTERVAL = 5
 
+DEFAULT_SCALE_FACTOR = 100.0
+
+
 # An update of the setpoint value of this motor axis.
 SetpointUpdate = namedtuple("SetpointUpdate", [
     "value",            # The new setpoint value of the axis (float)
@@ -44,12 +47,14 @@ class PVWrapper(object):
     """
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
     """
-    def __init__(self, base_pv, ca=None):
+    def __init__(self, base_pv, ca=None, min_velocity_scale_factor=None):
         """
         Creates a wrapper around a PV.
 
         Args:
             base_pv(String): The name of the PV
+            ca: The Channel Access server to use
+            min_velocity_scale_factor: The factor by which to scale down vmax to use as minimum velocity.
         """
         if ca is None:
             self._ca = ChannelAccess
@@ -57,6 +62,15 @@ class PVWrapper(object):
             self._ca = ca
         self._name = base_pv
         self._prefixed_pv = "{}{}".format(MYPVPREFIX, base_pv)
+
+        if min_velocity_scale_factor is None:
+            self._min_velocity_scale_factor = DEFAULT_SCALE_FACTOR
+        if min_velocity_scale_factor <= 0:
+            logger.error("Minimum velocity scale level {} is invalid (Should be > 0). "
+                         "Setting default scaling factor of 100".format(min_velocity_scale_factor))
+            self._min_velocity_scale_factor = DEFAULT_SCALE_FACTOR
+        else:
+            self._min_velocity_scale_factor = min_velocity_scale_factor
 
         self._moving_state_cache = None
         self._moving_direction_cache = None
@@ -66,6 +80,7 @@ class PVWrapper(object):
         self._backlash_distance_cache = None
         self._backlash_velocity_cache = None
         self._max_velocity_cache = None
+        self._base_velocity_cache = None
         self._resolution = None
 
         self._set_pvs()
@@ -106,6 +121,7 @@ class PVWrapper(object):
         self._backlash_velocity_cache = self._read_pv(self._bvel_pv)
         self._moving_direction_cache = self._read_pv(self._dir_pv)
         self._max_velocity_cache = self._read_pv(self._vmax_pv)
+        self._base_velocity_cache = self._read_pv(self._vbas_pv)
         self._init_velocity_cache()
 
     def _add_monitors(self):
@@ -222,9 +238,19 @@ class PVWrapper(object):
     @property
     def max_velocity(self):
         """
-        Gets the maximum velocity for the axis
+        Returns (float): The maximum velocity for the axis
         """
         return self._max_velocity_cache
+
+    @property
+    def min_velocity(self):
+        """
+        Returns (float): the minimum velocity at which this axis is allowed to move to prevent stalling.
+        """
+        if self._base_velocity_cache:
+            return self._base_velocity_cache
+        else:
+            return self._max_velocity_cache / self._min_velocity_scale_factor
 
     @property
     def backlash_distance(self):
@@ -450,14 +476,16 @@ class MotorPVWrapper(PVWrapper):
     """
     Wrap a low level motor PV. Provides relevant listeners and synchronization utilities.
     """
-    def __init__(self, base_pv, ca=None):
+    def __init__(self, base_pv, ca=None, min_velocity_scale_factor=None):
         """
         Creates a wrapper around a low level motor PV.
 
         Params:
             base_pv (String): The name of the PV
+            ca: The Channel Access server to use
+            min_velocity_scale_factor: The factor by which to scale down vmax to use as minimum velocity.
         """
-        super(MotorPVWrapper, self).__init__(base_pv, ca)
+        super(MotorPVWrapper, self).__init__(base_pv, ca, min_velocity_scale_factor)
 
     def _set_pvs(self):
         """
@@ -467,6 +495,7 @@ class MotorPVWrapper(PVWrapper):
         self._rbv_pv = "{}.RBV".format(self._prefixed_pv)
         self._velo_pv = "{}.VELO".format(self._prefixed_pv)
         self._vmax_pv = "{}.VMAX".format(self._prefixed_pv)
+        self._vbas_pv = "{}.VBAS".format(self._prefixed_pv)
         self._dmov_pv = "{}.DMOV".format(self._prefixed_pv)
         self._bdst_pv = "{}.BDST".format(self._prefixed_pv)
         self._bvel_pv = "{}.BVEL".format(self._prefixed_pv)
@@ -499,7 +528,8 @@ class _JawsAxisPVWrapper(PVWrapper):
 
         Params:
             base_pv (String): The name of the PV
-            is_vertical (Boolean): Whether the jaws axis moves in the horizontal or vertical direction.
+            is_vertical (Boolean): False for horizontal jaws, true for vertical jaws
+            ca: The Channel Access server to use
         """
         self.is_vertical = is_vertical
 
@@ -536,8 +566,11 @@ class _JawsAxisPVWrapper(PVWrapper):
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
 
-        motor_velocities = self._pv_names_for_directions("MTR.VMAX")
-        self._max_velocity_cache = min([self._read_pv(pv) for pv in motor_velocities])
+        motor_max_velocities = self._pv_names_for_directions("MTR.VMAX")
+        self._max_velocity_cache = min([self._read_pv(pv) for pv in motor_max_velocities])
+
+        motor_base_velocities = self._pv_names_for_directions("MTR.VBAS")
+        self._base_velocity_cache = max([self._read_pv(pv) for pv in motor_base_velocities])
 
         self._backlash_distance_cache = 0  # No backlash used as source of clash conditions on jaws sets
 
@@ -656,6 +689,8 @@ class JawsGapPVWrapper(_JawsAxisPVWrapper):
         Creates a wrapper around a motor PV for accessing its fields.
         Args:
             base_pv (String): The name of the base PV
+            is_vertical (Boolean): False for horizontal jaws, true for vertical jaws
+            ca: The Channel Access server to use
         """
         super(JawsGapPVWrapper, self).__init__(base_pv, is_vertical, ca)
         self._name = "{}:{}GAP".format(self._name, self._direction_symbol)
@@ -681,6 +716,8 @@ class JawsCentrePVWrapper(_JawsAxisPVWrapper):
 
         Params:
             pv_name (String): The name of the PV
+            is_vertical (Boolean): False for horizontal jaws, true for vertical jaws
+            ca: The Channel Access server to use
         """
         super(JawsCentrePVWrapper, self).__init__(base_pv, is_vertical, ca)
         self._name = "{}:{}CENT".format(self._name, self._direction_symbol)
