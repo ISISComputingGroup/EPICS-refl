@@ -149,7 +149,7 @@ class Beamline(object):
     """
 
     def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=None,
-                 footprint_setup=None):
+                 footprint_setup=None, value_parameters=None):
         """
         The initializer.
         Args:
@@ -163,6 +163,7 @@ class Beamline(object):
                 Defaults to position 0,0 and angle 0 in mantid coordinates, i.e the natural beam as it enters the
                 blockhouse.
             footprint_setup (ReflectometryServer.BaseFootprintSetup.BaseFootprintSetup): the foot print setup
+            value_parameters (list[ReflectometryServer.value_parameter.FloatValueParameter]): value parameters to expose
         """
 
         self._components = components
@@ -206,6 +207,11 @@ class Beamline(object):
 
         self._status = STATUS.OKAY
         self._message = ""
+
+        if value_parameters is not None:
+            self.value_parameters = value_parameters
+        else:
+            self.value_parameters = []
 
     def _validate(self, beamline_parameters, modes):
         errors = []
