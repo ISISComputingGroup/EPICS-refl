@@ -1,20 +1,16 @@
 from __future__ import unicode_literals, absolute_import, print_function, division
 
 import re
-import time
 import unittest
-import shutil
 import os
 from datetime import datetime
 
 from hamcrest import *
-from mock import Mock, patch, MagicMock
+from mock import Mock, patch
 
-from server_common.autosave import AutosaveFile
 from server_common.loggers.isis_logger import IsisLogger, IsisPutLog
 
 TEMP_FOLDER = os.path.join("C:\\", "instrument", "var", "tmp", "autosave_tests")
-
 
 
 class TestISISLog(unittest.TestCase):
@@ -38,7 +34,7 @@ class TestISISLog(unittest.TestCase):
         assert_that(sent_xml, contains_string(message))
 
     @patch('socket.socket')
-    def test_GIVEN_logger_WHEN_message_sent_THEN_connection_on_logger_port_is_opebed_and_close(self, socket_mock):
+    def test_GIVEN_logger_WHEN_message_sent_THEN_connection_on_logger_port_is_opened_and_close(self, socket_mock):
         logger = IsisLogger()
         mock_socket = Mock()
         socket_mock.return_value = mock_socket
@@ -78,7 +74,7 @@ class TestISISLog(unittest.TestCase):
         assert_that(sent_xml, contains_string(expected_ioc_name))
 
     @patch('socket.socket')
-    def test_GIVEN_logger_with_ioc_name_WHEN_message_sent_with_ioc_name_THEN_message_contains_sendt_ioc_name(
+    def test_GIVEN_logger_with_ioc_name_WHEN_message_sent_with_ioc_name_THEN_message_contains_sent_ioc_name(
             self, socket_mock):
         expected_ioc_name = "my_ioc_name"
 
