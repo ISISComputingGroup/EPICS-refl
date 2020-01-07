@@ -9,6 +9,7 @@ from ReflectometryServer.geometry import PositionAndAngle
 import logging
 
 from server_common.observable import observable
+from ReflectometryServer.file_io import disable_mode_autosave
 
 logger = logging.getLogger(__name__)
 
@@ -285,6 +286,30 @@ class TrackingBeamPathCalc(object):
         """
         self._displacement_alarm = (alarm_severity, alarm_status)
 
+    def incoming_beam_auto_save(self, autosave_key):
+        """
+        Save the current incoming beam to autosave file if the incoming beam can not be changed
+        i.e. only in disable mode
+        Args:
+            autosave_key: key under which to save the value
+        """
+        if not self.incoming_beam_can_change:
+            disable_mode_autosave.write_parameter(autosave_key, self._incoming_beam)
+
+    def init_from_autosave(self, autosave_key):
+        """
+        Restore the autosaved incoming beam when autosave value is found and component is in non changing beamline mode
+        i.e. only in disabled mode
+        Args:
+            autosave_key: key under which to save the value
+        """
+        if not self.incoming_beam_can_change:
+            incoming_beam = disable_mode_autosave.read_parameter(autosave_key, None)
+            if incoming_beam is None:
+                incoming_beam = PositionAndAngle(0, 0, 0)
+                logger.error("Incoming beam was not initialised for component {}".format(autosave_key))
+            self.set_incoming_beam(incoming_beam, force=True, on_init=True)
+
 
 class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
     """
@@ -375,7 +400,6 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Returns (float): angle in mantid coordinates
         """
         return angle_relative_to_the_beam + self._incoming_beam.angle
-
 
     def get_outgoing_beam(self):
         """

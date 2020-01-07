@@ -6,6 +6,7 @@ import logging
 
 from enum import Enum
 
+from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ChannelAccess.constants import REFL_AUTOSAVE_PATH
 from server_common.autosave import AutosaveFile
 from server_common.utilities import print_and_log, SEVERITY
@@ -15,8 +16,17 @@ logger = logging.getLogger(__name__)
 PARAM_AUTOSAVE_FILE = "params"
 VELOCITY_AUTOSAVE_FILE = "velocity"
 MODE_AUTOSAVE_FILE = "mode"
+DISABLE_MODE_AUTOSAVE_FILE = "disable_mode_incoming_beams"
 
 MODE_KEY = "mode"
+
+# the mode autosave service
+mode_autosave = AutosaveFile(service_name="refl", file_name=MODE_AUTOSAVE_FILE, folder=REFL_AUTOSAVE_PATH)
+
+# the disable mode autosave service
+disable_mode_autosave = AutosaveFile(service_name="refl", file_name=DISABLE_MODE_AUTOSAVE_FILE,
+                                     conversion=PositionAndAngle,
+                                     folder=REFL_AUTOSAVE_PATH)
 
 
 class AutosaveType(Enum):
@@ -92,27 +102,3 @@ def write_autosave_value(param_name, value, autosave_type):
     autosave = AutosaveFile(
         service_name="refl", file_name=AutosaveType.filename(autosave_type), folder=REFL_AUTOSAVE_PATH)
     autosave.write_parameter(param_name, value)
-
-
-def read_mode():
-    """
-    Read the last active mode from file.
-
-    Returns:
-        The name of the mode as string.
-    """
-    autosave = AutosaveFile(
-        service_name="refl", file_name=AutosaveType.filename(AutosaveType.MODE), folder=REFL_AUTOSAVE_PATH)
-    return autosave.read_parameter(MODE_KEY, default=None)
-
-
-def save_mode(mode):
-    """
-    Save the current mode to file.
-
-    Params:
-        mode(str): The name of the mode to save.
-    """
-    autosave = AutosaveFile(
-        service_name="refl", file_name=AutosaveType.filename(AutosaveType.MODE), folder=REFL_AUTOSAVE_PATH)
-    autosave.write_parameter(MODE_KEY, value=mode)

@@ -1,3 +1,6 @@
+"""
+Autosave functionality
+"""
 from __future__ import unicode_literals, print_function, division, absolute_import
 
 import os
@@ -10,12 +13,41 @@ from server_common.utilities import print_and_log
 ICP_VAR_DIR = os.path.normpath(os.environ.get("ICPVARDIR", os.path.join("C:\\", "Instrument", "var")))
 
 
+class StringConversion(object):
+    """
+    Take a value and convert it to and from string when read
+    """
+    @staticmethod
+    def autosave_convert_for_write(value_to_write):
+        """
+        Convert the value to a string from writing to autosave
+        Args:
+            value_to_write: value to write
+
+        Returns: autosave version of the value
+
+        """
+        return str(value_to_write)
+
+    @staticmethod
+    def autosave_convert_for_read(auto_save_value_read):
+        """
+        Convert values read from autosave into given values
+        Args:
+            auto_save_value_read: value read as a string from autosave
+
+        Returns:
+            value
+        """
+        return auto_save_value_read
+
+
 class AutosaveFile(object):
     """
     An Autosave object useful for saving values that can be read and written at sensible points in time.
     """
 
-    def __init__(self, service_name, file_name, folder=None):
+    def __init__(self, service_name, file_name, folder=None, conversion=None):
         """
         Creates a new AutosaveFile object.
 
@@ -33,6 +65,11 @@ class AutosaveFile(object):
 
         self.autosave_separator = " "
 
+        if conversion is None:
+            self._conversion = StringConversion()
+        else:
+            self._conversion = conversion
+
     def write_parameter(self, parameter, value):
         """
         Writes a parameter to the autosave file.
@@ -45,7 +82,9 @@ class AutosaveFile(object):
             # Disallow embedding the separator inside the value as this will cause a read to fail later.
             raise ValueError("Parameter name '{}' contains autosave separator which is not allowed".format(parameter))
 
-        if "\n" in str(value) or "\n" in parameter:
+        value = self._conversion.autosave_convert_for_write(value)
+
+        if "\n" in value or "\n" in parameter:
             # Autosave parameters are saved one-per-line, newlines would interfere with this.
             raise ValueError("Value or parameter contains line separator which is now allowed")
 
@@ -63,7 +102,7 @@ class AutosaveFile(object):
             default: The value to return if the requested parameter does not have an autosaved value
         """
         with self._file_lock:
-            return self._file_to_dict().get(parameter, default)
+            return self._conversion.autosave_convert_for_read(self._file_to_dict().get(parameter, default))
 
     def _file_to_dict(self):
         """
@@ -96,7 +135,7 @@ class AutosaveFile(object):
             os.makedirs(self._folder)
 
         file_content = "\n".join("{}{}{}".format(param, self.autosave_separator, value)
-                                                for param, value in six.iteritems(parameters))
+                                 for param, value in six.iteritems(parameters))
         with self._file_lock, open(self._filepath, "w+") as f:
             return f.write(file_content)
 

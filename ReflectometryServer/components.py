@@ -8,6 +8,7 @@ from enum import Enum
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
 from ReflectometryServer.movement_strategy import LinearMovementCalc
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,10 @@ class Component(object):
         self._init_beam_path_calcs(setup)
         self._changed = {ChangeAxis.POSITION: False}
         self.can_define_current_angle_as = False
+
+    def __repr__(self):
+        return "{}({} beampath sp:{!r}, beampath rbv:{!r})), ".format(
+            self.__class__.__name__, self._name, self._beam_path_set_point, self._beam_path_rbv)
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = TrackingBeamPathCalc(LinearMovementCalc(setup))
@@ -102,15 +107,23 @@ class Component(object):
         """
         return self._beam_path_rbv
 
-    def set_incoming_beam_can_change(self, can_change):
+    def set_incoming_beam_can_change(self, can_change, on_init=False):
         """
         Set whether the incoming beam can be changed on a component. This is used in disable mode where the incoming
         beam can not be changed.
         Args:
             can_change: True if the incoming beam can changed; False if it is static
+            on_init: True if initialising the beam can change parameter; False otherwise
         """
         self._beam_path_set_point.incoming_beam_can_change = can_change
         self._beam_path_rbv.incoming_beam_can_change = can_change
+
+        if on_init:
+            self._beam_path_set_point.init_from_autosave("{}_sp".format(self._name))
+            self._beam_path_rbv.init_from_autosave("{}_rbv".format(self._name))
+        else:
+            self._beam_path_set_point.incoming_beam_auto_save("{}_sp".format(self._name))
+            self._beam_path_rbv.incoming_beam_auto_save("{}_rbv".format(self._name))
 
     def define_current_position_as(self, new_value):
         """

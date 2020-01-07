@@ -2,14 +2,13 @@ import unittest
 
 from math import tan, radians, isnan
 from hamcrest import *
-from mock import Mock
+from mock import Mock, patch
 from parameterized import parameterized
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
-from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
 
 
@@ -93,7 +92,7 @@ class TestTiltingJaws(unittest.TestCase):
 
 class TestActiveComponents(unittest.TestCase):
 
-    def test_GIVEN_angled_mirror_is_disabled_WHEN_get_beam_out_THEN_outgoing_beam_is_incoming_beam(self):
+    def test_GIVEN_angled_mirror_is_not_in_beam__WHEN_get_beam_out_THEN_outgoing_beam_is_incoming_beam(self):
         mirror_z_position = 10
         mirror_angle = 15
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
@@ -241,7 +240,7 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(isnan(result), is_(True), "Is not a number")
 
-    def test_GIVEN_next_component_is_disabled_WHEN_get_read_back_THEN_nan_returned(self):
+    def test_GIVEN_next_component_is_not_in_beam__WHEN_get_read_back_THEN_nan_returned(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
@@ -253,7 +252,7 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(isnan(result), is_(True), "Is not a number")
 
-    def test_GIVEN_next_component_is_enabled_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
+    def test_GIVEN_next_component_is_in_beam__WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
@@ -268,7 +267,7 @@ class TestThetaComponent(unittest.TestCase):
         assert_that(result, is_(0.0))
         assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component has defined theta rbv")
 
-    def test_GIVEN_next_component_is_enabled_and_at_45_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
+    def test_GIVEN_next_component_is_in_beam__and_at_45_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
@@ -281,7 +280,7 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(result, is_(45.0/2.0))
 
-    def test_GIVEN_next_component_is_enabled_and_at_90_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
+    def test_GIVEN_next_component_is_in_beam__and_at_90_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 5, 90))
@@ -294,7 +293,7 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(result, is_(90/2.0))
 
-    def test_GIVEN_next_component_is_disabled_and_next_component_but_one_is_enabled_WHEN_get_read_back_THEN_half_angle_to_component_is_readback_and_theta_calc_set_of_incoming_beam_is_set(self):
+    def test_GIVEN_next_component_is_not_in_beam__and_next_component_but_one_is_in_beam__WHEN_get_read_back_THEN_half_angle_to_component_is_readback_and_theta_calc_set_of_incoming_beam_is_set(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp1", setup=PositionAndAngle(0, 10, 90))
@@ -317,7 +316,7 @@ class TestThetaComponent(unittest.TestCase):
         assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(None), "This component does not define theta rbv")
         assert_that(theta_calc_set_of_incoming_beam_next_comp_but_one, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component has defined theta rbv")
 
-    def test_GIVEN_next_component_is_enabled_and_next_component_but_one_is_also_enabled_WHEN_get_read_back_THEN_half_angle_to_first_component_is_readback_and_theta_cal_set_only_on_first_component(self):
+    def test_GIVEN_next_component_is_in_beam__and_next_component_but_one_is_also_in_beam__WHEN_get_read_back_THEN_half_angle_to_first_component_is_readback_and_theta_cal_set_only_on_first_component(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp1", setup=PositionAndAngle(0, 10, 90))
@@ -341,7 +340,7 @@ class TestThetaComponent(unittest.TestCase):
         assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component does not define theta rbv")
         assert_that(theta_calc_set_of_incoming_beam_next_comp_but_one, is_(None), "This component has defined theta rbv")
 
-    def test_GIVEN_next_component_is_enabled_WHEN_set_next_component_displacement_THEN_change_in_beam_path_triggered(self):
+    def test_GIVEN_next_component_is_in_beam__WHEN_set_next_component_displacement_THEN_change_in_beam_path_triggered(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
@@ -356,7 +355,7 @@ class TestThetaComponent(unittest.TestCase):
 
         listener.assert_called_once_with(BeamPathUpdate(theta.beam_path_rbv))
 
-    def test_GIVEN_next_component_is_enabled_WHEN_set_next_component_incoming_beam_THEN_change_in_beam_path_is_not_triggered(self):
+    def test_GIVEN_next_component_is_in_beam__WHEN_set_next_component_incoming_beam_THEN_change_in_beam_path_is_not_triggered(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
@@ -371,7 +370,7 @@ class TestThetaComponent(unittest.TestCase):
 
         listener.assert_not_called()
 
-    def test_GIVEN_next_component_is_enabled_and_at_45_degrees_and_not_on_axis_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
+    def test_GIVEN_next_component_is_in_beam__and_at_45_degrees_and_not_on_axis_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=10, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
@@ -384,7 +383,7 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(result, is_(close_to(45.0/2.0, DEFAULT_TEST_TOLERANCE)))
 
-    def test_GIVEN_next_component_is_enabled_theta_is_set_to_0_and_component_is_at_45_degrees_WHEN_get_read_back_from_component_THEN_component_readback_is_relative_to_setpoint_beam_not_readback_beam_and_is_not_0_and_outgoing_beam_is_readback_outgoing_beam(self):
+    def test_GIVEN_next_component_is_in_beam__theta_is_set_to_0_and_component_is_at_45_degrees_WHEN_get_read_back_from_component_THEN_component_readback_is_relative_to_setpoint_beam_not_readback_beam_and_is_not_0_and_outgoing_beam_is_readback_outgoing_beam(self):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
@@ -531,6 +530,81 @@ class TestComponentAlarms(unittest.TestCase):
         actual_alarm_info = self.theta.beam_path_rbv.angle_alarm
 
         self.assertEqual(self.NO_ALARM, actual_alarm_info)
+
+
+class TestComponentDisablingAndAutosaveInit(unittest.TestCase):
+
+    @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
+    def test_GIVEN_component_WHEN_disabled_THEN_beamline_is_saved(self, mock_auto_save):
+        expected_incoming_beam = PositionAndAngle(1, 2, 3)
+        expected_name = "comp"
+        component = Component(expected_name, PositionAndAngle(0, 0, 0))
+        component.beam_path_set_point.set_incoming_beam(expected_incoming_beam)
+
+        component.set_incoming_beam_can_change(False)
+
+        mock_auto_save.write_parameter.assert_called_once_with(expected_name, expected_incoming_beam)
+
+    @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
+    def test_GIVEN_component_WHEN_enabled_THEN_beamline_is_not_saved(self, mock_auto_save):
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        component.beam_path_set_point.set_incoming_beam(PositionAndAngle(1, 2, 3))
+
+        component.set_incoming_beam_can_change(True)
+
+        mock_auto_save.write_parameter.assert_not_called()
+
+    def test_GIVEN_position_and_angle_WHEN_convert_for_autosave_and_back_THEN_is_same(self):
+        expected_position_and_angle = PositionAndAngle(1, 2, 3)
+
+        converted = PositionAndAngle.autosave_convert_for_write(expected_position_and_angle)
+        result = PositionAndAngle.autosave_convert_for_read(converted)
+
+        assert_that(result, is_(position_and_angle(expected_position_and_angle)))
+
+    def test_GIVEN_position_and_angle_WHEN_convert_from_none_THEN_none_returned(self):
+        expected_position_and_angle = None
+
+        result = PositionAndAngle.autosave_convert_for_read(None)
+
+        assert_that(result, is_(expected_position_and_angle))
+
+    def test_GIVEN_position_and_angle_WHEN_convert_from_nonsense_THEN_none_returned(self):
+        expected_position_and_angle = None
+
+        result = PositionAndAngle.autosave_convert_for_read("blah")
+
+        assert_that(result, is_(expected_position_and_angle))
+
+    @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
+    def test_GIVEN_component_WHEN_init_disabled_with_valid_beam_THEN_incoming_beam_is_restored(self, mock_auto_save):
+        expected_incoming_beam = PositionAndAngle(1, 2, 3)
+        mock_auto_save.read_parameter.return_value = expected_incoming_beam
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+
+        component.set_incoming_beam_can_change(False, on_init=True)
+
+        assert_that(component.beam_path_set_point.get_outgoing_beam(), position_and_angle(expected_incoming_beam))
+
+    @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
+    def test_GIVEN_component_WHEN_init_disabled_with_invalid_beam_THEN_incoming_beam_is_0_0_0(self, mock_auto_save):
+        expected_incoming_beam = PositionAndAngle(0, 0, 0)
+        mock_auto_save.read_parameter.return_value = None
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+
+        component.set_incoming_beam_can_change(False, on_init=True)
+
+        assert_that(component.beam_path_set_point.get_outgoing_beam(), position_and_angle(expected_incoming_beam))
+
+    @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
+    def test_GIVEN_component_WHEN_init_enabled_with_valid_beam_THEN_incoming_beam_is_not_restored(self, mock_auto_save):
+        expected_incoming_beam = PositionAndAngle(0, 0, 0)
+        mock_auto_save.read_parameter.return_value = PositionAndAngle(12, 24, 63)
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+
+        component.set_incoming_beam_can_change(True, on_init=True)
+
+        assert_that(component.beam_path_set_point.get_outgoing_beam(), position_and_angle(expected_incoming_beam))
 
 
 if __name__ == '__main__':

@@ -31,6 +31,22 @@ class TestAutosave(unittest.TestCase):
         self.autosave.write_parameter("other_parameter", value)
         self.assertEqual(self.autosave.read_parameter("parameter", None), None)
 
+    def test_GIVEN_parameter_saved_with_different_strategy_WHEN_get_parameter_from_autosave_THEN_saved_value_returned(self):
+
+        class Strategy:
+            @staticmethod
+            def autosave_convert_for_write(values):
+                return ",".join([str(value) for value in values])
+
+            @staticmethod
+            def autosave_convert_for_read(auto_save_value):
+                return [int(i) for i in auto_save_value.split(",")]
+
+        autosave = AutosaveFile(service_name="unittests", file_name="strat_test_file", folder=TEMP_FOLDER, conversion=Strategy())
+        value = [1, 2]
+        autosave.write_parameter("parameter_ab", value)
+        self.assertEqual(autosave.read_parameter("parameter_ab", None), value)
+
     def tearDown(self):
         try:
             shutil.rmtree(TEMP_FOLDER)
