@@ -30,7 +30,7 @@ class TestISISLog(unittest.TestCase):
         logger.write_to_log(message)
         logger.stop_thread_pool()
 
-        sent_xml = mock_socket.sendall.args
+        sent_xml = mock_socket.sendall.call_args[0][0]
         assert_that(sent_xml, contains_string(message))
 
     @patch('socket.socket')
@@ -56,21 +56,21 @@ class TestISISLog(unittest.TestCase):
         logger.write_to_log("message", src=expected_ioc_name)
         IsisLogger.executor.shutdown(wait=True)
 
-        sent_xml = mock_socket.sendall.args
+        sent_xml = mock_socket.sendall.call_args[0][0]
         assert_that(sent_xml, contains_string(expected_ioc_name))
 
     @patch('socket.socket')
     def test_GIVEN_logger_with_ioc_name_WHEN_message_sent_THEN_message_contains_ioc_name(self, socket_mock):
         expected_ioc_name = "my_ioc_name"
 
-        logger = IsisLogger(expected_ioc_name)
+        logger = IsisLogger(ioc_name=expected_ioc_name)
         mock_socket = Mock()
         socket_mock.return_value = mock_socket
 
         logger.write_to_log("message")
         IsisLogger.executor.shutdown(wait=True)
 
-        sent_xml = mock_socket.sendall.args
+        sent_xml = mock_socket.sendall.call_args[0][0]
         assert_that(sent_xml, contains_string(expected_ioc_name))
 
     @patch('socket.socket')
