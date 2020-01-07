@@ -7,6 +7,7 @@ from functools import partial
 from pcaspy import Driver, Alarm, Severity
 from pcaspy.driver import manager, Data
 
+from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, \
     BEAMLINE_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
     convert_from_epics_pv_value, IN_MODE_SUFFIX, MAX_ALARM_ID
@@ -15,6 +16,7 @@ from ReflectometryServer.footprint_manager import FootprintSort
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
 from ReflectometryServer.parameters import BeamlineParameterGroup, ParameterReadbackUpdate, \
     ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate, ParameterChangingUpdate, ParameterInitUpdate
+from server_common.loggers.isis_logger import IsisPutLog
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,6 @@ class ReflectometryDriver(Driver):
         The Constructor.
         Args:
             server: The PCASpy server.
-            beamline(ReflectometryServer.beamline.Beamline): The beamline configuration.
             pv_manager(ReflectometryServer.ChannelAccess.pv_manager.PVManager): The manager mapping PVs to objects in
                 the beamline.
         """
@@ -43,14 +44,14 @@ class ReflectometryDriver(Driver):
         self._bl_status_change(STATUS.INITIALISING, "Reflectometry Server is initialising. Check all motor IOCs are "
                                                     "running if this is taking longer than expected.")
 
+        self.put_log = IsisPutLog("REFL")
+
     def set_beamline(self, beamline):
         """
         Set the beamline model to which the reflectometry server should provide an interface.
 
         Args:
             beamline(ReflectometryServer.beamline.Beamline): The beamline configuration.
-            pv_manager(ReflectometryServer.ChannelAccess.pv_manager.PVManager): The manager mapping PVs to objects in
-                the beamline.
         """
 
         self._beamline = beamline
@@ -127,7 +128,7 @@ class ReflectometryDriver(Driver):
         :param reason: The PV that is being written to.
         :param value: The value being written to the PV
         """
-        status = True
+        value_accepted = True
         if self._pv_manager.is_param(reason):
             param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
             param = self._beamline.parameter(param_name)
@@ -141,6 +142,7 @@ class ReflectometryDriver(Driver):
                 param.define_current_value_as.new_value = convert_from_epics_pv_value(param.parameter_type, value)
             else:
                 logger.error("Error: PV {} is read only".format(reason))
+                value_accepted = False
         elif self._pv_manager.is_beamline_move(reason):
             self._beamline.move = 1
         elif self._pv_manager.is_beamline_mode(reason):
@@ -152,17 +154,19 @@ class ReflectometryDriver(Driver):
             except ValueError:
                 logger.error("Invalid value entered for mode. (Possible modes: {})".format(
                     ",".join(self._beamline.mode_names)))
-                status = False
+                value_accepted = False
         elif self._pv_manager.is_sample_length(reason):
             self._footprint_manager.set_sample_length(value)
         else:
             logger.error("Error: PV is read only")
-            status = False
+            value_accepted = False
 
-        if status:
+        if value_accepted:
+            pv_name = "{}{}".format(REFLECTOMETRY_PREFIX, reason)
+            self.put_log.write_pv_put(pv_name, value, self.getParam(reason))
             self._update_param_both_pv_and_pv_val(reason, value)
             self.update_monitors()
-        return status
+        return value_accepted
 
     def update_monitors(self):
         """
@@ -325,7 +329,8 @@ class ReflectometryDriver(Driver):
                 parameters_to_monitor.add(parameter)
         for parameter in parameters_to_monitor:
             parameter.add_listener(ParameterReadbackUpdate, partial(self._update_footprint, FootprintSort.RBV))
-            parameter.add_listener(ParameterSetpointReadbackUpdate, partial(self._update_footprint, FootprintSort.SP_RBV))
+            parameter.add_listener(ParameterSetpointReadbackUpdate,
+                                   partial(self._update_footprint, FootprintSort.SP_RBV))
 
     def _add_trigger_on_engineering_correction_change(self):
         """
