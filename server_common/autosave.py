@@ -152,14 +152,15 @@ class AutosaveFile(object):
             parameter: The unique name for the parameter which is being read
             default: The value to return if the requested parameter does not have an autosaved value
         """
-        value_as_read = "NOT READ FROM DICTIONARY"
+
+        with self._file_lock:
+            try:
+                value_as_read = self._file_to_dict()[parameter]
+            except KeyError:
+                return default
+
         try:
-            with self._file_lock:
-                try:
-                    value_as_read = self._file_to_dict()[parameter]
-                    return self._conversion.autosave_convert_for_read(value_as_read)
-                except KeyError:
-                    return default
+            return self._conversion.autosave_convert_for_read(value_as_read)
         except ValueError as ex:
             logger.error("Could not convert autosave value for parameter {}: value was '{}' error: {}.".format(
                 parameter, value_as_read, ex))

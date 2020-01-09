@@ -738,7 +738,7 @@ class SlitGapParameter(BeamlineParameter):
         """
         sp_init = param_float_autosave.read_parameter(self._name, None)
         if sp_init is not None:
-            self._set_initial_sp(float(sp_init))
+            self._set_initial_sp(sp_init)
 
     def _initialise_sp_from_motor(self, _):
         """

@@ -65,7 +65,7 @@ class PositionAndAngle(Position):
             y, z, angle = autosave_read_value[len(PositionAndAngle.__name__)+1:-1].split(",")
             return PositionAndAngle(float(y), float(z), float(angle))
         except (TypeError, ValueError):
-            return None
+            raise ValueError("Converting from string to {}".format(PositionAndAngle.__name__))
 
 
 def position_from_radial_coords(r, theta, angle=None):

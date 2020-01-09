@@ -565,19 +565,14 @@ class TestComponentDisablingAndAutosaveInit(unittest.TestCase):
 
         assert_that(result, is_(position_and_angle(expected_position_and_angle)))
 
-    def test_GIVEN_position_and_angle_WHEN_convert_from_none_THEN_none_returned(self):
-        expected_position_and_angle = None
+    def test_GIVEN_position_and_angle_WHEN_convert_from_none_THEN_value_error(self):
+        assert_that(calling(PositionAndAngle.autosave_convert_for_read).with_args(None),
+                    raises(ValueError))
 
-        result = PositionAndAngle.autosave_convert_for_read(None)
+    def test_GIVEN_position_and_angle_WHEN_convert_from_nonsense_THEN_raises_value_error(self):
 
-        assert_that(result, is_(expected_position_and_angle))
-
-    def test_GIVEN_position_and_angle_WHEN_convert_from_nonsense_THEN_none_returned(self):
-        expected_position_and_angle = None
-
-        result = PositionAndAngle.autosave_convert_for_read("blah")
-
-        assert_that(result, is_(expected_position_and_angle))
+        assert_that(calling(PositionAndAngle.autosave_convert_for_read).with_args("blah"),
+                    raises(ValueError))
 
     @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
     def test_GIVEN_component_WHEN_init_disabled_with_valid_beam_THEN_incoming_beam_is_restored(self, mock_auto_save):
