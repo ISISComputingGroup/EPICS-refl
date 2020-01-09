@@ -3,6 +3,7 @@ Autosave functionality
 """
 from __future__ import unicode_literals, print_function, division, absolute_import
 
+import logging
 import os
 import threading
 
@@ -10,12 +11,16 @@ import six
 
 from server_common.utilities import print_and_log
 
+logger = logging.getLogger(__name__)
+
 ICP_VAR_DIR = os.path.normpath(os.environ.get("ICPVARDIR", os.path.join("C:\\", "Instrument", "var")))
 
 
-class StringConversion(object):
+class Conversion(object):
     """
-    Take a value and convert it to and from string when read
+    Take a value convert it to a string for writing. Useful base class for conversions.
+    A conversion should define autosave_convert_for_write and autosave_convert_for_read
+    autosave_convert_for_read raises a value error if it can not convert the value
     """
     @staticmethod
     def autosave_convert_for_write(value_to_write):
@@ -29,6 +34,12 @@ class StringConversion(object):
         """
         return str(value_to_write)
 
+
+class StringConversion(Conversion):
+    """
+    Take a value and convert it to and from string
+    """
+
     @staticmethod
     def autosave_convert_for_read(auto_save_value_read):
         """
@@ -40,6 +51,46 @@ class StringConversion(object):
             value
         """
         return auto_save_value_read
+
+
+class FloatConversion(Conversion):
+    """
+    Take a value and convert it to and from a float
+    """
+
+    @staticmethod
+    def autosave_convert_for_read(auto_save_value_read):
+        """
+        Convert values read from autosave into given values
+        Args:
+            auto_save_value_read: value read as a string from autosave
+
+        Returns:
+            value
+        """
+        return float(auto_save_value_read)
+
+
+class BoolConversion(Conversion):
+    """
+    Take a value and convert it to and from a boolean
+    """
+
+    @staticmethod
+    def autosave_convert_for_read(auto_save_value_read):
+        """
+        Convert values read from autosave into given values
+        Args:
+            auto_save_value_read: value read as a string from autosave
+
+        Returns:
+            value
+        """
+        if auto_save_value_read == "True":
+            return True
+        elif auto_save_value_read == "False":
+            return False
+        raise ValueError("String is not True or False")
 
 
 class AutosaveFile(object):
@@ -101,8 +152,17 @@ class AutosaveFile(object):
             parameter: The unique name for the parameter which is being read
             default: The value to return if the requested parameter does not have an autosaved value
         """
-        with self._file_lock:
-            return self._conversion.autosave_convert_for_read(self._file_to_dict().get(parameter, default))
+        value_as_read = "NOT READ FROM DICTIONARY"
+        try:
+            with self._file_lock:
+                try:
+                    value_as_read = self._file_to_dict()[parameter]
+                    return self._conversion.autosave_convert_for_read(value_as_read)
+                except KeyError:
+                    return default
+        except ValueError as ex:
+            logger.error("Could not convert autosave value for parameter {}: value was '{}' error: {}.".format(
+                parameter, value_as_read, ex))
 
     def _file_to_dict(self):
         """

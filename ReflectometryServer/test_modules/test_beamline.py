@@ -196,14 +196,7 @@ class TestRealistic(unittest.TestCase):
 
     @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
     def test_GIVEN_beam_line_WHEN_set_disabled_THEN_incoming_beam_auto_saved(self, mock_auto_save):
-        """
-
-        Args:
-            mock_auto_save(Mock):
-
-        Returns:
-
-        """
+        mock_auto_save.read_parameter.return_value = None
         spacing = 2.0
         bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
         bl.parameter("s1").sp = 0.1
@@ -214,8 +207,17 @@ class TestRealistic(unittest.TestCase):
 
         bl.active_mode = "DISABLED"
 
-        calls = [call(component.name, component.beam_path_set_point._incoming_beam) for component in bl]
-        mock_auto_save.write_parameter.assert_has_calls(calls, any_order=False)
+        calls_by_component = {call_arg[0][0]: call_arg[0][1]
+                              for call_arg in mock_auto_save.write_parameter.call_args_list}
+        for component in bl:
+            save_name = component.name + "_sp"
+            assert_that(calls_by_component[save_name],
+                        is_(position_and_angle(component.beam_path_set_point._incoming_beam)),
+                        "call autosaving {}".format(save_name))
+            save_name = component.name + "_rbv"
+            assert_that(calls_by_component[save_name],
+                        is_(position_and_angle(component.beam_path_rbv._incoming_beam)),
+                        "call autosaving {}".format(save_name))
 
 
 class TestBeamlineValidation(unittest.TestCase):
@@ -262,25 +264,18 @@ class TestBeamlineValidation(unittest.TestCase):
 class TestBeamlineModeInitialization(unittest.TestCase):
 
     def setUp(self):
-        ReflectometryServer.file_io.REFL_AUTOSAVE_PATH = \
-            os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config"))
         self.nr_mode = BeamlineMode("nr", [])
         self.pnr_mode = BeamlineMode("pnr", [])
 
-    def test_GIVEN_no_autosaved_mode_WHEN_instantiating_beamline_THEN_defaults_to_first_in_list(self):
-        try:
-            expected = "nr"
-            ReflectometryServer.file_io.MODE_AUTOSAVE_FILE = "NONSENSICAL_PATH"
-            beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
+    @patch('ReflectometryServer.beamline.mode_autosave')
+    def test_GIVEN_no_autosaved_mode_WHEN_instantiating_beamline_THEN_defaults_to_first_in_list(self, mode_autosave):
+        mode_autosave.read_parameter.return_value = None  # e.g. no value
+        expected = "nr"
+        beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
 
-            actual = beamline.active_mode
+        actual = beamline.active_mode
 
-            self.assertEqual(expected, actual)
-        finally:
-            try:
-                os.remove(os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "NONSENSICAL_PATH")))
-            except:
-                pass
+        self.assertEqual(expected, actual)
 
     @patch('ReflectometryServer.beamline.mode_autosave')
     def test_GIVEN_autosaved_mode_exists_WHEN_instantiating_beamline_THEN_active_mode_is_saved_mode(self, mode_autosave):
@@ -294,41 +289,39 @@ class TestBeamlineModeInitialization(unittest.TestCase):
 
         self.assertEqual(expected, actual)
 
-    def test_GIVEN_autosaved_mode_does_not_exist_in_config_WHEN_instantiating_beamline_THEN_mode_defaults_to_first_in_list(self):
+    @patch('ReflectometryServer.beamline.mode_autosave')
+    def test_GIVEN_autosaved_mode_does_not_exist_in_config_WHEN_instantiating_beamline_THEN_mode_defaults_to_first_in_list(self, mode_autosave):
         expected = "nr"
-        ReflectometryServer.file_io.MODE_AUTOSAVE_FILE = "mode_nonexistent"
+        mode_autosave.read_parameter.return_value = "mode_nonexistent"
         beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
 
         actual = beamline.active_mode
 
         self.assertEqual(expected, actual)
 
-    def test_GIVEN_autosaved_mode_exists_WHEN_instantiating_beamline_THEN_mode_inits_are_not_applied(self):
-        ReflectometryServer.file_io.MODE_AUTOSAVE_FILE = "mode_pnr"
+    @patch('ReflectometryServer.beamline.mode_autosave')
+    def test_GIVEN_autosaved_mode_exists_WHEN_instantiating_beamline_THEN_mode_inits_are_not_applied(self, mode_autosave):
+        mode_autosave.read_parameter.return_value = "pnr"
 
         with patch.object(Beamline, '_init_params_from_mode') as mock_mode_inits:
             beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
 
         mock_mode_inits.assert_not_called()
 
-    def test_GIVEN_default_mode_applied_WHEN_instantiating_beamline_THEN_mode_inits_are_not_applied(self):
-        try:
-            ReflectometryServer.file_io.MODE_AUTOSAVE_FILE = "NONSENSICAL_PATH"
-            with patch.object(Beamline, '_init_params_from_mode') as mock_mode_inits:
-                beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
+    @patch('ReflectometryServer.beamline.mode_autosave')
+    def test_GIVEN_default_mode_applied_WHEN_instantiating_beamline_THEN_mode_inits_are_not_applied(self, mode_autosave):
 
-            mock_mode_inits.assert_not_called()
-        finally:
-            try:
-                os.remove(os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "NONSENSICAL_PATH")))
-            except:
-                pass
+        mode_autosave.read_parameter.return_value = None
+        with patch.object(Beamline, '_init_params_from_mode') as mock_mode_inits:
+            beamline = Beamline([], [], [], [self.nr_mode, self.pnr_mode])
+
+        mock_mode_inits.assert_not_called()
 
     @patch('ReflectometryServer.beamline.mode_autosave')
     @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
-    def test_GIVEN_beam_line_with_disable_autosave_position_WHEN_init_THEN_incoming_beams_set_correctly_on_start(self, mock_auto_save, mode_auto_save):
+    def test_GIVEN_beam_line_with_disable_autosave_position_WHEN_init_THEN_incoming_beams_set_correctly_on_start(self, mock_diable_mode_auto_save, mock_mode_auto_save):
 
-        mode_auto_save.read_parameter.return_value = "DISABLED"
+        mock_mode_auto_save.read_parameter.return_value = "DISABLED"
 
         s1_comp_name = "s1_comp"
         s3_comp_name = "s3_comp"
@@ -342,8 +335,12 @@ class TestBeamlineModeInitialization(unittest.TestCase):
         }
 
         def autosave_value(key, default):
-            return autosave_values.get(key, default)
-        mock_auto_save.read_parameter.side_effect = autosave_value
+            if key.endswith("_sp"):
+                return autosave_values.get(key[:-len("_sp")], default)
+            else:
+                return None
+
+        mock_diable_mode_auto_save.read_parameter.side_effect = autosave_value
         spacing = 2.0
         bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
 
@@ -361,11 +358,11 @@ class TestBeamlineModeInitialization(unittest.TestCase):
 
 class TestRealisticWithAutosaveInit(unittest.TestCase):
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
+    @patch("ReflectometryServer.parameters.param_float_autosave")
     def test_GIVEN_beam_line_where_autosave_theta_at_0_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         expected_sm_angle = 22.5
         expected_theta = 0
-        file_io.return_value = expected_theta
+        file_io.read_parameter.return_value = expected_theta
 
         bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta)
 
@@ -379,11 +376,11 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(0, 1e-6)), "det position SP RBV")
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
+    @patch("ReflectometryServer.parameters.param_float_autosave")
     def test_GIVEN_beam_line_where_autosave_theta_at_non_zero_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         expected_sm_angle = 22.5
         expected_theta = 2
-        file_io.return_value = expected_theta
+        file_io.read_parameter.return_value = expected_theta
 
         bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta)
 
@@ -397,12 +394,12 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(0, 1e-6)), "det position SP RBV")
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
+    @patch("ReflectometryServer.parameters.param_float_autosave")
     def test_GIVEN_beam_line_where_autosave_det_offset_at_zero_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         expected_sm_angle = 22.5
         expected_theta = 0
         expected_det_offset = 0
-        file_io.return_value = expected_det_offset
+        file_io.read_parameter.return_value = expected_det_offset
 
         bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, autosave_theta_not_offset=False)
 
@@ -416,12 +413,12 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(0, 1e-6)), "det position SP RBV")
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
+    @patch("ReflectometryServer.parameters.param_float_autosave")
     def test_GIVEN_beam_line_where_autosave_det_offset_at_non_zero_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         expected_sm_angle = 22.5
         expected_theta = 0
         expected_det_offset = 1
-        file_io.return_value = expected_det_offset
+        file_io.read_parameter.return_value = expected_det_offset
 
         bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, expected_det_offset, autosave_theta_not_offset=False)
 
@@ -435,12 +432,12 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(expected_det_offset, 1e-6)), "det position SP RBV")
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
+    @patch("ReflectometryServer.parameters.param_float_autosave")
     def test_GIVEN_beam_line_with_nonzero_beam_start_with_all_values_at_0_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         beam_start_angle = -2.3
         expected_sm_angle = 0
         expected_theta = 0
-        file_io.return_value = expected_theta
+        file_io.read_parameter.return_value = expected_theta
 
         bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, beam_angle=beam_start_angle)
 
@@ -454,12 +451,12 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(0, 1e-6)), "det position SP RBV")
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
+    @patch("ReflectometryServer.parameters.param_float_autosave")
     def test_GIVEN_beam_line_with_nonzero_beam_start_where_autosave_theta_at_0_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         beam_start_angle = -2.3
         expected_sm_angle = 22.5
         expected_theta = 0
-        file_io.return_value = expected_theta
+        file_io.read_parameter.return_value = expected_theta
 
         bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, beam_angle=beam_start_angle)
 
@@ -473,12 +470,12 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(0, 1e-6)), "det position SP RBV")
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
+    @patch("ReflectometryServer.parameters.param_float_autosave")
     def test_GIVEN_beam_line_with_nonzero_beam_start_where_autosave_theta_at_non_zero_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         beam_start_angle = -2.3
         expected_sm_angle = 22.5
         expected_theta = 2
-        file_io.return_value = expected_theta
+        file_io.read_parameter.return_value = expected_theta
 
         bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, beam_angle=beam_start_angle)
 
@@ -492,13 +489,13 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(0, 1e-6)), "det position SP RBV")
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
+    @patch("ReflectometryServer.parameters.param_float_autosave")
     def test_GIVEN_beam_line_with_nonzero_beam_start_where_autosave_det_offset_at_zero_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         beam_start_angle = -2.3
         expected_sm_angle = 22.5
         expected_theta = 0
         expected_det_offset = 0
-        file_io.return_value = expected_det_offset
+        file_io.read_parameter.return_value = expected_det_offset
 
         bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, autosave_theta_not_offset=False, beam_angle=beam_start_angle)
 
@@ -512,13 +509,13 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(0, 1e-6)), "det position SP RBV")
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
+    @patch("ReflectometryServer.parameters.param_float_autosave")
     def test_GIVEN_beam_line_with_nonzero_beam_start_where_autosave_det_offset_at_non_zero_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
         beam_start_angle = -2.3
         expected_sm_angle = 22.5
         expected_theta = 0
         expected_det_offset = 1
-        file_io.return_value = expected_det_offset
+        file_io.read_parameter.return_value = expected_det_offset
 
         bl, drives = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, expected_det_offset, autosave_theta_not_offset=False, beam_angle=beam_start_angle)
 

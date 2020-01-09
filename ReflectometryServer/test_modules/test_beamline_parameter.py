@@ -776,8 +776,16 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
 class TestInitSetpoints(unittest.TestCase):
 
     def setUp(self):
-        file_io.PARAM_AUTOSAVE_FILE = "params"
-        file_io.REFL_AUTOSAVE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config"))
+        def auto_save_stub_float(key, default):
+            auto_save = {"param_float": 0.1}
+            return auto_save.get(key, default)
+
+        def auto_save_stub_bool(key, default):
+            auto_save = {"param_bool": True}
+            return auto_save.get(key, default)
+
+        file_io.param_float_autosave.read_parameter = auto_save_stub_float
+        file_io.param_bool_autosave.read_parameter = auto_save_stub_bool
         self.component = Component("component", setup=PositionAndAngle(0, 1, 90))
         self.angle_component = TiltingComponent("angle_component", setup=PositionAndAngle(0, 10, 90))
         self.jaws = create_mock_axis("s1vg", 0.2, 1)

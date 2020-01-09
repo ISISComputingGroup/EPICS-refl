@@ -2,7 +2,7 @@ import unittest
 
 from math import tan, radians, isnan
 from hamcrest import *
-from mock import Mock, patch
+from mock import Mock, patch, call
 from parameterized import parameterized
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
@@ -535,15 +535,18 @@ class TestComponentAlarms(unittest.TestCase):
 class TestComponentDisablingAndAutosaveInit(unittest.TestCase):
 
     @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
-    def test_GIVEN_component_WHEN_disabled_THEN_beamline_is_saved(self, mock_auto_save):
-        expected_incoming_beam = PositionAndAngle(1, 2, 3)
+    def test_GIVEN_component_WHEN_disabled_THEN_incoming_beam_for_rbv_and_sp_are_saved(self, mock_auto_save):
+        expected_incoming_beam_sp = PositionAndAngle(1, 2, 3)
+        expected_incoming_beam_rbv = PositionAndAngle(1, 2, 3)
         expected_name = "comp"
         component = Component(expected_name, PositionAndAngle(0, 0, 0))
-        component.beam_path_set_point.set_incoming_beam(expected_incoming_beam)
+        component.beam_path_set_point.set_incoming_beam(expected_incoming_beam_sp)
+        component.beam_path_rbv.set_incoming_beam(expected_incoming_beam_rbv)
 
         component.set_incoming_beam_can_change(False)
 
-        mock_auto_save.write_parameter.assert_called_once_with(expected_name, expected_incoming_beam)
+        mock_auto_save.write_parameter.assert_has_calls([call(expected_name + "_rbv", expected_incoming_beam_rbv),
+                                                        call(expected_name + "_sp", expected_incoming_beam_sp)], any_order=True)
 
     @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
     def test_GIVEN_component_WHEN_enabled_THEN_beamline_is_not_saved(self, mock_auto_save):
