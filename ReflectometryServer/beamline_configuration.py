@@ -5,7 +5,8 @@ import sys
 import traceback
 
 from ReflectometryServer.ChannelAccess.constants import REFL_CONFIG_PATH
-from ReflectometryServer.beamline import Beamline, BeamlineMode, STATUS
+from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.server_status_handler import STATUS, STATUS_MANAGER
 from server_common.utilities import print_and_log, SEVERITY
 
 
@@ -18,7 +19,7 @@ def _create_beamline_in_error(error_message):
     """
     error_mode = BeamlineMode("No modes", [])
     beamline = Beamline([], [], [], [error_mode])
-    beamline.set_status(STATUS.CONFIG_ERROR, error_message)
+    STATUS_MANAGER.update_status(STATUS.CONFIG_ERROR, error_message)
     return beamline
 
 
@@ -37,7 +38,7 @@ def create_beamline_from_configuration():
         from config import get_beamline
 
         beamline = get_beamline()
-        beamline.set_status_okay()
+        STATUS_MANAGER.set_status_okay()
     except ImportError as error:
 
         print_and_log(error.__class__.__name__ + ": " + error.message, SEVERITY.MAJOR, src="REFL")

@@ -8,7 +8,7 @@ from hamcrest import *
 
 from ReflectometryServer import *
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
-from ReflectometryServer.beamline import STATUS
+from ReflectometryServer.server_status_handler import STATUS
 from ReflectometryServer.components import ChangeAxis
 from server_common.channel_access import UnableToConnectToPVException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis

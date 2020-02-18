@@ -5,57 +5,19 @@ import logging
 from collections import OrderedDict, namedtuple
 from functools import partial
 
-from enum import Enum
-from pcaspy import Severity
-
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.file_io import read_mode, save_mode
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
 from ReflectometryServer.parameters import ParameterNotInitializedException
+from ReflectometryServer.server_status_handler import STATUS, STATUS_MANAGER, StatusUpdate
 
 from server_common.channel_access import UnableToConnectToPVException
 
 logger = logging.getLogger(__name__)
 
 # An update of the overall status of the beamline
-BeamlineStatus = namedtuple("Status", [
-    'display_string',   # A string representation of the beamline state
-    'alarm_severity'])  # The alarm severity associated to this state, represented as an int (see Channel Access doc)
-
-
-class STATUS(Enum):
-    """
-    Beamline States.
-    """
-    INITIALISING = BeamlineStatus("INITIALISING", Severity.MINOR_ALARM)
-    OKAY = BeamlineStatus("OKAY", Severity.NO_ALARM)
-    CONFIG_ERROR = BeamlineStatus("CONFIG_ERROR", Severity.MAJOR_ALARM)
-    GENERAL_ERROR = BeamlineStatus("ERROR", Severity.MAJOR_ALARM)
-
-    @staticmethod
-    def status_codes():
-        """
-        Returns:
-            (list[str]) status codes for the beamline
-        """
-        # noinspection PyTypeChecker
-        return [status.value for status in STATUS]
-
-    @property
-    def display_string(self):
-        """
-        Returns: display string for the enum
-        """
-        return self.value.display_string
-
-    @property
-    def alarm_severity(self):
-        """
-        Returns: Alarm severity of beamline status
-        """
-        return self.value.alarm_severity
 
 
 class BeamlineMode(object):
@@ -164,6 +126,7 @@ class Beamline(object):
                 blockhouse.
             footprint_setup (ReflectometryServer.BaseFootprintSetup.BaseFootprintSetup): the foot print setup
         """
+        STATUS_MANAGER.add_listener(StatusUpdate, self.on_update_status)
 
         self._components = components
         self._beam_path_calcs_set_point = []
@@ -365,9 +328,10 @@ class Beamline(object):
                 try:
                     beamline_parameter.move_to_sp_no_callback()
                 except ParameterNotInitializedException as e:
-                    self.set_status(STATUS.GENERAL_ERROR,
-                                    "Parameter {} has not been initialized. Check reflectometry configuration is "
-                                    "correct and underlying motor IOC is running.".format(e.message))
+                    STATUS_MANAGER.update_status(STATUS.GENERAL_ERROR,
+                                                 "Parameter {} has not been initialized. Check reflectometry "
+                                                 "configuration is correct and underlying motor IOC is running.".format(
+                                                     e.message))
                     return
         self._move_drivers()
 
@@ -413,13 +377,13 @@ class Beamline(object):
 
             try:
                 self._perform_move_for_all_drivers(self._get_max_move_duration())
-                self.set_status(STATUS.OKAY, "")
+                STATUS_MANAGER.set_status_okay()
             except ZeroDivisionError as e:
                 logger.error("Failed to perform move: {}".format(e))
-                self.set_status(STATUS.CONFIG_ERROR, str(e))
+                STATUS_MANAGER.update_status(STATUS.CONFIG_ERROR, e.message)
 
         except (ValueError, UnableToConnectToPVException) as e:
-            self.set_status(STATUS.GENERAL_ERROR, e.message)
+            STATUS_MANAGER.update_status(STATUS.GENERAL_ERROR, e.message)
 
     def _perform_move_for_all_drivers(self, move_duration):
         for driver in self._drivers:
@@ -437,24 +401,10 @@ class Beamline(object):
 
         return max_move_duration
 
-    def set_status(self, status, message):
-        """
-        Set the status and message of the beamline.
-
-        Args:
-            status: status code
-            message: message reflecting the status
-
-        """
-        self._status = status
-        self._message = message
+    def on_update_status(self, update):
+        self._status = update.server_status
+        self._message = update.server_message
         self._trigger_status_change()
-
-    def set_status_okay(self):
-        """
-        Convenience method to set a status of okay.
-        """
-        self.set_status(STATUS.OKAY, "")
 
     @property
     def status(self):

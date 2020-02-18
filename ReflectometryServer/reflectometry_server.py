@@ -2,12 +2,12 @@
 Reflectometry Server
 """
 
+import logging.config
 import sys
 import os
-from threading import Thread
 
 from pcaspy import SimpleServer
-import logging.config
+from threading import Thread
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

@@ -3,7 +3,7 @@ Reflectometry pv manager
 """
 from enum import Enum
 
-from ReflectometryServer.beamline import STATUS
+from ReflectometryServer.server_status_handler import STATUS
 from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY
 from pcaspy.alarm import SeverityStrings
 from ReflectometryServer.parameters import BeamlineParameterType

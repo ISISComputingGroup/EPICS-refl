@@ -11,7 +11,7 @@ from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, \
     BEAMLINE_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
     convert_from_epics_pv_value, IN_MODE_SUFFIX, MAX_ALARM_ID
-from ReflectometryServer.beamline import STATUS
+from ReflectometryServer.server_status_handler import STATUS
 from ReflectometryServer.footprint_manager import FootprintSort
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
 from ReflectometryServer.parameters import BeamlineParameterGroup, ParameterReadbackUpdate, \
@@ -129,43 +129,47 @@ class ReflectometryDriver(Driver):
         :param value: The value being written to the PV
         """
         value_accepted = True
-        if self._pv_manager.is_param(reason):
-            param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
-            param = self._beamline.parameter(param_name)
-            if param_sort == PvSort.ACTION:
-                param.move = 1
-            elif param_sort == PvSort.SP:
-                param.sp = convert_from_epics_pv_value(param.parameter_type, value)
-            elif param_sort == PvSort.SET_AND_NO_ACTION:
-                param.sp_no_move = convert_from_epics_pv_value(param.parameter_type, value)
-            elif param_sort == PvSort.DEFINE_POS_AS:
-                param.define_current_value_as.new_value = convert_from_epics_pv_value(param.parameter_type, value)
+        try:
+            if self._pv_manager.is_param(reason):
+                param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
+                param = self._beamline.parameter(param_name)
+                if param_sort == PvSort.ACTION:
+                    param.move = 1
+                elif param_sort == PvSort.SP:
+                    param.sp = convert_from_epics_pv_value(param.parameter_type, value)
+                elif param_sort == PvSort.SET_AND_NO_ACTION:
+                    param.sp_no_move = convert_from_epics_pv_value(param.parameter_type, value)
+                elif param_sort == PvSort.DEFINE_POS_AS:
+                    param.define_current_value_as.new_value = convert_from_epics_pv_value(param.parameter_type, value)
+                else:
+                    logger.error("Error: PV {} is read only".format(reason))
+                    value_accepted = False
+            elif self._pv_manager.is_beamline_move(reason):
+                self._beamline.move = 1
+            elif self._pv_manager.is_beamline_mode(reason):
+                try:
+                    beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
+                    new_mode_name = beamline_mode_enums[value]
+                    self._beamline.active_mode = new_mode_name
+                    self._bl_mode_change(new_mode_name, self._beamline.get_param_names_in_mode())
+                except ValueError:
+                    logger.error("Invalid value entered for mode. (Possible modes: {})".format(
+                        ",".join(self._beamline.mode_names)))
+                    value_accepted = False
+            elif self._pv_manager.is_sample_length(reason):
+                self._footprint_manager.set_sample_length(value)
             else:
-                logger.error("Error: PV {} is read only".format(reason))
+                logger.error("Error: PV is read only")
                 value_accepted = False
-        elif self._pv_manager.is_beamline_move(reason):
-            self._beamline.move = 1
-        elif self._pv_manager.is_beamline_mode(reason):
-            try:
-                beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
-                new_mode_name = beamline_mode_enums[value]
-                self._beamline.active_mode = new_mode_name
-                self._bl_mode_change(new_mode_name, self._beamline.get_param_names_in_mode())
-            except ValueError:
-                logger.error("Invalid value entered for mode. (Possible modes: {})".format(
-                    ",".join(self._beamline.mode_names)))
-                value_accepted = False
-        elif self._pv_manager.is_sample_length(reason):
-            self._footprint_manager.set_sample_length(value)
-        else:
-            logger.error("Error: PV is read only")
-            value_accepted = False
 
-        if value_accepted:
-            pv_name = "{}{}".format(REFLECTOMETRY_PREFIX, reason)
-            self.put_log.write_pv_put(pv_name, value, self.getParam(reason))
-            self._update_param_both_pv_and_pv_val(reason, value)
-            self.update_monitors()
+            if value_accepted:
+                pv_name = "{}{}".format(REFLECTOMETRY_PREFIX, reason)
+                self.put_log.write_pv_put(pv_name, value, self.getParam(reason))
+                self._update_param_both_pv_and_pv_val(reason, value)
+                self.update_monitors()
+        except Exception as e:
+            logger.error(e.message)
+            value_accepted = False
         return value_accepted
 
     def update_monitors(self):
@@ -296,7 +300,7 @@ class ReflectometryDriver(Driver):
         Update the overall status of the beamline.
 
         Args:
-            status (ReflectometryServer.beamline.STATUS): The new status.
+            status (ReflectometryServer.server_status_handler.STATUS): The new status.
             message (str): The new server status message.
         """
         beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
