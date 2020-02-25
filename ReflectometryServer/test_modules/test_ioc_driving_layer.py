@@ -8,7 +8,7 @@ from hamcrest import *
 
 from ReflectometryServer import *
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
-from ReflectometryServer.server_status_manager import STATUS
+from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
 from ReflectometryServer.components import ChangeAxis
 from server_common.channel_access import UnableToConnectToPVException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
@@ -469,7 +469,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         self.slit_3_driver.perform_move = MagicMock(side_effect=UnableToConnectToPVException("A_PV", "ERROR"))
 
         self.beamline.move = 1
-        assert_that(self.beamline.status, is_(STATUS.GENERAL_ERROR))
+        assert_that(STATUS_MANAGER.status, is_(STATUS.GENERAL_ERROR))
 
 
 class BeamlineBacklashMoveDurationTest(unittest.TestCase):
