@@ -11,7 +11,7 @@ from ReflectometryServer.file_io import read_mode, save_mode
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
 from ReflectometryServer.parameters import ParameterNotInitializedException
-from ReflectometryServer.server_status_handler import STATUS, STATUS_MANAGER, StatusUpdate
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, STATUS
 
 from server_common.channel_access import UnableToConnectToPVException
 
@@ -126,15 +126,12 @@ class Beamline(object):
                 blockhouse.
             footprint_setup (ReflectometryServer.BaseFootprintSetup.BaseFootprintSetup): the foot print setup
         """
-        STATUS_MANAGER.add_listener(StatusUpdate, self.on_update_status)
-
         self._components = components
         self._beam_path_calcs_set_point = []
         self._beam_path_calcs_rbv = []
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
         self._active_mode_change_listeners = set()
-        self._status_change_listeners = set()
         footprint_setup = footprint_setup if footprint_setup is not None else BaseFootprintSetup()
         self.footprint_manager = FootprintManager(footprint_setup)
         for beamline_parameter in beamline_parameters:
@@ -167,7 +164,6 @@ class Beamline(object):
         self._active_mode = None
         self._initialise_mode(modes)
 
-        self._status = STATUS.OKAY
         self._message = ""
 
     def _validate(self, beamline_parameters, modes):
@@ -401,26 +397,6 @@ class Beamline(object):
 
         return max_move_duration
 
-    def on_update_status(self, update):
-        self._status = update.server_status
-        self._message = update.server_message
-        self._trigger_status_change()
-
-    @property
-    def status(self):
-        """
-        Returns:
-            (STATUS): status code
-        """
-        return self._status
-
-    @property
-    def message(self):
-        """
-        Returns: the message which has been set
-        """
-        return self._message
-
     def _initialise_mode(self, modes):
         """
         Tries to read and apply the last active mode from autosave file. Defaults to first mode in list if unsuccessful.
@@ -452,23 +428,6 @@ class Beamline(object):
             listener: the listener function to add with new mode as parameter
         """
         self._active_mode_change_listeners.add(listener)
-
-    def _trigger_status_change(self):
-        """
-        Triggers all listeners after a status change.
-
-        """
-        for listener in self._status_change_listeners:
-            listener(self.status, self.message)
-
-    def add_status_change_listener(self, listener):
-        """
-        Add a listener for status changes to this beamline.
-
-        Args:
-            listener: the listener function to add with parameters for new status and message
-        """
-        self._status_change_listeners.add(listener)
 
     @property
     def drivers(self):

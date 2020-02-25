@@ -3,7 +3,7 @@ Reflectometry pv manager
 """
 from enum import Enum
 
-from ReflectometryServer.server_status_handler import STATUS
+from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
 from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY
 from pcaspy.alarm import SeverityStrings
 from ReflectometryServer.parameters import BeamlineParameterType
@@ -400,7 +400,7 @@ class PVManager:
                     "type": BeamlineParameterType.name_for_param_list(parameter_type)}
 
         except Exception as err:
-            print("Error adding parameter PV: " + err.message)
+            STATUS_MANAGER.update_status(STATUS.CONFIG_ERROR, "Error adding parameter PV: {}".format(err.message))
 
     def _add_pv_with_fields(self, pv_name, param_name, pv_fields, description, sort, archive=False, interest=None,
                             alarm=False):

@@ -6,7 +6,7 @@ import traceback
 
 from ReflectometryServer.ChannelAccess.constants import REFL_CONFIG_PATH
 from ReflectometryServer.beamline import Beamline, BeamlineMode
-from ReflectometryServer.server_status_handler import STATUS, STATUS_MANAGER
+from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
 from server_common.utilities import print_and_log, SEVERITY
 
 
