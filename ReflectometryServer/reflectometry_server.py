@@ -9,6 +9,8 @@ from threading import Thread
 from pcaspy import SimpleServer
 import logging.config
 
+from server_common.helpers import register_ioc_start
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logging.config.dictConfig({
@@ -89,8 +91,7 @@ pv_manager.set_beamline(beamline)
 SERVER.createPV(REFLECTOMETRY_PREFIX, pv_manager.PVDB)
 driver.set_beamline(beamline)
 
-ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
-ioc_data_source.insert_ioc_start("REFL", os.getpid(), sys.argv[0], pv_manager.PVDB, REFLECTOMETRY_PREFIX)
+register_ioc_start("REFL", pv_manager.PVDB, REFLECTOMETRY_PREFIX)
 
 logger.info("Reflectometry IOC started.")
 
