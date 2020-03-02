@@ -13,6 +13,7 @@ import abc
 import six
 
 from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, PROBLEMS
 from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
@@ -366,6 +367,7 @@ class BeamlineParameter(object):
             self._move_component()
             self._set_changed_flag()
         else:
+            STATUS_MANAGER.update_active_problems(PROBLEMS.PARAMETER_NOT_INITIALISED, self.name)
             raise ParameterNotInitializedException(self.name)
 
     @abc.abstractmethod
@@ -397,7 +399,8 @@ class BeamlineParameter(object):
         """
         Logs an error that the autosave value this parameter was trying to read was of the wrong type.
         """
-        logger.error("Could not read autosave value for parameter {}: unexpected type.".format(self.name))
+        STATUS_MANAGER.update_error_log(
+            "Could not read autosave value for parameter {}: unexpected type.".format(self.name))
 
 
 class AngleParameter(BeamlineParameter):
@@ -728,11 +731,11 @@ class SlitGapParameter(BeamlineParameter):
         self._pv_wrapper.add_listener(ReadbackUpdate, self._on_update_slit_rbv)
         self._pv_wrapper.add_listener(IsChangingUpdate, self._on_is_changing_change)
         self._pv_wrapper.initialise()
-        if pv_wrapper.is_vertical:
-            self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
-            self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
-        else:
-            self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
+        # if pv_wrapper.is_vertical:
+        #     self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
+        #     self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
+        # else:
+        #     self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
 
         if self._autosave:
             self._initialise_sp_from_file()

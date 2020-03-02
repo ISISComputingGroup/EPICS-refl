@@ -1,3 +1,4 @@
+import logging
 from collections import namedtuple
 
 from enum import Enum
@@ -13,23 +14,25 @@ StatusUpdate = namedtuple("StatusUpdate", [
     'server_status',    # The server status
     'server_message'])  # The server status display message
 
+ProblemInfo = namedtuple("ProblemDescription", [
+    'description',      # The problem description
+    'source',           # The problem source
+    'severity'])        # The severity of the problem
+
 ActiveProblemsUpdate = namedtuple("ActiveProblemsUpdate", [
-    'problems_dict'])  # The dictionary of problems by source
+    'errors',           # Dictionary of errors (description:sources)
+    'warnings',         # Dictionary of warnings (description:sources)
+    'other'])           # Dictionary of other problems (description:sources)
 
 ErrorLogUpdate = namedtuple("ErrorLogUpdate", [
-    'errors'])  # The list of current error log messages
+    'errors'])          # The current error log as a list of strings
 
 
-class PROBLEM(Enum):
-    PLACEHOLDER = 0
-    PLACEHOLDER2 = 1
+logger = logging.getLogger(__name__)
 
-    @staticmethod
-    def description(problem_type):
-        if problem_type is PROBLEM.PLACEHOLDER:
-            return "Some placeholder description."
-        if problem_type is PROBLEM.PLACEHOLDER2:
-            return "Some other description."
+
+class PROBLEMS(Enum):
+    PARAMETER_NOT_INITIALISED = "Parameter not initialised"
 
 
 class STATUS(Enum):
@@ -38,9 +41,9 @@ class STATUS(Enum):
     """
     INITIALISING = StatusDescription("INITIALISING", Severity.MINOR_ALARM)
     OKAY = StatusDescription("OKAY", Severity.NO_ALARM)
-    CONFIG_WARNING = StatusDescription("CONFIG_WARNING", Severity.MINOR_ALARM)
-    CONFIG_ERROR = StatusDescription("CONFIG_ERROR", Severity.MAJOR_ALARM)
-    GENERAL_ERROR = StatusDescription("ERROR", Severity.MAJOR_ALARM)
+    WARNING = StatusDescription("WARNING", Severity.MINOR_ALARM)
+    ERROR = StatusDescription("ERROR", Severity.MAJOR_ALARM)
+    UNKNOWN = StatusDescription("UNKNOWN", Severity.INVALID_ALARM)
 
     @staticmethod
     def status_codes():
@@ -71,31 +74,67 @@ class _ServerStatusManager(object):
     """
     Handler for setting the status of the reflectometry server.
     """
-    def __init__(self):
-        self.status = None
-        self.message = None
+    INITIALISING_MESSAGE = "Reflectometry Server is initialising. Check configurations is correct and all motor IOCs " \
+                           "are running if this is taking longer than expected."
 
-        self.active_problems = {}
+    def __init__(self):
+        self._status = STATUS.OKAY
+        self._message = ""
+        self._initialising = True
+
+        self.active_errors = {}
+        self.active_warnings = {}
+        self.active_other_problems = {}
 
         self.error_log = []
 
-        self.update_status(STATUS.INITIALISING, "Reflectometry Server is initialising. Check all motor IOCs are "
-                                                "running if this is taking longer than expected.")
+    def set_initialised(self):
+        self._initialising = False
+        self._trigger_status_update()
 
     def clear_all(self):
-        self.set_status_okay()
+        self._clear_status()
         self._clear_problems()
         self._clear_log()
 
+    def _clear_status(self):
+        self._status = STATUS.OKAY
+        self._message = ""
+        self._trigger_status_update()
+
     def _clear_problems(self):
-        self.active_problems = {}
-        self.trigger_listeners(ActiveProblemsUpdate(self.active_problems))
+        self.active_errors = {}
+        self.active_warnings = {}
+        self.active_other_problems = {}
+        self._update_status()
+        self.trigger_listeners(self._get_active_problems_update())
 
     def _clear_log(self):
         self.error_log = []
         self.trigger_listeners(ErrorLogUpdate(self.error_log))
 
-    def update_status(self, status, message):
+    def _get_problems_by_severity(self, severity):
+        if severity is Severity.MAJOR_ALARM:
+            return self.active_errors
+        elif severity is Severity.MINOR_ALARM:
+            return self.active_warnings
+        else:
+            return self.active_other_problems
+
+    def _get_highest_error_level(self):
+        if self.active_errors:
+            return STATUS.ERROR
+        elif self.active_warnings:
+            return STATUS.WARNING
+        elif self.active_other_problems:
+            return STATUS.UNKNOWN
+        else:
+            return STATUS.OKAY
+
+    def _get_active_problems_update(self):
+        return ActiveProblemsUpdate(self.active_errors, self.active_warnings, self.active_other_problems)
+
+    def _update_status(self):
         """
         Update the server status and display message and notifies listeners.
 
@@ -103,26 +142,86 @@ class _ServerStatusManager(object):
             status (StatusDescription): The updated beamline status
             message (String): The updated beamline status display message
         """
-        self.status = status
-        self.message = message
-        self.trigger_listeners(StatusUpdate(self.status, self.message))
+        self._status = self._get_highest_error_level()
+        self._trigger_status_update()
 
-    def update_active_problems(self, problem_type, source):
-        if problem_type in self.active_problems.keys():
-            self.active_problems[problem_type].add(source)
+    def _trigger_status_update(self):
+        self.trigger_listeners(StatusUpdate(self._status, self._message))
+
+    def update_active_problems(self, problem):
+        """
+        Updates the active problems known to the status manager. If the problem is already known, it just appends the
+        new source.
+
+        Params:
+            problem(ProblemInfo): The problem to add
+        """
+        dict_to_append = self._get_problems_by_severity(problem.severity)
+        if problem.description in self.active_errors.keys():
+            dict_to_append[problem.description].add(problem.source)
         else:
-            self.active_problems[problem_type] = {source}
+            dict_to_append[problem.description] = {problem.source}
 
-        self.trigger_listeners(ActiveProblemsUpdate(self.active_problems))
+        self.message = self._construct_status_message()
+        self.status = self._get_highest_error_level()
 
-    def update_log(self, message):
+        self.trigger_listeners(self._get_active_problems_update())
+
+    def update_error_log(self, message):
+        """
+        Logs an error and appends it to the list of current errors for display to the user.
+
+        Params:
+            message(string): The log message to append
+        """
+        logger.error(message)
         self.error_log.append(message)
+        self.trigger_listeners(ErrorLogUpdate(self.error_log))
 
-    def set_status_okay(self):
-        """
-        Convenience method to clear the server status.
-        """
-        self.update_status(STATUS.OKAY, "")
+    @property
+    def status(self):
+        if self._initialising:
+            return STATUS.INITIALISING
+        else:
+            return self._status
+
+    @status.setter
+    def status(self, status_to_set):
+        self._status = status_to_set
+        self._trigger_status_update()
+
+    @property
+    def message(self):
+        if self._initialising:
+            return self.INITIALISING_MESSAGE
+        else:
+            return self._message
+
+    @message.setter
+    def message(self, message_to_set):
+        self._message = message_to_set
+        self._trigger_status_update()
+
+    def _construct_status_message(self):
+        message = ""
+        if self.active_errors:
+            message += "Errors:\n"
+            for description, sources in self.active_errors.items():
+                message += "\t{}".format(self._format_entry(description, sources))
+        if self.active_warnings:
+            message += "Warnings:\n"
+            for description, sources in self.active_warnings.items():
+                message += "\t{}".format(self._format_entry(description, sources))
+        if self.active_other_problems:
+            message += "Other issues:\n"
+            for description, sources in self.active_other_problems.items():
+                message += "\t{}".format(self._format_entry(description, sources))
+
+        print(message)
+        return message
+
+    def _format_entry(self, description, sources):
+        return "{} ({})\n".format(description, len(sources))
 
 
 STATUS_MANAGER = _ServerStatusManager()

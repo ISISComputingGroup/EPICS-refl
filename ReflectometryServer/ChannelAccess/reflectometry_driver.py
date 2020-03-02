@@ -11,7 +11,7 @@ from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, \
     BEAMLINE_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
     convert_from_epics_pv_value, IN_MODE_SUFFIX, MAX_ALARM_ID
-from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER, StatusUpdate
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, StatusUpdate, ProblemInfo
 from ReflectometryServer.footprint_manager import FootprintSort
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
 from ReflectometryServer.parameters import BeamlineParameterGroup, ParameterReadbackUpdate, \
@@ -104,7 +104,7 @@ class ReflectometryDriver(Driver):
                 return new_value
 
             elif self._pv_manager.is_beamline_message(reason):
-                return STATUS_MANAGER.server_message
+                return STATUS_MANAGER.message
             elif self._pv_manager.is_sample_length(reason):
                 return self._footprint_manager.get_sample_length()
             elif self._pv_manager.is_alarm_status(reason):
@@ -112,7 +112,7 @@ class ReflectometryDriver(Driver):
             elif self._pv_manager.is_alarm_severity(reason):
                 return self.getParamDB(self._pv_manager.strip_fields_from_pv(reason)).severity
 
-        return self.getParam(reason)
+        return self.getParam(reason)  # TODO race condition?
 
     def _beamline_mode_value(self, mode):
         beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
@@ -138,7 +138,7 @@ class ReflectometryDriver(Driver):
                 elif param_sort == PvSort.DEFINE_POS_AS:
                     param.define_current_value_as.new_value = convert_from_epics_pv_value(param.parameter_type, value)
                 else:
-                    logger.error("Error: PV {} is read only".format(reason))
+                    STATUS_MANAGER.update_error_log("Error: PV {} is read only".format(reason))
                     value_accepted = False
             elif self._pv_manager.is_beamline_move(reason):
                 self._beamline.move = 1
@@ -149,13 +149,13 @@ class ReflectometryDriver(Driver):
                     self._beamline.active_mode = new_mode_name
                     self._bl_mode_change(new_mode_name, self._beamline.get_param_names_in_mode())
                 except ValueError:
-                    logger.error("Invalid value entered for mode. (Possible modes: {})".format(
+                    STATUS_MANAGER.update_error_log("Invalid value entered for mode. (Possible modes: {})".format(
                         ",".join(self._beamline.mode_names)))
                     value_accepted = False
             elif self._pv_manager.is_sample_length(reason):
                 self._footprint_manager.set_sample_length(value)
             else:
-                logger.error("Error: PV is read only")
+                STATUS_MANAGER.update_error_log("Error: PV is read only")
                 value_accepted = False
 
             if value_accepted:
@@ -164,7 +164,8 @@ class ReflectometryDriver(Driver):
                 self._update_param_both_pv_and_pv_val(reason, value)
                 self.update_monitors()
         except Exception as e:
-            logger.error(e.message)
+            STATUS_MANAGER.update_error_log(e.message)
+            STATUS_MANAGER.update_active_problems(ProblemInfo("PV Value rejected by server.", reason, Severity.MINOR_ALARM))
             value_accepted = False
         return value_accepted
 
@@ -316,7 +317,7 @@ class ReflectometryDriver(Driver):
         Adds the monitor on the beamline status, if this changes a monitor update is posted.
         """
         STATUS_MANAGER.add_listener(StatusUpdate, self._server_status_change)
-        self._server_status_change(StatusUpdate(STATUS_MANAGER.status, STATUS_MANAGER.server_message))
+        self._server_status_change(StatusUpdate(STATUS_MANAGER.status, STATUS_MANAGER.message))
 
     def add_footprint_param_listeners(self):
         """

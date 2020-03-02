@@ -376,7 +376,6 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         """
         return angle_relative_to_the_beam + self._incoming_beam.angle
 
-
     def get_outgoing_beam(self):
         """
         Returns: the outgoing beam based on the last set incoming beam and any interaction with the component

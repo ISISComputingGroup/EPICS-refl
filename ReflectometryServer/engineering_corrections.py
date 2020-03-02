@@ -13,6 +13,7 @@ import six
 from scipy.interpolate import griddata
 
 from ReflectometryServer import beamline_configuration
+from ReflectometryServer.server_status_manager import STATUS_MANAGER
 from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
@@ -191,10 +192,12 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
         except Exception as ex:
             if setpoint is None or None in [param.sp_rbv for param in self._beamline_parameters]:
                 non_initialised_params = [param.name for param in self._beamline_parameters if param.sp_rbv is None]
-                logger.error("Engineering correction, '{}', raised exception '{}' is this because you have not coped "
-                             "with non-autosaved value, {}".format(self.description, ex, non_initialised_params))
+                STATUS_MANAGER.update_error_log(
+                    "Engineering correction, '{}', raised exception '{}' is this because you have not coped with "
+                    "non-autosaved value, {}".format(self.description, ex, non_initialised_params))
             else:
-                logger.error("Engineering correction, '{}', raised exception '{}' ".format(self.description, ex))
+                STATUS_MANAGER.update_error_log(
+                    "Engineering correction, '{}', raised exception '{}' ".format(self.description, ex))
         return 0
 
 
@@ -344,8 +347,8 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
         evaluation_point = [param.sp_rbv for param in self._beamline_parameters]
         if None in evaluation_point:
             non_initialised_params = [param.name for param in self._beamline_parameters if param.sp_rbv is None]
-            logger.error("Engineering correction, '{}', evaluated for non-autosaved value, {}".format(
-                self.description, non_initialised_params))
+            STATUS_MANAGER.update_error_log("Engineering correction, '{}', evaluated for non-autosaved value, {}"
+                                            .format(self.description, non_initialised_params))
             interpolated_value = [0.0]
         else:
             interpolated_value = griddata(self._grid_data_provider.points, self._grid_data_provider.corrections,

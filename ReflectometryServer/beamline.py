@@ -2,8 +2,10 @@
 Resources at a beamline level
 """
 import logging
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from functools import partial
+
+from pcaspy import Severity
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
 from ReflectometryServer.geometry import PositionAndAngle
@@ -11,7 +13,7 @@ from ReflectometryServer.file_io import read_mode, save_mode
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
 from ReflectometryServer.parameters import ParameterNotInitializedException
-from ReflectometryServer.server_status_manager import STATUS_MANAGER, STATUS
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 from server_common.channel_access import UnableToConnectToPVException
 
@@ -164,7 +166,7 @@ class Beamline(object):
         self._active_mode = None
         self._initialise_mode(modes)
 
-        self._message = ""
+        STATUS_MANAGER.set_initialised()
 
     def _validate(self, beamline_parameters, modes):
         errors = []
@@ -186,7 +188,7 @@ class Beamline(object):
             errors.extend(parameter.validate(self._drivers))
 
         if len(errors) > 0:
-            logger.error("There is a problem with beamline configuration:\n    {}".format("\n    ".join(errors)))
+            STATUS_MANAGER.update_error_log("There is a problem with beamline configuration:\n    {}".format("\n    ".join(errors)))
             raise ValueError("Problem with beamline configuration: {}".format(";".join(errors)))
 
     @property
@@ -212,6 +214,7 @@ class Beamline(object):
         try:
             return self._active_mode.name
         except AttributeError:
+            STATUS_MANAGER.update_error_log("Error: No active beamline mode found.")
             return None
 
     @active_mode.setter
@@ -246,6 +249,7 @@ class Beamline(object):
         Args:
             _: dummy can be anything
         """
+        STATUS_MANAGER.clear_all()
         self._move_for_all_beamline_parameters()
 
     def __getitem__(self, item):
@@ -323,12 +327,12 @@ class Beamline(object):
             if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
                 try:
                     beamline_parameter.move_to_sp_no_callback()
-                except ParameterNotInitializedException as e:
-                    STATUS_MANAGER.update_status(STATUS.GENERAL_ERROR,
-                                                 "Parameter {} has not been initialized. Check reflectometry "
-                                                 "configuration is correct and underlying motor IOC is running.".format(
-                                                     e.message))
+                except ParameterNotInitializedException:
+                    STATUS_MANAGER.update_active_problems(
+                        ProblemInfo("Parameter not initialized. Is the configuration correct?", beamline_parameter.name,
+                                    Severity.MAJOR_ALARM))
                     return
+
         self._move_drivers()
 
     def _move_for_single_beamline_parameters(self, source):
@@ -340,6 +344,7 @@ class Beamline(object):
         Args:
             source: source to start the update from; None start from the beginning.
         """
+        STATUS_MANAGER.clear_all()
         if self._active_mode.has_beamline_parameter(source):
             parameters = self._beamline_parameters.values()
             parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, source)
@@ -370,20 +375,26 @@ class Beamline(object):
         Issue move for all drivers at the speed of the slowest axis and set appropriate status for failure/success.
         """
         try:
-
-            try:
-                self._perform_move_for_all_drivers(self._get_max_move_duration())
-                STATUS_MANAGER.set_status_okay()
-            except ZeroDivisionError as e:
-                logger.error("Failed to perform move: {}".format(e))
-                STATUS_MANAGER.update_status(STATUS.CONFIG_ERROR, e.message)
-
-        except (ValueError, UnableToConnectToPVException) as e:
-            STATUS_MANAGER.update_status(STATUS.GENERAL_ERROR, e.message)
+            self._perform_move_for_all_drivers(self._get_max_move_duration())
+        except ZeroDivisionError as e:
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Failed to move driver", e.message, Severity.MAJOR_ALARM))
+        except UnableToConnectToPVException as e:
+            STATUS_MANAGER.update_error_log("Unable to connect to PV: {}".format(e.message))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Unable to connect to PV", e.message, Severity.MAJOR_ALARM))
 
     def _perform_move_for_all_drivers(self, move_duration):
         for driver in self._drivers:
-            driver.perform_move(move_duration)
+            try:
+                driver.perform_move(move_duration)
+            except ZeroDivisionError as e:
+                STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e))
+                raise ZeroDivisionError(driver.name)
+            except (ValueError, UnableToConnectToPVException) as e:
+                STATUS_MANAGER.update_error_log("Unable to connect to PV: {}".format(e.message))
+                raise e
+
 
     def _get_max_move_duration(self):
         """
@@ -408,7 +419,7 @@ class Beamline(object):
         try:
             self._active_mode = self._modes[mode_name]
         except KeyError:
-            logger.error("Mode {} not found in configuration. Setting default.".format(mode_name))
+            STATUS_MANAGER.update_error_log("Mode {} not found in configuration. Setting default.".format(mode_name))
             if len(modes) > 0:
                 self._active_mode = modes[0]
 
