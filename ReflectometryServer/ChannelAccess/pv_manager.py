@@ -274,7 +274,7 @@ class PVManager:
         self._add_footprint_calculator_pvs()
         self._add_all_parameter_pvs()
         self._add_all_driver_pvs()
-        self._add_value_parameter_pvs()
+        self._add_constants_pvs()
 
         for pv_name in self.PVDB.keys():
             print("creating pv: {}".format(pv_name))
@@ -454,8 +454,10 @@ class PVManager:
                 correction_alias = create_pv_name(driver.name, self.PVDB.keys(), "COR", limit=12, allow_colon=True)
                 prepended_alias = "{}:{}".format("COR", correction_alias)
 
-                self._add_pv_with_fields(prepended_alias, None, STANDARD_FLOAT_PV_FIELDS, "", None,
-                                         archive=True)
+                self._add_pv_with_fields(prepended_alias, None, STANDARD_FLOAT_PV_FIELDS, "Engineering Correction",
+                                         None, archive=True)
+                self._add_pv_with_fields("{}:DESC".format(prepended_alias), None, STANDARD_2048_CHAR_WF_FIELDS,
+                                         "Engineering Correction Full Description", None)
 
                 self.drivers_pv[driver] = prepended_alias
 
@@ -464,8 +466,10 @@ class PVManager:
         self._add_pv_with_fields(DRIVER_INFO, None, STANDARD_2048_CHAR_WF_FIELDS, "All corrections information",
                                  None, value=compress_and_hex(json.dumps(driver_info)))
 
-    def _add_value_parameter_pvs(self):
-        self.value_pv = {}
+    def _add_constants_pvs(self):
+        """
+        Add pvs for the beamline constants
+        """
         value_parameter_info = []
 
         for value_parameter in self._beamline.value_parameters:
