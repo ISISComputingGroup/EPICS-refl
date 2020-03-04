@@ -1,9 +1,9 @@
 """
-Number of alternative parameters
+Number of alternative values that the beamline can take
 """
 
 
-class ValueParameter:
+class BeamlineConstant:
     """
     A parameter of the beamline which is constant
     """

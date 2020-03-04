@@ -9,7 +9,7 @@ from ReflectometryServer import *
 
 import ReflectometryServer.file_io
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
-from ReflectometryServer.value_parameter import ValueParameter
+from ReflectometryServer.beamline_constant import BeamlineConstant
 
 from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position_and_angle
@@ -479,32 +479,32 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
     def setup_beamline(self, parameters):
 
-        beamline = Beamline([], [], [], [], value_parameters=parameters)
+        beamline = Beamline([], [], [], [], beamline_constants=parameters)
         return beamline
 
-    def test_GIVEN_there_are_no_value_parameters_set_WHEN_get_value_parameters_THEN_empty(self):
+    def test_GIVEN_there_are_no_beamline_constant_set_WHEN_get_beamline_constant_THEN_empty(self):
 
         beamline = self.setup_beamline([])
 
-        result = beamline.value_parameters
+        result = beamline.beamline_constant
 
         assert_that(result, is_([]))
 
-    def test_GIVEN_there_are_no_value_parameters_set_WHEN_get_value_parameters_THEN_empty(self):
+    def test_GIVEN_there_are_no_beamline_constant_set_WHEN_get_beamline_constant_THEN_empty(self):
 
         beamline = self.setup_beamline(None)
 
-        result = beamline.value_parameters
+        result = beamline.beamline_constant
 
         assert_that(result, is_([]))
 
-    def test_GIVEN_there_are_value_parameters_set_WHEN_get_value_parameters_THEN_parameters_returned(self):
+    def test_GIVEN_there_are_beamline_constant_set_WHEN_get_beamline_constant_THEN_parameters_returned(self):
         expected_parameters = [
-            ValueParameter("NAME", 2, "description")
+            BeamlineConstant("NAME", 2, "description")
         ]
         beamline = self.setup_beamline(expected_parameters)
 
-        result = beamline.value_parameters
+        result = beamline.beamline_constant
 
         assert_that(result, is_(expected_parameters))
 

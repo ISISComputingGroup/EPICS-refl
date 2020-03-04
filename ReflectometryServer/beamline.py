@@ -149,7 +149,7 @@ class Beamline(object):
     """
 
     def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=None,
-                 footprint_setup=None, value_parameters=None):
+                 footprint_setup=None, beamline_constants=None):
         """
         The initializer.
         Args:
@@ -163,7 +163,8 @@ class Beamline(object):
                 Defaults to position 0,0 and angle 0 in mantid coordinates, i.e the natural beam as it enters the
                 blockhouse.
             footprint_setup (ReflectometryServer.BaseFootprintSetup.BaseFootprintSetup): the foot print setup
-            value_parameters (list[ReflectometryServer.value_parameter.FloatValueParameter]): value parameters to expose
+            beamline_constants (list[ReflectometryServer.beamline_constant.BeamlineConstant]): beamline constants to
+                expose
         """
 
         self._components = components
@@ -208,10 +209,10 @@ class Beamline(object):
         self._status = STATUS.OKAY
         self._message = ""
 
-        if value_parameters is not None:
-            self.value_parameters = value_parameters
+        if beamline_constants is not None:
+            self.beamline_constant = beamline_constants
         else:
-            self.value_parameters = []
+            self.beamline_constant = []
 
     def _validate(self, beamline_parameters, modes):
         errors = []
@@ -425,7 +426,7 @@ class Beamline(object):
                 self.set_status(STATUS.CONFIG_ERROR, str(e))
 
         except (ValueError, UnableToConnectToPVException) as e:
-            self.set_status(STATUS.GENERAL_ERROR, e.message)
+            self.set_status(STATUS.GENERAL_ERROR, str(e))
 
     def _perform_move_for_all_drivers(self, move_duration):
         for driver in self._drivers:

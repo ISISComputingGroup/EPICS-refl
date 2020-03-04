@@ -3,6 +3,7 @@ Reflectometry pv manager
 """
 from enum import Enum
 
+import ReflectometryServer
 from ReflectometryServer.beamline import STATUS
 from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY
 from pcaspy.alarm import SeverityStrings
@@ -48,7 +49,7 @@ BEAMLINE_MODE = BEAMLINE_PREFIX + "MODE"
 BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
 PARAM_INFO = "PARAM_INFO"
 DRIVER_INFO = "DRIVER_INFO"
-VALUE_PARAMETER_INFO = "VALUE_INFO"
+BEAMLINE_CONSTANT_INFO = "CONST_INFO"
 ALIGN_INFO = "ALIGN_INFO"
 IN_MODE_SUFFIX = ":IN_MODE"
 SP_SUFFIX = ":SP"
@@ -238,7 +239,7 @@ class PVManager:
         """
         The constructor.
         """
-        self._beamline = None
+        self._beamline = None  # type: ReflectometryServer.beamline.Beamline
         self.PVDB = {}
         self._params_pv_lookup = OrderedDict()
         self._footprint_parameters = {}
@@ -470,26 +471,26 @@ class PVManager:
         """
         Add pvs for the beamline constants
         """
-        value_parameter_info = []
+        beamline_constant_info = []
 
-        for value_parameter in self._beamline.value_parameters:
-            value_alias = create_pv_name(value_parameter.name, self.PVDB.keys(), "VALUE", limit=20, allow_colon=True)
+        for beamline_constant in self._beamline.beamline_constant:
+            value_alias = create_pv_name(beamline_constant.name, self.PVDB.keys(), "VALUE", limit=20, allow_colon=True)
             prepended_alias = "{}:{}".format("VALUE", value_alias)
 
-            if isinstance(value_parameter.value, bool):
-                value = 1 if bool(value_parameter.value) else 0
+            if isinstance(beamline_constant.value, bool):
+                value = 1 if bool(beamline_constant.value) else 0
                 fields = PARAM_FIELDS_BINARY
             else:
-                value = float(value_parameter.value)
+                value = float(beamline_constant.value)
                 fields = STANDARD_FLOAT_PV_FIELDS
 
-            self._add_pv_with_fields(prepended_alias, None, fields, value_parameter.description, None,
+            self._add_pv_with_fields(prepended_alias, None, fields, beamline_constant.description, None,
                                      archive=True, interest="MEDIUM", value=value)
-            value_parameter_info.append(
-                {"name": value_parameter.name, "prepended_alias": prepended_alias, "type": "float_value"})
+            beamline_constant_info.append(
+                {"name": beamline_constant.name, "prepended_alias": prepended_alias, "type": "float_value"})
 
-        self._add_pv_with_fields(VALUE_PARAMETER_INFO, None, STANDARD_2048_CHAR_WF_FIELDS, "All value parameters", None,
-                                 value=compress_and_hex(json.dumps(value_parameter_info)))
+        self._add_pv_with_fields(BEAMLINE_CONSTANT_INFO, None, STANDARD_2048_CHAR_WF_FIELDS, "All value parameters", None,
+                                 value=compress_and_hex(json.dumps(beamline_constant_info)))
 
     def param_names_pv_names_and_sort(self):
         """
