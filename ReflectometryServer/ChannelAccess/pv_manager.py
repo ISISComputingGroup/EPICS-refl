@@ -60,6 +60,7 @@ RBV_AT_SP = ":RBV:AT_SP"
 CHANGING = ":CHANGING"
 CHANGED_SUFFIX = ":CHANGED"
 DEFINE_POSITION_AS = ":DEFINE_POSITION_AS"
+CONST_PREFIX = "CONST"
 
 VAL_FIELD = ".VAL"
 STAT_FIELD = ".STAT"
@@ -474,8 +475,9 @@ class PVManager:
         beamline_constant_info = []
 
         for beamline_constant in self._beamline.beamline_constant:
-            value_alias = create_pv_name(beamline_constant.name, self.PVDB.keys(), "VALUE", limit=20, allow_colon=True)
-            prepended_alias = "{}:{}".format("VALUE", value_alias)
+            const_alias = create_pv_name(beamline_constant.name, self.PVDB.keys(), CONST_PREFIX,
+                                         limit=20, allow_colon=True)
+            prepended_alias = "{}:{}".format(CONST_PREFIX, const_alias)
 
             if isinstance(beamline_constant.value, bool):
                 value = 1 if bool(beamline_constant.value) else 0
