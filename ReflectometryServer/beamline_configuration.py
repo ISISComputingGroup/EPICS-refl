@@ -7,7 +7,7 @@ import traceback
 from pcaspy import Severity
 
 from ReflectometryServer.ChannelAccess.constants import REFL_CONFIG_PATH
-from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.beamline import Beamline, BeamlineMode, BeamlineConfigurationInvalidException
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.utilities import print_and_log, SEVERITY
 
@@ -47,6 +47,11 @@ def create_beamline_from_configuration():
         print_and_log(error.__class__.__name__ + ": " + error.message, SEVERITY.MAJOR, src="REFL")
 
         beamline = _create_beamline_in_error("Configuration not found.")
+
+    except BeamlineConfigurationInvalidException as error:
+        print_and_log(error.__class__.__name__ + ": " + error.message, SEVERITY.MAJOR, src="REFL")
+        traceback.print_exc(file=sys.stdout)
+        beamline = _create_beamline_in_error("Beamline configuration is invalid.")
 
     except Exception as error:
         print_and_log(error.__class__.__name__ + ": " + error.message, SEVERITY.MAJOR, src="REFL")

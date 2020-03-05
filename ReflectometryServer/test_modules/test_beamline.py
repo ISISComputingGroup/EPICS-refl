@@ -8,6 +8,7 @@ from mock import Mock, patch, MagicMock
 from ReflectometryServer import *
 
 import ReflectometryServer.file_io
+from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
 
 from server_common.channel_access import AlarmSeverity, AlarmStatus
@@ -202,13 +203,13 @@ class TestBeamlineValidation(unittest.TestCase):
         one = EmptyBeamlineParameter("same")
         two = EmptyBeamlineParameter("same")
 
-        assert_that(calling(Beamline).with_args([], [one, two], [], []), raises(ValueError))
+        assert_that(calling(Beamline).with_args([], [one, two], [], []), raises(BeamlineConfigurationInvalidException))
 
     def test_GIVEN_two_modes_with_same_name_WHEN_construct_THEN_error(self):
         one = BeamlineMode("same", [])
         two = BeamlineMode("same", [])
 
-        assert_that(calling(Beamline).with_args([], [], [], [one, two]), raises(ValueError))
+        assert_that(calling(Beamline).with_args([], [], [], [one, two]), raises(BeamlineConfigurationInvalidException))
 
     def test_GIVEN_enable_disable_parameter_with_driver_that_has_no_offset_WHEN_construct_THEN_error(self):
         mode = BeamlineMode("mode", [])
@@ -221,7 +222,7 @@ class TestBeamlineValidation(unittest.TestCase):
             [component],
             [beamline_parameter],
             [driver],
-            [mode]), raises(ValueError))
+            [mode]), raises(BeamlineConfigurationInvalidException))
 
     def test_GIVEN_enable_disable_parameter_with_driver_that_has_only_angle_driver_WHEN_construct_THEN_error(self):
         mode = BeamlineMode("mode", [])
@@ -234,7 +235,7 @@ class TestBeamlineValidation(unittest.TestCase):
             [component],
             [beamline_parameter],
             [driver],
-            [mode]), raises(ValueError))
+            [mode]), raises(BeamlineConfigurationInvalidException))
 
 
 class TestBeamlineModeInitialization(unittest.TestCase):

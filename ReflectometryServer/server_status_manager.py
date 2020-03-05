@@ -14,7 +14,7 @@ StatusUpdate = namedtuple("StatusUpdate", [
     'server_status',    # The server status
     'server_message'])  # The server status display message
 
-ProblemInfo = namedtuple("ProblemDescription", [
+ProblemInfo = namedtuple("ProblemInfo", [
     'description',      # The problem description
     'source',           # The problem source
     'severity'])        # The severity of the problem
@@ -29,10 +29,6 @@ ErrorLogUpdate = namedtuple("ErrorLogUpdate", [
 
 
 logger = logging.getLogger(__name__)
-
-
-class PROBLEMS(Enum):
-    PARAMETER_NOT_INITIALISED = "Parameter not initialised"
 
 
 class STATUS(Enum):
@@ -89,10 +85,16 @@ class _ServerStatusManager(object):
         self.error_log = []
 
     def set_initialised(self):
+        """
+        Marks initialisation of the reflectometry server as finished.
+        """
         self._initialising = False
         self._trigger_status_update()
 
     def clear_all(self):
+        """
+        Clears all current issues and log messages.
+        """
         self._clear_status()
         self._clear_problems()
         self._clear_log()
@@ -107,11 +109,11 @@ class _ServerStatusManager(object):
         self.active_warnings = {}
         self.active_other_problems = {}
         self._update_status()
-        self.trigger_listeners(self._get_active_problems_update())
+        self._trigger_active_problems_update()
 
     def _clear_log(self):
         self.error_log = []
-        self.trigger_listeners(ErrorLogUpdate(self.error_log))
+        self._trigger_error_log_update()
 
     def _get_problems_by_severity(self, severity):
         if severity is Severity.MAJOR_ALARM:
@@ -131,9 +133,6 @@ class _ServerStatusManager(object):
         else:
             return STATUS.OKAY
 
-    def _get_active_problems_update(self):
-        return ActiveProblemsUpdate(self.active_errors, self.active_warnings, self.active_other_problems)
-
     def _update_status(self):
         """
         Update the server status and display message and notifies listeners.
@@ -148,6 +147,13 @@ class _ServerStatusManager(object):
     def _trigger_status_update(self):
         self.trigger_listeners(StatusUpdate(self._status, self._message))
 
+    def _trigger_active_problems_update(self):
+        self.trigger_listeners(
+            ActiveProblemsUpdate(self.active_errors, self.active_warnings, self.active_other_problems))
+
+    def _trigger_error_log_update(self):
+        self.trigger_listeners(ErrorLogUpdate(self.error_log))
+
     def update_active_problems(self, problem):
         """
         Updates the active problems known to the status manager. If the problem is already known, it just appends the
@@ -157,15 +163,15 @@ class _ServerStatusManager(object):
             problem(ProblemInfo): The problem to add
         """
         dict_to_append = self._get_problems_by_severity(problem.severity)
-        if problem.description in self.active_errors.keys():
+
+        if problem.description in dict_to_append.keys():
             dict_to_append[problem.description].add(problem.source)
         else:
             dict_to_append[problem.description] = {problem.source}
 
         self.message = self._construct_status_message()
         self.status = self._get_highest_error_level()
-
-        self.trigger_listeners(self._get_active_problems_update())
+        self._trigger_active_problems_update()
 
     def update_error_log(self, message):
         """
@@ -176,7 +182,7 @@ class _ServerStatusManager(object):
         """
         logger.error(message)
         self.error_log.append(message)
-        self.trigger_listeners(ErrorLogUpdate(self.error_log))
+        self._trigger_error_log_update()
 
     @property
     def status(self):
@@ -207,15 +213,15 @@ class _ServerStatusManager(object):
         if self.active_errors:
             message += "Errors:\n"
             for description, sources in self.active_errors.items():
-                message += "\t{}".format(self._format_entry(description, sources))
+                message += "- {}".format(self._format_entry(description, sources))
         if self.active_warnings:
             message += "Warnings:\n"
             for description, sources in self.active_warnings.items():
-                message += "\t{}".format(self._format_entry(description, sources))
+                message += "- {}".format(self._format_entry(description, sources))
         if self.active_other_problems:
             message += "Other issues:\n"
             for description, sources in self.active_other_problems.items():
-                message += "\t{}".format(self._format_entry(description, sources))
+                message += "- {}".format(self._format_entry(description, sources))
 
         print(message)
         return message

@@ -8,8 +8,9 @@ from functools import partial
 
 import six
 from contextlib2 import contextmanager
+from pcaspy import Severity
 
-from ReflectometryServer.server_status_manager import STATUS_MANAGER
+from ReflectometryServer.server_status_manager import ProblemInfo, STATUS_MANAGER
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
 from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
 import logging
@@ -299,6 +300,8 @@ class PVWrapper(object):
             STATUS_MANAGER.update_error_log(
                 "Error: Unable to initialise velocity cache from auto-save ({error_message})."
                 .format(error_message=error))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Unable to read autosaved velocity", self.name, Severity.MINOR_ALARM))
 
     def cache_velocity(self):
         """
@@ -336,6 +339,8 @@ class PVWrapper(object):
             if self._velocity_to_restore is None:
                 STATUS_MANAGER.update_error_log(
                     "Cannot restore velocity: velocity cache is None for {pv_name}".format(pv_name=self.name))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Unable to restore axis velocity", self.name, Severity.MINOR_ALARM))
             else:
                 logger.debug("Restoring velocity cache of {value} for PV {pv_name}"
                              .format(value=self._velocity_to_restore, pv_name=self.name))
@@ -522,6 +527,8 @@ class MotorPVWrapper(PVWrapper):
                 self._write_pv(self._sp_pv, new_position)
         except ValueError as ex:
             STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Failed to redefine position", self.name, Severity.MINOR_ALARM))
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -609,6 +616,9 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         STATUS_MANAGER.update_error_log("Error: An attempt was made to write a velocity to a Jaws Axis. We do not "
                                         "support this as we do not expect jaws to be synchronised.")
+        STATUS_MANAGER.update_active_problems(
+            ProblemInfo("Drivers for Jaws axes should not be synchronised. Check configuration", self.name,
+                        Severity.MINOR_ALARM))
 
     @property
     def max_velocity(self):
@@ -654,8 +664,8 @@ class _JawsAxisPVWrapper(PVWrapper):
         for key in self._directions:
             if key in pv:
                 return key
-        STATUS_MANAGER.update_error_log("Unexpected event source: {}".format(pv))
-        STATUS_MANAGER.update_error_log("Unexpected event source: {}".format(pv))
+        STATUS_MANAGER.update_error_log(
+            "Wrapper for {} received event from unexpected source: {}".format(self.name, pv))
 
     def define_position_as(self, new_position):
         """
@@ -682,6 +692,8 @@ class _JawsAxisPVWrapper(PVWrapper):
                 logger.info("    Motor {name} moved to rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
         except ValueError as ex:
             STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Failed to redefine position", self.name, Severity.MINOR_ALARM))
 
 
 class JawsGapPVWrapper(_JawsAxisPVWrapper):

@@ -361,8 +361,11 @@ class DisplacementDriver(IocDriver):
         else:
             if self._out_of_beam_position is None:
                 displacement = 0
-                STATUS_MANAGER.update_error_log("The component, {},is out of the beam but there is no out of beam position for the driver "
-                             "running axis{}".format(self._component.name, self._axis.name))
+                STATUS_MANAGER.update_error_log(
+                    "The component {} is out of the beam but there is no out of beam position for the driver "
+                    "running axis {}".format(self._component.name, self._axis.name))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("No out of beam position defined for axis", self.name, Severity.MINOR_ALARM))
             else:
                 displacement = self._out_of_beam_position
         return displacement

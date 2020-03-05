@@ -4,7 +4,7 @@ from mock import Mock
 from parameterized import parameterized
 from pcaspy import Severity
 
-from ReflectometryServer.server_status_manager import _ServerStatusManager, STATUS, PROBLEMS, ProblemInfo
+from ReflectometryServer.server_status_manager import _ServerStatusManager, STATUS, ProblemInfo
 
 
 class TestStatusManager(unittest.TestCase):

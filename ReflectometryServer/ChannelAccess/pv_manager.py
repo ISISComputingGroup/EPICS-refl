@@ -15,6 +15,7 @@ from collections import OrderedDict
 
 MAX_ALARM_ID = 15
 
+# PCASpy Enum PVs are limited to 14 items
 AlarmStringsTruncated = [
     "NO_ALARM",
     "READ",

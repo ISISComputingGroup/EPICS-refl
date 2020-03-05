@@ -3,7 +3,9 @@ Components on a beam
 """
 from collections import namedtuple
 
-from ReflectometryServer.server_status_manager import STATUS_MANAGER
+from pcaspy import Severity
+
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
 
 from enum import Enum
@@ -75,6 +77,8 @@ class Component(object):
         except KeyError:
             STATUS_MANAGER.update_error_log(
                 "Tried to read an invalid type of parameter for component {}.".format(self.name))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Tried to read invalid component axis", self.name, Severity.MINOR_ALARM))
             return True
 
     @property

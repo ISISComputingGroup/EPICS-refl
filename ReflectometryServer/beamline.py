@@ -22,6 +22,17 @@ logger = logging.getLogger(__name__)
 # An update of the overall status of the beamline
 
 
+class BeamlineConfigurationInvalidException(Exception):
+    """
+    Exception for when a parameter is not initialized.
+    """
+    def __init__(self, err):
+        self.message = str(err)
+
+    def __str__(self):
+        return self.message
+
+
 class BeamlineMode(object):
     """
     Beamline mode definition; which components and parameters are calculated on move.
@@ -188,8 +199,9 @@ class Beamline(object):
             errors.extend(parameter.validate(self._drivers))
 
         if len(errors) > 0:
-            STATUS_MANAGER.update_error_log("There is a problem with beamline configuration:\n    {}".format("\n    ".join(errors)))
-            raise ValueError("Problem with beamline configuration: {}".format(";".join(errors)))
+            STATUS_MANAGER.update_error_log(
+                "Beamline configuration is invalid:\n    {}".format("\n    ".join(errors)))
+            raise BeamlineConfigurationInvalidException("Beamline configuration invalid: {}".format(";".join(errors)))
 
     @property
     def parameters(self):
@@ -377,24 +389,19 @@ class Beamline(object):
         try:
             self._perform_move_for_all_drivers(self._get_max_move_duration())
         except ZeroDivisionError as e:
+            STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e))
             STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Failed to move driver", e.message, Severity.MAJOR_ALARM))
-        except UnableToConnectToPVException as e:
+                ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM))
+            return
+        except (ValueError, UnableToConnectToPVException) as e:
             STATUS_MANAGER.update_error_log("Unable to connect to PV: {}".format(e.message))
             STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Unable to connect to PV", e.message, Severity.MAJOR_ALARM))
+                ProblemInfo("Unable to connect to PV", "beamline", Severity.MAJOR_ALARM))
+            return
 
     def _perform_move_for_all_drivers(self, move_duration):
         for driver in self._drivers:
-            try:
-                driver.perform_move(move_duration)
-            except ZeroDivisionError as e:
-                STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e))
-                raise ZeroDivisionError(driver.name)
-            except (ValueError, UnableToConnectToPVException) as e:
-                STATUS_MANAGER.update_error_log("Unable to connect to PV: {}".format(e.message))
-                raise e
-
+            driver.perform_move(move_duration)
 
     def _get_max_move_duration(self):
         """
