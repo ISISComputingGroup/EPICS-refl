@@ -38,13 +38,15 @@ class TrackingBeamPathCalc(object):
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
     """
 
-    def __init__(self, movement_strategy):
+    def __init__(self, name, movement_strategy):
         """
         Initialise.
         Args:
             movement_strategy (ReflectometryServer.movement_strategy.LinearMovementCalc): strategy for calculating the
                 interception between the movement of the component and the beam.
+            name (str): name of this beam path calc (used for autosave key)
         """
+        self._name = name
         self._incoming_beam = PositionAndAngle(0, 0, 0)
         self._is_in_beam = True
         self._is_displacing = False
@@ -100,6 +102,8 @@ class TrackingBeamPathCalc(object):
         """
         if self.incoming_beam_can_change or force:
             self._incoming_beam = incoming_beam
+            if not self.incoming_beam_can_change:
+                self.incoming_beam_auto_save()
             self._on_set_incoming_beam(incoming_beam)
         if on_init:
             if self.autosaved_offset is not None:
@@ -286,28 +290,24 @@ class TrackingBeamPathCalc(object):
         """
         self._displacement_alarm = (alarm_severity, alarm_status)
 
-    def incoming_beam_auto_save(self, autosave_key):
+    def incoming_beam_auto_save(self):
         """
         Save the current incoming beam to autosave file if the incoming beam can not be changed
         i.e. only in disable mode
-        Args:
-            autosave_key: key under which to save the value
         """
         if not self.incoming_beam_can_change:
-            disable_mode_autosave.write_parameter(autosave_key, self._incoming_beam)
+            disable_mode_autosave.write_parameter(self._name, self._incoming_beam)
 
-    def init_from_autosave(self, autosave_key):
+    def init_from_autosave(self):
         """
         Restore the autosaved incoming beam when autosave value is found and component is in non changing beamline mode
         i.e. only in disabled mode
-        Args:
-            autosave_key: key under which to save the value
         """
         if not self.incoming_beam_can_change:
-            incoming_beam = disable_mode_autosave.read_parameter(autosave_key, None)
+            incoming_beam = disable_mode_autosave.read_parameter(self._name, None)
             if incoming_beam is None:
                 incoming_beam = PositionAndAngle(0, 0, 0)
-                logger.error("Incoming beam was not initialised for component {}".format(autosave_key))
+                logger.error("Incoming beam was not initialised for component {}".format(self._name))
             self.set_incoming_beam(incoming_beam, force=True, on_init=True)
 
 
@@ -316,15 +316,16 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
     Calculator for the beam path when it interacts with a component that can be displaced and rotated relative to the
     beam. The rotation angle is set implicitly and is read only.
     """
-    def __init__(self, movement_strategy, is_reflecting):
+    def __init__(self, name, movement_strategy, is_reflecting):
         """
         Initialise.
         Args:
+            name (str): name of this beam path calc (used for autosave key)
             movement_strategy (ReflectometryServer.movement_strategy.LinearMovementCalc): strategy for calculating the
                 interception between the movement of the component and the beam.
                 is_reflecting (bool): Whether the component reflects or just tracks the beam.
         """
-        super(_BeamPathCalcWithAngle, self).__init__(movement_strategy)
+        super(_BeamPathCalcWithAngle, self).__init__(name, movement_strategy)
         self._angular_displacement = 0.0
         self.autosaved_angle = None
         self._is_rotating = False
@@ -433,8 +434,8 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
     Calculator for the beam path when it interacts with a component that can be displaced and rotated relative to the
     beam, and where the angle can be both read and set explicitly.
     """
-    def __init__(self, movement_strategy, is_reflecting):
-        super(SettableBeamPathCalcWithAngle, self).__init__(movement_strategy, is_reflecting)
+    def __init__(self, name, movement_strategy, is_reflecting):
+        super(SettableBeamPathCalcWithAngle, self).__init__(name, movement_strategy, is_reflecting)
 
     def angle_update(self, update):
         """
@@ -462,16 +463,17 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
     calculations. This is used for example for Theta where the angle is the angle to the next enabled component.
     """
 
-    def __init__(self, movement_strategy, angle_to, theta_setpoint_beam_path_calc):
+    def __init__(self, name, movement_strategy, angle_to, theta_setpoint_beam_path_calc):
         """
         Initialise.
         Args:
+            name (str): name of this beam path calc (used for autosave key)
             movement_strategy: movement strategy to use
             angle_to (list[(ReflectometryServer.beam_path_calc.TrackingBeamPathCalc, ReflectometryServer.beam_path_calc.TrackingBeamPathCalc)]):
                 readback beam path calc on which to base the angle and setpoint on which the offset is taken
             theta_setpoint_beam_path_calc (ReflectometryServer.beam_path_calc.BeamPathCalcThetaSP)
         """
-        super(BeamPathCalcThetaRBV, self).__init__(movement_strategy, is_reflecting=True)
+        super(BeamPathCalcThetaRBV, self).__init__(name, movement_strategy, is_reflecting=True)
         self._angle_to = angle_to
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
         self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
@@ -566,15 +568,16 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
     the beam.
     """
 
-    def __init__(self, movement_strategy, angle_to):
+    def __init__(self, name, movement_strategy, angle_to):
         """
         Initialise.
         Args:
+            name (str): name of this beam path calc (used for autosave key)
             movement_strategy: movement strategy to use
             angle_to (list[ReflectometryServer.beam_path_calc.TrackingBeamPathCalc]):
                 beam path calc on which to base the angle
         """
-        super(BeamPathCalcThetaSP, self).__init__(movement_strategy, is_reflecting=True)
+        super(BeamPathCalcThetaSP, self).__init__(name, movement_strategy, is_reflecting=True)
         self._angle_to = angle_to
         for comp in self._angle_to:
             comp.add_listener(InitUpdate, self._init_listener)

@@ -51,8 +51,8 @@ class Component(object):
             self.__class__.__name__, self._name, self._beam_path_set_point, self._beam_path_rbv)
 
     def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = TrackingBeamPathCalc(LinearMovementCalc(setup))
-        self._beam_path_rbv = TrackingBeamPathCalc(LinearMovementCalc(setup))
+        self._beam_path_set_point = TrackingBeamPathCalc("{}_sp".format(self.name), LinearMovementCalc(setup))
+        self._beam_path_rbv = TrackingBeamPathCalc("{}_rbv".format(self.name), LinearMovementCalc(setup))
 
     def set_changed_flag(self, change_type, value):
         """
@@ -119,11 +119,11 @@ class Component(object):
         self._beam_path_rbv.incoming_beam_can_change = can_change
 
         if on_init:
-            self._beam_path_set_point.init_from_autosave("{}_sp".format(self._name))
-            self._beam_path_rbv.init_from_autosave("{}_rbv".format(self._name))
+            self._beam_path_set_point.init_from_autosave()
+            self._beam_path_rbv.init_from_autosave()
         else:
-            self._beam_path_set_point.incoming_beam_auto_save("{}_sp".format(self._name))
-            self._beam_path_rbv.incoming_beam_auto_save("{}_rbv".format(self._name))
+            self._beam_path_set_point.incoming_beam_auto_save()
+            self._beam_path_rbv.incoming_beam_auto_save()
 
     def define_current_position_as(self, new_value):
         """
@@ -152,8 +152,10 @@ class TiltingComponent(Component):
         self.can_define_current_angle_as = True
 
     def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = SettableBeamPathCalcWithAngle(LinearMovementCalc(setup), is_reflecting=False)
-        self._beam_path_rbv = SettableBeamPathCalcWithAngle(LinearMovementCalc(setup), is_reflecting=False)
+        self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name), LinearMovementCalc(setup),
+                                                                  is_reflecting=False)
+        self._beam_path_rbv = SettableBeamPathCalcWithAngle("{}_rbv".format(self.name), LinearMovementCalc(setup),
+                                                                                      is_reflecting=False)
 
     def define_current_angle_as(self, new_angle):
         """
@@ -182,8 +184,10 @@ class ReflectingComponent(Component):
         self.can_define_current_angle_as = True
 
     def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = SettableBeamPathCalcWithAngle(LinearMovementCalc(setup), is_reflecting=True)
-        self._beam_path_rbv = SettableBeamPathCalcWithAngle(LinearMovementCalc(setup), is_reflecting=True)
+        self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name), LinearMovementCalc(setup),
+                                                                  is_reflecting=True)
+        self._beam_path_rbv = SettableBeamPathCalcWithAngle("{}_rbv".format(self.name), LinearMovementCalc(setup),
+                                                            is_reflecting=True)
 
     def define_current_angle_as(self, new_angle):
         """
@@ -217,9 +221,10 @@ class ThetaComponent(ReflectingComponent):
     def _init_beam_path_calcs(self, setup):
         beam_path_calcs = [(comp.beam_path_rbv, comp.beam_path_set_point) for comp in self.angle_to_components]
         linear_movement_calc = LinearMovementCalc(setup)
-        self._beam_path_set_point = BeamPathCalcThetaSP(linear_movement_calc,
+        self._beam_path_set_point = BeamPathCalcThetaSP("{}_sp".format(self.name), linear_movement_calc,
                                                         [comp.beam_path_set_point for comp in self.angle_to_components])
-        self._beam_path_rbv = BeamPathCalcThetaRBV(linear_movement_calc, beam_path_calcs, self._beam_path_set_point)
+        self._beam_path_rbv = BeamPathCalcThetaRBV("{}_rbv".format(self.name), linear_movement_calc,
+                                                   beam_path_calcs, self._beam_path_set_point)
 
     def define_current_angle_as(self, new_angle):
         """

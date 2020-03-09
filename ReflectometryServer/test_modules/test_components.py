@@ -618,6 +618,20 @@ class TestComponentDisablingAndAutosaveInit(unittest.TestCase):
 
         assert_that(component.beam_path_set_point.get_outgoing_beam(), position_and_angle(expected_incoming_beam))
 
+    @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
+    def test_GIVEN_component_WHEN_disabled_and_incoming_beam_change_forced_THEN_incoming_beam_for_rbv_and_sp_are_saved(self, mock_auto_save):
+        expected_incoming_beam_sp = PositionAndAngle(1, 2, 3)
+        expected_incoming_beam_rbv = PositionAndAngle(1, 2, 3)
+        expected_name = "comp"
+        component = Component(expected_name, PositionAndAngle(0, 0, 0))
+        component.beam_path_set_point.set_incoming_beam(PositionAndAngle(0,0,0))
+        component.beam_path_rbv.set_incoming_beam(PositionAndAngle(0,0,0))
+        component.set_incoming_beam_can_change(False)
 
+        component.beam_path_set_point.set_incoming_beam(expected_incoming_beam_sp, force=True)
+        component.beam_path_rbv.set_incoming_beam(expected_incoming_beam_rbv, force=True)
+
+        mock_auto_save.write_parameter.assert_has_calls([call(expected_name + "_rbv", expected_incoming_beam_rbv),
+                                                        call(expected_name + "_sp", expected_incoming_beam_sp)], any_order=True)
 if __name__ == '__main__':
     unittest.main()
