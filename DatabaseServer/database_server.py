@@ -202,7 +202,9 @@ class DatabaseServer(Driver):
                 for pv in [DbPVNames.IOCS, DbPVNames.HIGH_INTEREST, DbPVNames.MEDIUM_INTEREST, DbPVNames.FACILITY,
                            DbPVNames.ACTIVE_PVS, DbPVNames.ALL_PVS]:
                     encoded_data = self.get_data_for_pv(pv)
-                    self.setParam(pv, encoded_data)
+                    # No need to update monitors if data hasn't changed
+                    if not self.getParam(pv) == encoded_data:
+                        self.setParam(pv, encoded_data)
                 # Update them
                 with self.monitor_lock:
                     self.updatePVs()
