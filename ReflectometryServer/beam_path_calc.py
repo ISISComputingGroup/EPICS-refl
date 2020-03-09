@@ -474,6 +474,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         super(BeamPathCalcThetaRBV, self).__init__(movement_strategy, is_reflecting=True)
         self._angle_to = angle_to
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
+        self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             # add to the physical change for the rbv so that we don't get an infinite loop
             readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self.angle_update)
@@ -547,6 +548,15 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
             incoming_beam(PositionAndAngle): incoming beam
         """
         self._angular_displacement = self._calc_angle_from_next_component(incoming_beam)
+
+    def _set_incoming_beam_at_next_angled_to_component(self):
+        """
+        Sets the incoming beam at the next disabled component in beam that this theta component is angled to.
+        """
+        for readback_beam_path_calc, set_point_beam_path_calc in self._angle_to:
+            if not readback_beam_path_calc.incoming_beam_can_change and readback_beam_path_calc.is_in_beam:
+                readback_beam_path_calc.set_incoming_beam(self.get_outgoing_beam(), force=True)
+                break
 
 
 class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):

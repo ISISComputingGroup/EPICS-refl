@@ -370,7 +370,7 @@ class TestThetaComponent(unittest.TestCase):
 
         listener.assert_not_called()
 
-    def test_GIVEN_next_component_is_in_beam__and_at_45_degrees_and_not_on_axis_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
+    def test_GIVEN_next_component_is_in_beam_and_at_45_degrees_and_not_on_axis_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=10, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
@@ -401,6 +401,20 @@ class TestThetaComponent(unittest.TestCase):
         assert_that(result_position, is_(expected_position))
         assert_that(result_outgoing_beam, is_(position_and_angle(theta.beam_path_rbv.get_outgoing_beam())))
 
+    def test_GIVEN_next_component_is_in_beam_and_diabled_WHEN_theta_rbv_changed_THEN_beampath_on_rbv_is_updated(self):
+
+        beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        next_component = TiltingComponent("comp", setup=PositionAndAngle(0, 10, 90))
+        next_component.beam_path_rbv.is_in_beam = True
+        next_component.beam_path_rbv.incoming_beam_can_change = False
+        next_component.beam_path_rbv.set_angular_displacement(0)
+        next_component.beam_path_rbv.set_displacement(5)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta.beam_path_rbv.set_incoming_beam(beam_start)
+
+        result = next_component.beam_path_rbv.get_outgoing_beam()
+
+        assert_that(result, is_(position_and_angle(theta.beam_path_rbv.get_outgoing_beam())))
 
 class TestComponentInitialisation(unittest.TestCase):
 
