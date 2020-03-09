@@ -147,7 +147,7 @@ class TestStatusManager(unittest.TestCase):
     def test_GIVEN_initial_state_WHEN_error_log_THEN_list_is_blank(self):
         expected = []
 
-        actual = self.status_manager.error_log
+        actual = self.status_manager._error_log
 
         self.assertEqual(expected, actual)
 
@@ -158,7 +158,7 @@ class TestStatusManager(unittest.TestCase):
         self.status_manager.update_error_log(message_1)
         self.status_manager.update_error_log(message_2)
 
-        actual = self.status_manager.error_log
+        actual = self.status_manager._error_log
 
         self.assertEqual(expected, actual)
 
@@ -170,6 +170,6 @@ class TestStatusManager(unittest.TestCase):
         self.status_manager.update_error_log(message_2)
 
         self.status_manager.clear_all()
-        actual = self.status_manager.error_log
+        actual = self.status_manager._error_log
 
         self.assertEqual(expected, actual)

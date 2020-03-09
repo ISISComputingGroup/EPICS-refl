@@ -25,7 +25,7 @@ ActiveProblemsUpdate = namedtuple("ActiveProblemsUpdate", [
     'other'])           # Dictionary of other problems (description:sources)
 
 ErrorLogUpdate = namedtuple("ErrorLogUpdate", [
-    'errors'])          # The current error log as a list of strings
+    'log_as_string'])          # The current error log as a list of strings
 
 
 logger = logging.getLogger(__name__)
@@ -76,13 +76,12 @@ class _ServerStatusManager(object):
     def __init__(self):
         self._status = STATUS.OKAY
         self._message = ""
+        self._error_log = []
         self._initialising = True
 
         self.active_errors = {}
         self.active_warnings = {}
         self.active_other_problems = {}
-
-        self.error_log = []
 
     def set_initialised(self):
         """
@@ -112,7 +111,7 @@ class _ServerStatusManager(object):
         self._trigger_active_problems_update()
 
     def _clear_log(self):
-        self.error_log = []
+        self._error_log = []
         self._trigger_error_log_update()
 
     def _get_problems_by_severity(self, severity):
@@ -152,7 +151,7 @@ class _ServerStatusManager(object):
             ActiveProblemsUpdate(self.active_errors, self.active_warnings, self.active_other_problems))
 
     def _trigger_error_log_update(self):
-        self.trigger_listeners(ErrorLogUpdate(self.error_log))
+        self.trigger_listeners(ErrorLogUpdate(self._error_log_as_string()))
 
     def update_active_problems(self, problem):
         """
@@ -181,7 +180,7 @@ class _ServerStatusManager(object):
             message(string): The log message to append
         """
         logger.error(message)
-        self.error_log.append(message)
+        self._error_log.append(message)
         self._trigger_error_log_update()
 
     @property
@@ -208,26 +207,40 @@ class _ServerStatusManager(object):
         self._message = message_to_set
         self._trigger_status_update()
 
+    @property
+    def error_log(self):
+        return self._error_log_as_string()
+
     def _construct_status_message(self):
         message = ""
         if self.active_errors:
             message += "Errors:\n"
             for description, sources in self.active_errors.items():
-                message += "- {}".format(self._format_entry(description, sources))
+                message += "- {}".format(self._problem_as_string(description, sources))
         if self.active_warnings:
             message += "Warnings:\n"
             for description, sources in self.active_warnings.items():
-                message += "- {}".format(self._format_entry(description, sources))
+                message += "- {}".format(self._problem_as_string(description, sources))
         if self.active_other_problems:
             message += "Other issues:\n"
             for description, sources in self.active_other_problems.items():
-                message += "- {}".format(self._format_entry(description, sources))
+                message += "- {}".format(self._problem_as_string(description, sources))
 
-        print(message)
         return message
 
-    def _format_entry(self, description, sources):
-        return "{} ({})\n".format(description, len(sources))
+    def _error_log_as_string(self):
+        log_as_string = ""
+        for line in self._error_log:
+            log_as_string += "{}\n".format(line)
+        return log_as_string
+
+    @staticmethod
+    def _problem_as_string(description, sources):
+        if len(sources) > 1:
+            source_string = "(sources: {})".format(len(sources))
+        else:
+            source_string = "(source: {})".format(next(iter(sources)))
+        return "{} {}\n".format(description, source_string)
 
 
 STATUS_MANAGER = _ServerStatusManager()

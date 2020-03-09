@@ -8,10 +8,10 @@ from pcaspy import Driver, Alarm, Severity
 from pcaspy.driver import manager, Data
 
 from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX
-from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, BEAMLINE_STATUS, \
-    BEAMLINE_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
-    convert_from_epics_pv_value, IN_MODE_SUFFIX, MAX_ALARM_ID
-from ReflectometryServer.server_status_manager import STATUS_MANAGER, StatusUpdate, ProblemInfo
+from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, SERVER_STATUS, \
+    SERVER_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
+    convert_from_epics_pv_value, IN_MODE_SUFFIX, MAX_ALARM_ID, SERVER_ERROR_LOG
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, StatusUpdate, ProblemInfo, ErrorLogUpdate
 from ReflectometryServer.footprint_manager import FootprintSort
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
 from ReflectometryServer.parameters import BeamlineParameterGroup, ParameterReadbackUpdate, \
@@ -42,6 +42,7 @@ class ReflectometryDriver(Driver):
         self._footprint_manager = None
 
         self.add_trigger_status_change_listener()
+        self.add_trigger_log_update_listener()
         self.put_log = IsisPutLog("REFL")
 
     def set_beamline(self, beamline):
@@ -97,7 +98,7 @@ class ReflectometryDriver(Driver):
                 return self._beamline.move
 
             elif self._pv_manager.is_beamline_status(reason):
-                beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
+                beamline_status_enums = self._pv_manager.PVDB[SERVER_STATUS]["enums"]
                 new_value = beamline_status_enums.index(STATUS_MANAGER.status.display_string)
                 #  Set the value so that the error condition is set
                 self.setParam(reason, new_value)
@@ -105,6 +106,8 @@ class ReflectometryDriver(Driver):
 
             elif self._pv_manager.is_beamline_message(reason):
                 return STATUS_MANAGER.message
+            elif self._pv_manager.is_error_log(reason):
+                return STATUS_MANAGER.error_log
             elif self._pv_manager.is_sample_length(reason):
                 return self._footprint_manager.get_sample_length()
             elif self._pv_manager.is_alarm_status(reason):
@@ -112,7 +115,7 @@ class ReflectometryDriver(Driver):
             elif self._pv_manager.is_alarm_severity(reason):
                 return self.getParamDB(self._pv_manager.strip_fields_from_pv(reason)).severity
 
-        return self.getParam(reason)  # TODO race condition?
+        return self.getParam(reason)
 
     def _beamline_mode_value(self, mode):
         beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
@@ -147,7 +150,7 @@ class ReflectometryDriver(Driver):
                     beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
                     new_mode_name = beamline_mode_enums[value]
                     self._beamline.active_mode = new_mode_name
-                    self._bl_mode_change(new_mode_name, self._beamline.get_param_names_in_mode())
+                    self._on_bl_mode_change(new_mode_name, self._beamline.get_param_names_in_mode())
                 except ValueError:
                     STATUS_MANAGER.update_error_log("Invalid value entered for mode. (Possible modes: {})".format(
                         ",".join(self._beamline.mode_names)))
@@ -272,7 +275,7 @@ class ReflectometryDriver(Driver):
         self.setParam(pv_name, update.value)
         self.updatePVs()
 
-    def _bl_mode_change(self, mode, params_in_mode):
+    def _on_bl_mode_change(self, mode, params_in_mode):
         """
         Beamline mode change in driver
         Args:
@@ -292,32 +295,49 @@ class ReflectometryDriver(Driver):
         self._update_param_both_pv_and_pv_val(BEAMLINE_MODE + SP_SUFFIX, mode_value)
         self.updatePVs()
 
-    def _server_status_change(self, update):
+    def _on_server_status_change(self, update):
         """
         Update the overall status of the beamline.
 
         Args:
             update (ReflectometryServer.server_status_manager.StatusUpdate): The new server status and message.
         """
-        beamline_status_enums = self._pv_manager.PVDB[BEAMLINE_STATUS]["enums"]
+        beamline_status_enums = self._pv_manager.PVDB[SERVER_STATUS]["enums"]
         status_id = beamline_status_enums.index(update.server_status.display_string)
-        self._update_param_both_pv_and_pv_val(BEAMLINE_STATUS, status_id)
-        self._update_param_both_pv_and_pv_val(BEAMLINE_MESSAGE, update.server_message)
+        self._update_param_both_pv_and_pv_val(SERVER_STATUS, status_id)
+        self._update_param_both_pv_and_pv_val(SERVER_MESSAGE, update.server_message)
+        self.updatePVs()
+
+    def _on_error_log_update(self, update):
+        """
+        Update the overall status of the beamline.
+
+        Args:
+            update (ReflectometryServer.server_status_manager.StatusUpdate): The new server status and message.
+        """
+        self._update_param_both_pv_and_pv_val(SERVER_ERROR_LOG, update.log_as_string)
         self.updatePVs()
 
     def add_trigger_active_mode_change_listener(self):
         """
         Adds the monitor on the active mode, if this changes a monitor update is posted.
         """
-        self._beamline.add_active_mode_change_listener(self._bl_mode_change)
-        self._bl_mode_change(self._beamline.active_mode, self._beamline.get_param_names_in_mode())
+        self._beamline.add_active_mode_change_listener(self._on_bl_mode_change)
+        self._on_bl_mode_change(self._beamline.active_mode, self._beamline.get_param_names_in_mode())
 
     def add_trigger_status_change_listener(self):
         """
         Adds the monitor on the beamline status, if this changes a monitor update is posted.
         """
-        STATUS_MANAGER.add_listener(StatusUpdate, self._server_status_change)
-        self._server_status_change(StatusUpdate(STATUS_MANAGER.status, STATUS_MANAGER.message))
+        STATUS_MANAGER.add_listener(StatusUpdate, self._on_server_status_change)
+        self._on_server_status_change(StatusUpdate(STATUS_MANAGER.status, STATUS_MANAGER.message))
+
+    def add_trigger_log_update_listener(self):
+        """
+        Adds the monitor on the beamline status, if this changes a monitor update is posted.
+        """
+        STATUS_MANAGER.add_listener(ErrorLogUpdate, self._on_error_log_update)
+        self._on_error_log_update(ErrorLogUpdate(STATUS_MANAGER.error_log))
 
     def add_footprint_param_listeners(self):
         """

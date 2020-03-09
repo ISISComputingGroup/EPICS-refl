@@ -68,8 +68,6 @@ class PVWrapper(object):
         if min_velocity_scale_factor is None:
             self._min_velocity_scale_factor = DEFAULT_SCALE_FACTOR
         if min_velocity_scale_factor <= 0:
-            STATUS_MANAGER.update_error_log("Minimum velocity scale level {} is invalid (Should be > 0). "
-                                            "Setting default scaling factor of 100".format(min_velocity_scale_factor))
             self._min_velocity_scale_factor = DEFAULT_SCALE_FACTOR
         else:
             self._min_velocity_scale_factor = min_velocity_scale_factor
@@ -117,7 +115,6 @@ class PVWrapper(object):
         Initialise PVWrapper values once the beamline is ready.
         """
         self._set_resolution()
-        self._add_monitors()
         self._velocity_cache = self._read_pv(self._velo_pv)
         self._backlash_distance_cache = self._read_pv(self._bdst_pv)
         self._backlash_velocity_cache = self._read_pv(self._bvel_pv)
@@ -125,6 +122,7 @@ class PVWrapper(object):
         self._max_velocity_cache = self._read_pv(self._vmax_pv)
         self._base_velocity_cache = self._read_pv(self._vbas_pv)
         self._init_velocity_cache()
+        self._add_monitors()
 
     def _add_monitors(self):
         """
@@ -132,8 +130,8 @@ class PVWrapper(object):
         """
         self._monitor_pv(self._rbv_pv, self._on_update_readback_value)
         self._monitor_pv(self._sp_pv, self._on_update_setpoint_value)
-        self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._velo_pv, self._on_update_velocity)
+        self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._bdst_pv, self._on_update_backlash_distance)
         self._monitor_pv(self._bvel_pv, self._on_update_backlash_velocity)
         self._monitor_pv(self._dir_pv, self._on_update_direction)
@@ -573,7 +571,6 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         Initialise PVWrapper values once the beamline is ready.
         """
-        self._add_monitors()
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
 
@@ -584,6 +581,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         self._base_velocity_cache = max([self._read_pv(pv) for pv in motor_base_velocities])
 
         self._backlash_distance_cache = 0  # No backlash used as source of clash conditions on jaws sets
+        self._add_monitors()
 
     def _add_monitors(self):
         """

@@ -9,6 +9,7 @@ import os
 from pcaspy import SimpleServer
 from threading import Thread
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logging.config.dictConfig({
@@ -51,6 +52,7 @@ from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 from server_common.ioc_data_source import IocDataSource
 from server_common.channel_access import ChannelAccess
 from server_common.mysql_abstraction_layer import SQLAbstraction
+from ReflectometryServer.server_status_manager import STATUS_MANAGER
 
 
 def process_ca_loop():
@@ -60,7 +62,6 @@ def process_ca_loop():
             SERVER.process(0.1)
             ChannelAccess.poll()
         except Exception as err:
-            print(err)
             break
 
 
@@ -86,7 +87,11 @@ process_ca_thread.start()
 logger.info("Instantiating Beamline Model")
 beamline = create_beamline_from_configuration()
 pv_manager.set_beamline(beamline)
-SERVER.createPV(REFLECTOMETRY_PREFIX, pv_manager.PVDB)
+
+# Do not re-create PVs that already exist
+pvdb_to_add = pv_manager.get_init_filtered_pvdb()
+
+SERVER.createPV(REFLECTOMETRY_PREFIX, pvdb_to_add)
 driver.set_beamline(beamline)
 
 ioc_data_source = IocDataSource(SQLAbstraction("iocdb", "iocdb", "$iocdb"))
