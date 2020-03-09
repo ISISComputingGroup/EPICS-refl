@@ -347,7 +347,7 @@ class ReflectometryDriver(Driver):
             """
             self._update_param_both_pv_and_pv_val(name,
                                                   correction_update.correction)
-            self.setParam("{}.DESC".format(name), correction_update.description)
+            self.setParam("{}:DESC".format(name), correction_update.description)
             self.updatePVs()
 
         for driver, pv_name in self._pv_manager.drivers_pv.items():
