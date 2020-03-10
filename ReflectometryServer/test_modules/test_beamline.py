@@ -9,6 +9,7 @@ from ReflectometryServer import *
 
 import ReflectometryServer.file_io
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
+from ReflectometryServer.beamline_constant import BeamlineConstant
 
 from utils import position_and_angle
 
@@ -528,6 +529,40 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("theta").sp_rbv, is_(close_to(expected_theta, 1e-6)), "theta SP RBV")
         assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(expected_det_offset, 1e-6)), "det position SP RBV")
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
+
+
+class TestBeamlineReadOnlyParameters(unittest.TestCase):
+
+    def setup_beamline(self, parameters):
+
+        beamline = Beamline([], [], [], [], beamline_constants=parameters)
+        return beamline
+
+    def test_GIVEN_there_are_no_beamline_constant_set_WHEN_get_beamline_constant_THEN_empty(self):
+
+        beamline = self.setup_beamline([])
+
+        result = beamline.beamline_constant
+
+        assert_that(result, is_([]))
+
+    def test_GIVEN_there_are_no_beamline_constant_set_WHEN_get_beamline_constant_THEN_empty(self):
+
+        beamline = self.setup_beamline(None)
+
+        result = beamline.beamline_constant
+
+        assert_that(result, is_([]))
+
+    def test_GIVEN_there_are_beamline_constant_set_WHEN_get_beamline_constant_THEN_parameters_returned(self):
+        expected_parameters = [
+            BeamlineConstant("NAME", 2, "description")
+        ]
+        beamline = self.setup_beamline(expected_parameters)
+
+        result = beamline.beamline_constant
+
+        assert_that(result, is_(expected_parameters))
 
 
 if __name__ == '__main__':

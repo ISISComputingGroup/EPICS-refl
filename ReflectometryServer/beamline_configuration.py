@@ -40,12 +40,12 @@ def create_beamline_from_configuration():
         beamline.set_status_okay()
     except ImportError as error:
 
-        print_and_log(error.__class__.__name__ + ": " + error.message, SEVERITY.MAJOR, src="REFL")
+        print_and_log(error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src="REFL")
 
         beamline = _create_beamline_in_error("Configuration not found.")
 
     except Exception as error:
-        print_and_log(error.__class__.__name__ + ": " + error.message, SEVERITY.MAJOR, src="REFL")
+        print_and_log(error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src="REFL")
         traceback.print_exc(file=sys.stdout)
         beamline = _create_beamline_in_error("Can not read configuration.")
 

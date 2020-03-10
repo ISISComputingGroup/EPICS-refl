@@ -45,7 +45,19 @@ class TestExpData(unittest.TestCase):
     def test_update_experiment_id_set_surnames_if_experiment_exists_but_skips_contact(self):
         self.exp_data.update_experiment_id("123456")
         data = self.ca.caget(self.exp_data._daenamespv)
-        self.assertEquals(b"Matt,Dom", data)
+        self.assertEqual(b"Matt,Dom", data)
+
+    def test_update_experiment_id_set_surnames_pv(self):
+        self.exp_data.update_experiment_id("123456")
+        data = self.decode_pv(self.exp_data._surnamepv)
+        self.assertIsInstance(data, list)
+        self.assertCountEqual(data, ["Matt", "Dom"])
+
+    def test_update_experiment_id_set_orgs_pv(self):
+        self.exp_data.update_experiment_id("123456")
+        data = self.decode_pv(self.exp_data._orgspv)
+        self.assertIsInstance(data, list)
+        self.assertCountEqual(data, ["ESS", "ISIS"])
 
     def test_update_experiment_id_throws_if_experiment_does_not_exists(self):
         try:
@@ -62,7 +74,7 @@ class TestExpData(unittest.TestCase):
         surname = self.exp_data._get_surname_from_fullname(fullname)
 
         # Assert
-        self.assertEquals(surname, "Jones")
+        self.assertEqual(surname, "Jones")
 
     def test_double_barrelled_surname_returns_last_name(self):
         # Arrange
@@ -72,7 +84,7 @@ class TestExpData(unittest.TestCase):
         surname = self.exp_data._get_surname_from_fullname(fullname)
 
         # Assert
-        self.assertEquals(surname, "Jones")
+        self.assertEqual(surname, "Jones")
 
     def test_single_name_returns_fullname(self):
         # Arrange
@@ -82,7 +94,7 @@ class TestExpData(unittest.TestCase):
         surname = self.exp_data._get_surname_from_fullname(fullname)
 
         # Assert
-        self.assertEquals(surname, "TomJones")
+        self.assertEqual(surname, "TomJones")
 
     def test_update_username_for_single_user(self):
         # Arrange

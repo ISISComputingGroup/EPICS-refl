@@ -65,7 +65,7 @@ class PVWrapper(object):
 
         if min_velocity_scale_factor is None:
             self._min_velocity_scale_factor = DEFAULT_SCALE_FACTOR
-        if min_velocity_scale_factor <= 0:
+        elif min_velocity_scale_factor <= 0:
             logger.error("Minimum velocity scale level {} is invalid (Should be > 0). "
                          "Setting default scaling factor of 100".format(min_velocity_scale_factor))
             self._min_velocity_scale_factor = DEFAULT_SCALE_FACTOR
