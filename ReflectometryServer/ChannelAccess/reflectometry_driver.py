@@ -59,7 +59,8 @@ class ReflectometryDriver(Driver):
         for reason, pv in manager.pvs[self.port].items():
             data = Data()
             data.value = pv.info.value
-            self.pvDB[reason] = data
+            if reason not in self._pv_manager.initial_PVs:
+                self.pvDB[reason] = data
 
         for reason in self._pv_manager.PVDB.keys():
             self.setParamStatus(reason, severity=Severity.NO_ALARM, alarm=Alarm.NO_ALARM)
