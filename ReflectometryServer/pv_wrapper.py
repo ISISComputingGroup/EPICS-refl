@@ -67,7 +67,7 @@ class PVWrapper(object):
 
         if min_velocity_scale_factor is None:
             self._min_velocity_scale_factor = DEFAULT_SCALE_FACTOR
-        if min_velocity_scale_factor <= 0:
+        elif min_velocity_scale_factor <= 0:
             self._min_velocity_scale_factor = DEFAULT_SCALE_FACTOR
         else:
             self._min_velocity_scale_factor = min_velocity_scale_factor

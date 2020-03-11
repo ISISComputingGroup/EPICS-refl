@@ -124,7 +124,7 @@ class Beamline(object):
     """
 
     def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=None,
-                 footprint_setup=None):
+                 footprint_setup=None, beamline_constants=None):
         """
         The initializer.
         Args:
@@ -138,6 +138,8 @@ class Beamline(object):
                 Defaults to position 0,0 and angle 0 in mantid coordinates, i.e the natural beam as it enters the
                 blockhouse.
             footprint_setup (ReflectometryServer.BaseFootprintSetup.BaseFootprintSetup): the foot print setup
+            beamline_constants (list[ReflectometryServer.beamline_constant.BeamlineConstant]): beamline constants to
+                expose
         """
         self._components = components
         self._beam_path_calcs_set_point = []
@@ -178,6 +180,11 @@ class Beamline(object):
         self._initialise_mode(modes)
 
         STATUS_MANAGER.set_initialised()
+
+        if beamline_constants is not None:
+            self.beamline_constant = beamline_constants
+        else:
+            self.beamline_constant = []
 
     def _validate(self, beamline_parameters, modes):
         errors = []
@@ -394,7 +401,7 @@ class Beamline(object):
                 ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM))
             return
         except (ValueError, UnableToConnectToPVException) as e:
-            STATUS_MANAGER.update_error_log("Unable to connect to PV: {}".format(e.message))
+            STATUS_MANAGER.update_error_log("Unable to connect to PV: {}".format(str(e)))
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("Unable to connect to PV", "beamline", Severity.MAJOR_ALARM))
             return

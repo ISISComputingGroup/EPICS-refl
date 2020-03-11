@@ -25,17 +25,16 @@ import json
 """Standard Regex in Java for PV like names,
 e.g. name must start with a letter and only contain letters, numbers and underscores"""
 REGEX_PV_NAME_LIKE = r"^[a-zA-Z]\w*$"
-REGEX_PV_NAME_LIKE_WITH_SPACE = r"^[a-zA-Z ][\w ]*$"
+REGEX_ALLOW_EVERYTHING = r".*$"
 
 """Standard Error message template for when regex for PV like names failes.
 Usage REGEX_ERROR_TEMPLATE_PV_NAME.format(<object name>)"""
 REGEX_ERROR_TEMPLATE_PV_NAME = "{0} must start with a letter and only contain letters, numbers and underscores"
-REGEX_ERROR_TEMPLATE_PV_NAME_WITH_SPACE = "{0} must start with a letter and only contain letters, numbers, " \
-                                          "underscores and spaces"
+REGEX_ERROR_TEMPLATE_ALLOW_EVERYTHING = "{0} should allow all characters"
 
 DISALLOWED_NAMES = ["lowlimit", "highlimit", "runcontrol", "wait"]
 GROUP_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME.format("Group name")
-CONFIG_DESC_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_PV_NAME_WITH_SPACE.format("Configuration description")
+CONFIG_DESC_REGEX_ERROR_MESSAGE = REGEX_ERROR_TEMPLATE_ALLOW_EVERYTHING.format("Configuration description")
 
 
 class GroupRules(object):
@@ -68,7 +67,7 @@ class ConfigurationDescriptionRules(object):
             block_server (BlockServer): A reference to the BlockServer instance.
         """
         self._bs = block_server
-        self.rules = {"disallowed": DISALLOWED_NAMES, "regex": REGEX_PV_NAME_LIKE_WITH_SPACE,
+        self.rules = {"disallowed": DISALLOWED_NAMES, "regex": REGEX_ALLOW_EVERYTHING,
                       "regexMessage": CONFIG_DESC_REGEX_ERROR_MESSAGE}
         self._create_pv()
 
