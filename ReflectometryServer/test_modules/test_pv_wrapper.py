@@ -1,4 +1,7 @@
+import time
+
 from hamcrest import *
+from mock import Mock
 from parameterized import parameterized
 
 import ReflectometryServer
@@ -6,7 +9,7 @@ import unittest
 
 from ReflectometryServer import *
 from ReflectometryServer.ChannelAccess.constants import MTR_STOPPED
-from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
+from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR, ProcessMonitorEvents
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess
 
 from server_common.channel_access import UnableToConnectToPVException
@@ -308,3 +311,79 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
         result = wrapper.min_velocity
 
         assert_that(result, is_(expected))
+
+
+class TestAgregateMonitorEvents(unittest.TestCase):
+
+    def setUp(self):
+        self.pme = ProcessMonitorEvents()
+        self.event_arg = []
+
+    def event(self, value):
+        self.event_arg.append(value)
+
+    def test_GIVEN_one_event_WHEN_processed_THEN_event_triggered(self):
+        expected_value = "HI"
+        self.pme.add_trigger(self.event, expected_value, start_processing=False)
+
+        self.pme.process_current_triggers()
+
+        assert_that(self.event_arg, is_([expected_value]))
+
+    def test_GIVEN_two_events_of_same_type_WHEN_processed_THEN_only_last_event_triggered(self):
+        expected_value = "HI"
+        self.pme.add_trigger(self.event, "not this one", start_processing=False)
+        self.pme.add_trigger(self.event, expected_value, start_processing=False)
+
+        self.pme.process_current_triggers()
+
+        assert_that(self.event_arg, is_([expected_value]))
+
+    def test_GIVEN_two_events_of_different_type_WHEN_processed_THEN_both_event_triggered(self):
+        expected_value1 = "HI"
+        expected_value2 = 1
+        self.pme.add_trigger(self.event, expected_value1, start_processing=False)
+        self.pme.add_trigger(self.event, expected_value2, start_processing=False)
+
+        self.pme.process_current_triggers()
+
+        assert_that(self.event_arg, contains_inanyorder(expected_value1, expected_value2))
+
+    def test_GIVEN_two_events_of_different_type_WHEN_processed_one_has_exception_THEN_non_excpetion_event_triggered(self):
+        expected_value1 = "HI"
+        expected_value2 = 1
+        mock = Mock(side_effect=ValueError)
+        self.pme.add_trigger(self.event, expected_value1, start_processing=False)
+        self.pme.add_trigger(mock, "There", start_processing=False)
+        self.pme.add_trigger(self.event, expected_value2, start_processing=False)
+
+        self.pme.process_current_triggers()
+
+        assert_that(self.event_arg, contains_inanyorder(expected_value1, expected_value2))
+
+    def test_GIVEN_one_event_event_WHEN_processed_THEN_loop_is_terminated(self):
+        expected_value = "HI"
+        self.pme.add_trigger(self.event, expected_value)
+
+        self.pme.process_triggers_loop()
+
+        assert_that(self.event_arg, is_([expected_value]))
+
+    def test_GIVEN_one_event_event_WHEN_added_THEN_event_is_processed(self):
+        expected_value = "HI"
+        self.pme.add_trigger(self.event, expected_value)
+
+        time.sleep(0.1)
+
+        assert_that(self.event_arg, is_([expected_value]))
+
+    def test_GIVEN_nothing_WHEN_one_event_event_wait_then_second_event_THEN_events_are_both_processed(self):
+        # check that the thread can be restarted
+
+        for expected_value in ["HI", "THERE", "WORKS"]:
+            self.pme.add_trigger(self.event, expected_value)
+
+            time.sleep(0.1)
+
+            assert_that(self.event_arg, is_([expected_value]))
+            self.event_arg = []
