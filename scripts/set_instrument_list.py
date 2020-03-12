@@ -109,6 +109,7 @@ if __name__ == "__main__":
         inst_dictionary("SURF"),
         inst_dictionary("NIMROD"),
         inst_dictionary("DETMON", hostname_prefix="NDA", is_scheduled=False, pv_prefix="TE:NDADETF1:"),
+        inst_dictionary("EMU"),
     ]
 
     new_value = json.dumps(instruments_list)

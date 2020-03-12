@@ -7,6 +7,7 @@ from mock import MagicMock, patch
 from hamcrest import *
 
 from ReflectometryServer import *
+from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.beamline import STATUS
 from ReflectometryServer.components import ChangeAxis
 from server_common.channel_access import UnableToConnectToPVException
@@ -73,7 +74,7 @@ class TestHeightDriver(unittest.TestCase):
 
     def test_GIVEN_displacement_changed_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered(self):
         listener = MagicMock()
-        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = 10.1
 
         self.height_axis.sp = expected_value
@@ -239,7 +240,7 @@ class TestHeightAndAngleDriver(unittest.TestCase):
     def test_GIVEN_multiple_axes_need_to_move_WHEN_computing_move_duration_THEN_maximum_duration_is_returned(self):
         target_angle = 30.0
         expected = 3.0
-        self.supermirror.beam_path_set_point.angle = target_angle
+        self.supermirror.beam_path_set_point.set_angular_displacement(target_angle)
         self.supermirror.beam_path_set_point.set_position_relative_to_beam(10.0)
         self.supermirror.set_changed_flag(ChangeAxis.POSITION, True)
         self.supermirror.set_changed_flag(ChangeAxis.ANGLE, True)
@@ -256,7 +257,7 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         target_position_height = 10.0
         expected_velocity_angle = 3.0
         target_position_angle = 30.0
-        self.supermirror.beam_path_set_point.angle = 30.0
+        self.supermirror.beam_path_set_point.set_angular_displacement(30.0)
         self.supermirror.beam_path_set_point.set_position_relative_to_beam(10.0)  # move component into beam
 
         self.supermirror_driver_disp.perform_move(target_duration, True)
@@ -269,13 +270,13 @@ class TestHeightAndAngleDriver(unittest.TestCase):
 
     def test_GIVEN_angle_changed_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered(self):
         listener = MagicMock()
-        self.supermirror.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        self.supermirror.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = 10.1
 
         self.angle_axis.sp = expected_value
 
         listener.assert_called_once()
-        assert_that(self.supermirror.beam_path_rbv.angle, is_(expected_value))
+        assert_that(self.supermirror.beam_path_rbv.get_angular_displacement(), is_(expected_value))
 
 
 class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
@@ -317,7 +318,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
 
     def test_GIVEN_displacement_changed_to_out_of_beam_position_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_false(self):
         listener = MagicMock()
-        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = False
 
         self.height_axis.sp = self.out_of_beam_position
@@ -327,7 +328,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
 
     def test_GIVEN_displacement_changed_to_an_in_beam_position_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_true(self):
         listener = MagicMock()
-        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = True
 
         self.height_axis.sp = self.out_of_beam_position + 2 * self.tolerance_on_out_of_beam_position
@@ -337,7 +338,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
 
     def test_GIVEN_displacement_changed_to_out_of_beam_position_within_tolerance_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_false(self):
         listener = MagicMock()
-        self.jaws.beam_path_rbv.add_after_beam_path_update_listener(listener)
+        self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = False
 
         self.height_axis.sp = self.out_of_beam_position + self.tolerance_on_out_of_beam_position * 0.9
@@ -408,13 +409,14 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         supermirror = ReflectingComponent("supermirror", setup=PositionAndAngle(y=0.0, z=10.0, angle=90.0))
         sm_height_axis = create_mock_axis("SM:HEIGHT", 0.0, 10.0)
         sm_angle_axis = create_mock_axis("SM:ANGLE", sm_angle, 10.0)
-        supermirror.beam_path_set_point.angle = sm_angle
+        supermirror.beam_path_set_point.set_angular_displacement(sm_angle)
         supermirror_driver_disp = DisplacementDriver(supermirror, sm_height_axis)
         supermirror_driver_ang = AngleDriver(supermirror, sm_angle_axis)
 
         slit_2 = Component("slit_2", setup=PositionAndAngle(y=0.0, z=20.0, angle=90.0))
         slit_2_height_axis = create_mock_axis("SLIT2:HEIGHT", 0.0, 10.0)
         self.slit_2_driver = MagicMock(DisplacementDriver)
+        self.slit_2_driver.get_max_move_duration = MagicMock(return_value=0)
 
         slit_3 = Component("slit_3", setup=PositionAndAngle(y=0.0, z=30.0, angle=90.0))
         slit_3_height_axis = create_mock_axis("SLIT3:HEIGHT", 0.0, 10.0)

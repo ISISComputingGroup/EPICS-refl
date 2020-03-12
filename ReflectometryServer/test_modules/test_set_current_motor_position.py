@@ -33,9 +33,11 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         position_to_set = 1
         expected_position = position_to_set + beam_path_height
-        component = Component("comp", PositionAndAngle(0, 0, 90))
+        component = Component("comp", PositionAndAngle(0, 1, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
+        theta_component = ThetaComponent("comp", PositionAndAngle(0, 0, 90), angle_to=[component])
         parameter = TrackingPosition("param", component)
+        theta = AngleParameter("theta", theta_component,)
         component.add_listener(DefineValueAsEvent, _listener)
 
         parameter.define_current_value_as.new_value = position_to_set
@@ -98,7 +100,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         expected_position = 1
         mock_jaws_wrapper = create_mock_JawsCentrePVWrapper("jaws_centre", expected_position, 1)
-        parameter = SlitGapParameter("param", mock_jaws_wrapper)
+        parameter = SlitGapParameter("param", mock_jaws_wrapper, sim=True)
 
         parameter.define_current_value_as.new_value = expected_position
 
@@ -148,7 +150,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         expected_mock_jaws_wrapper_value = 10
         mock_jaws_wrapper = create_mock_JawsCentrePVWrapper("jaws_centre", expected_mock_jaws_wrapper_value, 1)
 
-        parameter = SlitGapParameter("param", mock_jaws_wrapper)
+        parameter = SlitGapParameter("param", mock_jaws_wrapper, sim=True)
         parameter.sp = expected_mock_jaws_wrapper_value
 
         parameter.define_current_value_as.new_value = expected_position
@@ -156,6 +158,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         assert_that(parameter.sp, is_(expected_position))
         assert_that(parameter.sp_rbv, is_(expected_position))
         assert_that(mock_jaws_wrapper._last_set_point_set, is_(expected_mock_jaws_wrapper_value), "sp should not be set")
+
 
 class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
     """
@@ -173,7 +176,7 @@ class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
 
         assert_that(mock_axis.set_position_as_value, is_(expected_position))
 
-    def test_GIVEN_displacement_driver_with_engineering_correction_WHEN_recieve_set_position_as_event_for_positionset_THEN_motor_position_is_set_with_correction(self):
+    def test_GIVEN_displacement_driver_with_engineering_correction_WHEN_receive_set_position_as_event_for_positionset_THEN_motor_position_is_set_with_correction(self):
         expected_position = 1
         correction = 1
 
@@ -185,7 +188,7 @@ class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
 
         assert_that(mock_axis.set_position_as_value, is_(expected_position + correction))
 
-    def test_GIVEN_displacement_driver_no_engineering_correction_WHEN_recieve_set_angle_as_event_for_position_set_THEN_motor_position_is_not_set(self):
+    def test_GIVEN_displacement_driver_no_engineering_correction_WHEN_receive_set_angle_as_event_for_position_set_THEN_motor_position_is_not_set(self):
         expected_position = 1
 
         component = Component("comp", PositionAndAngle(0, 0, 0))

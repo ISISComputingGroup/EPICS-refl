@@ -185,9 +185,9 @@ class ExpData(object):
         orgs = []
 
         if not self._db.experiment_exists(experiment_id):
-            self.ca.caput(self._simnames, self.encode_for_return(str(names)))
-            self.ca.caput(self._surnamepv, self.encode_for_return(str(surnames)))
-            self.ca.caput(self._orgspv, self.encode_for_return(str(orgs)))
+            self.ca.caput(self._simnames, self.encode_for_return(names))
+            self.ca.caput(self._surnamepv, self.encode_for_return(surnames))
+            self.ca.caput(self._orgspv, self.encode_for_return(orgs))
             raise Exception("error finding the experiment: %s" % experiment_id)
 
         # Get the user information from the database and update the associated PVs
@@ -204,9 +204,9 @@ class ExpData(object):
                 name = User(fullname, org, role.lower())
                 names.append(name.__dict__)
             orgs = list(set(orgs))
-            self.ca.caput(self._simnames, self.encode_for_return(str(names)))
-            self.ca.caput(self._surnamepv, self.encode_for_return(str(surnames)))
-            self.ca.caput(self._orgspv, self.encode_for_return(str(orgs)))
+            self.ca.caput(self._simnames, self.encode_for_return(names))
+            self.ca.caput(self._surnamepv, self.encode_for_return(surnames))
+            self.ca.caput(self._orgspv, self.encode_for_return(orgs))
             # The value put to the dae names pv will need changing in time to use compressed and hexed json etc. but
             # this is not available at this time in the ICP
             self.ca.caput(self._daenamespv, ExpData.make_name_list_ascii(surnames))

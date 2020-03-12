@@ -9,6 +9,7 @@ from ReflectometryServer import *
 
 import ReflectometryServer.file_io
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
+from ReflectometryServer.beamline_constant import BeamlineConstant
 
 from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position_and_angle
@@ -19,7 +20,7 @@ class TestComponentBeamline(unittest.TestCase):
     def setup_beamline(self, initial_mirror_angle, mirror_position, beam_start):
         jaws = Component("jaws", setup=PositionAndAngle(0, 0, 90))
         mirror = ReflectingComponent("mirror", setup=PositionAndAngle(0, mirror_position, 90))
-        mirror.beam_path_set_point.angle = initial_mirror_angle
+        mirror.beam_path_set_point.set_angular_displacement(initial_mirror_angle)
         jaws3 = Component("jaws3", setup=PositionAndAngle(0, 20, 90))
         beamline = Beamline([jaws, mirror, jaws3], [], [], [], beam_start)
         return beamline, mirror
@@ -58,7 +59,7 @@ class TestComponentBeamline(unittest.TestCase):
         bounced_beam = PositionAndAngle(y=0, z=mirror_position, angle=mirror_final_angle * 2)
         expected_beams = [beam_start, bounced_beam, bounced_beam]
 
-        mirror.beam_path_set_point.angle = mirror_final_angle
+        mirror.beam_path_set_point.set_angular_displacement(mirror_final_angle)
         results = [component.beam_path_set_point.get_outgoing_beam() for component in beamline]
 
         for index, (result, expected_beam) in enumerate(zip(results, expected_beams)):
@@ -88,7 +89,7 @@ class TestComponentBeamlineReadbacks(unittest.TestCase):
 
         callback = Mock()
         comp2.beam_path_rbv.set_incoming_beam = callback
-        comp1.beam_path_rbv.set_displacement(1.0, AlarmSeverity.No, AlarmStatus.No)
+        comp1.beam_path_rbv.set_displacement(1.0)
 
         assert_that(callback.called, is_(True))
 
@@ -474,7 +475,39 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
 
 
+class TestBeamlineReadOnlyParameters(unittest.TestCase):
+
+    def setup_beamline(self, parameters):
+
+        beamline = Beamline([], [], [], [], beamline_constants=parameters)
+        return beamline
+
+    def test_GIVEN_there_are_no_beamline_constant_set_WHEN_get_beamline_constant_THEN_empty(self):
+
+        beamline = self.setup_beamline([])
+
+        result = beamline.beamline_constant
+
+        assert_that(result, is_([]))
+
+    def test_GIVEN_there_are_no_beamline_constant_set_WHEN_get_beamline_constant_THEN_empty(self):
+
+        beamline = self.setup_beamline(None)
+
+        result = beamline.beamline_constant
+
+        assert_that(result, is_([]))
+
+    def test_GIVEN_there_are_beamline_constant_set_WHEN_get_beamline_constant_THEN_parameters_returned(self):
+        expected_parameters = [
+            BeamlineConstant("NAME", 2, "description")
+        ]
+        beamline = self.setup_beamline(expected_parameters)
+
+        result = beamline.beamline_constant
+
+        assert_that(result, is_(expected_parameters))
+
+
 if __name__ == '__main__':
     unittest.main()
-
-
