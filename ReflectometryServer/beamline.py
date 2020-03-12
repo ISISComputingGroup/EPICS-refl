@@ -280,6 +280,8 @@ class Beamline(object):
                 component.set_incoming_beam_can_change(not self._active_mode.is_disabled)
                 mode_autosave.write_parameter(MODE_KEY, value=mode)
             self._init_params_from_mode()
+            self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_rbv)
+            self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_set_point)
             self._trigger_active_mode_change()
         except KeyError:
             raise ValueError("Not a valid mode name: '{}'".format(mode))
