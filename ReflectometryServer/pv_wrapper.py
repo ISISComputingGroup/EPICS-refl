@@ -682,7 +682,7 @@ class _JawsAxisPVWrapper(PVWrapper):
                 logger.info("    Motor {name} initially at rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
 
             with self._motor_in_set_mode(mtr1), self._motor_in_set_mode(mtr2):
-                    self._write_pv(self._sp_pv, new_position)
+                self._write_pv(self._sp_pv, new_position)
 
             for motor in self._pv_names_for_directions("MTR"):
                 rbv = self._read_pv("{}.RBV".format(motor))

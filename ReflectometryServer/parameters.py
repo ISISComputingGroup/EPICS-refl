@@ -736,11 +736,11 @@ class SlitGapParameter(BeamlineParameter):
         self._pv_wrapper.add_listener(ReadbackUpdate, self._on_update_slit_rbv)
         self._pv_wrapper.add_listener(IsChangingUpdate, self._on_is_changing_change)
         self._pv_wrapper.initialise()
-        # if pv_wrapper.is_vertical:
-        #     self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
-        #     self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
-        # else:
-        #     self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
+        if pv_wrapper.is_vertical:
+            self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
+            self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
+        else:
+            self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
 
         if self._autosave:
             self._initialise_sp_from_file()

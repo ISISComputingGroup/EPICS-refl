@@ -335,7 +335,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Initialise the angle of this component from a motor axis value.
 
         Args:
-            value(float): The angle read from the motor
+            angle(float): The angle read from the motor
         """
         self._angular_displacement = angle
         self.trigger_listeners(InitUpdate())

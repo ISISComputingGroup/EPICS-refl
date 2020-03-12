@@ -57,9 +57,9 @@ class ReflectometryDriver(Driver):
         self._footprint_manager = beamline.footprint_manager
 
         for reason, pv in manager.pvs[self.port].items():
-            data = Data()
-            data.value = pv.info.value
             if reason not in self._pv_manager.initial_PVs:
+                data = Data()
+                data.value = pv.info.value
                 self.pvDB[reason] = data
 
         for reason in self._pv_manager.PVDB.keys():
@@ -98,14 +98,14 @@ class ReflectometryDriver(Driver):
             elif self._pv_manager.is_beamline_move(reason):
                 return self._beamline.move
 
-            elif self._pv_manager.is_beamline_status(reason):
+            elif self._pv_manager.is_server_status(reason):
                 beamline_status_enums = self._pv_manager.PVDB[SERVER_STATUS]["enums"]
                 new_value = beamline_status_enums.index(STATUS_MANAGER.status.display_string)
                 #  Set the value so that the error condition is set
                 self.setParam(reason, new_value)
                 return new_value
 
-            elif self._pv_manager.is_beamline_message(reason):
+            elif self._pv_manager.is_server_message(reason):
                 return STATUS_MANAGER.message
             elif self._pv_manager.is_error_log(reason):
                 return STATUS_MANAGER.error_log
