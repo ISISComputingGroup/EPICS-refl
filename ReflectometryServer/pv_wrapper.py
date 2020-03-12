@@ -17,6 +17,10 @@ import logging
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
 from server_common.observable import observable
 
+# Time between monitor update processing to allow for multiple monitors to be collected together providing a single
+# update trigger
+MIN_TIME_BETWEEN_MONITOR_UPDATES_FROM_MONITORS = 0.05
+
 logger = logging.getLogger(__name__)
 RETRY_INTERVAL = 5
 
@@ -76,7 +80,7 @@ class ProcessMonitorEvents(object):
             try:
                 self.process_current_triggers()
                 if self._process_triggers.is_set():
-                    time.sleep(0.05)
+                    time.sleep(MIN_TIME_BETWEEN_MONITOR_UPDATES_FROM_MONITORS)
                 else:
                     break
             except Exception as e:
