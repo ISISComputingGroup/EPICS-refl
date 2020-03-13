@@ -1,5 +1,9 @@
+"""
+Autosave functionality
+"""
 from __future__ import unicode_literals, print_function, division, absolute_import
 
+import logging
 import os
 import threading
 
@@ -7,7 +11,86 @@ import six
 
 from server_common.utilities import print_and_log
 
+logger = logging.getLogger(__name__)
+
 ICP_VAR_DIR = os.path.normpath(os.environ.get("ICPVARDIR", os.path.join("C:\\", "Instrument", "var")))
+
+
+class Conversion(object):
+    """
+    Take a value convert it to a string for writing. Useful base class for conversions.
+    A conversion should define autosave_convert_for_write and autosave_convert_for_read
+    autosave_convert_for_read raises a value error if it can not convert the value
+    """
+    @staticmethod
+    def autosave_convert_for_write(value_to_write):
+        """
+        Convert the value to a string from writing to autosave
+        Args:
+            value_to_write: value to write
+
+        Returns: autosave version of the value
+
+        """
+        return str(value_to_write)
+
+
+class StringConversion(Conversion):
+    """
+    Take a value and convert it to and from string
+    """
+
+    @staticmethod
+    def autosave_convert_for_read(auto_save_value_read):
+        """
+        Convert values read from autosave into given values
+        Args:
+            auto_save_value_read: value read as a string from autosave
+
+        Returns:
+            value
+        """
+        return auto_save_value_read
+
+
+class FloatConversion(Conversion):
+    """
+    Take a value and convert it to and from a float
+    """
+
+    @staticmethod
+    def autosave_convert_for_read(auto_save_value_read):
+        """
+        Convert values read from autosave into given values
+        Args:
+            auto_save_value_read: value read as a string from autosave
+
+        Returns:
+            value
+        """
+        return float(auto_save_value_read)
+
+
+class BoolConversion(Conversion):
+    """
+    Take a value and convert it to and from a boolean
+    """
+
+    @staticmethod
+    def autosave_convert_for_read(auto_save_value_read):
+        """
+        Convert values read from autosave into given values
+        Args:
+            auto_save_value_read: value read as a string from autosave
+
+        Returns:
+            value
+        """
+        if auto_save_value_read == "True":
+            return True
+        elif auto_save_value_read == "False":
+            return False
+        raise ValueError("String is not True or False")
 
 
 class AutosaveFile(object):
@@ -15,7 +98,7 @@ class AutosaveFile(object):
     An Autosave object useful for saving values that can be read and written at sensible points in time.
     """
 
-    def __init__(self, service_name, file_name, folder=None):
+    def __init__(self, service_name, file_name, folder=None, conversion=None):
         """
         Creates a new AutosaveFile object.
 
@@ -33,6 +116,11 @@ class AutosaveFile(object):
 
         self.autosave_separator = " "
 
+        if conversion is None:
+            self._conversion = StringConversion()
+        else:
+            self._conversion = conversion
+
     def write_parameter(self, parameter, value):
         """
         Writes a parameter to the autosave file.
@@ -45,7 +133,9 @@ class AutosaveFile(object):
             # Disallow embedding the separator inside the value as this will cause a read to fail later.
             raise ValueError("Parameter name '{}' contains autosave separator which is not allowed".format(parameter))
 
-        if "\n" in str(value) or "\n" in parameter:
+        value = self._conversion.autosave_convert_for_write(value)
+
+        if "\n" in value or "\n" in parameter:
             # Autosave parameters are saved one-per-line, newlines would interfere with this.
             raise ValueError("Value or parameter contains line separator which is now allowed")
 
@@ -62,8 +152,18 @@ class AutosaveFile(object):
             parameter: The unique name for the parameter which is being read
             default: The value to return if the requested parameter does not have an autosaved value
         """
+
         with self._file_lock:
-            return self._file_to_dict().get(parameter, default)
+            try:
+                value_as_read = self._file_to_dict()[parameter]
+            except KeyError:
+                return default
+
+        try:
+            return self._conversion.autosave_convert_for_read(value_as_read)
+        except ValueError as ex:
+            logger.error("Could not convert autosave value for parameter {}: value was '{}' error: {}.".format(
+                parameter, value_as_read, ex))
 
     def _file_to_dict(self):
         """
@@ -96,7 +196,7 @@ class AutosaveFile(object):
             os.makedirs(self._folder)
 
         file_content = "\n".join("{}{}{}".format(param, self.autosave_separator, value)
-                                                for param, value in six.iteritems(parameters))
+                                 for param, value in six.iteritems(parameters))
         with self._file_lock, open(self._filepath, "w+") as f:
             return f.write(file_content)
 

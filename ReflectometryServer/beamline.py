@@ -10,7 +10,7 @@ from pcaspy import Severity
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
 from ReflectometryServer.geometry import PositionAndAngle
-from ReflectometryServer.file_io import read_mode, save_mode
+from ReflectometryServer.file_io import mode_autosave, MODE_KEY
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
 from ReflectometryServer.parameters import ParameterNotInitializedException
@@ -141,6 +141,11 @@ class BeamlineMode(object):
                 errors.append("SP Init '{}' in mode '{}' not in beamline".format(sp_init, self.name))
 
         return errors
+
+    def __repr__(self):
+        return "{}({}, disabled={}, beamline_parameters{!r}, sp_inits{!r})".format(
+            self.__class__.__name__, self.name, self.is_disabled, self._beamline_parameters_to_calculate,
+            self._sp_inits)
 
 
 class Beamline(object):
@@ -273,8 +278,10 @@ class Beamline(object):
             self._active_mode = self._modes[mode]
             for component in self._components:
                 component.set_incoming_beam_can_change(not self._active_mode.is_disabled)
-            save_mode(mode)
+                mode_autosave.write_parameter(MODE_KEY, value=mode)
             self._init_params_from_mode()
+            self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_rbv)
+            self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_set_point)
             self._trigger_active_mode_change()
         except KeyError:
             raise ValueError("Not a valid mode name: '{}'".format(mode))
@@ -485,13 +492,15 @@ class Beamline(object):
         Args:
             modes(list[BeamlineMode]): A list of all the modes in this configuration.
         """
-        mode_name = read_mode()
+        mode_name = mode_autosave.read_parameter(MODE_KEY, default=None)
         try:
             self._active_mode = self._modes[mode_name]
         except KeyError:
             logger.error("Mode {} not found in configuration. Setting default.".format(mode_name))
             if len(modes) > 0:
                 self._active_mode = modes[0]
+        for component in self._components:
+            component.set_incoming_beam_can_change(not self._active_mode.is_disabled, on_init=True)
 
     def _trigger_active_mode_change(self):
         """

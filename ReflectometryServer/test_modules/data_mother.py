@@ -82,7 +82,7 @@ class DataMother(object):
         return beamline_parameters, beamline
 
     @staticmethod
-    def beamline_s1_s3_theta_detector(spacing):
+    def beamline_s1_s3_theta_detector(spacing, initilise_mode_nr=True):
         """
         Create beamline with Slits 1 and 3 a theta and a detector
         Args:
@@ -126,7 +126,8 @@ class DataMother(object):
         modes = [nr_mode, disabled_mode]
         beam_start = PositionAndAngle(0.0, 0.0, 0.0)
         bl = Beamline(comps, params, drives, modes, beam_start)
-        bl.active_mode = nr_mode.name
+        if initilise_mode_nr:
+            bl.active_mode = nr_mode.name
         return bl, axes
 
     @staticmethod

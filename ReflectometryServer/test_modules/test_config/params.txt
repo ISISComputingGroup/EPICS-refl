@@ -1,2 +1,0 @@
-param_float 0.1
-param_bool True
