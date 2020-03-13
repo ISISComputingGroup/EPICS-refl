@@ -343,7 +343,7 @@ class TestBeamlineModeInitialization(unittest.TestCase):
 
         mock_diable_mode_auto_save.read_parameter.side_effect = autosave_value
         spacing = 2.0
-        bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
+        bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing, initilise_mode_nr=False)
 
         result = {comp.name: (comp.beam_path_set_point._incoming_beam, comp.beam_path_set_point.get_outgoing_beam())
                   for comp in bl}
