@@ -691,7 +691,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         except ValueError as ex:
             STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex))
             STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Failed to redefine position", self.name, Severity.MINOR_ALARM))
+                ProblemInfo("Failed to redefine position", self.name, Severity.MAJOR_ALARM))
 
 
 class JawsGapPVWrapper(_JawsAxisPVWrapper):

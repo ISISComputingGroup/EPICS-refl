@@ -10,10 +10,11 @@ from contextlib import contextmanager
 
 import numpy as np
 import six
+from pcaspy import Severity
 from scipy.interpolate import griddata
 
 from ReflectometryServer import beamline_configuration
-from ReflectometryServer.server_status_manager import STATUS_MANAGER
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
@@ -195,9 +196,16 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
                 STATUS_MANAGER.update_error_log(
                     "Engineering correction, '{}', raised exception '{}' is this because you have not coped with "
                     "non-autosaved value, {}".format(self.description, ex, non_initialised_params))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Invalid engineering correction (uses non autosaved value?)", self.description,
+                                Severity.MINOR_ALARM))
+
             else:
                 STATUS_MANAGER.update_error_log(
                     "Engineering correction, '{}', raised exception '{}' ".format(self.description, ex))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Engineering correction throws exception", self.description, Severity.MINOR_ALARM))
+
         return 0
 
 
@@ -349,6 +357,10 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
             non_initialised_params = [param.name for param in self._beamline_parameters if param.sp_rbv is None]
             STATUS_MANAGER.update_error_log("Engineering correction, '{}', evaluated for non-autosaved value, {}"
                                             .format(self.description, non_initialised_params))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Engineering correction evaluated for non-autosaved value", self.description,
+                            Severity.MINOR_ALARM))
+
             interpolated_value = [0.0]
         else:
             interpolated_value = griddata(self._grid_data_provider.points, self._grid_data_provider.corrections,

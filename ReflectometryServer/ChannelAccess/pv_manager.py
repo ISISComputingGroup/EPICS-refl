@@ -464,6 +464,12 @@ class PVManager:
             self.initial_PVs.append(pv_name + SEVR_FIELD)
 
     def get_init_filtered_pvdb(self):
+        """
+
+        Returns:
+            pvs that were created after beamline was set.
+
+        """
         return {key: value for key, value in self.PVDB.iteritems() if key not in self.initial_PVs}
 
     def _add_all_driver_pvs(self):

@@ -82,39 +82,45 @@ class ReflectometryDriver(Driver):
 
         Returns: The value associated to this PV
         """
-        if self._initialised:
-            if self._pv_manager.is_param(reason):
-                param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
-                param = self._beamline.parameter(param_name)
-                value = param_sort.get_from_parameter(param)
-                if param_sort is PvSort.IN_MODE:
-                    return self.getParam(reason)
-                else:
-                    return value
+        try:
+            if self._initialised:
+                if self._pv_manager.is_param(reason):
+                    param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(reason)
+                    param = self._beamline.parameter(param_name)
+                    value = param_sort.get_from_parameter(param)
+                    if param_sort is PvSort.IN_MODE:
+                        return self.getParam(reason)
+                    else:
+                        return value
 
-            elif self._pv_manager.is_beamline_mode(reason):
-                return self._beamline_mode_value(self._beamline.active_mode)
+                elif self._pv_manager.is_beamline_mode(reason):
+                    return self._beamline_mode_value(self._beamline.active_mode)
 
-            elif self._pv_manager.is_beamline_move(reason):
-                return self._beamline.move
+                elif self._pv_manager.is_beamline_move(reason):
+                    return self._beamline.move
 
-            elif self._pv_manager.is_server_status(reason):
-                beamline_status_enums = self._pv_manager.PVDB[SERVER_STATUS]["enums"]
-                new_value = beamline_status_enums.index(STATUS_MANAGER.status.display_string)
-                #  Set the value so that the error condition is set
-                self.setParam(reason, new_value)
-                return new_value
+                elif self._pv_manager.is_server_status(reason):
+                    beamline_status_enums = self._pv_manager.PVDB[SERVER_STATUS]["enums"]
+                    new_value = beamline_status_enums.index(STATUS_MANAGER.status.display_string)
+                    #  Set the value so that the error condition is set
+                    self.setParam(reason, new_value)
+                    return new_value
 
-            elif self._pv_manager.is_server_message(reason):
-                return STATUS_MANAGER.message
-            elif self._pv_manager.is_error_log(reason):
-                return STATUS_MANAGER.error_log
-            elif self._pv_manager.is_sample_length(reason):
-                return self._footprint_manager.get_sample_length()
-            elif self._pv_manager.is_alarm_status(reason):
-                return self.getParamDB(self._pv_manager.strip_fields_from_pv(reason)).alarm
-            elif self._pv_manager.is_alarm_severity(reason):
-                return self.getParamDB(self._pv_manager.strip_fields_from_pv(reason)).severity
+                elif self._pv_manager.is_server_message(reason):
+                    return STATUS_MANAGER.message
+                elif self._pv_manager.is_error_log(reason):
+                    return STATUS_MANAGER.error_log
+                elif self._pv_manager.is_sample_length(reason):
+                    return self._footprint_manager.get_sample_length()
+                elif self._pv_manager.is_alarm_status(reason):
+                    return self.getParamDB(self._pv_manager.strip_fields_from_pv(reason)).alarm
+                elif self._pv_manager.is_alarm_severity(reason):
+                    return self.getParamDB(self._pv_manager.strip_fields_from_pv(reason)).severity
+        except Exception as e:
+            STATUS_MANAGER.update_error_log(e.message)
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("PV Value read caused exception.", reason, Severity.MAJOR_ALARM))
+            return
 
         return self.getParam(reason)
 
