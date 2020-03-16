@@ -23,6 +23,7 @@ class PositionAndAngle(Position):
     """
     The beam position and direction
     """
+
     def __init__(self, y, z, angle):
         """
 
@@ -35,7 +36,36 @@ class PositionAndAngle(Position):
         self.angle = float(angle)
 
     def __repr__(self):
-        return "PositionAndAngle({}, {}, {})".format(self.z, self.y, self.angle)
+        return "{}({}, {}, {})".format(self.__class__.__name__, self.y, self.z, self.angle)
+
+    @staticmethod
+    def autosave_convert_for_write(value):
+        """
+        Convert position and angle to a string which can be saved in autosave
+        Args:
+            value: value to write
+
+        Returns: string representation of the position and angle
+
+        """
+        return repr(value)
+
+    @staticmethod
+    def autosave_convert_for_read(autosave_read_value):
+        """
+        Convert a position and angle value from string read in autosave to a position and angle
+        Args:
+            autosave_read_value: string version of the value
+
+        Returns:
+            (PositionAndAngle|None): angle and position or None if conversion can not be done
+
+        """
+        try:
+            y, z, angle = autosave_read_value[len(PositionAndAngle.__name__)+1:-1].split(",")
+            return PositionAndAngle(float(y), float(z), float(angle))
+        except (TypeError, ValueError):
+            raise ValueError("Converting from string to {}".format(PositionAndAngle.__name__))
 
 
 def position_from_radial_coords(r, theta, angle=None):

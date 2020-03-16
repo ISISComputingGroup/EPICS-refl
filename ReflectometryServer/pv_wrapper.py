@@ -12,7 +12,7 @@ from pcaspy import Severity
 
 from ReflectometryServer.server_status_manager import ProblemInfo, STATUS_MANAGER
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
-from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
+from ReflectometryServer.file_io import velocity_float_autosave, velocity_bool_autosave, param_bool_autosave
 import logging
 
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
@@ -283,23 +283,27 @@ class PVWrapper(object):
         Initialise the velocity cache and its restored status. If no cache exists then load the last velocity value
         from the auto-save file.
         """
-        try:
-            autosave_value = read_autosave_value(self.name, AutosaveType.VELOCITY)
-            if autosave_value is not None:
-                logger.debug("Restoring {pv_name} velocity_cache with auto-save value {value}"
-                             .format(pv_name=self.name, value=autosave_value))
-                self._velocity_to_restore = float(autosave_value)
-            autosave_value = read_autosave_value(self.name+"_velocity_restored", AutosaveType.VELOCITY)
+        autosave_value = velocity_float_autosave.read_parameter(self.name, None)
+        if autosave_value is not None:
+            logger.debug("Restoring {pv_name} velocity_cache with auto-save value {value}"
+                         .format(pv_name=self.name, value=autosave_value))
+            self._velocity_to_restore = autosave_value
+        else:
+            logger.error("Error: Unable to initialise velocity cache from auto-save for {}."
+                         .format(self.name))
+
+        if autosave_value is not None:
+            autosave_value = velocity_bool_autosave.read_parameter(self.name + "_velocity_restored", None)
             if autosave_value is not None:
                 logger.debug("Restoring {pv_name} velocity_cache_restored with auto-save value {value}"
                              .format(pv_name=self.name, value=autosave_value))
-                self._velocity_restored = bool(autosave_value)
-        except (ValueError, TypeError) as error:
-            STATUS_MANAGER.update_error_log(
-                "Error: Unable to initialise velocity cache from auto-save ({error_message})."
-                .format(error_message=error))
-            STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Unable to read autosaved velocity", self.name, Severity.MINOR_ALARM))
+                self._velocity_restored = autosave_value
+            else:
+                STATUS_MANAGER.update_error_log(
+                    "Error: Unable to initialise velocity cache (restored flag) from auto-save for {}.".format(
+                        self.name))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Unable to read autosaved velocity", self.name, Severity.MINOR_ALARM))
 
     def cache_velocity(self):
         """
@@ -310,9 +314,9 @@ class PVWrapper(object):
         """
         if self._velocity_restored:
             self._velocity_to_restore = self.velocity
-            write_autosave_value(self.name, self._velocity_to_restore, AutosaveType.VELOCITY)
+            velocity_float_autosave.write_parameter(self.name, self._velocity_to_restore)
             self._velocity_restored = False
-            write_autosave_value(self.name + "_velocity_restored", self._velocity_restored, AutosaveType.VELOCITY)
+            velocity_bool_autosave.write_parameter(self.name + "_velocity_restored", self._velocity_restored)
         elif not self._velocity_restored and self._moving_state_cache == MTR_STOPPED:
             STATUS_MANAGER.update_error_log(
                 "Velocity for {pv_name} has not been cached as existing cache has not been restored and "
@@ -344,7 +348,7 @@ class PVWrapper(object):
                              .format(value=self._velocity_to_restore, pv_name=self.name))
                 self._write_pv(self._velo_pv, self._velocity_to_restore)
             self._velocity_restored = True
-            write_autosave_value(self.name + "_velocity_restored", self._velocity_restored, AutosaveType.VELOCITY)
+            param_bool_autosave.write_parameter(self.name + "_velocity_restored", self._velocity_restored)
 
     def _on_update_setpoint_value(self, new_value, alarm_severity, alarm_status):
         """
