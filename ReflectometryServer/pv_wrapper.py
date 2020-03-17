@@ -2,6 +2,7 @@
 Wrapper for motor PVs
 """
 import abc
+import threading
 from collections import namedtuple
 import time
 from functools import partial
@@ -15,6 +16,10 @@ import logging
 
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
 from server_common.observable import observable
+
+# Time between monitor update processing to allow for multiple monitors to be collected together providing a single
+# update trigger
+MIN_TIME_BETWEEN_MONITOR_UPDATES_FROM_MONITORS = 0.05
 
 logger = logging.getLogger(__name__)
 RETRY_INTERVAL = 5
@@ -39,6 +44,70 @@ IsChangingUpdate = namedtuple("IsChangingUpdate", [
     "value",            # The new is-changing state of the axis (boolean)
     "alarm_severity",   # The alarm severity of the axis, represented as an integer (see Channel Access doc)
     "alarm_status"])    # The alarm status of the axis, represented as an integer (see Channel Access doc)
+
+
+class ProcessMonitorEvents(object):
+    """
+    Collect updates produced and only apply the latest ones.
+    """
+
+    def __init__(self):
+        self.triggers_lock = threading.RLock()
+        self.triggers = {}
+        self._process_triggers = threading.Event()
+        self._process_triggers.clear()
+
+    def add_trigger(self, trigger_fn, update, start_processing=True):
+        """
+        Add a trigger to be called. These are stored by update type so that future updates can overwrite previous
+        updates
+        Args:
+            trigger_fn: function to trigger
+            update: update to pass to that trigger
+            start_processing: True to start the processing loop; False don't process until loop is started
+        """
+        with self.triggers_lock:
+            self.triggers[(trigger_fn, update.__class__)] = (trigger_fn, update)
+            if start_processing and not self._process_triggers.is_set():
+                self._process_triggers.set()
+                threading.Thread(target=self.process_triggers_loop).start()
+
+    def process_triggers_loop(self):
+        """
+        Process triggers on the list while process triggers is True
+        """
+        while True:
+            try:
+                self.process_current_triggers()
+                if self._process_triggers.is_set():
+                    time.sleep(MIN_TIME_BETWEEN_MONITOR_UPDATES_FROM_MONITORS)
+                else:
+                    break
+            except Exception as e:
+                logger.error("Exception occurred in process events: {}".format(e))
+
+    def process_current_triggers(self):
+        """
+        Process the current event set clearing the process triggers if the list becomes empty.
+        """
+        with self.triggers_lock:
+            events_to_process = self.triggers
+            self.triggers = {}
+
+            # if there are no triggers then clear the process triggers flag. If an event comes in after this a new
+            #  thread will be started to process those events
+            if len(events_to_process) == 0:
+                self._process_triggers.clear()
+
+        for listener_trigger_fn, event in events_to_process.values():
+            try:
+                listener_trigger_fn(event)
+            except Exception as e:
+                logger.error("Exception occurred in processing an event: {}".format(e))
+
+
+# Process triggers that derive from PV Monitors
+PROCESS_MONITOR_EVENTS = ProcessMonitorEvents()
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -352,7 +421,8 @@ class PVWrapper(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self.trigger_listeners(SetpointUpdate(new_value, alarm_severity, alarm_status))
+        PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners,
+                                           SetpointUpdate(new_value, alarm_severity, alarm_status))
 
     def _on_update_readback_value(self, new_value, alarm_severity, alarm_status):
         """
@@ -363,7 +433,9 @@ class PVWrapper(object):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self.trigger_listeners(ReadbackUpdate(new_value, alarm_severity, alarm_status))
+
+        PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners,
+                                           ReadbackUpdate(new_value, alarm_severity, alarm_status))
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
         """
@@ -377,7 +449,9 @@ class PVWrapper(object):
         if new_value == MTR_STOPPED:
             self.restore_pre_move_velocity()
         self._moving_state_cache = new_value
-        self.trigger_listeners(IsChangingUpdate(self._dmov_to_bool(new_value), alarm_severity, alarm_status))
+
+        changing_update = IsChangingUpdate(self._dmov_to_bool(new_value), alarm_severity, alarm_status)
+        PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners, changing_update)
 
     def _dmov_to_bool(self, value):
         """
@@ -640,7 +714,8 @@ class _JawsAxisPVWrapper(PVWrapper):
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         self._moving_state_cache = new_value
-        self.trigger_listeners(IsChangingUpdate(self._dmov_to_bool(new_value), alarm_severity, alarm_status))
+        changing_update = IsChangingUpdate(self._dmov_to_bool(new_value), alarm_severity, alarm_status)
+        PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners, changing_update)
 
     def _strip_source_pv(self, pv):
         """
