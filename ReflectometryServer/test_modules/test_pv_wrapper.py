@@ -313,7 +313,7 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
         assert_that(result, is_(expected))
 
 
-class TestAgregateMonitorEvents(unittest.TestCase):
+class TestAggregateMonitorEvents(unittest.TestCase):
 
     def setUp(self):
         self.pme = ProcessMonitorEvents()
@@ -339,7 +339,7 @@ class TestAgregateMonitorEvents(unittest.TestCase):
 
         assert_that(self.event_arg, is_([expected_value]))
 
-    def test_GIVEN_two_events_of_different_type_WHEN_processed_THEN_both_event_triggered(self):
+    def test_GIVEN_two_events_of_different_type_WHEN_processed_THEN_both_events_triggered(self):
         expected_value1 = "HI"
         expected_value2 = 1
         self.pme.add_trigger(self.event, expected_value1, start_processing=False)
@@ -349,7 +349,7 @@ class TestAgregateMonitorEvents(unittest.TestCase):
 
         assert_that(self.event_arg, contains_inanyorder(expected_value1, expected_value2))
 
-    def test_GIVEN_two_events_of_different_type_WHEN_processed_one_has_exception_THEN_non_excpetion_event_triggered(self):
+    def test_GIVEN_two_events_of_different_type_WHEN_processed_one_has_exception_THEN_only_non_exception_events_triggered(self):
         expected_value1 = "HI"
         expected_value2 = 1
         mock = Mock(side_effect=ValueError)
@@ -361,7 +361,7 @@ class TestAgregateMonitorEvents(unittest.TestCase):
 
         assert_that(self.event_arg, contains_inanyorder(expected_value1, expected_value2))
 
-    def test_GIVEN_one_event_event_WHEN_processed_THEN_loop_is_terminated(self):
+    def test_GIVEN_one_event_WHEN_processed_THEN_loop_is_terminated(self):
         expected_value = "HI"
         self.pme.add_trigger(self.event, expected_value)
 
@@ -369,7 +369,7 @@ class TestAgregateMonitorEvents(unittest.TestCase):
 
         assert_that(self.event_arg, is_([expected_value]))
 
-    def test_GIVEN_one_event_event_WHEN_added_THEN_event_is_processed(self):
+    def test_GIVEN_one_event_WHEN_added_THEN_event_is_processed(self):
         expected_value = "HI"
         self.pme.add_trigger(self.event, expected_value)
 
@@ -377,7 +377,7 @@ class TestAgregateMonitorEvents(unittest.TestCase):
 
         assert_that(self.event_arg, is_([expected_value]))
 
-    def test_GIVEN_nothing_WHEN_one_event_event_wait_then_second_event_THEN_events_are_both_processed(self):
+    def test_GIVEN_nothing_WHEN_one_event_wait_then_second_event_THEN_events_are_both_processed(self):
         # check that the thread can be restarted
 
         for expected_value in ["HI", "THERE", "WORKS"]:
