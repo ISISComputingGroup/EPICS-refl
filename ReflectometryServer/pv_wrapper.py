@@ -278,6 +278,7 @@ class PVWrapper(object):
         Args:
             value: The value to set
         """
+        logger.info("{}: Moving axis to new position: {}".format(self.name, value))
         self._write_pv(self._sp_pv, value)
 
     @property

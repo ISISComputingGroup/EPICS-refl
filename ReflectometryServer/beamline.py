@@ -371,6 +371,7 @@ class Beamline(object):
         Updates the beamline parameters to the latest set point value; reapplies if they are in the mode. Then moves to
         latest positions.
         """
+        logger.info("BEAMLINE MOVE TRIGGERED")
         parameters = self._beamline_parameters.values()
         parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
 
@@ -394,6 +395,7 @@ class Beamline(object):
         Args:
             source: source to start the update from; None start from the beginning.
         """
+        logger.info("PARAMETER MOVE TRIGGERED (source: {})".format(source.name))
         if self._active_mode.has_beamline_parameter(source):
             parameters = self._beamline_parameters.values()
             parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, source)
@@ -449,6 +451,7 @@ class Beamline(object):
         for driver in self._drivers:
             max_move_duration = max(max_move_duration, driver.get_max_move_duration())
 
+        logger.debug("Move duration for slowest axis: {}s".format(max_move_duration))
         return max_move_duration
 
     def set_status(self, status, message):
