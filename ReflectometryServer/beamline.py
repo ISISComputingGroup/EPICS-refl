@@ -451,7 +451,7 @@ class Beamline(object):
         for driver in self._drivers:
             max_move_duration = max(max_move_duration, driver.get_max_move_duration())
 
-        logger.debug("Move duration for slowest axis: {}s".format(max_move_duration))
+        logger.debug("Move duration for slowest axis: {:.2f}s".format(max_move_duration))
         return max_move_duration
 
     def set_status(self, status, message):

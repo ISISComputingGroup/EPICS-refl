@@ -11,7 +11,7 @@ import six
 from contextlib2 import contextmanager
 
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
-from ReflectometryServer.file_io import velocity_float_autosave, velocity_bool_autosave, param_bool_autosave
+from ReflectometryServer.file_io import velocity_float_autosave, velocity_bool_autosave
 import logging
 
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
@@ -365,11 +365,11 @@ class PVWrapper(object):
         if autosave_value is not None:
             autosave_value = velocity_bool_autosave.read_parameter(self.name + "_velocity_restored", None)
             if autosave_value is not None:
-                logger.debug("Restoring {pv_name} velocity_cache_restored with auto-save value {value}"
+                logger.debug("Restoring {pv_name} velocity_restored with auto-save value {value}"
                              .format(pv_name=self.name, value=autosave_value))
                 self._velocity_restored = autosave_value
             else:
-                logger.error("Error: Unable to initialise velocity cache (restored flag) from auto-save for {}."
+                logger.error("Error: Unable to initialise velocity_restored flag from auto-save for {}."
                              .format(self.name))
 
     def cache_velocity(self):
@@ -400,18 +400,18 @@ class PVWrapper(object):
         Restore the cached axis velocity from the value stored on the server and update the restored cache status.
         """
         if self._velocity_restored:
-            logger.error("Velocity for PV {pv_name} has not been restored from cache. The cache has already been "
+            logger.error("Velocity for {pv_name} has not been restored from cache. The cache has already been "
                          "restored previously. Hint: Are you moving the axis outside of the reflectometry server?"
                          .format(pv_name=self.name))
         else:
             if self._velocity_to_restore is None:
                 logger.error("Cannot restore velocity: velocity cache is None for {pv_name}".format(pv_name=self.name))
             else:
-                logger.debug("Restoring velocity cache of {value} for PV {pv_name}"
+                logger.debug("Restoring velocity cache of {value} for {pv_name}"
                              .format(value=self._velocity_to_restore, pv_name=self.name))
                 self._write_pv(self._velo_pv, self._velocity_to_restore)
             self._velocity_restored = True
-            param_bool_autosave.write_parameter(self.name + "_velocity_restored", self._velocity_restored)
+            velocity_bool_autosave.write_parameter(self.name + "_velocity_restored", self._velocity_restored)
 
     def _on_update_setpoint_value(self, new_value, alarm_severity, alarm_status):
         """
