@@ -180,10 +180,8 @@ class IocDriver(object):
             base_move_duration = self._base_move_duration()
             duration = base_move_duration + backlash_duration
 
-            logger.debug("Shortest move duration for {}: {:.2f}s ({:.2f}s base; {:.2f}s backlash".format(self.name,
-                                                                                                   duration,
-                                                                                                   base_move_duration,
-                                                                                                   backlash_duration))
+            logger.debug("Shortest move duration for {}: {:.2f}s ({:.2f}s base; {:.2f}s backlash)"
+                         .format(self.name, duration, base_move_duration, backlash_duration))
         return duration
 
     def perform_move(self, move_duration, force=False):
