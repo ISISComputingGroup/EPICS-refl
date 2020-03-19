@@ -3,6 +3,8 @@ Parameters that the user would interact with
 """
 from collections import namedtuple
 
+from pcaspy import Severity
+
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave
 import logging
@@ -13,6 +15,7 @@ import abc
 import six
 
 from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
@@ -366,6 +369,8 @@ class BeamlineParameter(object):
             self._move_component()
             self._set_changed_flag()
         else:
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("No parameter initialization value found", self.name, Severity.MAJOR_ALARM))
             raise ParameterNotInitializedException(self.name)
 
     @abc.abstractmethod
@@ -397,7 +402,10 @@ class BeamlineParameter(object):
         """
         Logs an error that the autosave value this parameter was trying to read was of the wrong type.
         """
-        logger.error("Could not read autosave value for parameter {}: unexpected type.".format(self.name))
+        STATUS_MANAGER.update_error_log(
+            "Could not read autosave value for parameter {}: unexpected type.".format(self.name))
+        STATUS_MANAGER.update_active_problems(ProblemInfo("Parameter autosave value has unexpected type", self.name,
+                                              Severity.MINOR_ALARM))
 
 
 class AngleParameter(BeamlineParameter):

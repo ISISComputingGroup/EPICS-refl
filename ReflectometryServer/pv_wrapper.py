@@ -9,7 +9,9 @@ from functools import partial
 
 import six
 from contextlib2 import contextmanager
+from pcaspy import Severity
 
+from ReflectometryServer.server_status_manager import ProblemInfo, STATUS_MANAGER
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
 from ReflectometryServer.file_io import velocity_float_autosave, velocity_bool_autosave, param_bool_autosave
 import logging
@@ -135,8 +137,6 @@ class PVWrapper(object):
         if min_velocity_scale_factor is None:
             self._min_velocity_scale_factor = DEFAULT_SCALE_FACTOR
         elif min_velocity_scale_factor <= 0:
-            logger.error("Minimum velocity scale level {} is invalid (Should be > 0). "
-                         "Setting default scaling factor of 100".format(min_velocity_scale_factor))
             self._min_velocity_scale_factor = DEFAULT_SCALE_FACTOR
         else:
             self._min_velocity_scale_factor = min_velocity_scale_factor
@@ -161,7 +161,7 @@ class PVWrapper(object):
         Blocks the process until the PV this driver is pointing at is available.
         """
         while not self._ca.pv_exists(self._rbv_pv):
-            logger.error(
+            STATUS_MANAGER.update_error_log(
                 "{} does not exist. Check the PV is correct and the IOC is running. Retrying in {} s.".format(
                     self._rbv_pv, RETRY_INTERVAL))
             time.sleep(RETRY_INTERVAL)
@@ -184,7 +184,6 @@ class PVWrapper(object):
         Initialise PVWrapper values once the beamline is ready.
         """
         self._set_resolution()
-        self._add_monitors()
         self._velocity_cache = self._read_pv(self._velo_pv)
         self._backlash_distance_cache = self._read_pv(self._bdst_pv)
         self._backlash_velocity_cache = self._read_pv(self._bvel_pv)
@@ -192,6 +191,7 @@ class PVWrapper(object):
         self._max_velocity_cache = self._read_pv(self._vmax_pv)
         self._base_velocity_cache = self._read_pv(self._vbas_pv)
         self._init_velocity_cache()
+        self._add_monitors()
 
     def _add_monitors(self):
         """
@@ -199,8 +199,8 @@ class PVWrapper(object):
         """
         self._monitor_pv(self._rbv_pv, self._on_update_readback_value)
         self._monitor_pv(self._sp_pv, self._on_update_setpoint_value)
-        self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._velo_pv, self._on_update_velocity)
+        self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
         self._monitor_pv(self._bdst_pv, self._on_update_backlash_distance)
         self._monitor_pv(self._bvel_pv, self._on_update_backlash_velocity)
         self._monitor_pv(self._dir_pv, self._on_update_direction)
@@ -219,7 +219,7 @@ class PVWrapper(object):
                 logger.debug("Monitoring {} for changes.".format(pv))
                 break
             else:
-                logger.error(
+                STATUS_MANAGER.update_error_log(
                     "Error adding monitor to {}: PV does not exist. Check the PV is correct and the IOC is running. "
                     "Retrying in {} s.".format(pv, RETRY_INTERVAL))
                 time.sleep(RETRY_INTERVAL)
@@ -235,7 +235,7 @@ class PVWrapper(object):
         if value is not None:
             return value
         else:
-            logger.error("Could not connect to PV {}.".format(pv))
+            STATUS_MANAGER.update_error_log("Could not connect to PV {}.".format(pv))
             raise UnableToConnectToPVException(pv, "Check configuration is correct and IOC is running.")
 
     def _write_pv(self, pv, value, wait=False):
@@ -368,8 +368,11 @@ class PVWrapper(object):
                              .format(pv_name=self.name, value=autosave_value))
                 self._velocity_restored = autosave_value
             else:
-                logger.error("Error: Unable to initialise velocity cache (restored flag) from auto-save for {}."
-                             .format(self.name))
+                STATUS_MANAGER.update_error_log(
+                    "Error: Unable to initialise velocity cache (restored flag) from auto-save for {}.".format(
+                        self.name))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Unable to read autosaved velocity", self.name, Severity.MINOR_ALARM))
 
     def cache_velocity(self):
         """
@@ -384,9 +387,9 @@ class PVWrapper(object):
             self._velocity_restored = False
             velocity_bool_autosave.write_parameter(self.name + "_velocity_restored", self._velocity_restored)
         elif not self._velocity_restored and self._moving_state_cache == MTR_STOPPED:
-            logger.error("Velocity for {pv_name} has not been cached as existing cache has not been restored and "
-                         "is stationary."
-                         .format(pv_name=self.name))
+            STATUS_MANAGER.update_error_log(
+                "Velocity for {pv_name} has not been cached as existing cache has not been restored and "
+                "is stationary.".format(pv_name=self.name))
         elif not self._velocity_restored and self._moving_state_cache == MTR_MOVING:
             # Move interrupting current move. Leave the original cache so it can be restored once all
             # moves have been completed.
@@ -399,12 +402,16 @@ class PVWrapper(object):
         Restore the cached axis velocity from the value stored on the server and update the restored cache status.
         """
         if self._velocity_restored:
-            logger.error("Velocity for PV {pv_name} has not been restored from cache. The cache has already been "
-                         "restored previously. Hint: Are you moving the axis outside of the reflectometry server?"
-                         .format(pv_name=self.name))
+            STATUS_MANAGER.update_error_log(
+                "Velocity for PV {pv_name} has not been restored from cache. The cache has already been "
+                "restored previously. Hint: Are you moving the axis outside of the reflectometry server?"
+                .format(pv_name=self.name))
         else:
             if self._velocity_to_restore is None:
-                logger.error("Cannot restore velocity: velocity cache is None for {pv_name}".format(pv_name=self.name))
+                STATUS_MANAGER.update_error_log(
+                    "Cannot restore velocity: velocity cache is None for {pv_name}".format(pv_name=self.name))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Unable to restore axis velocity", self.name, Severity.MINOR_ALARM))
             else:
                 logger.debug("Restoring velocity cache of {value} for PV {pv_name}"
                              .format(value=self._velocity_to_restore, pv_name=self.name))
@@ -595,7 +602,9 @@ class MotorPVWrapper(PVWrapper):
             with self._motor_in_set_mode(self._prefixed_pv):
                 self._write_pv(self._sp_pv, new_position)
         except ValueError as ex:
-            logger.error("Can not define zero: {}".format(ex))
+            STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Failed to redefine position", self.name, Severity.MINOR_ALARM))
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -640,7 +649,6 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         Initialise PVWrapper values once the beamline is ready.
         """
-        self._add_monitors()
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
 
@@ -651,6 +659,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         self._base_velocity_cache = max([self._read_pv(pv) for pv in motor_base_velocities])
 
         self._backlash_distance_cache = 0  # No backlash used as source of clash conditions on jaws sets
+        self._add_monitors()
 
     def _add_monitors(self):
         """
@@ -681,8 +690,11 @@ class _JawsAxisPVWrapper(PVWrapper):
         Args:
             value (float): The value to set
         """
-        logger.error("Error: An attempt was made to write a velocity to a Jaws Axis. We do not support this "
-                     "as we do not expect jaws to be synchronised.")
+        STATUS_MANAGER.update_error_log("Error: An attempt was made to write a velocity to a Jaws Axis. We do not "
+                                        "support this as we do not expect jaws to be synchronised.")
+        STATUS_MANAGER.update_active_problems(
+            ProblemInfo("Drivers for Jaws axes should not be synchronised. Check configuration", self.name,
+                        Severity.MINOR_ALARM))
 
     @property
     def max_velocity(self):
@@ -729,8 +741,8 @@ class _JawsAxisPVWrapper(PVWrapper):
         for key in self._directions:
             if key in pv:
                 return key
-        logger.error("Unexpected event source: {}".format(pv))
-        logger.error("Unexpected event source: {}".format(pv))
+        STATUS_MANAGER.update_error_log(
+            "Wrapper for {} received event from unexpected source: {}".format(self.name, pv))
 
     def define_position_as(self, new_position):
         """
@@ -749,14 +761,16 @@ class _JawsAxisPVWrapper(PVWrapper):
                 logger.info("    Motor {name} initially at rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
 
             with self._motor_in_set_mode(mtr1), self._motor_in_set_mode(mtr2):
-                    self._write_pv(self._sp_pv, new_position)
+                self._write_pv(self._sp_pv, new_position)
 
             for motor in self._pv_names_for_directions("MTR"):
                 rbv = self._read_pv("{}.RBV".format(motor))
                 sp = self._read_pv("{}".format(motor))
                 logger.info("    Motor {name} moved to rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
         except ValueError as ex:
-            logger.error("Can not define zero: {}".format(ex))
+            STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Failed to redefine position", self.name, Severity.MAJOR_ALARM))
 
 
 class JawsGapPVWrapper(_JawsAxisPVWrapper):

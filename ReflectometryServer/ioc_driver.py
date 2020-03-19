@@ -6,9 +6,13 @@ import math
 import logging
 from collections import namedtuple
 
+from genie_python.channel_access_exceptions import UnableToConnectToPVException
+from pcaspy import Severity
+
 from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
 from ReflectometryServer.components import ChangeAxis, DefineValueAsEvent
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo, STATUS
 from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
@@ -357,8 +361,11 @@ class DisplacementDriver(IocDriver):
         else:
             if self._out_of_beam_position is None:
                 displacement = 0
-                logger.error("The component, {},is out of the beam but there is no out of beam position for the driver "
-                             "running axis{}".format(self._component.name, self._axis.name))
+                STATUS_MANAGER.update_error_log(
+                    "The component {} is out of the beam but there is no out of beam position for the driver "
+                    "running axis {}".format(self._component.name, self._axis.name))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("No out of beam position defined for axis", self.name, Severity.MINOR_ALARM))
             else:
                 displacement = self._out_of_beam_position
         return displacement
