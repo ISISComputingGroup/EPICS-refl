@@ -283,6 +283,7 @@ class Beamline(object):
             self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_rbv)
             self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_set_point)
             self._trigger_active_mode_change()
+            logger.info("CHANGED ACTIVE MODE: {}".format(mode))
         except KeyError:
             raise ValueError("Not a valid mode name: '{}'".format(mode))
 
@@ -420,6 +421,7 @@ class Beamline(object):
         """
         for key, value in self._active_mode.initial_setpoints.items():
             self._beamline_parameters[key].sp_no_move = value
+            logger.info("Default value applied for param {}: {}".format(key, value))
 
     def _move_drivers(self):
         """
