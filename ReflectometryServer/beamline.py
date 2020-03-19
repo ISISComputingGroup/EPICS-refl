@@ -2,10 +2,9 @@
 Resources at a beamline level
 """
 import logging
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from functools import partial
 
-from enum import Enum
 from pcaspy import Severity
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
@@ -14,48 +13,24 @@ from ReflectometryServer.file_io import mode_autosave, MODE_KEY
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
 from ReflectometryServer.parameters import ParameterNotInitializedException
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 from server_common.channel_access import UnableToConnectToPVException
 
 logger = logging.getLogger(__name__)
 
 # An update of the overall status of the beamline
-BeamlineStatus = namedtuple("Status", [
-    'display_string',   # A string representation of the beamline state
-    'alarm_severity'])  # The alarm severity associated to this state, represented as an int (see Channel Access doc)
 
 
-class STATUS(Enum):
+class BeamlineConfigurationInvalidException(Exception):
     """
-    Beamline States.
+    Exception for when a parameter is not initialized.
     """
-    INITIALISING = BeamlineStatus("INITIALISING", Severity.MINOR_ALARM)
-    OKAY = BeamlineStatus("OKAY", Severity.NO_ALARM)
-    CONFIG_ERROR = BeamlineStatus("CONFIG_ERROR", Severity.MAJOR_ALARM)
-    GENERAL_ERROR = BeamlineStatus("ERROR", Severity.MAJOR_ALARM)
+    def __init__(self, err):
+        self.message = str(err)
 
-    @staticmethod
-    def status_codes():
-        """
-        Returns:
-            (list[str]) status codes for the beamline
-        """
-        # noinspection PyTypeChecker
-        return [status.value for status in STATUS]
-
-    @property
-    def display_string(self):
-        """
-        Returns: display string for the enum
-        """
-        return self.value.display_string
-
-    @property
-    def alarm_severity(self):
-        """
-        Returns: Alarm severity of beamline status
-        """
-        return self.value.alarm_severity
+    def __str__(self):
+        return self.message
 
 
 class BeamlineMode(object):
@@ -171,14 +146,12 @@ class Beamline(object):
             beamline_constants (list[ReflectometryServer.beamline_constant.BeamlineConstant]): beamline constants to
                 expose
         """
-
         self._components = components
         self._beam_path_calcs_set_point = []
         self._beam_path_calcs_rbv = []
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
         self._active_mode_change_listeners = set()
-        self._status_change_listeners = set()
         footprint_setup = footprint_setup if footprint_setup is not None else BaseFootprintSetup()
         self.footprint_manager = FootprintManager(footprint_setup)
         for beamline_parameter in beamline_parameters:
@@ -211,8 +184,7 @@ class Beamline(object):
         self._active_mode = None
         self._initialise_mode(modes)
 
-        self._status = STATUS.OKAY
-        self._message = ""
+        STATUS_MANAGER.set_initialised()
 
         if beamline_constants is not None:
             self.beamline_constant = beamline_constants
@@ -239,8 +211,9 @@ class Beamline(object):
             errors.extend(parameter.validate(self._drivers))
 
         if len(errors) > 0:
-            logger.error("There is a problem with beamline configuration:\n    {}".format("\n    ".join(errors)))
-            raise ValueError("Problem with beamline configuration: {}".format(";".join(errors)))
+            STATUS_MANAGER.update_error_log(
+                "Beamline configuration is invalid:\n    {}".format("\n    ".join(errors)))
+            raise BeamlineConfigurationInvalidException("Beamline configuration invalid: {}".format(";".join(errors)))
 
     @property
     def parameters(self):
@@ -265,6 +238,7 @@ class Beamline(object):
         try:
             return self._active_mode.name
         except AttributeError:
+            STATUS_MANAGER.update_error_log("Error: No active beamline mode found.")
             return None
 
     @active_mode.setter
@@ -302,6 +276,7 @@ class Beamline(object):
         Args:
             _: dummy can be anything
         """
+        STATUS_MANAGER.clear_all()
         self._move_for_all_beamline_parameters()
 
     def __getitem__(self, item):
@@ -380,11 +355,12 @@ class Beamline(object):
             if beamline_parameter in parameters_in_mode or beamline_parameter.sp_changed:
                 try:
                     beamline_parameter.move_to_sp_no_callback()
-                except ParameterNotInitializedException as e:
-                    self.set_status(STATUS.GENERAL_ERROR,
-                                    "Parameter {} has not been initialized. Check reflectometry configuration is "
-                                    "correct and underlying motor IOC is running.".format(e.message))
+                except ParameterNotInitializedException:
+                    STATUS_MANAGER.update_active_problems(
+                        ProblemInfo("Parameter not initialized. Is the configuration correct?", beamline_parameter.name,
+                                    Severity.MAJOR_ALARM))
                     return
+
         self._move_drivers()
 
     def _move_for_single_beamline_parameters(self, source):
@@ -396,6 +372,7 @@ class Beamline(object):
         Args:
             source: source to start the update from; None start from the beginning.
         """
+        STATUS_MANAGER.clear_all()
         logger.info("PARAMETER MOVE TRIGGERED (source: {})".format(source.name))
         if self._active_mode.has_beamline_parameter(source):
             parameters = self._beamline_parameters.values()
@@ -428,16 +405,17 @@ class Beamline(object):
         Issue move for all drivers at the speed of the slowest axis and set appropriate status for failure/success.
         """
         try:
-
-            try:
-                self._perform_move_for_all_drivers(self._get_max_move_duration())
-                self.set_status(STATUS.OKAY, "")
-            except ZeroDivisionError as e:
-                logger.error("Failed to perform move: {}".format(e))
-                self.set_status(STATUS.CONFIG_ERROR, str(e))
-
+            self._perform_move_for_all_drivers(self._get_max_move_duration())
+        except ZeroDivisionError as e:
+                STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM))
+                return
         except (ValueError, UnableToConnectToPVException) as e:
-            self.set_status(STATUS.GENERAL_ERROR, str(e))
+            STATUS_MANAGER.update_error_log("Unable to connect to PV: {}".format(str(e)))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Unable to connect to PV", "beamline", Severity.MAJOR_ALARM))
+            return
 
     def _perform_move_for_all_drivers(self, move_duration):
         for driver in self._drivers:
@@ -456,40 +434,6 @@ class Beamline(object):
         logger.debug("Move duration for slowest axis: {:.2f}s".format(max_move_duration))
         return max_move_duration
 
-    def set_status(self, status, message):
-        """
-        Set the status and message of the beamline.
-
-        Args:
-            status: status code
-            message: message reflecting the status
-
-        """
-        self._status = status
-        self._message = message
-        self._trigger_status_change()
-
-    def set_status_okay(self):
-        """
-        Convenience method to set a status of okay.
-        """
-        self.set_status(STATUS.OKAY, "")
-
-    @property
-    def status(self):
-        """
-        Returns:
-            (STATUS): status code
-        """
-        return self._status
-
-    @property
-    def message(self):
-        """
-        Returns: the message which has been set
-        """
-        return self._message
-
     def _initialise_mode(self, modes):
         """
         Tries to read and apply the last active mode from autosave file. Defaults to first mode in list if unsuccessful.
@@ -501,7 +445,7 @@ class Beamline(object):
         try:
             self._active_mode = self._modes[mode_name]
         except KeyError:
-            logger.error("Mode {} not found in configuration. Setting default.".format(mode_name))
+            STATUS_MANAGER.update_error_log("Mode {} not found in configuration. Setting default.".format(mode_name))
             if len(modes) > 0:
                 self._active_mode = modes[0]
         for component in self._components:
@@ -523,23 +467,6 @@ class Beamline(object):
             listener: the listener function to add with new mode as parameter
         """
         self._active_mode_change_listeners.add(listener)
-
-    def _trigger_status_change(self):
-        """
-        Triggers all listeners after a status change.
-
-        """
-        for listener in self._status_change_listeners:
-            listener(self.status, self.message)
-
-    def add_status_change_listener(self, listener):
-        """
-        Add a listener for status changes to this beamline.
-
-        Args:
-            listener: the listener function to add with parameters for new status and message
-        """
-        self._status_change_listeners.add(listener)
 
     @property
     def drivers(self):

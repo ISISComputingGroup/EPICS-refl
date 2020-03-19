@@ -8,6 +8,7 @@ from parameterized import parameterized
 
 from ReflectometryServer import *
 from ReflectometryServer import file_io
+from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.parameters import ParameterReadbackUpdate
 from ReflectometryServer.pv_wrapper import ReadbackUpdate
@@ -235,7 +236,7 @@ class TestBeamlineModes(unittest.TestCase):
         sp_inits = {"nonsense name": sm_angle}
         beamline_mode = BeamlineMode("mode name", [smangle.name], sp_inits)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(BeamlineConfigurationInvalidException):
             Beamline([super_mirror], [smangle], [], [beamline_mode])
 
     def test_GIVEN_parameter_not_in_mode_and_not_changed_and_no_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_unchanged(self):
