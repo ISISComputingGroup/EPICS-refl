@@ -6,14 +6,14 @@ import math
 import logging
 from collections import namedtuple
 
-from genie_python.channel_access_exceptions import UnableToConnectToPVException
 from pcaspy import Severity
 
 from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
 from ReflectometryServer.components import ChangeAxis, DefineValueAsEvent
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
-from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo, STATUS
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
+
 
 logger = logging.getLogger(__name__)
 
