@@ -128,7 +128,7 @@ class ChannelAccess(object):
         Args:
             name (string): The name of the PV to be set
             value (object): The data to send to the PV
-            wait (bool, optional): Wait for the PV t set before returning
+            wait (bool, optional): Wait for the PV to set before returning
         Returns:
             None: if wait is False
             Future: if wait if True
