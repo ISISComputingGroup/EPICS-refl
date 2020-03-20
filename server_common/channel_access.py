@@ -37,6 +37,14 @@ except ImportError:
         def __init__(self, pv_name, err):
             super(UnableToConnectToPVException, self).__init__("Unable to connect to PV {0}: {1}".format(pv_name, err))
 
+    class ReadAccessException(IOError):
+        """
+        PV exists but its value is unavailable to read.
+        """
+
+        def __init__(self, pv_name):
+            super(ReadAccessException, self).__init__("Read access denied for PV {}".format(pv_name))
+
 try:
     # noinspection PyUnresolvedReferences
     from genie_python.genie_cachannel_wrapper import CaChannelWrapper, EXIST_TIMEOUT
@@ -89,6 +97,11 @@ class ChannelAccess(object):
     # caps the number of ca library threads. 20 is chosen as being probably enough but limited.
     thread_pool = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS)
 
+    @staticmethod
+    def wait_for_tasks():
+        ChannelAccess.thread_pool.shutdown()
+        ChannelAccess.thread_pool = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS)
+
     """
     Channel access methods. Items from genie_python are imported locally so that this module can be imported without
     installing genie_python.
@@ -118,7 +131,7 @@ class ChannelAccess(object):
             return None
 
     @staticmethod
-    def caput(name, value, wait=False):
+    def caput(name, value, wait=False, set_pv_value=CaChannelWrapper.set_pv_value):
         """
         Uses CaChannelWrapper from genie_python to set a pv value. Waiting will put the call in a thread so the order
         is no longer guarenteed. Also if the call take time a queue will be formed of put tasks.
@@ -129,12 +142,13 @@ class ChannelAccess(object):
             name (string): The name of the PV to be set
             value (object): The data to send to the PV
             wait (bool, optional): Wait for the PV to set before returning
+            set_pv_value: function to call to set a pv, used only in testing
         Returns:
             None: if wait is False
             Future: if wait if True
         """
         def _put_value():
-            CaChannelWrapper.set_pv_value(name, value, wait)
+            set_pv_value(name, value, wait)
 
         if wait:
             # If waiting then run in this thread.
