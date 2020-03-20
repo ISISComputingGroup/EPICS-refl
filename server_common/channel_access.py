@@ -1,4 +1,5 @@
 from __future__ import absolute_import, print_function, unicode_literals, division
+
 """
 Make channel access not dependent on genie_python.
 """
@@ -21,8 +22,10 @@ from enum import Enum
 
 from BlockServer.core.macros import MACROS
 from server_common.utilities import print_and_log
-import threading
+from concurrent.futures import ThreadPoolExecutor
 
+# Number of threads to serve caputs
+NUMBER_OF_CAPUT_THREADS = 20
 
 try:
     from genie_python.channel_access_exceptions import UnableToConnectToPVException, ReadAccessException
@@ -82,6 +85,10 @@ except ImportError:
 
 
 class ChannelAccess(object):
+    # Create a thread poll so that threads are reused and so ca contexts that each thread gets are shared. This also
+    # caps the number of ca library threads. 20 is chosen as being probably enough but limited.
+    thread_pool = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS)
+
     """
     Channel access methods. Items from genie_python are imported locally so that this module can be imported without
     installing genie_python.
@@ -112,13 +119,19 @@ class ChannelAccess(object):
 
     @staticmethod
     def caput(name, value, wait=False):
-        """Uses CaChannelWrapper from genie_python to set a pv value. We import CaChannelWrapper when used as this means
-        the tests can run without having genie_python installed
+        """
+        Uses CaChannelWrapper from genie_python to set a pv value. Waiting will put the call in a thread so the order
+        is no longer guarenteed. Also if the call take time a queue will be formed of put tasks.
+
+        We import CaChannelWrapper when used as this means the tests can run without having genie_python installed
 
         Args:
             name (string): The name of the PV to be set
             value (object): The data to send to the PV
             wait (bool, optional): Wait for the PV t set before returning
+        Returns:
+            None: if wait is False
+            Future: if wait if True
         """
         def _put_value():
             CaChannelWrapper.set_pv_value(name, value, wait)
@@ -126,11 +139,11 @@ class ChannelAccess(object):
         if wait:
             # If waiting then run in this thread.
             _put_value()
+            return None
         else:
             # If not waiting, run in a different thread.
             # Even if not waiting genie_python sometimes takes a while to return from a set_pv_value call.
-            thread = threading.Thread(target=_put_value)
-            thread.start()
+            return ChannelAccess.thread_pool.submit(_put_value)
 
     @staticmethod
     def caput_retry_on_fail(pv_name, value, retry_count=5):
