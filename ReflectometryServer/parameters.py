@@ -284,6 +284,8 @@ class BeamlineParameter(object):
         Move the component but don't call a callback indicating a move has been performed.
         """
         self._set_point_rbv = self._set_point
+        if self._sp_is_changed:
+            logger.info("New value set for parameter {}: {}".format(self.name, self._set_point_rbv))
         self._check_and_move_component()
         self._sp_is_changed = False
         if self._autosave:
@@ -768,7 +770,7 @@ class SlitGapParameter(BeamlineParameter):
         pass
 
     def _move_component(self):
-        if not self._no_move_because_is_define:
+        if not self._no_move_because_is_define and not self.rbv_at_sp:
             self._pv_wrapper.sp = self._set_point_rbv
 
     def _set_sp_perform_no_move(self, new_value):
