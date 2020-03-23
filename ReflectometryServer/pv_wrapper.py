@@ -405,8 +405,8 @@ class PVWrapper(object):
         if self._velocity_restored:
             STATUS_MANAGER.update_error_log(
                 "Velocity for {pv_name} has not been restored from cache. The cache has already been "
-                         "restored previously. Hint: Are you moving the axis outside of the reflectometry server?"
-                         .format(pv_name=self.name))
+                "restored previously. Hint: Are you moving the axis outside of the reflectometry server?"
+                .format(pv_name=self.name))
         else:
             if self._velocity_to_restore is None:
                 STATUS_MANAGER.update_error_log(
@@ -461,13 +461,14 @@ class PVWrapper(object):
         changing_update = IsChangingUpdate(self._dmov_to_bool(new_value), alarm_severity, alarm_status)
         PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners, changing_update)
 
+    # noinspection PyMethodMayBeStatic
     def _dmov_to_bool(self, value):
         """
         Converts the inverted dmov (0=True, 1=False) to the standard format
         """
         return not value
 
-    def _on_update_velocity(self, value, alarm_severity, alarm_status):
+    def _on_update_velocity(self, value, _alarm_severity, _alarm_status):
         """
         React to an update in the velocity of the underlying motor axis: save value to be restored later if the update
         is not issued by reflectometry server itself.
@@ -486,7 +487,7 @@ class PVWrapper(object):
         """
         return self._dmov_to_bool(self._moving_state_cache)
 
-    def _on_update_backlash_distance(self, value, alarm_severity, alarm_status):
+    def _on_update_backlash_distance(self, value, _alarm_severity, _alarm_status):
         """
         React to an update in the backlash distance of the underlying motor axis.
 
@@ -497,7 +498,7 @@ class PVWrapper(object):
         """
         self._backlash_distance_cache = value
 
-    def _on_update_backlash_velocity(self, value, alarm_severity, alarm_status):
+    def _on_update_backlash_velocity(self, value, _alarm_severity, _alarm_status):
         """
         React to an update in the backlash velocity of the underlying motor axis.
 
@@ -508,7 +509,7 @@ class PVWrapper(object):
         """
         self._backlash_velocity_cache = value
 
-    def _on_update_direction(self, value, alarm_severity, alarm_status):
+    def _on_update_direction(self, value, _alarm_severity, _alarm_status):
         """
         React to an update in the direction of the underlying motor axis.
 
@@ -715,7 +716,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         return ["{}:{}:{}".format(self._prefixed_pv, direction, suffix)
                 for direction in self._directions]
 
-    def _on_update_individual_velocity(self, value, alarm_severity, alarm_status, source=None):
+    def _on_update_individual_velocity(self, value, _alarm_severity, _alarm_status, source=None):
         self._velocities[source] = value
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
@@ -763,7 +764,7 @@ class _JawsAxisPVWrapper(PVWrapper):
                 logger.info("    Motor {name} initially at rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
 
             with self._motor_in_set_mode(mtr1), self._motor_in_set_mode(mtr2):
-                    self._write_pv(self._sp_pv, new_position)
+                self._write_pv(self._sp_pv, new_position)
 
             for motor in self._pv_names_for_directions("MTR"):
                 rbv = self._read_pv("{}.RBV".format(motor))

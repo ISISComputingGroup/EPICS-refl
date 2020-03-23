@@ -250,6 +250,7 @@ class Beamline(object):
         """
         try:
             self._active_mode = self._modes[mode]
+            logger.info("CHANGED ACTIVE MODE: {}".format(mode))
             for component in self._components:
                 component.set_incoming_beam_can_change(not self._active_mode.is_disabled)
                 mode_autosave.write_parameter(MODE_KEY, value=mode)
@@ -257,7 +258,6 @@ class Beamline(object):
             self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_rbv)
             self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_set_point)
             self._trigger_active_mode_change()
-            logger.info("CHANGED ACTIVE MODE: {}".format(mode))
         except KeyError:
             raise ValueError("Not a valid mode name: '{}'".format(mode))
 
@@ -407,10 +407,10 @@ class Beamline(object):
         try:
             self._perform_move_for_all_drivers(self._get_max_move_duration())
         except ZeroDivisionError as e:
-                STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e))
-                STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM))
-                return
+            STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM))
+            return
         except (ValueError, UnableToConnectToPVException) as e:
             STATUS_MANAGER.update_error_log("Unable to connect to PV: {}".format(str(e)))
             STATUS_MANAGER.update_active_problems(

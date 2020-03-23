@@ -283,9 +283,9 @@ class BeamlineParameter(object):
         """
         Move the component but don't call a callback indicating a move has been performed.
         """
+        self._set_point_rbv = self._set_point
         if self._sp_is_changed:
             logger.info("New value set for parameter {}: {}".format(self.name, self._set_point_rbv))
-        self._set_point_rbv = self._set_point
         self._check_and_move_component()
         self._sp_is_changed = False
         if self._autosave:
