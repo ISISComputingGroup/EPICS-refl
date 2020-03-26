@@ -125,29 +125,30 @@ class TestBeamlineParameter(unittest.TestCase):
         assert_that(jaws.beam_path_set_point.position_in_mantid_coordinates().y, is_(expected_height))
         assert_that(jaws.beam_path_set_point.position_in_mantid_coordinates().z, is_(close_to(jaws_z, DEFAULT_TEST_TOLERANCE)))
 
-    def test_GIVEN_component_parameter_enabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_enabled(self):
+    def test_GIVEN_component_parameter_in_beam_in_mode_WHEN_parameter_moved_to_THEN_component_is_in_beam(self):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
         super_mirror.beam_path_set_point.is_in_beam = False
-        sm_enabled = InBeamParameter("smenabled", super_mirror)
-        enabled_sp = True
+        sm_in_beam = InBeamParameter("sminbeam", super_mirror)
+        in_beam_sp = True
 
-        sm_enabled.sp_no_move = enabled_sp
-        sm_enabled.move = 1
+        sm_in_beam.sp_no_move = in_beam_sp
+        sm_in_beam.move = 1
 
-        assert_that(sm_enabled.sp_rbv, is_(enabled_sp))
-        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(enabled_sp))
+        assert_that(sm_in_beam.sp_rbv, is_(in_beam_sp))
+        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(in_beam_sp))
 
-    def test_GIVEN_component_parameter_disabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_disabled(self):
+    def test_GIVEN_component_in_beam_parameter_in_mode_WHEN_parameter_moved_to_THEN_component_is_not_in_beam(self):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
         super_mirror.beam_path_set_point.is_in_beam = True
-        sm_enabled = InBeamParameter("smenabled", super_mirror)
-        enabled_sp = False
+        sm_in_beam = InBeamParameter("sminbeam", super_mirror)
+        in_beam_sp = False
 
-        sm_enabled.sp_no_move = enabled_sp
-        sm_enabled.move = 1
+        sm_in_beam.sp_no_move = in_beam_sp
+        sm_in_beam.move = 1
 
-        assert_that(sm_enabled.sp_rbv, is_(enabled_sp))
-        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(enabled_sp))
+        assert_that(sm_in_beam.sp_rbv, is_(in_beam_sp))
+        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(in_beam_sp))
+
 
 class TestBeamlineModes(unittest.TestCase):
 
@@ -540,7 +541,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         listener.assert_called_once_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
 
-    def test_GIVEN_component_enabled_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
+    def test_GIVEN_component_in_beam_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
 
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 10, 90))
         state = True
