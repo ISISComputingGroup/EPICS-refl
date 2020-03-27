@@ -10,20 +10,22 @@ import unittest
 from ReflectometryServer import *
 from ReflectometryServer import beamline_configuration
 from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider
+from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_axis, DataMother
 
 from server_common.channel_access import UnableToConnectToPVException
 
 FLOAT_TOLERANCE = 1e-9
-OUT_OF_BEAM_POSITION = 10
+OUT_OF_BEAM_POSITION = OutOfBeamPosition(10)
 
 
 class TestEngineeringCorrections(unittest.TestCase):
 
     def _setup_driver_axis_and_correction(self, correction):
-        comp = Component("comp", PositionAndAngle(0.0, 0.0, 0.0))
+        comp = Component("comp", PositionAndAngle(0.0, 0.0, 90.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = DisplacementDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction), out_of_beam_position=OUT_OF_BEAM_POSITION)
+        driver = DisplacementDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction),
+                                    out_of_beam_positions=[OUT_OF_BEAM_POSITION])
         driver._is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp
 
@@ -89,12 +91,12 @@ class TestEngineeringCorrections(unittest.TestCase):
     def test_GIVEN_engineering_correction_offset_of_1_and_out_of_beam_WHEN_initialise_THEN_sp_set_correctly(self):
         correction = 4
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
-        mock_axis.sp = OUT_OF_BEAM_POSITION
+        mock_axis.sp = OUT_OF_BEAM_POSITION.position
         driver.initialise()
 
         result = comp.beam_path_set_point.get_displacement()
 
-        assert_that(result, is_(OUT_OF_BEAM_POSITION))
+        assert_that(result, is_(OUT_OF_BEAM_POSITION.position))
 
     def test_GIVEN_engineering_correction_offset_of_1_on_angle_driver_WHEN_initialise_THEN_rbv_set_correctly(self):
         correction = 1

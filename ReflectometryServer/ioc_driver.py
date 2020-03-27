@@ -8,6 +8,7 @@ from collections import namedtuple
 
 from pcaspy import Severity
 
+from ReflectometryServer.out_of_beam import OutOfBeamLookup
 from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
 from ReflectometryServer.components import ChangeAxis, DefineValueAsEvent
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
@@ -40,7 +41,7 @@ class IocDriver(object):
             engineering_correction (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv. None for no correction
         """
-        self._out_of_beam_position = None
+        self._out_of_beam_lookup = None
         self._component = component
         self._axis = axis
         self.name = axis.name
@@ -297,31 +298,30 @@ class DisplacementDriver(IocDriver):
     """
     Drives a component with linear displacement movement
     """
-    def __init__(self, component, motor_axis, out_of_beam_position=None, tolerance_on_out_of_beam_position=1,
+    def __init__(self, component, motor_axis, out_of_beam_positions=None,
                  synchronised=True, engineering_correction=None):
         """
         Constructor.
         Args:
             component (ReflectometryServer.components.Component): The component providing the values for the axes
             motor_axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
-            out_of_beam_position (float): this position that the component should be in when out of the beam; None for
-                can not set the component to be out of the beam
-            tolerance_on_out_of_beam_position (float): this the tolerance on the out of beam position, if the motor
-                is within this tolerance of the out_of_beam_position it will read out of beam otherwise the position
+            out_of_beam_positions (ReflectometryServer.out_of_beam_lookup.OutOfBeamLookup): Provides the out of beam status
+                as configured for this axis.
             synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
                 time; if false they will move at their current speed.
             engineering_correction (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv.
         """
         super(DisplacementDriver, self).__init__(component, motor_axis, synchronised, engineering_correction)
-        self._out_of_beam_position = out_of_beam_position
-        self._tolerance_on_out_of_beam_position = tolerance_on_out_of_beam_position
+        if not out_of_beam_positions:
+            self._out_of_beam_lookup = None
+        else:
+            self._out_of_beam_lookup = OutOfBeamLookup(out_of_beam_positions)
         self._change_axis_type = ChangeAxis.POSITION
 
-    def _get_in_beam_status(self, value):
-        if self._out_of_beam_position is not None:
-            distance_to_out_of_beam = abs(value - self._out_of_beam_position)
-            in_beam_status = distance_to_out_of_beam > self._tolerance_on_out_of_beam_position
+    def _get_in_beam_status(self, beam_intersect, value):
+        if self._out_of_beam_lookup is not None:
+            in_beam_status = self._out_of_beam_lookup.is_in_beam(beam_intersect, value)
         else:
             in_beam_status = True
         return in_beam_status
@@ -336,8 +336,9 @@ class DisplacementDriver(IocDriver):
         else:
             sp = self._engineering_correction.from_axis(self._axis.sp, autosaved_offset)
 
-        if self._out_of_beam_position is not None:
-            in_beam_status = self._get_in_beam_status(self._axis.sp)
+        if self._out_of_beam_lookup is not None:
+            beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
+            in_beam_status = self._get_in_beam_status(beam_interception, self._axis.sp)
             self._component.beam_path_set_point.is_in_beam = in_beam_status
             # if the axis is out of the beam then no correction needs adding to setpoint
             if not in_beam_status:
@@ -351,15 +352,16 @@ class DisplacementDriver(IocDriver):
         Args:
             update (CorrectedReadbackUpdate): The PV update for this axis.
         """
-        if self._out_of_beam_position is not None:
-            self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(update.value)
+        if self._out_of_beam_lookup is not None:
+            beam_interception = self._component.beam_path_rbv.calculate_beam_interception()
+            self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(beam_interception, update.value)
         self._component.beam_path_rbv.displacement_update(update)
 
     def _get_component_sp(self):
         if self._component.beam_path_set_point.is_in_beam:
             displacement = self._component.beam_path_set_point.get_displacement()
         else:
-            if self._out_of_beam_position is None:
+            if self._out_of_beam_lookup is None:
                 displacement = 0
                 STATUS_MANAGER.update_error_log(
                     "The component {} is out of the beam but there is no out of beam position for the driver "
@@ -367,14 +369,15 @@ class DisplacementDriver(IocDriver):
                 STATUS_MANAGER.update_active_problems(
                     ProblemInfo("No out of beam position defined for axis", self.name, Severity.MINOR_ALARM))
             else:
-                displacement = self._out_of_beam_position
+                beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
+                displacement = self._out_of_beam_lookup.get_position_for_intercept(beam_interception).position
         return displacement
 
     def has_out_of_beam_position(self):
         """
         Returns: True if this Displacement driver has out of beam position set; False otherwise.
         """
-        return self._out_of_beam_position is not None
+        return self._out_of_beam_lookup is not None
 
     def _on_update_is_changing(self, update):
         """
