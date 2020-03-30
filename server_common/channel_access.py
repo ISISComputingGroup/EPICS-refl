@@ -95,17 +95,19 @@ except ImportError:
 class ChannelAccess(object):
     # Create a thread poll so that threads are reused and so ca contexts that each thread gets are shared. This also
     # caps the number of ca library threads. 20 is chosen as being probably enough but limited.
-    thread_pool = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS)
+    thread_pool = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS, thread_name_prefix="ChannelAccess_Pool")
 
     @staticmethod
     def wait_for_tasks():
+        """
+        Wait for all requested tasks to complete, i.e. all caputs.
+
+        It does this by shutting down the current threadpool waiting for all tasks to complete and then create a new
+        pool.
+        """
         ChannelAccess.thread_pool.shutdown()
         ChannelAccess.thread_pool = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS)
 
-    """
-    Channel access methods. Items from genie_python are imported locally so that this module can be imported without
-    installing genie_python.
-    """
     @staticmethod
     def caget(name, as_string=False, timeout=None):
         """Uses CaChannelWrapper from genie_python to get a pv value. We import CaChannelWrapper when used as this means
@@ -257,7 +259,7 @@ def verify_manager_mode(channel_access=ChannelAccess(), message="Operation must 
         raise ManagerModeRequiredException("Manager mode is required, but the manager mode PV could not be read "
                                            "(caused by: {})".format(e))
     except Exception as e:
-        raise ManagerModeRequiredException("Manager mode is required, but an unknown exception occured "
+        raise ManagerModeRequiredException("Manager mode is required, but an unknown exception occurred "
                                            "(caused by: {})".format(e))
 
     if not is_manager:
