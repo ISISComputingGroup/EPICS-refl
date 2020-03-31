@@ -316,7 +316,12 @@ class DisplacementDriver(IocDriver):
         if not out_of_beam_positions:
             self._out_of_beam_lookup = None
         else:
-            self._out_of_beam_lookup = OutOfBeamLookup(out_of_beam_positions)
+            try:
+                self._out_of_beam_lookup = OutOfBeamLookup(out_of_beam_positions)
+            except ValueError as e:
+                STATUS_MANAGER.update_error_log(e.message)
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Invalid Out Of Beam Positions", self.name, Severity.MINOR_ALARM))
         self._change_axis_type = ChangeAxis.POSITION
 
     def _get_in_beam_status(self, beam_intersect, value):

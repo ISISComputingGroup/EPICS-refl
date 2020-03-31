@@ -12,8 +12,10 @@ class OutOfBeamPosition(object):
             tolerance(float): The tolerance around the position in which to consider the component as "out of beam"
             threshold(float): The threshold for the beam above which to consider this position to be "out of beam"
         """
-        self.position = position
-        self.tolerance = tolerance
+        self.position = float(position)
+        self.tolerance = float(tolerance)
+        if threshold is not None:
+            threshold = float(threshold)
         self.threshold = threshold
 
 
@@ -27,9 +29,12 @@ class OutOfBeamLookup(object):
         if positions:
             filter_default = filter(lambda x: x.threshold is None, positions)
             if len(filter_default) == 0:
-                raise Exception("ERROR: No default Out Of Beam Position defined for lookup.")
+                raise ValueError("ERROR: No default Out Of Beam Position defined for lookup.")
             if len(filter_default) > 1:
-                raise Exception("ERROR: Multiple default Out Of Beam Position defined for lookup.")
+                raise ValueError("ERROR: Multiple default Out Of Beam Position defined for lookup.")
+            thresholds = [entry.threshold for entry in positions]
+            if len(set(thresholds)) != len(thresholds):
+                raise ValueError("ERROR: Duplicate values for threshold in different Out Of Beam positions.")
 
     def get_position_for_intercept(self, beam_intercept):
         pos_above_threshold = filter(lambda x: x.threshold <= beam_intercept.y, self._out_of_beam_positions)
