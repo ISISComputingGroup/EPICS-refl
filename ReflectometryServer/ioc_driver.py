@@ -177,17 +177,17 @@ class IocDriver(object):
         Returns: The maximum duration of the requested move for all associated axes. If axes are not synchronised this
         will return 0 but movement will still be required.
         """
+        duration = 0.0
         if self._axis_will_move() and self._synchronised:
             if self._axis.max_velocity == 0 or self._axis.max_velocity is None:
                 raise ZeroDivisionError("Motor max velocity is zero or none")
             backlash_duration = self._backlash_duration()
             base_move_duration = self._base_move_duration()
-
             duration = base_move_duration + backlash_duration
 
-            return duration
-        else:
-            return 0.0
+            logger.debug("Shortest move duration for {}: {:.2f}s ({:.2f}s base; {:.2f}s backlash)"
+                         .format(self.name, duration, base_move_duration, backlash_duration))
+        return duration
 
     def perform_move(self, move_duration, force=False):
         """
@@ -200,11 +200,11 @@ class IocDriver(object):
         """
         if self._axis_will_move() or force:
             move_duration -= self._backlash_duration()
-            logger.debug("Moving axis {} {}".format(self._axis.name, self._get_distance()))
             if move_duration > 1e-6 and self._synchronised:
                 self._axis.cache_velocity()
                 self._axis.velocity = max(self._axis.min_velocity, self._get_distance() / move_duration)
             self._axis.sp = self._engineering_correction.to_axis(self._get_component_sp())
+
         self._clear_changed()
 
     def _is_changed(self):

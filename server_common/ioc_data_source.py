@@ -72,7 +72,7 @@ INSERT_PV_DETAILS = "INSERT INTO pvs (pvname, record_type, record_desc, iocname)
 """Insert PV details into the pvs table"""
 
 INSERT_IOC_STARTED_DETAILS = "INSERT INTO iocrt (iocname, pid, start_time, stop_time, running, exe_path) " \
-                 "VALUES (%s,%s,NOW(),'0000-00-00 00:00:00',1,%s)"
+                 "VALUES (%s,%s,NOW(),'1970-01-01 00:00:01',1,%s)"
 """Insert details about the start of an IOC"""
 
 DELETE_IOC_RUN_STATE = "DELETE FROM iocrt WHERE iocname=%s"

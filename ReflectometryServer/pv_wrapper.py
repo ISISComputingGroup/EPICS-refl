@@ -13,7 +13,7 @@ from pcaspy import Severity
 
 from ReflectometryServer.server_status_manager import ProblemInfo, STATUS_MANAGER
 from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
-from ReflectometryServer.file_io import velocity_float_autosave, velocity_bool_autosave, param_bool_autosave
+from ReflectometryServer.file_io import velocity_float_autosave, velocity_bool_autosave
 import logging
 
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
@@ -278,6 +278,7 @@ class PVWrapper(object):
         Args:
             value: The value to set
         """
+        logger.info("{}: Moving axis to new position: {}".format(self.name, value))
         self._write_pv(self._sp_pv, value)
 
     @property
@@ -364,15 +365,15 @@ class PVWrapper(object):
         if autosave_value is not None:
             autosave_value = velocity_bool_autosave.read_parameter(self.name + "_velocity_restored", None)
             if autosave_value is not None:
-                logger.debug("Restoring {pv_name} velocity_cache_restored with auto-save value {value}"
+                logger.debug("Restoring {pv_name} velocity_restored with auto-save value {value}"
                              .format(pv_name=self.name, value=autosave_value))
                 self._velocity_restored = autosave_value
             else:
                 STATUS_MANAGER.update_error_log(
-                    "Error: Unable to initialise velocity cache (restored flag) from auto-save for {}.".format(
+                    "Error: Unable to initialise velocity_restored flag from auto-save for {}.".format(
                         self.name))
                 STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("Unable to read autosaved velocity", self.name, Severity.MINOR_ALARM))
+                    ProblemInfo("Unable to read autosaved velocity_restored flag", self.name, Severity.MINOR_ALARM))
 
     def cache_velocity(self):
         """
@@ -403,7 +404,7 @@ class PVWrapper(object):
         """
         if self._velocity_restored:
             STATUS_MANAGER.update_error_log(
-                "Velocity for PV {pv_name} has not been restored from cache. The cache has already been "
+                "Velocity for {pv_name} has not been restored from cache. The cache has already been "
                 "restored previously. Hint: Are you moving the axis outside of the reflectometry server?"
                 .format(pv_name=self.name))
         else:
@@ -413,11 +414,11 @@ class PVWrapper(object):
                 STATUS_MANAGER.update_active_problems(
                     ProblemInfo("Unable to restore axis velocity", self.name, Severity.MINOR_ALARM))
             else:
-                logger.debug("Restoring velocity cache of {value} for PV {pv_name}"
+                logger.debug("Restoring velocity cache of {value} for {pv_name}"
                              .format(value=self._velocity_to_restore, pv_name=self.name))
                 self._write_pv(self._velo_pv, self._velocity_to_restore)
             self._velocity_restored = True
-            param_bool_autosave.write_parameter(self.name + "_velocity_restored", self._velocity_restored)
+            velocity_bool_autosave.write_parameter(self.name + "_velocity_restored", self._velocity_restored)
 
     def _on_update_setpoint_value(self, new_value, alarm_severity, alarm_status):
         """
@@ -460,13 +461,14 @@ class PVWrapper(object):
         changing_update = IsChangingUpdate(self._dmov_to_bool(new_value), alarm_severity, alarm_status)
         PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners, changing_update)
 
+    # noinspection PyMethodMayBeStatic
     def _dmov_to_bool(self, value):
         """
         Converts the inverted dmov (0=True, 1=False) to the standard format
         """
         return not value
 
-    def _on_update_velocity(self, value, alarm_severity, alarm_status):
+    def _on_update_velocity(self, value, _alarm_severity, _alarm_status):
         """
         React to an update in the velocity of the underlying motor axis: save value to be restored later if the update
         is not issued by reflectometry server itself.
@@ -485,7 +487,7 @@ class PVWrapper(object):
         """
         return self._dmov_to_bool(self._moving_state_cache)
 
-    def _on_update_backlash_distance(self, value, alarm_severity, alarm_status):
+    def _on_update_backlash_distance(self, value, _alarm_severity, _alarm_status):
         """
         React to an update in the backlash distance of the underlying motor axis.
 
@@ -496,7 +498,7 @@ class PVWrapper(object):
         """
         self._backlash_distance_cache = value
 
-    def _on_update_backlash_velocity(self, value, alarm_severity, alarm_status):
+    def _on_update_backlash_velocity(self, value, _alarm_severity, _alarm_status):
         """
         React to an update in the backlash velocity of the underlying motor axis.
 
@@ -507,7 +509,7 @@ class PVWrapper(object):
         """
         self._backlash_velocity_cache = value
 
-    def _on_update_direction(self, value, alarm_severity, alarm_status):
+    def _on_update_direction(self, value, _alarm_severity, _alarm_status):
         """
         React to an update in the direction of the underlying motor axis.
 
@@ -649,6 +651,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         """
         Initialise PVWrapper values once the beamline is ready.
         """
+        self._set_resolution()
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
             self._velocities[self._strip_source_pv(velo_pv)] = self._read_pv(velo_pv)
 
@@ -713,7 +716,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         return ["{}:{}:{}".format(self._prefixed_pv, direction, suffix)
                 for direction in self._directions]
 
-    def _on_update_individual_velocity(self, value, alarm_severity, alarm_status, source=None):
+    def _on_update_individual_velocity(self, value, _alarm_severity, _alarm_status, source=None):
         self._velocities[source] = value
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):

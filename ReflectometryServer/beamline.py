@@ -250,6 +250,7 @@ class Beamline(object):
         """
         try:
             self._active_mode = self._modes[mode]
+            logger.info("CHANGED ACTIVE MODE: {}".format(mode))
             for component in self._components:
                 component.set_incoming_beam_can_change(not self._active_mode.is_disabled)
                 mode_autosave.write_parameter(MODE_KEY, value=mode)
@@ -346,6 +347,7 @@ class Beamline(object):
         Updates the beamline parameters to the latest set point value; reapplies if they are in the mode. Then moves to
         latest positions.
         """
+        logger.info("BEAMLINE MOVE TRIGGERED")
         parameters = self._beamline_parameters.values()
         parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
 
@@ -371,6 +373,7 @@ class Beamline(object):
             source: source to start the update from; None start from the beginning.
         """
         STATUS_MANAGER.clear_all()
+        logger.info("PARAMETER MOVE TRIGGERED (source: {})".format(source.name))
         if self._active_mode.has_beamline_parameter(source):
             parameters = self._beamline_parameters.values()
             parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, source)
@@ -395,6 +398,7 @@ class Beamline(object):
         """
         for key, value in self._active_mode.initial_setpoints.items():
             self._beamline_parameters[key].sp_no_move = value
+            logger.info("Default value applied for param {}: {}".format(key, value))
 
     def _move_drivers(self):
         """
@@ -427,6 +431,7 @@ class Beamline(object):
         for driver in self._drivers:
             max_move_duration = max(max_move_duration, driver.get_max_move_duration())
 
+        logger.debug("Move duration for slowest axis: {:.2f}s".format(max_move_duration))
         return max_move_duration
 
     def _initialise_mode(self, modes):
