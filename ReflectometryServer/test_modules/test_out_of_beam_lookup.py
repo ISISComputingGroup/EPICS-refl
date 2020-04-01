@@ -1,5 +1,6 @@
 import unittest
 
+from hamcrest import calling, raises
 from hamcrest.core import assert_that
 from hamcrest.core.core import is_
 from parameterized import parameterized
@@ -48,26 +49,6 @@ class TestComponentWithOutOfBeamPositions(unittest.TestCase):
 
         assert_that(actual, is_(expected))
 
-    # test for a range of values
-    @parameterized.expand([(-5, PARK_LOW_POS),
-                           (-5, PARK_HIGH_POS),
-                           (-5, PARK_HIHI_POS),
-                           (0, PARK_LOW_POS),
-                           (0, PARK_HIGH_POS),
-                           (0, PARK_HIHI_POS),
-                           (20, PARK_LOW_POS),
-                           (20, PARK_HIGH_POS),
-                           (20, PARK_HIHI_POS),
-                           ])
-    def test_GIVEN_no_out_of_beam_position_WHEN_checking_whether_component_is_in_beam_THEN_returns_true(self, beam_height, displacement):
-        expected = True
-        lookup = OutOfBeamLookup([])
-        beam_intercept = Position(beam_height, 0)
-
-        actual = lookup.is_in_beam(beam_height, displacement)
-
-        assert_that(actual, is_(expected))
-
     @parameterized.expand([(PARK_LOW_POS, 0.5, False),
                            (PARK_LOW_POS, 2, True),
                            (PARK_LOW_POS, 4, True),
@@ -88,3 +69,27 @@ class TestComponentWithOutOfBeamPositions(unittest.TestCase):
         for position in [position_to_check + offset_from_pos, position_to_check - offset_from_pos]:
             in_beam_status = lookup.is_in_beam(beam_intercept, position)
             assert_that(in_beam_status, is_(expected))
+
+    def test_GIVEN_no_positions_given_WHEN_creating_lookup_THEN_exception_thrown(self):
+        positions = []
+
+        assert_that(calling(OutOfBeamLookup).with_args(positions), raises(ValueError))
+
+    def test_GIVEN_no_default_position_WHEN_creating_lookup_THEN_exception_thrown(self):
+        positions = [OutOfBeamPosition(1, threshold=0)]
+
+        assert_that(calling(OutOfBeamLookup).with_args(positions), raises(ValueError))
+
+    def test_GIVEN_multiple_default_positions_WHEN_creating_lookup_THEN_exception_thrown(self):
+        pos_1 = OutOfBeamPosition(1)
+        pos_2 = OutOfBeamPosition(2)
+        positions = [pos_1, pos_2]
+
+        assert_that(calling(OutOfBeamLookup).with_args(positions), raises(ValueError))
+
+    def test_GIVEN_positions_with_identical_thresholds_WHEN_creating_lookup_THEN_exception_thrown(self):
+        pos_1 = OutOfBeamPosition(1, threshold=0)
+        pos_2 = OutOfBeamPosition(2, threshold=0)
+        positions = [pos_1, pos_2]
+
+        assert_that(calling(OutOfBeamLookup).with_args(positions), raises(ValueError))
