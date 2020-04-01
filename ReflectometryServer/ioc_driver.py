@@ -41,7 +41,6 @@ class IocDriver(object):
             engineering_correction (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv. None for no correction
         """
-        self._out_of_beam_lookup = None
         self._component = component
         self._axis = axis
         self.name = axis.name
@@ -312,7 +311,6 @@ class DisplacementDriver(IocDriver):
             engineering_correction (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv.
         """
-        super(DisplacementDriver, self).__init__(component, motor_axis, synchronised, engineering_correction)
         if not out_of_beam_positions:
             self._out_of_beam_lookup = None
         else:
@@ -322,6 +320,8 @@ class DisplacementDriver(IocDriver):
                 STATUS_MANAGER.update_error_log(e.message)
                 STATUS_MANAGER.update_active_problems(
                     ProblemInfo("Invalid Out Of Beam Positions", self.name, Severity.MINOR_ALARM))
+
+        super(DisplacementDriver, self).__init__(component, motor_axis, synchronised, engineering_correction)
         self._change_axis_type = ChangeAxis.POSITION
 
     def _get_in_beam_status(self, beam_intersect, value):
