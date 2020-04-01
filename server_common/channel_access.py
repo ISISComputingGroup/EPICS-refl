@@ -91,11 +91,23 @@ except ImportError:
         Write = 2
         WriteAccess = 21
 
+def _create_caput_pool():
+    """
+    Returns: thread pool for the caputs
+    """
+    try:
+        executor = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS, thread_name_prefix="ChannelAccess_Pool")
+    except TypeError:
+        executor = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS)
+        print("WARNING: thread_name_prefix does not exist for ThreadPoolExecutor in this python, "
+              "caput pool has generic name.")
+    return executor
+
 
 class ChannelAccess(object):
     # Create a thread poll so that threads are reused and so ca contexts that each thread gets are shared. This also
     # caps the number of ca library threads. 20 is chosen as being probably enough but limited.
-    thread_pool = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS, thread_name_prefix="ChannelAccess_Pool")
+    thread_pool = _create_caput_pool()
 
     @staticmethod
     def wait_for_tasks():
@@ -106,7 +118,7 @@ class ChannelAccess(object):
         pool.
         """
         ChannelAccess.thread_pool.shutdown()
-        ChannelAccess.thread_pool = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS)
+        ChannelAccess.thread_pool = _create_caput_pool()
 
     @staticmethod
     def caget(name, as_string=False, timeout=None):
