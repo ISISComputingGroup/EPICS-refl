@@ -91,9 +91,10 @@ except ImportError:
         Write = 2
         WriteAccess = 21
 
+
 def _create_caput_pool():
     """
-    Returns: thread pool for the caputs
+    Returns: thread pool for the caputs, making sure it works for older versions of python
     """
     try:
         executor = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS, thread_name_prefix="ChannelAccess_Pool")
