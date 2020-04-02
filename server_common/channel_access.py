@@ -163,6 +163,7 @@ class ChannelAccess(object):
             Future: if wait if True
         """
         if set_pv_value is None:
+            # Use CaChannelWrapper here is avoid calling this code in a test so tests can be run without gennie_python
             set_pv_value = CaChannelWrapper.set_pv_value
 
         def _put_value():
