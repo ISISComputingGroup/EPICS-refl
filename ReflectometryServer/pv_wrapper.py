@@ -249,6 +249,17 @@ class PVWrapper(object):
         """
         self._ca.caput(pv, value, wait=wait)
 
+    def _write_pv_with_retry(self, pv, value, retry_count=5):
+        """
+        Write a value to a given PV, check it was successful and retry if not.
+
+        Args:
+            pv: pv name to write to
+            value: value to write
+            retry_count: number of retries
+        """
+        self._ca.caput_retry_on_fail(pv, value, retry_count=retry_count)
+
     @property
     def name(self):
         """
@@ -543,9 +554,9 @@ class PVWrapper(object):
         offset_freeze_switch_pv = "{}.FOFF".format(motor_pv)
 
         try:
-            self._ca.caput_retry_on_fail(calibration_set_pv, "Set")
+            self._write_pv_with_retry(calibration_set_pv, "Set")
             offset_freeze_switch = self._read_pv(offset_freeze_switch_pv)
-            self._ca.caput_retry_on_fail(offset_freeze_switch_pv, "Frozen")
+            self._write_pv_with_retry(offset_freeze_switch_pv, "Frozen")
         except IOError as ex:
             raise ValueError("Can not set motor set and frozen offset mode: {}".format(ex))
 
@@ -553,8 +564,8 @@ class PVWrapper(object):
             yield
         finally:
             try:
-                self._ca.caput_retry_on_fail(calibration_set_pv, "Use")
-                self._ca.caput_retry_on_fail(offset_freeze_switch_pv, offset_freeze_switch)
+                self._write_pv_with_retry(calibration_set_pv, "Use")
+                self._write_pv_with_retry(offset_freeze_switch_pv, offset_freeze_switch)
             except IOError as ex:
                 raise ValueError("Can not reset motor set and frozen offset mode: {}".format(ex))
 
@@ -765,7 +776,7 @@ class _JawsAxisPVWrapper(PVWrapper):
 
             with self._motor_in_set_mode(mtr1), self._motor_in_set_mode(mtr2):
                 # Ensure the position has been redefined before leaving the "Set" context, otherwise the motor moves
-                self._ca.caput_retry_on_fail(self._sp_pv, new_position)
+                self._write_pv_with_retry(self._sp_pv, new_position)
 
             for motor in self._pv_names_for_directions("MTR"):
                 rbv = self._read_pv("{}.RBV".format(motor))
