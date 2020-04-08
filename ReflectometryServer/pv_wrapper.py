@@ -252,6 +252,7 @@ class PVWrapper(object):
     def _write_pv_with_retry(self, pv, value, retry_count=5):
         """
         Write a value to a given PV, check it was successful and retry if not.
+        Note that a retry implies wait=True (completion callback).
 
         Args:
             pv: pv name to write to
