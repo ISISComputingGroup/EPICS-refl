@@ -37,5 +37,5 @@
   <xs:element name="rc_suspend_on_invalid" type="xs:string"/>
   <xs:element name="log_periodic" type="xs:string"/>
   <xs:element name="log_rate" type="xs:decimal"/>
-  <xs:element name="log_deadband" type="xs:decimal"/>
+  <xs:element name="log_deadband" type="xs:double"/>
 </xs:schema>

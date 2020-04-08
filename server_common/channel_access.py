@@ -1,4 +1,5 @@
 from __future__ import absolute_import, print_function, unicode_literals, division
+
 """
 Make channel access not dependent on genie_python.
 """
@@ -21,8 +22,10 @@ from enum import Enum
 
 from BlockServer.core.macros import MACROS
 from server_common.utilities import print_and_log
-import threading
+from concurrent.futures import ThreadPoolExecutor
 
+# Number of threads to serve caputs
+NUMBER_OF_CAPUT_THREADS = 20
 
 try:
     from genie_python.channel_access_exceptions import UnableToConnectToPVException, ReadAccessException
@@ -33,6 +36,14 @@ except ImportError:
         """
         def __init__(self, pv_name, err):
             super(UnableToConnectToPVException, self).__init__("Unable to connect to PV {0}: {1}".format(pv_name, err))
+
+    class ReadAccessException(IOError):
+        """
+        PV exists but its value is unavailable to read.
+        """
+
+        def __init__(self, pv_name):
+            super(ReadAccessException, self).__init__("Read access denied for PV {}".format(pv_name))
 
 try:
     # noinspection PyUnresolvedReferences
@@ -81,11 +92,35 @@ except ImportError:
         WriteAccess = 21
 
 
+def _create_caput_pool():
+    """
+    Returns: thread pool for the caputs, making sure it works for older versions of python
+    """
+    try:
+        executor = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS, thread_name_prefix="ChannelAccess_Pool")
+    except TypeError:
+        executor = ThreadPoolExecutor(max_workers=NUMBER_OF_CAPUT_THREADS)
+        print("WARNING: thread_name_prefix does not exist for ThreadPoolExecutor in this python, "
+              "caput pool has generic name.")
+    return executor
+
+
 class ChannelAccess(object):
-    """
-    Channel access methods. Items from genie_python are imported locally so that this module can be imported without
-    installing genie_python.
-    """
+    # Create a thread poll so that threads are reused and so ca contexts that each thread gets are shared. This also
+    # caps the number of ca library threads. 20 is chosen as being probably enough but limited.
+    thread_pool = _create_caput_pool()
+
+    @staticmethod
+    def wait_for_tasks():
+        """
+        Wait for all requested tasks to complete, i.e. all caputs.
+
+        It does this by shutting down the current threadpool waiting for all tasks to complete and then create a new
+        pool.
+        """
+        ChannelAccess.thread_pool.shutdown()
+        ChannelAccess.thread_pool = _create_caput_pool()
+
     @staticmethod
     def caget(name, as_string=False, timeout=None):
         """Uses CaChannelWrapper from genie_python to get a pv value. We import CaChannelWrapper when used as this means
@@ -111,26 +146,39 @@ class ChannelAccess(object):
             return None
 
     @staticmethod
-    def caput(name, value, wait=False):
-        """Uses CaChannelWrapper from genie_python to set a pv value. We import CaChannelWrapper when used as this means
-        the tests can run without having genie_python installed
+    def caput(name, value, wait=False, set_pv_value=None):
+        """
+        Uses CaChannelWrapper from genie_python to set a pv value. Waiting will put the call in a thread so the order
+        is no longer guarenteed. Also if the call take time a queue will be formed of put tasks.
+
+        We import CaChannelWrapper when used as this means the tests can run without having genie_python installed
 
         Args:
             name (string): The name of the PV to be set
             value (object): The data to send to the PV
-            wait (bool, optional): Wait for the PV t set before returning
+            wait (bool, optional): Wait for the PV to set before returning
+            set_pv_value: function to call to set a pv, used only in testing; None to use CaChannelWrapper set value
+        Returns:
+            None: if wait is False
+            Future: if wait if True
         """
+        if set_pv_value is None:
+            # We need to put the default here rather than as a python default argument because the linux build does
+            # not have CaChannelWrapper. The argument default would be looked up at class load time, causing the 
+            # linux build to fail to load the entire class.
+            set_pv_value = CaChannelWrapper.set_pv_value
+
         def _put_value():
-            CaChannelWrapper.set_pv_value(name, value, wait)
+            set_pv_value(name, value, wait)
 
         if wait:
             # If waiting then run in this thread.
             _put_value()
+            return None
         else:
             # If not waiting, run in a different thread.
             # Even if not waiting genie_python sometimes takes a while to return from a set_pv_value call.
-            thread = threading.Thread(target=_put_value)
-            thread.start()
+            return ChannelAccess.thread_pool.submit(_put_value)
 
     @staticmethod
     def caput_retry_on_fail(pv_name, value, retry_count=5):
@@ -230,7 +278,7 @@ def verify_manager_mode(channel_access=ChannelAccess(), message="Operation must 
         raise ManagerModeRequiredException("Manager mode is required, but the manager mode PV could not be read "
                                            "(caused by: {})".format(e))
     except Exception as e:
-        raise ManagerModeRequiredException("Manager mode is required, but an unknown exception occured "
+        raise ManagerModeRequiredException("Manager mode is required, but an unknown exception occurred "
                                            "(caused by: {})".format(e))
 
     if not is_manager:

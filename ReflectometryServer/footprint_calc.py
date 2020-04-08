@@ -1,6 +1,7 @@
 """
 Footprint calculations.
 """
+from itertools import combinations
 from math import sin, tan, atan, degrees, radians, pi
 
 S1_ID = "SLIT1"
@@ -194,11 +195,8 @@ class FootprintCalculator(object):
         """
         result = []
         self.update_gaps()
-        for i in range(len(self.setup.positions.keys())-1):
-            start_comp = self.setup.positions.keys()[i]
-            end_comps = self.setup.positions.keys()[i+1:]
-            for end_comp in end_comps:
-                result.append(self.calc_resolution(start_comp, end_comp))
+        for start_comp, end_comp in combinations(self.setup.positions.keys(), 2):
+            result.append(self.calc_resolution(start_comp, end_comp))
 
         return min(result)
 

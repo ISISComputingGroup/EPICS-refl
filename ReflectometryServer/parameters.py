@@ -3,8 +3,10 @@ Parameters that the user would interact with
 """
 from collections import namedtuple
 
+from pcaspy import Severity
+
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate
-from ReflectometryServer.file_io import AutosaveType, read_autosave_value, write_autosave_value
+from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave
 import logging
 
 from enum import Enum
@@ -13,6 +15,7 @@ import abc
 import six
 
 from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
@@ -281,10 +284,12 @@ class BeamlineParameter(object):
         Move the component but don't call a callback indicating a move has been performed.
         """
         self._set_point_rbv = self._set_point
+        if self._sp_is_changed:
+            logger.info("New value set for parameter {}: {}".format(self.name, self._set_point_rbv))
         self._check_and_move_component()
         self._sp_is_changed = False
         if self._autosave:
-            write_autosave_value(self._name, self._set_point_rbv, AutosaveType.PARAM)
+            param_float_autosave.write_parameter(self._name, self._set_point_rbv)
         self._on_update_sp_rbv()
 
     def move_to_sp_rbv_no_callback(self):
@@ -366,6 +371,8 @@ class BeamlineParameter(object):
             self._move_component()
             self._set_changed_flag()
         else:
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("No parameter initialization value found", self.name, Severity.MAJOR_ALARM))
             raise ParameterNotInitializedException(self.name)
 
     @abc.abstractmethod
@@ -397,7 +404,10 @@ class BeamlineParameter(object):
         """
         Logs an error that the autosave value this parameter was trying to read was of the wrong type.
         """
-        logger.error("Could not read autosave value for parameter {}: unexpected type.".format(self.name))
+        STATUS_MANAGER.update_error_log(
+            "Could not read autosave value for parameter {}: unexpected type.".format(self.name))
+        STATUS_MANAGER.update_active_problems(ProblemInfo("Parameter autosave value has unexpected type", self.name,
+                                              Severity.MINOR_ALARM))
 
 
 class AngleParameter(BeamlineParameter):
@@ -440,15 +450,11 @@ class AngleParameter(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
         """
-        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
+        sp_init = param_float_autosave.read_parameter(self._name, None)
         if sp_init is not None:
-            try:
-                sp_init = float(sp_init)
-                self._set_initial_sp(sp_init)
-                self._reflection_component.beam_path_set_point.autosaved_angle = sp_init
-                self._move_component()
-            except ValueError:
-                self._log_autosave_type_error()
+            self._set_initial_sp(sp_init)
+            self._reflection_component.beam_path_set_point.autosaved_angle = sp_init
+            self._move_component()
 
     def _initialise_sp_from_motor(self, _):
         """
@@ -529,15 +535,11 @@ class TrackingPosition(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
         """
-        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
+        sp_init = param_float_autosave.read_parameter(self._name, None)
         if sp_init is not None:
-            try:
-                sp_init = float(sp_init)
-                self._set_initial_sp(sp_init)
-                self._component.beam_path_set_point.autosaved_offset = sp_init
-                self._move_component()
-            except ValueError:
-                self._log_autosave_type_error()
+            self._set_initial_sp(sp_init)
+            self._component.beam_path_set_point.autosaved_offset = sp_init
+            self._move_component()
 
     def _initialise_sp_from_motor(self, _):
         """
@@ -631,15 +633,10 @@ class InBeamParameter(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
         """
-        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
-        if sp_init == "True":
-            self._set_initial_sp(True)
+        sp_init = param_bool_autosave.read_parameter(self._name, None)
+        if sp_init is not None:
+            self._set_initial_sp(sp_init)
             self._move_component()
-        elif sp_init == "False":
-            self._set_initial_sp(False)
-            self._move_component()
-        elif sp_init is not None:
-            self._log_autosave_type_error()
 
     def _initialise_sp_from_motor(self, _):
         """
@@ -749,12 +746,9 @@ class SlitGapParameter(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
         """
-        sp_init = read_autosave_value(self._name, AutosaveType.PARAM)
+        sp_init = param_float_autosave.read_parameter(self._name, None)
         if sp_init is not None:
-            try:
-                self._set_initial_sp(float(sp_init))
-            except ValueError:
-                self._log_autosave_type_error()
+            self._set_initial_sp(sp_init)
 
     def _initialise_sp_from_motor(self, _):
         """
@@ -776,7 +770,7 @@ class SlitGapParameter(BeamlineParameter):
         pass
 
     def _move_component(self):
-        if not self._no_move_because_is_define:
+        if not self._no_move_because_is_define and not self.rbv_at_sp:
             self._pv_wrapper.sp = self._set_point_rbv
 
     def _set_sp_perform_no_move(self, new_value):

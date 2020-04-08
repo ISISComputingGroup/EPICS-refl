@@ -8,6 +8,7 @@ from parameterized import parameterized
 
 from ReflectometryServer import *
 from ReflectometryServer import file_io
+from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.parameters import ParameterReadbackUpdate
 from ReflectometryServer.pv_wrapper import ReadbackUpdate
@@ -124,29 +125,30 @@ class TestBeamlineParameter(unittest.TestCase):
         assert_that(jaws.beam_path_set_point.position_in_mantid_coordinates().y, is_(expected_height))
         assert_that(jaws.beam_path_set_point.position_in_mantid_coordinates().z, is_(close_to(jaws_z, DEFAULT_TEST_TOLERANCE)))
 
-    def test_GIVEN_component_parameter_enabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_enabled(self):
+    def test_GIVEN_component_parameter_in_beam_in_mode_WHEN_parameter_moved_to_THEN_component_is_in_beam(self):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
         super_mirror.beam_path_set_point.is_in_beam = False
-        sm_enabled = InBeamParameter("smenabled", super_mirror)
-        enabled_sp = True
+        sm_in_beam = InBeamParameter("sminbeam", super_mirror)
+        in_beam_sp = True
 
-        sm_enabled.sp_no_move = enabled_sp
-        sm_enabled.move = 1
+        sm_in_beam.sp_no_move = in_beam_sp
+        sm_in_beam.move = 1
 
-        assert_that(sm_enabled.sp_rbv, is_(enabled_sp))
-        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(enabled_sp))
+        assert_that(sm_in_beam.sp_rbv, is_(in_beam_sp))
+        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(in_beam_sp))
 
-    def test_GIVEN_component_parameter_disabled_in_mode_WHEN_parameter_moved_to_THEN_component_is_disabled(self):
+    def test_GIVEN_component_in_beam_parameter_in_mode_WHEN_parameter_moved_to_THEN_component_is_not_in_beam(self):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
         super_mirror.beam_path_set_point.is_in_beam = True
-        sm_enabled = InBeamParameter("smenabled", super_mirror)
-        enabled_sp = False
+        sm_in_beam = InBeamParameter("sminbeam", super_mirror)
+        in_beam_sp = False
 
-        sm_enabled.sp_no_move = enabled_sp
-        sm_enabled.move = 1
+        sm_in_beam.sp_no_move = in_beam_sp
+        sm_in_beam.move = 1
 
-        assert_that(sm_enabled.sp_rbv, is_(enabled_sp))
-        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(enabled_sp))
+        assert_that(sm_in_beam.sp_rbv, is_(in_beam_sp))
+        assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(in_beam_sp))
+
 
 class TestBeamlineModes(unittest.TestCase):
 
@@ -235,7 +237,7 @@ class TestBeamlineModes(unittest.TestCase):
         sp_inits = {"nonsense name": sm_angle}
         beamline_mode = BeamlineMode("mode name", [smangle.name], sp_inits)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(BeamlineConfigurationInvalidException):
             Beamline([super_mirror], [smangle], [], [beamline_mode])
 
     def test_GIVEN_parameter_not_in_mode_and_not_changed_and_no_previous_parameter_changed_WHEN_moving_beamline_THEN_parameter_unchanged(self):
@@ -539,7 +541,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         listener.assert_called_once_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
 
-    def test_GIVEN_component_enabled_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
+    def test_GIVEN_component_in_beam_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
 
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 10, 90))
         state = True
@@ -776,8 +778,16 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
 class TestInitSetpoints(unittest.TestCase):
 
     def setUp(self):
-        file_io.PARAM_AUTOSAVE_FILE = "params"
-        file_io.REFL_AUTOSAVE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config"))
+        def auto_save_stub_float(key, default):
+            auto_save = {"param_float": 0.1}
+            return auto_save.get(key, default)
+
+        def auto_save_stub_bool(key, default):
+            auto_save = {"param_bool": True}
+            return auto_save.get(key, default)
+
+        file_io.param_float_autosave.read_parameter = auto_save_stub_float
+        file_io.param_bool_autosave.read_parameter = auto_save_stub_bool
         self.component = Component("component", setup=PositionAndAngle(0, 1, 90))
         self.angle_component = TiltingComponent("angle_component", setup=PositionAndAngle(0, 10, 90))
         self.jaws = create_mock_axis("s1vg", 0.2, 1)

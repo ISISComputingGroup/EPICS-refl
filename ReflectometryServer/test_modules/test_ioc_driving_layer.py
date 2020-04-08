@@ -8,7 +8,8 @@ from hamcrest import *
 
 from ReflectometryServer import *
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
-from ReflectometryServer.beamline import STATUS
+from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
+from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
 from ReflectometryServer.components import ChangeAxis
 from server_common.channel_access import UnableToConnectToPVException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
@@ -284,21 +285,20 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
     def setUp(self):
         self.start_position = 0.0
         self.max_velocity = 10.0
-        self.out_of_beam_position = -20
         self.tolerance_on_out_of_beam_position = 1
+        self.out_of_beam_position = OutOfBeamPosition(-20, tolerance=self.tolerance_on_out_of_beam_position)
+
         self.height_axis = create_mock_axis("JAWS:HEIGHT", self.start_position, self.max_velocity)
 
         self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
         self.jaws.set_changed_flag(ChangeAxis.POSITION, True)
 
-        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis,
-                                              out_of_beam_position=self.out_of_beam_position,
-                                              tolerance_on_out_of_beam_position=self.tolerance_on_out_of_beam_position)
+        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis, out_of_beam_positions=[self.out_of_beam_position])
 
     def test_GIVEN_component_which_is_disabled_WHEN_calculating_move_duration_THEN_returned_duration_is_time_taken_to_move_to_out_of_beam_position(self):
 
-        expected = - self.out_of_beam_position / self.max_velocity
+        expected = - self.out_of_beam_position.position / self.max_velocity
         self.jaws.beam_path_set_point.is_in_beam = False
 
         result = self.jaws_driver.get_max_move_duration()
@@ -306,7 +306,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         assert_that(result, is_(expected))
 
     def test_GIVEN_component_which_is_disabled_WHEN_moving_axis_THEN_computed_axis_velocity_is_correct_and_setpoint_set(self):
-        expected_position = self.out_of_beam_position
+        expected_position = self.out_of_beam_position.position
         target_duration = 4.0
         expected_velocity = - expected_position / 4.0
         self.jaws.beam_path_set_point.is_in_beam = False
@@ -321,7 +321,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = False
 
-        self.height_axis.sp = self.out_of_beam_position
+        self.height_axis.sp = self.out_of_beam_position.position
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
@@ -331,7 +331,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = True
 
-        self.height_axis.sp = self.out_of_beam_position + 2 * self.tolerance_on_out_of_beam_position
+        self.height_axis.sp = self.out_of_beam_position.position + 2 * self.tolerance_on_out_of_beam_position
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
@@ -341,7 +341,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = False
 
-        self.height_axis.sp = self.out_of_beam_position + self.tolerance_on_out_of_beam_position * 0.9
+        self.height_axis.sp = self.out_of_beam_position.position + self.tolerance_on_out_of_beam_position * 0.9
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
@@ -416,6 +416,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         slit_2 = Component("slit_2", setup=PositionAndAngle(y=0.0, z=20.0, angle=90.0))
         slit_2_height_axis = create_mock_axis("SLIT2:HEIGHT", 0.0, 10.0)
         self.slit_2_driver = MagicMock(DisplacementDriver)
+        self.slit_2_driver.get_max_move_duration = MagicMock(return_value=0)
 
         slit_3 = Component("slit_3", setup=PositionAndAngle(y=0.0, z=30.0, angle=90.0))
         slit_3_height_axis = create_mock_axis("SLIT3:HEIGHT", 0.0, 10.0)
@@ -469,7 +470,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         self.slit_3_driver.perform_move = MagicMock(side_effect=UnableToConnectToPVException("A_PV", "ERROR"))
 
         self.beamline.move = 1
-        assert_that(self.beamline.status, is_(STATUS.GENERAL_ERROR))
+        assert_that(STATUS_MANAGER.status, is_(STATUS.ERROR))
 
 
 class BeamlineBacklashMoveDurationTest(unittest.TestCase):

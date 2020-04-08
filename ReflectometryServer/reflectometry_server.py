@@ -2,12 +2,13 @@
 Reflectometry Server
 """
 
+import logging.config
 import sys
 import os
-from threading import Thread
 
 from pcaspy import SimpleServer
-import logging.config
+from threading import Thread
+
 
 from server_common.helpers import register_ioc_start
 
@@ -53,6 +54,7 @@ from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 from server_common.ioc_data_source import IocDataSource
 from server_common.channel_access import ChannelAccess
 from server_common.mysql_abstraction_layer import SQLAbstraction
+from ReflectometryServer.server_status_manager import STATUS_MANAGER
 
 
 def process_ca_loop():
@@ -62,7 +64,6 @@ def process_ca_loop():
             SERVER.process(0.1)
             ChannelAccess.poll()
         except Exception as err:
-            print(err)
             break
 
 
@@ -88,7 +89,11 @@ process_ca_thread.start()
 logger.info("Instantiating Beamline Model")
 beamline = create_beamline_from_configuration()
 pv_manager.set_beamline(beamline)
-SERVER.createPV(REFLECTOMETRY_PREFIX, pv_manager.PVDB)
+
+# Do not re-create PVs that already exist
+pvdb_to_add = pv_manager.get_init_filtered_pvdb()
+
+SERVER.createPV(REFLECTOMETRY_PREFIX, pvdb_to_add)
 driver.set_beamline(beamline)
 
 register_ioc_start("REFL", pv_manager.PVDB, REFLECTOMETRY_PREFIX)

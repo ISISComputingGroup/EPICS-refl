@@ -10,20 +10,22 @@ import unittest
 from ReflectometryServer import *
 from ReflectometryServer import beamline_configuration
 from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider
+from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_axis, DataMother
 
 from server_common.channel_access import UnableToConnectToPVException
 
 FLOAT_TOLERANCE = 1e-9
-OUT_OF_BEAM_POSITION = 10
+OUT_OF_BEAM_POSITION = OutOfBeamPosition(10)
 
 
 class TestEngineeringCorrections(unittest.TestCase):
 
     def _setup_driver_axis_and_correction(self, correction):
-        comp = Component("comp", PositionAndAngle(0.0, 0.0, 0.0))
+        comp = Component("comp", PositionAndAngle(0.0, 0.0, 90.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = DisplacementDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction), out_of_beam_position=OUT_OF_BEAM_POSITION)
+        driver = DisplacementDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction),
+                                    out_of_beam_positions=[OUT_OF_BEAM_POSITION])
         driver._is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp
 
@@ -89,12 +91,12 @@ class TestEngineeringCorrections(unittest.TestCase):
     def test_GIVEN_engineering_correction_offset_of_1_and_out_of_beam_WHEN_initialise_THEN_sp_set_correctly(self):
         correction = 4
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
-        mock_axis.sp = OUT_OF_BEAM_POSITION
+        mock_axis.sp = OUT_OF_BEAM_POSITION.position
         driver.initialise()
 
         result = comp.beam_path_set_point.get_displacement()
 
-        assert_that(result, is_(OUT_OF_BEAM_POSITION))
+        assert_that(result, is_(OUT_OF_BEAM_POSITION.position))
 
     def test_GIVEN_engineering_correction_offset_of_1_on_angle_driver_WHEN_initialise_THEN_rbv_set_correctly(self):
         correction = 1
@@ -444,18 +446,18 @@ class TestEngineeringCorrectionsChangeListener(unittest.TestCase):
 
 class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
-    def test_GIVEN_beam_line_where_autosave_theta_and_engineering_correction_on_sm_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+    @patch("ReflectometryServer.parameters.param_float_autosave")
+    def test_GIVEN_beam_line_where_autosave_theta_and_engineering_correction_on_sm_WHEN_init_THEN_beamline_is_at_given_place(self, param_float_autosave):
         expected_sm_angle = 22.5
         expected_theta = 2
-        file_io.return_value = expected_theta
+        param_float_autosave.read_parameter.return_value = expected_theta
 
         bl, axes = DataMother.beamline_sm_theta_detector(expected_sm_angle, expected_theta, autosave_theta_not_offset=True, sm_angle_engineering_correction=True)
 
         assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
-    def test_GIVEN_beam_line_where_autosave_offset_and_engineering_correction_on_sm_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+    @patch("ReflectometryServer.parameters.param_float_autosave")
+    def test_GIVEN_beam_line_where_autosave_offset_and_engineering_correction_on_sm_WHEN_init_THEN_beamline_is_at_given_place(self, param_float_autosave):
         sm_angle = 22.5
         expected_theta = 2
         # Theta is not autosaved so the correction for theta will not be able to be calculated. Therefore the correction should be 0 and the
@@ -463,22 +465,22 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         expected_sm_angle = sm_angle + expected_theta / 2
 
         expected_det_offset = 0.0
-        file_io.return_value = expected_det_offset
+        param_float_autosave.read_parameter.return_value = expected_det_offset
 
         bl, axes = DataMother.beamline_sm_theta_detector(sm_angle, expected_theta, autosave_theta_not_offset=False, sm_angle_engineering_correction=True)
 
         assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
-    def test_GIVEN_beam_line_where_autosave_and_engineering_correction_on_displacement_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+    @patch("ReflectometryServer.parameters.param_float_autosave")
+    def test_GIVEN_beam_line_where_autosave_and_engineering_correction_on_displacement_WHEN_init_THEN_beamline_is_at_given_place(self, param_float_autosave):
         expected_setpoint = 1.0
         multiple = 2.0
+        param_float_autosave.read_parameter.return_value = expected_setpoint
         offset = expected_setpoint / multiple
         comp = Component("comp", PositionAndAngle(0.0, 0, 90))
         param = TrackingPosition("param", comp, autosave=True)
         axis = create_mock_axis("MOT:MTR0101", offset + expected_setpoint, 1)
         driver = DisplacementDriver(comp, axis, engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
-        file_io.return_value = expected_setpoint
         nr_mode = BeamlineMode("NR", [param.name], {})
         bl = Beamline([comp], [param], [driver], [nr_mode])
         bl.active_mode = nr_mode.name
@@ -487,16 +489,18 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
 
         assert_that(result, is_(close_to(expected_setpoint, 1e-6)))
 
-    @patch("ReflectometryServer.parameters.read_autosave_value")
-    def test_GIVEN_beam_line_where_autosave_and_engineering_correction_on_angle_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+    @patch("ReflectometryServer.parameters.param_float_autosave")
+    def test_GIVEN_beam_line_where_autosave_and_engineering_correction_on_angle_WHEN_init_THEN_beamline_is_at_given_place(self, param_float_autosave):
+
         expected_setpoint = 1.0
         multiple = 2.0
+        param_float_autosave.read_parameter.return_value = expected_setpoint
         offset = expected_setpoint / multiple
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0, 90))
         param = AngleParameter("param", comp, autosave=True)
         axis = create_mock_axis("MOT:MTR0101", offset + expected_setpoint, 1)
         driver = AngleDriver(comp, axis, engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
-        file_io.return_value = expected_setpoint
+
         nr_mode = BeamlineMode("NR", [param.name], {})
         bl = Beamline([comp], [param], [driver], [nr_mode])
         bl.active_mode = nr_mode.name
