@@ -416,6 +416,23 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(result, is_(position_and_angle(theta.beam_path_rbv.get_outgoing_beam())))
 
+    def test_GIVEN_next_component_set_after_creation_but_before_beamline_init_WHEN_get_read_back_THEN_angle_is_correct(self):
+
+        beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
+        next_component.beam_path_rbv.is_in_beam = True
+        next_component.beam_path_rbv.set_displacement(5)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
+        theta.set_angle_to([next_component])
+
+        theta.beam_path_rbv.set_incoming_beam(beam_start)
+
+
+        result = theta.beam_path_rbv.get_angular_displacement()
+
+        assert_that(result, is_(45.0/2.0))
+
+
 class TestComponentInitialisation(unittest.TestCase):
 
     def setUp(self):

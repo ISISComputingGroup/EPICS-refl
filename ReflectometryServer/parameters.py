@@ -18,6 +18,8 @@ from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
 
+DEFAULT_RBV_TO_SP_TOLERANCE = 0.002
+
 logger = logging.getLogger(__name__)
 
 # An update of the parameter readback value
@@ -122,7 +124,8 @@ class BeamlineParameterGroup(Enum):
     GAP_HORIZONTAL = 4
 
 
-@observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate, ParameterChangingUpdate, ParameterInitUpdate)
+@observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate,
+            ParameterChangingUpdate, ParameterInitUpdate)
 @six.add_metaclass(abc.ABCMeta)
 class BeamlineParameter(object):
     """
@@ -708,7 +711,7 @@ class SlitGapParameter(BeamlineParameter):
     """
 
     def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False,
-                 rbv_to_sp_tolerance=0.002):
+                 rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLERANCE):
         """
         Args:
             name (str): The name of the parameter

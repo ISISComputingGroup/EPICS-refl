@@ -10,8 +10,6 @@ from pcaspy import SimpleServer
 from threading import Thread
 
 
-from server_common.helpers import register_ioc_start
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logging.config.dictConfig({
@@ -51,9 +49,8 @@ except ImportError:
 from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
 from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, MYPVPREFIX, DEFAULT_ASG_RULES
 from ReflectometryServer.ChannelAccess.pv_manager import PVManager
-from server_common.ioc_data_source import IocDataSource
+from server_common.helpers import register_ioc_start
 from server_common.channel_access import ChannelAccess
-from server_common.mysql_abstraction_layer import SQLAbstraction
 from ReflectometryServer.server_status_manager import STATUS_MANAGER
 
 

@@ -543,7 +543,7 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
         beamline = self.setup_beamline([])
 
-        result = beamline.beamline_constant
+        result = beamline.beamline_constants
 
         assert_that(result, is_([]))
 
@@ -551,7 +551,7 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
         beamline = self.setup_beamline(None)
 
-        result = beamline.beamline_constant
+        result = beamline.beamline_constants
 
         assert_that(result, is_([]))
 
@@ -561,7 +561,7 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
         ]
         beamline = self.setup_beamline(expected_parameters)
 
-        result = beamline.beamline_constant
+        result = beamline.beamline_constants
 
         assert_that(result, is_(expected_parameters))
 
