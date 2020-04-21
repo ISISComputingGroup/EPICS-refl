@@ -78,27 +78,42 @@ def add_constant(constant):
     return constant
 
 
-def add_component(component):
+def add_component(component, marker=None):
     """
     Add a beamline component to the beamline configuration.
 
     Args:
         component (ReflectometryServer.Component): beamline component
+        marker: add component at the given marker; None add at the end
 
     Returns:
         component
     """
-    ConfigHelper.components.append(component)
+    if marker is None:
+        ConfigHelper.components.append(component)
+    else:
+        ConfigHelper.components[marker] = component
     return component
 
 
-def add_parameter(parameter, modes=None, mode_inits=None):
+def add_component_marker():
+    """
+    Add a marker in the components to be filled in later. Return that position.
+
+    Returns: position that needs to be filled in
+    """
+    ConfigHelper.components.append(None)
+    return len(ConfigHelper.components) - 1
+
+
+def add_parameter(parameter, modes=None, mode_inits=None, marker=None):
     """
     Add a parameter to the beamline configurarion
     Args:
         parameter: parameter to add
         modes: a list of modes in which the parameter is in; None for not in a mode, e.g. (nr, polarised)
         mode_inits: a list of mode and their initial value; None for no init, e.g. [(nr, 0), (polarised, 1)]
+        marker: index of location parameter should be added; None add to the end
 
     Returns:
         given parameter
@@ -115,8 +130,10 @@ def add_parameter(parameter, modes=None, mode_inits=None):
         >>> add_parameter(TrackingPosition("name", component), modes=(nr, polarised), mode_inits=(nr, 0.0))
 
     """
-
-    ConfigHelper.parameters.append(parameter)
+    if marker is None:
+        ConfigHelper.parameters.append(parameter)
+    else:
+        ConfigHelper.parameters[marker] = parameter
     if modes is None:
         modes = []
     if isinstance(modes, six.string_types):
@@ -131,6 +148,16 @@ def add_parameter(parameter, modes=None, mode_inits=None):
         ConfigHelper.mode_initial_values[mode][parameter.name] = init_value
 
     return parameter
+
+
+def add_parameter_marker():
+    """
+    Add a marker in the parameters to be filled in later. Return that position.
+
+    Returns: position that needs to be filled in
+    """
+    ConfigHelper.parameters.append(None)
+    return len(ConfigHelper.parameters) - 1
 
 
 def add_mode(name, is_disabled=False):
@@ -151,18 +178,32 @@ def add_mode(name, is_disabled=False):
     return name
 
 
-def add_driver(driver):
+def add_driver(driver, marker=None):
     """
     Add a driver to the config
     Args:
         driver: driver to add
+        marker: add component at the given marker; None add to the end
 
     Returns: driver
 
     """
-    ConfigHelper.drivers.append(driver)
+    if marker is None:
+        ConfigHelper.drivers.append(driver)
+    else:
+        ConfigHelper.drivers[marker] = driver
 
     return driver
+
+
+def add_driver_marker():
+    """
+    Add a marker in the driverss to be filled in later. Return that position.
+
+    Returns: position that needs to be filled in
+    """
+    ConfigHelper.drivers.append(None)
+    return len(ConfigHelper.drivers) - 1
 
 
 def create_jaws_pv_driver(jaws_pv_prefix, is_vertical, is_gap_not_centre):
@@ -183,7 +224,8 @@ def create_jaws_pv_driver(jaws_pv_prefix, is_vertical, is_gap_not_centre):
         return JawsCentrePVWrapper(jaws_pv_prefix, is_vertical=is_vertical)
 
 
-def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLERANCE, modes=None, mode_inits=None):
+def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLERANCE, modes=None, mode_inits=None,
+                        exclude=None):
     """
     Add parameters for a slit, this is horizontal and vertical gaps and centres. Also add modes, mode inits and
     tolerance if needed.
@@ -193,16 +235,20 @@ def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLER
         rbv_to_sp_tolerance: tolerance to set in the parameter, shows an alarm if rbv is not within this tolerance
         modes: list of modes see add_parameter for explanation
         mode_inits: list of modes and init value see add_parameter for explanation
+        exclude: slit parameters to exclude, these should be one of VG, VC, HG, HC
 
     Returns:
         slit gap parameters
 
     """
+    names = ["VG", "VC", "HG", "HC"]
+    if exclude is not None:
+        names = [name for name in names if name not in exclude]
 
     jaws_pv_prefix = "MOT:JAWS{}".format(slit_number)
 
-    parameters = []
-    for name in ["VG", "VC", "HG", "HC"]:
+    parameters = {}
+    for name in names:
         is_vertical = name[0] == "V"
         is_gap_not_centre = name[1] == "G"
 
@@ -210,7 +256,7 @@ def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLER
         driver = create_jaws_pv_driver(jaws_pv_prefix, is_vertical, is_gap_not_centre)
         parameter = SlitGapParameter(vg_param_name, driver, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         add_parameter(parameter, modes, mode_inits)
-        parameters.append(parameter)
+        parameters[name] = parameter
 
     return parameters
 

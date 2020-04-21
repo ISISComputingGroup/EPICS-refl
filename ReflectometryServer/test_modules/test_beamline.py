@@ -7,7 +7,6 @@ from mock import Mock, patch,  call
 
 from ReflectometryServer import *
 
-import ReflectometryServer.file_io
 from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
 from ReflectometryServer.beamline_constant import BeamlineConstant

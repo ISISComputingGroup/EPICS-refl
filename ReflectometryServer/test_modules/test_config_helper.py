@@ -185,6 +185,16 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(result[mode], contains_inanyorder("S1VG", "S1VC", "S1HG", "S1HC"))
         assert_that(result[mode1], contains_inanyorder("S1VG", "S1VC", "S1HG", "S1HC"))
 
+    def test_GVIEN_add_slits_excluding_VC_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist_except_VC(self):
+
+        with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_wrapper_mock:
+
+            add_slit_parameters(1, exclude="VC")
+
+        result = ConfigHelper.parameters
+
+        assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG", "S1HC"))
+
     def test_GVIEN_add_beam_start_WHEN_get_beamline_THEN_beam_start_is_correct(self):
         add_mode("NR")
         expected_beam_start = PositionAndAngle(0.0, -10.0, 0.0)
@@ -206,6 +216,39 @@ class TestConfigHelper(unittest.TestCase):
 
         result = get_configured_beamline()
         assert_that(result.footprint_manager.get_sample_length(), is_(expected_sample_length))
+
+    def test_GIVEN_beam_line_parameter_driver_and_component_added_at_marker_WHEN_get_parameters_THEN_inserted_at_right_place(self):
+        comp1 = Component("1", PositionAndAngle(0, 0, 1))
+        expected1 = TrackingPosition("param1", comp1)
+        driver1 = DisplacementDriver(comp1, create_mock_axis("MOT0101", 1, 1))
+
+        comp2 = Component("2", PositionAndAngle(0, 0, 2))
+        expected2 = TrackingPosition("param2", comp2)
+        driver2 = DisplacementDriver(comp2, create_mock_axis("MOT0102", 1, 1))
+
+        comp3 = Component("2", PositionAndAngle(0, 0, 2))
+        expected3 = TrackingPosition("param3", comp3)
+        driver3 = DisplacementDriver(comp3, create_mock_axis("MOT0103", 1, 1))
+
+        add_component(comp1)
+        add_parameter(expected1)
+        add_driver(driver1)
+
+        comp_marker = add_component_marker()
+        param_marker = add_parameter_marker()
+        driver_marker = add_driver_marker()
+
+        add_parameter(expected3)
+        add_component(comp3)
+        add_driver(driver3)
+
+        add_component(comp2, marker=comp_marker)
+        add_parameter(expected2, marker=param_marker)
+        add_driver(driver2, marker=driver_marker)
+
+        assert_that(ConfigHelper.parameters, contains(expected1, expected2, expected3))
+        assert_that(ConfigHelper.drivers, contains(driver1, driver2, driver3))
+        assert_that(ConfigHelper.components, contains(comp1, comp2, comp3))
 
 
 if __name__ == '__main__':

@@ -5,7 +5,6 @@ set points or readbacks etc.
 from collections import namedtuple
 from math import degrees, atan2
 
-from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException
 from ReflectometryServer.geometry import PositionAndAngle
 import logging
 
@@ -464,29 +463,22 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
     calculations. This is used for example for Theta where the angle is the angle to the next enabled component.
     """
 
-    def __init__(self, name, movement_strategy, theta_setpoint_beam_path_calc):
+    def __init__(self, name, movement_strategy, theta_setpoint_beam_path_calc, angle_to):
         """
         Initialise.
         Args:
             name (str): name of this beam path calc (used for autosave key)
             movement_strategy: movement strategy to use
-
             theta_setpoint_beam_path_calc (ReflectometryServer.beam_path_calc.BeamPathCalcThetaSP)
-        """
-        super(BeamPathCalcThetaRBV, self).__init__(name, movement_strategy, is_reflecting=True)
-        self._angle_to = None
-        self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
-        self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
-
-    def set_angle_to(self, angle_to):
-        """
-        Set the component beam path calcs this points to. This should be set before using.
-        Args:
             angle_to (list[(ReflectometryServer.beam_path_calc.TrackingBeamPathCalc, ReflectometryServer.beam_path_calc.TrackingBeamPathCalc)]):
                 readback beam path calc on which to base the angle and setpoint on which the offset is taken
 
         """
+        super(BeamPathCalcThetaRBV, self).__init__(name, movement_strategy, is_reflecting=True)
         self._angle_to = angle_to
+        self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
+        self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
+
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             # add to the physical change for the rbv so that we don't get an infinite loop
             readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self.angle_update)
@@ -501,8 +493,6 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         Args:
             update (ComponentChangingUpdate): The update event
         """
-        if self._angle_to is None:
-            raise BeamlineConfigurationInvalidException("Beamline configuration invalid: angle_to not set on theta")
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
                 self.is_rotating = readback_beam_path_calc.is_displacing
@@ -525,8 +515,6 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
 
         Returns: half the angle to the next enabled beam path calc, or nan if there isn't one.
         """
-        if self._angle_to is None:
-            raise BeamlineConfigurationInvalidException("Beamline configuration invalid: angle_to not set on theta")
 
         # clear previous incoming theta beam on all components
         for readback_beam_path_calc, _ in self._angle_to:
@@ -569,8 +557,6 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         """
         Sets the incoming beam at the next disabled component in beam that this theta component is angled to.
         """
-        if self._angle_to is None:
-            raise BeamlineConfigurationInvalidException("Beamline configuration invalid: angle_to not set on theta")
         for readback_beam_path_calc, set_point_beam_path_calc in self._angle_to:
             if not readback_beam_path_calc.incoming_beam_can_change and readback_beam_path_calc.is_in_beam:
                 readback_beam_path_calc.set_incoming_beam(self.get_outgoing_beam(), force=True)
@@ -584,28 +570,21 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
     the beam.
     """
 
-    def __init__(self, name, movement_strategy):
+    def __init__(self, name, movement_strategy, angle_to):
         """
         Initialise. You must call set_angle_to before using this class
         Args:
             name (str): name of this beam path calc (used for autosave key)
             movement_strategy: movement strategy to use
+            angle_to (list[ReflectometryServer.beam_path_calc.TrackingBeamPathCalc]):
+                beam path calc on which to base the angle
 
         """
         super(BeamPathCalcThetaSP, self).__init__(name, movement_strategy, is_reflecting=True)
-        self._angle_to = None
-        self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
-
-    def set_angle_to(self, angle_to):
-        """
-        Set the component beam path calcs this points to. This should be set before using.
-        Args:
-            angle_to (list[ReflectometryServer.beam_path_calc.TrackingBeamPathCalc]):
-                beam path calc on which to base the angle
-        """
         self._angle_to = angle_to
         for comp in self._angle_to:
             comp.add_listener(InitUpdate, self._init_listener)
+        self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
 
     def _init_listener(self, update):
         """
@@ -629,8 +608,6 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
 
         Returns: half the angle to the next enabled beam path calc, or nan if there isn't one.
         """
-        if self._angle_to is None:
-            raise BeamlineConfigurationInvalidException("Beamline configuration invalid: angle_to not set on theta")
         for setpoint_beam_path_calc in self._angle_to:
             if setpoint_beam_path_calc.is_in_beam:
                 other_pos = setpoint_beam_path_calc.intercept_in_mantid_coordinates(on_init=True)
@@ -653,8 +630,6 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         """
         Sets the incoming beam at the next disabled component in beam that this theta component is angled to.
         """
-        if self._angle_to is None:
-            raise BeamlineConfigurationInvalidException("Beamline configuration invalid: angle_to not set on theta")
         for angle_to in self._angle_to:
             if not angle_to.incoming_beam_can_change and angle_to.is_in_beam:
                 angle_to.set_incoming_beam(self.get_outgoing_beam(), force=True)

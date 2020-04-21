@@ -226,35 +226,15 @@ class ThetaComponent(ReflectingComponent):
         super(ReflectingComponent, self).__init__(name, setup)
         self.can_define_current_angle_as = False
 
-    def set_angle_to(self, angle_to):
-        """
-        Use this to set the components which define the angle. This can be done at a late stage but before the class is
-        used. Should only be called once.
-        Args:
-            angle_to (list[ReflectometryServer.components.Component]): list of components that the readback
-                angle should calculated to, ordered by preference. First enabled component is used.
-        """
-        if self.angle_to_components is not None:
-            raise BeamlineConfigurationInvalidException("Beamline configuration invalid: angle_to set twice")
-
-        self.angle_to_components = angle_to
-        self._set_angle_to_on_beam_path_cals()
-
-    def _set_angle_to_on_beam_path_cals(self):
-        angle_to_components = [comp.beam_path_set_point for comp in self.angle_to_components]
-        beam_path_calcs = [(comp.beam_path_rbv, comp.beam_path_set_point) for comp in self.angle_to_components]
-
-        self._beam_path_set_point.set_angle_to(angle_to_components)
-        self._beam_path_rbv.set_angle_to(beam_path_calcs)
-
     def _init_beam_path_calcs(self, setup):
         linear_movement_calc = LinearMovementCalc(setup)
 
-        self._beam_path_set_point = BeamPathCalcThetaSP("{}_sp".format(self.name), linear_movement_calc)
+        angle_to_components = [comp.beam_path_set_point for comp in self.angle_to_components]
+        beam_path_calcs = [(comp.beam_path_rbv, comp.beam_path_set_point) for comp in self.angle_to_components]
+
+        self._beam_path_set_point = BeamPathCalcThetaSP("{}_sp".format(self.name), linear_movement_calc, angle_to_components)
         self._beam_path_rbv = BeamPathCalcThetaRBV("{}_rbv".format(self.name), linear_movement_calc,
-                                                   self._beam_path_set_point)
-        if self.angle_to_components is not None:
-            self._set_angle_to_on_beam_path_cals()
+                                                   self._beam_path_set_point, beam_path_calcs)
 
     def define_current_angle_as(self, new_angle):
         """
