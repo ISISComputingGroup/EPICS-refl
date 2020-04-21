@@ -572,7 +572,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
 
     def __init__(self, name, movement_strategy, angle_to):
         """
-        Initialise. You must call set_angle_to before using this class
+        Initialise.
         Args:
             name (str): name of this beam path calc (used for autosave key)
             movement_strategy: movement strategy to use

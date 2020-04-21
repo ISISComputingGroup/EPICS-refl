@@ -213,7 +213,7 @@ class ThetaComponent(ReflectingComponent):
     Components which reflects the beam from an reflecting surface at an angle.
     """
 
-    def __init__(self, name, setup, angle_to=None):
+    def __init__(self, name, setup, angle_to):
         """
         Initializer.
         Args:
