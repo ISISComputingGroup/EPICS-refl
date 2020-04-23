@@ -10,5 +10,6 @@ from ReflectometryServer.footprint_manager import FootprintSetup, BaseFootprintS
 from ReflectometryServer.geometry import PositionAndAngle, Position
 from ReflectometryServer.ioc_driver import AngleDriver, DisplacementDriver
 from ReflectometryServer.out_of_beam import OutOfBeamPosition
-from ReflectometryServer.parameters import InBeamParameter, AngleParameter, TrackingPosition, SlitGapParameter
+from ReflectometryServer.parameters import InBeamParameter, AngleParameter, TrackingPosition, DirectParameter, \
+    SlitGapParameter
 from ReflectometryServer.pv_wrapper import MotorPVWrapper, JawsCentrePVWrapper, JawsGapPVWrapper, PVWrapper
