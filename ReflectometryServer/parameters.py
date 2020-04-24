@@ -5,7 +5,7 @@ from collections import namedtuple
 
 from pcaspy import Severity
 
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate, PhysicalMoveUpdate
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave
 import logging
 
@@ -438,7 +438,7 @@ class AngleParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._reflection_component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
 
-        self._reflection_component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
+        self._reflection_component.beam_path_rbv.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
         self._reflection_component.beam_path_rbv.add_listener(ComponentChangingUpdate,
                                                               self._on_update_changing_state)
 
