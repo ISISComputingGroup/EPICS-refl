@@ -534,12 +534,25 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         angle = 3.0
         beam_angle = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, beam_angle))
-        displacement_parameter = AngleParameter("param", sample)
+        angle_parameter = AngleParameter("param", sample)
         listener = Mock()
-        displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
+        angle_parameter.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.set_angular_displacement(angle)
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
+        listener.assert_called_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
+
+    def test_GIVEN_reflection_angle_on_tilting_component_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
+
+        sample = TiltingComponent("sample", setup=PositionAndAngle(0, 10, 90))
+        angle = 3.0
+        beam_angle = 1.0
+        sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, beam_angle))
+        angle_parameter = AngleParameter("param", sample)
+        listener = Mock()
+        angle_parameter.add_listener(ParameterReadbackUpdate, listener)
+        sample.beam_path_rbv.set_angular_displacement(angle)
+
+        listener.assert_called_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
 
     def test_GIVEN_component_in_beam_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
 
@@ -640,7 +653,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         component.beam_path_rbv.angle_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
+        listener.assert_called_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
         self.assertEqual(angle_parameter.alarm_severity, alarm_severity)
         self.assertEqual(angle_parameter.alarm_status, alarm_status)
 
@@ -655,7 +668,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         component.beam_path_rbv.displacement_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(0.0, None, None))
+        listener.assert_called_with(ParameterReadbackUpdate(0.0, None, None))
         self.assertEqual(angle_parameter.alarm_severity, None)
         self.assertEqual(angle_parameter.alarm_status, None)
 

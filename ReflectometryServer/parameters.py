@@ -439,6 +439,7 @@ class AngleParameter(BeamlineParameter):
             self._reflection_component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
 
         self._reflection_component.beam_path_rbv.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
+        self._reflection_component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         self._reflection_component.beam_path_rbv.add_listener(ComponentChangingUpdate,
                                                               self._on_update_changing_state)
 
