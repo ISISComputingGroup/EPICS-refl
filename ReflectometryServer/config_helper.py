@@ -225,7 +225,7 @@ def create_jaws_pv_driver(jaws_pv_prefix, is_vertical, is_gap_not_centre):
 
 
 def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLERANCE, modes=None, mode_inits=None,
-                        exclude=None):
+                        exclude=None, include_centres=False):
     """
     Add parameters for a slit, this is horizontal and vertical gaps and centres. Also add modes, mode inits and
     tolerance if needed.
@@ -236,12 +236,17 @@ def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLER
         modes: list of modes see add_parameter for explanation
         mode_inits: list of modes and init value see add_parameter for explanation
         exclude: slit parameters to exclude, these should be one of VG, VC, HG, HC
+        include_centres: True to include centres; False to just have the gaps
 
     Returns:
         slit gap parameters
 
     """
-    names = ["VG", "VC", "HG", "HC"]
+
+    if include_centres:
+        names = ["VG", "VC", "HG", "HC"]
+    else:
+        names = ["VG", "HG"]
     if exclude is not None:
         names = [name for name in names if name not in exclude]
 
