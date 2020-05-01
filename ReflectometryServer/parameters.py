@@ -6,6 +6,7 @@ from collections import namedtuple
 from pcaspy import Severity
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate
+from ReflectometryServer.exceptions import ParameterNotInitializedException
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave
 import logging
 
@@ -43,17 +44,6 @@ ParameterChangingUpdate = namedtuple("ParameterChangingUpdate", [
 # An update that is triggered when the parameter has received an initial value either from autosave or motor rbv.
 ParameterInitUpdate = namedtuple("ParameterInitUpdate", [
     "value"])           # The initial parameter value
-
-
-class ParameterNotInitializedException(Exception):
-    """
-    Exception for when a parameter is not initialized.
-    """
-    def __init__(self, err):
-        self.message = str(err)
-
-    def __str__(self):
-        return self.message
 
 
 class DefineCurrentValueAsParameter(object):

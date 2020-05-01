@@ -8,12 +8,11 @@ from functools import partial
 from pcaspy import Severity
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
-from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException
+from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException, ParameterNotInitializedException
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.file_io import mode_autosave, MODE_KEY
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
-from ReflectometryServer.parameters import ParameterNotInitializedException
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 from server_common.channel_access import UnableToConnectToPVException
