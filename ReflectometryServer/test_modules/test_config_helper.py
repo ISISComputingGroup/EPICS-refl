@@ -49,6 +49,12 @@ class TestConfigHelper(unittest.TestCase):
 
         assert_that(ConfigHelper.components, only_contains(expected1, expected2, expected3))
 
+    def test_GIVEN_no_parameters_added_WHEN_get_beamline_THEN_parameters_are_empty(self):
+
+        result = get_configured_beamline()
+
+        assert_that(ConfigHelper.parameters, is_([]))
+
     def test_GIVEN_beam_line_parameter_added_WHEN_get_beamline_THEN_beam_line_has_parameter(self):
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
         expected1 = TrackingPosition("param1", comp1)
@@ -65,6 +71,12 @@ class TestConfigHelper(unittest.TestCase):
 
         assert_that(ConfigHelper.parameters, only_contains(expected1, expected2))
         assert_that(result.parameters.values(), only_contains(expected1, expected2))
+
+    def test_GIVEN_no_mode_added_WHEN_get_beamline_THEN_modes_are_empty(self):
+
+        result = get_configured_beamline()
+
+        assert_that(ConfigHelper.modes, is_([]))
 
     def test_GIVEN_beam_line_mode_added_WHEN_get_beamline_THEN_beam_line_has_mode(self):
         expected_name1 = "mode1"
@@ -150,6 +162,12 @@ class TestConfigHelper(unittest.TestCase):
 
         assert_that(result, has_entry(expected_name1, expected_init))
 
+    def test_GIVEN_no_driver_added_WHEN_get_beamline_THEN_drivers_are_empty(self):
+
+        result = get_configured_beamline()
+
+        assert_that(ConfigHelper.drivers, is_([]))
+
     def test_GVIEN_add_driver_WHEN_get_beamline_THEN_driver_added(self):
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
         driver = DisplacementDriver(comp1, create_mock_axis("MOT0101", 1, 1))
@@ -195,6 +213,12 @@ class TestConfigHelper(unittest.TestCase):
 
         assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG", "S1HC"))
 
+    def test_GIVEN_no_beam_start_added_WHEN_get_beamline_THEN_beamstart_is_none(self):
+
+        result = get_configured_beamline()
+
+        assert_that(ConfigHelper.beam_start, is_(None))
+
     def test_GVIEN_add_beam_start_WHEN_get_beamline_THEN_beam_start_is_correct(self):
         add_mode("NR")
         expected_beam_start = PositionAndAngle(0.0, -10.0, 0.0)
@@ -204,6 +228,12 @@ class TestConfigHelper(unittest.TestCase):
         result = get_configured_beamline()
 
         assert_that(comp.beam_path_set_point.get_outgoing_beam(), is_(expected_beam_start))
+
+    def test_GIVEN_no_footprint_added_WHEN_get_beamline_THEN_footprint_is_none(self):
+
+        result = get_configured_beamline()
+
+        assert_that(ConfigHelper.footprint_setup, is_(None))
 
     def test_GVIEN_add_footprint_setup_WHEN_get_beamline_THEN_beam_start_is_correct(self):
         add_mode("NR")
