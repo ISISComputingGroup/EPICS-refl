@@ -5,7 +5,7 @@ from collections import namedtuple
 
 from pcaspy import Severity
 
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate, PhysicalMoveUpdate
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave
 import logging
 
@@ -438,6 +438,7 @@ class AngleParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._reflection_component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
 
+        self._reflection_component.beam_path_rbv.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
         self._reflection_component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         self._reflection_component.beam_path_rbv.add_listener(ComponentChangingUpdate,
                                                               self._on_update_changing_state)
@@ -701,35 +702,32 @@ class InBeamParameter(BeamlineParameter):
         return self._component.beam_path_rbv.is_displacing
 
 
-class SlitGapParameter(BeamlineParameter):
+class DirectParameter(BeamlineParameter):
     """
-    Parameter which sets the gap on a slit. This differs from other beamline parameters in that it is not linked to the
-    beamline component layer but hooks directly into a motor axis.
+    Parameter which is not linked to the beamline component layer but hooks directly into a motor axis. This parameter
+    is just a wrapper to present a motor PV as a reflectometry style PV and does not track the beam path.
     """
-
     def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False,
                  rbv_to_sp_tolerance=0.002):
         """
         Args:
             name (str): The name of the parameter
-            pv_wrapper (ReflectometryServer.pv_wrapper._JawsAxisPVWrapper): The jaws pv wrapper this parameter talks to
+            pv_wrapper (ReflectometryServer.pv_wrapper.PVWrapper): The pv wrapper this parameter talks to
             sim (bool): Whether it is a simulated parameter
             init (float): Initialisation value if simulated
             description (str): The description
+            autosave (bool): Whether the setpoint for this parameter should be autosaved
+            rbv_to_sp_tolerance (float): The max difference between setpoint and readback value for considering the
+                parameter to be "at readback value"
         """
-        super(SlitGapParameter, self).__init__(name, sim, init, description, autosave,
-                                               rbv_to_sp_tolerance=rbv_to_sp_tolerance)
+        super(DirectParameter, self).__init__(name, sim, init, description, autosave,
+                                              rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._last_update = None
 
         self._pv_wrapper = pv_wrapper
-        self._pv_wrapper.add_listener(ReadbackUpdate, self._on_update_slit_rbv)
+        self._pv_wrapper.add_listener(ReadbackUpdate, self._cache_and_update_rbv)
         self._pv_wrapper.add_listener(IsChangingUpdate, self._on_is_changing_change)
         self._pv_wrapper.initialise()
-        if pv_wrapper.is_vertical:
-            self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
-            self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
-        else:
-            self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
 
         if self._autosave:
             self._initialise_sp_from_file()
@@ -756,7 +754,7 @@ class SlitGapParameter(BeamlineParameter):
         """
         self._set_initial_sp(self._pv_wrapper.sp)
 
-    def _on_update_slit_rbv(self, update):
+    def _cache_and_update_rbv(self, update):
         """
         Update the readback value.
 
@@ -823,3 +821,29 @@ class SlitGapParameter(BeamlineParameter):
         Returns: Is the parameter changing (displacing)
         """
         return self._pv_wrapper.is_moving
+
+
+class SlitGapParameter(DirectParameter):
+    """
+    Parameter which sets the gap on a slit.
+    """
+    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False,
+                 rbv_to_sp_tolerance=0.002):
+        """
+        Args:
+            name (str): The name of the parameter
+            pv_wrapper (ReflectometryServer.pv_wrapper._JawsAxisPVWrapper): The pv wrapper this parameter talks to
+            sim (bool): Whether it is a simulated parameter
+            init (float): Initialisation value if simulated
+            description (str): The description
+            autosave (bool): Whether the setpoint for this parameter should be autosaved
+            rbv_to_sp_tolerance (float): The max difference between setpoint and readback value for considering the
+                parameter to be "at readback value"
+        """
+        super(SlitGapParameter, self).__init__(name, pv_wrapper, sim, init, description, autosave,
+                                               rbv_to_sp_tolerance=rbv_to_sp_tolerance)
+        if pv_wrapper.is_vertical:
+            self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
+            self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
+        else:
+            self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)

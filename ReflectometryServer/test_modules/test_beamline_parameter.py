@@ -534,12 +534,25 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         angle = 3.0
         beam_angle = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, beam_angle))
-        displacement_parameter = AngleParameter("param", sample)
+        angle_parameter = AngleParameter("param", sample)
         listener = Mock()
-        displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
+        angle_parameter.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.set_angular_displacement(angle)
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
+        listener.assert_called_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
+
+    def test_GIVEN_reflection_angle_on_tilting_component_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
+
+        sample = TiltingComponent("sample", setup=PositionAndAngle(0, 10, 90))
+        angle = 3.0
+        beam_angle = 1.0
+        sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, beam_angle))
+        angle_parameter = AngleParameter("param", sample)
+        listener = Mock()
+        angle_parameter.add_listener(ParameterReadbackUpdate, listener)
+        sample.beam_path_rbv.set_angular_displacement(angle)
+
+        listener.assert_called_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
 
     def test_GIVEN_component_in_beam_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
 
@@ -640,7 +653,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         component.beam_path_rbv.angle_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
+        listener.assert_called_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
         self.assertEqual(angle_parameter.alarm_severity, alarm_severity)
         self.assertEqual(angle_parameter.alarm_status, alarm_status)
 
@@ -655,7 +668,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         component.beam_path_rbv.displacement_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(0.0, None, None))
+        listener.assert_called_with(ParameterReadbackUpdate(0.0, None, None))
         self.assertEqual(angle_parameter.alarm_severity, None)
         self.assertEqual(angle_parameter.alarm_status, None)
 
@@ -689,20 +702,20 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         self.assertEqual(in_beam_parameter.alarm_severity, None)
         self.assertEqual(in_beam_parameter.alarm_status, None)
 
-    def test_GIVEN_slit_gap_parameter_WHEN_updating_gap_with_alarm_on_pv_wrapper_THEN_parameter_is_in_alarm_and_propagates_alarm(self):
+    def test_GIVEN_direct_parameter_WHEN_updating_value_with_alarm_on_pv_wrapper_THEN_parameter_is_in_alarm_and_propagates_alarm(self):
         pv_wrapper = create_mock_axis("s1vg", 0.0, 1)
         new_value = 1.0
         alarm_severity = 1
         alarm_status = 2
-        in_beam_parameter = SlitGapParameter("param", pv_wrapper)
+        parameter = DirectParameter("param", pv_wrapper)
         listener = Mock()
-        in_beam_parameter.add_listener(ParameterReadbackUpdate, listener)
+        parameter.add_listener(ParameterReadbackUpdate, listener)
 
         pv_wrapper.trigger_listeners(ReadbackUpdate(new_value, alarm_severity, alarm_status))
 
         listener.assert_called_once_with(ParameterReadbackUpdate(new_value, alarm_severity, alarm_status))
-        self.assertEqual(in_beam_parameter.alarm_severity, alarm_severity)
-        self.assertEqual(in_beam_parameter.alarm_status, alarm_status)
+        self.assertEqual(parameter.alarm_severity, alarm_severity)
+        self.assertEqual(parameter.alarm_status, alarm_status)
 
 
 class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
@@ -881,29 +894,29 @@ class TestInitSetpoints(unittest.TestCase):
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
 
-    def test_GIVEN_autosave_is_true_and_autosave_value_exists_WHEN_creating_slit_gap_parameter_THEN_sp_is_autosave_value(self):
+    def test_GIVEN_autosave_is_true_and_autosave_value_exists_WHEN_creating_direct_parameter_THEN_sp_is_autosave_value(self):
         expected = 0.1
         param_name = "param_float"
 
-        param = SlitGapParameter(param_name, self.jaws, autosave=True)
+        param = DirectParameter(param_name, self.jaws, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
 
-    def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_slit_gap_parameter_THEN_sp_is_taken_from_motor_instead(self):
+    def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_direct_parameter_THEN_sp_is_taken_from_motor_instead(self):
         expected = 0.2
         param_name = "param_not_in_file"
 
-        param = SlitGapParameter(param_name, self.jaws, autosave=True)
+        param = DirectParameter(param_name, self.jaws, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
 
-    def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_slit_gap_parameter_THEN_sp_is_taken_from_motor_instead(self):
+    def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_direct_parameter_THEN_sp_is_taken_from_motor_instead(self):
         expected = 0.2
         param_name = "param_bool"
 
-        param = SlitGapParameter(param_name, self.jaws, autosave=True)
+        param = DirectParameter(param_name, self.jaws, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)

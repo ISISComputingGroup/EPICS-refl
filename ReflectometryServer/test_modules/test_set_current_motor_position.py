@@ -93,14 +93,14 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         assert_that(parameter.define_current_value_as, is_(None))
 
-    def test_GIVEN_beamline_parameter_and_SlitGapParameter_component_WHEN_set_position_to_THEN_component_has_set_position_on(self):
+    def test_GIVEN_beamline_parameter_and_DirectParameter_component_WHEN_set_position_to_THEN_component_has_set_position_on(self):
 
         def _listener(set_position_to):
             self.set_position_to = set_position_to
 
         expected_position = 1
         mock_jaws_wrapper = create_mock_JawsCentrePVWrapper("jaws_centre", expected_position, 1)
-        parameter = SlitGapParameter("param", mock_jaws_wrapper, sim=True)
+        parameter = DirectParameter("param", mock_jaws_wrapper, sim=True)
 
         parameter.define_current_value_as.new_value = expected_position
 
@@ -144,13 +144,13 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         assert_that(parameter.sp, is_(expected_position), "Parameter setpoint")
         assert_that(parameter.sp_rbv, is_(expected_position), "Parameter setpoint read back")
 
-    def test_GIVEN_beamline_parameter_and_SlitGapParameter_component_WHEN_set_position_to_THEN_setpoint_is_set_to_new_position(self):
+    def test_GIVEN_beamline_parameter_and_DirectParameter_component_WHEN_set_position_to_THEN_setpoint_is_set_to_new_position(self):
 
         expected_position = 1
         expected_mock_jaws_wrapper_value = 10
         mock_jaws_wrapper = create_mock_JawsCentrePVWrapper("jaws_centre", expected_mock_jaws_wrapper_value, 1)
 
-        parameter = SlitGapParameter("param", mock_jaws_wrapper, sim=True)
+        parameter = DirectParameter("param", mock_jaws_wrapper, sim=True)
         parameter.sp = expected_mock_jaws_wrapper_value
 
         parameter.define_current_value_as.new_value = expected_position
