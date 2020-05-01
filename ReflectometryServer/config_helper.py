@@ -108,7 +108,7 @@ def add_component_marker():
 
 def add_parameter(parameter, modes=None, mode_inits=None, marker=None):
     """
-    Add a parameter to the beamline configurarion
+    Add a parameter to the beamline configuration.
     Args:
         parameter: parameter to add
         modes: a list of modes in which the parameter is in; None for not in a mode, e.g. (nr, polarised)
@@ -198,7 +198,7 @@ def add_driver(driver, marker=None):
 
 def add_driver_marker():
     """
-    Add a marker in the driverss to be filled in later. Return that position.
+    Add a marker in the drivers to be filled in later. Return that position.
 
     Returns: position that needs to be filled in
     """
@@ -208,7 +208,7 @@ def add_driver_marker():
 
 def create_jaws_pv_driver(jaws_pv_prefix, is_vertical, is_gap_not_centre):
     """
-    Create jaws pv driver. This is currently not a converntional driver and the beamline doesn't need it.
+    Create jaws pv driver. This is currently not a conventional driver and the beamline doesn't need it.
     Args:
         jaws_pv_prefix: prefix for the jaw, e.g. MOT:JAWS1
         is_vertical: True if vertical; False for horizontal

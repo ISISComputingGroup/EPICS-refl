@@ -5,7 +5,6 @@ from hamcrest import *
 from mock import Mock, patch, call
 from parameterized import parameterized
 
-from ReflectometryServer import TrackingPosition
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle
