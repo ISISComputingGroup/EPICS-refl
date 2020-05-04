@@ -15,7 +15,8 @@ from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
-from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter, SlitGapParameter
+from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter, DirectParameter, \
+    SlitGapParameter
 import numpy as np
 
 

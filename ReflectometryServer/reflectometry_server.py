@@ -51,7 +51,6 @@ from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, MY
 from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 from server_common.helpers import register_ioc_start
 from server_common.channel_access import ChannelAccess
-from ReflectometryServer.server_status_manager import STATUS_MANAGER
 
 
 def process_ca_loop():
