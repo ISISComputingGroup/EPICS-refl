@@ -5,6 +5,7 @@ from collections import namedtuple
 
 from pcaspy import Severity
 
+from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
 
@@ -162,7 +163,7 @@ class TiltingComponent(Component):
         self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name), LinearMovementCalc(setup),
                                                                   is_reflecting=False)
         self._beam_path_rbv = SettableBeamPathCalcWithAngle("{}_rbv".format(self.name), LinearMovementCalc(setup),
-                                                                                      is_reflecting=False)
+                                                            is_reflecting=False)
 
     def define_current_angle_as(self, new_angle):
         """
@@ -226,12 +227,14 @@ class ThetaComponent(ReflectingComponent):
         self.can_define_current_angle_as = False
 
     def _init_beam_path_calcs(self, setup):
-        beam_path_calcs = [(comp.beam_path_rbv, comp.beam_path_set_point) for comp in self.angle_to_components]
         linear_movement_calc = LinearMovementCalc(setup)
-        self._beam_path_set_point = BeamPathCalcThetaSP("{}_sp".format(self.name), linear_movement_calc,
-                                                        [comp.beam_path_set_point for comp in self.angle_to_components])
+
+        angle_to_for_sp = [comp.beam_path_set_point for comp in self.angle_to_components]
+        angle_to_for_rbv = [(comp.beam_path_rbv, comp.beam_path_set_point) for comp in self.angle_to_components]
+
+        self._beam_path_set_point = BeamPathCalcThetaSP("{}_sp".format(self.name), linear_movement_calc, angle_to_for_sp)
         self._beam_path_rbv = BeamPathCalcThetaRBV("{}_rbv".format(self.name), linear_movement_calc,
-                                                   beam_path_calcs, self._beam_path_set_point)
+                                                   self._beam_path_set_point, angle_to_for_rbv)
 
     def define_current_angle_as(self, new_angle):
         """

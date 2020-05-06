@@ -1,4 +1,6 @@
 import io
+import numpy as np
+import os
 
 from hamcrest import *
 from mock import patch
@@ -9,7 +11,7 @@ import unittest
 
 from ReflectometryServer import *
 from ReflectometryServer import beamline_configuration
-from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider
+from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider, CorrectionUpdate
 from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_axis, DataMother
 

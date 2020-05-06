@@ -21,3 +21,6 @@ class BeamlineConstant:
         else:
             self.description = description
         self.value = value
+
+    def __repr__(self):
+        return "{}: {} - {}".format(self.__class__.__name__, self.name, self.value)

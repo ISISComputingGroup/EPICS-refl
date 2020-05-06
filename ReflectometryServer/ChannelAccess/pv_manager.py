@@ -501,7 +501,7 @@ class PVManager:
         """
         beamline_constant_info = []
 
-        for beamline_constant in self._beamline.beamline_constant:
+        for beamline_constant in self._beamline.beamline_constants:
             const_alias = create_pv_name(beamline_constant.name, self.PVDB.keys(), CONST_PREFIX,
                                          limit=20, allow_colon=True)
             prepended_alias = "{}:{}".format(CONST_PREFIX, const_alias)

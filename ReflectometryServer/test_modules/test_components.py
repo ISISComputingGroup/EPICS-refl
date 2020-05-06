@@ -416,6 +416,7 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(result, is_(position_and_angle(theta.beam_path_rbv.get_outgoing_beam())))
 
+
 class TestComponentInitialisation(unittest.TestCase):
 
     def setUp(self):

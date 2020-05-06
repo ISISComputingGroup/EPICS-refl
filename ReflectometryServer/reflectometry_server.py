@@ -49,9 +49,8 @@ except ImportError:
 from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
 from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, MYPVPREFIX, DEFAULT_ASG_RULES
 from ReflectometryServer.ChannelAccess.pv_manager import PVManager
-from server_common.channel_access import ChannelAccess
-
 from server_common.helpers import register_ioc_start
+from server_common.channel_access import ChannelAccess
 
 
 def process_ca_loop():

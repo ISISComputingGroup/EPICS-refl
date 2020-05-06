@@ -7,7 +7,6 @@ from mock import Mock, patch,  call
 
 from ReflectometryServer import *
 
-import ReflectometryServer.file_io
 from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
 from ReflectometryServer.beamline_constant import BeamlineConstant
@@ -543,7 +542,7 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
         beamline = self.setup_beamline([])
 
-        result = beamline.beamline_constant
+        result = beamline.beamline_constants
 
         assert_that(result, is_([]))
 
@@ -551,7 +550,7 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
         beamline = self.setup_beamline(None)
 
-        result = beamline.beamline_constant
+        result = beamline.beamline_constants
 
         assert_that(result, is_([]))
 
@@ -561,7 +560,7 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
         ]
         beamline = self.setup_beamline(expected_parameters)
 
-        result = beamline.beamline_constant
+        result = beamline.beamline_constants
 
         assert_that(result, is_(expected_parameters))
 
