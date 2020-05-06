@@ -30,6 +30,7 @@ EVALUATION ORDER ALLOW, DENY
 %sCS:GATEWAY:BLOCKSERVER:report[1-9]Flag		ALLOW	ANYBODY		1
 """
 
+
 class Gateway(object):
     """A class for interacting with the EPICS gateway that creates the aliases used for implementing blocks"""
 
@@ -48,7 +49,7 @@ class Gateway(object):
         self._pv_prefix = pv_prefix
 
     def exists(self):
-        """Checks the gateway exists by querying on of the PVs.
+        """Checks the gateway exists by querying one of the PVs.
 
         Returns:
             bool : Whether the gateway is running and is accessible
@@ -78,13 +79,13 @@ class Gateway(object):
             f.write(header)
             if blocks is not None:
                 for name, value in blocks.iteritems():
-                    lines = self._generate_alias(value.name, value.pv, value.local)
+                    lines = self.generate_alias(value.name, value.pv, value.local)
                     for l in lines:
                         f.write(l)
             # Add a blank line at the end!
             f.write("\n")
 
-    def _generate_alias(self, blockname, pv, local):
+    def generate_alias(self, blockname, pv, local):
         print_and_log("Creating block: {} for {}".format(blockname, pv))
         lines = list()
         if pv.endswith(".VAL"):
