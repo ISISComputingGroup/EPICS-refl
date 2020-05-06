@@ -25,9 +25,10 @@ ALIAS_HEADER = """\
 EVALUATION ORDER ALLOW, DENY
 
 ## serve blockserver internal variables, including Flag variables needed by blockserver process to restart gateway
-%sCS:GATEWAY:BLOCKSERVER:.*    				    ALLOW	ANYBODY	    1
+{0}CS:GATEWAY:BLOCKSERVER:.*    				    ALLOW	ANYBODY	    1
 ## allow anybody to generate gateway reports
-%sCS:GATEWAY:BLOCKSERVER:report[1-9]Flag		ALLOW	ANYBODY		1
+{0}CS:GATEWAY:BLOCKSERVER:report[1-9]Flag		ALLOW	ANYBODY		1
+
 """
 
 
@@ -43,10 +44,10 @@ class Gateway(object):
             pvlist_file (string): Where to write the gateway file
             pv_prefix (string): Prefix for instrument PVs
         """
-        self._prefix = prefix
+        self._gateway_prefix = prefix
         self._block_prefix = block_prefix
         self._pvlist_file = pvlist_file
-        self._pv_prefix = pv_prefix
+        self._inst_prefix = pv_prefix
 
     def exists(self):
         """Checks the gateway exists by querying one of the PVs.
@@ -54,7 +55,7 @@ class Gateway(object):
         Returns:
             bool : Whether the gateway is running and is accessible
         """
-        val = ChannelAccess.caget(self._prefix + "pvtotal")
+        val = ChannelAccess.caget(self._gateway_prefix + "pvtotal")
         if val is None:
             return False
         else:
@@ -64,9 +65,9 @@ class Gateway(object):
         print_and_log("Reloading gateway")
         try:
             # Have to wait after put as the gateway does not do completion callbacks (it is not an IOC)
-            ChannelAccess.caput(self._prefix + "newAsFlag", 1)
+            ChannelAccess.caput(self._gateway_prefix + "newAsFlag", 1)
 
-            while ChannelAccess.caget(self._prefix + "newAsFlag") == 1:
+            while ChannelAccess.caget(self._gateway_prefix + "newAsFlag") == 1:
                 time.sleep(1)
             print_and_log("Gateway reloaded")
         except Exception as err:
@@ -75,82 +76,60 @@ class Gateway(object):
     def _generate_alias_file(self, blocks=None):
         # Generate blocks.pvlist for gateway
         with open(self._pvlist_file, 'w') as f:
-            header = ALIAS_HEADER % (self._pv_prefix, self._pv_prefix)
+            header = ALIAS_HEADER.format(self._inst_prefix)
             f.write(header)
             if blocks is not None:
                 for name, value in blocks.iteritems():
                     lines = self.generate_alias(value.name, value.pv, value.local)
-                    for l in lines:
-                        f.write(l)
+                    f.write('\n'.join(lines) + '\n')
             # Add a blank line at the end!
             f.write("\n")
 
-    def generate_alias(self, blockname, pv, local):
-        print_and_log("Creating block: {} for {}".format(blockname, pv))
+    def generate_alias(self, blockname, underlying_pv, local):
+        print_and_log("Creating block: {} for {}".format(blockname, underlying_pv))
         lines = list()
-        if pv.endswith(".VAL"):
+        if underlying_pv.endswith(".VAL"):
             # Strip off the .VAL
-            pv = pv.rstrip(".VAL")
+            underlying_pv = underlying_pv.replace(".VAL", "")
+
         # look for a field name in PV
-        m = re.match(r'.*(\.[A-Z0-9]+)$', pv)
-        if m:
-            pvsuffix = m.group(1)
-        else:
-            pvsuffix = None
-        if pv.endswith(":SP"):
+        match = re.match(r'.*(\.[A-Z0-9]+)$', underlying_pv)
+        pv_suffix = match.group(1) if match else None
+
+        # If it's local we need to add this instrument's prefix
+        if local:
+            underlying_pv = "{}{}".format(self._inst_prefix, underlying_pv)
+
+        # Add on all the prefixes
+        full_block_pv = "{}{}{}".format(self._inst_prefix, self._block_prefix, blockname)
+
+        if underlying_pv.endswith(":SP"):
             # The block points at a setpoint
-            lines.append("## The block points at a :SP, so it needs an optional group as genie_python will append an additional :SP, but ignore :RC:\n")
-            if local:
-                # Pattern match is for picking up any extras like :RBV or .EGU
-                lines.append('%s%s%s\(:SP\)?\([.:].*\)    ALIAS    %s%s\\2\n' % (self._pv_prefix, self._block_prefix,
-                                                                                 blockname, self._pv_prefix, pv))
-                lines.append('%s%s%s\(:SP\)?:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
-                lines.append('%s%s%s\(:SP\)?    ALIAS    %s%s\n' %
-                             (self._pv_prefix, self._block_prefix, blockname, self._pv_prefix, pv))
-            else:
-                # pv_prefix is hard-coded for non-local PVs
-                # Pattern match is for picking up any extras like :RBV or .EGU
-                lines.append('%s%s%s\(:SP\)?\([.:].*\)    ALIAS    %s\\2\n' % (self._pv_prefix, self._block_prefix,
-                                                                               blockname, pv))
-                lines.append('%s%s%s\(:SP\)?:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
-                lines.append('%s%s%s\(:SP\)?    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
-        elif pvsuffix is not None:
+            lines.append("## The block points at a :SP, so it needs an optional group as "
+                         "genie_python will append an additional :SP")
+
+            full_block_pv = r"{}\(:SP\)?".format(full_block_pv)
+
+            # Pattern match is for picking up any extras like :RBV or .EGU
+            lines.append('{}\\([.:].*\\)    ALIAS    {}\\2'.format(full_block_pv, underlying_pv))
+        elif pv_suffix is not None:
             # The block points at a readback value (most likely for a motor)
-            lines.append("## The block points at a %s field, so it needs entries for both reading the field and for the rest, but ignore :RC:\n" % (pvsuffix))
-            if local:
-                # Pattern match is for picking up any extras like :RBV or .EGU
-                lines.append('%s%s%s\([.:].*\)    ALIAS    %s%s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
-                                                                         self._pv_prefix, pv.rstrip(pvsuffix)))
-                lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
-                lines.append('%s%s%s[.]VAL    ALIAS    %s%s\n' % (self._pv_prefix, self._block_prefix, blockname,
-                                                                  self._pv_prefix, pv))
-                lines.append('%s%s%s    ALIAS    %s%s\n' % (self._pv_prefix, self._block_prefix, blockname,
-                                                            self._pv_prefix, pv))
-            else:
-                # pv_prefix is hard-coded for non-local PVs
-                # Pattern match is for picking up any extras like :RBV or .EGU
-                lines.append('%s%s%s\([.:].*\)    ALIAS    %s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
-                                                                       pv.rstrip(pvsuffix)))
-                lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
-                lines.append('%s%s%s[.]VAL    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
-                lines.append('%s%s%s    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
+            lines.append("## The block points at a %s field, so it needs entries for both reading the field "
+                         "and for the rest".format(pv_suffix))
+
+            # Pattern match is for picking up any extras like :RBV or .EGU
+            lines.append('{}\\([.:].*\\)    ALIAS    {}\\1'.format(full_block_pv, underlying_pv.replace(pv_suffix, "")))
+            lines.append('{}[.]VAL    ALIAS    {}'.format(full_block_pv, underlying_pv))
         else:
             # Standard case
-            lines.append("## Standard block with entries for matching :SP and :SP:RBV as well as .EGU, but ignore :RC:\n")
-            if local:
-                # Pattern match is for picking up any any SP or SP:RBV
-                lines.append('%s%s%s\([.:].*\)    ALIAS    %s%s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
-                                                                         self._pv_prefix, pv))
-                lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
-                lines.append('%s%s%s    ALIAS    %s%s\n' % (self._pv_prefix, self._block_prefix, blockname,
-                                                            self._pv_prefix, pv))
-            else:
-                # pv_prefix is hard-coded for non-local PVs
-                # Pattern match is for picking up any any SP or SP:RBV
-                lines.append('%s%s%s\([.:].*\)    ALIAS    %s\\1\n' % (self._pv_prefix, self._block_prefix, blockname,
-                                                                       pv))
-                lines.append('%s%s%s:RC:.*    DENY\n' % (self._pv_prefix, self._block_prefix, blockname))
-                lines.append('%s%s%s    ALIAS    %s\n' % (self._pv_prefix, self._block_prefix, blockname, pv))
+            lines.append("## Standard block with entries for matching :SP and :SP:RBV as well as .EGU")
+            # Pattern match is for picking up any any SP or SP:RBV
+            lines.append('{}\\([.:].*\\)    ALIAS    {}\\1'.format(full_block_pv, underlying_pv))
+
+        lines.append("## Always ignore direct writes to the RC params")
+        lines.append('{}:RC:.*    DENY'.format(full_block_pv))
+        lines.append('{}    ALIAS    {}'.format(full_block_pv, underlying_pv))
+        lines.append("")  # New line to seperate out each block
         return lines
 
     def set_new_aliases(self, blocks):
@@ -158,7 +137,6 @@ class Gateway(object):
 
         Args:
             blocks (OrderedDict): The blocks that belong to the configuration
-            blocks_changed (bool): Have the blocks changed?
         """
         self._generate_alias_file(blocks)
         self._reload()
