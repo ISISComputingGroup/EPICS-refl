@@ -32,6 +32,39 @@ EVALUATION ORDER ALLOW, DENY
 """
 
 
+def build_alias_lines(full_block_pv, pv_suffix, underlying_pv, include_comments=True):
+    lines = list()
+    if underlying_pv.endswith(":SP"):
+        # The block points at a setpoint
+        if include_comments:
+            lines.append("## The block points at a :SP, so it needs an optional group as "
+                         "genie_python will append an additional :SP")
+
+        full_block_pv = r"{}\(:SP\)?".format(full_block_pv)
+
+        # Pattern match is for picking up any extras like :RBV or .EGU
+        lines.append('{}\\([.:].*\\)    ALIAS    {}\\2'.format(full_block_pv, underlying_pv))
+    elif pv_suffix is not None:
+        # The block points at a readback value (most likely for a motor)
+        if include_comments:
+            lines.append("## The block points at a {} field, so it needs entries for both reading the field "
+                         "and for the rest".format(pv_suffix))
+
+        # Pattern match is for picking up any extras like :RBV or .EGU
+        lines.append('{}\\([.:].*\\)    ALIAS    {}\\1'.format(full_block_pv, underlying_pv.replace(pv_suffix, "")))
+        lines.append('{}[.]VAL    ALIAS    {}'.format(full_block_pv, underlying_pv))
+    else:
+        # Standard case
+        if include_comments:
+            lines.append("## Standard block with entries for matching :SP and :SP:RBV as well as .EGU")
+
+        # Pattern match is for picking up any any SP or SP:RBV
+        lines.append('{}\\([.:].*\\)    ALIAS    {}\\1'.format(full_block_pv, underlying_pv))
+    lines.append('{}:RC:.*    DENY'.format(full_block_pv))
+    lines.append('{}    ALIAS    {}'.format(full_block_pv, underlying_pv))
+    return lines
+
+
 class Gateway(object):
     """A class for interacting with the EPICS gateway that creates the aliases used for implementing blocks"""
 
@@ -55,11 +88,7 @@ class Gateway(object):
         Returns:
             bool : Whether the gateway is running and is accessible
         """
-        val = ChannelAccess.caget(self._gateway_prefix + "pvtotal")
-        if val is None:
-            return False
-        else:
-            return True
+        return False if ChannelAccess.caget(self._gateway_prefix + "pvtotal") is None else True
 
     def _reload(self):
         print_and_log("Reloading gateway")
@@ -85,14 +114,12 @@ class Gateway(object):
             # Add a blank line at the end!
             f.write("\n")
 
-    def generate_alias(self, blockname, underlying_pv, local):
-        print_and_log("Creating block: {} for {}".format(blockname, underlying_pv))
-        lines = list()
-        if underlying_pv.endswith(".VAL"):
-            # Strip off the .VAL
-            underlying_pv = underlying_pv.replace(".VAL", "")
+    def generate_alias(self, block_name, underlying_pv, local):
+        print_and_log("Creating block: {} for {}".format(block_name, underlying_pv))
 
-        # look for a field name in PV
+        underlying_pv = underlying_pv.replace(".VAL", "")
+
+        # Look for a field name in PV
         match = re.match(r'.*(\.[A-Z0-9]+)$', underlying_pv)
         pv_suffix = match.group(1) if match else None
 
@@ -101,34 +128,15 @@ class Gateway(object):
             underlying_pv = "{}{}".format(self._inst_prefix, underlying_pv)
 
         # Add on all the prefixes
-        full_block_pv = "{}{}{}".format(self._inst_prefix, self._block_prefix, blockname)
+        full_block_pv = "{}{}{}".format(self._inst_prefix, self._block_prefix, block_name)
 
-        if underlying_pv.endswith(":SP"):
-            # The block points at a setpoint
-            lines.append("## The block points at a :SP, so it needs an optional group as "
-                         "genie_python will append an additional :SP")
+        lines = build_alias_lines(full_block_pv, pv_suffix, underlying_pv)
 
-            full_block_pv = r"{}\(:SP\)?".format(full_block_pv)
+        # Create a case insensitive alias so clients don't have to worry about getting case right
+        if full_block_pv != full_block_pv.upper():
+            lines.append("## Add full caps equivilant so clients need not be case sensitive")
+            lines.extend(build_alias_lines(full_block_pv.upper(), pv_suffix, underlying_pv, False))
 
-            # Pattern match is for picking up any extras like :RBV or .EGU
-            lines.append('{}\\([.:].*\\)    ALIAS    {}\\2'.format(full_block_pv, underlying_pv))
-        elif pv_suffix is not None:
-            # The block points at a readback value (most likely for a motor)
-            lines.append("## The block points at a %s field, so it needs entries for both reading the field "
-                         "and for the rest".format(pv_suffix))
-
-            # Pattern match is for picking up any extras like :RBV or .EGU
-            lines.append('{}\\([.:].*\\)    ALIAS    {}\\1'.format(full_block_pv, underlying_pv.replace(pv_suffix, "")))
-            lines.append('{}[.]VAL    ALIAS    {}'.format(full_block_pv, underlying_pv))
-        else:
-            # Standard case
-            lines.append("## Standard block with entries for matching :SP and :SP:RBV as well as .EGU")
-            # Pattern match is for picking up any any SP or SP:RBV
-            lines.append('{}\\([.:].*\\)    ALIAS    {}\\1'.format(full_block_pv, underlying_pv))
-
-        lines.append("## Always ignore direct writes to the RC params")
-        lines.append('{}:RC:.*    DENY'.format(full_block_pv))
-        lines.append('{}    ALIAS    {}'.format(full_block_pv, underlying_pv))
         lines.append("")  # New line to seperate out each block
         return lines
 

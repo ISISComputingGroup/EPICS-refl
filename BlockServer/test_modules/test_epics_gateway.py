@@ -15,7 +15,6 @@
 # http://opensource.org/licenses/eclipse-1.0.php
 
 import unittest
-import os
 from mock import patch, MagicMock
 
 from BlockServer.epics.gateway import Gateway
@@ -46,7 +45,7 @@ class TestEpicsGateway(unittest.TestCase):
     def _assert_lines_correct(self, actual_lines, expected_lines):
         sanitised_lines = list()
         for line in actual_lines:
-            if not line.startswith("##"):
+            if not line.startswith("##") and line != "":
                 sanitised_lines.append(line.split())
 
         self.assertListEqual(sanitised_lines, expected_lines)
@@ -130,3 +129,16 @@ class TestEpicsGateway(unittest.TestCase):
 
         self._assert_lines_correct(lines, expected_lines)
 
+    def test_GIVEN_local_lowercase_PV_without_suffix_or_SP_WHEN_alias_generated_THEN_lines_as_expected(self):
+        blockname, block_pv = "My_Block", "MY_PV"
+        alias = "INST:BLOCK:My_Block"
+        expected_lines = [[r"{}\([.:].*\)".format(alias), "ALIAS", "MY_PV\\1"],
+                          ["{}:RC:.*".format(alias), "DENY"],
+                          [alias, "ALIAS", "MY_PV"],
+                          [r"{}\([.:].*\)".format(alias.upper()), "ALIAS", "MY_PV\\1"],
+                          ["{}:RC:.*".format(alias.upper()), "DENY"],
+                          [alias.upper(), "ALIAS", "MY_PV"]]
+
+        lines = self.gateway.generate_alias(blockname, block_pv, False)
+
+        self._assert_lines_correct(lines, expected_lines)
