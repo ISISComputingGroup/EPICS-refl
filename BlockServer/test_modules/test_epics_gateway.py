@@ -137,7 +137,8 @@ class TestEpicsGateway(unittest.TestCase):
                           [alias, "ALIAS", "MY_PV"],
                           [r"{}\([.:].*\)".format(alias.upper()), "ALIAS", "MY_PV\\1"],
                           ["{}:RC:.*".format(alias.upper()), "DENY"],
-                          [alias.upper(), "ALIAS", "MY_PV"]]
+                          [alias.upper(), "ALIAS", "MY_PV"],
+                          [r"{}:RC:\([:].*\)".format(alias.upper()), "ALIAS", r"{}:RC:\1".format(alias)]]
 
         lines = self.gateway.generate_alias(blockname, block_pv, False)
 

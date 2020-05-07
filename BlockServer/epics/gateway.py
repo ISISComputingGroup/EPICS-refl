@@ -136,6 +136,8 @@ class Gateway(object):
         if full_block_pv != full_block_pv.upper():
             lines.append("## Add full caps equivilant so clients need not be case sensitive")
             lines.extend(build_alias_lines(full_block_pv.upper(), pv_suffix, underlying_pv, False))
+            lines.append("## Alias the runcontrol for the upper case block to the correct cased one")
+            lines.append(r'{}:RC:\([:].*\)    ALIAS    {}:RC:\1'.format(full_block_pv.upper(), full_block_pv))
 
         lines.append("")  # New line to seperate out each block
         return lines
