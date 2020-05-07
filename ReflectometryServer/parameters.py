@@ -6,6 +6,7 @@ from collections import namedtuple
 from pcaspy import Severity
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate, PhysicalMoveUpdate
+from ReflectometryServer.exceptions import ParameterNotInitializedException
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave
 import logging
 
@@ -17,6 +18,8 @@ import six
 from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
+
+DEFAULT_RBV_TO_SP_TOLERANCE = 0.002
 
 logger = logging.getLogger(__name__)
 
@@ -41,17 +44,6 @@ ParameterChangingUpdate = namedtuple("ParameterChangingUpdate", [
 # An update that is triggered when the parameter has received an initial value either from autosave or motor rbv.
 ParameterInitUpdate = namedtuple("ParameterInitUpdate", [
     "value"])           # The initial parameter value
-
-
-class ParameterNotInitializedException(Exception):
-    """
-    Exception for when a parameter is not initialized.
-    """
-    def __init__(self, err):
-        self.message = str(err)
-
-    def __str__(self):
-        return self.message
 
 
 class DefineCurrentValueAsParameter(object):
@@ -122,7 +114,8 @@ class BeamlineParameterGroup(Enum):
     GAP_HORIZONTAL = 4
 
 
-@observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate, ParameterChangingUpdate, ParameterInitUpdate)
+@observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate,
+            ParameterChangingUpdate, ParameterInitUpdate)
 @six.add_metaclass(abc.ABCMeta)
 class BeamlineParameter(object):
     """
@@ -708,7 +701,7 @@ class DirectParameter(BeamlineParameter):
     is just a wrapper to present a motor PV as a reflectometry style PV and does not track the beam path.
     """
     def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False,
-                 rbv_to_sp_tolerance=0.002):
+                 rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLERANCE):
         """
         Args:
             name (str): The name of the parameter
@@ -811,7 +804,7 @@ class DirectParameter(BeamlineParameter):
         Trigger an update for the is_changing status of this parameter on such an event in the PV wrapper.
 
         Args:
-            update (ReflectometryServer.pv_wrapper.IsChangingUpdate): The update event
+            _ (ReflectometryServer.pv_wrapper.IsChangingUpdate): The update event
         """
         self._on_update_changing_state(None)
 

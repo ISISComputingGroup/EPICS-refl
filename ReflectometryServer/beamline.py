@@ -8,29 +8,16 @@ from functools import partial
 from pcaspy import Severity
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
+from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException, ParameterNotInitializedException
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.file_io import mode_autosave, MODE_KEY
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
-from ReflectometryServer.parameters import ParameterNotInitializedException
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 from server_common.channel_access import UnableToConnectToPVException
 
 logger = logging.getLogger(__name__)
-
-# An update of the overall status of the beamline
-
-
-class BeamlineConfigurationInvalidException(Exception):
-    """
-    Exception for when a parameter is not initialized.
-    """
-    def __init__(self, err):
-        self.message = str(err)
-
-    def __str__(self):
-        return self.message
 
 
 class BeamlineMode(object):
@@ -187,9 +174,9 @@ class Beamline(object):
         STATUS_MANAGER.set_initialised()
 
         if beamline_constants is not None:
-            self.beamline_constant = beamline_constants
+            self.beamline_constants = beamline_constants
         else:
-            self.beamline_constant = []
+            self.beamline_constants = []
 
     def _validate(self, beamline_parameters, modes):
         errors = []
@@ -444,12 +431,18 @@ class Beamline(object):
         mode_name = mode_autosave.read_parameter(MODE_KEY, default=None)
         try:
             self._active_mode = self._modes[mode_name]
+            mode_is_disabled = self._active_mode.is_disabled
         except KeyError:
             STATUS_MANAGER.update_error_log("Mode {} not found in configuration. Setting default.".format(mode_name))
             if len(modes) > 0:
                 self._active_mode = modes[0]
+                mode_is_disabled = self._active_mode.is_disabled
+            else:
+                STATUS_MANAGER.update_error_log("No modes have been configured.")
+                mode_is_disabled = False
+
         for component in self._components:
-            component.set_incoming_beam_can_change(not self._active_mode.is_disabled, on_init=True)
+            component.set_incoming_beam_can_change(not mode_is_disabled, on_init=True)
 
     def _trigger_active_mode_change(self):
         """

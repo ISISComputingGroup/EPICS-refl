@@ -95,8 +95,9 @@ class DataMother(object):
         # COMPONENTS
         s1 = Component("s1_comp", PositionAndAngle(0.0, 1 * spacing, 90))
         s3 = Component("s3_comp", PositionAndAngle(0.0, 3 * spacing, 90))
+
         detector = TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90))
-        theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90), [detector])
+        theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90), angle_to=[detector])
         comps = [s1, theta, s3, detector]
 
         # BEAMLINE PARAMETERS
