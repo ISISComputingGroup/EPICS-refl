@@ -1,3 +1,4 @@
+from builtins import object
 from collections import namedtuple
 
 from hamcrest import *
@@ -12,7 +13,7 @@ ValueUpdateWithPreFunction = namedtuple("ValueUpdateWithPreFunction", ["value"])
 
 
 @observable(ValueUpdate, ValueUpdateWithPreFunction)
-class SimpleObservable:
+class SimpleObservable(object):
     def __init__(self):
         self.pre_trigger_function_calls = 0
         self._add_pre_trigger_function(ValueUpdateWithPreFunction, self._increment)
@@ -59,7 +60,7 @@ class TestObservable(unittest.TestCase):
 
     def test_GIVEN_class_with_observed_type_WHEN_call_trigger_of_wrong_type_THEN_error(self):
         @observable(ValueUpdate)
-        class SimpleObservable:
+        class SimpleObservable(object):
             def set_value(self, new_value):
                 self.trigger_listeners(NotValueUpdate(new_value))
 
@@ -114,7 +115,7 @@ class TestObservable(unittest.TestCase):
         expected_value2 = 2
 
         @observable(ValueUpdate, NotValueUpdate)
-        class SimpleObservableWithTwoListeners:
+        class SimpleObservableWithTwoListeners(object):
             def set_value1(self, new_value):
                 self.trigger_listeners(ValueUpdate(new_value))
 
@@ -135,7 +136,7 @@ class TestObservable(unittest.TestCase):
         expected_value1 = 1.0
 
         @observable(float)
-        class SimpleObservable:
+        class SimpleObservable(object):
             def set_value(self, new_value):
                 self.trigger_listeners(new_value)
 

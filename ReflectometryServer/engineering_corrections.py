@@ -1,6 +1,8 @@
 """
 Engineering correction to positions.
 """
+from builtins import next
+from builtins import object
 import abc
 import csv
 import logging
@@ -30,7 +32,7 @@ CorrectionUpdate = namedtuple("CorrectionUpdate", ["correction", "description"])
 
 @six.add_metaclass(abc.ABCMeta)
 @observable(CorrectionUpdate)
-class EngineeringCorrection:
+class EngineeringCorrection(object):
     """
     Base class for all engineering correction
     """
@@ -209,7 +211,7 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
         return 0
 
 
-class GridDataFileReader:
+class GridDataFileReader(object):
     """
     Read a file with point data in.
     """
@@ -290,7 +292,7 @@ class GridDataFileReader:
             yield correction_file
 
 
-class _DummyBeamlineParameter:
+class _DummyBeamlineParameter(object):
     """
     A dummy beamline parameter which returns the axis setpoint to make the list of beamline parameters easy to construct
     """

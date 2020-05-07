@@ -1,3 +1,6 @@
+from __future__ import division
+
+from builtins import zip
 import io
 import numpy as np
 import os

@@ -1,6 +1,7 @@
 """
 Manager for the footprint calc.
 """
+from builtins import object
 from enum import Enum
 
 from ReflectometryServer.footprint_calc import *

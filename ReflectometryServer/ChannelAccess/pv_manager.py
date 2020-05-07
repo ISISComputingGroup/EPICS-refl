@@ -1,6 +1,7 @@
 """
 Reflectometry pv manager
 """
+from builtins import object
 import logging
 
 from enum import Enum
@@ -239,7 +240,7 @@ class PvSort(Enum):
             return None, None
 
 
-class PVManager:
+class PVManager(object):
     """
     Holds reflectometry PVs and associated utilities.
     """
@@ -254,7 +255,7 @@ class PVManager:
         self._footprint_parameters = {}
         self._add_status_pvs()
 
-        for pv_name in self.PVDB.keys():
+        for pv_name in list(self.PVDB.keys()):
             logger.info("Creating pv: {}".format(pv_name))
 
     def _add_status_pvs(self):
@@ -288,7 +289,7 @@ class PVManager:
         self._add_all_driver_pvs()
         self._add_constants_pvs()
 
-        for pv_name in [pv for pv in self.PVDB.keys() if pv not in self.initial_PVs]:
+        for pv_name in [pv for pv in list(self.PVDB.keys()) if pv not in self.initial_PVs]:
             logger.info("Creating pv: {}".format(pv_name))
 
     def _add_global_pvs(self):
@@ -326,7 +327,7 @@ class PVManager:
         """
         param_info = []
         align_info = []
-        for parameter in self._beamline.parameters.values():
+        for parameter in list(self._beamline.parameters.values()):
             param_info_record = self._add_parameter_pvs(parameter)
             param_info.append(param_info_record)
             if parameter.define_current_value_as is not None:
@@ -356,7 +357,7 @@ class PVManager:
         try:
             param_name = parameter.name
             description = parameter.description
-            param_alias = create_pv_name(param_name, self.PVDB.keys(), PARAM_PREFIX, limit=10)
+            param_alias = create_pv_name(param_name, list(self.PVDB.keys()), PARAM_PREFIX, limit=10)
             prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
 
             parameter_type = parameter.parameter_type
@@ -470,7 +471,7 @@ class PVManager:
             pvs that were created after beamline was set.
 
         """
-        return {key: value for key, value in self.PVDB.iteritems() if key not in self.initial_PVs}
+        return {key: value for key, value in list(self.PVDB.items()) if key not in self.initial_PVs}
 
     def _add_all_driver_pvs(self):
         """
@@ -480,7 +481,7 @@ class PVManager:
         driver_info = []
         for driver in self._beamline.drivers:
             if driver.has_engineering_correction:
-                correction_alias = create_pv_name(driver.name, self.PVDB.keys(), "COR", limit=12, allow_colon=True)
+                correction_alias = create_pv_name(driver.name, list(self.PVDB.keys()), "COR", limit=12, allow_colon=True)
                 prepended_alias = "{}:{}".format("COR", correction_alias)
 
                 self._add_pv_with_fields(prepended_alias, None, STANDARD_FLOAT_PV_FIELDS, "Engineering Correction",
@@ -502,7 +503,7 @@ class PVManager:
         beamline_constant_info = []
 
         for beamline_constant in self._beamline.beamline_constants:
-            const_alias = create_pv_name(beamline_constant.name, self.PVDB.keys(), CONST_PREFIX,
+            const_alias = create_pv_name(beamline_constant.name, list(self.PVDB.keys()), CONST_PREFIX,
                                          limit=20, allow_colon=True)
             prepended_alias = "{}:{}".format(CONST_PREFIX, const_alias)
 
@@ -528,7 +529,7 @@ class PVManager:
             (list[str, tuple[str, PvSort]]): The list of PVs of all beamline parameters.
 
         """
-        return self._params_pv_lookup.items()
+        return list(self._params_pv_lookup.items())
 
     def is_param(self, pv_name):
         """

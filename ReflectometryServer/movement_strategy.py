@@ -1,6 +1,9 @@
 """
 Classes and objects describing the movement of items
 """
+from __future__ import division
+
+from builtins import object
 from math import fabs, tan, radians, sqrt
 
 from ReflectometryServer.geometry import PositionAndAngle, Position, position_from_radial_coords

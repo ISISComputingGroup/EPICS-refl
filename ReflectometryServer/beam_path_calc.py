@@ -2,6 +2,9 @@
 Objects to help with calculating the beam path when interacting with a component. This is used for instance for the
 set points or readbacks etc.
 """
+from __future__ import division
+
+from builtins import object
 from collections import namedtuple
 from math import degrees, atan2
 

@@ -1,6 +1,7 @@
 """
 Parameters that the user would interact with
 """
+from builtins import object
 from collections import namedtuple
 
 from pcaspy import Severity

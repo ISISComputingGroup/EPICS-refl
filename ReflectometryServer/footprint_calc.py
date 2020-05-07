@@ -1,6 +1,9 @@
 """
 Footprint calculations.
 """
+from __future__ import division
+
+from builtins import object
 from itertools import combinations
 from math import sin, tan, atan, degrees, radians, pi
 
@@ -86,7 +89,7 @@ class FootprintCalculator(object):
         Updates the value for each slit gap.
         """
         self.gaps[SA_ID] = self.setup.sample_length
-        for key, gap_param in self.setup.gap_params.items():
+        for key, gap_param in list(self.setup.gap_params.items()):
             if gap_param:
                 self.gaps[key] = self.get_param_value(gap_param)
 
@@ -106,7 +109,7 @@ class FootprintCalculator(object):
 
         Returns: The distance between the two components in mm
         """
-        assert comp1, comp2 in self.setup.positions.keys()
+        assert comp1, comp2 in list(self.setup.positions.keys())
         return abs(self.setup.positions[comp1] - self.setup.positions[comp2])
 
     def calc_equivalent_gap_by_sample_size(self):

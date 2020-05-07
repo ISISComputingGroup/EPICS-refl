@@ -1,6 +1,8 @@
 """
 SimpleObservable data and classes.
 """
+from __future__ import absolute_import, division
+from builtins import object
 from math import tan, radians, sin, cos
 
 from mock import Mock
@@ -9,7 +11,7 @@ from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectio
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from server_common.observable import observable
-from utils import DEFAULT_TEST_TOLERANCE
+from .utils import DEFAULT_TEST_TOLERANCE
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
@@ -357,7 +359,7 @@ class MockChannelAccess(object):
         self._pvs = pvs
 
     def pv_exists(self, pv):
-        return pv in self._pvs.keys()
+        return pv in list(self._pvs.keys())
 
     def add_monitor(self,pv, call_back_function):
         pass

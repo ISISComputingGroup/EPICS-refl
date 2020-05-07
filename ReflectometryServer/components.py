@@ -1,6 +1,7 @@
 """
 Components on a beam
 """
+from builtins import object
 from collections import namedtuple
 
 from pcaspy import Severity

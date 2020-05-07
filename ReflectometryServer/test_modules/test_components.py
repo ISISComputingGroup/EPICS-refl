@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division
 import unittest
 
 from math import tan, radians, isnan
@@ -9,7 +10,7 @@ from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
-from utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
+from ReflectometryServer.test_modules.utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
 
 
 class TestComponent(unittest.TestCase):

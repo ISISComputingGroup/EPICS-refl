@@ -3,7 +3,8 @@ Number of alternative values that the beamline can take
 """
 
 
-class BeamlineConstant:
+from builtins import object
+class BeamlineConstant(object):
     """
     A parameter of the beamline which is constant
     """

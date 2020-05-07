@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import unittest
 
 from math import tan, radians, sqrt
@@ -5,8 +6,8 @@ from hamcrest import *
 from parameterized import parameterized
 
 from ReflectometryServer.movement_strategy import ANGULAR_TOLERANCE, LinearMovementCalc
-from ReflectometryServer.geometry import Position, PositionAndAngle, PositionAndAngle
-from utils import position_and_angle, position
+from ReflectometryServer.geometry import Position, PositionAndAngle
+from ReflectometryServer.test_modules.utils import position
 
 
 class TestMovementIntercept(unittest.TestCase):

@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+from __future__ import division
+from past.utils import old_div
 import os
 import unittest
 from math import isnan
@@ -13,9 +16,8 @@ from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.parameters import ParameterReadbackUpdate
 from ReflectometryServer.pv_wrapper import ReadbackUpdate
 
-from data_mother import DataMother, create_mock_axis
-from server_common.channel_access import AlarmSeverity, AlarmStatus
-from utils import position, DEFAULT_TEST_TOLERANCE
+from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis
+from ReflectometryServer.test_modules.utils import position, DEFAULT_TEST_TOLERANCE
 
 
 class TestBeamlineParameter(unittest.TestCase):
@@ -367,7 +369,7 @@ class TestBeamlineModes(unittest.TestCase):
         beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
         beamline.active_mode = mode.name
 
-        theta.sp_no_move = bounced_beam_angle / 2
+        theta.sp_no_move = old_div(bounced_beam_angle, 2)
         slit4_pos.sp_no_move = s4_height_sp
         theta.move = 1
 
@@ -388,7 +390,7 @@ class TestBeamlineModes(unittest.TestCase):
         beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
         beamline.active_mode = mode.name
 
-        theta.sp_no_move = bounced_beam_angle / 2
+        theta.sp_no_move = old_div(bounced_beam_angle, 2)
         slit4_pos.sp_no_move = s4_height_sp
         theta.move = 1
 
@@ -410,7 +412,7 @@ class TestBeamlineModes(unittest.TestCase):
         beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
         beamline.active_mode = mode.name
 
-        theta.sp_no_move = bounced_beam_angle / 2
+        theta.sp_no_move = old_div(bounced_beam_angle, 2)
         slit4_pos.sp_no_move = s4_height_sp
         theta.move = 1
 

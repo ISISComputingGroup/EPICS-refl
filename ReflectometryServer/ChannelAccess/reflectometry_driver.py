@@ -56,13 +56,13 @@ class ReflectometryDriver(Driver):
         self._beamline = beamline
         self._footprint_manager = beamline.footprint_manager
 
-        for reason, pv in manager.pvs[self.port].items():
+        for reason, pv in list(manager.pvs[self.port].items()):
             if reason not in self._pv_manager.initial_PVs:
                 data = Data()
                 data.value = pv.info.value
                 self.pvDB[reason] = data
 
-        for reason in self._pv_manager.PVDB.keys():
+        for reason in list(self._pv_manager.PVDB.keys()):
             self.setParamStatus(reason, severity=Severity.NO_ALARM, alarm=Alarm.NO_ALARM)
 
         self.add_param_listeners()
@@ -378,7 +378,7 @@ class ReflectometryDriver(Driver):
             self.setParam("{}:DESC".format(name), correction_update.description)
             self.updatePVs()
 
-        for driver, pv_name in self._pv_manager.drivers_pv.items():
+        for driver, pv_name in list(self._pv_manager.drivers_pv.items()):
             driver.add_listener(CorrectionUpdate, partial(_update_corrections_pv, pv_name))
             last_val = driver.listener_last_value(CorrectionUpdate)
             if last_val is None:
