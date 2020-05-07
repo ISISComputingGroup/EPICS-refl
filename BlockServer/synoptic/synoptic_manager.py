@@ -52,7 +52,7 @@ class SynopticManager(OnTheFlyPvInterface):
             file_io (SynopticFileIO): Responsible for file IO
         """
         super(SynopticManager, self).__init__()
-        self.pvs_to_set.extend([SYNOPTIC_PRE + SYNOPTIC_DELETE, SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS])
+        self.pvs_to_write.extend([SYNOPTIC_PRE + SYNOPTIC_DELETE, SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS])
         self._directory = FILEPATH_MANAGER.synoptic_dir
         self._schema_folder = schema_folder
         self._synoptic_pvs = dict()

@@ -20,7 +20,6 @@ import os
 from datetime import datetime
 from time import sleep
 
-import six
 from BlockServer.core.constants import TAG_RC_LOW, TAG_RC_HIGH, \
     TAG_RC_ENABLE, TAG_RC_OUT_LIST, TAG_RC_SUSPEND_ON_INVALID
 from BlockServer.core.on_the_fly_pv_interface import OnTheFlyPvInterface

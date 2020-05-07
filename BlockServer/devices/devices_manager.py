@@ -42,7 +42,7 @@ class DevicesManager(OnTheFlyPvInterface):
         """
         super(DevicesManager, self).__init__()
         self._file_io = file_io
-        self.pvs_to_set.append(SET_SCREENS)
+        self.pvs_to_write.append(SET_SCREENS)
         self._schema_folder = schema_folder
         self._schema = ""
         self._devices_pvs = dict()
