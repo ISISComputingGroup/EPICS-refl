@@ -18,8 +18,6 @@ import os
 # Set MYPVPREFIX env var
 from mock import Mock
 
-from collections import OrderedDict
-
 from BlockServer.config.block import Block
 from BlockServer.core.active_config_holder import ActiveConfigHolder
 from BlockServer.mocks.mock_file_manager import MockConfigurationFileManager
@@ -199,7 +197,6 @@ class TestRunControlSequence(unittest.TestCase):
         self.assertFalse(self.cs.caget(rc_prefix.format(TAG_RC_SUSPEND_ON_INVALID)))
         self.assertFalse(rc_prefix.format(TAG_RC_LOW) in PVS)
         self.assertFalse(rc_prefix.format(TAG_RC_HIGH)in PVS)
-
 
     def test_GIVEN_multiple_blocks_WHEN_restore_config_settings_THEN_PVs_written_to(self):
         expected_low_limit, expected_high_limit = 30, 40

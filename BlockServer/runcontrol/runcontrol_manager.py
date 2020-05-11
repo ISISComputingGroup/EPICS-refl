@@ -48,14 +48,20 @@ RUNCONTROL_GET_PV = prepend_blockserver('GET_RC_PARS')
 MAX_LOOPS_TO_WAIT_FOR_START = 60  # roughly 2 minutes at standard time
 
 
+def create_db_load_string(block):
+    load_record_string = 'dbLoadRecords("$(RUNCONTROL)/db/{file}.db", "{macros}")\n'
+    return load_record_string.format(file="runcontrol",
+                                     macros="P=$(MYPVPREFIX),PV=$(MYPVPREFIX)CS:{}".format(block.name.upper()))
+
+
 class _RunControlAutoSaveHelper(object):
 
     def __init__(self):
         self._autosave_dir = None
 
     def clear_autosave_files(self):
-        for fname in os.listdir(self._autosave_dir):
-            file_path = os.path.join(self._autosave_dir, fname)
+        for filename in os.listdir(self._autosave_dir):
+            file_path = os.path.join(self._autosave_dir, filename)
             try:
                 if os.path.isfile(file_path):
                     os.unlink(file_path)
@@ -196,9 +202,7 @@ class RunControlManager(OnTheFlyPvInterface):
         try:
             with open(self._settings_file, 'w') as f:
                 for block in blocks.values():
-                    load_db_string = 'dbLoadRecords("$(RUNCONTROL)/db/runcontrol.db",' \
-                                     '"P=$(MYPVPREFIX),PV=$(MYPVPREFIX)CS:SB:{}")\n'.format(block.name)
-                    f.write(load_db_string)
+                    f.write(create_db_load_string(block))
                 # Need an extra blank line
                 f.write("\n")
         except Exception as err:

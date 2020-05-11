@@ -18,7 +18,7 @@ import time
 import re
 from server_common.channel_access import ChannelAccess
 from server_common.utilities import print_and_log
-
+from BlockServer.core.macros import CONTROL_SYSTEM_PREFIX, BLOCK_PREFIX
 
 ALIAS_HEADER = """\
 ##
@@ -31,8 +31,11 @@ EVALUATION ORDER ALLOW, DENY
 
 """
 
+# Alias e.g. INST:CS:SB:MyMotor:RC:INRANGE to INST:CS:MYMOTOR:RC:ENABLE
+RUNCONTROL_ALIAS = '{}\\(:RC.*\\)    ALIAS    {}{}\\1'
 
-def build_alias_lines(full_block_pv, pv_suffix, underlying_pv, include_comments=True):
+
+def build_block_alias_lines(full_block_pv, pv_suffix, underlying_pv, include_comments=True):
     lines = list()
     if underlying_pv.endswith(":SP"):
         # The block points at a setpoint
@@ -60,7 +63,6 @@ def build_alias_lines(full_block_pv, pv_suffix, underlying_pv, include_comments=
 
         # Pattern match is for picking up any any SP or SP:RBV
         lines.append('{}\\([.:].*\\)    ALIAS    {}\\1'.format(full_block_pv, underlying_pv))
-    lines.append('{}:RC:.*    DENY'.format(full_block_pv))
     lines.append('{}    ALIAS    {}'.format(full_block_pv, underlying_pv))
     return lines
 
@@ -68,19 +70,22 @@ def build_alias_lines(full_block_pv, pv_suffix, underlying_pv, include_comments=
 class Gateway(object):
     """A class for interacting with the EPICS gateway that creates the aliases used for implementing blocks"""
 
-    def __init__(self, prefix, block_prefix, pvlist_file, pv_prefix):
+    def __init__(self, gateway_prefix, instrument_prefix, pvlist_file, block_prefix,
+                 control_sys_prefix=CONTROL_SYSTEM_PREFIX):
         """Constructor.
 
         Args:
-            prefix (string): The prefix for the gateway
-            block_prefix (string): The block prefix
+            gateway_prefix (string): The full prefix for the gateway, including the instrument prefix etc.
+            instrument_prefix (string): Prefix for instrument PVs
             pvlist_file (string): Where to write the gateway file
-            pv_prefix (string): Prefix for instrument PVs
+            block_prefix (string): The prefix for information about a block, including the instrument_prefix etc.
+            control_sys_prefix (string): The prefix for the control system, including the instrument_prefix etc.
         """
-        self._gateway_prefix = prefix
+        self._gateway_prefix = gateway_prefix
         self._block_prefix = block_prefix
         self._pvlist_file = pvlist_file
-        self._inst_prefix = pv_prefix
+        self._inst_prefix = instrument_prefix
+        self._control_sys_prefix = control_sys_prefix
 
     def exists(self):
         """Checks the gateway exists by querying one of the PVs.
@@ -128,16 +133,16 @@ class Gateway(object):
             underlying_pv = "{}{}".format(self._inst_prefix, underlying_pv)
 
         # Add on all the prefixes
-        full_block_pv = "{}{}{}".format(self._inst_prefix, self._block_prefix, block_name)
+        full_block_pv = "{}{}".format(self._block_prefix, block_name)
 
-        lines = build_alias_lines(full_block_pv, pv_suffix, underlying_pv)
+        lines = build_block_alias_lines(full_block_pv, pv_suffix, underlying_pv)
+        lines.append(RUNCONTROL_ALIAS.format(full_block_pv, self._control_sys_prefix, block_name.upper()))
 
         # Create a case insensitive alias so clients don't have to worry about getting case right
         if full_block_pv != full_block_pv.upper():
             lines.append("## Add full caps equivilant so clients need not be case sensitive")
-            lines.extend(build_alias_lines(full_block_pv.upper(), pv_suffix, underlying_pv, False))
-            lines.append("## Alias the runcontrol for the upper case block to the correct cased one")
-            lines.append(r'{}:RC:\([:].*\)    ALIAS    {}:RC:\1'.format(full_block_pv.upper(), full_block_pv))
+            lines.extend(build_block_alias_lines(full_block_pv.upper(), pv_suffix, underlying_pv, False))
+            lines.append(RUNCONTROL_ALIAS.format(full_block_pv.upper(), self._control_sys_prefix, block_name.upper()))
 
         lines.append("")  # New line to seperate out each block
         return lines
