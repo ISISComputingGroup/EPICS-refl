@@ -257,7 +257,7 @@ class ReflectometryDriver(Driver):
         try:
             alarm_status = min(MAX_ALARM_ID, update.alarm_status)
             alarm_severity = update.alarm_severity
-        except AttributeError:
+        except (AttributeError, TypeError):
             alarm_status = None
             alarm_severity = None
         return update.value, alarm_severity, alarm_status

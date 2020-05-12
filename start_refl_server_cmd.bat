@@ -10,4 +10,4 @@ set EPICS_CAS_BEACON_ADDR_LIST=127.255.255.255
 
 set PYTHONUNBUFFERED=TRUE
 
-%PYTHONW% %MYDIRBLOCK%ReflectometryServer\reflectometry_server.py
+%PYTHON3W% %MYDIRBLOCK%ReflectometryServer\reflectometry_server.py
