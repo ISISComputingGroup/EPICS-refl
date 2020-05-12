@@ -183,13 +183,13 @@ class TestConfigHelper(unittest.TestCase):
 
             add_slit_parameters(1)
 
-        result = ConfigHelper.parameters
+            result = ConfigHelper.parameters
 
-        assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG"))
+            assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG"))
 
-        assert_that([call.args[0] for call in jaws_wrapper_mock.call_args_list], only_contains("MOT:JAWS1"))
-        assert_that([call.args[1] for call in jaws_wrapper_mock.call_args_list], contains(True, False))
-        assert_that([call.args[2] for call in jaws_wrapper_mock.call_args_list], contains(True, True))
+            assert_that([call.args[0] for call in jaws_wrapper_mock.call_args_list], only_contains("MOT:JAWS1"))
+            assert_that([call.args[1] for call in jaws_wrapper_mock.call_args_list], contains(True, False))
+            assert_that([call.args[2] for call in jaws_wrapper_mock.call_args_list], contains(True, True))
 
     def test_GVIEN_add_slits_and_gaps_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_and_centres_exist(self):
 
@@ -197,19 +197,19 @@ class TestConfigHelper(unittest.TestCase):
 
             add_slit_parameters(1, include_centres=True)
 
-        result = ConfigHelper.parameters
+            result = ConfigHelper.parameters
 
-        assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1VC", "S1HG", "S1HC"))
+            assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1VC", "S1HG", "S1HC"))
 
-        assert_that([call.args[0] for call in jaws_wrapper_mock.call_args_list], only_contains("MOT:JAWS1"))
-        assert_that([call.args[1] for call in jaws_wrapper_mock.call_args_list], contains(True, True, False, False))
-        assert_that([call.args[2] for call in jaws_wrapper_mock.call_args_list], contains(True, False, True, False))
+            assert_that([call.args[0] for call in jaws_wrapper_mock.call_args_list], only_contains("MOT:JAWS1"))
+            assert_that([call.args[1] for call in jaws_wrapper_mock.call_args_list], contains(True, True, False, False))
+            assert_that([call.args[2] for call in jaws_wrapper_mock.call_args_list], contains(True, False, True, False))
 
 
     def test_GVIEN_add_slits_and_gaps_into_modes_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
         mode = add_mode("mode")
         mode1 = add_mode("mode1")
-        with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_wrapper_mock:
+        with patch("ReflectometryServer.config_helper.create_jaws_pv_driver"):
 
             add_slit_parameters(1, modes=[mode, mode1], include_centres=True)
 
@@ -220,7 +220,7 @@ class TestConfigHelper(unittest.TestCase):
 
     def test_GVIEN_add_slits_and_gaps_excluding_VC_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist_except_VC(self):
 
-        with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_wrapper_mock:
+        with patch("ReflectometryServer.config_helper.create_jaws_pv_driver"):
 
             add_slit_parameters(1, exclude="VC", include_centres=True)
 
