@@ -258,7 +258,6 @@ def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLER
         is_gap_not_centre = name[1] == "G"
 
         vg_param_name = "S{}{}".format(slit_number, name)
-        print("Calling create_jaws_pv_driver with '{}', '{}' and '{}'".format(jaws_pv_prefix, is_vertical, is_gap_not_centre))
         driver = create_jaws_pv_driver(jaws_pv_prefix, is_vertical, is_gap_not_centre)
         parameter = SlitGapParameter(vg_param_name, driver, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         add_parameter(parameter, modes, mode_inits)

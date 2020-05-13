@@ -187,7 +187,6 @@ class TestConfigHelper(unittest.TestCase):
 
             assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG"))
 
-            print("Slit gap kwargslist {}", jaws_wrapper_mock.call_args_list)
             assert_that([call[0][0] for call in jaws_wrapper_mock.call_args_list], only_contains("MOT:JAWS1"))
             assert_that([call[0][1] for call in jaws_wrapper_mock.call_args_list], contains(True, False))
             assert_that([call[0][2] for call in jaws_wrapper_mock.call_args_list], contains(True, True))
@@ -202,10 +201,9 @@ class TestConfigHelper(unittest.TestCase):
 
             assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1VC", "S1HG", "S1HC"))
 
-            print("Slit gap kwargslist {}", jaws_wrapper_mock.call_args_list)
-            assert_that([call.args[0] for call in jaws_wrapper_mock.call_args_list], only_contains("MOT:JAWS1"))
-            assert_that([call.args[1] for call in jaws_wrapper_mock.call_args_list], contains(True, True, False, False))
-            assert_that([call.args[2] for call in jaws_wrapper_mock.call_args_list], contains(True, False, True, False))
+            assert_that([call[0][0] for call in jaws_wrapper_mock.call_args_list], only_contains("MOT:JAWS1"))
+            assert_that([call[0][1] for call in jaws_wrapper_mock.call_args_list], contains(True, True, False, False))
+            assert_that([call[0][2] for call in jaws_wrapper_mock.call_args_list], contains(True, False, True, False))
 
 
     def test_GVIEN_add_slits_and_gaps_into_modes_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
