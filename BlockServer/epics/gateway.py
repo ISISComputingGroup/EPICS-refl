@@ -93,7 +93,7 @@ class Gateway(object):
         Returns:
             bool : Whether the gateway is running and is accessible
         """
-        return False if ChannelAccess.caget(self._gateway_prefix + "pvtotal") is None else True
+        return ChannelAccess.caget(self._gateway_prefix + "pvtotal") is not None
 
     def _reload(self):
         print_and_log("Reloading gateway")
