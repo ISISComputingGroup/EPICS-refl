@@ -37,7 +37,7 @@ from BlockServer.core.inactive_config_holder import InactiveConfigHolder
 from server_common.channel_access_server import CAServer
 from server_common.utilities import compress_and_hex, dehex_and_decompress, print_and_log, set_logger, \
     convert_to_json, convert_from_json, char_waveform
-from BlockServer.core.macros import MACROS, BLOCKSERVER_PREFIX, BLOCK_PREFIX
+from BlockServer.core.macros import MACROS, CONTROL_SYSTEM_PREFIX, BLOCK_PREFIX
 from server_common.pv_names import BlockserverPVNames
 from BlockServer.core.config_list_manager import ConfigListManager
 from BlockServer.synoptic.synoptic_manager import SynopticManager
@@ -105,15 +105,17 @@ class BlockServer(Driver):
 
         FILEPATH_MANAGER.initialise(CONFIG_DIR, SCRIPT_DIR, SCHEMA_DIR)
 
+        self.instrument_prefix = MACROS["$(MYPVPREFIX)"]
         self._cas = ca_server
-        self._gateway = Gateway(GATEWAY_PREFIX, BLOCK_PREFIX, PVLIST_FILE, MACROS["$(MYPVPREFIX)"])
+        self._gateway = Gateway(GATEWAY_PREFIX, self.instrument_prefix, PVLIST_FILE,
+                                self.instrument_prefix + BLOCK_PREFIX)
         self._active_configserver = None
         self._run_control = None
         self._block_cache = None
         self._syn = None
         self._devices = None
         self.on_the_fly_handlers = list()
-        self._ioc_control = IocControl(MACROS["$(MYPVPREFIX)"])
+        self._ioc_control = IocControl(self.instrument_prefix)
         self.block_rules = BlockRules(self)
         self.group_rules = GroupRules(self)
         self.config_desc = ConfigurationDescriptionRules(self)
@@ -167,7 +169,7 @@ class BlockServer(Driver):
                                                        self._ioc_control)
 
         if facility == "ISIS":
-            self._run_control = RunControlManager(MACROS["$(MYPVPREFIX)"], MACROS["$(ICPCONFIGROOT)"],
+            self._run_control = RunControlManager(self.instrument_prefix, MACROS["$(ICPCONFIGROOT)"],
                                                   MACROS["$(ICPVARDIR)"], self._ioc_control, self._active_configserver,
                                                   self)
             self.on_the_fly_handlers.append(self._run_control)
@@ -374,7 +376,7 @@ class BlockServer(Driver):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
         # iocs_to_start, iocs_to_restart are not used at the moment, but longer term they could be used
         # for only restarting IOCs for which the setting have changed.
-        non_conf_iocs = [x for x in get_iocs(BLOCKSERVER_PREFIX) if x not in self._active_configserver.get_ioc_names()]
+        non_conf_iocs = [x for x in get_iocs(CONTROL_SYSTEM_PREFIX) if x not in self._active_configserver.get_ioc_names()]
         self._ioc_control.stop_iocs(non_conf_iocs)
         self._start_config_iocs()
 
@@ -605,7 +607,7 @@ class BlockServer(Driver):
             try:
                 print_and_log("Adding PV {}".format(name))
                 new_pv = {name: char_waveform(count)}
-                self._cas.createPV(BLOCKSERVER_PREFIX, new_pv)
+                self._cas.createPV(CONTROL_SYSTEM_PREFIX, new_pv)
                 data = Data()
                 data.value = manager.pvs[self.port][name].info.value
                 self.pvDB[name] = data
@@ -672,9 +674,9 @@ if __name__ == '__main__':
 
     PVLIST_FILE = args.pvlist_name[0]
 
-    print_and_log("BLOCKSERVER PREFIX = %s" % BLOCKSERVER_PREFIX)
+    print_and_log("BLOCKSERVER PREFIX = %s" % CONTROL_SYSTEM_PREFIX)
     SERVER = SimpleServer()
-    SERVER.createPV(BLOCKSERVER_PREFIX, initial_dbs)
+    SERVER.createPV(CONTROL_SYSTEM_PREFIX, initial_dbs)
     DRIVER = BlockServer(SERVER)
 
     # Process CA transactions

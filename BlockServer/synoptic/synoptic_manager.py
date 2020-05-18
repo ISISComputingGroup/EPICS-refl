@@ -51,7 +51,8 @@ class SynopticManager(OnTheFlyPvInterface):
             active_configholder (ActiveConfigHolder): A reference to the active configuration
             file_io (SynopticFileIO): Responsible for file IO
         """
-        self._pvs_to_set = [SYNOPTIC_PRE + SYNOPTIC_DELETE, SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS]
+        super(SynopticManager, self).__init__()
+        self.pvs_to_write.extend([SYNOPTIC_PRE + SYNOPTIC_DELETE, SYNOPTIC_PRE + SYNOPTIC_SET_DETAILS])
         self._directory = FILEPATH_MANAGER.synoptic_dir
         self._schema_folder = schema_folder
         self._synoptic_pvs = dict()
@@ -61,13 +62,6 @@ class SynopticManager(OnTheFlyPvInterface):
         self._default_syn_xml = ""
         self._create_standard_pvs()
         self._load_initial()
-
-    def read_pv_exists(self, pv):
-        # Reads are handled by the monitors
-        return False
-
-    def write_pv_exists(self, pv):
-        return pv in self._pvs_to_set
 
     def handle_pv_write(self, pv, data):
         try:

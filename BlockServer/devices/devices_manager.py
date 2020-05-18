@@ -40,8 +40,9 @@ class DevicesManager(OnTheFlyPvInterface):
             schema_folder (string): The filepath for the devices schema
             file_io (DevicesFileIO): Object used for loading and saving files
         """
+        super(DevicesManager, self).__init__()
         self._file_io = file_io
-        self._pvs_to_set = [SET_SCREENS]
+        self.pvs_to_write.append(SET_SCREENS)
         self._schema_folder = schema_folder
         self._schema = ""
         self._devices_pvs = dict()
@@ -56,13 +57,6 @@ class DevicesManager(OnTheFlyPvInterface):
         self._bs.add_string_pv_to_db(GET_SCREENS, 16000)
         self._bs.add_string_pv_to_db(SET_SCREENS, 16000)
         self._bs.add_string_pv_to_db(GET_SCHEMA, 16000)
-
-    def read_pv_exists(self, pv):
-        # All other reads are handled by the monitors
-        return False
-
-    def write_pv_exists(self, pv):
-        return pv in self._pvs_to_set
 
     def handle_pv_write(self, pv, data):
         if pv == SET_SCREENS:
