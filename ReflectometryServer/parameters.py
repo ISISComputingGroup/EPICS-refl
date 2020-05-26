@@ -403,7 +403,125 @@ class BeamlineParameter(object):
                                               Severity.MINOR_ALARM))
 
 
-class AngleParameter(BeamlineParameter):
+class TempParameter(BeamlineParameter):
+
+    def __init__(self, name, component, axis, description=None, autosave=False, rbv_to_sp_tolerance=0.002):
+        if description is None:
+            description = name
+        super(TempParameter, self).__init__(name, False, 0, description, autosave,
+                                            rbv_to_sp_tolerance=rbv_to_sp_tolerance)
+        self._component = component
+        self._axis = axis
+
+        if self._autosave:
+            self._initialise_sp_from_file()
+        if self._set_point_rbv is None:
+            self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
+
+        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
+            self._component.beam_path_rbv.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
+        self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
+        self._component.beam_path_rbv.add_listener(ComponentChangingUpdate,
+                                                              self._on_update_changing_state)
+
+        if self._axis == ChangeAxis.ANGLE: #TODO: axis remove
+            if self._component.can_define_current_angle_as:
+                self.define_current_value_as = DefineCurrentValueAsParameter(
+                    self._component.define_current_angle_as, self._set_sp, self)
+        else:
+            self.define_current_value_as = DefineCurrentValueAsParameter(
+                self._component.define_current_position_as, self._set_sp, self)
+
+    def _initialise_sp_from_file(self):
+        """
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
+        """
+        sp_init = param_float_autosave.read_parameter(self._name, None)
+        if sp_init is not None:
+            self._set_initial_sp(sp_init)
+            if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
+                self._component.beam_path_set_point.autosaved_angle = sp_init
+            else:
+                self._component.beam_path_set_point.autosaved_offset = sp_init
+            self._move_component()
+
+    def _initialise_sp_from_motor(self, _):
+        """
+        Get the setpoint value for this parameter based on the motor setpoint position.
+        """
+        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
+            init_sp = self._component.beam_path_set_point.get_angle_relative_to_beam()
+        else:
+            if self._component.beam_path_set_point.is_in_beam:
+                init_sp = self._component.beam_path_set_point.get_position_relative_to_beam()
+            else:
+                init_sp = 0.0
+        self._set_initial_sp(init_sp)
+
+    def _move_component(self):
+        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
+            self._component.beam_path_set_point.set_angle_relative_to_beam(self._set_point_rbv)
+        else:
+            self._component.beam_path_set_point.set_position_relative_to_beam(self._set_point_rbv)
+
+    def _set_changed_flag(self):
+        self._component.set_changed_flag(self._axis, True)
+
+    def _rbv(self):
+        """
+        Returns: readback value for the parameter, e.g. tracking displacement above the beam
+        """
+        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
+            return self._component.beam_path_rbv.get_angle_relative_to_beam()
+        else:
+            return self._component.beam_path_rbv.get_position_relative_to_beam()
+
+    @property
+    def rbv_at_sp(self):
+        """
+        Returns: Does the read back value match the set point target within a defined tolerance, only if the component
+        is in the beam
+        """
+        if self.rbv is None or self._set_point_rbv is None:
+            return False
+
+        return not self._component.beam_path_set_point.is_in_beam or \
+            abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
+
+    def _get_alarm_info(self):
+        """
+        Returns the alarm information for the axis of this component.
+        """
+        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
+            return self._component.beam_path_rbv.angle_alarm
+        else:
+            return self._component.beam_path_rbv.displacement_alarm
+
+    @property
+    def is_changing(self):
+        """
+        Returns: Is the parameter changing (rotating)
+        """
+        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
+            return self._component.beam_path_rbv.is_rotating
+        else:
+            return self._component.beam_path_rbv.is_displacing
+
+    def validate(self, drivers):
+        """
+        Perform validation of this parameter returning a list of errors.
+
+        Args:
+            drivers (list[ReflectometryServer.ioc_driver.IocDriver]): list of driver to help with validation
+
+        Returns:
+            (list[str]): list of problems; Empty list if there are no errors
+
+        """
+        return []
+
+
+class AngleParameter(TempParameter):
     """
     The angle of the component measured from the incoming beam, this could be theta, or the supermirror angle or
         title jaws angle.
@@ -422,78 +540,10 @@ class AngleParameter(BeamlineParameter):
         """
         if description is None:
             description = "{} angle".format(name)
-        super(AngleParameter, self).__init__(name, sim, init, description, autosave,
-                                             rbv_to_sp_tolerance=rbv_to_sp_tolerance)
-        self._reflection_component = angled_component
-
-        if self._autosave:
-            self._initialise_sp_from_file()
-        if self._set_point_rbv is None:
-            self._reflection_component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
-
-        self._reflection_component.beam_path_rbv.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
-        self._reflection_component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
-        self._reflection_component.beam_path_rbv.add_listener(ComponentChangingUpdate,
-                                                              self._on_update_changing_state)
-
-        if self._reflection_component.can_define_current_angle_as:
-            self.define_current_value_as = DefineCurrentValueAsParameter(
-                self._reflection_component.define_current_angle_as, self._set_sp, self)
-
-    def _initialise_sp_from_file(self):
-        """
-        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
-        """
-        sp_init = param_float_autosave.read_parameter(self._name, None)
-        if sp_init is not None:
-            self._set_initial_sp(sp_init)
-            self._reflection_component.beam_path_set_point.autosaved_angle = sp_init
-            self._move_component()
-
-    def _initialise_sp_from_motor(self, _):
-        """
-        Get the setpoint value for this parameter based on the motor setpoint position.
-        """
-        init_sp = self._reflection_component.beam_path_set_point.get_angle_relative_to_beam()
-        self._set_initial_sp(init_sp)
-
-    def _move_component(self):
-        self._reflection_component.beam_path_set_point.set_angle_relative_to_beam(self._set_point_rbv)
-
-    def _set_changed_flag(self):
-        self._reflection_component.set_changed_flag(ChangeAxis.ANGLE, True)
-
-    def _rbv(self):
-        return self._reflection_component.beam_path_rbv.get_angle_relative_to_beam()
-
-    def _get_alarm_info(self):
-        """
-        Returns the alarm information for the angle axis of this component.
-        """
-        return self._reflection_component.beam_path_rbv.angle_alarm
-
-    @property
-    def is_changing(self):
-        """
-        Returns: Is the parameter changing (rotating)
-        """
-        return self._reflection_component.beam_path_rbv.is_rotating
-
-    def validate(self, drivers):
-        """
-        Perform validation of this parameter returning a list of errors.
-
-        Args:
-            drivers (list[ReflectometryServer.ioc_driver.IocDriver]): list of driver to help with validation
-
-        Returns:
-            (list[str]): list of problems; Empty list if there are no errors
-
-        """
-        return []
+        super(AngleParameter, self).__init__(name, angled_component, ChangeAxis.ANGLE, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
 
 
-class TrackingPosition(BeamlineParameter):
+class TrackingPosition(TempParameter):
     """
     Component which tracks the position of the beam with a single degree of freedom. E.g. slit set on a height stage
     """
@@ -506,94 +556,8 @@ class TrackingPosition(BeamlineParameter):
             component (ReflectometryServer.components.Component): component that the tracking is based on
             description (str): description
         """
-        if description is None:
-            description = "{} tracking position".format(name)
-        super(TrackingPosition, self).__init__(name, sim, init, description, autosave,
+        super(TrackingPosition, self).__init__(name, component, ChangeAxis.POSITION, description, autosave,
                                                rbv_to_sp_tolerance=rbv_to_sp_tolerance)
-        self._component = component
-
-        if self._autosave:
-            self._initialise_sp_from_file()
-        if self._set_point_rbv is None:
-            self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
-
-        self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
-        self._component.beam_path_rbv.add_listener(ComponentChangingUpdate, self._on_update_changing_state)
-
-        self.group_names.append(BeamlineParameterGroup.TRACKING)
-
-        self.define_current_value_as = DefineCurrentValueAsParameter(
-            self._component.define_current_position_as, self._set_sp, self)
-
-    def _initialise_sp_from_file(self):
-        """
-        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
-        """
-        sp_init = param_float_autosave.read_parameter(self._name, None)
-        if sp_init is not None:
-            self._set_initial_sp(sp_init)
-            self._component.beam_path_set_point.autosaved_offset = sp_init
-            self._move_component()
-
-    def _initialise_sp_from_motor(self, _):
-        """
-        Get the setpoint value for this parameter based on the motor setpoint position.
-        """
-        if self._component.beam_path_set_point.is_in_beam:
-            init_sp = self._component.beam_path_set_point.get_position_relative_to_beam()
-        else:
-            init_sp = 0.0
-        self._set_initial_sp(init_sp)
-
-    def _move_component(self):
-        self._component.beam_path_set_point.set_position_relative_to_beam(self._set_point_rbv)
-
-    def _set_changed_flag(self):
-        self._component.set_changed_flag(ChangeAxis.POSITION, True)
-
-    def _rbv(self):
-        """
-        Returns: readback value for the tracking displacement above the beam
-        """
-        return self._component.beam_path_rbv.get_position_relative_to_beam()
-
-    def _get_alarm_info(self):
-        """
-        Returns the alarm information for the displacement axis of this component.
-        """
-        return self._component.beam_path_rbv.displacement_alarm
-
-    @property
-    def rbv_at_sp(self):
-        """
-        Returns: Does the read back value match the set point target within a defined tolerance and the component is in
-            the beam
-        """
-        if self.rbv is None or self._set_point_rbv is None:
-            return False
-
-        return not self._component.beam_path_set_point.is_in_beam or \
-            abs(self.rbv - self._set_point_rbv) <= self._rbv_to_sp_tolerance
-
-    @property
-    def is_changing(self):
-        """
-        Returns: Is the parameter changing (displacing)
-        """
-        return self._component.beam_path_rbv.is_displacing
-
-    def validate(self, drivers):
-        """
-        Perform validation of this parameter returning a list of errors.
-
-        Args:
-            drivers (list[ReflectometryServer.ioc_driver.IocDriver]): list of driver to help with validation
-
-        Returns:
-            (list[str]): list of problems; Empty list if there are no errors
-
-        """
-        return []
 
 
 class InBeamParameter(BeamlineParameter):

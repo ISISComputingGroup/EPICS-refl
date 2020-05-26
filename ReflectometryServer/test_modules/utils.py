@@ -5,6 +5,8 @@ from math import fabs
 
 from hamcrest.core.base_matcher import BaseMatcher
 
+from ReflectometryServer import file_io
+
 DEFAULT_TEST_TOLERANCE = 1e-9
 
 
@@ -70,3 +72,40 @@ def position(expected_position, tolerance=None):
 
     """
     return IsPositionAndAngle(expected_position, False, tolerance)
+
+
+def setup_autosave(float_param_inits, bool_param_inits):
+    """
+    Setup the autosave to return specific values
+    Args:
+        float_param_inits: dictionary of autosave parameter names and there float values
+        bool_param_inits:  dictionary of autosave parameter names and there bool values
+    """
+
+    def auto_save_stub_float(key, default):
+        auto_save = float_param_inits
+        return auto_save.get(key, default)
+
+    def auto_save_stub_bool(key, default):
+        auto_save = bool_param_inits
+        return auto_save.get(key, default)
+
+    file_io.param_float_autosave.read_parameter = auto_save_stub_float
+    file_io.param_bool_autosave.read_parameter = auto_save_stub_bool
+
+
+def create_parameter_with_initial_value(param_class, name, component, init_value):
+    """
+    Create a beamline parameter and initialise the setpoint value as would be done on start of parameter. This is done
+    by faking an autosave, but could be done by calling an initalisation motor listener but that is more complicated.
+    Args:
+        param_class: class of parameter to create
+        name: name of the parameter
+        component: component this parameter is based on
+        init_value: initial value
+
+    Returns: parameter
+
+    """
+    setup_autosave({name: init_value}, {})
+    return param_class(name, component, autosave=True)

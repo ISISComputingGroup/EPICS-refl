@@ -15,7 +15,7 @@ from ReflectometryServer.pv_wrapper import ReadbackUpdate
 
 from data_mother import DataMother, create_mock_axis
 from server_common.channel_access import AlarmSeverity, AlarmStatus
-from utils import position, DEFAULT_TEST_TOLERANCE
+from utils import position, DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value, setup_autosave
 
 
 class TestBeamlineParameter(unittest.TestCase):
@@ -280,8 +280,8 @@ class TestBeamlineModes(unittest.TestCase):
         super_mirror = ReflectingComponent("sm", PositionAndAngle(0.0, 10, 90.0))
         s2 = Component("s2", PositionAndAngle(initial_s2_height, 20, 90.0))
 
-        sm_angle = AngleParameter("smangle", super_mirror, True)
-        slit2_pos = TrackingPosition("slit2pos", s2, True)
+        sm_angle = create_parameter_with_initial_value(AngleParameter, "smangle", super_mirror, 0)
+        slit2_pos = create_parameter_with_initial_value(TrackingPosition, "slit2pos", s2, 0)
 
         mode = BeamlineMode("both_params", [sm_angle.name, slit2_pos.name])
 
@@ -339,8 +339,8 @@ class TestBeamlineModes(unittest.TestCase):
         super_mirror = ReflectingComponent("sm", PositionAndAngle(0.0, 10, 90.0))
         s2 = Component("s2", PositionAndAngle(initial_s2_height, 20, 90.0))
 
-        sm_angle = AngleParameter("smangle", super_mirror, True)
-        slit2_pos = TrackingPosition("slit2pos", s2, True)
+        sm_angle = create_parameter_with_initial_value(AngleParameter, "smangle", super_mirror, 0)
+        slit2_pos = create_parameter_with_initial_value(TrackingPosition, "slit2pos", s2, 0)
 
         mode = BeamlineMode("both_params", [sm_angle.name, slit2_pos.name])
 
@@ -361,8 +361,8 @@ class TestBeamlineModes(unittest.TestCase):
         sample_to_s4_z = 10.0
         sample_point = ReflectingComponent("sm", PositionAndAngle(0, sample_z, 90))
         s4 = Component("s4", PositionAndAngle(s4_height_initial, sample_z + sample_to_s4_z, 90))
-        theta = AngleParameter("theta", sample_point, True)
-        slit4_pos = TrackingPosition("slit4pos", s4, True)
+        theta = create_parameter_with_initial_value(AngleParameter, "theta", sample_point, True)
+        slit4_pos = create_parameter_with_initial_value(TrackingPosition, "slit4pos", s4, 0)
         mode = BeamlineMode("both_params", [theta.name, slit4_pos.name])
         beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
         beamline.active_mode = mode.name
@@ -791,16 +791,7 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
 class TestInitSetpoints(unittest.TestCase):
 
     def setUp(self):
-        def auto_save_stub_float(key, default):
-            auto_save = {"param_float": 0.1}
-            return auto_save.get(key, default)
-
-        def auto_save_stub_bool(key, default):
-            auto_save = {"param_bool": True}
-            return auto_save.get(key, default)
-
-        file_io.param_float_autosave.read_parameter = auto_save_stub_float
-        file_io.param_bool_autosave.read_parameter = auto_save_stub_bool
+        setup_autosave({"param_float": 0.1}, {"param_bool": True})
         self.component = Component("component", setup=PositionAndAngle(0, 1, 90))
         self.angle_component = TiltingComponent("angle_component", setup=PositionAndAngle(0, 10, 90))
         self.jaws = create_mock_axis("s1vg", 0.2, 1)

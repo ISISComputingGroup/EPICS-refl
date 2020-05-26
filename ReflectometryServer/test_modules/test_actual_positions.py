@@ -6,6 +6,7 @@ from ReflectometryServer.components import ReflectingComponent, Component
 from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.parameters import AngleParameter
+from ReflectometryServer.test_modules.utils import create_parameter_with_initial_value
 
 
 class TestComponentBeamline(unittest.TestCase):
@@ -26,9 +27,9 @@ class TestComponentBeamline(unittest.TestCase):
         s4 = Component("s4", setup=PositionAndAngle(0, 8, 90))
         detector = Component("detector", setup=PositionAndAngle(0, 10, 90))
 
-        theta = AngleParameter("theta", self.ideal_sample_point, sim=True)
+        theta = create_parameter_with_initial_value(AngleParameter, "theta", self.ideal_sample_point, 0)
         theta.sp_no_move = 0
-        smangle = AngleParameter("smangle", self.polarising_mirror, sim=True)
+        smangle = create_parameter_with_initial_value(AngleParameter, "smangle", self.polarising_mirror, 0)
         smangle.sp_no_move = 0
 
         self.nr_mode = BeamlineMode("NR Mode", [theta.name])

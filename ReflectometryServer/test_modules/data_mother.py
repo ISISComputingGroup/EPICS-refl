@@ -9,7 +9,7 @@ from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectio
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from server_common.observable import observable
-from utils import DEFAULT_TEST_TOLERANCE
+from utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
@@ -154,11 +154,11 @@ class DataMother(object):
         comps = [theta]
 
         # BEAMLINE PARAMETERS
-        s1_gap = SlitGapParameter("s1_gap", s1_gap_axis, sim=True)
-        theta_ang = AngleParameter("theta", theta, sim=True)
-        s3_gap = SlitGapParameter("s3_gap", s3_gap_axis, sim=True)
-        detector_position = TrackingPosition("det", detector, sim=True)
-        detector_angle = AngleParameter("det_angle", detector, sim=True)
+        s1_gap = create_parameter_with_initial_value(SlitGapParameter, "s1_gap", s1_gap_axis, 0)
+        theta_ang = create_parameter_with_initial_value(AngleParameter, "theta", theta, 0)
+        s3_gap = create_parameter_with_initial_value(SlitGapParameter, "s3_gap", s3_gap_axis, 0)
+        detector_position = create_parameter_with_initial_value(TrackingPosition, "det", detector, 0)
+        detector_angle = create_parameter_with_initial_value(AngleParameter, "det_angle", detector, 0)
         params = [s1_gap, theta_ang, s3_gap, detector_position, detector_angle]
 
         # MODES
@@ -166,6 +166,10 @@ class DataMother(object):
         nr_mode = [BeamlineMode("NR", [param.name for param in params], nr_inits)]
         beam_start = PositionAndAngle(0.0, 0.0, 0.0)
         bl = Beamline(comps, params, drives, nr_mode, beam_start)
+
+        # Initialise motor positions to get rbv call backs set
+        s1_gap_axis.sp = 0
+        s3_gap_axis.sp = 0
 
         return bl, axes
 
