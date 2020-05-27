@@ -1,9 +1,6 @@
 """
 Footprint calculations.
 """
-from __future__ import division
-
-from builtins import object
 from itertools import combinations
 from math import sin, tan, atan, degrees, radians, pi
 
@@ -14,7 +11,7 @@ S4_ID = "SLIT4"
 SA_ID = "SAMPLE"
 
 
-class BaseFootprintSetup(object):
+class BaseFootprintSetup:
     """
     Blank setup for a footprint calculation (for default use).
     """
@@ -62,13 +59,12 @@ class FootprintSetup(BaseFootprintSetup):
                            }
 
 
-class FootprintCalculator(object):
+class FootprintCalculator:
     """
     Calculator for the beam footprint and resolution.
     """
 
     def __init__(self, setup):
-        super(FootprintCalculator, self).__init__()
         self.setup = setup
         self.gaps = {}
         self.update_gaps()
@@ -89,7 +85,7 @@ class FootprintCalculator(object):
         Updates the value for each slit gap.
         """
         self.gaps[SA_ID] = self.setup.sample_length
-        for key, gap_param in list(self.setup.gap_params.items()):
+        for key, gap_param in self.setup.gap_params.items():
             if gap_param:
                 self.gaps[key] = self.get_param_value(gap_param)
 
@@ -109,7 +105,6 @@ class FootprintCalculator(object):
 
         Returns: The distance between the two components in mm
         """
-        assert comp1, comp2 in list(self.setup.positions.keys())
         return abs(self.setup.positions[comp1] - self.setup.positions[comp2])
 
     def calc_equivalent_gap_by_sample_size(self):

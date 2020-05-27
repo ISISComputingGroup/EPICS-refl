@@ -2,9 +2,6 @@
 Objects to help with calculating the beam path when interacting with a component. This is used for instance for the
 set points or readbacks etc.
 """
-from __future__ import division
-
-from builtins import object
 from collections import namedtuple
 from math import degrees, atan2
 
@@ -36,7 +33,7 @@ InitUpdate = namedtuple("InitUpdate", [])
 
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, ComponentChangingUpdate, InitUpdate)
-class TrackingBeamPathCalc(object):
+class TrackingBeamPathCalc:
     """
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
     """

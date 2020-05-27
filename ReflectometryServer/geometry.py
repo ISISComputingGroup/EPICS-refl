@@ -1,11 +1,10 @@
 """
 Objects and classes that handle geometry
 """
-from builtins import object
 from math import radians, sin, cos
 
 
-class Position(object):
+class Position:
     """
     The beam position and direction
     """

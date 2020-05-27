@@ -12,7 +12,7 @@ from ReflectometryServer.geometry import PositionAndAngle, Position, position_fr
 ANGULAR_TOLERANCE = 1e-12
 
 
-class LinearMovementCalc(object):
+class LinearMovementCalc:
     """
     A strategy for calculating the interception of the beam with a component that can only move linearly in the Z Y
     plain. E.g. a slit moving vertically to the floor, the position at zero is usually the position of the slit on

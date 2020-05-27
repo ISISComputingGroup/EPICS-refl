@@ -2,7 +2,7 @@
 Common Exceptions for the reflectometry IOC
 """
 
-from builtins import str
+
 class BeamlineConfigurationInvalidException(Exception):
     """
     Exception for when a parameter is not initialized.

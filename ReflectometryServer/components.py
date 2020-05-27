@@ -1,7 +1,6 @@
 """
 Components on a beam
 """
-from builtins import object
 from collections import namedtuple
 
 from pcaspy import Severity
@@ -35,7 +34,7 @@ DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
 
 
 @observable(DefineValueAsEvent)
-class Component(object):
+class Component:
     """
     Base object for all components that can sit on a beam line
     """

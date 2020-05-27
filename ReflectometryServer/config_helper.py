@@ -1,7 +1,6 @@
 """
 Objects to help configure the beamline
 """
-from builtins import object
 from ReflectometryServer import Beamline, BeamlineMode, SlitGapParameter, JawsGapPVWrapper, JawsCentrePVWrapper
 from ReflectometryServer.geometry import PositionAndAngle
 import logging
@@ -12,7 +11,7 @@ from ReflectometryServer.parameters import DEFAULT_RBV_TO_SP_TOLERANCE
 logger = logging.getLogger(__name__)
 
 
-class ConfigHelper(object):
+class ConfigHelper:
     """
     Class holding configuration as it is built up
     """

@@ -1,8 +1,6 @@
 """
 Wrapper for motor PVs
 """
-from __future__ import division
-from builtins import object
 import abc
 import threading
 from collections import namedtuple
@@ -50,7 +48,7 @@ IsChangingUpdate = namedtuple("IsChangingUpdate", [
     "alarm_status"])    # The alarm status of the axis, represented as an integer (see Channel Access doc)
 
 
-class ProcessMonitorEvents(object):
+class ProcessMonitorEvents:
     """
     Collect updates produced and only apply the latest ones.
     """
@@ -103,7 +101,7 @@ class ProcessMonitorEvents(object):
             if len(events_to_process) == 0:
                 self._process_triggers.clear()
 
-        for listener_trigger_fn, event in list(events_to_process.values()):
+        for listener_trigger_fn, event in events_to_process.values():
             try:
                 listener_trigger_fn(event)
             except Exception as e:
@@ -116,7 +114,7 @@ PROCESS_MONITOR_EVENTS = ProcessMonitorEvents()
 
 @six.add_metaclass(abc.ABCMeta)
 @observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)
-class PVWrapper(object):
+class PVWrapper:
     """
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
     """
@@ -696,7 +694,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         Returns: the value of the underlying velocity PV. We use the minimum between the two jaw blades to
         ensure we do not create crash conditions (i.e. one jaw blade going faster than the other one can).
         """
-        motor_velocities = list(self._velocities.values())
+        motor_velocities = self._velocities.values()
         return min([motor_velocities])
 
     @velocity.setter

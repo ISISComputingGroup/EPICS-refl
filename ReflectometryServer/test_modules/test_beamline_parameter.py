@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from past.utils import old_div
-import os
 import unittest
 from math import isnan
 
@@ -369,7 +365,7 @@ class TestBeamlineModes(unittest.TestCase):
         beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
         beamline.active_mode = mode.name
 
-        theta.sp_no_move = old_div(bounced_beam_angle, 2)
+        theta.sp_no_move = bounced_beam_angle / 2
         slit4_pos.sp_no_move = s4_height_sp
         theta.move = 1
 
@@ -390,7 +386,7 @@ class TestBeamlineModes(unittest.TestCase):
         beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
         beamline.active_mode = mode.name
 
-        theta.sp_no_move = old_div(bounced_beam_angle, 2)
+        theta.sp_no_move = bounced_beam_angle / 2
         slit4_pos.sp_no_move = s4_height_sp
         theta.move = 1
 
@@ -412,7 +408,7 @@ class TestBeamlineModes(unittest.TestCase):
         beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
         beamline.active_mode = mode.name
 
-        theta.sp_no_move = old_div(bounced_beam_angle, 2)
+        theta.sp_no_move = bounced_beam_angle / 2
         slit4_pos.sp_no_move = s4_height_sp
         theta.move = 1
 

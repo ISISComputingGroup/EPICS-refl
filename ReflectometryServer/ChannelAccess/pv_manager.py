@@ -1,7 +1,6 @@
 """
 Reflectometry pv manager
 """
-from builtins import object
 import logging
 
 from enum import Enum
@@ -240,7 +239,7 @@ class PvSort(Enum):
             return None, None
 
 
-class PVManager(object):
+class PVManager:
     """
     Holds reflectometry PVs and associated utilities.
     """
@@ -255,7 +254,7 @@ class PVManager(object):
         self._footprint_parameters = {}
         self._add_status_pvs()
 
-        for pv_name in list(self.PVDB.keys()):
+        for pv_name in self.PVDB.keys():
             logger.info("Creating pv: {}".format(pv_name))
 
     def _add_status_pvs(self):
@@ -289,7 +288,7 @@ class PVManager(object):
         self._add_all_driver_pvs()
         self._add_constants_pvs()
 
-        for pv_name in [pv for pv in list(self.PVDB.keys()) if pv not in self.initial_PVs]:
+        for pv_name in [pv for pv in self.PVDB.keys() if pv not in self.initial_PVs]:
             logger.info("Creating pv: {}".format(pv_name))
 
     def _add_global_pvs(self):
@@ -327,7 +326,7 @@ class PVManager(object):
         """
         param_info = []
         align_info = []
-        for parameter in list(self._beamline.parameters.values()):
+        for parameter in self._beamline.parameters.values():
             param_info_record = self._add_parameter_pvs(parameter)
             param_info.append(param_info_record)
             if parameter.define_current_value_as is not None:
@@ -471,7 +470,7 @@ class PVManager(object):
             pvs that were created after beamline was set.
 
         """
-        return {key: value for key, value in list(self.PVDB.items()) if key not in self.initial_PVs}
+        return {key: value for key, value in self.PVDB.items() if key not in self.initial_PVs}
 
     def _add_all_driver_pvs(self):
         """

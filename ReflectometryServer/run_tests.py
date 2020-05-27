@@ -16,8 +16,6 @@
 """
 Runn all the tests for refl server
 """
-from __future__ import print_function
-
 # Standard imports
 import unittest
 import xmlrunner

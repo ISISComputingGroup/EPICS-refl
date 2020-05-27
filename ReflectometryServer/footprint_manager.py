@@ -1,7 +1,6 @@
 """
 Manager for the footprint calc.
 """
-from builtins import object
 from enum import Enum
 
 from ReflectometryServer.footprint_calc import *
@@ -36,7 +35,7 @@ class FootprintSort(Enum):
         return None
 
 
-class FootprintManager(object):
+class FootprintManager:
     """
     Holds instances of the footprint calculator and manages access to them.
     """

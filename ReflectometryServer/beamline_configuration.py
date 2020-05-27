@@ -1,7 +1,6 @@
 """
 Objects to Create a beamline from the configuration.
 """
-from builtins import str
 import sys
 import traceback
 

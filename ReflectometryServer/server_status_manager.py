@@ -1,5 +1,3 @@
-from builtins import next
-from builtins import object
 import logging
 from collections import namedtuple
 
@@ -68,7 +66,7 @@ class STATUS(Enum):
 
 
 @observable(StatusUpdate, ActiveProblemsUpdate, ErrorLogUpdate)
-class _ServerStatusManager(object):
+class _ServerStatusManager:
     """
     Handler for setting the status of the reflectometry server.
     """
@@ -165,7 +163,7 @@ class _ServerStatusManager(object):
         """
         dict_to_append = self._get_problems_by_severity(problem.severity)
 
-        if problem.description in list(dict_to_append.keys()):
+        if problem.description in dict_to_append.keys():
             dict_to_append[problem.description].add(problem.source)
         else:
             dict_to_append[problem.description] = {problem.source}
@@ -217,15 +215,15 @@ class _ServerStatusManager(object):
         message = ""
         if self.active_errors:
             message += "Errors:\n"
-            for description, sources in list(self.active_errors.items()):
+            for description, sources in self.active_errors.items():
                 message += "- {}".format(self._problem_as_string(description, sources))
         if self.active_warnings:
             message += "Warnings:\n"
-            for description, sources in list(self.active_warnings.items()):
+            for description, sources in self.active_warnings.items():
                 message += "- {}".format(self._problem_as_string(description, sources))
         if self.active_other_problems:
             message += "Other issues:\n"
-            for description, sources in list(self.active_other_problems.items()):
+            for description, sources in self.active_other_problems.items():
                 message += "- {}".format(self._problem_as_string(description, sources))
 
         return message

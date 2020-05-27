@@ -60,7 +60,7 @@ class TestFootprintCalc(unittest.TestCase):
 
         self.calc = FootprintCalculatorSetpointReadback(self.calc_setup)
 
-        for key, value in list(DEFAULT_GAPS.items()):
+        for key, value in DEFAULT_GAPS.items():
             self.calc.gaps[key] = value
 
     def test_GIVEN_two_components_WHEN_calculating_distance_THEN_distance_is_correct(self):

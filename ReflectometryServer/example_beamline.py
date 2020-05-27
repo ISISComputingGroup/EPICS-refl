@@ -1,5 +1,3 @@
-from builtins import str
-from builtins import range
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.components import Component, ReflectingComponent
 from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle

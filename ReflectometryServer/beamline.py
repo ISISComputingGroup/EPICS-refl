@@ -1,8 +1,6 @@
 """
 Resources at a beamline level
 """
-from builtins import str
-from builtins import object
 import logging
 from collections import OrderedDict
 from functools import partial
@@ -22,7 +20,7 @@ from server_common.channel_access import UnableToConnectToPVException
 logger = logging.getLogger(__name__)
 
 
-class BeamlineMode(object):
+class BeamlineMode:
     """
     Beamline mode definition; which components and parameters are calculated on move.
     """
@@ -100,7 +98,7 @@ class BeamlineMode(object):
                 errors.append("Beamline parameter '{}' in mode '{}' not in beamline".format(
                     beamline_parameters, self.name))
 
-        for sp_init in list(self._sp_inits.keys()):
+        for sp_init in self._sp_inits.keys():
             if sp_init not in beamline_parameters:
                 errors.append("SP Init '{}' in mode '{}' not in beamline".format(sp_init, self.name))
 
@@ -112,7 +110,7 @@ class BeamlineMode(object):
             self._sp_inits)
 
 
-class Beamline(object):
+class Beamline:
     """
     The collection of all beamline components.
     """
@@ -194,9 +192,9 @@ class Beamline(object):
                 errors.append("Mode must be uniquely named. Duplicate '{}'".format(mode))
 
         for mode in modes:
-            errors.extend(mode.validate(list(self._beamline_parameters.keys())))
+            errors.extend(mode.validate(self._beamline_parameters.keys()))
 
-        for parameter in list(self._beamline_parameters.values()):
+        for parameter in self._beamline_parameters.values():
             errors.extend(parameter.validate(self._drivers))
 
         if len(errors) > 0:
@@ -282,7 +280,7 @@ class Beamline(object):
         """
 
         param_names_in_mode = []
-        parameters = list(self._beamline_parameters.values())
+        parameters = self._beamline_parameters.values()
         for param in self._active_mode.get_parameters_in_mode(parameters):
             param_names_in_mode.append(param.name)
         return param_names_in_mode
@@ -337,7 +335,7 @@ class Beamline(object):
         latest positions.
         """
         logger.info("BEAMLINE MOVE TRIGGERED")
-        parameters = list(self._beamline_parameters.values())
+        parameters = self._beamline_parameters.values()
         parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, None)
 
         for beamline_parameter in parameters:
@@ -364,7 +362,7 @@ class Beamline(object):
         STATUS_MANAGER.clear_all()
         logger.info("PARAMETER MOVE TRIGGERED (source: {})".format(source.name))
         if self._active_mode.has_beamline_parameter(source):
-            parameters = list(self._beamline_parameters.values())
+            parameters = self._beamline_parameters.values()
             parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, source)
 
             for beamline_parameter in parameters_in_mode:
@@ -385,7 +383,7 @@ class Beamline(object):
         """
         Applies the initial values set in the current beamline mode to the relevant beamline parameter setpoints.
         """
-        for key, value in list(self._active_mode.initial_setpoints.items()):
+        for key, value in self._active_mode.initial_setpoints.items():
             self._beamline_parameters[key].sp_no_move = value
             logger.info("Default value applied for param {}: {}".format(key, value))
 

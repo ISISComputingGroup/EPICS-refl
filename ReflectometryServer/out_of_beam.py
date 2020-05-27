@@ -1,5 +1,4 @@
-from builtins import object
-class OutOfBeamPosition(object):
+class OutOfBeamPosition:
     """
     The definition of a geometry component's out of beam position.
     """
@@ -17,7 +16,7 @@ class OutOfBeamPosition(object):
         self.threshold = threshold
 
 
-class OutOfBeamLookup(object):
+class OutOfBeamLookup:
     """
     Facilitates lookup of out-of-beam positions / status for a single axis out of a list of possible positions depending
     on where the beam intersects with that movement axis.

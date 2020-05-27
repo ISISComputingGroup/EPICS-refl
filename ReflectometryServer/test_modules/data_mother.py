@@ -1,8 +1,6 @@
 """
 SimpleObservable data and classes.
 """
-from __future__ import absolute_import, division
-from builtins import object
 from math import tan, radians, sin, cos
 
 from mock import Mock
@@ -53,7 +51,7 @@ class EmptyBeamlineParameter(BeamlineParameter):
         return []
 
 
-class DataMother(object):
+class DataMother:
     """
     Test data for various tests.
     """
@@ -292,7 +290,7 @@ def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, bac
 
 
 @observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)
-class MockMotorPVWrapper(object):
+class MockMotorPVWrapper:
     def __init__(self, pv_name, init_position, max_velocity, is_vertical=True, backlash_distance=0, backlash_velocity=1, direction="Neg"):
         self.name = pv_name
         self._value = init_position
@@ -354,12 +352,12 @@ class MockMotorPVWrapper(object):
         self.trigger_listeners(ReadbackUpdate(new_value, None, None))
 
 
-class MockChannelAccess(object):
+class MockChannelAccess:
     def __init__(self, pvs):
         self._pvs = pvs
 
     def pv_exists(self, pv):
-        return pv in list(self._pvs.keys())
+        return pv in self._pvs.keys()
 
     def add_monitor(self,pv, call_back_function):
         pass
