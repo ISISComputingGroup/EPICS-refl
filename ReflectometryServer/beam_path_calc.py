@@ -55,7 +55,8 @@ class TrackingBeamPathCalc(object):
         self._angle_alarm = (None, None)
         self._movement_strategy = movement_strategy
 
-        self.autosaved_offset = None
+        # Autosaved value for each axis; if not set is not in dictionary
+        self.autosaved_value = {}
 
         # This is used in disable mode where the incoming
         self.incoming_beam_can_change = True
@@ -107,8 +108,9 @@ class TrackingBeamPathCalc(object):
                 self.incoming_beam_auto_save()
             self._on_set_incoming_beam(incoming_beam)
         if on_init:
-            if self.autosaved_offset is not None:
-                self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, self.autosaved_offset)
+            if ChangeAxis.POSITION in self.autosaved_value:
+                self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam,
+                                                                      self.autosaved_value[ChangeAxis.POSITION])
             self.trigger_listeners(InitUpdate())
             self.trigger_listeners(BeamPathUpdateOnInit(self))
         else:
@@ -238,8 +240,8 @@ class TrackingBeamPathCalc(object):
 
         Returns (ReflectometryServer.geometry.Position): The position of the beam intercept in mantid coordinates.
         """
-        if on_init and self.autosaved_offset is not None:
-            offset = self.autosaved_offset
+        if on_init and ChangeAxis.POSITION in self.autosaved_value:
+            offset = self.autosaved_value[ChangeAxis.POSITION]
         else:
             offset = self.get_position_relative_to_beam() or 0
         intercept_displacement = self.get_displacement() - offset
@@ -332,7 +334,6 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         """
         super(_BeamPathCalcWithAngle, self).__init__(name, movement_strategy)
         self._angular_displacement = 0.0
-        self.autosaved_angle = None
         self._is_rotating = False
         self._is_reflecting = is_reflecting
 
@@ -603,10 +604,11 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         Args:
             update (InitUpdate): The update event
         """
-        if self.autosaved_angle is None:
-            self._angular_displacement = self._calc_angle_from_next_component(self._incoming_beam)
+        if ChangeAxis.ANGLE in self.autosaved_value:
+            self._angular_displacement = self._incoming_beam.angle + self.autosaved_value[ChangeAxis.ANGLE]
         else:
-            self._angular_displacement = self._incoming_beam.angle + self.autosaved_angle
+            self._angular_displacement = self._calc_angle_from_next_component(self._incoming_beam)
+
         self.trigger_listeners(InitUpdate())
         self.trigger_listeners(BeamPathUpdate(self))
 

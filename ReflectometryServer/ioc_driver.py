@@ -336,7 +336,7 @@ class DisplacementDriver(IocDriver):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        autosaved_offset = self._component.beam_path_set_point.autosaved_offset
+        autosaved_offset = self._component.beam_path_set_point.autosaved_value.get(ChangeAxis.POSITION, None)
         if autosaved_offset is None:
             sp = self._engineering_correction.init_from_axis(self._axis.sp)
         else:
@@ -432,7 +432,7 @@ class AngleDriver(IocDriver):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        autosaved_angle = self._component.beam_path_set_point.autosaved_angle
+        autosaved_angle = self._component.beam_path_set_point.autosaved_value.get(ChangeAxis.ANGLE, None)
         if autosaved_angle is None:
             corrected_axis_setpoint = self._engineering_correction.init_from_axis(self._axis.sp)
         else:
