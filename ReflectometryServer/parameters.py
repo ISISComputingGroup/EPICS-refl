@@ -2,6 +2,7 @@
 Parameters that the user would interact with
 """
 from collections import namedtuple
+from functools import partial
 
 from pcaspy import Severity
 
@@ -11,7 +12,7 @@ from ReflectometryServer.file_io import param_float_autosave, param_bool_autosav
 import logging
 
 from enum import Enum
-from ReflectometryServer.components import ChangeAxis
+from ReflectometryServer.geometry import ChangeAxis
 import abc
 import six
 
@@ -427,19 +428,14 @@ class AxisParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
 
-        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
-            self._component.beam_path_rbv.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
+        self._component.beam_path_rbv.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
         self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         self._component.beam_path_rbv.add_listener(ComponentChangingUpdate,
                                                               self._on_update_changing_state)
 
-        if self._axis == ChangeAxis.ANGLE: #TODO: axis remove
-            if self._component.can_define_current_angle_as:
+        if self._axis in self._component.can_define_axis_position_as:
                 self.define_current_value_as = DefineCurrentValueAsParameter(
-                    self._component.define_current_angle_as, self._set_sp, self)
-        else:
-            self.define_current_value_as = DefineCurrentValueAsParameter(
-                self._component.define_current_position_as, self._set_sp, self)
+                    partial(self._component.define_axis_position_as, self._axis), self._set_sp, self)
 
     def _initialise_sp_from_file(self):
         """

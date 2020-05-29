@@ -5,14 +5,14 @@ from math import tan, radians, sin, cos
 
 from mock import Mock
 
-from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider
+from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider, ChangeAxis
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from server_common.observable import observable
 from utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
-from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent, ChangeAxis
+from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
 from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, DirectParameter, \

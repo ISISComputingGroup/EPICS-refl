@@ -3,6 +3,8 @@ Objects and classes that handle geometry
 """
 from math import radians, sin, cos
 
+from enum import Enum
+
 
 class Position(object):
     """
@@ -85,3 +87,11 @@ def position_from_radial_coords(r, theta, angle=None):
         return Position(x, y)
     else:
         return PositionAndAngle(x, y, angle)
+
+
+class ChangeAxis(Enum):
+    """
+    Types of axes in the component that can change.
+    """
+    POSITION = 0
+    ANGLE = 1

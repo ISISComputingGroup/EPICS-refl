@@ -6,16 +6,13 @@ from hamcrest import *
 from mock import patch
 from parameterized import parameterized
 
-import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
-from ReflectometryServer import beamline_configuration
+from ReflectometryServer import beamline_configuration, ChangeAxis
 from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider, CorrectionUpdate
-from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
-from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_axis, DataMother
-
-from server_common.channel_access import UnableToConnectToPVException
+from ReflectometryServer.out_of_beam import OutOfBeamPosition
+from ReflectometryServer.test_modules.data_mother import create_mock_axis, DataMother
 
 FLOAT_TOLERANCE = 1e-9
 OUT_OF_BEAM_POSITION = OutOfBeamPosition(10)

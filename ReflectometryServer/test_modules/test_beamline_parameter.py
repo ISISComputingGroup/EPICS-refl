@@ -1,4 +1,3 @@
-import os
 import unittest
 from math import isnan
 
@@ -7,13 +6,13 @@ from mock import Mock
 from parameterized import parameterized
 
 from ReflectometryServer import *
+from ReflectometryServer import ChangeAxis
 from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.parameters import ParameterReadbackUpdate
 from ReflectometryServer.pv_wrapper import ReadbackUpdate
 
 from data_mother import DataMother, create_mock_axis
-from server_common.channel_access import AlarmSeverity, AlarmStatus
 from utils import position, DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value, setup_autosave
 
 
@@ -525,7 +524,8 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.set_displacement(displacement)
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(displacement - beam_height, None, None))
+        listener.assert_called_with(ParameterReadbackUpdate(displacement - beam_height, None, None))
+        assert_that(listener.call_count, is_(2))  #  once for beam path and once for physcial move
 
     def test_GIVEN_reflection_angle_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
 
@@ -622,7 +622,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         component.beam_path_rbv.displacement_update(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(new_displacement, alarm_severity, alarm_status))
+        listener.assert_called_with(ParameterReadbackUpdate(new_displacement, alarm_severity, alarm_status))
         self.assertEqual(displacement_parameter.alarm_severity, alarm_severity)
         self.assertEqual(displacement_parameter.alarm_status, alarm_status)
 
@@ -637,7 +637,8 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         component.beam_path_rbv.angle_update(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(0.0, None, None))
+        listener.assert_called_with(ParameterReadbackUpdate(0.0, None, None))
+        assert_that(listener.call_count, is_(2))  # once for beam path and once for physcial move
         self.assertEqual(displacement_parameter.alarm_severity, None)
         self.assertEqual(displacement_parameter.alarm_status, None)
 

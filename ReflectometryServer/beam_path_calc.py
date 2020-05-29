@@ -5,7 +5,8 @@ set points or readbacks etc.
 from collections import namedtuple
 from math import degrees, atan2
 
-from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer.exceptions import NonExistentAxis
+from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
 
 from server_common.observable import observable
@@ -199,16 +200,20 @@ class TrackingBeamPathCalc(object):
         """
         return self._movement_strategy.get_displacement()
 
-    def get_displacement_for(self, position_relative_to_beam):
+    def get_displacement_for(self, axis, position_relative_to_beam):
         """
         Get the displacement for a given position relative to the beam
         Args:
+            axis: axis to get displacement for (in room coordinates)
             position_relative_to_beam (float): position to get the displacement for
 
-        Returns (float): displacement
+        Returns (float): displacement in mantid coordinates
         """
-        return self._movement_strategy.get_displacement_relative_to_beam_for(self._incoming_beam,
+        if axis == ChangeAxis.POSITION:  # TODO: axis remove
+            return self._movement_strategy.get_displacement_relative_to_beam_for(self._incoming_beam,
                                                                              position_relative_to_beam)
+        else:
+            raise NonExistentAxis(axis)
 
     def position_in_mantid_coordinates(self):
         """
@@ -384,7 +389,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Args:
             angle: angle to set the component at
         """
-        self._set_angular_displacement(self.get_angle_for(angle))
+        self._set_angular_displacement(self.get_displacement_for(ChangeAxis.ANGLE, angle))
 
     def get_angle_relative_to_beam(self):
         """
@@ -392,15 +397,19 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         """
         return self._angular_displacement - self._incoming_beam.angle
 
-    def get_angle_for(self, angle_relative_to_the_beam):
+    def get_displacement_for(self, axis, position_relative_to_beam):
         """
-        Get the angle in the room coordinates from a given relative angle
+        Get the displacement for a given position relative to the beam
         Args:
-            angle_relative_to_the_beam (float): the angle relative to the beam
+            axis: axis to get displacement for (in room coordinates)
+            position_relative_to_beam (float): position to get the displacement for
 
-        Returns (float): angle in mantid coordinates
+        Returns (float): displacement in mantid coordinates
         """
-        return angle_relative_to_the_beam + self._incoming_beam.angle
+        if axis == ChangeAxis.ANGLE:  # TODO: axis remove
+            return position_relative_to_beam + self._incoming_beam.angle
+        else:
+            super(_BeamPathCalcWithAngle, self).get_displacement_for(axis, position_relative_to_beam)
 
     def get_outgoing_beam(self):
         """

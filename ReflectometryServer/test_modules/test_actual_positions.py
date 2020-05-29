@@ -2,8 +2,8 @@ import unittest
 
 from hamcrest import *
 
-from ReflectometryServer.components import ReflectingComponent, Component, ChangeAxis
-from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle
+from ReflectometryServer.components import ReflectingComponent, Component
+from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle, ChangeAxis
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.parameters import AxisParameter
 from ReflectometryServer.test_modules.utils import create_parameter_with_initial_value

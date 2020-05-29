@@ -10,7 +10,6 @@ from ReflectometryServer import *
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
-from ReflectometryServer.components import ChangeAxis
 from server_common.channel_access import UnableToConnectToPVException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
