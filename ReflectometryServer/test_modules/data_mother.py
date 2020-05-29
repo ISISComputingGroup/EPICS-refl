@@ -12,10 +12,10 @@ from server_common.observable import observable
 from utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
-from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
+from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent, ChangeAxis
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
-from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter, DirectParameter, \
+from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, DirectParameter, \
     SlitGapParameter
 import numpy as np
 
@@ -101,11 +101,11 @@ class DataMother(object):
         comps = [s1, theta, s3, detector]
 
         # BEAMLINE PARAMETERS
-        slit1_pos = TrackingPosition("s1", s1, True)
-        slit3_pos = TrackingPosition("s3", s3, True)
-        theta_ang = AngleParameter("theta", theta, True)
-        detector_position = TrackingPosition("det", detector, True)
-        detector_angle = AngleParameter("det_angle", detector, True)
+        slit1_pos = AxisParameter("s1", s1, ChangeAxis.POSITION)
+        slit3_pos = AxisParameter("s3", s3, ChangeAxis.POSITION)
+        theta_ang = AxisParameter("theta", theta, ChangeAxis.ANGLE)
+        detector_position = AxisParameter("det", detector, ChangeAxis.POSITION)
+        detector_angle = AxisParameter("det_angle", detector, ChangeAxis.ANGLE)
         params = [slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle]
 
         # DRIVERS
@@ -154,11 +154,11 @@ class DataMother(object):
         comps = [theta]
 
         # BEAMLINE PARAMETERS
-        s1_gap = create_parameter_with_initial_value(SlitGapParameter, "s1_gap", s1_gap_axis, 0)
-        theta_ang = create_parameter_with_initial_value(AngleParameter, "theta", theta, 0)
-        s3_gap = create_parameter_with_initial_value(SlitGapParameter, "s3_gap", s3_gap_axis, 0)
-        detector_position = create_parameter_with_initial_value(TrackingPosition, "det", detector, 0)
-        detector_angle = create_parameter_with_initial_value(AngleParameter, "det_angle", detector, 0)
+        s1_gap = create_parameter_with_initial_value(0, SlitGapParameter, "s1_gap", s1_gap_axis)
+        theta_ang = create_parameter_with_initial_value(0, AxisParameter, "theta", theta, ChangeAxis.ANGLE)
+        s3_gap = create_parameter_with_initial_value(0, SlitGapParameter, "s3_gap", s3_gap_axis)
+        detector_position = create_parameter_with_initial_value(0, AxisParameter, "det", detector, ChangeAxis.POSITION)
+        detector_angle = create_parameter_with_initial_value(0, AxisParameter, "det_angle", detector, ChangeAxis.ANGLE)
         params = [s1_gap, theta_ang, s3_gap, detector_position, detector_angle]
 
         # MODES
@@ -200,10 +200,11 @@ class DataMother(object):
         comps = [sm_comp, theta_comp, detector_comp]
 
         # BEAMLINE PARAMETERS
-        sm_angle_param = AngleParameter("sm_angle", sm_comp)
-        theta_param = AngleParameter("theta", theta_comp, autosave=autosave_theta_not_offset)
-        detector_position_param = TrackingPosition("det_pos", detector_comp, autosave=not autosave_theta_not_offset)
-        detector_angle_param = AngleParameter("det_angle", detector_comp)
+        sm_angle_param = AxisParameter("sm_angle", sm_comp, ChangeAxis.ANGLE)
+        theta_param = AxisParameter("theta", theta_comp, ChangeAxis.ANGLE, autosave=autosave_theta_not_offset)
+        detector_position_param = AxisParameter("det_pos", detector_comp, ChangeAxis.POSITION,
+                                                autosave=not autosave_theta_not_offset)
+        detector_angle_param = AxisParameter("det_angle", detector_comp, ChangeAxis.ANGLE)
 
         params = [sm_angle_param, theta_param, detector_position_param, detector_angle_param]
 

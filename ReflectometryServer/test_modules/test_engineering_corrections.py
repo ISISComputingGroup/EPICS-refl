@@ -162,7 +162,7 @@ class TestEngineeringCorrectionsPureFunction(unittest.TestCase):
 
         parameter_value = 2
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
-        beamline_parameter = TrackingPosition("param", comp)
+        beamline_parameter = AxisParameter("param", comp, ChangeAxis.POSITION)
         beamline_parameter.sp = parameter_value
 
         value = 1
@@ -224,7 +224,7 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
         grid_data_provider.read = lambda: None
 
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
-        beamline_parameter = TrackingPosition("theta", comp)
+        beamline_parameter = AxisParameter("theta", comp, ChangeAxis.POSITION)
         beamline_parameter.sp = value
 
         interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider, beamline_parameter)
@@ -250,7 +250,7 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
         grid_data_provider.read = lambda: None
 
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
-        beamline_parameter = TrackingPosition("theta", comp)
+        beamline_parameter = AxisParameter("theta", comp, ChangeAxis.POSITION)
         beamline_parameter.sp = theta
 
         interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider, beamline_parameter)
@@ -267,7 +267,7 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
         grid_data_provider.read = lambda: None
 
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
-        beamline_parameter = TrackingPosition("not theta", comp)
+        beamline_parameter = AxisParameter("not theta", comp, ChangeAxis.POSITION)
 
         assert_that(
             calling(InterpolateGridDataCorrectionFromProvider).with_args(grid_data_provider, beamline_parameter),
@@ -281,7 +281,7 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
         grid_data_provider.read = lambda: None
 
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
-        beamline_parameter = TrackingPosition("theta", comp)
+        beamline_parameter = AxisParameter("theta", comp, ChangeAxis.POSITION)
 
         interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider, beamline_parameter)
         interp.grid_data_provider = grid_data_provider
@@ -480,7 +480,7 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         param_float_autosave.read_parameter.return_value = expected_setpoint
         offset = expected_setpoint / multiple
         comp = Component("comp", PositionAndAngle(0.0, 0, 90))
-        param = TrackingPosition("param", comp, autosave=True)
+        param = AxisParameter("param", comp, ChangeAxis.POSITION, autosave=True)
         axis = create_mock_axis("MOT:MTR0101", offset + expected_setpoint, 1)
         driver = DisplacementDriver(comp, axis, engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
         nr_mode = BeamlineMode("NR", [param.name], {})
@@ -499,7 +499,7 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         param_float_autosave.read_parameter.return_value = expected_setpoint
         offset = expected_setpoint / multiple
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0, 90))
-        param = AngleParameter("param", comp, autosave=True)
+        param = AxisParameter("param", comp, ChangeAxis.ANGLE, autosave=True)
         axis = create_mock_axis("MOT:MTR0101", offset + expected_setpoint, 1)
         driver = AngleDriver(comp, axis, engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
 

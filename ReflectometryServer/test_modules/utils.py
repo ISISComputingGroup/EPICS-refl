@@ -94,18 +94,20 @@ def setup_autosave(float_param_inits, bool_param_inits):
     file_io.param_bool_autosave.read_parameter = auto_save_stub_bool
 
 
-def create_parameter_with_initial_value(param_class, name, component, init_value):
+def create_parameter_with_initial_value(init_value, param_class, *args, **kwargs):
     """
     Create a beamline parameter and initialise the setpoint value as would be done on start of parameter. This is done
     by faking an autosave, but could be done by calling an initalisation motor listener but that is more complicated.
     Args:
-        param_class: class of parameter to create
-        name: name of the parameter
-        component: component this parameter is based on
         init_value: initial value
+        param_class: class of parameter to create
+        args: args you pass to the param class
+        kwargs: kwargs you pass to the param class
 
     Returns: parameter
 
     """
+    name = kwargs.get("name", args[0])
     setup_autosave({name: init_value}, {})
-    return param_class(name, component, autosave=True)
+    kwargs["autosave"] = True
+    return param_class(*args, **kwargs)

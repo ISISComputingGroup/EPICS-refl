@@ -429,13 +429,13 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         detector_driver_disp = DisplacementDriver(detector, detector_height_axis)
         detector_driver_ang = AngleDriver(detector, detector_tilt_axis)
 
-        self.smangle = AngleParameter("smangle", supermirror)
-        slit_2_pos = TrackingPosition("s2_pos", slit_2)
+        self.smangle = AxisParameter("smangle", supermirror, ChangeAxis.ANGLE)
+        slit_2_pos = AxisParameter("s2_pos", slit_2, ChangeAxis.POSITION)
         self.slit_2_pos = slit_2_pos
-        slit_3_pos = TrackingPosition("s3_pos", slit_3)
+        slit_3_pos = AxisParameter("s3_pos", slit_3, ChangeAxis.POSITION)
         self.slit_3_pos = slit_3_pos
-        det_pos = TrackingPosition("det_pos", detector)
-        det_ang = AngleParameter("det_ang", detector)
+        det_pos = AxisParameter("det_pos", detector, ChangeAxis.POSITION)
+        det_ang = AxisParameter("det_ang", detector, ChangeAxis.ANGLE)
 
         components = [supermirror, slit_2, slit_3, detector]
         beamline_parameters = [self.smangle, slit_2_pos, slit_3_pos, det_pos, det_ang]
@@ -555,8 +555,8 @@ class BeamlineBacklashMoveDurationTest(unittest.TestCase):
         detector_tilt_axis = create_mock_axis("TILT", ang["start"], ang["max_vel"], ang["back_dist"], ang["back_speed"], ang["dir"])
         detector_driver_disp = DisplacementDriver(detector, detector_height_axis)
         detector_driver_ang = AngleDriver(detector, detector_tilt_axis)
-        det_pos = TrackingPosition("det_pos", detector)
-        det_ang = AngleParameter("det_ang", detector)
+        det_pos = AxisParameter("det_pos", detector, ChangeAxis.POSITION)
+        det_ang = AxisParameter("det_ang", detector, ChangeAxis.ANGLE)
 
         components = [detector]
         beamline_parameters = [det_pos, det_ang]

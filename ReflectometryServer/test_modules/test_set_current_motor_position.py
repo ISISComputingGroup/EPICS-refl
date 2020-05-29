@@ -11,6 +11,7 @@ from ReflectometryServer.components import DefineValueAsEvent, ChangeAxis
 from ReflectometryServer.pv_wrapper import _JawsAxisPVWrapper
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_JawsCentrePVWrapper, \
     create_mock_axis
+from ReflectometryServer.test_modules.utils import create_parameter_with_initial_value
 
 from server_common.channel_access import UnableToConnectToPVException
 from hamcrest import *
@@ -36,8 +37,8 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         component = Component("comp", PositionAndAngle(0, 1, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
         theta_component = ThetaComponent("comp", PositionAndAngle(0, 0, 90), angle_to=[component])
-        parameter = TrackingPosition("param", component)
-        theta = AngleParameter("theta", theta_component,)
+        parameter = AxisParameter("param", component, ChangeAxis.POSITION)
+        theta = AxisParameter("theta", theta_component, ChangeAxis.ANGLE)
         component.add_listener(DefineValueAsEvent, _listener)
 
         parameter.define_current_value_as.new_value = position_to_set
@@ -57,7 +58,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         expected_position = position_to_set + beam_path_angle
         component = ReflectingComponent("comp", PositionAndAngle(0, 0, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
-        parameter = AngleParameter("param", component)
+        parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
         component.add_listener(DefineValueAsEvent, _listener)
 
         parameter.define_current_value_as.new_value = position_to_set
@@ -77,7 +78,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         expected_position = position_to_set + beam_path_angle
         component = TiltingComponent("comp", PositionAndAngle(0, 0, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
-        parameter = AngleParameter("param", component)
+        parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
         component.add_listener(DefineValueAsEvent, _listener)
 
         parameter.define_current_value_as.new_value = position_to_set
@@ -89,7 +90,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         detector = Component("detector", PositionAndAngle(1, 0, 90))
         component = ThetaComponent("comp", PositionAndAngle(0, 0, 90), angle_to=[detector])
-        parameter = AngleParameter("param", component)
+        parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
 
         assert_that(parameter.define_current_value_as, is_(None))
 
@@ -100,7 +101,8 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         expected_position = 1
         mock_jaws_wrapper = create_mock_JawsCentrePVWrapper("jaws_centre", expected_position, 1)
-        parameter = DirectParameter("param", mock_jaws_wrapper, sim=True)
+        parameter = create_parameter_with_initial_value(0, DirectParameter, "param", mock_jaws_wrapper)
+        mock_jaws_wrapper.sp = 0
 
         parameter.define_current_value_as.new_value = expected_position
 
@@ -117,7 +119,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         expected_position = 1
         component = Component("comp", PositionAndAngle(0, 0, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
-        parameter = TrackingPosition("param", component)
+        parameter = AxisParameter("param", component, ChangeAxis.POSITION)
         parameter.sp = 0
         parameter.move = 0
 
@@ -133,7 +135,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         expected_position = 1
         component = TiltingComponent("comp", PositionAndAngle(0, 0, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
-        parameter = AngleParameter("param", component)
+        parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
         parameter.sp = 0
         parameter.move = 0
 
@@ -150,7 +152,8 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         expected_mock_jaws_wrapper_value = 10
         mock_jaws_wrapper = create_mock_JawsCentrePVWrapper("jaws_centre", expected_mock_jaws_wrapper_value, 1)
 
-        parameter = DirectParameter("param", mock_jaws_wrapper, sim=True)
+        parameter = create_parameter_with_initial_value(0, DirectParameter, "param", mock_jaws_wrapper)
+        mock_jaws_wrapper.sp = 0
         parameter.sp = expected_mock_jaws_wrapper_value
 
         parameter.define_current_value_as.new_value = expected_position

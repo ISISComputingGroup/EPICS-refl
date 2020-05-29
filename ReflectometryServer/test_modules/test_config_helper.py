@@ -57,10 +57,10 @@ class TestConfigHelper(unittest.TestCase):
 
     def test_GIVEN_beam_line_parameter_added_WHEN_get_beamline_THEN_beam_line_has_parameter(self):
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
-        expected1 = TrackingPosition("param1", comp1)
+        expected1 = AxisParameter("param1", comp1, ChangeAxis.POSITION)
 
         comp2 = Component("2", PositionAndAngle(0, 0, 2))
-        expected2 = TrackingPosition("param2", comp1)
+        expected2 = AxisParameter("param2", comp1, ChangeAxis.POSITION)
 
         add_component(comp1)
         add_component(comp2)
@@ -96,7 +96,7 @@ class TestConfigHelper(unittest.TestCase):
     def test_GIVEN_parameter_has_mode_WHEN_get_beamline_THEN_parameter_in_mode(self):
         expected_name1 = "param1"
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
-        expected1 = TrackingPosition(expected_name1, comp1)
+        expected1 = AxisParameter(expected_name1, comp1, ChangeAxis.POSITION)
 
         mode = add_mode("mode1")
         add_component(comp1)
@@ -110,8 +110,8 @@ class TestConfigHelper(unittest.TestCase):
         param_name1 = "param1"
         param_name2 = "param2"
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
-        param1 = TrackingPosition(param_name1, comp1)
-        param2 = TrackingPosition(param_name2, comp1)
+        param1 = AxisParameter(param_name1, comp1, ChangeAxis.POSITION)
+        param2 = AxisParameter(param_name2, comp1, ChangeAxis.POSITION)
 
         add_component(comp1)
         mode1 = add_mode("mode1")
@@ -131,8 +131,8 @@ class TestConfigHelper(unittest.TestCase):
         param_name1 = "param1"
         param_name2 = "param2"
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
-        param1 = TrackingPosition(param_name1, comp1)
-        param2 = TrackingPosition(param_name2, comp1)
+        param1 = AxisParameter(param_name1, comp1, ChangeAxis.POSITION)
+        param2 = AxisParameter(param_name2, comp1, ChangeAxis.POSITION)
 
         add_component(comp1)
         mode1 = add_mode("mode1")
@@ -152,7 +152,7 @@ class TestConfigHelper(unittest.TestCase):
         expected_init = 0.1
         expected_name1 = "param1"
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
-        expected1 = TrackingPosition(expected_name1, comp1)
+        expected1 = AxisParameter(expected_name1, comp1, ChangeAxis.POSITION)
 
         mode = add_mode("mode1")
         add_component(comp1)
@@ -253,7 +253,7 @@ class TestConfigHelper(unittest.TestCase):
     def test_GVIEN_add_footprint_setup_WHEN_get_beamline_THEN_beam_start_is_correct(self):
         add_mode("NR")
         comp = add_component(Component("name", PositionAndAngle(0, 1, 90)))
-        param = TrackingPosition("name", comp)
+        param = AxisParameter("name", comp, ChangeAxis.POSITION)
         expected_sample_length = 10
 
         footprint = add_footprint_setup(FootprintSetup(1, 2, 3, 4, 5, param, param, param, param, param, -1, 1))
@@ -264,15 +264,15 @@ class TestConfigHelper(unittest.TestCase):
 
     def test_GIVEN_beam_line_parameter_driver_and_component_added_at_marker_WHEN_get_parameters_THEN_inserted_at_right_place(self):
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
-        expected1 = TrackingPosition("param1", comp1)
+        expected1 = AxisParameter("param1", comp1, ChangeAxis.POSITION)
         driver1 = DisplacementDriver(comp1, create_mock_axis("MOT0101", 1, 1))
 
         comp2 = Component("2", PositionAndAngle(0, 0, 2))
-        expected2 = TrackingPosition("param2", comp2)
+        expected2 = AxisParameter("param2", comp2, ChangeAxis.POSITION)
         driver2 = DisplacementDriver(comp2, create_mock_axis("MOT0102", 1, 1))
 
         comp3 = Component("2", PositionAndAngle(0, 0, 2))
-        expected3 = TrackingPosition("param3", comp3)
+        expected3 = AxisParameter("param3", comp3, ChangeAxis.POSITION)
         driver3 = DisplacementDriver(comp3, create_mock_axis("MOT0103", 1, 1))
 
         add_component(comp1)

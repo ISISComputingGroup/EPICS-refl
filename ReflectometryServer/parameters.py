@@ -123,13 +123,9 @@ class BeamlineParameter(object):
     value that is set.
     """
 
-    def __init__(self, name, sim=False, init=None, description=None, autosave=False, rbv_to_sp_tolerance=0.01):
-        if sim:
-            self._set_point = init
-            self._set_point_rbv = init
-        else:
-            self._set_point = None
-            self._set_point_rbv = None
+    def __init__(self, name, description=None, autosave=False, rbv_to_sp_tolerance=0.01):
+        self._set_point = None
+        self._set_point_rbv = None
 
         self._sp_is_changed = False
         self._name = name
@@ -403,13 +399,26 @@ class BeamlineParameter(object):
                                               Severity.MINOR_ALARM))
 
 
-class TempParameter(BeamlineParameter):
+class AxisParameter(BeamlineParameter):
+    """
+    Beamline Parameter that reads and write values on an axis of a component.
+    """
 
     def __init__(self, name, component, axis, description=None, autosave=False, rbv_to_sp_tolerance=0.002):
+        """
+        Initialiser.
+        Args:
+            name: name of the parameter. Parameter will have a this PV in upper case
+            component: component for this parameter
+            axis: the axis of the component
+            description: Description of the parameter; if None defaults to the name of the parameter
+            autosave: True to autosave this parameter when its value is moved to; False don't
+            rbv_to_sp_tolerance: an error is reported if the difference between the read back value and setpoint is
+                larger than this value
+        """
         if description is None:
             description = name
-        super(TempParameter, self).__init__(name, False, 0, description, autosave,
-                                            rbv_to_sp_tolerance=rbv_to_sp_tolerance)
+        super(AxisParameter, self).__init__(name, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._component = component
         self._axis = axis
 
@@ -521,51 +530,12 @@ class TempParameter(BeamlineParameter):
         return []
 
 
-class AngleParameter(TempParameter):
-    """
-    The angle of the component measured from the incoming beam, this could be theta, or the supermirror angle or
-        title jaws angle.
-    Angle is measure with +ve in the anti-clockwise direction)
-    """
-
-    def __init__(self, name, angled_component, sim=False, init=0, description=None, autosave=False,
-                 rbv_to_sp_tolerance=0.002):
-        """
-        Initializer.
-        Args:
-            name (str): Name of the reflection angle
-            angled_component (ReflectometryServer.components.Component): the active component that can contain an angle
-                either because it is reflecting or tilting.
-            description (str): description
-        """
-        if description is None:
-            description = "{} angle".format(name)
-        super(AngleParameter, self).__init__(name, angled_component, ChangeAxis.ANGLE, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
-
-
-class TrackingPosition(TempParameter):
-    """
-    Component which tracks the position of the beam with a single degree of freedom. E.g. slit set on a height stage
-    """
-
-    def __init__(self, name, component, sim=False, init=0, description=None, autosave=False, rbv_to_sp_tolerance=0.002):
-        """
-
-        Args:
-            name: Name of the variable
-            component (ReflectometryServer.components.Component): component that the tracking is based on
-            description (str): description
-        """
-        super(TrackingPosition, self).__init__(name, component, ChangeAxis.POSITION, description, autosave,
-                                               rbv_to_sp_tolerance=rbv_to_sp_tolerance)
-
-
 class InBeamParameter(BeamlineParameter):
     """
     Parameter which sets whether a given device is in the beam.
     """
 
-    def __init__(self, name, component, sim=False, init=False, description=None, autosave=False):
+    def __init__(self, name, component, description=None, autosave=False):
         """
         Initializer.
         Args:
@@ -575,7 +545,7 @@ class InBeamParameter(BeamlineParameter):
         """
         if description is None:
             description = "{} component is in the beam".format(name)
-        super(InBeamParameter, self).__init__(name, sim, init, description, autosave, rbv_to_sp_tolerance=0.001)
+        super(InBeamParameter, self).__init__(name, description, autosave, rbv_to_sp_tolerance=0.001)
         self._component = component
 
         if self._autosave:
@@ -664,21 +634,18 @@ class DirectParameter(BeamlineParameter):
     Parameter which is not linked to the beamline component layer but hooks directly into a motor axis. This parameter
     is just a wrapper to present a motor PV as a reflectometry style PV and does not track the beam path.
     """
-    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False,
+    def __init__(self, name, pv_wrapper, description=None, autosave=False,
                  rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLERANCE):
         """
         Args:
             name (str): The name of the parameter
             pv_wrapper (ReflectometryServer.pv_wrapper.PVWrapper): The pv wrapper this parameter talks to
-            sim (bool): Whether it is a simulated parameter
-            init (float): Initialisation value if simulated
             description (str): The description
             autosave (bool): Whether the setpoint for this parameter should be autosaved
             rbv_to_sp_tolerance (float): The max difference between setpoint and readback value for considering the
                 parameter to be "at readback value"
         """
-        super(DirectParameter, self).__init__(name, sim, init, description, autosave,
-                                              rbv_to_sp_tolerance=rbv_to_sp_tolerance)
+        super(DirectParameter, self).__init__(name, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._last_update = None
 
         self._pv_wrapper = pv_wrapper
@@ -690,8 +657,6 @@ class DirectParameter(BeamlineParameter):
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
             self._initialise_sp_from_motor(None)
-        if sim:
-            self._last_update = ReadbackUpdate(init, None, None)
 
         self._no_move_because_is_define = False
         self.define_current_value_as = DefineCurrentValueAsParameter(self._pv_wrapper.define_position_as,
@@ -784,20 +749,18 @@ class SlitGapParameter(DirectParameter):
     """
     Parameter which sets the gap on a slit.
     """
-    def __init__(self, name, pv_wrapper, sim=False, init=0, description=None, autosave=False,
+    def __init__(self, name, pv_wrapper, description=None, autosave=False,
                  rbv_to_sp_tolerance=0.002):
         """
         Args:
             name (str): The name of the parameter
             pv_wrapper (ReflectometryServer.pv_wrapper._JawsAxisPVWrapper): The pv wrapper this parameter talks to
-            sim (bool): Whether it is a simulated parameter
-            init (float): Initialisation value if simulated
             description (str): The description
             autosave (bool): Whether the setpoint for this parameter should be autosaved
             rbv_to_sp_tolerance (float): The max difference between setpoint and readback value for considering the
                 parameter to be "at readback value"
         """
-        super(SlitGapParameter, self).__init__(name, pv_wrapper, sim, init, description, autosave,
+        super(SlitGapParameter, self).__init__(name, pv_wrapper, description, autosave,
                                                rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         if pv_wrapper.is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)

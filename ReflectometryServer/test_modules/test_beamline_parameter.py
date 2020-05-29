@@ -7,7 +7,6 @@ from mock import Mock
 from parameterized import parameterized
 
 from ReflectometryServer import *
-from ReflectometryServer import file_io
 from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.parameters import ParameterReadbackUpdate
@@ -25,7 +24,7 @@ class TestBeamlineParameter(unittest.TestCase):
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
         mirror_pos = -100
         sample.beam_path_set_point.set_angular_displacement(mirror_pos)
-        theta = AngleParameter("theta", sample)
+        theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
 
         theta.sp_no_move = theta_set
 
@@ -40,7 +39,7 @@ class TestBeamlineParameter(unittest.TestCase):
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         mirror_pos = -100
         sample.beam_path_set_point.set_angular_displacement(mirror_pos)
-        theta = AngleParameter("theta", sample)
+        theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
 
         theta.sp_no_move = theta_set
         theta.move = 1
@@ -57,7 +56,7 @@ class TestBeamlineParameter(unittest.TestCase):
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         mirror_pos = -100
         sample.beam_path_set_point.set_angular_displacement(mirror_pos)
-        theta = AngleParameter("theta", sample)
+        theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
         theta.sp = original_theta
 
         theta.sp_no_move = theta_set
@@ -70,7 +69,7 @@ class TestBeamlineParameter(unittest.TestCase):
 
         theta_set = 10.0
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
-        theta = AngleParameter("theta", sample)
+        theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
 
         theta.sp_no_move = theta_set
         result = theta.sp_changed
@@ -82,7 +81,7 @@ class TestBeamlineParameter(unittest.TestCase):
         theta_set = 10.0
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        theta = AngleParameter("theta", sample)
+        theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
 
         theta.sp_no_move = theta_set
         theta.move = 1
@@ -98,7 +97,7 @@ class TestBeamlineParameter(unittest.TestCase):
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         mirror_pos = -100
         sample.beam_path_set_point.set_angular_displacement(mirror_pos)
-        reflection_angle = AngleParameter("theta", sample)
+        reflection_angle = AxisParameter("theta", sample, ChangeAxis.ANGLE)
 
         reflection_angle.sp_no_move = angle_set
         reflection_angle.move = 1
@@ -115,7 +114,7 @@ class TestBeamlineParameter(unittest.TestCase):
         jaws_z = 5.0
         jaws = Component("jaws", setup=PositionAndAngle(0, jaws_z, 90))
         jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
-        tracking_height = TrackingPosition("theta", jaws)
+        tracking_height = AxisParameter("theta", jaws, ChangeAxis.POSITION)
 
         tracking_height.sp_no_move = height_set
         tracking_height.move = 1
@@ -159,10 +158,10 @@ class TestBeamlineModes(unittest.TestCase):
         components = [slit2, ideal_sample_point, detector]
 
         parameters = [
-            TrackingPosition("slit2height", slit2),
-            TrackingPosition("height", ideal_sample_point),
-            AngleParameter("theta", ideal_sample_point),
-            TrackingPosition("detectorheight", detector)]
+            AxisParameter("slit2height", slit2, ChangeAxis.POSITION),
+            AxisParameter("height", ideal_sample_point, ChangeAxis.POSITION),
+            AxisParameter("theta", ideal_sample_point, ChangeAxis.ANGLE),
+            AxisParameter("detectorheight", detector, ChangeAxis.POSITION)]
                       #parameters["detectorAngle": TrackingAngle(detector)
         beam = PositionAndAngle(0, 0, -45)
         beamline = Beamline(components, parameters, [], [DataMother.BEAMLINE_MODE_NEUTRON_REFLECTION], beam)
@@ -181,7 +180,7 @@ class TestBeamlineModes(unittest.TestCase):
     def test_GIVEN_a_mode_with_a_single_beamline_parameter_in_WHEN_move_THEN_beamline_parameter_is_calculated_on_move(self):
         angle_to_set = 45.0
         ideal_sample_point = ReflectingComponent("ideal_sample_point", PositionAndAngle(y=0, z=20, angle=90))
-        theta = AngleParameter("theta", ideal_sample_point)
+        theta = AxisParameter("theta", ideal_sample_point, ChangeAxis.ANGLE)
         beamline_mode = BeamlineMode("mode name", [theta.name])
         beamline = Beamline([ideal_sample_point], [theta], [], [beamline_mode])
 
@@ -195,9 +194,9 @@ class TestBeamlineModes(unittest.TestCase):
     def test_GIVEN_a_mode_with_a_two_beamline_parameter_in_WHEN_move_first_THEN_second_beamline_parameter_is_calculated_and_moved_to(self):
         angle_to_set = 45.0
         ideal_sample_point = ReflectingComponent("ideal_sample_point", PositionAndAngle(y=0, z=20, angle=90))
-        theta = AngleParameter("theta", ideal_sample_point)
+        theta = AxisParameter("theta", ideal_sample_point, ChangeAxis.ANGLE)
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(y=0, z=10, angle=90))
-        smangle = AngleParameter("smangle", super_mirror)
+        smangle = AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE)
 
         beamline_mode = BeamlineMode("mode name", [theta.name, smangle.name])
         beamline = Beamline([super_mirror, ideal_sample_point], [smangle, theta], [], [beamline_mode])
@@ -216,7 +215,7 @@ class TestBeamlineModes(unittest.TestCase):
         sm_angle_to_set = 45.0
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
         super_mirror.beam_path_set_point.set_angular_displacement(sm_angle)
-        smangle = AngleParameter("smangle", super_mirror)
+        smangle = AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE)
         smangle.sp_no_move = sm_angle
         sp_inits = {smangle.name: sm_angle_to_set}
         beamline_mode = BeamlineMode("mode name", [smangle.name], sp_inits)
@@ -232,7 +231,7 @@ class TestBeamlineModes(unittest.TestCase):
         sm_angle = 0.0
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
         super_mirror.beam_path_set_point.set_angular_displacement(sm_angle)
-        smangle = AngleParameter("smangle", super_mirror)
+        smangle = AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE)
         smangle.sp_no_move = sm_angle
         sp_inits = {"nonsense name": sm_angle}
         beamline_mode = BeamlineMode("mode name", [smangle.name], sp_inits)
@@ -245,8 +244,8 @@ class TestBeamlineModes(unittest.TestCase):
         super_mirror = ReflectingComponent("sm", PositionAndAngle(0.0, 10, 90.0))
         s2 = Component("s2", PositionAndAngle(initial_s2_height, 20, 90.0))
 
-        sm_angle = AngleParameter("smangle", super_mirror)
-        slit2_pos = TrackingPosition("slit2pos", s2)
+        sm_angle = AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE)
+        slit2_pos = AxisParameter("slit2pos", s2, ChangeAxis.POSITION)
 
         empty_mode = BeamlineMode("empty", [])
 
@@ -262,8 +261,8 @@ class TestBeamlineModes(unittest.TestCase):
         super_mirror = ReflectingComponent("sm", PositionAndAngle(0.0, 10, 90.0))
         s2 = Component("s2", PositionAndAngle(initial_s2_height, 20, 90.0))
 
-        sm_angle = AngleParameter("smangle", super_mirror)
-        slit2_pos = TrackingPosition("slit2pos", s2)
+        sm_angle = AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE)
+        slit2_pos = AxisParameter("slit2pos", s2, ChangeAxis.POSITION)
 
         mode = BeamlineMode("first_param", [sm_angle.name])
 
@@ -280,8 +279,8 @@ class TestBeamlineModes(unittest.TestCase):
         super_mirror = ReflectingComponent("sm", PositionAndAngle(0.0, 10, 90.0))
         s2 = Component("s2", PositionAndAngle(initial_s2_height, 20, 90.0))
 
-        sm_angle = create_parameter_with_initial_value(AngleParameter, "smangle", super_mirror, 0)
-        slit2_pos = create_parameter_with_initial_value(TrackingPosition, "slit2pos", s2, 0)
+        sm_angle = create_parameter_with_initial_value(0, AxisParameter, "smangle", super_mirror, ChangeAxis.ANGLE)
+        slit2_pos = create_parameter_with_initial_value(0, AxisParameter, "slit2pos", s2, ChangeAxis.POSITION)
 
         mode = BeamlineMode("both_params", [sm_angle.name, slit2_pos.name])
 
@@ -298,8 +297,8 @@ class TestBeamlineModes(unittest.TestCase):
         super_mirror = ReflectingComponent("sm", PositionAndAngle(0.0, 10, 90.0))
         s2 = Component("s2", PositionAndAngle(initial_s2_height, 20, 90.0))
 
-        sm_angle = AngleParameter("smangle", super_mirror)
-        slit2_pos = TrackingPosition("slit2pos", s2)
+        sm_angle = AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE)
+        slit2_pos = AxisParameter("slit2pos", s2, ChangeAxis.POSITION)
 
         empty_mode = BeamlineMode("empty", [])
 
@@ -318,8 +317,8 @@ class TestBeamlineModes(unittest.TestCase):
         super_mirror = ReflectingComponent("sm", PositionAndAngle(0.0, 10, 90.0))
         s2 = Component("s2", PositionAndAngle(initial_s2_height, 20, 90.0))
 
-        sm_angle = AngleParameter("smangle", super_mirror)
-        slit2_pos = TrackingPosition("slit2pos", s2)
+        sm_angle = AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE)
+        slit2_pos = AxisParameter("slit2pos", s2, ChangeAxis.POSITION)
 
         empty_mode = BeamlineMode("empty", [])
 
@@ -339,8 +338,8 @@ class TestBeamlineModes(unittest.TestCase):
         super_mirror = ReflectingComponent("sm", PositionAndAngle(0.0, 10, 90.0))
         s2 = Component("s2", PositionAndAngle(initial_s2_height, 20, 90.0))
 
-        sm_angle = create_parameter_with_initial_value(AngleParameter, "smangle", super_mirror, 0)
-        slit2_pos = create_parameter_with_initial_value(TrackingPosition, "slit2pos", s2, 0)
+        sm_angle = create_parameter_with_initial_value(0, AxisParameter, "smangle", super_mirror, ChangeAxis.ANGLE)
+        slit2_pos = create_parameter_with_initial_value(0, AxisParameter, "slit2pos", s2, ChangeAxis.POSITION)
 
         mode = BeamlineMode("both_params", [sm_angle.name, slit2_pos.name])
 
@@ -361,8 +360,8 @@ class TestBeamlineModes(unittest.TestCase):
         sample_to_s4_z = 10.0
         sample_point = ReflectingComponent("sm", PositionAndAngle(0, sample_z, 90))
         s4 = Component("s4", PositionAndAngle(s4_height_initial, sample_z + sample_to_s4_z, 90))
-        theta = create_parameter_with_initial_value(AngleParameter, "theta", sample_point, True)
-        slit4_pos = create_parameter_with_initial_value(TrackingPosition, "slit4pos", s4, 0)
+        theta = create_parameter_with_initial_value(True, AxisParameter, "theta", sample_point, ChangeAxis.ANGLE)
+        slit4_pos = create_parameter_with_initial_value(0, AxisParameter, "slit4pos", s4, ChangeAxis.POSITION)
         mode = BeamlineMode("both_params", [theta.name, slit4_pos.name])
         beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
         beamline.active_mode = mode.name
@@ -382,8 +381,8 @@ class TestBeamlineModes(unittest.TestCase):
         sample_to_s4_z = 10.0
         sample_point = ReflectingComponent("sm", PositionAndAngle(0, sample_z, 90))
         s4 = Component("s4", PositionAndAngle(s4_height_initial, sample_z + sample_to_s4_z, 90))
-        theta = AngleParameter("theta", sample_point, True)
-        slit4_pos = TrackingPosition("slit4pos", s4, True)
+        theta = AxisParameter("theta", sample_point, ChangeAxis.ANGLE)
+        slit4_pos = AxisParameter("slit4pos", s4, ChangeAxis.POSITION)
         mode = BeamlineMode("first_param", [theta.name])
         beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
         beamline.active_mode = mode.name
@@ -404,8 +403,8 @@ class TestBeamlineModes(unittest.TestCase):
         sample_to_s4_z = 10.0
         sample_point = ReflectingComponent("sm", PositionAndAngle(0, sample_z, 90))
         s4 = Component("s4", PositionAndAngle(s4_height_initial, sample_z + sample_to_s4_z, 90))
-        theta = AngleParameter("theta", sample_point, True)
-        slit4_pos = TrackingPosition("slit4pos", s4, True)
+        theta = AxisParameter("theta", sample_point, ChangeAxis.ANGLE)
+        slit4_pos = AxisParameter("slit4pos", s4, ChangeAxis.POSITION)
         mode = BeamlineMode("second_params", [slit4_pos.name])
         beamline = Beamline([sample_point, s4], [theta, slit4_pos], [], [mode])
         beamline.active_mode = mode.name
@@ -508,7 +507,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         displacement = 3.0
         beam_height = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
-        displacement_parameter = TrackingPosition("param", sample)
+        displacement_parameter = AxisParameter("param", sample, ChangeAxis.POSITION)
         sample.beam_path_rbv.set_displacement(displacement)
 
         result = displacement_parameter.rbv
@@ -521,7 +520,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         displacement = 3.0
         beam_height = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
-        displacement_parameter = TrackingPosition("param", sample)
+        displacement_parameter = AxisParameter("param", sample, ChangeAxis.POSITION)
         listener = Mock()
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.set_displacement(displacement)
@@ -534,7 +533,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         angle = 3.0
         beam_angle = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, beam_angle))
-        angle_parameter = AngleParameter("param", sample)
+        angle_parameter = AxisParameter("param", sample, ChangeAxis.ANGLE)
         listener = Mock()
         angle_parameter.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.set_angular_displacement(angle)
@@ -547,7 +546,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         angle = 3.0
         beam_angle = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, beam_angle))
-        angle_parameter = AngleParameter("param", sample)
+        angle_parameter = AxisParameter("param", sample, ChangeAxis.ANGLE)
         listener = Mock()
         angle_parameter.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.set_angular_displacement(angle)
@@ -570,7 +569,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         sample = ThetaComponent("sample", setup=PositionAndAngle(0, 10, 90), angle_to=[])
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 45))
-        theta = AngleParameter("param", sample)
+        theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
 
         result = theta.rbv
 
@@ -587,7 +586,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
         sample = ThetaComponent("sample", setup=PositionAndAngle(10, 10, 135), angle_to=[s3])
         sample.beam_path_rbv.set_incoming_beam(beam_before_and_after_sample)
-        theta = AngleParameter("param", sample)
+        theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
 
         # When
         result = theta.rbv
@@ -606,7 +605,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         theta_comp = ThetaComponent("sample", setup=PositionAndAngle(1, 0, 90), angle_to=[s3])
         theta_comp.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
 
-        theta = AngleParameter("param", theta_comp)
+        theta = AxisParameter("param", theta_comp, ChangeAxis.ANGLE)
 
         result = theta.rbv
 
@@ -617,7 +616,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         new_displacement = 1.0
         alarm_severity = 1
         alarm_status = 2
-        displacement_parameter = TrackingPosition("param", component)
+        displacement_parameter = AxisParameter("param", component, ChangeAxis.POSITION)
         listener = Mock()
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
 
@@ -632,7 +631,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         new_displacement = 1.0
         alarm_severity = 1
         alarm_status = 2
-        displacement_parameter = TrackingPosition("param", component)
+        displacement_parameter = AxisParameter("param", component, ChangeAxis.POSITION)
         listener = Mock()
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
 
@@ -647,7 +646,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         new_angle = 1.0
         alarm_severity = 1
         alarm_status = 2
-        angle_parameter = AngleParameter("param", component)
+        angle_parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
         listener = Mock()
         angle_parameter.add_listener(ParameterReadbackUpdate, listener)
 
@@ -662,7 +661,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         new_angle = 1.0
         alarm_severity = 1
         alarm_status = 2
-        angle_parameter = AngleParameter("param", component)
+        angle_parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
         listener = Mock()
         angle_parameter.add_listener(ParameterReadbackUpdate, listener)
 
@@ -726,7 +725,7 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
         detector.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector])
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        theta = AngleParameter("param", sample)
+        theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
         detector.set_incoming_beam_can_change(False)
 
         theta.sp = 22.5
@@ -740,7 +739,7 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
         detector.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector])
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        theta = AngleParameter("param", sample)
+        theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
         detector.set_incoming_beam_can_change(True)
 
         theta.sp = 22.5
@@ -756,7 +755,7 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
         detector2.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector, detector2])
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        theta = AngleParameter("param", sample)
+        theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
         detector.set_incoming_beam_can_change(False)
         detector2.set_incoming_beam_can_change(False)
 
@@ -775,7 +774,7 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
         detector2.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector, detector2])
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        theta = AngleParameter("param", sample)
+        theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
         detector.set_incoming_beam_can_change(False)
         detector.beam_path_set_point.is_in_beam = False
         detector2.set_incoming_beam_can_change(False)
@@ -799,13 +798,13 @@ class TestInitSetpoints(unittest.TestCase):
     def test_GIVEN_autosave_is_not_set_WHEN_creating_param_THEN_defaults_to_false(self):
         param_name = "param_float"
 
-        param = TrackingPosition(param_name, self.component)
+        param = AxisParameter(param_name, self.component, ChangeAxis.POSITION)
         self.assertFalse(param._autosave)
 
     def test_GIVEN_autosave_is_false_THEN_parameter_sp_is_none(self):
         param_name = "param_float"
 
-        param = TrackingPosition(param_name, self.component, autosave=False)
+        param = AxisParameter(param_name, self.component, ChangeAxis.POSITION, autosave=False)
 
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
@@ -814,7 +813,7 @@ class TestInitSetpoints(unittest.TestCase):
         expected = 0.1
         param_name = "param_float"
 
-        param = TrackingPosition(param_name, self.component, autosave=True)
+        param = AxisParameter(param_name, self.component, ChangeAxis.POSITION, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
@@ -822,7 +821,7 @@ class TestInitSetpoints(unittest.TestCase):
     def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_tracking_displacement_parameter_THEN_sp_is_none(self):
         param_name = "param_not_in_file"
 
-        param = TrackingPosition(param_name, self.component, autosave=True)
+        param = AxisParameter(param_name, self.component, ChangeAxis.POSITION, autosave=True)
 
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
@@ -830,7 +829,7 @@ class TestInitSetpoints(unittest.TestCase):
     def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_tracking_displacement_parameter_THEN_sp_is_none(self):
         param_name = "param_bool"
 
-        param = TrackingPosition(param_name, self.component, autosave=True)
+        param = AxisParameter(param_name, self.component, ChangeAxis.POSITION, autosave=True)
 
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
@@ -839,7 +838,7 @@ class TestInitSetpoints(unittest.TestCase):
         expected = 0.1
         param_name = "param_float"
 
-        param = AngleParameter(param_name, self.angle_component, autosave=True)
+        param = AxisParameter(param_name, self.angle_component, ChangeAxis.ANGLE, autosave=True)
 
         self.assertEqual(expected, param.sp)
         self.assertEqual(expected, param.sp_rbv)
@@ -847,7 +846,7 @@ class TestInitSetpoints(unittest.TestCase):
     def test_GIVEN_autosave_is_true_and_autosave_value_does_not_exist_WHEN_creating_angle_parameter_THEN_sp_is_none(self):
         param_name = "param_not_in_file"
 
-        param = AngleParameter(param_name, self.angle_component, autosave=True)
+        param = AxisParameter(param_name, self.angle_component, ChangeAxis.ANGLE, autosave=True)
 
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
@@ -855,7 +854,7 @@ class TestInitSetpoints(unittest.TestCase):
     def test_GIVEN_autosave_parameter_value_of_wrong_type_WHEN_creating_angle_parameter_THEN_sp_is_none(self):
         param_name = "param_bool"
 
-        param = AngleParameter(param_name, self.angle_component, autosave=True)
+        param = AxisParameter(param_name, self.angle_component, ChangeAxis.ANGLE, autosave=True)
 
         self.assertIsNone(param.sp)
         self.assertIsNone(param.sp_rbv)
@@ -916,7 +915,7 @@ class TestInitSetpoints(unittest.TestCase):
         expected = 0.1
         param_name = "param_float"
 
-        param = TrackingPosition(param_name, self.component, autosave=True)
+        param = AxisParameter(param_name, self.component, ChangeAxis.POSITION, autosave=True)
         actual = self.component.beam_path_set_point.autosaved_offset
 
         self.assertEqual(expected, actual)
@@ -924,7 +923,7 @@ class TestInitSetpoints(unittest.TestCase):
     def test_GIVEN_autosave_is_false_WHEN_initialising_tracking_position_THEN_beam_calc_has_no_autosaved_offset(self):
         param_name = "param_float"
 
-        param = TrackingPosition(param_name, self.component, autosave=False)
+        param = AxisParameter(param_name, self.component, ChangeAxis.POSITION, autosave=False)
         actual = self.component.beam_path_set_point.autosaved_offset
 
         self.assertIsNone(actual)

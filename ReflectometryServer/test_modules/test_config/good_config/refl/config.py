@@ -26,14 +26,14 @@ def get_beamline():
     comps = [s1, super_mirror, s2, sample, s3, s4, point_det]
 
     # BEAMLINE PARAMETERS
-    sm_enabled = InBeamParameter("smenabled", super_mirror, True)
-    sm_angle = AngleParameter("smangle", super_mirror, True)
-    slit2_pos = TrackingPosition("slit2pos", s2, True)
-    sample_pos = TrackingPosition("samplepos", sample, True)
-    theta = AngleParameter("theta", sample, True)
-    slit3_pos = TrackingPosition("slit3pos", s3, True)
-    slit4_pos = TrackingPosition("slit4pos", s4, True)
-    det = TrackingPosition("detpos", point_det, True)
+    sm_enabled = InBeamParameter("smenabled", super_mirror)
+    sm_angle = AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE)
+    slit2_pos = AxisParameter("slit2pos", s2, ChangeAxis.POSITION)
+    sample_pos = AxisParameter("samplepos", sample, ChangeAxis.POSITION)
+    theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
+    slit3_pos = AxisParameter("slit3pos", s3, ChangeAxis.POSITION)
+    slit4_pos = AxisParameter("slit4pos", s4, ChangeAxis.POSITION)
+    det = AxisParameter("detpos", point_det, ChangeAxis.POSITION)
     params = [sm_enabled,
               sm_angle,
               slit2_pos,
