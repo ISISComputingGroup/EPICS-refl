@@ -451,13 +451,11 @@ class AxisParameter(BeamlineParameter):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
         """
-        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
-            init_sp = self._component.beam_path_set_point.get_angle_relative_to_beam()
+        if self._axis == ChangeAxis.POSITION and not self._component.beam_path_set_point.is_in_beam:  # TODO: axis remove
+            init_sp = 0.0
         else:
-            if self._component.beam_path_set_point.is_in_beam:
-                init_sp = self._component.beam_path_set_point.get_position_relative_to_beam()
-            else:
-                init_sp = 0.0
+            init_sp = self._component.beam_path_set_point.axis[self._axis].get_relative_to_beam()
+
         self._set_initial_sp(init_sp)
 
     def _move_component(self):
@@ -473,10 +471,7 @@ class AxisParameter(BeamlineParameter):
         """
         Returns: readback value for the parameter, e.g. tracking displacement above the beam
         """
-        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
-            return self._component.beam_path_rbv.get_angle_relative_to_beam()
-        else:
-            return self._component.beam_path_rbv.get_position_relative_to_beam()
+        return self._component.beam_path_rbv.axis[self._axis].get_relative_to_beam()
 
     @property
     def rbv_at_sp(self):

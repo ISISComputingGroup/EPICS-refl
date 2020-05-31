@@ -730,7 +730,7 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
         detector.set_incoming_beam_can_change(False)
 
         theta.sp = 22.5
-        result = detector.beam_path_set_point.get_position_relative_to_beam()
+        result = detector.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam()
 
         assert_that(result, is_(close_to(-10.0, 1e-6)))  # the beam is now above the current position. The beam line parameter needs to be triggered to make is move
 
@@ -744,7 +744,7 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
         detector.set_incoming_beam_can_change(True)
 
         theta.sp = 22.5
-        result = detector.beam_path_set_point.get_position_relative_to_beam()
+        result = detector.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam()
 
         assert_that(result, is_(close_to(0, 1e-6)))
 
@@ -761,8 +761,8 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
         detector2.set_incoming_beam_can_change(False)
 
         theta.sp = 22.5
-        result1 = detector.beam_path_set_point.get_position_relative_to_beam()
-        result2 = detector2.beam_path_set_point.get_position_relative_to_beam()
+        result1 = detector.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam()
+        result2 = detector2.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam()
 
         assert_that(result1, is_(close_to(-10, 1e-6)))
         assert_that(result2, is_(close_to(0, 1e-6)))
@@ -781,8 +781,8 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
         detector2.set_incoming_beam_can_change(False)
 
         theta.sp = 22.5
-        result1 = detector.beam_path_set_point.get_position_relative_to_beam()
-        result2 = detector2.beam_path_set_point.get_position_relative_to_beam()
+        result1 = detector.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam()
+        result2 = detector2.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam()
 
         assert_that(result1, is_(close_to(0, 1e-6)))
         assert_that(result2, is_(close_to(-20, 1e-6)))

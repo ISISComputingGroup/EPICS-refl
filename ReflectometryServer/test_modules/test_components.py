@@ -395,7 +395,7 @@ class TestThetaComponent(unittest.TestCase):
         theta.beam_path_rbv.set_incoming_beam(beam_start)
         next_component.beam_path_rbv.set_incoming_beam(theta.beam_path_rbv.get_outgoing_beam())
 
-        result_position = next_component.beam_path_rbv.get_position_relative_to_beam()
+        result_position = next_component.beam_path_rbv.axis[ChangeAxis.POSITION].get_relative_to_beam()
         result_outgoing_beam = next_component.beam_path_rbv.get_outgoing_beam()
 
         assert_that(result_position, is_(expected_position))
@@ -445,7 +445,7 @@ class TestComponentInitialisation(unittest.TestCase):
         self.component.beam_path_set_point.autosaved_value[ChangeAxis.POSITION] = autosaved_offset
 
         self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
-        actual = self.component.beam_path_set_point.get_position_relative_to_beam()
+        actual = self.component.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam()
 
         self.assertEqual(autosaved_offset, actual)
 
@@ -463,7 +463,7 @@ class TestComponentInitialisation(unittest.TestCase):
         expected = displacement - self.EXPECTED_INTERCEPT
 
         self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
-        actual = self.component.beam_path_set_point.get_position_relative_to_beam()
+        actual = self.component.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam()
 
         assert_that(actual, is_(close_to(expected, DEFAULT_TEST_TOLERANCE)))
 
@@ -476,7 +476,7 @@ class TestComponentInitialisation(unittest.TestCase):
         expected = self.REFLECTION_ANGLE / 2.0
 
         self.component.beam_path_set_point.init_displacement_from_motor(z_theta + offset_comp)
-        actual = self.theta.beam_path_set_point.get_angle_relative_to_beam()
+        actual = self.theta.beam_path_set_point.axis[ChangeAxis.ANGLE].get_relative_to_beam()
 
         assert_that(actual, is_(close_to(expected, DEFAULT_TEST_TOLERANCE)))
 

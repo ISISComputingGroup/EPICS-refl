@@ -126,7 +126,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         parameter.define_current_value_as.new_value = expected_position
 
-        assert_that(component.beam_path_set_point.get_position_relative_to_beam(), is_(expected_position),
+        assert_that(component.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam(), is_(expected_position),
                     "component setpoint")
         assert_that(parameter.sp, is_(expected_position), "Parameter setpoint")
         assert_that(parameter.sp_rbv, is_(expected_position), "Parameter setpoint read back")
@@ -142,7 +142,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         parameter.define_current_value_as.new_value = expected_position
 
-        assert_that(component.beam_path_set_point.get_angle_relative_to_beam(), is_(expected_position),
+        assert_that(component.beam_path_set_point.axis[ChangeAxis.ANGLE].get_relative_to_beam(), is_(expected_position),
                     "component setpoint")
         assert_that(parameter.sp, is_(expected_position), "Parameter setpoint")
         assert_that(parameter.sp_rbv, is_(expected_position), "Parameter setpoint read back")

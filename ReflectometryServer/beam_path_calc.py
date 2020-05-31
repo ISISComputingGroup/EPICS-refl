@@ -33,6 +33,25 @@ ComponentChangingUpdate = namedtuple("ComponentChangingUpdate", [])
 InitUpdate = namedtuple("InitUpdate", [])
 
 
+class BeamPathCalcAxis(object):
+    """
+    Encapsulate functionality of axis into a single class
+    """
+    def __init__(self, get_relative_to_beam):
+        """
+        Initialiser.
+        Args:
+            get_relative_to_beam: function returning this axis position relative to the components incoming beam
+        """
+        self._get_relative_to_beam = get_relative_to_beam
+
+    def get_relative_to_beam(self):
+        """
+        Returns: positon relative to the incoming beam
+        """
+        return self._get_relative_to_beam()
+
+
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, ComponentChangingUpdate, InitUpdate)
 class TrackingBeamPathCalc(object):
     """
@@ -65,6 +84,10 @@ class TrackingBeamPathCalc(object):
         #   will always be exact. So we use this to calculate the position of the component not the incoming beam.
         #  If it is None then this does not define theta
         self.substitute_incoming_beam_for_displacement = None
+
+        self.axis = {
+            ChangeAxis.POSITION: BeamPathCalcAxis(self.get_position_relative_to_beam)
+        }
 
     def init_displacement_from_motor(self, value):
         """
@@ -243,7 +266,7 @@ class TrackingBeamPathCalc(object):
         if on_init and ChangeAxis.POSITION in self.autosaved_value:
             offset = self.autosaved_value[ChangeAxis.POSITION]
         else:
-            offset = self.get_position_relative_to_beam() or 0
+            offset = self.axis[ChangeAxis.POSITION].get_relative_to_beam() or 0
         intercept_displacement = self.get_displacement() - offset
         return self._movement_strategy.position_in_mantid_coordinates(intercept_displacement)
 
@@ -336,6 +359,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         self._angular_displacement = 0.0
         self._is_rotating = False
         self._is_reflecting = is_reflecting
+        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(self.get_angle_relative_to_beam)
 
     def get_angular_displacement(self):
         """
