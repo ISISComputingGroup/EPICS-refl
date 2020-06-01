@@ -432,7 +432,7 @@ class TestComponentInitialisation(unittest.TestCase):
     # tests that changing beam on init does the right thing
     def test_GIVEN_component_has_autosaved_offset_WHEN_incoming_beam_changes_on_init_THEN_displacement_is_beam_intercept_plus_offset(self):
         autosaved_offset = 1
-        self.component.beam_path_set_point.autosaved_value[ChangeAxis.POSITION] = autosaved_offset
+        self.component.beam_path_set_point.axis[ChangeAxis.POSITION].autosaved_value = autosaved_offset
         expected = self.EXPECTED_INTERCEPT + autosaved_offset
 
         self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
@@ -442,7 +442,7 @@ class TestComponentInitialisation(unittest.TestCase):
 
     def test_GIVEN_component_has_autosave_position_WHEN_incoming_beam_changes_on_init_THEN_pos_relative_to_beam_is_autosaved_offset(self):
         autosaved_offset = 1
-        self.component.beam_path_set_point.autosaved_value[ChangeAxis.POSITION] = autosaved_offset
+        self.component.beam_path_set_point.axis[ChangeAxis.POSITION].autosaved_value = autosaved_offset
 
         self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
         actual = self.component.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam()
@@ -470,7 +470,7 @@ class TestComponentInitialisation(unittest.TestCase):
     def test_GIVEN_theta_angled_to_autosaved_comp_WHEN_initialising_comp_THEN_theta_is_init_with_regards_to_beam_intercept(self):
         z_theta = self.Z_COMPONENT / 2
         offset_comp = 3
-        self.component.beam_path_set_point.autosaved_value[ChangeAxis.POSITION] = offset_comp
+        self.component.beam_path_set_point.axis[ChangeAxis.POSITION].autosaved_value = offset_comp
         self.theta = ThetaComponent("theta", PositionAndAngle(0, z_theta, 90), angle_to=[self.component])
         self.theta.beam_path_set_point.set_incoming_beam(self.STRAIGHT_BEAM)
         expected = self.REFLECTION_ANGLE / 2.0

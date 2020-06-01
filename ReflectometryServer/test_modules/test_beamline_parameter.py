@@ -917,7 +917,7 @@ class TestInitSetpoints(unittest.TestCase):
         param_name = "param_float"
 
         param = AxisParameter(param_name, self.component, ChangeAxis.POSITION, autosave=True)
-        actual = self.component.beam_path_set_point.autosaved_value[ChangeAxis.POSITION]
+        actual = self.component.beam_path_set_point.axis[ChangeAxis.POSITION].autosaved_value
 
         self.assertEqual(expected, actual)
 
@@ -925,7 +925,7 @@ class TestInitSetpoints(unittest.TestCase):
         param_name = "param_float"
 
         param = AxisParameter(param_name, self.component, ChangeAxis.POSITION, autosave=False)
-        actual = self.component.beam_path_set_point.autosaved_value.get(ChangeAxis.POSITION, None)
+        actual = self.component.beam_path_set_point.axis[ChangeAxis.POSITION].autosaved_value
 
         self.assertIsNone(actual)
 

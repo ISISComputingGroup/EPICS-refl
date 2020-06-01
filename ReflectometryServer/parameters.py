@@ -444,7 +444,7 @@ class AxisParameter(BeamlineParameter):
         sp_init = param_float_autosave.read_parameter(self._name, None)
         if sp_init is not None:
             self._set_initial_sp(sp_init)
-            self._component.beam_path_set_point.autosaved_value[self._axis] = sp_init
+            self._component.beam_path_set_point.axis[self._axis].autosaved_value = sp_init
             self._move_component()
 
     def _initialise_sp_from_motor(self, _):
