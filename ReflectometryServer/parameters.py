@@ -6,7 +6,7 @@ from functools import partial
 
 from pcaspy import Severity
 
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, ComponentChangingUpdate, InitUpdate, PhysicalMoveUpdate
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate
 from ReflectometryServer.exceptions import ParameterNotInitializedException
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave
 import logging
@@ -327,7 +327,7 @@ class BeamlineParameter(object):
         Runs all the current listeners on the changing state because something has changed.
 
         Args:
-            update (ReflectometryServer.beam_path_calc.ComponentChangingUpdate): The update event
+            update (ReflectometryServer.beam_path_calc.AxisChangingUpdate): The update event
         """
         self.trigger_listeners(ParameterChangingUpdate(self.is_changing))
 
@@ -430,8 +430,8 @@ class AxisParameter(BeamlineParameter):
 
         self._component.beam_path_rbv.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
         self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
-        self._component.beam_path_rbv.add_listener(ComponentChangingUpdate,
-                                                              self._on_update_changing_state)
+        self._component.beam_path_rbv.axis[self._axis].add_listener(AxisChangingUpdate,
+                                                                    self._on_update_changing_state)
 
         if self._axis in self._component.can_define_axis_position_as:
                 self.define_current_value_as = DefineCurrentValueAsParameter(
@@ -489,14 +489,11 @@ class AxisParameter(BeamlineParameter):
         return self._component.beam_path_rbv.axis[self._axis].alarm
 
     @property
-    def is_changing(self):
+    def is_changing(self):  # TODO: can get rid of?
         """
         Returns: Is the parameter changing (rotating)
         """
-        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
-            return self._component.beam_path_rbv.is_rotating
-        else:
-            return self._component.beam_path_rbv.is_displacing
+        return self._component.beam_path_rbv.axis[self._axis].is_changing
 
     def validate(self, drivers):
         """
@@ -535,7 +532,8 @@ class InBeamParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
         self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
-        self._component.beam_path_rbv.add_listener(ComponentChangingUpdate, self._on_update_changing_state)
+        self._component.beam_path_rbv.axis[ChangeAxis.POSITION].add_listener(AxisChangingUpdate,
+                                                                             self._on_update_changing_state)
 
         self.parameter_type = BeamlineParameterType.IN_OUT
 
@@ -608,7 +606,7 @@ class InBeamParameter(BeamlineParameter):
         """
         Returns: Is the parameter changing (rotating, displacing etc.)
         """
-        return self._component.beam_path_rbv.is_displacing
+        return self._component.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing
 
 
 class DirectParameter(BeamlineParameter):

@@ -25,13 +25,14 @@ BeamPathUpdateOnInit = namedtuple("BeamPathUpdateOnInit", [
 PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", [
     "source"])  # The source of the beam path change. (the component itself)
 
-# Event that is triggered when the changing state of the component is updated (i.e. it starts or stops moving)
-ComponentChangingUpdate = namedtuple("ComponentChangingUpdate", [])
+# Event that is triggered when the changing state of the axis is updated (i.e. it starts or stops moving)
+AxisChangingUpdate = namedtuple("AxisChangingUpdate", [])
 
 # Event that is triggered when the position or angle of the beam path calc gets an initial value.
 InitUpdate = namedtuple("InitUpdate", [])
 
 
+@observable(AxisChangingUpdate)
 class BeamPathCalcAxis(object):
     """
     Encapsulate functionality of axis into a single class
@@ -48,6 +49,7 @@ class BeamPathCalcAxis(object):
         self._set_relative_to_beam = set_relative_to_beam
         self._get_displacement_for = get_displacement_for
         self._alarm = (None, None)
+        self._is_changing = False
 
     def get_relative_to_beam(self):
         """
@@ -92,8 +94,26 @@ class BeamPathCalcAxis(object):
         """
         self._alarm = (alarm_severity, alarm_status)
 
+    @property
+    def is_changing(self):
+        """
+        Returns: Is the component with angle currently rotating
+        """
+        return self._is_changing
 
-@observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, ComponentChangingUpdate, InitUpdate)
+    @is_changing.setter
+    def is_changing(self, value):
+        """
+         Update the rotating state of the component with angle and notifies relevant listeners
+
+         Args:
+             value: the new rotating state
+        """
+        self._is_changing = value
+        self.trigger_listeners(AxisChangingUpdate())
+
+
+@observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, InitUpdate)
 class TrackingBeamPathCalc(object):
     """
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
@@ -110,7 +130,6 @@ class TrackingBeamPathCalc(object):
         self._name = name
         self._incoming_beam = PositionAndAngle(0, 0, 0)
         self._is_in_beam = True
-        self._is_displacing = False
         self._movement_strategy = movement_strategy
 
         # Autosaved value for each axis; if not set is not in dictionary
@@ -326,24 +345,6 @@ class TrackingBeamPathCalc(object):
         self.trigger_listeners(BeamPathUpdate(self))
         self.trigger_listeners(PhysicalMoveUpdate(self))
 
-    @property
-    def is_displacing(self):
-        """
-        Returns: Is the displacement component currently displacing
-        """
-        return self._is_displacing
-
-    @is_displacing.setter
-    def is_displacing(self, value):
-        """
-         Update the displacement component displacing state and triggers the changing state listeners
-
-         Args:
-             value: the new displacing state
-        """
-        self._is_displacing = value
-        self.trigger_listeners(ComponentChangingUpdate())
-
     def incoming_beam_auto_save(self):
         """
         Save the current incoming beam to autosave file if the incoming beam can not be changed
@@ -381,7 +382,6 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         """
         super(_BeamPathCalcWithAngle, self).__init__(name, movement_strategy)
         self._angular_displacement = 0.0
-        self._is_rotating = False
         self._is_reflecting = is_reflecting
         self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(self._get_angle_relative_to_beam,
                                                        self._set_angle_relative_to_beam,
@@ -393,24 +393,6 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
             horizon in the incoming beam direction.
         """
         return self._angular_displacement
-
-    @property
-    def is_rotating(self):
-        """
-        Returns: Is the component with angle currently rotating
-        """
-        return self._is_rotating
-
-    @is_rotating.setter
-    def is_rotating(self, value):
-        """
-         Update the rotating state of the component with angle and notifies relevant listeners
-
-         Args:
-             value: the new rotating state
-        """
-        self._is_rotating = value
-        self.trigger_listeners(ComponentChangingUpdate())
 
     def init_angle_from_motor(self, angle):
         """
@@ -526,19 +508,19 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
             readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self.angle_update)
             # add to beamline change of set point because no loop is created from the setpoint action
             setpoint_beam_path_calc.add_listener(BeamPathUpdate, self.angle_update)
-            readback_beam_path_calc.add_listener(ComponentChangingUpdate, self._on_is_changing_change)
+            readback_beam_path_calc.axis[ChangeAxis.POSITION].add_listener(AxisChangingUpdate,
+                                                                           self._on_is_changing_change)
 
     def _on_is_changing_change(self, update):
         """
         Updates the changing state of this component.
 
         Args:
-            update (ComponentChangingUpdate): The update event
+            update (AxisChangingUpdate): The update event
         """
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
-                self.is_rotating = readback_beam_path_calc.is_displacing
-                self.trigger_listeners(ComponentChangingUpdate())
+                self.axis[ChangeAxis.ANGLE].is_changing = readback_beam_path_calc.axis[ChangeAxis.POSITION].is_changing
                 break
 
     def angle_update(self, update):

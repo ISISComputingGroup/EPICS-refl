@@ -392,7 +392,7 @@ class DisplacementDriver(IocDriver):
         Args:
             update (ReflectometryServer.pv_wrapper.IsChangingUpdate): update of the is_moving status of the axis
         """
-        self._component.beam_path_rbv.is_displacing = update.value
+        self._component.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing = update.value
 
     def _component_changed(self):
         return self._component.read_changed_flag(ChangeAxis.POSITION)
@@ -459,7 +459,7 @@ class AngleDriver(IocDriver):
         Args:
             update (ReflectometryServer.pv_wrapper.IsChangingUpdate): update of the is_moving status of the axis
         """
-        self._component.beam_path_rbv.is_rotating = update.value
+        self._component.beam_path_rbv.axis[ChangeAxis.ANGLE].is_changing = update.value
 
     def _is_changed(self):
         """
