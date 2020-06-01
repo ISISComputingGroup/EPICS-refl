@@ -489,7 +489,7 @@ class AxisParameter(BeamlineParameter):
         return self._component.beam_path_rbv.axis[self._axis].alarm
 
     @property
-    def is_changing(self):  # TODO: can get rid of?
+    def is_changing(self):
         """
         Returns: Is the parameter changing (rotating)
         """
