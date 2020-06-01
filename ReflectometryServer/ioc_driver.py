@@ -9,7 +9,7 @@ from pcaspy import Severity
 
 from ReflectometryServer.out_of_beam import OutOfBeamLookup
 from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
-from ReflectometryServer.components import DefineValueAsEvent
+from ReflectometryServer.beam_path_calc import DefineValueAsEvent
 from ReflectometryServer import ChangeAxis
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
@@ -60,7 +60,6 @@ class IocDriver:
         self._axis.add_listener(ReadbackUpdate, self._on_update_rbv)
         self._axis.add_listener(IsChangingUpdate, self._on_update_is_changing)
 
-        self._component.add_listener(DefineValueAsEvent, self._on_define_value_as)
         self._change_axis_type = None
 
     def _on_define_value_as(self, new_event):
@@ -323,6 +322,8 @@ class DisplacementDriver(IocDriver):
 
         super(DisplacementDriver, self).__init__(component, motor_axis, synchronised, engineering_correction)
         self._change_axis_type = ChangeAxis.POSITION
+        self._component.beam_path_rbv.axis[ChangeAxis.POSITION].add_listener(DefineValueAsEvent,
+                                                                             self._on_define_value_as)
 
     def _get_in_beam_status(self, beam_intersect, value):
         if self._out_of_beam_lookup is not None:
@@ -426,6 +427,8 @@ class AngleDriver(IocDriver):
         """
         super(AngleDriver, self).__init__(component, angle_axis, synchronised, engineering_correction)
         self._change_axis_type = ChangeAxis.ANGLE
+        self._component.beam_path_rbv.axis[ChangeAxis.ANGLE].add_listener(DefineValueAsEvent,
+                                                                             self._on_define_value_as)
 
     def initialise_setpoint(self):
         """

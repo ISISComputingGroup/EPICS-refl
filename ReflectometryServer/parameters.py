@@ -430,12 +430,12 @@ class AxisParameter(BeamlineParameter):
 
         self._component.beam_path_rbv.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
         self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
-        self._component.beam_path_rbv.axis[self._axis].add_listener(AxisChangingUpdate,
-                                                                    self._on_update_changing_state)
+        rbv_axis = self._component.beam_path_rbv.axis[self._axis]
+        rbv_axis.add_listener(AxisChangingUpdate, self._on_update_changing_state)
 
-        if self._axis in self._component.can_define_axis_position_as:
+        if rbv_axis.can_define_axis_position_as:
                 self.define_current_value_as = DefineCurrentValueAsParameter(
-                    partial(self._component.define_axis_position_as, self._axis), self._set_sp, self)
+                    rbv_axis.define_axis_position_as, self._set_sp, self)
 
     def _initialise_sp_from_file(self):
         """

@@ -7,7 +7,7 @@ import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
-from ReflectometryServer.components import DefineValueAsEvent
+from ReflectometryServer.beam_path_calc import DefineValueAsEvent
 from ReflectometryServer import ChangeAxis
 from ReflectometryServer.pv_wrapper import _JawsAxisPVWrapper
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_JawsCentrePVWrapper, \
@@ -40,7 +40,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         theta_component = ThetaComponent("comp", PositionAndAngle(0, 0, 90), angle_to=[component])
         parameter = AxisParameter("param", component, ChangeAxis.POSITION)
         theta = AxisParameter("theta", theta_component, ChangeAxis.ANGLE)
-        component.add_listener(DefineValueAsEvent, _listener)
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].add_listener(DefineValueAsEvent, _listener)
 
         parameter.define_current_value_as.new_value = position_to_set
 
@@ -60,7 +60,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         component = ReflectingComponent("comp", PositionAndAngle(0, 0, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
         parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
-        component.add_listener(DefineValueAsEvent, _listener)
+        component.beam_path_rbv.axis[ChangeAxis.ANGLE].add_listener(DefineValueAsEvent, _listener)
 
         parameter.define_current_value_as.new_value = position_to_set
 
@@ -80,7 +80,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         component = TiltingComponent("comp", PositionAndAngle(0, 0, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
         parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
-        component.add_listener(DefineValueAsEvent, _listener)
+        component.beam_path_rbv.axis[ChangeAxis.ANGLE].add_listener(DefineValueAsEvent, _listener)
 
         parameter.define_current_value_as.new_value = position_to_set
 
@@ -176,7 +176,7 @@ class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
         mock_axis = create_mock_axis("axis", 0, 1)
         driver = DisplacementDriver(component, mock_axis)
 
-        component.trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.POSITION))
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.POSITION))
 
         assert_that(mock_axis.set_position_as_value, is_(expected_position))
 
@@ -188,18 +188,18 @@ class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
         mock_axis = create_mock_axis("axis", 0, 1)
         driver = DisplacementDriver(component, mock_axis, engineering_correction=ConstantCorrection(correction))
 
-        component.trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.POSITION))
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.POSITION))
 
         assert_that(mock_axis.set_position_as_value, is_(expected_position + correction))
 
     def test_GIVEN_displacement_driver_no_engineering_correction_WHEN_receive_set_angle_as_event_for_position_set_THEN_motor_position_is_not_set(self):
         expected_position = 1
 
-        component = Component("comp", PositionAndAngle(0, 0, 0))
+        component = TiltingComponent("comp", PositionAndAngle(0, 0, 0))
         mock_axis = create_mock_axis("axis", 0, 1)
         driver = DisplacementDriver(component, mock_axis)
 
-        component.trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.ANGLE))
+        component.beam_path_rbv.axis[ChangeAxis.ANGLE].trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.ANGLE))
 
         assert_that(mock_axis.set_position_as_value, is_(None))
 
@@ -210,6 +210,6 @@ class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
         mock_axis = create_mock_axis("axis", 0, 1)
         driver = AngleDriver(component, mock_axis)
 
-        component.trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.ANGLE))
+        component.beam_path_rbv.axis[ChangeAxis.ANGLE].trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.ANGLE))
 
         assert_that(mock_axis.set_position_as_value, is_(expected_position))

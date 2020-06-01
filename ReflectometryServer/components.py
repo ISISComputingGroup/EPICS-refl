@@ -6,7 +6,6 @@ from collections import namedtuple
 from pcaspy import Severity
 
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
-from server_common.observable import observable
 from ReflectometryServer.geometry import ChangeAxis
 
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
@@ -17,13 +16,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Event that happens when a value is redefine to a different value, e.g. offset is set from 2 to 3
-DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
-    "new_position",  # the new value
-    "change_axis"])  # the axis it applies to of type ChangeAxis
-
-
-@observable(DefineValueAsEvent)
 class Component:
     """
     Base object for all components that can sit on a beam line
@@ -38,8 +30,7 @@ class Component:
         """
         self._name = name
         self._init_beam_path_calcs(setup)
-        self._changed = {ChangeAxis.POSITION: False}
-        self.can_define_axis_position_as = {ChangeAxis.POSITION}
+        self._changed = {ChangeAxis.POSITION: False}  # TODO: put on axis
 
     def __repr__(self):
         return "{}({} beampath sp:{!r}, beampath rbv:{!r})), ".format(
@@ -123,17 +114,6 @@ class Component:
             self._beam_path_set_point.incoming_beam_auto_save()
             self._beam_path_rbv.incoming_beam_auto_save()
 
-    def define_axis_position_as(self, axis, new_value):
-        """
-        Define the current position of the component as the given value (e.g. set this in the motor)
-        Args:
-            axis: axis to define position for
-            new_value: new value of the position
-        """
-
-        axis_displacement = self.beam_path_rbv.axis[axis].get_displacement_for(new_value)
-        self.trigger_listeners(DefineValueAsEvent(axis_displacement, axis))
-
 
 class TiltingComponent(Component):
     """
@@ -149,7 +129,6 @@ class TiltingComponent(Component):
         """
         super(TiltingComponent, self).__init__(name, setup)
         self._changed[ChangeAxis.ANGLE] = False
-        self.can_define_axis_position_as.add(ChangeAxis.ANGLE)
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name), LinearMovementCalc(setup),
@@ -171,7 +150,6 @@ class ReflectingComponent(Component):
         """
         super(ReflectingComponent, self).__init__(name, setup)
         self._changed[ChangeAxis.ANGLE] = False
-        self.can_define_axis_position_as.add(ChangeAxis.ANGLE)
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name), LinearMovementCalc(setup),
@@ -207,23 +185,6 @@ class ThetaComponent(ReflectingComponent):
                                                         angle_to_for_sp)
         self._beam_path_rbv = BeamPathCalcThetaRBV("{}_rbv".format(self.name), linear_movement_calc,
                                                    self._beam_path_set_point, angle_to_for_rbv)
-
-    def define_axis_position_as(self, axis, new_value):
-        """
-        Define the current angle for the component in the hardware
-
-        Args:
-            axis (ChangeAxis): the axis to set
-            new_value (float): new angle to use
-
-        Raises: This is not allowed for Theta at this time because of the complexity of coding this, and we don't think
-        it is needed since the scan is done over detector offset and detector angle.
-
-        """
-        if axis == ChangeAxis.ANGLE:
-            raise NotImplementedError("Can not set Theta at a given value")
-
-        super(ThetaComponent, self).define_axis_position_as(axis, new_value)
 
 
 # class Bench(Component):

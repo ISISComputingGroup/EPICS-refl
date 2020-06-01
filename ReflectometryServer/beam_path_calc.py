@@ -32,25 +32,34 @@ AxisChangingUpdate = namedtuple("AxisChangingUpdate", [])
 InitUpdate = namedtuple("InitUpdate", [])
 
 
-@observable(AxisChangingUpdate)
+# Event that happens when a value is redefine to a different value, e.g. offset is set from 2 to 3
+DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
+    "new_position",  # the new value
+    "change_axis"])  # the axis it applies to of type ChangeAxis
+
+
+@observable(DefineValueAsEvent, AxisChangingUpdate)
 class BeamPathCalcAxis:
     """
     Encapsulate functionality of axis into a single class
     """
-    def __init__(self, get_relative_to_beam, set_relative_to_beam, get_displacement_for):
+    def __init__(self, axis, get_relative_to_beam, set_relative_to_beam, get_displacement_for):
         """
         Initialiser.
         Args:
+            axis: the axis this object is of
             get_relative_to_beam: function returning this axis position relative to the components incoming beam
             set_relative_to_beam: function setting this axis position relative to the components incoming beam
             get_displacement_for: get a displacement for a position relative to the beam
         """
+        self._axis = axis
         self._get_relative_to_beam = get_relative_to_beam
         self._set_relative_to_beam = set_relative_to_beam
         self._get_displacement_for = get_displacement_for
         self._alarm = (None, None)
         self._is_changing = False
         self.autosaved_value = None
+        self.can_define_axis_position_as = True
 
     def get_relative_to_beam(self):
         """
@@ -113,6 +122,18 @@ class BeamPathCalcAxis:
         self._is_changing = value
         self.trigger_listeners(AxisChangingUpdate())
 
+    def define_axis_position_as(self, new_value):
+        """
+        Define the current position of the axis as the given value (e.g. set this in the motor)
+        Args:
+            new_value: new value of the position
+        """
+        if self.can_define_axis_position_as:
+            axis_displacement = self.get_displacement_for(new_value)
+            self.trigger_listeners(DefineValueAsEvent(axis_displacement, self._axis))
+        else:
+            raise NotImplementedError("Axis can not have its position defined")
+
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, InitUpdate)
 class TrackingBeamPathCalc:
@@ -142,7 +163,8 @@ class TrackingBeamPathCalc:
         self.substitute_incoming_beam_for_displacement = None
 
         self.axis = {
-            ChangeAxis.POSITION: BeamPathCalcAxis(self._get_position_relative_to_beam,
+            ChangeAxis.POSITION: BeamPathCalcAxis(ChangeAxis.POSITION,
+                                                  self._get_position_relative_to_beam,
                                                   self._set_position_relative_to_beam,
                                                   self._get_displacement_for)
         }
@@ -382,7 +404,8 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         super(_BeamPathCalcWithAngle, self).__init__(name, movement_strategy)
         self._angular_displacement = 0.0
         self._is_reflecting = is_reflecting
-        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(self._get_angle_relative_to_beam,
+        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(ChangeAxis.ANGLE,
+                                                       self._get_angle_relative_to_beam,
                                                        self._set_angle_relative_to_beam,
                                                        self._get_angle_for)
 
@@ -498,6 +521,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
 
         """
         super(BeamPathCalcThetaRBV, self).__init__(name, movement_strategy, is_reflecting=True)
+        self.axis[ChangeAxis.ANGLE].can_define_axis_position_as = False
         self._angle_to = angle_to
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
         self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
