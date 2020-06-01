@@ -600,7 +600,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         expected_theta = 22.5
         s3 = Component("s3", setup=PositionAndAngle(height_above_beam, 10, 90))
         s3.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, expected_theta * 2))
-        s3.beam_path_set_point.set_position_relative_to_beam(0)
+        s3.beam_path_set_point.axis[ChangeAxis.POSITION].set_relative_to_beam(0)
 
         theta_comp = ThetaComponent("sample", setup=PositionAndAngle(1, 0, 90), angle_to=[s3])
         theta_comp.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))

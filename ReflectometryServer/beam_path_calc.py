@@ -5,7 +5,6 @@ set points or readbacks etc.
 from collections import namedtuple
 from math import degrees, atan2
 
-from ReflectometryServer.exceptions import NonExistentAxis
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
 
@@ -37,19 +36,61 @@ class BeamPathCalcAxis(object):
     """
     Encapsulate functionality of axis into a single class
     """
-    def __init__(self, get_relative_to_beam):
+    def __init__(self, get_relative_to_beam, set_relative_to_beam, get_displacement_for):
         """
         Initialiser.
         Args:
             get_relative_to_beam: function returning this axis position relative to the components incoming beam
+            set_relative_to_beam: function setting this axis position relative to the components incoming beam
+            get_displacement_for: get a displacement for a position relative to the beam
         """
         self._get_relative_to_beam = get_relative_to_beam
+        self._set_relative_to_beam = set_relative_to_beam
+        self._get_displacement_for = get_displacement_for
+        self._alarm = (None, None)
 
     def get_relative_to_beam(self):
         """
-        Returns: positon relative to the incoming beam
+        Returns: position relative to the incoming beam
         """
         return self._get_relative_to_beam()
+
+    def set_relative_to_beam(self, value):
+        """
+        Set a axis value relative to the beam, e.g. position relative to the beam.
+        Args:
+            value: value to set
+        """
+        return self._set_relative_to_beam(value)
+
+    def get_displacement_for(self, relative_to_beam):
+        """
+        Given the position relative to the beam return the positon in mantid coordinates
+        Args:
+            relative_to_beam: position relative to the beam
+
+        Returns:
+            displacement in mantid coordinates
+        """
+        return self._get_displacement_for(relative_to_beam)
+
+    @property
+    def alarm(self):
+        """
+        Returns:
+            the alarm tuple for the axis, alarm_severity and alarm_status
+        """
+        return self._alarm
+
+    def set_alarm(self, alarm_severity, alarm_status):
+        """
+        Update the alarm info for the angle axis of this component.
+
+        Args:
+            alarm_severity (ReflectometryServer.pv_wrapper.AlarmSeverity): severity of any alarm
+            alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
+        """
+        self._alarm = (alarm_severity, alarm_status)
 
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, ComponentChangingUpdate, InitUpdate)
@@ -70,8 +111,6 @@ class TrackingBeamPathCalc(object):
         self._incoming_beam = PositionAndAngle(0, 0, 0)
         self._is_in_beam = True
         self._is_displacing = False
-        self._displacement_alarm = (None, None)
-        self._angle_alarm = (None, None)
         self._movement_strategy = movement_strategy
 
         # Autosaved value for each axis; if not set is not in dictionary
@@ -86,7 +125,9 @@ class TrackingBeamPathCalc(object):
         self.substitute_incoming_beam_for_displacement = None
 
         self.axis = {
-            ChangeAxis.POSITION: BeamPathCalcAxis(self.get_position_relative_to_beam)
+            ChangeAxis.POSITION: BeamPathCalcAxis(self._get_position_relative_to_beam,
+                                                  self._set_position_relative_to_beam,
+                                                  self._get_displacement_for)
         }
 
     def init_displacement_from_motor(self, value):
@@ -164,7 +205,7 @@ class TrackingBeamPathCalc(object):
         """
         return self._movement_strategy.calculate_interception(self._theta_incoming_beam_if_set_else_incoming_beam())
 
-    def set_position_relative_to_beam(self, displacement):
+    def _set_position_relative_to_beam(self, displacement):
         """
         Set the position of the component relative to the beam for the given value based on its movement strategy.
         For instance this could set the height above the beam for a vertically moving component
@@ -174,7 +215,7 @@ class TrackingBeamPathCalc(object):
         self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, displacement)
         self.trigger_listeners(BeamPathUpdate(self))
 
-    def get_position_relative_to_beam(self):
+    def _get_position_relative_to_beam(self):
         """
 
         Returns: the displacement of the component relative to the beam, E.g. The distance along the movement
@@ -204,7 +245,7 @@ class TrackingBeamPathCalc(object):
         Args:
             update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
         """
-        self.set_displacement_alarm(update.alarm_severity, update.alarm_status)
+        self.axis[ChangeAxis.POSITION].set_alarm(update.alarm_severity, update.alarm_status)
         self.set_displacement(update.value)
 
     def set_displacement(self, displacement):
@@ -225,20 +266,17 @@ class TrackingBeamPathCalc(object):
         """
         return self._movement_strategy.get_displacement()
 
-    def get_displacement_for(self, axis, position_relative_to_beam):
+    def _get_displacement_for(self, position_relative_to_beam):
         """
         Get the displacement for a given position relative to the beam
         Args:
-            axis: axis to get displacement for (in room coordinates)
             position_relative_to_beam (float): position to get the displacement for
 
         Returns (float): displacement in mantid coordinates
         """
-        if axis == ChangeAxis.POSITION:  # TODO: axis remove
-            return self._movement_strategy.get_displacement_relative_to_beam_for(self._incoming_beam,
+
+        return self._movement_strategy.get_displacement_relative_to_beam_for(self._incoming_beam,
                                                                              position_relative_to_beam)
-        else:
-            raise NonExistentAxis(axis)
 
     def position_in_mantid_coordinates(self):
         """
@@ -306,20 +344,6 @@ class TrackingBeamPathCalc(object):
         self._is_displacing = value
         self.trigger_listeners(ComponentChangingUpdate())
 
-    @property
-    def displacement_alarm(self):
-        return self._displacement_alarm
-
-    def set_displacement_alarm(self, alarm_severity, alarm_status):
-        """
-        Update the alarm info for the displacement axis of this component.
-
-        Args:
-            alarm_severity (ReflectometryServer.pv_wrapper.AlarmSeverity): severity of any alarm
-            alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
-        """
-        self._displacement_alarm = (alarm_severity, alarm_status)
-
     def incoming_beam_auto_save(self):
         """
         Save the current incoming beam to autosave file if the incoming beam can not be changed
@@ -359,7 +383,9 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         self._angular_displacement = 0.0
         self._is_rotating = False
         self._is_reflecting = is_reflecting
-        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(self.get_angle_relative_to_beam)
+        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(self._get_angle_relative_to_beam,
+                                                       self._set_angle_relative_to_beam,
+                                                       self._get_angle_for)
 
     def get_angular_displacement(self):
         """
@@ -408,33 +434,29 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         if self._is_reflecting:
             self.trigger_listeners(BeamPathUpdate(self))
 
-    def set_angle_relative_to_beam(self, angle):
+    def _set_angle_relative_to_beam(self, angle):
         """
         Set the angle of the component relative to the beamline
         Args:
             angle: angle to set the component at
         """
-        self._set_angular_displacement(self.get_displacement_for(ChangeAxis.ANGLE, angle))
+        self._set_angular_displacement(self._get_angle_for(angle))
 
-    def get_angle_relative_to_beam(self):
+    def _get_angle_relative_to_beam(self):
         """
         Returns (float): the angle of the component relative to the incoming beam
         """
         return self._angular_displacement - self._incoming_beam.angle
 
-    def get_displacement_for(self, axis, position_relative_to_beam):
+    def _get_angle_for(self, position_relative_to_beam):
         """
-        Get the displacement for a given position relative to the beam
+        Get the displacement for a given angle relative to the beam
         Args:
-            axis: axis to get displacement for (in room coordinates)
             position_relative_to_beam (float): position to get the displacement for
 
         Returns (float): displacement in mantid coordinates
         """
-        if axis == ChangeAxis.ANGLE:  # TODO: axis remove
-            return position_relative_to_beam + self._incoming_beam.angle
-        else:
-            super(_BeamPathCalcWithAngle, self).get_displacement_for(axis, position_relative_to_beam)
+        return position_relative_to_beam + self._incoming_beam.angle
 
     def get_outgoing_beam(self):
         """
@@ -447,20 +469,6 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         angle_between_beam_and_component = (self._angular_displacement - self._incoming_beam.angle)
         angle = angle_between_beam_and_component * 2 + self._incoming_beam.angle
         return PositionAndAngle(target_position.y, target_position.z, angle)
-
-    @property
-    def angle_alarm(self):
-        return self._angle_alarm
-
-    def set_angle_alarm(self, alarm_severity, alarm_status):
-        """
-        Update the alarm info for the angle axis of this component.
-
-        Args:
-            alarm_severity (ReflectometryServer.pv_wrapper.AlarmSeverity): severity of any alarm
-            alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
-        """
-        self._angle_alarm = (alarm_severity, alarm_status)
 
 
 class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
@@ -478,7 +486,7 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
         Args:
             update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
         """
-        self.set_angle_alarm(update.alarm_severity, update.alarm_status)
+        self.axis[ChangeAxis.ANGLE].set_alarm(update.alarm_severity, update.alarm_status)
         self.set_angular_displacement(update.value)
 
     def set_angular_displacement(self, angle):
@@ -539,8 +547,8 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         Args:
             update (PhysicalMoveUpdate): The update event
         """
-        alarm_severity, alarm_status = update.source.displacement_alarm
-        self.set_angle_alarm(alarm_severity, alarm_status)
+        alarm_severity, alarm_status = update.source.axis[ChangeAxis.POSITION].alarm
+        self.axis[ChangeAxis.ANGLE].set_alarm(alarm_severity, alarm_status)
         self._set_angular_displacement(self._calc_angle_from_next_component(self._incoming_beam))
 
     def _calc_angle_from_next_component(self, incoming_beam):

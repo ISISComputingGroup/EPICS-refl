@@ -459,10 +459,7 @@ class AxisParameter(BeamlineParameter):
         self._set_initial_sp(init_sp)
 
     def _move_component(self):
-        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
-            self._component.beam_path_set_point.set_angle_relative_to_beam(self._set_point_rbv)
-        else:
-            self._component.beam_path_set_point.set_position_relative_to_beam(self._set_point_rbv)
+        self._component.beam_path_set_point.axis[self._axis].set_relative_to_beam(self._set_point_rbv)
 
     def _set_changed_flag(self):
         self._component.set_changed_flag(self._axis, True)
@@ -489,10 +486,7 @@ class AxisParameter(BeamlineParameter):
         """
         Returns the alarm information for the axis of this component.
         """
-        if self._axis == ChangeAxis.ANGLE:  # TODO: axis remove
-            return self._component.beam_path_rbv.angle_alarm
-        else:
-            return self._component.beam_path_rbv.displacement_alarm
+        return self._component.beam_path_rbv.axis[self._axis].alarm
 
     @property
     def is_changing(self):
@@ -597,7 +591,7 @@ class InBeamParameter(BeamlineParameter):
         """
         Returns the alarm information for the displacement axis of this component.
         """
-        return self._component.beam_path_rbv.displacement_alarm
+        return self._component.beam_path_rbv.axis[ChangeAxis.POSITION].alarm
 
     @property
     def rbv_at_sp(self):

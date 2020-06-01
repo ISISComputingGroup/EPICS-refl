@@ -131,7 +131,7 @@ class Component(object):
             new_value: new value of the position
         """
 
-        axis_displacement = self.beam_path_rbv.get_displacement_for(axis, new_value)
+        axis_displacement = self.beam_path_rbv.axis[axis].get_displacement_for(new_value)
         self.trigger_listeners(DefineValueAsEvent(axis_displacement, axis))
 
 
