@@ -693,7 +693,7 @@ class DirectParameter(BeamlineParameter):
         """
         Returns the alarm information for this slit gap parameter.
         """
-        return (self._last_update.alarm_severity, self._last_update.alarm_status)
+        return self._last_update.alarm_severity, self._last_update.alarm_status
 
     def validate(self, drivers):
         """

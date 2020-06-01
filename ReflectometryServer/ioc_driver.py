@@ -304,8 +304,8 @@ class DisplacementDriver(IocDriver):
         Args:
             component (ReflectometryServer.components.Component): The component providing the values for the axes
             motor_axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
-            out_of_beam_positions (ReflectometryServer.out_of_beam_lookup.OutOfBeamLookup): Provides the out of beam status
-                as configured for this axis.
+            out_of_beam_positions (ReflectometryServer.out_of_beam_lookup.OutOfBeamLookup): Provides the out of beam
+                status as configured for this axis.
             synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
                 time; if false they will move at their current speed.
             engineering_correction (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
@@ -317,7 +317,7 @@ class DisplacementDriver(IocDriver):
             try:
                 self._out_of_beam_lookup = OutOfBeamLookup(out_of_beam_positions)
             except ValueError as e:
-                STATUS_MANAGER.update_error_log(e.message)
+                STATUS_MANAGER.update_error_log(str(e))
                 STATUS_MANAGER.update_active_problems(
                     ProblemInfo("Invalid Out Of Beam Positions", self.name, Severity.MINOR_ALARM))
 
