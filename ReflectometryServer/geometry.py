@@ -6,7 +6,7 @@ from math import radians, sin, cos
 from enum import Enum
 
 
-class Position(object):
+class Position:
     """
     The beam position and direction
     """

@@ -2,6 +2,7 @@
 Common Exceptions for the reflectometry IOC
 """
 
+
 class BeamlineConfigurationInvalidException(Exception):
     """
     Exception for when a parameter is not initialized.

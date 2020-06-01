@@ -35,7 +35,7 @@ class FootprintSort(Enum):
         return None
 
 
-class FootprintManager(object):
+class FootprintManager:
     """
     Holds instances of the footprint calculator and manages access to them.
     """

@@ -12,8 +12,8 @@ from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.parameters import ParameterReadbackUpdate
 from ReflectometryServer.pv_wrapper import ReadbackUpdate
 
-from data_mother import DataMother, create_mock_axis
-from utils import position, DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value, setup_autosave
+from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis
+from ReflectometryServer.test_modules.utils import position, DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value, setup_autosave
 
 
 class TestBeamlineParameter(unittest.TestCase):

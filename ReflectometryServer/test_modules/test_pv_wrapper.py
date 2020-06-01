@@ -8,11 +8,8 @@ import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
-from ReflectometryServer.ChannelAccess.constants import MTR_STOPPED
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR, ProcessMonitorEvents
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess
-
-from server_common.channel_access import UnableToConnectToPVException
 
 FLOAT_TOLERANCE = 1e-9
 

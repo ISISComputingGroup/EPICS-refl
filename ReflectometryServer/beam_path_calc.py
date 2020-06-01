@@ -33,7 +33,7 @@ InitUpdate = namedtuple("InitUpdate", [])
 
 
 @observable(AxisChangingUpdate)
-class BeamPathCalcAxis(object):
+class BeamPathCalcAxis:
     """
     Encapsulate functionality of axis into a single class
     """
@@ -114,7 +114,7 @@ class BeamPathCalcAxis(object):
 
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, InitUpdate)
-class TrackingBeamPathCalc(object):
+class TrackingBeamPathCalc:
     """
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
     """

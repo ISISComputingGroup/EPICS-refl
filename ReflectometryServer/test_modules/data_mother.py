@@ -9,7 +9,7 @@ from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectio
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from server_common.observable import observable
-from utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
+from .utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
@@ -51,7 +51,7 @@ class EmptyBeamlineParameter(BeamlineParameter):
         return []
 
 
-class DataMother(object):
+class DataMother:
     """
     Test data for various tests.
     """
@@ -295,7 +295,7 @@ def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, bac
 
 
 @observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)
-class MockMotorPVWrapper(object):
+class MockMotorPVWrapper:
     def __init__(self, pv_name, init_position, max_velocity, is_vertical=True, backlash_distance=0, backlash_velocity=1, direction="Neg"):
         self.name = pv_name
         self._value = init_position
@@ -357,7 +357,7 @@ class MockMotorPVWrapper(object):
         self.trigger_listeners(ReadbackUpdate(new_value, None, None))
 
 
-class MockChannelAccess(object):
+class MockChannelAccess:
     def __init__(self, pvs):
         self._pvs = pvs
 
