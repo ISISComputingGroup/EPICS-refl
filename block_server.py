@@ -49,7 +49,6 @@ from BlockServer.mocks.mock_version_control import MockVersionControl
 from BlockServer.core.ioc_control import IocControl
 from BlockServer.runcontrol.runcontrol_manager import RunControlManager
 from BlockServer.epics.archiver_manager import ArchiverManager
-from BlockServer.core.block_cache_manager import BlockCacheManager
 from BlockServer.site_specific.default.block_rules import BlockRules
 from pcaspy.driver import manager, Data
 from BlockServer.site_specific.default.general_rules import GroupRules, ConfigurationDescriptionRules
@@ -111,7 +110,6 @@ class BlockServer(Driver):
                                 self.instrument_prefix + BLOCK_PREFIX)
         self._active_configserver = None
         self._run_control = None
-        self._block_cache = None
         self._syn = None
         self._devices = None
         self.on_the_fly_handlers = list()
@@ -173,9 +171,6 @@ class BlockServer(Driver):
                                                   MACROS["$(ICPVARDIR)"], self._ioc_control, self._active_configserver,
                                                   self)
             self.on_the_fly_handlers.append(self._run_control)
-            print_and_log("Creating block cache manager...")
-            self._block_cache = BlockCacheManager(self._ioc_control)
-            print_and_log("Finished creating block cache manager")
 
         # Import all the synoptic data and create PVs
         print_and_log("Creating synoptic manager...")
@@ -366,11 +361,6 @@ class BlockServer(Driver):
 
         # Update Web Server text
         self.server.set_config(convert_to_json(self._active_configserver.get_config_details()))
-
-        # Restart the Blocks cache
-        if self._block_cache is not None:
-            print_and_log("Restarting block cache...")
-            self._block_cache.restart()
 
     def _stop_iocs_and_start_config_iocs(self, iocs_to_start, iocs_to_restart):
         """ Stop all IOCs and start the IOCs that are part of the configuration."""
