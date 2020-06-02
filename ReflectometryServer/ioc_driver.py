@@ -204,7 +204,7 @@ class IocDriver:
                 self._axis.velocity = max(self._axis.min_velocity, self._get_distance() / move_duration)
             self._axis.sp = self._engineering_correction.to_axis(self._get_component_sp())
 
-            self._component.beam_path_set_point.axis[self._change_axis_type].is_changed = False
+        self._component.beam_path_set_point.axis[self._change_axis_type].is_changed = False
 
     def rbv_cache(self):
         """

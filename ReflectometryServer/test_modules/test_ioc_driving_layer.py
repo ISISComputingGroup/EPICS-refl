@@ -381,15 +381,29 @@ class TestDriverChanged(unittest.TestCase):
 
         assert_that(actual, is_(expected))
 
-    def test_GIVEN_sp_value_set_and_moved_to_THEN_driver_reports_at_setpoint(self):
+    def test_GIVEN_sp_value_set_and_moved_to_THEN_driver_reports_at_setpoint_and_changed_is_false(self):
         expected = True
         self.height_axis.sp = 0.0
         self.jaws.beam_path_set_point.axis[ChangeAxis.POSITION].set_relative_to_beam(1.0)
 
-        self.jaws_driver.perform_move(1, True)
+        self.jaws_driver.perform_move(1)
         actual = self.jaws_driver.at_target_setpoint()
+        changed = self.jaws.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed
 
         assert_that(actual, is_(expected))
+        assert_that(changed, is_(False))
+
+    def test_GIVEN_sp_value_set_and_moved_to_but_no_distance_travelled_THEN_driver_reports_at_setpoint_and_changed_is_false(self):
+        expected = True
+        self.height_axis.sp = 0.0
+        self.jaws.beam_path_set_point.axis[ChangeAxis.POSITION].set_relative_to_beam(0)
+
+        self.jaws_driver.perform_move(1)
+        actual = self.jaws_driver.at_target_setpoint()
+        changed = self.jaws.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed
+
+        assert_that(actual, is_(expected))
+        assert_that(changed, is_(False))
 
     def test_GIVEN_component_sp_is_within_motor_resolution_WHEN_comparing_to_motor_setpoint_THEN_driver_reports_at_setpoint(self):
         expected = True
