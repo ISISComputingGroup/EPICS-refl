@@ -119,7 +119,8 @@ class IocDriver:
         """
         Returns: True if the axis set point has changed and it will move any distance
         """
-        return not self.at_target_setpoint() and self._is_changed()
+        return not self.at_target_setpoint() and \
+            self._component.beam_path_set_point.axis[self._change_axis_type].is_changed
 
     def _backlash_duration(self):
         """
@@ -203,19 +204,7 @@ class IocDriver:
                 self._axis.velocity = max(self._axis.min_velocity, self._get_distance() / move_duration)
             self._axis.sp = self._engineering_correction.to_axis(self._get_component_sp())
 
-        self._clear_changed()
-
-    def _is_changed(self):
-        """
-        Returns whether this driver's component has been flagged for change.
-        """
-        raise NotImplemented("This should be implemented in the subclass")
-
-    def _clear_changed(self):
-        """
-        Clears the flag indicating whether this driver's component has been changed.
-        """
-        raise NotImplemented("This should be implemented in the subclass")
+            self._component.beam_path_set_point.axis[self._change_axis_type].is_changed = False
 
     def rbv_cache(self):
         """
@@ -394,21 +383,6 @@ class DisplacementDriver(IocDriver):
         """
         self._component.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing = update.value
 
-    def _component_changed(self):
-        return self._component.read_changed_flag(ChangeAxis.POSITION)
-
-    def _is_changed(self):
-        """
-        Returns whether this driver's component's position has been flagged for change.
-        """
-        return self._component.read_changed_flag(ChangeAxis.POSITION)
-
-    def _clear_changed(self):
-        """
-        Clears the flag indicating whether the this driver's component's position has been changed.
-        """
-        self._component.set_changed_flag(ChangeAxis.POSITION, False)
-
 
 class AngleDriver(IocDriver):
     """
@@ -462,15 +436,3 @@ class AngleDriver(IocDriver):
             update (ReflectometryServer.pv_wrapper.IsChangingUpdate): update of the is_moving status of the axis
         """
         self._component.beam_path_rbv.axis[ChangeAxis.ANGLE].is_changing = update.value
-
-    def _is_changed(self):
-        """
-        Returns whether this driver's component angle has been flagged for change.
-        """
-        return self._component.read_changed_flag(ChangeAxis.ANGLE)
-
-    def _clear_changed(self):
-        """
-        Clears the flag indicating whether the this driver's component's angle has been changed.
-        """
-        self._component.set_changed_flag(ChangeAxis.ANGLE, False)

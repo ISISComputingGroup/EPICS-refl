@@ -1,13 +1,6 @@
 """
 Components on a beam
 """
-from collections import namedtuple
-
-from pcaspy import Severity
-
-from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
-from ReflectometryServer.geometry import ChangeAxis
-
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
 from ReflectometryServer.movement_strategy import LinearMovementCalc
@@ -15,6 +8,7 @@ from ReflectometryServer.movement_strategy import LinearMovementCalc
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 class Component:
     """
@@ -30,7 +24,6 @@ class Component:
         """
         self._name = name
         self._init_beam_path_calcs(setup)
-        self._changed = {ChangeAxis.POSITION: False}  # TODO: put on axis
 
     def __repr__(self):
         return "{}({} beampath sp:{!r}, beampath rbv:{!r})), ".format(
@@ -39,34 +32,6 @@ class Component:
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = TrackingBeamPathCalc("{}_sp".format(self.name), LinearMovementCalc(setup))
         self._beam_path_rbv = TrackingBeamPathCalc("{}_rbv".format(self.name), LinearMovementCalc(setup))
-
-    def set_changed_flag(self, change_type, value):
-        """
-        Set a flag signalling whether this component has an un-applied change.
-
-        Params:
-            change_type (ChangeType): The type of axis for which to set the flag
-            value (bool): Value to set or clear the flag
-        """
-        self._changed[change_type] = value
-
-    def read_changed_flag(self, change_axis):
-        """
-        Reads a flag signalling whether this component has an un-applied change.
-
-        Params:
-            change_axis (ChangeAxis): The type of axis for which to read the flag
-
-        Returns: Whether the flag for the given axis has changed
-        """
-        try:
-            return self._changed[change_axis]
-        except KeyError:
-            STATUS_MANAGER.update_error_log(
-                "Tried to read an invalid type of parameter for component {}.".format(self.name))
-            STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Tried to read invalid component axis", self.name, Severity.MINOR_ALARM))
-            return True
 
     @property
     def name(self):
@@ -128,7 +93,6 @@ class TiltingComponent(Component):
             setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
         """
         super(TiltingComponent, self).__init__(name, setup)
-        self._changed[ChangeAxis.ANGLE] = False
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name), LinearMovementCalc(setup),
@@ -149,7 +113,6 @@ class ReflectingComponent(Component):
             setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
         """
         super(ReflectingComponent, self).__init__(name, setup)
-        self._changed[ChangeAxis.ANGLE] = False
 
     def _init_beam_path_calcs(self, setup):
         self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name), LinearMovementCalc(setup),

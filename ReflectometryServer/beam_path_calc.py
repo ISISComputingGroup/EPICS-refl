@@ -56,6 +56,7 @@ class BeamPathCalcAxis:
         self._get_relative_to_beam = get_relative_to_beam
         self._set_relative_to_beam = set_relative_to_beam
         self._get_displacement_for = get_displacement_for
+        self._is_changed = False
         self._alarm = (None, None)
         self._is_changing = False
         self.autosaved_value = None
@@ -133,6 +134,26 @@ class BeamPathCalcAxis:
             self.trigger_listeners(DefineValueAsEvent(axis_displacement, self._axis))
         else:
             raise NotImplementedError("Axis can not have its position defined")
+
+    @property
+    def is_changed(self):
+        """
+        Reads a flag signalling whether this axis has an un-applied change.
+
+        Returns:
+            True axis has un-applied changed; False otherwise
+        """
+        return self._is_changed
+
+    @is_changed.setter
+    def is_changed(self, is_changed):
+        """
+        Set a flag signalling whether this axis has an un-applied change.
+
+        Args:
+            is_changed (bool): True axis has un-applied changed; False otherwise
+        """
+        self._is_changed = is_changed
 
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, InitUpdate)
@@ -251,6 +272,8 @@ class TrackingBeamPathCalc:
         Args:
             displacement: the value to set away from the beam, e.g. height
         """
+
+        self.axis[ChangeAxis.POSITION].is_changed = True
         self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, displacement)
         self.trigger_listeners(BeamPathUpdate(self))
 
@@ -366,6 +389,15 @@ class TrackingBeamPathCalc:
         self.trigger_listeners(BeamPathUpdate(self))
         self.trigger_listeners(PhysicalMoveUpdate(self))
 
+    def set_in_beam(self, is_in_beam):
+        """
+        Set is in beam with the intention of moving to this position
+        Args:
+            is_in_beam: True for component is in beam; False otherwise
+        """
+        self.axis[ChangeAxis.POSITION].is_changed = True
+        self.is_in_beam = is_in_beam
+
     def incoming_beam_auto_save(self):
         """
         Save the current incoming beam to autosave file if the incoming beam can not be changed
@@ -444,6 +476,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Args:
             angle: angle to set the component at
         """
+        self.axis[ChangeAxis.ANGLE].is_changed = True
         self._set_angular_displacement(self._get_angle_for(angle))
 
     def _get_angle_relative_to_beam(self):

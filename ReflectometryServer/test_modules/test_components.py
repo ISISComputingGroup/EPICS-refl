@@ -76,6 +76,16 @@ class TestComponent(unittest.TestCase):
 
         assert_that(result, is_(position(expected_position)))
 
+    def test_GIVEN_component_WHEN_set_relative_position_of_position_THEN_position_axis_has_changed_set(self):
+
+        comp = Component("component", setup=PositionAndAngle(0, 0, 90))
+        comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        comp.beam_path_set_point.axis[ChangeAxis.POSITION].set_relative_to_beam(1)
+
+        result = comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed
+
+        assert_that(result, is_(True))
+
 
 class TestTiltingJaws(unittest.TestCase):
     def test_GIVEN_tilting_jaw_input_beam_is_at_60_deg_WHEN_set_angular_displacement_THEN_beam_no_altered(self):
@@ -88,6 +98,42 @@ class TestTiltingJaws(unittest.TestCase):
         result = jaws.beam_path_set_point.get_outgoing_beam()
 
         assert_that(result.angle, is_(beam_angle))
+
+    def test_GIVEN_component_WHEN_set_relative_position_of_position_THEN_position_axis_has_changed_set_but_angle_doesnot(self):
+
+        comp = TiltingComponent("component", setup=PositionAndAngle(0, 0, 90))
+        comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        comp.beam_path_set_point.axis[ChangeAxis.POSITION].set_relative_to_beam(1)
+
+        result_pos = comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed
+        result_angle = comp.beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed
+
+        assert_that(result_pos, is_(True))
+        assert_that(result_angle, is_(False))
+
+    def test_GIVEN_component_WHEN_set_relative_position_of_angle_THEN_angle_axis_has_changed_set_but_position_does_not(self):
+
+        comp = TiltingComponent("component", setup=PositionAndAngle(0, 0, 90))
+        comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        comp.beam_path_set_point.axis[ChangeAxis.ANGLE].set_relative_to_beam(1)
+
+        result_pos = comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed
+        result_angle = comp.beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed
+
+        assert_that(result_pos, is_(False))
+        assert_that(result_angle, is_(True))
+
+    def test_GIVEN_component_WHEN_set_in_beam_THEN_position_axis_has_changed_set_but_angle_doesnot(self):
+
+        comp = TiltingComponent("component", setup=PositionAndAngle(0, 0, 90))
+        comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        comp.beam_path_set_point.set_in_beam(False)
+
+        result_pos = comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed
+        result_angle = comp.beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed
+
+        assert_that(result_pos, is_(True))
+        assert_that(result_angle, is_(False))
 
 
 class TestActiveComponents(unittest.TestCase):

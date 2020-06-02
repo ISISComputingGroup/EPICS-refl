@@ -2,7 +2,6 @@
 Parameters that the user would interact with
 """
 from collections import namedtuple
-from functools import partial
 
 from pcaspy import Severity
 
@@ -171,12 +170,6 @@ class BeamlineParameter:
         self._set_point = sp_init
         self._set_point_rbv = sp_init
         self.trigger_listeners(ParameterInitUpdate(self._set_point))
-
-    @abc.abstractmethod
-    def _set_changed_flag(self):
-        """
-        Flags in the component that the beamline parameter should be moved.
-        """
 
     @property
     def rbv(self):
@@ -359,7 +352,6 @@ class BeamlineParameter:
         """
         if self._set_point_rbv is not None:
             self._move_component()
-            self._set_changed_flag()
         else:
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("No parameter initialization value found", self.name, Severity.MAJOR_ALARM))
@@ -409,12 +401,12 @@ class AxisParameter(BeamlineParameter):
         """
         Initialiser.
         Args:
-            name: name of the parameter. Parameter will have a this PV in upper case
-            component: component for this parameter
-            axis: the axis of the component
-            description: Description of the parameter; if None defaults to the name of the parameter
-            autosave: True to autosave this parameter when its value is moved to; False don't
-            rbv_to_sp_tolerance: an error is reported if the difference between the read back value and setpoint is
+            name (str):  name of the parameter. Parameter will have a this PV in upper case
+            component (ReflectometryServer.components.Component): component for this parameter
+            axis (ReflectometryServer.geometry.ChangeAxis): the axis of the component
+            description (str): Description of the parameter; if None defaults to the name of the parameter
+            autosave (bool): True to autosave this parameter when its value is moved to; False don't
+            rbv_to_sp_tolerance (float): an error is reported if the difference between the read back value and setpoint is
                 larger than this value
         """
         if description is None:
@@ -460,9 +452,6 @@ class AxisParameter(BeamlineParameter):
 
     def _move_component(self):
         self._component.beam_path_set_point.axis[self._axis].set_relative_to_beam(self._set_point_rbv)
-
-    def _set_changed_flag(self):
-        self._component.set_changed_flag(self._axis, True)
 
     def _rbv(self):
         """
@@ -554,10 +543,8 @@ class InBeamParameter(BeamlineParameter):
         self._set_initial_sp(init_sp)
 
     def _move_component(self):
-        self._component.beam_path_set_point.is_in_beam = self._set_point_rbv
-
-    def _set_changed_flag(self):
-        self._component.set_changed_flag(ChangeAxis.POSITION, True)
+        # Use set in beam instead of just property so change flag gets set on the axis correctly
+        self._component.beam_path_set_point.set_in_beam(self._set_point_rbv)
 
     def validate(self, drivers):
         """
@@ -665,9 +652,6 @@ class DirectParameter(BeamlineParameter):
         """
         self._last_update = update
         self._on_update_rbv(self)
-
-    def _set_changed_flag(self):
-        pass
 
     def _move_component(self):
         if not self._no_move_because_is_define and not self.rbv_at_sp:
