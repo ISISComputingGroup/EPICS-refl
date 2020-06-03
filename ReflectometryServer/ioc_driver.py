@@ -115,29 +115,22 @@ class IocDriver:
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        if self._change_axis_type == ChangeAxis.POSITION:  # TODO: merge
-            autosaved_offset = self._component.beam_path_set_point.axis[ChangeAxis.POSITION].autosaved_value
-            if autosaved_offset is None:
-                sp = self._engineering_correction.init_from_axis(self._motor_axis.sp)
-            else:
-                sp = self._engineering_correction.from_axis(self._motor_axis.sp, autosaved_offset)
-
-            if self._out_of_beam_lookup is not None:
-                beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
-                in_beam_status = self._get_in_beam_status(beam_interception, self._motor_axis.sp)
-                self._component.beam_path_set_point.is_in_beam = in_beam_status
-                # if the motor_axis is out of the beam then no correction needs adding to setpoint
-                if not in_beam_status:
-                    sp = self._motor_axis.sp
-            self._component.beam_path_set_point.init_displacement_from_motor(sp)
+        beam_path_setpoint = self._component.beam_path_set_point
+        autosaved_value = beam_path_setpoint.axis[self._change_axis_type].autosaved_value
+        if autosaved_value is None:
+            corrected_axis_setpoint = self._engineering_correction.init_from_axis(self._motor_axis.sp)
         else:
-            autosaved_angle = self._component.beam_path_set_point.axis[ChangeAxis.ANGLE].autosaved_value
-            if autosaved_angle is None:
-                corrected_axis_setpoint = self._engineering_correction.init_from_axis(self._motor_axis.sp)
-            else:
-                corrected_axis_setpoint = self._engineering_correction.from_axis(self._motor_axis.sp, autosaved_angle)
+            corrected_axis_setpoint = self._engineering_correction.from_axis(self._motor_axis.sp, autosaved_value)
 
-            self._component.beam_path_set_point.init_angle_from_motor(corrected_axis_setpoint)
+        if self._out_of_beam_lookup is not None:  # TODO look at in park positions ticket
+            beam_interception = beam_path_setpoint.calculate_beam_interception()
+            in_beam_status = self._get_in_beam_status(beam_interception, self._motor_axis.sp)
+            beam_path_setpoint.is_in_beam = in_beam_status
+            # if the motor_axis is out of the beam then no correction needs adding to setpoint
+            if not in_beam_status:
+                corrected_axis_setpoint = self._motor_axis.sp
+
+        beam_path_setpoint.driver_axis[self._change_axis_type].init_displacement_from_motor(corrected_axis_setpoint)
 
     def is_for_component(self, component):
         """

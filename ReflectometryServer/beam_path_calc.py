@@ -161,9 +161,17 @@ class BeamPathCalcDriverAxis:
     Axis to drive underlying motors/components.
     """
 
-    def __init__(self, axis, displacement_update):
+    def __init__(self, axis, displacement_update, init_displacement_from_motor):
+        """
+        Initializer.
+        Args:
+            axis: axis type
+            displacement_update: function to update the displacement from the motor
+            init_displacement_from_motor: function to set the initial disaplcement based on the motor, for the et points
+        """
         self._axis = axis
         self._displacement_update = displacement_update
+        self._init_displacement_from_motor = init_displacement_from_motor
 
     def displacement_update(self, update):
         """
@@ -172,6 +180,15 @@ class BeamPathCalcDriverAxis:
             update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
         """
         self._displacement_update(update)
+
+    def init_displacement_from_motor(self, value):
+        """
+        Sets the displacement read from the motor axis on startup.
+
+        Args:
+            value(float): The motor position
+        """
+        self._init_displacement_from_motor(value)
 
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, InitUpdate)
@@ -209,10 +226,12 @@ class TrackingBeamPathCalc:
         }
 
         self.driver_axis = {
-            ChangeAxis.POSITION: BeamPathCalcDriverAxis(ChangeAxis.POSITION, self._displacement_update)
+            ChangeAxis.POSITION: BeamPathCalcDriverAxis(ChangeAxis.POSITION,
+                                                        self._displacement_update,
+                                                        self._init_displacement_from_motor)
         }
 
-    def init_displacement_from_motor(self, value):
+    def _init_displacement_from_motor(self, value):
         """
         Sets the displacement read from the motor axis on startup.
 
@@ -470,18 +489,6 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         """
         return self._angular_displacement
 
-    def init_angle_from_motor(self, angle):
-        """
-        Initialise the angle of this component from a motor axis value.
-
-        Args:
-            angle(float): The angle read from the motor
-        """
-        self._angular_displacement = angle
-        self.trigger_listeners(InitUpdate())
-        if self._is_reflecting:
-            self.trigger_listeners(BeamPathUpdateOnInit(self))
-
     def _set_angular_displacement(self, angle):
         """
         Set the angular displacement relative to the straight-through beam.
@@ -538,7 +545,9 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
     def __init__(self, name, movement_strategy, is_reflecting):
         super(SettableBeamPathCalcWithAngle, self).__init__(name, movement_strategy, is_reflecting)
 
-        self.driver_axis[ChangeAxis.ANGLE] = BeamPathCalcDriverAxis(ChangeAxis.POSITION, self._angle_update)
+        self.driver_axis[ChangeAxis.ANGLE] = BeamPathCalcDriverAxis(ChangeAxis.POSITION,
+                                                                    self._angle_update,
+                                                                    self._init_angle_from_motor)
 
     def _angle_update(self, update):
         """
@@ -558,6 +567,18 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
         """
         self._set_angular_displacement(angle)
         self.trigger_listeners(PhysicalMoveUpdate(self))
+
+    def _init_angle_from_motor(self, angle):
+        """
+        Initialise the angle of this component from a motor axis value.
+
+        Args:
+            angle(float): The angle read from the motor
+        """
+        self._angular_displacement = angle
+        self.trigger_listeners(InitUpdate())
+        if self._is_reflecting:
+            self.trigger_listeners(BeamPathUpdateOnInit(self))
 
 
 class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
