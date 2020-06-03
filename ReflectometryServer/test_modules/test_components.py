@@ -545,7 +545,7 @@ class TestComponentAlarms(unittest.TestCase):
     def test_GIVEN_alarms_WHEN_updating_displacement_THEN_component_displacement_alarm_is_set(self):
         update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
         
-        self.component.beam_path_rbv.displacement_update(update)
+        self.component.beam_path_rbv.driver_axis[ChangeAxis.POSITION].displacement_update(update)
         actual_alarm_info = self.component.beam_path_rbv.axis[ChangeAxis.POSITION].alarm
 
         self.assertEqual(self.ALARM, actual_alarm_info)
@@ -553,7 +553,7 @@ class TestComponentAlarms(unittest.TestCase):
     def test_GIVEN_alarms_WHEN_updating_displacement_THEN_component_angle_alarm_is_unchanged(self):
         update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
 
-        self.component.beam_path_rbv.displacement_update(update)
+        self.component.beam_path_rbv.driver_axis[ChangeAxis.POSITION].displacement_update(update)
         actual_alarm_info = self.component.beam_path_rbv.axis[ChangeAxis.ANGLE].alarm
 
         self.assertEqual(self.NO_ALARM, actual_alarm_info)
@@ -561,7 +561,7 @@ class TestComponentAlarms(unittest.TestCase):
     def test_GIVEN_alarms_WHEN_updating_angle_THEN_component_angle_alarm_is_set(self):
         update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
 
-        self.component.beam_path_rbv.angle_update(update)
+        self.component.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].displacement_update(update)
         actual_alarm_info = self.component.beam_path_rbv.axis[ChangeAxis.ANGLE].alarm
 
         self.assertEqual(self.ALARM, actual_alarm_info)
@@ -569,7 +569,7 @@ class TestComponentAlarms(unittest.TestCase):
     def test_GIVEN_alarms_WHEN_updating_angle_THEN_component_displacement_alarm_is_unchanged(self):
         update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
 
-        self.component.beam_path_rbv.angle_update(update)
+        self.component.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].displacement_update(update)
         actual_alarm_info = self.component.beam_path_rbv.axis[ChangeAxis.POSITION].alarm
 
         self.assertEqual(self.NO_ALARM, actual_alarm_info)
@@ -578,7 +578,7 @@ class TestComponentAlarms(unittest.TestCase):
         self.theta = ThetaComponent("theta", setup=PositionAndAngle(0, 1, 90), angle_to=[self.component])
         update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
 
-        self.component.beam_path_rbv.displacement_update(update)
+        self.component.beam_path_rbv.driver_axis[ChangeAxis.POSITION].displacement_update(update)
         actual_alarm_info = self.theta.beam_path_rbv.axis[ChangeAxis.ANGLE].alarm
 
         self.assertEqual(self.ALARM, actual_alarm_info)
@@ -587,7 +587,7 @@ class TestComponentAlarms(unittest.TestCase):
         self.theta = ThetaComponent("theta", setup=PositionAndAngle(0, 1, 90), angle_to=[self.component])
         update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
 
-        self.component.beam_path_rbv.angle_update(update)
+        self.component.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].displacement_update(update)
         actual_alarm_info = self.theta.beam_path_rbv.axis[ChangeAxis.ANGLE].alarm
 
         self.assertEqual(self.NO_ALARM, actual_alarm_info)

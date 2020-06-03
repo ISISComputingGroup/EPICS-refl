@@ -156,6 +156,24 @@ class BeamPathCalcAxis:
         self._is_changed = is_changed
 
 
+class BeamPathCalcDriverAxis:
+    """
+    Axis to drive underlying motors/components.
+    """
+
+    def __init__(self, axis, displacement_update):
+        self._axis = axis
+        self._displacement_update = displacement_update
+
+    def displacement_update(self, update):
+        """
+        Update the driver axis from mantid coordinates, e.g. motor position
+        Args:
+            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
+        """
+        self._displacement_update(update)
+
+
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, InitUpdate)
 class TrackingBeamPathCalc:
     """
@@ -188,6 +206,10 @@ class TrackingBeamPathCalc:
                                                   self._get_position_relative_to_beam,
                                                   self._set_position_relative_to_beam,
                                                   self._get_displacement_for)
+        }
+
+        self.driver_axis = {
+            ChangeAxis.POSITION: BeamPathCalcDriverAxis(ChangeAxis.POSITION, self._displacement_update)
         }
 
     def init_displacement_from_motor(self, value):
@@ -300,7 +322,7 @@ class TrackingBeamPathCalc:
             beam = self.substitute_incoming_beam_for_displacement
         return beam
 
-    def displacement_update(self, update):
+    def _displacement_update(self, update):
         """
         Update value and alarms of the displacement axis.
 
@@ -516,7 +538,9 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
     def __init__(self, name, movement_strategy, is_reflecting):
         super(SettableBeamPathCalcWithAngle, self).__init__(name, movement_strategy, is_reflecting)
 
-    def angle_update(self, update):
+        self.driver_axis[ChangeAxis.ANGLE] = BeamPathCalcDriverAxis(ChangeAxis.POSITION, self._angle_update)
+
+    def _angle_update(self, update):
         """
         Update value and alarms of the angle axis.
 

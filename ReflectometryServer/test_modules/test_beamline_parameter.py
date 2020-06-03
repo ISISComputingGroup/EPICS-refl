@@ -620,7 +620,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.displacement_update(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
+        component.beam_path_rbv.driver_axis[ChangeAxis.POSITION].displacement_update(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
 
         listener.assert_called_with(ParameterReadbackUpdate(new_displacement, alarm_severity, alarm_status))
         self.assertEqual(displacement_parameter.alarm_severity, alarm_severity)
@@ -635,7 +635,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.angle_update(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
+        component.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].displacement_update(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
 
         listener.assert_called_with(ParameterReadbackUpdate(0.0, None, None))
         assert_that(listener.call_count, is_(2))  # once for beam path and once for physcial move
@@ -651,7 +651,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         angle_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.angle_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
+        component.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].displacement_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
 
         listener.assert_called_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
         self.assertEqual(angle_parameter.alarm_severity, alarm_severity)
@@ -666,7 +666,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         angle_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.displacement_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
+        component.beam_path_rbv.driver_axis[ChangeAxis.POSITION].displacement_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
 
         listener.assert_called_with(ParameterReadbackUpdate(0.0, None, None))
         self.assertEqual(angle_parameter.alarm_severity, None)
@@ -681,7 +681,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         in_beam_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.displacement_update(CorrectedReadbackUpdate(new_value, alarm_severity, alarm_status))
+        component.beam_path_rbv.driver_axis[ChangeAxis.POSITION].displacement_update(CorrectedReadbackUpdate(new_value, alarm_severity, alarm_status))
 
         listener.assert_called_once_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
         self.assertEqual(in_beam_parameter.alarm_severity, alarm_severity)
@@ -696,7 +696,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         in_beam_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.angle_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
+        component.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].displacement_update(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
 
         listener.assert_called_once_with(ParameterReadbackUpdate(True, None, None))
         self.assertEqual(in_beam_parameter.alarm_severity, None)

@@ -85,7 +85,7 @@ class IocDriver:
         if new_event.change_axis == self._change_axis_type:
             correct_position = self._engineering_correction.to_axis(new_event.new_position)
             logger.info("Defining position for axis {name} to {corrected_value} (uncorrected {new_value}). "
-                        "From sp {sp} and rbv {rbv}".format(name=self._axis.name, corrected_value=correct_position,
+                        "From sp {sp} and rbv {rbv}".format(name=self._motor_axis.name, corrected_value=correct_position,
                                                             new_value=new_event.new_position, sp=self._sp_cache,
                                                             rbv=self._rbv_cache))
             self._motor_axis.define_position_as(correct_position)
@@ -138,7 +138,6 @@ class IocDriver:
                 corrected_axis_setpoint = self._engineering_correction.from_axis(self._motor_axis.sp, autosaved_angle)
 
             self._component.beam_path_set_point.init_angle_from_motor(corrected_axis_setpoint)
-
 
     def is_for_component(self, component):
         """
@@ -300,13 +299,12 @@ class IocDriver:
         Signal that the motor readback value has changed to the middle component layer. Subclass must implement this
         method.
         """
-        if self._change_axis_type == ChangeAxis.POSITION: # TODO: merge
+        if self._change_axis_type == ChangeAxis.POSITION:  # TODO: sort in park position ticket
             if self._out_of_beam_lookup is not None:
                 beam_interception = self._component.beam_path_rbv.calculate_beam_interception()
                 self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(beam_interception, update.value)
-            self._component.beam_path_rbv.displacement_update(update)
-        else:
-            self._component.beam_path_rbv.angle_update(update)
+
+        self._component.beam_path_rbv.driver_axis[self._change_axis_type].displacement_update(update)
 
     def _get_in_beam_status(self, beam_intersect, value):
         if self._out_of_beam_lookup is not None:
