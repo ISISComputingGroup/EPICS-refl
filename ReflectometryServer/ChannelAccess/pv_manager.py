@@ -409,7 +409,7 @@ class PVManager:
                     "type": BeamlineParameterType.name_for_param_list(parameter_type)}
 
         except Exception as err:
-            STATUS_MANAGER.update_error_log("Error adding PV for parameter {}: {}".format(parameter.name, err.message))
+            STATUS_MANAGER.update_error_log("Error adding PV for parameter {}: {}".format(parameter.name, err))
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("Error adding parameter PV", parameter.name, Severity.MAJOR_ALARM))
 
