@@ -331,10 +331,7 @@ class IocDriver:
         Args:
             update (ReflectometryServer.pv_wrapper.IsChangingUpdate): update of the is_moving status of the axis
         """
-        if self._change_axis_type == ChangeAxis.POSITION: # TODO: merge
-            self._component.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing = update.value
-        else:
-            self._component.beam_path_rbv.axis[ChangeAxis.ANGLE].is_changing = update.value
+        self._component.beam_path_rbv.axis[self._change_axis_type].is_changing = update.value
 
     def at_target_setpoint(self):
         """
