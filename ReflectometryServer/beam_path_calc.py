@@ -78,7 +78,7 @@ class BeamPathCalcAxis:
 
     def get_displacement_for(self, relative_to_beam):
         """
-        Given the position relative to the beam return the positon in mantid coordinates
+        Given the position relative to the beam return the position in mantid coordinates
         Args:
             relative_to_beam: position relative to the beam
 
@@ -161,25 +161,34 @@ class BeamPathCalcDriverAxis:
     Axis to drive underlying motors/components.
     """
 
-    def __init__(self, axis, displacement_update, init_displacement_from_motor):
+    def __init__(self, axis, get_displacement, set_displacement, init_displacement_from_motor):
         """
         Initializer.
         Args:
             axis: axis type
-            displacement_update: function to update the displacement from the motor
-            init_displacement_from_motor: function to set the initial disaplcement based on the motor, for the et points
+            get_displacement: function to return the axis displacement in mantid coordinates
+            set_displacement: function to update the displacement from the motor
+            init_displacement_from_motor: function to set the initial displacement based on the motor, for the et points
         """
         self._axis = axis
-        self._displacement_update = displacement_update
+        self._get_displacement = get_displacement
+        self._set_displacement = set_displacement
         self._init_displacement_from_motor = init_displacement_from_motor
 
-    def displacement_update(self, update):
+    def get_displacement(self):
+        """
+        Returns: The displacement of the component from the zero position, E.g. The distance along the movement
+            axis of the component from the set zero position.
+        """
+        return self._get_displacement()
+
+    def set_displacement(self, update):
         """
         Update the driver axis from mantid coordinates, e.g. motor position
         Args:
             update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
         """
-        self._displacement_update(update)
+        self._set_displacement(update)
 
     def init_displacement_from_motor(self, value):
         """
@@ -227,6 +236,7 @@ class TrackingBeamPathCalc:
 
         self.driver_axis = {
             ChangeAxis.POSITION: BeamPathCalcDriverAxis(ChangeAxis.POSITION,
+                                                        self._get_displacement,
                                                         self._displacement_update,
                                                         self._init_displacement_from_motor)
         }
@@ -362,7 +372,7 @@ class TrackingBeamPathCalc:
         self.trigger_listeners(BeamPathUpdate(self))
         self.trigger_listeners(PhysicalMoveUpdate(self))
 
-    def get_displacement(self):
+    def _get_displacement(self):
         """
         Returns: The displacement of the component from the zero position, E.g. The distance along the movement
             axis of the component from the set zero position.
@@ -409,7 +419,7 @@ class TrackingBeamPathCalc:
             offset = autosaved_value
         else:
             offset = self.axis[ChangeAxis.POSITION].get_relative_to_beam() or 0
-        intercept_displacement = self.get_displacement() - offset
+        intercept_displacement = self._get_displacement() - offset
         return self._movement_strategy.position_in_mantid_coordinates(intercept_displacement)
 
     @property
@@ -482,7 +492,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
                                                        self._set_angle_relative_to_beam,
                                                        self._get_angle_for)
 
-    def get_angular_displacement(self):
+    def _get_angular_displacement(self):
         """
         Returns: the angle of the component relative to the natural (straight through) beam measured clockwise from the
             horizon in the incoming beam direction.
@@ -546,6 +556,7 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
         super(SettableBeamPathCalcWithAngle, self).__init__(name, movement_strategy, is_reflecting)
 
         self.driver_axis[ChangeAxis.ANGLE] = BeamPathCalcDriverAxis(ChangeAxis.POSITION,
+                                                                    self._get_angular_displacement,
                                                                     self._angle_update,
                                                                     self._init_angle_from_motor)
 

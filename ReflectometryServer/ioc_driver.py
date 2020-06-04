@@ -255,25 +255,22 @@ class IocDriver:
 
     def _get_component_sp(self):
         """
-        Returns: position that the component is set to
+        Returns: position that the set point axis is set to
         """
-        if self._change_axis_type == ChangeAxis.POSITION: # TODO: merge
-            if self._component.beam_path_set_point.is_in_beam:
-                displacement = self._component.beam_path_set_point.get_displacement()
-            else:
-                if self._out_of_beam_lookup is None:
-                    displacement = 0
-                    STATUS_MANAGER.update_error_log(
-                        "The component {} is out of the beam but there is no out of beam position for the driver "
-                        "running motor_axis {}".format(self._component.name, self._motor_axis.name))
-                    STATUS_MANAGER.update_active_problems(
-                        ProblemInfo("No out of beam position defined for motor_axis", self.name, Severity.MINOR_ALARM))
-                else:
-                    beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
-                    displacement = self._out_of_beam_lookup.get_position_for_intercept(beam_interception).position
-            return displacement
+        if self._component.beam_path_set_point.is_in_beam or self._change_axis_type == ChangeAxis.ANGLE:  # TODO Fix when multiple park postions
+            displacement = self._component.beam_path_set_point.driver_axis[self._change_axis_type].get_displacement()
         else:
-            return self._component.beam_path_set_point.get_angular_displacement()
+            if self._out_of_beam_lookup is None:
+                displacement = 0
+                STATUS_MANAGER.update_error_log(
+                    "The component {} is out of the beam but there is no out of beam position for the driver "
+                    "running motor_axis {}".format(self._component.name, self._motor_axis.name))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("No out of beam position defined for motor_axis", self.name, Severity.MINOR_ALARM))
+            else:
+                beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
+                displacement = self._out_of_beam_lookup.get_position_for_intercept(beam_interception).position
+        return displacement
 
     def _on_update_rbv(self, update):
         """
@@ -297,7 +294,7 @@ class IocDriver:
                 beam_interception = self._component.beam_path_rbv.calculate_beam_interception()
                 self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(beam_interception, update.value)
 
-        self._component.beam_path_rbv.driver_axis[self._change_axis_type].displacement_update(update)
+        self._component.beam_path_rbv.driver_axis[self._change_axis_type].set_displacement(update)
 
     def _get_in_beam_status(self, beam_intersect, value):
         if self._out_of_beam_lookup is not None:

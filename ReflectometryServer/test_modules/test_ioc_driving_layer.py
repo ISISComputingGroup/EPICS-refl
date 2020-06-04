@@ -80,7 +80,7 @@ class TestHeightDriver(unittest.TestCase):
         self.height_axis.sp = expected_value
 
         listener.assert_called_once()
-        assert_that(self.jaws.beam_path_rbv.get_displacement(), is_(expected_value))
+        assert_that(self.jaws.beam_path_rbv.driver_axis[ChangeAxis.POSITION].get_displacement(), is_(expected_value))
 
 
 class TestNonSynchronisedHeightDriver(unittest.TestCase):
@@ -276,7 +276,7 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         self.angle_axis.sp = expected_value
 
         listener.assert_called_once()
-        assert_that(self.supermirror.beam_path_rbv.get_angular_displacement(), is_(expected_value))
+        assert_that(self.supermirror.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].get_displacement(), is_(expected_value))
 
 
 class TestHeightDriverInAndOutOfBeam(unittest.TestCase):

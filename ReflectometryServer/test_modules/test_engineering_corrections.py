@@ -56,7 +56,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
         mock_axis.sp = move_to
 
-        result = comp.beam_path_rbv.get_displacement()
+        result = comp.beam_path_rbv.driver_axis[ChangeAxis.POSITION].get_displacement()
 
         assert_that(result, is_(close_to(expected_correct_value, FLOAT_TOLERANCE)))
 
@@ -83,7 +83,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
         driver.initialise()
 
-        result = comp.beam_path_set_point.get_displacement()
+        result = comp.beam_path_set_point.driver_axis[ChangeAxis.POSITION].get_displacement()
 
         assert_that(result, is_(-1 * correction))
 
@@ -93,7 +93,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         mock_axis.sp = OUT_OF_BEAM_POSITION.position
         driver.initialise()
 
-        result = comp.beam_path_set_point.get_displacement()
+        result = comp.beam_path_set_point.driver_axis[ChangeAxis.POSITION].get_displacement()
 
         assert_that(result, is_(OUT_OF_BEAM_POSITION.position))
 
@@ -104,7 +104,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         driver = AngleDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction))
         driver.initialise()
 
-        result = comp.beam_path_set_point.get_angular_displacement()
+        result = comp.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].get_displacement()
 
         assert_that(result, is_(-1 * correction))
 
@@ -484,7 +484,7 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         bl = Beamline([comp], [param], [driver], [nr_mode])
         bl.active_mode = nr_mode.name
 
-        result = comp.beam_path_set_point.get_displacement()
+        result = comp.beam_path_set_point.driver_axis[ChangeAxis.POSITION].get_displacement()
 
         assert_that(result, is_(close_to(expected_setpoint, 1e-6)))
 
@@ -504,6 +504,6 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         bl = Beamline([comp], [param], [driver], [nr_mode])
         bl.active_mode = nr_mode.name
 
-        result = comp.beam_path_set_point.get_angular_displacement()
+        result = comp.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].get_displacement()
 
         assert_that(result, is_(close_to(expected_setpoint, 1e-6)))
