@@ -170,7 +170,7 @@ class TestConfigHelper(unittest.TestCase):
 
     def test_GVIEN_add_driver_WHEN_get_beamline_THEN_driver_added(self):
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
-        driver = DisplacementDriver(comp1, create_mock_axis("MOT0101", 1, 1))
+        driver = IocDriver(comp1, ChangeAxis.POSITION, create_mock_axis("MOT0101", 1, 1))
         add_driver(driver)
 
         result = get_configured_beamline()
@@ -265,15 +265,15 @@ class TestConfigHelper(unittest.TestCase):
     def test_GIVEN_beam_line_parameter_driver_and_component_added_at_marker_WHEN_get_parameters_THEN_inserted_at_right_place(self):
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
         expected1 = AxisParameter("param1", comp1, ChangeAxis.POSITION)
-        driver1 = DisplacementDriver(comp1, create_mock_axis("MOT0101", 1, 1))
+        driver1 = IocDriver(comp1, ChangeAxis.POSITION, create_mock_axis("MOT0101", 1, 1))
 
         comp2 = Component("2", PositionAndAngle(0, 0, 2))
         expected2 = AxisParameter("param2", comp2, ChangeAxis.POSITION)
-        driver2 = DisplacementDriver(comp2, create_mock_axis("MOT0102", 1, 1))
+        driver2 = IocDriver(comp2, ChangeAxis.POSITION, create_mock_axis("MOT0102", 1, 1))
 
         comp3 = Component("2", PositionAndAngle(0, 0, 2))
         expected3 = AxisParameter("param3", comp3, ChangeAxis.POSITION)
-        driver3 = DisplacementDriver(comp3, create_mock_axis("MOT0103", 1, 1))
+        driver3 = IocDriver(comp3, ChangeAxis.POSITION, create_mock_axis("MOT0103", 1, 1))
 
         add_component(comp1)
         add_parameter(expected1)

@@ -76,17 +76,6 @@ class BeamPathCalcAxis:
         """
         return self._set_relative_to_beam(value)
 
-    def get_displacement_for(self, relative_to_beam):
-        """
-        Given the position relative to the beam return the position in mantid coordinates
-        Args:
-            relative_to_beam: position relative to the beam
-
-        Returns:
-            displacement in mantid coordinates
-        """
-        return self._get_displacement_for(relative_to_beam)
-
     @property
     def alarm(self):
         """
@@ -127,10 +116,10 @@ class BeamPathCalcAxis:
         """
         Define the current position of the axis as the given value (e.g. set this in the motor)
         Args:
-            new_value: new value of the position
+            new_value: new value of the position relative to the beam
         """
         if self.can_define_axis_position_as:
-            axis_displacement = self.get_displacement_for(new_value)
+            axis_displacement = self._get_displacement_for(new_value)
             self.trigger_listeners(DefineValueAsEvent(axis_displacement, self._axis))
         else:
             raise NotImplementedError("Axis can not have its position defined")

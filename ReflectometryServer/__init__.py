@@ -10,7 +10,7 @@ from ReflectometryServer.engineering_corrections import ConstantCorrection, User
     GridDataFileReader, InterpolateGridDataCorrectionFromProvider, COLUMN_NAME_FOR_DRIVER_SETPOINT
 from ReflectometryServer.footprint_manager import FootprintSetup, BaseFootprintSetup
 from ReflectometryServer.geometry import PositionAndAngle, Position, ChangeAxis
-from ReflectometryServer.ioc_driver import AngleDriver, DisplacementDriver
+from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.out_of_beam import OutOfBeamPosition
 from ReflectometryServer.parameters import InBeamParameter, AxisParameter, DirectParameter, \
     SlitGapParameter

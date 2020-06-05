@@ -174,7 +174,7 @@ class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
 
         component = Component("comp", PositionAndAngle(0, 0, 0))
         mock_axis = create_mock_axis("axis", 0, 1)
-        driver = DisplacementDriver(component, mock_axis)
+        driver = IocDriver(component, ChangeAxis.POSITION, mock_axis)
 
         component.beam_path_rbv.axis[ChangeAxis.POSITION].trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.POSITION))
 
@@ -186,7 +186,8 @@ class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
 
         component = Component("comp", PositionAndAngle(0, 0, 0))
         mock_axis = create_mock_axis("axis", 0, 1)
-        driver = DisplacementDriver(component, mock_axis, engineering_correction=ConstantCorrection(correction))
+        driver = IocDriver(component, ChangeAxis.POSITION, mock_axis,
+                           engineering_correction=ConstantCorrection(correction))
 
         component.beam_path_rbv.axis[ChangeAxis.POSITION].trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.POSITION))
 
@@ -197,7 +198,7 @@ class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
 
         component = TiltingComponent("comp", PositionAndAngle(0, 0, 0))
         mock_axis = create_mock_axis("axis", 0, 1)
-        driver = DisplacementDriver(component, mock_axis)
+        driver = IocDriver(component, ChangeAxis.POSITION, mock_axis)
 
         component.beam_path_rbv.axis[ChangeAxis.ANGLE].trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.ANGLE))
 
@@ -208,7 +209,7 @@ class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):
 
         component = TiltingComponent("comp", PositionAndAngle(0, 0, 0))
         mock_axis = create_mock_axis("axis", 0, 1)
-        driver = AngleDriver(component, mock_axis)
+        driver = IocDriver(component, ChangeAxis.ANGLE, mock_axis)
 
         component.beam_path_rbv.axis[ChangeAxis.ANGLE].trigger_listeners(DefineValueAsEvent(expected_position, ChangeAxis.ANGLE))
 

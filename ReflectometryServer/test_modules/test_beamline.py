@@ -239,7 +239,7 @@ class TestBeamlineValidation(unittest.TestCase):
         component = Component("comp", PositionAndAngle(0, 0, 0))
         beamline_parameter = InBeamParameter("param", component)
         motor_axis = create_mock_axis("axis", 0, 0)
-        driver = DisplacementDriver(component, motor_axis)
+        driver = IocDriver(component, ChangeAxis.POSITION, motor_axis)
 
         assert_that(calling(Beamline).with_args(
             [component],
@@ -252,7 +252,7 @@ class TestBeamlineValidation(unittest.TestCase):
         component = TiltingComponent("comp", PositionAndAngle(0, 0, 0))
         beamline_parameter = InBeamParameter("param", component)
         motor_axis = create_mock_axis("axis", 0, 0)
-        driver = AngleDriver(component, motor_axis)
+        driver = IocDriver(component, ChangeAxis.ANGLE, motor_axis)
 
         assert_that(calling(Beamline).with_args(
             [component],

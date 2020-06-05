@@ -23,8 +23,8 @@ class TestEngineeringCorrections(unittest.TestCase):
     def _setup_driver_axis_and_correction(self, correction):
         comp = Component("comp", PositionAndAngle(0.0, 0.0, 90.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = DisplacementDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction),
-                                    out_of_beam_positions=[OUT_OF_BEAM_POSITION])
+        driver = IocDriver(comp, ChangeAxis.POSITION, mock_axis, out_of_beam_positions=[OUT_OF_BEAM_POSITION],
+                           engineering_correction=ConstantCorrection(correction))
         comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp
 
@@ -41,7 +41,8 @@ class TestEngineeringCorrections(unittest.TestCase):
         expected_correction = 1
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = AngleDriver(comp, mock_axis, engineering_correction=ConstantCorrection(expected_correction))
+        driver = IocDriver(comp, ChangeAxis.ANGLE, mock_axis,
+                           engineering_correction=ConstantCorrection(expected_correction))
         comp.beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed = lambda: True  # simulate that the component has requested a change
         driver.perform_move(1)
 
@@ -101,7 +102,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         correction = 1
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = AngleDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction))
+        driver = IocDriver(comp, ChangeAxis.ANGLE, mock_axis, engineering_correction=ConstantCorrection(correction))
         driver.initialise()
 
         result = comp.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].get_displacement()
@@ -405,7 +406,7 @@ class TestEngineeringCorrectionsChangeListener(unittest.TestCase):
         comp = Component("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
         engineering_correction = ConstantCorrection(correction)
-        driver = DisplacementDriver(comp, mock_axis, engineering_correction=engineering_correction)
+        driver = IocDriver(comp, ChangeAxis.POSITION, mock_axis, engineering_correction=engineering_correction)
         comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp, engineering_correction
 
@@ -479,7 +480,8 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         comp = Component("comp", PositionAndAngle(0.0, 0, 90))
         param = AxisParameter("param", comp, ChangeAxis.POSITION, autosave=True)
         axis = create_mock_axis("MOT:MTR0101", offset + expected_setpoint, 1)
-        driver = DisplacementDriver(comp, axis, engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
+        driver = IocDriver(comp, ChangeAxis.POSITION, axis,
+                           engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
         nr_mode = BeamlineMode("NR", [param.name], {})
         bl = Beamline([comp], [param], [driver], [nr_mode])
         bl.active_mode = nr_mode.name
@@ -498,7 +500,8 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0, 90))
         param = AxisParameter("param", comp, ChangeAxis.ANGLE, autosave=True)
         axis = create_mock_axis("MOT:MTR0101", offset + expected_setpoint, 1)
-        driver = AngleDriver(comp, axis, engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
+        driver = IocDriver(comp, ChangeAxis.ANGLE, axis,
+                           engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
 
         nr_mode = BeamlineMode("NR", [param.name], {})
         bl = Beamline([comp], [param], [driver], [nr_mode])

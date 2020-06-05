@@ -14,7 +14,7 @@ from .utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
 from ReflectometryServer.geometry import PositionAndAngle
-from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
+from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, DirectParameter, \
     SlitGapParameter
 import numpy as np
@@ -117,10 +117,10 @@ class DataMother:
                   "s3_axis": s3_axis,
                   "det_axis": det_axis,
                   "det_angle_axis": det_angle_axis}
-        drives = [DisplacementDriver(s1, s1_axis),
-                  DisplacementDriver(s3, s3_axis),
-                  DisplacementDriver(detector, det_axis),
-                  AngleDriver(detector, det_angle_axis)]
+        drives = [IocDriver(s1, ChangeAxis.POSITION, s1_axis),
+                  IocDriver(s3, ChangeAxis.POSITION, s3_axis),
+                  IocDriver(detector, ChangeAxis.POSITION, det_axis),
+                  IocDriver(detector, ChangeAxis.ANGLE, det_angle_axis)]
         # MODES
         nr_inits = {}
         nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
@@ -235,9 +235,9 @@ class DataMother:
                 "det_axis": det_axis,
                 "det_angle_axis": det_angle_axis}
 
-        drives = [AngleDriver(sm_comp, sm_axis, engineering_correction=correction),
-                  DisplacementDriver(detector_comp, det_axis),
-                  AngleDriver(detector_comp, det_angle_axis)]
+        drives = [IocDriver(sm_comp, ChangeAxis.ANGLE, sm_axis, engineering_correction=correction),
+                  IocDriver(detector_comp, ChangeAxis.POSITION, det_axis),
+                  IocDriver(detector_comp, ChangeAxis.ANGLE, det_angle_axis)]
 
         # MODES
         nr_inits = {}

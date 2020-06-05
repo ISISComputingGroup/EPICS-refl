@@ -27,7 +27,7 @@ class TestHeightDriver(unittest.TestCase):
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
         self.jaws.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
 
-        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis)
+        self.jaws_driver = IocDriver(self.jaws, ChangeAxis.POSITION, self.height_axis)
 
     def test_GIVEN_backlash_distance_is_none_WHEN_backlash_distance_checked_THEN_returned_value_is_zero(self):
         expected = 0.0
@@ -94,7 +94,7 @@ class TestNonSynchronisedHeightDriver(unittest.TestCase):
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
         self.jaws.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
 
-        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis, synchronised=False)
+        self.jaws_driver = IocDriver(self.jaws, ChangeAxis.POSITION, self.height_axis, synchronised=False)
 
     def test_GIVEN_component_with_height_setpoint_below_current_position_and_not_synchronised_WHEN_calculating_move_duration_THEN_returned_0(self):
         target_position = -20.0
@@ -129,8 +129,8 @@ class TestHeightAndTiltDriver(unittest.TestCase):
 
         self.tilting_jaws = TiltingComponent("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
 
-        self.tilting_jaws_driver_disp = DisplacementDriver(self.tilting_jaws, self.height_axis)
-        self.tilting_jaws_driver_ang = AngleDriver(self.tilting_jaws, self.tilt_axis)
+        self.tilting_jaws_driver_disp = IocDriver(self.tilting_jaws, ChangeAxis.POSITION, self.height_axis)
+        self.tilting_jaws_driver_ang = IocDriver(self.tilting_jaws, ChangeAxis.ANGLE, self.tilt_axis)
 
     def test_GIVEN_multiple_axes_need_to_move_WHEN_computing_move_duration_THEN_maximum_duration_is_returned(self):
         beam_angle = 45.0
@@ -182,8 +182,9 @@ class TestNonSynchronisedHeightAndTiltDriver(unittest.TestCase):
         self.tilting_jaws.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
         self.tilting_jaws.beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed = True
 
-        self.tilting_jaws_driver_disp = DisplacementDriver(self.tilting_jaws, self.height_axis)
-        self.tilting_jaws_driver_ang = AngleDriver(self.tilting_jaws, self.tilt_axis, synchronised=False)
+        self.tilting_jaws_driver_disp = IocDriver(self.tilting_jaws, ChangeAxis.POSITION, self.height_axis)
+        self.tilting_jaws_driver_ang = IocDriver(self.tilting_jaws, ChangeAxis.ANGLE, self.tilt_axis,
+                                                 synchronised=False)
 
     def test_GIVEN_multiple_axes_need_to_move_and_one_is_not_synchronised_WHEN_computing_move_duration_THEN_maximum_duration_is_returned(self):
         beam_angle = 45.0
@@ -221,7 +222,7 @@ class TestNonSynchronisedHeightAndTiltDriver(unittest.TestCase):
         assert_that(self.tilt_axis.sp, is_(close_to(target_position_tilt, FLOAT_TOLERANCE)))
 
 
-class TestHeightAndAngleDriver(unittest.TestCase):
+class TestHeightAndIocDriver(unittest.TestCase):
     def setUp(self):
         start_position_height = 0.0
         max_velocity_height = 10.0
@@ -234,8 +235,8 @@ class TestHeightAndAngleDriver(unittest.TestCase):
         self.supermirror = ReflectingComponent("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
         self.supermirror.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
 
-        self.supermirror_driver_disp = DisplacementDriver(self.supermirror, self.height_axis)
-        self.supermirror_driver_ang = AngleDriver(self.supermirror, self.angle_axis)
+        self.supermirror_driver_disp = IocDriver(self.supermirror, ChangeAxis.POSITION, self.height_axis)
+        self.supermirror_driver_ang = IocDriver(self.supermirror, ChangeAxis.ANGLE, self.angle_axis)
 
     def test_GIVEN_multiple_axes_need_to_move_WHEN_computing_move_duration_THEN_maximum_duration_is_returned(self):
         target_angle = 30.0
@@ -293,7 +294,8 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
         self.jaws.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
 
-        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis, out_of_beam_positions=[self.out_of_beam_position])
+        self.jaws_driver = IocDriver(self.jaws, ChangeAxis.POSITION, self.height_axis,
+                                     out_of_beam_positions=[self.out_of_beam_position])
 
     def test_GIVEN_component_which_is_disabled_WHEN_calculating_move_duration_THEN_returned_duration_is_time_taken_to_move_to_out_of_beam_position(self):
 
@@ -355,7 +357,7 @@ class TestDriverChanged(unittest.TestCase):
         self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
 
-        self.jaws_driver = DisplacementDriver(self.jaws, self.height_axis)
+        self.jaws_driver = IocDriver(self.jaws, ChangeAxis.POSITION, self.height_axis)
 
     def test_GIVEN_value_not_initialised_THEN_driver_reports_not_at_setpoint(self):
         expected = False
@@ -423,24 +425,24 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         sm_height_axis = create_mock_axis("SM:HEIGHT", 0.0, 10.0)
         sm_angle_axis = create_mock_axis("SM:ANGLE", sm_angle, 10.0)
         supermirror.beam_path_set_point.set_angular_displacement(sm_angle)
-        supermirror_driver_disp = DisplacementDriver(supermirror, sm_height_axis)
-        supermirror_driver_ang = AngleDriver(supermirror, sm_angle_axis)
+        supermirror_driver_disp = IocDriver(supermirror, ChangeAxis.POSITION, sm_height_axis)
+        supermirror_driver_ang = IocDriver(supermirror, ChangeAxis.ANGLE, sm_angle_axis)
 
         slit_2 = Component("slit_2", setup=PositionAndAngle(y=0.0, z=20.0, angle=90.0))
         slit_2_height_axis = create_mock_axis("SLIT2:HEIGHT", 0.0, 10.0)
-        self.slit_2_driver = MagicMock(DisplacementDriver)
+        self.slit_2_driver = MagicMock(IocDriver)
         self.slit_2_driver.get_max_move_duration = MagicMock(return_value=0)
 
         slit_3 = Component("slit_3", setup=PositionAndAngle(y=0.0, z=30.0, angle=90.0))
         slit_3_height_axis = create_mock_axis("SLIT3:HEIGHT", 0.0, 10.0)
-        slit_3_driver = DisplacementDriver(slit_3, slit_3_height_axis)
+        slit_3_driver = IocDriver(slit_3, ChangeAxis.POSITION, slit_3_height_axis)
         self.slit_3_driver = slit_3_driver
 
         detector = TiltingComponent("jaws", setup=PositionAndAngle(y=0.0, z=40.0, angle=90.0))
         detector_height_axis = create_mock_axis("DETECTOR:HEIGHT", 0.0, 10.0)
         detector_tilt_axis = create_mock_axis("DETECTOR:TILT", 0.0, 10.0)
-        detector_driver_disp = DisplacementDriver(detector, detector_height_axis)
-        detector_driver_ang = AngleDriver(detector, detector_tilt_axis)
+        detector_driver_disp = IocDriver(detector, ChangeAxis.POSITION, detector_height_axis)
+        detector_driver_ang = IocDriver(detector, ChangeAxis.ANGLE, detector_tilt_axis)
 
         self.smangle = AxisParameter("smangle", supermirror, ChangeAxis.ANGLE)
         slit_2_pos = AxisParameter("s2_pos", slit_2, ChangeAxis.POSITION)
@@ -566,8 +568,8 @@ class BeamlineBacklashMoveDurationTest(unittest.TestCase):
         detector = TiltingComponent("point_detector", setup=PositionAndAngle(y=0.0, z=6.0, angle=90.0))
         detector_height_axis = create_mock_axis("HEIGHT", pos["start"], pos["max_vel"], pos["back_dist"], pos["back_speed"], pos["dir"])
         detector_tilt_axis = create_mock_axis("TILT", ang["start"], ang["max_vel"], ang["back_dist"], ang["back_speed"], ang["dir"])
-        detector_driver_disp = DisplacementDriver(detector, detector_height_axis)
-        detector_driver_ang = AngleDriver(detector, detector_tilt_axis)
+        detector_driver_disp = IocDriver(detector, ChangeAxis.POSITION, detector_height_axis)
+        detector_driver_ang = IocDriver(detector, ChangeAxis.ANGLE, detector_tilt_axis)
         det_pos = AxisParameter("det_pos", detector, ChangeAxis.POSITION)
         det_ang = AxisParameter("det_ang", detector, ChangeAxis.ANGLE)
 
