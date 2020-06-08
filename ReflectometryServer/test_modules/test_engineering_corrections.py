@@ -11,6 +11,7 @@ import unittest
 from ReflectometryServer import *
 from ReflectometryServer import beamline_configuration, ChangeAxis
 from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider, CorrectionUpdate
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.out_of_beam import OutOfBeamPosition
 from ReflectometryServer.test_modules.data_mother import create_mock_axis, DataMother
 
@@ -64,7 +65,7 @@ class TestEngineeringCorrections(unittest.TestCase):
     def test_GIVEN_engineering_correction_offset_of_1_WHEN_at_set_point_THEN_at_target_setpoint_is_true(self):
         correction = 4
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
-        comp.beam_path_set_point.set_displacement(2)
+        comp.beam_path_set_point.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(2, None, None))
         driver.perform_move(1)
 
         result = driver.at_target_setpoint()

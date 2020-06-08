@@ -240,23 +240,6 @@ class TrackingBeamPathCalc:
         self._movement_strategy.set_displacement(value)
         self.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
 
-    def add_init_listener(self, listener):
-        """
-        Add a listener which is triggered if an initial value is set
-        Args:
-            listener: listener to trigger after initialisation
-        """
-        self._init_listeners.add(listener)
-
-    def add_after_is_changing_change_listener(self, listener):
-        """
-        Add a listener which is triggered if the changing (rotating, displacing etc) state is changed.
-
-        Args:
-            listener: listener with a single argument which is the calling calculation.
-        """
-        self._after_is_changing_change_listeners.add(listener)
-
     def set_incoming_beam(self, incoming_beam, force=False, on_init=False):
         """
         Set the incoming beam for the component setpoint calculation.
@@ -342,22 +325,14 @@ class TrackingBeamPathCalc:
 
     def _displacement_update(self, update):
         """
-        Update value and alarms of the displacement axis.
+        Update value and alarms of the displacement axis. The displacement is from the zero position, E.g. The distance
+            along the movement axis of the component from the set zero position.
 
         Args:
             update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
         """
         self.axis[ChangeAxis.POSITION].set_alarm(update.alarm_severity, update.alarm_status)
-        self.set_displacement(update.value)
-
-    def set_displacement(self, displacement):
-        """
-        Set the displacement of the component from the zero position, E.g. The distance along the movement
-            axis of the component from the set zero position.
-        Args:
-            displacement: the displacement to set
-        """
-        self._movement_strategy.set_displacement(displacement)
+        self._movement_strategy.set_displacement(update.value)
         self.trigger_listeners(BeamPathUpdate(self))
         self.trigger_listeners(PhysicalMoveUpdate(self))
 
@@ -446,7 +421,7 @@ class TrackingBeamPathCalc:
         if not self.incoming_beam_can_change:
             disable_mode_autosave.write_parameter(self._name, self._incoming_beam)
 
-    def init_from_autosave(self):
+    def init_beam_from_autosave(self):
         """
         Restore the autosaved incoming beam when autosave value is found and component is in non changing beamline mode
         i.e. only in disabled mode
@@ -606,9 +581,9 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
 
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             # add to the physical change for the rbv so that we don't get an infinite loop
-            readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self.angle_update)
+            readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self._angle_update)
             # add to beamline change of set point because no loop is created from the setpoint action
-            setpoint_beam_path_calc.add_listener(BeamPathUpdate, self.angle_update)
+            setpoint_beam_path_calc.add_listener(BeamPathUpdate, self._angle_update)
             readback_beam_path_calc.axis[ChangeAxis.POSITION].add_listener(AxisChangingUpdate,
                                                                            self._on_is_changing_change)
 
@@ -624,7 +599,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
                 self.axis[ChangeAxis.ANGLE].is_changing = readback_beam_path_calc.axis[ChangeAxis.POSITION].is_changing
                 break
 
-    def angle_update(self, update):
+    def _angle_update(self, update):
         """
         A listener for the beam update from another beam calc.
         Args:

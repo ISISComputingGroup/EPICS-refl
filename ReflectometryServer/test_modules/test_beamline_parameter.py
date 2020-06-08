@@ -507,7 +507,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         beam_height = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
         displacement_parameter = AxisParameter("param", sample, ChangeAxis.POSITION)
-        sample.beam_path_rbv.set_displacement(displacement)
+        sample.beam_path_rbv.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(displacement, None, None))
 
         result = displacement_parameter.rbv
 
@@ -522,7 +522,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         displacement_parameter = AxisParameter("param", sample, ChangeAxis.POSITION)
         listener = Mock()
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
-        sample.beam_path_rbv.set_displacement(displacement)
+        sample.beam_path_rbv.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(displacement, None, None))
 
         listener.assert_called_with(ParameterReadbackUpdate(displacement - beam_height, None, None))
         assert_that(listener.call_count, is_(2))  #  once for beam path and once for physcial move

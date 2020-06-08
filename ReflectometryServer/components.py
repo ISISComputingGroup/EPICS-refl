@@ -73,8 +73,8 @@ class Component:
         self._beam_path_rbv.incoming_beam_can_change = can_change
 
         if on_init:
-            self._beam_path_set_point.init_from_autosave()
-            self._beam_path_rbv.init_from_autosave()
+            self._beam_path_set_point.init_beam_from_autosave()
+            self._beam_path_rbv.init_beam_from_autosave()
         else:
             self._beam_path_set_point.incoming_beam_auto_save()
             self._beam_path_rbv.incoming_beam_auto_save()

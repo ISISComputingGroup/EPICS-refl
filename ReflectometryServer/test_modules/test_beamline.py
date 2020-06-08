@@ -7,6 +7,7 @@ from mock import Mock, patch,  call
 from ReflectometryServer import *
 
 from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
 from ReflectometryServer.beamline_constant import BeamlineConstant
 
@@ -87,7 +88,7 @@ class TestComponentBeamlineReadbacks(unittest.TestCase):
 
         callback = Mock()
         comp2.beam_path_rbv.set_incoming_beam = callback
-        comp1.beam_path_rbv.set_displacement(1.0)
+        comp1.beam_path_rbv.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(1.0, None, None))
 
         assert_that(callback.called, is_(True))
 
