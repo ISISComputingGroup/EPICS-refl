@@ -22,13 +22,13 @@ class TestBeamlineParameter(unittest.TestCase):
         theta_set = 10.0
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
         mirror_pos = -100
-        sample.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_pos, None, None))
+        sample.beam_path_set_point.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_pos, None, None))
         theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
 
         theta.sp_no_move = theta_set
 
         assert_that(theta.sp, is_(theta_set))
-        assert_that(sample.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].get_displacement(), is_(mirror_pos))
+        assert_that(sample.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement(), is_(mirror_pos))
 
     def test_GIVEN_theta_WHEN_set_set_point_and_move_THEN_readback_is_as_set_and_sample_is_at_setpoint_postion(self):
 
@@ -37,7 +37,7 @@ class TestBeamlineParameter(unittest.TestCase):
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         mirror_pos = -100
-        sample.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_pos, None, None))
+        sample.beam_path_set_point.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_pos, None, None))
         theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
 
         theta.sp_no_move = theta_set
@@ -45,7 +45,7 @@ class TestBeamlineParameter(unittest.TestCase):
         result = theta.sp_rbv
 
         assert_that(result, is_(theta_set))
-        assert_that(sample.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].get_displacement(), is_(expected_sample_angle))
+        assert_that(sample.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement(), is_(expected_sample_angle))
 
     def test_GIVEN_theta_set_WHEN_set_point_set_and_move_THEN_readback_is_as_original_value_but_setpoint_is_new_value(self):
 
@@ -54,7 +54,7 @@ class TestBeamlineParameter(unittest.TestCase):
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         mirror_pos = -100
-        sample.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_pos, None, None))
+        sample.beam_path_set_point.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_pos, None, None))
         theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
         theta.sp = original_theta
 
@@ -95,7 +95,7 @@ class TestBeamlineParameter(unittest.TestCase):
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
         sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         mirror_pos = -100
-        sample.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_pos, None, None))
+        sample.beam_path_set_point.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_pos, None, None))
         reflection_angle = AxisParameter("theta", sample, ChangeAxis.ANGLE)
 
         reflection_angle.sp_no_move = angle_set
@@ -103,7 +103,7 @@ class TestBeamlineParameter(unittest.TestCase):
         result = reflection_angle.sp_rbv
 
         assert_that(result, is_(angle_set))
-        assert_that(sample.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].get_displacement(), is_(expected_sample_angle))
+        assert_that(sample.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement(), is_(expected_sample_angle))
 
     def test_GIVEN_jaw_height_WHEN_set_set_point_and_move_THEN_readback_is_as_set_and_jaws_are_at_setpoint_postion(self):
 
@@ -187,7 +187,7 @@ class TestBeamlineModes(unittest.TestCase):
         beamline.active_mode = beamline_mode.name
         beamline.move = 1
 
-        assert_that(ideal_sample_point.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].get_displacement(), is_(angle_to_set))
+        assert_that(ideal_sample_point.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement(), is_(angle_to_set))
 
 
     def test_GIVEN_a_mode_with_a_two_beamline_parameter_in_WHEN_move_first_THEN_second_beamline_parameter_is_calculated_and_moved_to(self):
@@ -207,13 +207,13 @@ class TestBeamlineModes(unittest.TestCase):
         smangle_to_set = -10
         smangle.sp = smangle_to_set
 
-        assert_that(ideal_sample_point.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].get_displacement(), is_(smangle_to_set * 2 + angle_to_set))
+        assert_that(ideal_sample_point.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement(), is_(smangle_to_set * 2 + angle_to_set))
 
     def test_GIVEN_mode_has_initial_parameter_value_WHEN_setting_mode_THEN_component_sp_updated_but_rbv_unchanged(self):
         sm_angle = 0.0
         sm_angle_to_set = 45.0
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
-        super_mirror.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(sm_angle, None, None))
+        super_mirror.beam_path_set_point.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(sm_angle, None, None))
         smangle = AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE)
         smangle.sp_no_move = sm_angle
         sp_inits = {smangle.name: sm_angle_to_set}
@@ -224,12 +224,12 @@ class TestBeamlineModes(unittest.TestCase):
 
         assert_that(smangle.sp, is_(sm_angle_to_set))
         assert_that(smangle.sp_changed, is_(True))
-        assert_that(super_mirror.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].get_displacement(), is_(sm_angle))
+        assert_that(super_mirror.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement(), is_(sm_angle))
 
     def test_GIVEN_mode_has_initial_value_for_param_not_in_beamline_WHEN_initialize_mode_THEN_keyerror_raised(self):
         sm_angle = 0.0
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
-        super_mirror.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(sm_angle, None, None))
+        super_mirror.beam_path_set_point.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(sm_angle, None, None))
         smangle = AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE)
         smangle.sp_no_move = sm_angle
         sp_inits = {"nonsense name": sm_angle}
@@ -507,7 +507,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         beam_height = 1.0
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
         displacement_parameter = AxisParameter("param", sample, ChangeAxis.POSITION)
-        sample.beam_path_rbv.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(displacement, None, None))
+        sample.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(displacement, None, None))
 
         result = displacement_parameter.rbv
 
@@ -522,7 +522,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         displacement_parameter = AxisParameter("param", sample, ChangeAxis.POSITION)
         listener = Mock()
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
-        sample.beam_path_rbv.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(displacement, None, None))
+        sample.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(displacement, None, None))
 
         listener.assert_called_with(ParameterReadbackUpdate(displacement - beam_height, None, None))
         assert_that(listener.call_count, is_(2))  #  once for beam path and once for physcial move
@@ -536,7 +536,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         angle_parameter = AxisParameter("param", sample, ChangeAxis.ANGLE)
         listener = Mock()
         angle_parameter.add_listener(ParameterReadbackUpdate, listener)
-        sample.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(angle, None, None))
+        sample.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(angle, None, None))
 
         listener.assert_called_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
 
@@ -549,7 +549,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         angle_parameter = AxisParameter("param", sample, ChangeAxis.ANGLE)
         listener = Mock()
         angle_parameter.add_listener(ParameterReadbackUpdate, listener)
-        sample.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(angle, None, None))
+        sample.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(angle, None, None))
 
         listener.assert_called_with(ParameterReadbackUpdate(angle-beam_angle, None, None))
 
@@ -620,7 +620,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
 
         listener.assert_called_with(ParameterReadbackUpdate(new_displacement, alarm_severity, alarm_status))
         self.assertEqual(displacement_parameter.alarm_severity, alarm_severity)
@@ -635,7 +635,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
+        component.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
 
         listener.assert_called_with(ParameterReadbackUpdate(0.0, None, None))
         assert_that(listener.call_count, is_(2))  # once for beam path and once for physcial move
@@ -651,7 +651,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         angle_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
+        component.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
 
         listener.assert_called_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
         self.assertEqual(angle_parameter.alarm_severity, alarm_severity)
@@ -666,7 +666,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         angle_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
 
         listener.assert_called_with(ParameterReadbackUpdate(0.0, None, None))
         self.assertEqual(angle_parameter.alarm_severity, None)
@@ -681,7 +681,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         in_beam_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(new_value, alarm_severity, alarm_status))
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(new_value, alarm_severity, alarm_status))
 
         listener.assert_called_once_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
         self.assertEqual(in_beam_parameter.alarm_severity, alarm_severity)
@@ -696,7 +696,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         listener = Mock()
         in_beam_parameter.add_listener(ParameterReadbackUpdate, listener)
 
-        component.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
+        component.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(new_angle, alarm_severity, alarm_status))
 
         listener.assert_called_once_with(ParameterReadbackUpdate(True, None, None))
         self.assertEqual(in_beam_parameter.alarm_severity, None)

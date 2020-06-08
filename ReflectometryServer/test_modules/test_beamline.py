@@ -19,7 +19,7 @@ class TestComponentBeamline(unittest.TestCase):
     def setup_beamline(self, initial_mirror_angle, mirror_position, beam_start):
         jaws = Component("jaws", setup=PositionAndAngle(0, 0, 90))
         mirror = ReflectingComponent("mirror", setup=PositionAndAngle(0, mirror_position, 90))
-        mirror.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(initial_mirror_angle, None, None))
+        mirror.beam_path_set_point.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(initial_mirror_angle, None, None))
         jaws3 = Component("jaws3", setup=PositionAndAngle(0, 20, 90))
         beamline = Beamline([jaws, mirror, jaws3], [], [], [BeamlineMode("mode", [])], beam_start)
         return beamline, mirror
@@ -58,7 +58,7 @@ class TestComponentBeamline(unittest.TestCase):
         bounced_beam = PositionAndAngle(y=0, z=mirror_position, angle=mirror_final_angle * 2)
         expected_beams = [beam_start, bounced_beam, bounced_beam]
 
-        mirror.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_final_angle, None, None))
+        mirror.beam_path_set_point.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_final_angle, None, None))
         results = [component.beam_path_set_point.get_outgoing_beam() for component in beamline]
 
         for index, (result, expected_beam) in enumerate(zip(results, expected_beams)):
@@ -88,7 +88,7 @@ class TestComponentBeamlineReadbacks(unittest.TestCase):
 
         callback = Mock()
         comp2.beam_path_rbv.set_incoming_beam = callback
-        comp1.beam_path_rbv.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(1.0, None, None))
+        comp1.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(1.0, None, None))
 
         assert_that(callback.called, is_(True))
 

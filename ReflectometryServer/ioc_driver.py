@@ -130,7 +130,7 @@ class IocDriver:
             if not in_beam_status:
                 corrected_axis_setpoint = self._motor_axis.sp
 
-        beam_path_setpoint.driver_axis[self._component_axis].init_displacement_from_motor(corrected_axis_setpoint)
+        beam_path_setpoint.axis[self._component_axis].init_displacement_from_motor(corrected_axis_setpoint)
 
     def is_for_component(self, component):
         """
@@ -258,7 +258,7 @@ class IocDriver:
         Returns: position that the set point axis is set to
         """
         if self._component.beam_path_set_point.is_in_beam or self._component_axis == ChangeAxis.ANGLE:  # TODO Fix when multiple park postions
-            displacement = self._component.beam_path_set_point.driver_axis[self._component_axis].get_displacement()
+            displacement = self._component.beam_path_set_point.axis[self._component_axis].get_displacement()
         else:
             if self._out_of_beam_lookup is None:
                 displacement = 0
@@ -294,7 +294,7 @@ class IocDriver:
                 beam_interception = self._component.beam_path_rbv.calculate_beam_interception()
                 self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(beam_interception, update.value)
 
-        self._component.beam_path_rbv.driver_axis[self._component_axis].set_displacement(update)
+        self._component.beam_path_rbv.axis[self._component_axis].set_displacement(update)
 
     def _get_in_beam_status(self, beam_intersect, value):
         if self._out_of_beam_lookup is not None:

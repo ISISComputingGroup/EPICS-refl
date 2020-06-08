@@ -43,7 +43,8 @@ class BeamPathCalcAxis:
     """
     Encapsulate functionality of axis into a single class
     """
-    def __init__(self, axis, get_relative_to_beam, set_relative_to_beam, get_displacement_for):
+    def __init__(self, axis, get_relative_to_beam, set_relative_to_beam, get_displacement_for=None,
+                 get_displacement=None, set_displacement=None, init_displacement_from_motor=None):
         """
         Initialiser.
         Args:
@@ -51,16 +52,23 @@ class BeamPathCalcAxis:
             get_relative_to_beam: function returning this axis position relative to the components incoming beam
             set_relative_to_beam: function setting this axis position relative to the components incoming beam
             get_displacement_for: get a displacement for a position relative to the beam
+            get_displacement: function to return the axis displacement in mantid coordinates
+            set_displacement: function to update the displacement from the motor; None for can not be set
+            init_displacement_from_motor: function to set the initial displacement based on the motor, for set points;
+                None for can not be set
         """
         self._axis = axis
         self._get_relative_to_beam = get_relative_to_beam
         self._set_relative_to_beam = set_relative_to_beam
         self._get_displacement_for = get_displacement_for
+        self._get_displacement = get_displacement
+        self._set_displacement = set_displacement
+        self._init_displacement_from_motor = init_displacement_from_motor
         self._is_changed = False
         self._alarm = (None, None)
         self._is_changing = False
         self.autosaved_value = None
-        self.can_define_axis_position_as = True
+        self.can_define_axis_position_as = get_displacement_for is not None
 
     def get_relative_to_beam(self):
         """
@@ -118,11 +126,11 @@ class BeamPathCalcAxis:
         Args:
             new_value: new value of the position relative to the beam
         """
-        if self.can_define_axis_position_as:
+        if self.can_define_axis_position_as and self._get_displacement_for is not None:
             axis_displacement = self._get_displacement_for(new_value)
             self.trigger_listeners(DefineValueAsEvent(axis_displacement, self._axis))
         else:
-            raise NotImplementedError("Axis can not have its position defined")
+            raise TypeError("Axis can not have its position defined")
 
     @property
     def is_changed(self):
@@ -144,32 +152,14 @@ class BeamPathCalcAxis:
         """
         self._is_changed = is_changed
 
-
-class BeamPathCalcDriverAxis:
-    """
-    Axis to drive underlying motors/components.
-    """
-
-    def __init__(self, axis, get_displacement, set_displacement, init_displacement_from_motor):
-        """
-        Initializer.
-        Args:
-            axis: axis type
-            get_displacement: function to return the axis displacement in mantid coordinates
-            set_displacement: function to update the displacement from the motor
-            init_displacement_from_motor: function to set the initial displacement based on the motor, for the et points
-        """
-        self._axis = axis
-        self._get_displacement = get_displacement
-        self._set_displacement = set_displacement
-        self._init_displacement_from_motor = init_displacement_from_motor
-
     def get_displacement(self):
         """
         Returns: The displacement of the component from the zero position, E.g. The distance along the movement
             axis of the component from the set zero position.
         """
-        return self._get_displacement()
+        if self._get_displacement is not None:
+            return self._get_displacement()
+        raise TypeError("Axis does not support get_displacement")
 
     def set_displacement(self, update):
         """
@@ -177,7 +167,9 @@ class BeamPathCalcDriverAxis:
         Args:
             update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
         """
-        self._set_displacement(update)
+        if self._set_displacement is not None:
+            return self._set_displacement(update)
+        raise TypeError("Axis does not support set_displacement")
 
     def init_displacement_from_motor(self, value):
         """
@@ -186,7 +178,9 @@ class BeamPathCalcDriverAxis:
         Args:
             value(float): The motor position
         """
-        self._init_displacement_from_motor(value)
+        if self._init_displacement_from_motor is not None:
+            return self._init_displacement_from_motor(value)
+        raise TypeError("Axis does not support init_displacement_from_motor")
 
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, InitUpdate)
@@ -220,14 +214,10 @@ class TrackingBeamPathCalc:
             ChangeAxis.POSITION: BeamPathCalcAxis(ChangeAxis.POSITION,
                                                   self._get_position_relative_to_beam,
                                                   self._set_position_relative_to_beam,
-                                                  self._get_displacement_for)
-        }
-
-        self.driver_axis = {
-            ChangeAxis.POSITION: BeamPathCalcDriverAxis(ChangeAxis.POSITION,
-                                                        self._get_displacement,
-                                                        self._displacement_update,
-                                                        self._init_displacement_from_motor)
+                                                  self._get_displacement_for,
+                                                  self._get_displacement,
+                                                  self._displacement_update,
+                                                  self._init_displacement_from_motor)
         }
 
     def _init_displacement_from_motor(self, value):
@@ -451,10 +441,6 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         super(_BeamPathCalcWithAngle, self).__init__(name, movement_strategy)
         self._angular_displacement = 0.0
         self._is_reflecting = is_reflecting
-        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(ChangeAxis.ANGLE,
-                                                       self._get_angle_relative_to_beam,
-                                                       self._set_angle_relative_to_beam,
-                                                       self._get_angle_for)
 
     def _get_angular_displacement(self):
         """
@@ -519,10 +505,13 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
     def __init__(self, name, movement_strategy, is_reflecting):
         super(SettableBeamPathCalcWithAngle, self).__init__(name, movement_strategy, is_reflecting)
 
-        self.driver_axis[ChangeAxis.ANGLE] = BeamPathCalcDriverAxis(ChangeAxis.POSITION,
-                                                                    self._get_angular_displacement,
-                                                                    self._angle_update,
-                                                                    self._init_angle_from_motor)
+        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(ChangeAxis.ANGLE,
+                                                       self._get_angle_relative_to_beam,
+                                                       self._set_angle_relative_to_beam,
+                                                       self._get_angle_for,
+                                                       self._get_angular_displacement,
+                                                       self._angle_update,
+                                                       self._init_angle_from_motor)
 
     def _angle_update(self, update):
         """
@@ -567,6 +556,10 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
 
         """
         super(BeamPathCalcThetaRBV, self).__init__(name, movement_strategy, is_reflecting=True)
+        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(ChangeAxis.ANGLE,
+                                                       self._get_angle_relative_to_beam,
+                                                       self._set_angle_relative_to_beam)
+
         self.axis[ChangeAxis.ANGLE].can_define_axis_position_as = False
         self._angle_to = angle_to
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc

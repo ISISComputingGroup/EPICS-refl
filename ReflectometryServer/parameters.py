@@ -426,8 +426,8 @@ class AxisParameter(BeamlineParameter):
         rbv_axis.add_listener(AxisChangingUpdate, self._on_update_changing_state)
 
         if rbv_axis.can_define_axis_position_as:
-                self.define_current_value_as = DefineCurrentValueAsParameter(
-                    rbv_axis.define_axis_position_as, self._set_sp, self)
+            self.define_current_value_as = DefineCurrentValueAsParameter(rbv_axis.define_axis_position_as, self._set_sp,
+                                                                         self)
 
     def _initialise_sp_from_file(self):
         """
