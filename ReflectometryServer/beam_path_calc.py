@@ -526,21 +526,14 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
 
     def _angle_update(self, update):
         """
-        Update value and alarms of the angle axis.
+        Update value and alarms of the angle axis and notifies the beam path update listener. Angle is relative to the
+        beam.
 
         Args:
             update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
         """
         self.axis[ChangeAxis.ANGLE].set_alarm(update.alarm_severity, update.alarm_status)
-        self.set_angular_displacement(update.value)
-
-    def set_angular_displacement(self, angle):
-        """
-        Updates the component angle and notifies the beam path update listener
-        Args:
-            angle: The modified angle
-        """
-        self._set_angular_displacement(angle)
+        self._set_angular_displacement(update.value)
         self.trigger_listeners(PhysicalMoveUpdate(self))
 
     def _init_angle_from_motor(self, angle):

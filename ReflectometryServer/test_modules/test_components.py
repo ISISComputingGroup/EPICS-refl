@@ -93,7 +93,7 @@ class TestTiltingJaws(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=beam_angle)
         jaws = TiltingComponent("tilting jaws", setup=PositionAndAngle(0, 20, 90))
         jaws.beam_path_set_point.set_incoming_beam(beam_start)
-        jaws.beam_path_set_point.set_angular_displacement(123)
+        jaws.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(123, None, None))
 
         result = jaws.beam_path_set_point.get_outgoing_beam()
 
@@ -145,7 +145,7 @@ class TestActiveComponents(unittest.TestCase):
         expected = beam_start
 
         mirror = ReflectingComponent("component", setup=PositionAndAngle(0, mirror_z_position, 90))
-        mirror.beam_path_set_point.set_angular_displacement(mirror_angle)
+        mirror.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_angle, None, None))
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
         mirror.beam_path_set_point.is_in_beam = False
 
@@ -161,7 +161,7 @@ class TestActiveComponents(unittest.TestCase):
         expected = PositionAndAngle(y=0, z=mirror_z_position, angle=2 * mirror_angle)
 
         mirror = ReflectingComponent("component", setup=PositionAndAngle(0, mirror_z_position, 90))
-        mirror.beam_path_set_point.set_angular_displacement(mirror_angle)
+        mirror.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_angle, None, None))
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = mirror.beam_path_set_point.get_outgoing_beam()
@@ -180,7 +180,7 @@ class TestActiveComponents(unittest.TestCase):
         expected = PositionAndAngle(y=0, z=0, angle=outgoing_angle)
 
         mirror = ReflectingComponent("component", setup=PositionAndAngle(0, 0, 90))
-        mirror.beam_path_set_point.set_angular_displacement(mirror_angle)
+        mirror.beam_path_set_point.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_angle, None, None))
         mirror.beam_path_set_point.set_incoming_beam(beam_start)
 
         result = mirror.beam_path_set_point.get_outgoing_beam()
@@ -453,7 +453,7 @@ class TestThetaComponent(unittest.TestCase):
         next_component = TiltingComponent("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.incoming_beam_can_change = False
-        next_component.beam_path_rbv.set_angular_displacement(0)
+        next_component.beam_path_rbv.driver_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(0, None, None))
         next_component.beam_path_rbv.driver_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(5, None, None))
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
