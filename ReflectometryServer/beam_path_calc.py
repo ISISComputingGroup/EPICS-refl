@@ -115,16 +115,16 @@ class ComponentAxis(metaclass=ABCMeta):
             update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
         """
         self.set_alarm(update.alarm_severity, update.alarm_status)
-        self._on_set_displacement(update)
+        self._on_set_displacement(update.value)
         self.trigger_listeners(PhysicalMoveUpdate(self))
 
     @abstractmethod
-    def _on_set_displacement(self, update):
+    def _on_set_displacement(self, displacement):
         """
         Update the driver axis from mantid coordinates, e.g. motor position
         Called from set displacement after setting alarms and before triggering physical movement
         Args:
-            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
+            displacement (float): displacement in mantid coordinates
         """
 
     @abstractmethod
@@ -239,14 +239,14 @@ class BeamPathCalcAxis(ComponentAxis):
             return self._get_displacement()
         raise TypeError("Axis does not support get_displacement")
 
-    def _on_set_displacement(self, update):
+    def _on_set_displacement(self, displacement):
         """
         Update the driver axis from mantid coordinates, e.g. motor position
         Args:
-            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
+            displacement (float): pv update for this axis
         """
         if self._set_displacement is not None:
-            return self._set_displacement(update)
+            return self._set_displacement(displacement)
         raise TypeError("Axis does not support set_displacement")
 
     def init_displacement_from_motor(self, value):
@@ -390,15 +390,15 @@ class TrackingBeamPathCalc:
             beam = self.substitute_incoming_beam_for_displacement
         return beam
 
-    def _displacement_update(self, update):
+    def _displacement_update(self, displacement):
         """
         Update value and alarms of the displacement axis. The displacement is from the zero position, E.g. The distance
             along the movement axis of the component from the set zero position.
 
         Args:
-            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
+            displacement (float): The displacement in mantid coordinates to set the axis to
         """
-        self._movement_strategy.set_displacement(update.value)
+        self._movement_strategy.set_displacement(displacement)
         self.trigger_listeners(BeamPathUpdate(self))
 
     def _get_displacement(self):
@@ -585,18 +585,8 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
                                                        self._set_angle_relative_to_beam,
                                                        self._get_angle_for,
                                                        self._get_angular_displacement,
-                                                       self._angle_update,
+                                                       self._set_angular_displacement,
                                                        self._init_angle_from_motor)
-
-    def _angle_update(self, update):
-        """
-        Update value and alarms of the angle axis and notifies the beam path update listener. Angle is relative to the
-        beam.
-
-        Args:
-            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
-        """
-        self._set_angular_displacement(update.value)
 
     def _init_angle_from_motor(self, angle):
         """
@@ -852,14 +842,14 @@ class DirectCalcAxis(ComponentAxis):
         """
         return self._position
 
-    def _on_set_displacement(self, update):
+    def _on_set_displacement(self, displacement):
         """
         Update the driver axis from mantid coordinates, e.g. motor position
         Called from set displacement after setting alarms and before triggering physical movement
         Args:
-            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
+            displacement (float): displacement in mantid coordinates
         """
-        self._position = update.value
+        self._position = displacement
 
     def init_displacement_from_motor(self, motor_position):
         """
