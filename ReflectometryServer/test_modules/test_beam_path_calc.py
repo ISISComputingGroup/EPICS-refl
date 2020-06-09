@@ -25,7 +25,7 @@ class TestBeamCalcPath(unittest.TestCase):
 
         calc_axis = BeamPathCalcAxis(None, None, None)
 
-        assert_that(calling(calc_axis.set_displacement).with_args(None),
+        assert_that(calling(calc_axis.set_displacement).with_args(CorrectedReadbackUpdate(None, None, None)),
                     raises(TypeError, pattern="Axis does not support set_displacement"))
 
     def test_GIVEN_no_get_displacement_for_set_WHEN_call_define_event_THEN_Error(self):

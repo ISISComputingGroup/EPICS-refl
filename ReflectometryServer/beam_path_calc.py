@@ -2,8 +2,10 @@
 Objects to help with calculating the beam path when interacting with a component. This is used for instance for the
 set points or readbacks etc.
 """
+from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 from math import degrees, atan2
+from typing import Dict
 
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
@@ -23,7 +25,7 @@ BeamPathUpdateOnInit = namedtuple("BeamPathUpdateOnInit", [
 
 # Event that is triggered when the physical position of this component changes.
 PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", [
-    "source"])  # The source of the beam path change. (the component itself)
+    "source"])  # The source of the beam path change. (the axis itself)
 
 # Event that is triggered when the changing state of the axis is updated (i.e. it starts or stops moving)
 AxisChangingUpdate = namedtuple("AxisChangingUpdate", [])
@@ -38,59 +40,31 @@ DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
     "change_axis"])  # the axis it applies to of type ChangeAxis
 
 
-@observable(DefineValueAsEvent, AxisChangingUpdate)
-class BeamPathCalcAxis:
-    """
-    Encapsulate functionality of axis into a single class
-    """
-    def __init__(self, axis, get_relative_to_beam, set_relative_to_beam, get_displacement_for=None,
-                 get_displacement=None, set_displacement=None, init_displacement_from_motor=None):
-        """
-        Initialiser.
-        Args:
-            axis: the axis this object is of
-            get_relative_to_beam: function returning this axis position relative to the components incoming beam
-            set_relative_to_beam: function setting this axis position relative to the components incoming beam
-            get_displacement_for: get a displacement for a position relative to the beam
-            get_displacement: function to return the axis displacement in mantid coordinates
-            set_displacement: function to update the displacement from the motor; None for can not be set
-            init_displacement_from_motor: function to set the initial displacement based on the motor, for set points;
-                None for can not be set
-        """
-        self._axis = axis
-        self._get_relative_to_beam = get_relative_to_beam
-        self._set_relative_to_beam = set_relative_to_beam
-        self._get_displacement_for = get_displacement_for
-        self._get_displacement = get_displacement
-        self._set_displacement = set_displacement
-        self._init_displacement_from_motor = init_displacement_from_motor
-        self._is_changed = False
-        self._alarm = (None, None)
+@observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate)
+class ComponentAxis(metaclass=ABCMeta):
+    def __init__(self, axis):
         self._is_changing = False
         self.autosaved_value = None
-        self.can_define_axis_position_as = get_displacement_for is not None
+        self._is_changed = False
+        self._axis = axis
+        self._alarm = (None, None)
+        self.can_define_axis_position_as = False
 
+    @abstractmethod
     def get_relative_to_beam(self):
         """
         Returns: position relative to the incoming beam
         """
-        return self._get_relative_to_beam()
+        pass
 
+    @abstractmethod
     def set_relative_to_beam(self, value):
         """
         Set a axis value relative to the beam, e.g. position relative to the beam.
         Args:
             value: value to set
         """
-        return self._set_relative_to_beam(value)
-
-    @property
-    def alarm(self):
-        """
-        Returns:
-            the alarm tuple for the axis, alarm_severity and alarm_status
-        """
-        return self._alarm
+        self.is_changed = True
 
     def set_alarm(self, alarm_severity, alarm_status):
         """
@@ -101,6 +75,67 @@ class BeamPathCalcAxis:
             alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
         """
         self._alarm = (alarm_severity, alarm_status)
+
+    @abstractmethod
+    def _get_displacement_for(self, position_relative_to_beam):
+        """
+        Get the displacement for a given position relative to the beam
+        Args:
+            position_relative_to_beam: position relative to the beam
+
+        Returns:
+            displacement in mantid coordinates
+        """
+
+    def define_axis_position_as(self, new_value):
+        """
+        Define the current position of the axis as the given value (e.g. set this in the motor)
+        Args:
+            new_value: new value of the position relative to the beam
+        """
+        if self.can_define_axis_position_as:
+            axis_displacement = self._get_displacement_for(new_value)
+            self.trigger_listeners(DefineValueAsEvent(axis_displacement, self._axis))
+        else:
+            raise TypeError("Axis can not have its position defined")
+
+    @abstractmethod
+    def get_displacement(self):
+        """
+        Returns: The displacement of the component from the zero position, E.g. The distance along the movement
+            axis of the component from the set zero position.
+        """
+        pass
+
+    def set_displacement(self, update):
+        """
+        Update the driver axis from mantid coordinates, e.g. motor position
+        Including the alarm and trigger a physical move event
+        Args:
+            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
+        """
+        self.set_alarm(update.alarm_severity, update.alarm_status)
+        self._on_set_displacement(update)
+        self.trigger_listeners(PhysicalMoveUpdate(self))
+
+    @abstractmethod
+    def _on_set_displacement(self, update):
+        """
+        Update the driver axis from mantid coordinates, e.g. motor position
+        Called from set displacement after setting alarms and before triggering physical movement
+        Args:
+            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
+        """
+
+    @abstractmethod
+    def init_displacement_from_motor(self, value):
+        """
+        Sets the displacement read from the motor axis on startup.
+
+        Args:
+            value(float): The motor position
+        """
+        pass
 
     @property
     def is_changing(self):
@@ -120,17 +155,13 @@ class BeamPathCalcAxis:
         self._is_changing = value
         self.trigger_listeners(AxisChangingUpdate())
 
-    def define_axis_position_as(self, new_value):
+    @property
+    def alarm(self):
         """
-        Define the current position of the axis as the given value (e.g. set this in the motor)
-        Args:
-            new_value: new value of the position relative to the beam
+        Returns:
+            the alarm tuple for the axis, alarm_severity and alarm_status
         """
-        if self.can_define_axis_position_as and self._get_displacement_for is not None:
-            axis_displacement = self._get_displacement_for(new_value)
-            self.trigger_listeners(DefineValueAsEvent(axis_displacement, self._axis))
-        else:
-            raise TypeError("Axis can not have its position defined")
+        return self._alarm
 
     @property
     def is_changed(self):
@@ -152,6 +183,53 @@ class BeamPathCalcAxis:
         """
         self._is_changed = is_changed
 
+
+class BeamPathCalcAxis(ComponentAxis):
+    """
+    Encapsulate functionality of axis into a single class
+    """
+    def __init__(self, axis, get_relative_to_beam, set_relative_to_beam, get_displacement_for=None,
+                 get_displacement=None, set_displacement=None, init_displacement_from_motor=None):
+        """
+        Initialiser.
+        Args:
+            axis: the axis this object is of
+            get_relative_to_beam: function returning this axis position relative to the components incoming beam
+            set_relative_to_beam: function setting this axis position relative to the components incoming beam
+            get_displacement_for: get a displacement for a position relative to the beam
+            get_displacement: function to return the axis displacement in mantid coordinates
+            set_displacement: function to update the displacement from the motor; None for can not be set
+            init_displacement_from_motor: function to set the initial displacement based on the motor, for set points;
+                None for can not be set
+        """
+        super().__init__(axis)
+        self._get_relative_to_beam = get_relative_to_beam
+        self._set_relative_to_beam = set_relative_to_beam
+        self._get_displacement_for_fn = get_displacement_for
+        self.can_define_axis_position_as = get_displacement_for is not None
+
+        self._get_displacement = get_displacement
+        self._set_displacement = set_displacement
+        self._init_displacement_from_motor = init_displacement_from_motor
+
+    def _get_displacement_for(self, position_relative_to_beam):
+        return self._get_displacement_for_fn(position_relative_to_beam)
+
+    def get_relative_to_beam(self):
+        """
+        Returns: position relative to the incoming beam
+        """
+        return self._get_relative_to_beam()
+
+    def set_relative_to_beam(self, value):
+        """
+        Set a axis value relative to the beam, e.g. position relative to the beam.
+        Args:
+            value: value to set
+        """
+        super(BeamPathCalcAxis, self).set_relative_to_beam(value)
+        return self._set_relative_to_beam(value)
+
     def get_displacement(self):
         """
         Returns: The displacement of the component from the zero position, E.g. The distance along the movement
@@ -161,7 +239,7 @@ class BeamPathCalcAxis:
             return self._get_displacement()
         raise TypeError("Axis does not support get_displacement")
 
-    def set_displacement(self, update):
+    def _on_set_displacement(self, update):
         """
         Update the driver axis from mantid coordinates, e.g. motor position
         Args:
@@ -183,11 +261,12 @@ class BeamPathCalcAxis:
         raise TypeError("Axis does not support init_displacement_from_motor")
 
 
-@observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, InitUpdate)
+@observable(BeamPathUpdate, BeamPathUpdateOnInit, InitUpdate)
 class TrackingBeamPathCalc:
     """
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
     """
+    axis: Dict[ChangeAxis, ComponentAxis]
 
     def __init__(self, name, movement_strategy):
         """
@@ -285,8 +364,6 @@ class TrackingBeamPathCalc:
         Args:
             displacement: the value to set away from the beam, e.g. height
         """
-
-        self.axis[ChangeAxis.POSITION].is_changed = True
         self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, displacement)
         self.trigger_listeners(BeamPathUpdate(self))
 
@@ -321,10 +398,8 @@ class TrackingBeamPathCalc:
         Args:
             update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
         """
-        self.axis[ChangeAxis.POSITION].set_alarm(update.alarm_severity, update.alarm_status)
         self._movement_strategy.set_displacement(update.value)
         self.trigger_listeners(BeamPathUpdate(self))
-        self.trigger_listeners(PhysicalMoveUpdate(self))
 
     def _get_displacement(self):
         """
@@ -392,7 +467,8 @@ class TrackingBeamPathCalc:
         """
         self._is_in_beam = is_in_beam
         self.trigger_listeners(BeamPathUpdate(self))
-        self.trigger_listeners(PhysicalMoveUpdate(self))
+        for axis in self.axis.values():
+            axis.trigger_listeners(PhysicalMoveUpdate(axis))
 
     def set_in_beam(self, is_in_beam):
         """
@@ -465,7 +541,6 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Args:
             angle: angle to set the component at
         """
-        self.axis[ChangeAxis.ANGLE].is_changed = True
         self._set_angular_displacement(self._get_angle_for(angle))
 
     def _get_angle_relative_to_beam(self):
@@ -521,9 +596,7 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
         Args:
             update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): The PV update for this axis.
         """
-        self.axis[ChangeAxis.ANGLE].set_alarm(update.alarm_severity, update.alarm_status)
         self._set_angular_displacement(update.value)
-        self.trigger_listeners(PhysicalMoveUpdate(self))
 
     def _init_angle_from_motor(self, angle):
         """
@@ -567,31 +640,43 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
 
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             # add to the physical change for the rbv so that we don't get an infinite loop
-            readback_beam_path_calc.add_listener(PhysicalMoveUpdate, self._angle_update)
+            readback_beam_path_calc.axis[ChangeAxis.POSITION].add_listener(PhysicalMoveUpdate,
+                                                                           self._angle_update_from_physical_move)
             # add to beamline change of set point because no loop is created from the setpoint action
-            setpoint_beam_path_calc.add_listener(BeamPathUpdate, self._angle_update)
+            setpoint_beam_path_calc.add_listener(BeamPathUpdate, self._angle_update_from_beam_path_change)
             readback_beam_path_calc.axis[ChangeAxis.POSITION].add_listener(AxisChangingUpdate,
                                                                            self._on_is_changing_change)
 
-    def _on_is_changing_change(self, update):
+    def _on_is_changing_change(self, _):
         """
         Updates the changing state of this component.
 
         Args:
-            update (AxisChangingUpdate): The update event
+            _ (AxisChangingUpdate): The update event
         """
         for readback_beam_path_calc, setpoint_beam_path_calc in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
                 self.axis[ChangeAxis.ANGLE].is_changing = readback_beam_path_calc.axis[ChangeAxis.POSITION].is_changing
                 break
 
-    def _angle_update(self, update):
+    def _angle_update_from_beam_path_change(self, update):
         """
-        A listener for the beam update from another beam calc.
+        A listener for the beam update from beam path change
+        Args:
+            update (BeamPathUpdate): The update event
+        """
+        self._angle_update(update.source.axis[ChangeAxis.POSITION])
+
+    def _angle_update_from_physical_move(self, update):
+        """
+        A listener for the beam update from physical move of an axis
         Args:
             update (PhysicalMoveUpdate): The update event
         """
-        alarm_severity, alarm_status = update.source.axis[ChangeAxis.POSITION].alarm
+        self._angle_update(update.source)
+
+    def _angle_update(self, source):
+        alarm_severity, alarm_status = source.alarm
         self.axis[ChangeAxis.ANGLE].set_alarm(alarm_severity, alarm_status)
         self._set_angular_displacement(self._calc_angle_from_next_component(self._incoming_beam))
 
@@ -668,17 +753,17 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         """
         super(BeamPathCalcThetaSP, self).__init__(name, movement_strategy, is_reflecting=True)
         self._angle_to = angle_to
-        for comp in self._angle_to:
-            comp.add_listener(InitUpdate, self._init_listener)
+        for beam_path_calc in self._angle_to:
+            beam_path_calc.add_listener(InitUpdate, self._init_listener)
         self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
 
-    def _init_listener(self, update):
+    def _init_listener(self, _):
         """
         Initialises the theta angle. Listens on the component(s) this theta is angled to, and is triggered once that
         component has read an initial position.
 
         Args:
-            update (InitUpdate): The update event
+            _: The init update event
         """
         autosaved_value = self.axis[ChangeAxis.ANGLE].autosaved_value
         if autosaved_value is None:
@@ -722,3 +807,66 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
             if not angle_to.incoming_beam_can_change and angle_to.is_in_beam:
                 angle_to.set_incoming_beam(self.get_outgoing_beam(), force=True)
                 break
+
+
+class DirectCalcAxis(ComponentAxis):
+    """
+    Directly connect the relative and the mantid coordinates together
+    """
+    def __init__(self, beam_path_calc, axis):
+        super(DirectCalcAxis, self).__init__(axis)
+        self.can_define_axis_position_as = True
+        self._position = None
+        self._beam_path_calc = beam_path_calc
+
+    def get_relative_to_beam(self):
+        """
+        Returns: value of the axis
+        """
+        return self._position
+
+    def set_relative_to_beam(self, position):
+        """
+        Set an axis position
+        Args:
+            position: position to set
+        """
+        super(DirectCalcAxis, self).set_relative_to_beam(position)
+        self._position = position
+
+    def _get_displacement_for(self, position_relative_to_beam):
+        """
+        Get a displacement for a given position
+        Args:
+            position_relative_to_beam: position of axis
+
+        Returns:
+            position in mantid coordinates
+        """
+        return position_relative_to_beam
+
+    def get_displacement(self):
+        """
+        Returns: The displacement of the component from the zero position, E.g. The distance along the movement
+            axis of the component from the set zero position.
+        """
+        return self._position
+
+    def _on_set_displacement(self, update):
+        """
+        Update the driver axis from mantid coordinates, e.g. motor position
+        Called from set displacement after setting alarms and before triggering physical movement
+        Args:
+            update (ReflectometryServer.ioc_driver.CorrectedReadbackUpdate): pv update for this axis
+        """
+        self._position = update.value
+
+    def init_displacement_from_motor(self, motor_position):
+        """
+        Sets the displacement read from the motor axis on startup.
+
+        Args:
+            motor_position (float): The motor position
+        """
+        self._position = motor_position
+        self._beam_path_calc.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta

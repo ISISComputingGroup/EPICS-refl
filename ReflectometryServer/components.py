@@ -2,8 +2,9 @@
 Components on a beam
 """
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
-    BeamPathCalcThetaRBV, BeamPathCalcThetaSP
+    BeamPathCalcThetaRBV, BeamPathCalcThetaSP, DirectCalcAxis
 from ReflectometryServer.movement_strategy import LinearMovementCalc
+from ReflectometryServer.geometry import ChangeAxis
 
 import logging
 
@@ -150,20 +151,22 @@ class ThetaComponent(ReflectingComponent):
                                                    self._beam_path_set_point, angle_to_for_rbv)
 
 
-# class Bench(Component):
-#     """
-#     Jaws which can tilt.
-#     """
-#     def __init__(self, name, centre_of_rotation_z, distance_from_sample_to_bench):
-#
-#         super(Bench, self).__init__(name, ArcMovement(centre_of_rotation_z))
-#         self.distance_from_sample_to_bench = distance_from_sample_to_bench
-#
-#     def calculate_front_position(self):
-#         """
-#         Returns: the angle to tilt so the jaws are perpendicular to the beam.
-#         """
-#         center_of_rotation = self.calculate_beam_interception()
-#         x = center_of_rotation.z + self.distance_from_sample_to_bench * cos(self.incoming_beam.angle)
-#         y = center_of_rotation.y + self.distance_from_sample_to_bench * sin(self.incoming_beam.angle)
-#         return Position(y, x)
+class BenchComponent(TiltingComponent):
+    """
+    Bench component, this rotates about a pivot. The pivot can be raised and lowered. Finally the bench can be see sawed
+    """
+
+    def __init__(self, name, setup):
+        """
+        Initializer.
+        Args:
+            name (str): name of the component
+            setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
+        """
+        super(TiltingComponent, self).__init__(name, setup)
+
+    def _init_beam_path_calcs(self, setup):
+        super(BenchComponent, self)._init_beam_path_calcs(setup)
+
+        self.beam_path_set_point.axis[ChangeAxis.SEESAW] = DirectCalcAxis(self.beam_path_set_point, ChangeAxis.SEESAW)
+        self.beam_path_rbv.axis[ChangeAxis.SEESAW] = DirectCalcAxis(self.beam_path_rbv, ChangeAxis.SEESAW)

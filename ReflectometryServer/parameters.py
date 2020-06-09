@@ -406,8 +406,8 @@ class AxisParameter(BeamlineParameter):
             axis (ReflectometryServer.geometry.ChangeAxis): the axis of the component
             description (str): Description of the parameter; if None defaults to the name of the parameter
             autosave (bool): True to autosave this parameter when its value is moved to; False don't
-            rbv_to_sp_tolerance (float): an error is reported if the difference between the read back value and setpoint is
-                larger than this value
+            rbv_to_sp_tolerance (float): an error is reported if the difference between the read back value and setpoint
+                is larger than this value
         """
         if description is None:
             description = name
@@ -420,10 +420,10 @@ class AxisParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
 
-        self._component.beam_path_rbv.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
         self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         rbv_axis = self._component.beam_path_rbv.axis[self._axis]
         rbv_axis.add_listener(AxisChangingUpdate, self._on_update_changing_state)
+        rbv_axis.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
 
         if rbv_axis.can_define_axis_position_as:
             self.define_current_value_as = DefineCurrentValueAsParameter(rbv_axis.define_axis_position_as, self._set_sp,
@@ -443,7 +443,8 @@ class AxisParameter(BeamlineParameter):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
         """
-        if self._axis == ChangeAxis.POSITION and not self._component.beam_path_set_point.is_in_beam:  # TODO: axis remove
+        if self._axis == ChangeAxis.POSITION and not self._component.beam_path_set_point.is_in_beam: #TODO: sort in park position ticket
+            # If the component is out of the beam the setpoint should be set to 0 for the position axis only
             init_sp = 0.0
         else:
             init_sp = self._component.beam_path_set_point.axis[self._axis].get_relative_to_beam()

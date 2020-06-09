@@ -638,7 +638,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         component.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(new_displacement, alarm_severity, alarm_status))
 
         listener.assert_called_with(ParameterReadbackUpdate(0.0, None, None))
-        assert_that(listener.call_count, is_(2))  # once for beam path and once for physcial move
+        assert_that(listener.call_count, is_(1))
         self.assertEqual(displacement_parameter.alarm_severity, None)
         self.assertEqual(displacement_parameter.alarm_status, None)
 

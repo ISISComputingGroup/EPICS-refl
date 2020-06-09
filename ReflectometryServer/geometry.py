@@ -95,3 +95,4 @@ class ChangeAxis(Enum):
     """
     POSITION = 0
     ANGLE = 1
+    SEESAW = 2
