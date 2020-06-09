@@ -70,7 +70,7 @@ class TestConfigHelper(unittest.TestCase):
         result = get_configured_beamline()
 
         assert_that(ConfigHelper.parameters, only_contains(expected1, expected2))
-        assert_that(result.parameters.values()), only_contains(expected1, expected2)
+        assert_that(result.parameters.values(), only_contains(expected1, expected2))
 
     def test_GIVEN_no_mode_added_WHEN_get_beamline_THEN_modes_are_empty(self):
 
