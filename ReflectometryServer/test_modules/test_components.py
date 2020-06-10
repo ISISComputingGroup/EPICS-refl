@@ -476,8 +476,9 @@ class TestComponentInitialisation(unittest.TestCase):
         self.STRAIGHT_BEAM = PositionAndAngle(y=0, z=0, angle=0)
         self.BOUNCED_BEAM = PositionAndAngle(y=0, z=0, angle=self.REFLECTION_ANGLE)
         self.EXPECTED_INTERCEPT = self.Z_COMPONENT
+        self.EXPECTED_ANGLE = self.REFLECTION_ANGLE
 
-        self.component = Component("component", setup=PositionAndAngle(0, self.Z_COMPONENT, 90))
+        self.component = TiltingComponent("component", setup=PositionAndAngle(0, self.Z_COMPONENT, 90))
         self.component.beam_path_set_point.set_incoming_beam(PositionAndAngle(y=0, z=0, angle=0))
 
     # tests that changing beam on init does the right thing
@@ -491,6 +492,17 @@ class TestComponentInitialisation(unittest.TestCase):
 
         assert_that(actual, is_(close_to(expected, DEFAULT_TEST_TOLERANCE)))
 
+    def test_GIVEN_component_has_autosaved_angle_WHEN_incoming_beam_changes_on_init_THEN_angle_is_beam_angle_plus_offset(self):
+        autosaved_offset = 1
+        self.component.beam_path_set_point.axis[ChangeAxis.ANGLE].autosaved_value = autosaved_offset
+        expected = self.EXPECTED_ANGLE + autosaved_offset
+
+        self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
+        actual = self.component.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement()
+
+        assert_that(actual, is_(close_to(expected, DEFAULT_TEST_TOLERANCE)))
+
+
     def test_GIVEN_component_has_autosave_position_WHEN_incoming_beam_changes_on_init_THEN_pos_relative_to_beam_is_autosaved_offset(self):
         autosaved_offset = 1
         self.component.beam_path_set_point.axis[ChangeAxis.POSITION].autosaved_value = autosaved_offset
@@ -500,11 +512,28 @@ class TestComponentInitialisation(unittest.TestCase):
 
         self.assertEqual(autosaved_offset, actual)
 
+    def test_GIVEN_component_has_autosave_angle_WHEN_incoming_beam_changes_on_init_THEN_angle_relative_to_beam_is_autosaved_offset(self):
+        autosaved_offset = 1
+        self.component.beam_path_set_point.axis[ChangeAxis.ANGLE].autosaved_value = autosaved_offset
+
+        self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
+        actual = self.component.beam_path_set_point.axis[ChangeAxis.ANGLE].get_relative_to_beam()
+
+        self.assertEqual(autosaved_offset, actual)
+
     def test_GIVEN_component_has_no_autosaved_offset_WHEN_incoming_beam_changes_on_init_THEN_displacement_is_unchanged(self):
         expected = self.component.beam_path_set_point.axis[ChangeAxis.POSITION].get_displacement()
 
         self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
         actual = self.component.beam_path_set_point.axis[ChangeAxis.POSITION].get_displacement()
+
+        self.assertEqual(expected, actual)
+
+    def test_GIVEN_component_has_no_autosaved_angle_WHEN_incoming_beam_changes_on_init_THEN_angle_is_unchanged(self):
+        expected = self.component.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement()
+
+        self.component.beam_path_set_point.set_incoming_beam(self.BOUNCED_BEAM, on_init=True)
+        actual = self.component.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement()
 
         self.assertEqual(expected, actual)
 

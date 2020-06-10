@@ -322,9 +322,10 @@ class TrackingBeamPathCalc:
             self._incoming_beam = incoming_beam
             if not self.incoming_beam_can_change:
                 self.incoming_beam_auto_save()
-            self._on_set_incoming_beam(incoming_beam)
+            self._on_set_incoming_beam(incoming_beam, on_init=on_init)
         if on_init:
-            # TODO: Check this behaviour why is angle not under the same constraint
+            # Beam has changed position so reapply autosave which is relative to beam, trigger beampath update init not
+            # beam path update
             autosaved_value = self.axis[ChangeAxis.POSITION].autosaved_value
             if autosaved_value is not None:
                 self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, autosaved_value)
@@ -334,7 +335,7 @@ class TrackingBeamPathCalc:
         else:
             self.trigger_listeners(BeamPathUpdate(self))
 
-    def _on_set_incoming_beam(self, incoming_beam):
+    def _on_set_incoming_beam(self, incoming_beam, on_init):
         """
         Function called between incoming beam having been set and the change listeners being triggered. Used in classes
         which inherit this to change behaviour on set of incoming beam. Only called when the incoming beam is allowed
@@ -342,6 +343,7 @@ class TrackingBeamPathCalc:
 
         Args:
             incoming_beam(PositionAndAngle): incoming beam
+            on_init(bool): True for this is during init; False otherwise
         """
         pass
 
@@ -602,6 +604,14 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
         if self._is_reflecting:
             self.trigger_listeners(BeamPathUpdateOnInit(self))
 
+    def _on_set_incoming_beam(self, incoming_beam, on_init):
+        if on_init:
+            # Beam has changed position so reapply autosave which is relative to beam, caller will trigger beampath
+            # update init not so this should not trigger beam path update
+            autosaved_value = self.axis[ChangeAxis.ANGLE].autosaved_value
+            if autosaved_value is not None:
+                self._angular_displacement = self._get_angle_for(autosaved_value)
+
 
 class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
     """
@@ -705,7 +715,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
             angle = float("NaN")
         return angle
 
-    def _on_set_incoming_beam(self, incoming_beam):
+    def _on_set_incoming_beam(self, incoming_beam, on_init):
         """
         Function called between incoming beam having been set and the change listeners being triggered.
         In this case we need to calculate a new angle because out angle is the angle of the mirror needed to bounce the
@@ -713,6 +723,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
 
         Args:
             incoming_beam(PositionAndAngle): incoming beam
+            on_init(bool): True if during initialisation
         """
         self._angular_displacement = self._calc_angle_from_next_component(incoming_beam)
 
