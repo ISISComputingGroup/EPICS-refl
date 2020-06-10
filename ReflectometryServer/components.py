@@ -150,6 +150,18 @@ class ThetaComponent(ReflectingComponent):
         self._beam_path_set_point.add_angle_to(component.beam_path_set_point, ChangeAxis.POSITION)
         self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point, ChangeAxis.POSITION)
 
+    def add_angle_of(self, component):
+        """
+        Add component which defines the theta angle by it angle; i.e. theta is half the angle of the component - the
+            incoming beams angle. This creates an internal list ordered by insertion order. First enabled component is
+            used to define theta.
+        Args:
+            component (ReflectometryServer.components.Component): component that defines theta
+
+        """
+        self._beam_path_set_point.add_angle_to(component.beam_path_set_point, ChangeAxis.ANGLE)
+        self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point, ChangeAxis.ANGLE)
+
     def _init_beam_path_calcs(self, setup):
         linear_movement_calc = LinearMovementCalc(setup)
 
