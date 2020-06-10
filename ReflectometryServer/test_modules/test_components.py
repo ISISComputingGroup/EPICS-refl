@@ -5,7 +5,7 @@ from math import tan, radians, isnan
 from CaChannel._ca import AlarmSeverity
 from hamcrest import *
 from mock import Mock, patch, call
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 from ReflectometryServer import AxisParameter
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, DefineValueAsEvent, PhysicalMoveUpdate
@@ -716,29 +716,33 @@ class TestComponentDisablingAndAutosaveInit(unittest.TestCase):
                                                         call(expected_name + "_sp", expected_incoming_beam_sp)], any_order=True)
 
 
-class TestBench(unittest.TestCase):
-
+@parameterized_class(('axis'), [(ChangeAxis.SEESAW,),
+                                (ChangeAxis.CHI,),
+                                (ChangeAxis.TRANS, ),
+                                (ChangeAxis.PSI,)])
+class TestDirectAxisWithBenchComponent(unittest.TestCase):
+    
     def test_GIVEN_seesaw_updated_WHEN_get_see_saw_THEN_updated_value_is_read(self):
         expected_result = 10
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
-        param = AxisParameter("BENCHSEESAW", bench, ChangeAxis.SEESAW)
+        param = AxisParameter("PARAM", bench, self.axis)
 
-        bench.beam_path_rbv.axis[ChangeAxis.SEESAW].set_displacement(CorrectedReadbackUpdate(expected_result, None, None))
-        result = bench.beam_path_rbv.axis[ChangeAxis.SEESAW].get_relative_to_beam()
+        bench.beam_path_rbv.axis[self.axis].set_displacement(CorrectedReadbackUpdate(expected_result, None, None))
+        result = bench.beam_path_rbv.axis[self.axis].get_relative_to_beam()
 
         assert_that(result, is_(expected_result))
 
     def test_GIVEN_seesaw_updated_with_alarm_WHEN_get_see_saw_THEN_alarm_updated(self):
         expected_result = (AlarmSeverity.Major, AlarmStatus.Lolo)
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
-        param = AxisParameter("BENCHSEESAW", bench, ChangeAxis.SEESAW)
+        param = AxisParameter("PARAM", bench, self.axis)
 
-        bench.beam_path_rbv.axis[ChangeAxis.SEESAW].set_displacement(CorrectedReadbackUpdate(expected_result, *expected_result))
-        result = bench.beam_path_rbv.axis[ChangeAxis.SEESAW].alarm
+        bench.beam_path_rbv.axis[self.axis].set_displacement(CorrectedReadbackUpdate(expected_result, *expected_result))
+        result = bench.beam_path_rbv.axis[self.axis].alarm
 
         assert_that(result, is_(expected_result))
 
-    def test_GIVEN_seesaw_updated_WHEN_THEN_phyiscal_move_triggered(self):
+    def test_GIVEN_seesaw_updated_WHEN_THEN_physcal_move_triggered(self):
         self.physical_move = None
 
         def mylistener(pyhsical_move):
@@ -746,22 +750,22 @@ class TestBench(unittest.TestCase):
 
         expected_result = (AlarmSeverity.Major, AlarmStatus.Lolo)
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
-        param = AxisParameter("BENCHSEESAW", bench, ChangeAxis.SEESAW)
-        bench.beam_path_rbv.axis[ChangeAxis.SEESAW].add_listener(PhysicalMoveUpdate, mylistener)
+        param = AxisParameter("PARAM", bench, self.axis)
+        bench.beam_path_rbv.axis[self.axis].add_listener(PhysicalMoveUpdate, mylistener)
 
-        bench.beam_path_rbv.axis[ChangeAxis.SEESAW].set_displacement(CorrectedReadbackUpdate(expected_result, *expected_result))
+        bench.beam_path_rbv.axis[self.axis].set_displacement(CorrectedReadbackUpdate(expected_result, *expected_result))
         result = self.physical_move.source
 
-        assert_that(result, is_(bench.beam_path_rbv.axis[ChangeAxis.SEESAW]))
+        assert_that(result, is_(bench.beam_path_rbv.axis[self.axis]))
 
     def test_GIVEN_set_seesaw_WHEN_get_axis_value_THEN_value_returned_and_axis_changed(self):
         expected_result = 10
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
-        param = AxisParameter("BENCHSEESAW", bench, ChangeAxis.SEESAW)
+        param = AxisParameter("PARAM", bench, self.axis)
 
         param.sp = expected_result
-        result = bench.beam_path_set_point.axis[ChangeAxis.SEESAW].get_displacement()
-        changed = bench.beam_path_set_point.axis[ChangeAxis.SEESAW].is_changed
+        result = bench.beam_path_set_point.axis[self.axis].get_displacement()
+        changed = bench.beam_path_set_point.axis[self.axis].is_changed
 
         assert_that(result, is_(expected_result))
         assert_that(changed, is_(True), "axis is changed")
@@ -772,21 +776,21 @@ class TestBench(unittest.TestCase):
             self.define_event = define_value
         expected_result = 10
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
-        bench.beam_path_rbv.axis[ChangeAxis.SEESAW].add_listener(DefineValueAsEvent, mylistener)
-        param = AxisParameter("BENCHSEESAW", bench, ChangeAxis.SEESAW)
+        bench.beam_path_rbv.axis[self.axis].add_listener(DefineValueAsEvent, mylistener)
+        param = AxisParameter("PARAM", bench, self.axis)
 
         param.define_current_value_as.new_value = expected_result
         result_pos = self.define_event.new_position
         result_axis = self.define_event.change_axis
 
         assert_that(result_pos, is_(expected_result))
-        assert_that(result_axis, is_(ChangeAxis.SEESAW))
+        assert_that(result_axis, is_(self.axis))
 
     def test_GIVEN_seesaw_parameter_WHEN_init_from_motor_on_component_THEN_parameter_sp_is_set(self):
         expected_result = 10
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
-        param = AxisParameter("BENCHSEESAW", bench, ChangeAxis.SEESAW)
-        bench.beam_path_set_point.axis[ChangeAxis.SEESAW].init_displacement_from_motor(expected_result)
+        param = AxisParameter("PARAM", bench, self.axis)
+        bench.beam_path_set_point.axis[self.axis].init_displacement_from_motor(expected_result)
 
         result = param.sp
 

@@ -25,6 +25,9 @@ class Component:
         """
         self._name = name
         self._init_beam_path_calcs(setup)
+        for axis_to_add in [ChangeAxis.CHI, ChangeAxis.PSI, ChangeAxis.TRANS]:
+            self._beam_path_set_point.axis[axis_to_add] = DirectCalcAxis(axis_to_add)
+            self._beam_path_rbv.axis[axis_to_add] = DirectCalcAxis(axis_to_add)
 
     def __repr__(self):
         return "{}({} beampath sp:{!r}, beampath rbv:{!r})), ".format(
