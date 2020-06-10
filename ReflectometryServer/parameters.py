@@ -418,7 +418,8 @@ class AxisParameter(BeamlineParameter):
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
-            self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
+            self._component.beam_path_set_point.axis[self._axis].add_listener(InitUpdate,
+                                                                              self._initialise_sp_from_motor)
 
         self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         rbv_axis = self._component.beam_path_rbv.axis[self._axis]
@@ -520,7 +521,8 @@ class InBeamParameter(BeamlineParameter):
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
-            self._component.beam_path_set_point.add_listener(InitUpdate, self._initialise_sp_from_motor)
+            self._component.beam_path_set_point.axis[ChangeAxis.POSITION].add_listener(InitUpdate,
+                                                                                       self._initialise_sp_from_motor)
         self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         self._component.beam_path_rbv.axis[ChangeAxis.POSITION].add_listener(AxisChangingUpdate,
                                                                              self._on_update_changing_state)

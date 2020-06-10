@@ -168,5 +168,5 @@ class BenchComponent(TiltingComponent):
     def _init_beam_path_calcs(self, setup):
         super(BenchComponent, self)._init_beam_path_calcs(setup)
 
-        self.beam_path_set_point.axis[ChangeAxis.SEESAW] = DirectCalcAxis(self.beam_path_set_point, ChangeAxis.SEESAW)
-        self.beam_path_rbv.axis[ChangeAxis.SEESAW] = DirectCalcAxis(self.beam_path_rbv, ChangeAxis.SEESAW)
+        self.beam_path_set_point.axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
+        self.beam_path_rbv.axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)

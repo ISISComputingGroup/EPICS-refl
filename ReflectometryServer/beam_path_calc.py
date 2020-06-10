@@ -40,7 +40,7 @@ DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
     "change_axis"])  # the axis it applies to of type ChangeAxis
 
 
-@observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate)
+@observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate)
 class ComponentAxis(metaclass=ABCMeta):
     def __init__(self, axis):
         self._is_changing = False
@@ -261,7 +261,7 @@ class BeamPathCalcAxis(ComponentAxis):
         raise TypeError("Axis does not support init_displacement_from_motor")
 
 
-@observable(BeamPathUpdate, BeamPathUpdateOnInit, InitUpdate)
+@observable(BeamPathUpdate, BeamPathUpdateOnInit)
 class TrackingBeamPathCalc:
     """
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
@@ -307,7 +307,7 @@ class TrackingBeamPathCalc:
             value(float): The motor position
         """
         self._movement_strategy.set_displacement(value)
-        self.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
+        self.axis[ChangeAxis.POSITION].trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
 
     def set_incoming_beam(self, incoming_beam, force=False, on_init=False):
         """
@@ -324,10 +324,12 @@ class TrackingBeamPathCalc:
                 self.incoming_beam_auto_save()
             self._on_set_incoming_beam(incoming_beam)
         if on_init:
+            # TODO: Check this behaviour why is angle not under the same constraint
             autosaved_value = self.axis[ChangeAxis.POSITION].autosaved_value
             if autosaved_value is not None:
                 self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, autosaved_value)
-            self.trigger_listeners(InitUpdate())
+            for axis in self.axis.values():
+                axis.trigger_listeners(InitUpdate())
             self.trigger_listeners(BeamPathUpdateOnInit(self))
         else:
             self.trigger_listeners(BeamPathUpdate(self))
@@ -596,7 +598,7 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
             angle(float): The angle read from the motor
         """
         self._angular_displacement = angle
-        self.trigger_listeners(InitUpdate())
+        self.axis[ChangeAxis.ANGLE].trigger_listeners(InitUpdate())
         if self._is_reflecting:
             self.trigger_listeners(BeamPathUpdateOnInit(self))
 
@@ -744,7 +746,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         super(BeamPathCalcThetaSP, self).__init__(name, movement_strategy, is_reflecting=True)
         self._angle_to = angle_to
         for beam_path_calc in self._angle_to:
-            beam_path_calc.add_listener(InitUpdate, self._init_listener)
+            beam_path_calc.axis[ChangeAxis.POSITION].add_listener(InitUpdate, self._init_listener)
         self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
 
     def _init_listener(self, _):
@@ -761,7 +763,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         else:
             self._angular_displacement = self._incoming_beam.angle + autosaved_value
 
-        self.trigger_listeners(InitUpdate())
+        self.axis[ChangeAxis.ANGLE].trigger_listeners(InitUpdate())
         self.trigger_listeners(BeamPathUpdate(self))
 
     def _calc_angle_from_next_component(self, incoming_beam):
@@ -803,11 +805,10 @@ class DirectCalcAxis(ComponentAxis):
     """
     Directly connect the relative and the mantid coordinates together
     """
-    def __init__(self, beam_path_calc, axis):
+    def __init__(self, axis):
         super(DirectCalcAxis, self).__init__(axis)
         self.can_define_axis_position_as = True
         self._position = None
-        self._beam_path_calc = beam_path_calc
 
     def get_relative_to_beam(self):
         """
@@ -859,4 +860,4 @@ class DirectCalcAxis(ComponentAxis):
             motor_position (float): The motor position
         """
         self._position = motor_position
-        self._beam_path_calc.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
+        self.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
