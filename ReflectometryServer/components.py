@@ -130,28 +130,32 @@ class ThetaComponent(ReflectingComponent):
     Components which reflects the beam from an reflecting surface at an angle.
     """
 
-    def __init__(self, name, setup, angle_to):
+    def __init__(self, name, setup):
         """
         Initializer.
         Args:
             name (str): name of the component
             setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
-            angle_to (list[ReflectometryServer.components.Component]): list of components that the readback
-                angle should calculated to, ordered by preference. First enabled component is used.
         """
-        self.angle_to_components = angle_to
         super(ReflectingComponent, self).__init__(name, setup)
+
+    def add_angle_to(self, component):
+        """
+        Add component which defines the theta angle by it position. This creates an internal list ordered by insertion
+            order. First enabled component is used to define theta.
+        Args:
+            component (ReflectometryServer.components.Component): component that defines theta
+
+        """
+        self._beam_path_set_point.add_angle_to(component.beam_path_set_point, ChangeAxis.POSITION)
+        self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point, ChangeAxis.POSITION)
 
     def _init_beam_path_calcs(self, setup):
         linear_movement_calc = LinearMovementCalc(setup)
 
-        angle_to_for_sp = [comp.beam_path_set_point for comp in self.angle_to_components]
-        angle_to_for_rbv = [(comp.beam_path_rbv, comp.beam_path_set_point) for comp in self.angle_to_components]
-
-        self._beam_path_set_point = BeamPathCalcThetaSP("{}_sp".format(self.name), linear_movement_calc,
-                                                        angle_to_for_sp)
+        self._beam_path_set_point = BeamPathCalcThetaSP("{}_sp".format(self.name), linear_movement_calc)
         self._beam_path_rbv = BeamPathCalcThetaRBV("{}_rbv".format(self.name), linear_movement_calc,
-                                                   self._beam_path_set_point, angle_to_for_rbv)
+                                                   self._beam_path_set_point)
 
 
 class BenchComponent(TiltingComponent):

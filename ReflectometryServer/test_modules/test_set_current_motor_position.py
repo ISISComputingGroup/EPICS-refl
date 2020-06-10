@@ -35,9 +35,10 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         position_to_set = 1
         expected_position = position_to_set + beam_path_height
+        theta_component = ThetaComponent("comp", PositionAndAngle(0, 0, 90))
         component = Component("comp", PositionAndAngle(0, 1, 90))
         component.beam_path_rbv.set_incoming_beam(incoming_beam)
-        theta_component = ThetaComponent("comp", PositionAndAngle(0, 0, 90), angle_to=[component])
+        theta_component.add_angle_to(component)
         parameter = AxisParameter("param", component, ChangeAxis.POSITION)
         theta = AxisParameter("theta", theta_component, ChangeAxis.ANGLE)
         component.beam_path_rbv.axis[ChangeAxis.POSITION].add_listener(DefineValueAsEvent, _listener)
@@ -88,9 +89,9 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         assert_that(self.set_position_to.change_axis, is_(ChangeAxis.ANGLE))
 
     def test_GIVEN_angle_beamline_parameter_and_theta_component_WHEN_set_position_to_THEN_error(self):
-
+        component = ThetaComponent("comp", PositionAndAngle(0, 0, 90))
         detector = Component("detector", PositionAndAngle(1, 0, 90))
-        component = ThetaComponent("comp", PositionAndAngle(0, 0, 90), angle_to=[detector])
+        component.add_angle_to(detector)
         parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
 
         assert_that(parameter.define_current_value_as, is_(None))

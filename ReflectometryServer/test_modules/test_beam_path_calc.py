@@ -5,7 +5,8 @@ from hamcrest import *
 from mock import Mock, patch, call
 from parameterized import parameterized
 
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathCalcAxis
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathCalcAxis, BeamPathCalcThetaSP, \
+    BeamPathCalcThetaRBV
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle, ChangeAxis
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
@@ -49,6 +50,24 @@ class TestBeamCalcPath(unittest.TestCase):
 
         assert_that(calling(calc_axis.init_displacement_from_motor).with_args(None),
                     raises(TypeError, pattern="Axis does not support init_displacement_from_motor"))
+
+    def test_GIVEN_theta_sp_beam_path_calc_WHEN_add_CHI_axis_and_update_THEN_error(self):
+
+        theta_sp = BeamPathCalcThetaSP("theta", None)
+        comp = Component("comp", PositionAndAngle(0, 0, 0))
+        theta_sp.add_angle_to(comp.beam_path_rbv, ChangeAxis.CHI)
+
+        assert_that(calling(comp.beam_path_rbv.axis[ChangeAxis.CHI].init_displacement_from_motor).with_args(10),
+                    raises(RuntimeError))
+
+    def test_GIVEN_theta_rbv_beam_path_calc_WHEN_add_CHI_axis_and_set_displacement_THEN_error(self):
+
+        theta_sp = BeamPathCalcThetaRBV("theta", None, None)
+        comp = Component("comp", PositionAndAngle(0, 0, 0))
+        theta_sp.add_angle_to(comp.beam_path_rbv, comp.beam_path_set_point, ChangeAxis.CHI)
+
+        assert_that(calling(comp.beam_path_rbv.axis[ChangeAxis.CHI].set_displacement).with_args(
+            CorrectedReadbackUpdate(10, None, None)), raises(RuntimeError))
 
 
 if __name__ == '__main__':

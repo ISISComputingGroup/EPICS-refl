@@ -284,7 +284,7 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_no_next_component_WHEN_get_read_back_THEN_nan_returned(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 10, 90), angle_to=[])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 10, 90))
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.axis[ChangeAxis.ANGLE].get_relative_to_beam()
@@ -296,7 +296,8 @@ class TestThetaComponent(unittest.TestCase):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = False
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
+        theta.add_angle_to(next_component)
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.axis[ChangeAxis.ANGLE].get_relative_to_beam()
@@ -306,10 +307,11 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_in_beam_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(0, None, None))
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta.add_angle_to(next_component)
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.axis[ChangeAxis.ANGLE].get_relative_to_beam()
@@ -321,10 +323,11 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_in_beam__and_at_45_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(5, None, None))
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta.add_angle_to(next_component)
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.axis[ChangeAxis.ANGLE].get_relative_to_beam()
@@ -334,10 +337,11 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_in_beam__and_at_90_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
         next_component = Component("comp", setup=PositionAndAngle(0, 5, 90))
         next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(5, None, None))
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta.add_angle_to(next_component)
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.axis[ChangeAxis.ANGLE].get_relative_to_beam()
@@ -356,7 +360,9 @@ class TestThetaComponent(unittest.TestCase):
         next_but_one_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(5, None, None))
         next_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
 
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
+        theta.add_angle_to(next_component)
+        theta.add_angle_to(next_but_one_component)
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.axis[ChangeAxis.ANGLE].get_relative_to_beam()
@@ -370,17 +376,21 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_in_beam__and_next_component_but_one_is_also_in_beam__WHEN_get_read_back_THEN_half_angle_to_first_component_is_readback_and_theta_cal_set_only_on_first_component(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
+
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
+
         next_component = Component("comp1", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
         next_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(5, None, None))
+        theta.add_angle_to(next_component)
 
         next_but_one_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_but_one_component.beam_path_rbv.is_in_beam = True
         next_but_one_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(0, None, None))
         next_but_one_component.beam_path_rbv.substitute_incoming_beam_for_displacement = "Not None"
+        theta.add_angle_to(next_but_one_component)
 
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component, next_but_one_component])
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.axis[ChangeAxis.ANGLE].get_relative_to_beam()
@@ -394,10 +404,13 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_in_beam__WHEN_set_next_component_displacement_THEN_change_in_beam_path_triggered(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
+
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(0, None, None))
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta.add_angle_to(next_component)
+
         theta.beam_path_rbv.set_incoming_beam(beam_start)
         listener = Mock()
         theta.beam_path_rbv.add_listener(BeamPathUpdate, listener)
@@ -409,10 +422,11 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_in_beam__WHEN_set_next_component_incoming_beam_THEN_change_in_beam_path_is_not_triggered(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(0, None, None))
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta.add_angle_to(next_component)
         theta.beam_path_rbv.set_incoming_beam(beam_start)
         listener = Mock()
         theta.beam_path_rbv.add_listener(BeamPathUpdate, listener)
@@ -424,10 +438,11 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_in_beam_and_at_45_degrees_and_not_on_axis_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=10, z=0, angle=0)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(15, None, None))
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta.add_angle_to(next_component)
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = theta.beam_path_rbv.axis[ChangeAxis.ANGLE].get_relative_to_beam()
@@ -436,11 +451,13 @@ class TestThetaComponent(unittest.TestCase):
 
     def test_GIVEN_next_component_is_in_beam__theta_is_set_to_0_and_component_is_at_45_degrees_WHEN_get_read_back_from_component_THEN_component_readback_is_relative_to_setpoint_beam_not_readback_beam_and_is_not_0_and_outgoing_beam_is_readback_outgoing_beam(self):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
+        theta.add_angle_to(next_component)
         expected_position = 5
         next_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(expected_position, None, None))
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+
         theta.beam_path_set_point.set_incoming_beam(beam_start)
         theta.beam_path_set_point.axis[ChangeAxis.ANGLE].set_relative_to_beam(0)
         theta.beam_path_rbv.set_incoming_beam(beam_start)
@@ -455,12 +472,13 @@ class TestThetaComponent(unittest.TestCase):
     def test_GIVEN_next_component_is_in_beam_and_diabled_WHEN_theta_rbv_changed_THEN_beampath_on_rbv_is_updated(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
+        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
         next_component = TiltingComponent("comp", setup=PositionAndAngle(0, 10, 90))
         next_component.beam_path_rbv.is_in_beam = True
         next_component.beam_path_rbv.incoming_beam_can_change = False
         next_component.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(0, None, None))
         next_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(5, None, None))
-        theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90), angle_to=[next_component])
+        theta.add_angle_to(next_component)
         theta.beam_path_rbv.set_incoming_beam(beam_start)
 
         result = next_component.beam_path_rbv.get_outgoing_beam()
@@ -550,8 +568,9 @@ class TestComponentInitialisation(unittest.TestCase):
     def test_GIVEN_theta_angled_to_autosaved_comp_WHEN_initialising_comp_THEN_theta_is_init_with_regards_to_beam_intercept(self):
         z_theta = self.Z_COMPONENT / 2
         offset_comp = 3
+        self.theta = ThetaComponent("theta", PositionAndAngle(0, z_theta, 90))
         self.component.beam_path_set_point.axis[ChangeAxis.POSITION].autosaved_value = offset_comp
-        self.theta = ThetaComponent("theta", PositionAndAngle(0, z_theta, 90), angle_to=[self.component])
+        self.theta.add_angle_to(self.component)
         self.theta.beam_path_set_point.set_incoming_beam(self.STRAIGHT_BEAM)
         expected = self.REFLECTION_ANGLE / 2.0
 
@@ -609,7 +628,8 @@ class TestComponentAlarms(unittest.TestCase):
         self.assertEqual(self.NO_ALARM, actual_alarm_info)
 
     def test_GIVEN_theta_angled_to_component_WHEN_updating_displacement_with_alarms_on_component_THEN_theta_angle_alarm_set(self):
-        self.theta = ThetaComponent("theta", setup=PositionAndAngle(0, 1, 90), angle_to=[self.component])
+        self.theta = ThetaComponent("theta", setup=PositionAndAngle(0, 1, 90))
+        self.theta.add_angle_to(self.component)
         update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
 
         self.component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(update)
@@ -618,7 +638,8 @@ class TestComponentAlarms(unittest.TestCase):
         self.assertEqual(self.ALARM, actual_alarm_info)
 
     def test_GIVEN_theta_angled_to_component_WHEN_updating_angle_with_alarms_on_component_THEN_theta_angle_is_unchanged(self):
-        self.theta = ThetaComponent("theta", setup=PositionAndAngle(0, 1, 90), angle_to=[self.component])
+        self.theta = ThetaComponent("theta", setup=PositionAndAngle(0, 1, 90))
+        self.theta.add_angle_to(self.component)
         update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
 
         self.component.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(update)

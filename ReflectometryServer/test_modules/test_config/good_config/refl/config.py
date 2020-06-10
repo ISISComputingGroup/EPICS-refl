@@ -28,9 +28,8 @@ def get_beamline():
     sample = add_component(ReflectingComponent("sample", PositionAndAngle(0.0, 10, perp_to_floor)))
     add_parameter(AxisParameter("samplepos", sample, ChangeAxis.POSITION), modes=[nr, pnr])
 
-    theta_comp = add_component_marker()
-    theta_parameter =add_parameter_marker()
-
+    theta = add_component(ThetaComponent("THETA", PositionAndAngle(0, 10, perp_to_floor)))
+    add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE), modes=[nr, pnr])
 
     s3 = add_component(Component("s3", PositionAndAngle(0.0, 15, perp_to_floor)))
     add_parameter(AxisParameter("slit3pos", s3, ChangeAxis.POSITION), modes=[nr, pnr])
@@ -40,10 +39,7 @@ def get_beamline():
 
     point_det = add_component(TiltingComponent("det", PositionAndAngle(0.0, 20, perp_to_floor)))
     add_parameter(AxisParameter("detpos", point_det, ChangeAxis.POSITION), modes=[nr, pnr, disabled])
-
-    theta = add_component(ThetaComponent("THETA", PositionAndAngle(0, 10, perp_to_floor), angle_to=[point_det]),
-                          marker=theta_comp)
-    add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE), modes=[nr, pnr], marker=theta_parameter)
+    theta.add_angle_to(point_det)
 
     add_beam_start(PositionAndAngle(0.0, 0.0, beam_angle_natural))
 

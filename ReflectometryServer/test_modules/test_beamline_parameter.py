@@ -567,7 +567,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
     def test_GIVEN_theta_WHEN_no_next_component_THEN_value_is_nan(self):
 
-        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 10, 90), angle_to=[])
+        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 10, 90))
         sample.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 45))
         theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
 
@@ -584,7 +584,8 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         s3.beam_path_rbv.set_incoming_beam(beam_before_and_after_sample)
         s3.beam_path_set_point.set_incoming_beam(beam_before_and_after_sample)
 
-        sample = ThetaComponent("sample", setup=PositionAndAngle(10, 10, 135), angle_to=[s3])
+        sample = ThetaComponent("sample", setup=PositionAndAngle(10, 10, 135))
+        sample.add_angle_to(s3)
         sample.beam_path_rbv.set_incoming_beam(beam_before_and_after_sample)
         theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
 
@@ -602,7 +603,8 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         s3.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, expected_theta * 2))
         s3.beam_path_set_point.axis[ChangeAxis.POSITION].set_relative_to_beam(0)
 
-        theta_comp = ThetaComponent("sample", setup=PositionAndAngle(1, 0, 90), angle_to=[s3])
+        theta_comp = ThetaComponent("sample", setup=PositionAndAngle(1, 0, 90))
+        theta_comp.add_angle_to(s3)
         theta_comp.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
 
         theta = AxisParameter("param", theta_comp, ChangeAxis.ANGLE)
@@ -721,11 +723,13 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
 
     def test_GIVEN_theta_with_0_deg_beam_and_next_component_in_beam_but_disabled_WHEN_set_theta_to_45_THEN_component_sp_is_at_45_degrees(self):
+        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90))
+        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
 
         detector = Component("detector", setup=PositionAndAngle(0, 10, 90))
         detector.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector])
-        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        sample.add_angle_to(detector)
+
         theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
         detector.set_incoming_beam_can_change(False)
 
@@ -736,10 +740,12 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
 
     def test_GIVEN_theta_with_0_deg_beam_and_next_component_in_beam_is_not_disabled_WHEN_set_theta_to_45_THEN_component_sp_is_not_altered(self):
         # this calculation will be done via the beamline not the forced copy of output beam
+        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90))
+        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         detector = Component("detector", setup=PositionAndAngle(0, 10, 90))
         detector.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector])
-        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        sample.add_angle_to(detector)
+
         theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
         detector.set_incoming_beam_can_change(True)
 
@@ -750,12 +756,14 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
 
     def test_GIVEN_theta_with_0_deg_beam_and_next_two_component_in_beam_and_are_disabled_WHEN_set_theta_to_45_THEN_first_component_altered_second_one_not(self):
         # this calculation will be done via the beamline not the forced copy of output beam
+        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90))
+        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         detector = Component("detector", setup=PositionAndAngle(0, 10, 90))
         detector.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        sample.add_angle_to(detector)
         detector2 = Component("detector", setup=PositionAndAngle(0, 20, 90))
         detector2.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector, detector2])
-        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        sample.add_angle_to(detector2)
         theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
         detector.set_incoming_beam_can_change(False)
         detector2.set_incoming_beam_can_change(False)
@@ -769,12 +777,14 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
 
     def test_GIVEN_theta_with_0_deg_beam_and_next_first_component_out_of_beam_second_in_beam_and_are_disabled_WHEN_set_theta_to_45_THEN_first_component_not_altered_second_one_is(self):
         # this calculation will be done via the beamline not the forced copy of output beam
+        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90))
+        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         detector = Component("detector", setup=PositionAndAngle(0, 10, 90))
         detector.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        sample.add_angle_to(detector)
         detector2 = Component("detector", setup=PositionAndAngle(0, 20, 90))
         detector2.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        sample = ThetaComponent("sample", setup=PositionAndAngle(0, 0, 90), angle_to=[detector, detector2])
-        sample.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        sample.add_angle_to(detector2)
         theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
         detector.set_incoming_beam_can_change(False)
         detector.beam_path_set_point.is_in_beam = False

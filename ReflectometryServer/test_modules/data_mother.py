@@ -5,7 +5,8 @@ from math import tan, radians, sin, cos
 
 from mock import Mock
 
-from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider, ChangeAxis
+from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider, ChangeAxis, add_mode, \
+    add_component, add_parameter, ConfigHelper, add_driver, add_beam_start, get_configured_beamline
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from server_common.observable import observable
@@ -92,23 +93,27 @@ class DataMother:
         Returns: beamline, axes
 
         """
-        # COMPONENTS
-        s1 = Component("s1_comp", PositionAndAngle(0.0, 1 * spacing, 90))
-        s3 = Component("s3_comp", PositionAndAngle(0.0, 3 * spacing, 90))
+        ConfigHelper.reset()
 
-        detector = TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90))
-        theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90), angle_to=[detector])
-        comps = [s1, theta, s3, detector]
+        nr = add_mode("NR")
+        disabled = add_mode("DISABLED", is_disabled=True)
 
-        # BEAMLINE PARAMETERS
-        slit1_pos = AxisParameter("s1", s1, ChangeAxis.POSITION)
-        slit3_pos = AxisParameter("s3", s3, ChangeAxis.POSITION)
-        theta_ang = AxisParameter("theta", theta, ChangeAxis.ANGLE)
-        detector_position = AxisParameter("det", detector, ChangeAxis.POSITION)
-        detector_angle = AxisParameter("det_angle", detector, ChangeAxis.ANGLE)
-        params = [slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle]
+        #s1
+        s1 = add_component(Component("s1_comp", PositionAndAngle(0.0, 1 * spacing, 90)))
+        add_parameter(AxisParameter("s1", s1, ChangeAxis.POSITION), modes = [nr])
 
-        # DRIVERS
+        theta = add_component(ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90)))
+        add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE), modes=[nr, disabled])
+
+        s3 = add_component(Component("s3_comp", PositionAndAngle(0.0, 3 * spacing, 90)))
+        add_parameter(AxisParameter("s3", s3, ChangeAxis.POSITION), modes=[nr])
+
+        detector = add_component(TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90)))
+        theta.add_angle_to(detector)
+
+        add_parameter(AxisParameter("det", detector, ChangeAxis.POSITION), modes = [nr, disabled])
+        add_parameter(AxisParameter("det_angle", detector, ChangeAxis.ANGLE), modes = [nr, disabled])
+
         s1_axis = create_mock_axis("MOT:MTR0101", 0, 1)
         s3_axis = create_mock_axis("MOT:MTR0102", 0, 1)
         det_axis = create_mock_axis("MOT:MTR0104", 0, 1)
@@ -117,19 +122,15 @@ class DataMother:
                   "s3_axis": s3_axis,
                   "det_axis": det_axis,
                   "det_angle_axis": det_angle_axis}
-        drives = [IocDriver(s1, ChangeAxis.POSITION, s1_axis),
-                  IocDriver(s3, ChangeAxis.POSITION, s3_axis),
-                  IocDriver(detector, ChangeAxis.POSITION, det_axis),
-                  IocDriver(detector, ChangeAxis.ANGLE, det_angle_axis)]
-        # MODES
-        nr_inits = {}
-        nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
-        disabled_mode = BeamlineMode("DISABLED", [param.name for param in params], nr_inits, is_disabled=True)
-        modes = [nr_mode, disabled_mode]
-        beam_start = PositionAndAngle(0.0, 0.0, 0.0)
-        bl = Beamline(comps, params, drives, modes, beam_start)
+
+        add_driver(IocDriver(s1, ChangeAxis.POSITION, s1_axis))
+        add_driver(IocDriver(s3, ChangeAxis.POSITION, s3_axis))
+        add_driver(IocDriver(detector, ChangeAxis.POSITION, det_axis))
+        add_driver(IocDriver(detector, ChangeAxis.ANGLE, det_angle_axis))
+        add_beam_start(PositionAndAngle(0.0, 0.0, 0.0))
+        bl = get_configured_beamline()
         if initilise_mode_nr:
-            bl.active_mode = nr_mode.name
+            bl.active_mode = nr
         return bl, axes
 
     @staticmethod
@@ -149,8 +150,9 @@ class DataMother:
         drives = []
 
         # COMPONENTS
+        theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90))
         detector = TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90))
-        theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90), [detector])
+        theta.add_angle_to(detector)
         comps = [theta]
 
         # BEAMLINE PARAMETERS
@@ -195,7 +197,8 @@ class DataMother:
         z_sample_to_det = 2
         sm_comp = ReflectingComponent("sm_comp", PositionAndAngle(0.0, 0, perp_to_floor_angle_in_mantid))
         detector_comp = TiltingComponent("detector_comp", PositionAndAngle(0.0, z_sm_to_sample + z_sample_to_det, perp_to_floor_angle_in_mantid))
-        theta_comp = ThetaComponent("theta_comp", PositionAndAngle(0.0, z_sm_to_sample, perp_to_floor_angle_in_mantid), [detector_comp])
+        theta_comp = ThetaComponent("theta_comp", PositionAndAngle(0.0, z_sm_to_sample, perp_to_floor_angle_in_mantid))
+        theta_comp.add_angle_to(detector_comp)
 
         comps = [sm_comp, theta_comp, detector_comp]
 
