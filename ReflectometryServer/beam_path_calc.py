@@ -10,6 +10,7 @@ from typing import Dict
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
 
+from server_common.channel_access import AlarmSeverity, AlarmStatus
 from server_common.observable import observable
 from ReflectometryServer.file_io import disable_mode_autosave
 
@@ -47,7 +48,7 @@ class ComponentAxis(metaclass=ABCMeta):
         self.autosaved_value = None
         self._is_changed = False
         self._axis = axis
-        self._alarm = (None, None)
+        self._alarm = (AlarmSeverity.Invalid, AlarmStatus.UDF)
         self.can_define_axis_position_as = False
 
     @abstractmethod
@@ -71,8 +72,8 @@ class ComponentAxis(metaclass=ABCMeta):
         Update the alarm info for the angle axis of this component.
 
         Args:
-            alarm_severity (ReflectometryServer.pv_wrapper.AlarmSeverity): severity of any alarm
-            alarm_status (ReflectometryServer.pv_wrapper.AlarmCondition): the alarm status
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmStatus): the alarm status
         """
         self._alarm = (alarm_severity, alarm_status)
 
@@ -703,7 +704,10 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
 
                     angle_of_outgoing_beam = degrees(atan2(opp, adj))
                 elif axis == ChangeAxis.ANGLE:
-                    angle_of_outgoing_beam = readback_beam_path_calc.axis[ChangeAxis.ANGLE].get_displacement()
+                    # rbv should not include setpoint offset angle
+                    other_angle = readback_beam_path_calc.axis[ChangeAxis.ANGLE].get_displacement()
+                    other_setpoint_offset = set_point_beam_path_calc.axis[ChangeAxis.ANGLE].get_relative_to_beam()
+                    angle_of_outgoing_beam = other_angle - other_setpoint_offset
                 else:
                     raise RuntimeError("Theta can not depend on the {} axis".format(axis))
 
@@ -843,7 +847,7 @@ class DirectCalcAxis(ComponentAxis):
     def __init__(self, axis):
         super(DirectCalcAxis, self).__init__(axis)
         self.can_define_axis_position_as = True
-        self._position = None
+        self._position = 0.0
 
     def get_relative_to_beam(self):
         """

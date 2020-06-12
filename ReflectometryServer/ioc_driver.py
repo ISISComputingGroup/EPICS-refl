@@ -48,7 +48,7 @@ class IocDriver:
         self._component_axis = component_axis
         self._motor_axis = motor_axis
         self.name = motor_axis.name
-        if out_of_beam_positions is None or component_axis is not ChangeAxis.POSITION:  # TODO: sort in park position ticket
+        if out_of_beam_positions is None or not component_axis == ChangeAxis.POSITION:  # TODO: sort in park position ticket
             self._out_of_beam_lookup = None
         else:
             try:
@@ -257,7 +257,7 @@ class IocDriver:
         """
         Returns: position that the set point axis is set to
         """
-        if self._component.beam_path_set_point.is_in_beam or self._component_axis == ChangeAxis.ANGLE:  # TODO Fix when multiple park postions
+        if self._component.beam_path_set_point.is_in_beam or not self._component_axis == ChangeAxis.POSITION:  # TODO Fix when multiple park postions
             displacement = self._component.beam_path_set_point.axis[self._component_axis].get_displacement()
         else:
             if self._out_of_beam_lookup is None:

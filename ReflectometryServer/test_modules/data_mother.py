@@ -13,7 +13,8 @@ from server_common.observable import observable
 from .utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
-from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
+from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent, \
+    BenchComponent
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, DirectParameter, \
@@ -278,6 +279,32 @@ class DataMother:
             total_offset += offset_1 + offset_2
 
         return total_offset
+
+    @staticmethod
+    def beamline_sm_theta_bench(sm_angle, theta_angle, driver_bench_offset, autosave_bench_not_theta=False):
+
+        ConfigHelper.reset()
+        test = add_mode("TEST")
+
+        add_beam_start(PositionAndAngle(0, 0, 0))
+
+        sm = add_component(ReflectingComponent("SM", PositionAndAngle(0, 0, 90)))
+        add_parameter(AxisParameter("sm_angle", sm, ChangeAxis.ANGLE))
+        sm_axis = create_mock_axis("MOT:MTR0101", sm_angle, sm_angle)
+        add_driver(IocDriver(sm, ChangeAxis.ANGLE, sm_axis))
+        sm_axis.trigger_rbv_change()
+
+        theta = add_component(ThetaComponent("THETA", PositionAndAngle(0, 10, 90)))
+        add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE, autosave=not autosave_bench_not_theta))
+
+        bench = add_component(BenchComponent("Bench", PositionAndAngle(0, 20, 90)))
+        add_parameter(AxisParameter("bench_angle", bench, ChangeAxis.ANGLE, autosave=autosave_bench_not_theta))
+        bench_axis = create_mock_axis("MOT:MTR0102", driver_bench_offset + theta_angle * 2 + sm_angle * 2, 1)
+        add_driver(IocDriver(bench, ChangeAxis.ANGLE, bench_axis))
+        bench_axis.trigger_rbv_change()
+        theta.add_angle_of(bench)
+
+        return get_configured_beamline(), {"bench_angle": bench_axis, "sm_angle": sm_axis}
 
 
 def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):
