@@ -117,7 +117,8 @@ class ReflectometryDriver(Driver):
                 elif self._pv_manager.is_alarm_severity(reason):
                     return self.getParamDB(self._pv_manager.strip_fields_from_pv(reason)).severity
         except Exception as e:
-            STATUS_MANAGER.update_error_log(e.message)
+            logger.exception(e)
+            STATUS_MANAGER.update_error_log(e)
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("PV Value read caused exception.", reason, Severity.MAJOR_ALARM))
             return
@@ -174,7 +175,8 @@ class ReflectometryDriver(Driver):
                 self._update_param_both_pv_and_pv_val(reason, value)
                 self.update_monitors()
         except Exception as e:
-            STATUS_MANAGER.update_error_log(e.message)
+            logger.exception(e)
+            STATUS_MANAGER.update_error_log(e)
             STATUS_MANAGER.update_active_problems(ProblemInfo("PV Value rejected by server.", reason, Severity.MINOR_ALARM))
             value_accepted = False
         return value_accepted

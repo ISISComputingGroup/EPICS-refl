@@ -409,6 +409,7 @@ class PVManager:
                     "type": BeamlineParameterType.name_for_param_list(parameter_type)}
 
         except Exception as err:
+            logger.exception(err)
             STATUS_MANAGER.update_error_log("Error adding PV for parameter {}: {}".format(parameter.name, err))
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("Error adding parameter PV", parameter.name, Severity.MAJOR_ALARM))
@@ -499,24 +500,34 @@ class PVManager:
         """
         Add pvs for the beamline constants
         """
+
         beamline_constant_info = []
 
         for beamline_constant in self._beamline.beamline_constants:
-            const_alias = create_pv_name(beamline_constant.name, list(self.PVDB.keys()), CONST_PREFIX,
-                                         limit=20, allow_colon=True)
-            prepended_alias = "{}:{}".format(CONST_PREFIX, const_alias)
+            try:
+                const_alias = create_pv_name(beamline_constant.name, list(self.PVDB.keys()), CONST_PREFIX,
+                                             limit=20, allow_colon=True)
+                prepended_alias = "{}:{}".format(CONST_PREFIX, const_alias)
 
-            if isinstance(beamline_constant.value, bool):
-                value = 1 if bool(beamline_constant.value) else 0
-                fields = PARAM_FIELDS_BINARY
-            else:
-                value = float(beamline_constant.value)
-                fields = STANDARD_FLOAT_PV_FIELDS
+                if isinstance(beamline_constant.value, bool):
+                    value = 1 if bool(beamline_constant.value) else 0
+                    fields = PARAM_FIELDS_BINARY
+                elif isinstance(beamline_constant.value, str):
+                    value = beamline_constant.value
+                    fields = STANDARD_2048_CHAR_WF_FIELDS
+                else:
+                    value = float(beamline_constant.value)
+                    fields = STANDARD_FLOAT_PV_FIELDS
 
-            self._add_pv_with_fields(prepended_alias, None, fields, beamline_constant.description, None,
-                                     archive=True, interest="MEDIUM", value=value)
-            beamline_constant_info.append(
-                {"name": beamline_constant.name, "prepended_alias": prepended_alias, "type": "float_value"})
+                self._add_pv_with_fields(prepended_alias, None, fields, beamline_constant.description, None,
+                                         archive=True, interest="MEDIUM", value=value)
+                beamline_constant_info.append(
+                    {"name": beamline_constant.name, "prepended_alias": prepended_alias, "type": "float_value"})
+            except Exception as err:
+                logger.exception(err)
+                STATUS_MANAGER.update_error_log("Error adding constant {}: {}".format(beamline_constant.name, err))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Error adding parameter PV", beamline_constant.name, Severity.MAJOR_ALARM))
 
         self._add_pv_with_fields(BEAMLINE_CONSTANT_INFO, None, STANDARD_2048_CHAR_WF_FIELDS, "All value parameters", None,
                                  value=compress_and_hex(json.dumps(beamline_constant_info)))

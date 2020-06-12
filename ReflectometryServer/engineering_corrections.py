@@ -191,6 +191,7 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
         try:
             return self._user_correction_function(setpoint, *[param.sp_rbv for param in self._beamline_parameters])
         except Exception as ex:
+            logger.exception(ex)
             if setpoint is None or None in [param.sp_rbv for param in self._beamline_parameters]:
                 non_initialised_params = [param.name for param in self._beamline_parameters if param.sp_rbv is None]
                 STATUS_MANAGER.update_error_log(

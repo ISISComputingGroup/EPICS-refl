@@ -394,6 +394,7 @@ class Beamline:
         try:
             self._perform_move_for_all_drivers(self._get_max_move_duration())
         except ZeroDivisionError as e:
+            logger.exception(e)
             STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e))
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM))
