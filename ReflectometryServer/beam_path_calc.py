@@ -33,7 +33,7 @@ InitUpdate = namedtuple("InitUpdate", [])
 
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit, PhysicalMoveUpdate, ComponentChangingUpdate, InitUpdate)
-class TrackingBeamPathCalc(object):
+class TrackingBeamPathCalc:
     """
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
     """

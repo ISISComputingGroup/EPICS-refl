@@ -1,4 +1,4 @@
-class OutOfBeamPosition(object):
+class OutOfBeamPosition:
     """
     The definition of a geometry component's out of beam position.
     """
@@ -16,14 +16,15 @@ class OutOfBeamPosition(object):
         self.threshold = threshold
 
 
-class OutOfBeamLookup(object):
+class OutOfBeamLookup:
     """
     Facilitates lookup of out-of-beam positions / status for a single axis out of a list of possible positions depending
     on where the beam intersects with that movement axis.
     """
     def __init__(self, positions):
         self._validate(positions)
-        self._sorted_out_of_beam_positions = sorted(positions, key=lambda position: position.threshold, reverse=True)
+        self._sorted_out_of_beam_positions = sorted(positions, key=lambda position: (
+        position.threshold is None, position.threshold), reverse=True)
 
     @staticmethod
     def _validate(positions):
@@ -34,7 +35,7 @@ class OutOfBeamLookup(object):
             positions (list[OutOfBeamPositions]: The positions
         """
         if positions:
-            filter_default = filter(lambda x: x.threshold is None, positions)
+            filter_default = [x for x in positions if x.threshold is None]
             if len(filter_default) == 0:
                 raise ValueError("ERROR: No default Out Of Beam Position defined for lookup.")
             if len(filter_default) > 1:
@@ -55,8 +56,14 @@ class OutOfBeamLookup(object):
 
         Returns: The out-of-beam position
         """
-        pos_above_threshold = filter(lambda x: x.threshold <= beam_intercept.y, self._sorted_out_of_beam_positions)
-        return pos_above_threshold[0]
+        default_pos = self._sorted_out_of_beam_positions[0]
+        pos_with_threshold_below_intercept = [x for x in self._sorted_out_of_beam_positions[1:] if
+                                              x.threshold <= beam_intercept.y]
+        if len(pos_with_threshold_below_intercept) > 0:
+            position_to_use = pos_with_threshold_below_intercept[0]
+        else:
+            position_to_use = default_pos
+        return position_to_use
 
     def is_in_beam(self, beam_intercept, displacement):
         """

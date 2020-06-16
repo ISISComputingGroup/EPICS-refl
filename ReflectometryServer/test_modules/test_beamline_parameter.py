@@ -1,4 +1,3 @@
-import os
 import unittest
 from math import isnan
 
@@ -13,9 +12,8 @@ from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.parameters import ParameterReadbackUpdate
 from ReflectometryServer.pv_wrapper import ReadbackUpdate
 
-from data_mother import DataMother, create_mock_axis
-from server_common.channel_access import AlarmSeverity, AlarmStatus
-from utils import position, DEFAULT_TEST_TOLERANCE
+from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis
+from ReflectometryServer.test_modules.utils import position, DEFAULT_TEST_TOLERANCE
 
 
 class TestBeamlineParameter(unittest.TestCase):

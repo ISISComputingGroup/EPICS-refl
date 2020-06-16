@@ -1,7 +1,6 @@
 """
 The driving layer communicates between the component layer and underlying pvs.
 """
-
 import math
 import logging
 from collections import namedtuple
@@ -26,7 +25,7 @@ CorrectedReadbackUpdate = namedtuple("CorrectedReadbackUpdate", [
 
 
 @observable(CorrectionUpdate, CorrectedReadbackUpdate)
-class IocDriver(object):
+class IocDriver:
     """
     Drives an actual motor axis based on a component in the beamline model.
     """

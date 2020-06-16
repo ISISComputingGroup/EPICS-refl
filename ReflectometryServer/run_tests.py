@@ -16,7 +16,6 @@
 """
 Runn all the tests for refl server
 """
-
 # Standard imports
 import unittest
 import xmlrunner

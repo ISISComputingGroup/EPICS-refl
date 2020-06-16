@@ -66,7 +66,7 @@ class STATUS(Enum):
 
 
 @observable(StatusUpdate, ActiveProblemsUpdate, ErrorLogUpdate)
-class _ServerStatusManager(object):
+class _ServerStatusManager:
     """
     Handler for setting the status of the reflectometry server.
     """

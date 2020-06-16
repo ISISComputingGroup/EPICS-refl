@@ -48,7 +48,7 @@ IsChangingUpdate = namedtuple("IsChangingUpdate", [
     "alarm_status"])    # The alarm status of the axis, represented as an integer (see Channel Access doc)
 
 
-class ProcessMonitorEvents(object):
+class ProcessMonitorEvents:
     """
     Collect updates produced and only apply the latest ones.
     """
@@ -114,7 +114,7 @@ PROCESS_MONITOR_EVENTS = ProcessMonitorEvents()
 
 @six.add_metaclass(abc.ABCMeta)
 @observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)
-class PVWrapper(object):
+class PVWrapper:
     """
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
     """

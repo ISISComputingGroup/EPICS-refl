@@ -11,7 +11,7 @@ S4_ID = "SLIT4"
 SA_ID = "SAMPLE"
 
 
-class BaseFootprintSetup(object):
+class BaseFootprintSetup:
     """
     Blank setup for a footprint calculation (for default use).
     """
@@ -59,13 +59,12 @@ class FootprintSetup(BaseFootprintSetup):
                            }
 
 
-class FootprintCalculator(object):
+class FootprintCalculator:
     """
     Calculator for the beam footprint and resolution.
     """
 
     def __init__(self, setup):
-        super(FootprintCalculator, self).__init__()
         self.setup = setup
         self.gaps = {}
         self.update_gaps()
@@ -106,7 +105,6 @@ class FootprintCalculator(object):
 
         Returns: The distance between the two components in mm
         """
-        assert comp1, comp2 in self.setup.positions.keys()
         return abs(self.setup.positions[comp1] - self.setup.positions[comp2])
 
     def calc_equivalent_gap_by_sample_size(self):

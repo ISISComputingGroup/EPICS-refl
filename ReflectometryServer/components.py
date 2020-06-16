@@ -34,7 +34,7 @@ DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
 
 
 @observable(DefineValueAsEvent)
-class Component(object):
+class Component:
     """
     Base object for all components that can sit on a beam line
     """

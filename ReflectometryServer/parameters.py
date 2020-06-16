@@ -46,7 +46,7 @@ ParameterInitUpdate = namedtuple("ParameterInitUpdate", [
     "value"])           # The initial parameter value
 
 
-class DefineCurrentValueAsParameter(object):
+class DefineCurrentValueAsParameter:
     """
     A helper class which allows the current parameter readback to be set to a particular value by passing it down to the
     lower levels.
@@ -117,7 +117,7 @@ class BeamlineParameterGroup(Enum):
 @observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate,
             ParameterChangingUpdate, ParameterInitUpdate)
 @six.add_metaclass(abc.ABCMeta)
-class BeamlineParameter(object):
+class BeamlineParameter:
     """
     General beamline parameter that can be set. Subclass must implement _move_component to decide what to do with the
     value that is set.

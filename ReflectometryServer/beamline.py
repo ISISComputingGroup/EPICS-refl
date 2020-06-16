@@ -20,7 +20,7 @@ from server_common.channel_access import UnableToConnectToPVException
 logger = logging.getLogger(__name__)
 
 
-class BeamlineMode(object):
+class BeamlineMode:
     """
     Beamline mode definition; which components and parameters are calculated on move.
     """
@@ -110,7 +110,7 @@ class BeamlineMode(object):
             self._sp_inits)
 
 
-class Beamline(object):
+class Beamline:
     """
     The collection of all beamline components.
     """
@@ -215,7 +215,7 @@ class Beamline(object):
         """
         Returns: the names of all the modes
         """
-        return self._modes.keys()
+        return list(self._modes.keys())
 
     @property
     def active_mode(self):

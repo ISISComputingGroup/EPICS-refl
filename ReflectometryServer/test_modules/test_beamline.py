@@ -1,4 +1,3 @@
-import os
 import unittest
 
 from math import tan, radians
@@ -11,7 +10,7 @@ from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
 from ReflectometryServer.beamline_constant import BeamlineConstant
 
-from utils import position_and_angle
+from ReflectometryServer.test_modules.utils import position_and_angle
 
 
 class TestComponentBeamline(unittest.TestCase):
