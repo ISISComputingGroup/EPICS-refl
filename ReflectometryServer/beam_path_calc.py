@@ -43,7 +43,18 @@ DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
 
 @observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate)
 class ComponentAxis(metaclass=ABCMeta):
+    """
+    A components axis of movement, allowing setting in both mantid and relative coordinates. Transmits alarms,
+    changed and changes.
+    """
+
     def __init__(self, axis):
+        """
+        Initalisation.
+
+        Args:
+            axis: axis that the component is for
+        """
         self._is_changing = False
         self.autosaved_value = None
         self._is_changed = False
@@ -148,7 +159,8 @@ class ComponentAxis(metaclass=ABCMeta):
     @is_changing.setter
     def is_changing(self, value):
         """
-         Update the rotating state of the component with angle and notifies relevant listeners
+         Update the changing state of the component and notifies relevant listeners. Changing is usually caused by
+         the motor axis moving.
 
          Args:
              value: the new rotating state
@@ -187,7 +199,10 @@ class ComponentAxis(metaclass=ABCMeta):
 
 class BeamPathCalcAxis(ComponentAxis):
     """
-    Encapsulate functionality of axis into a single class
+    Axes for a component for the beam path calc. Used to setup for either the position and angle axis.
+
+    This is basically a thin layer that calls the function on the axis and then delegates to the beam path calc. This
+    object is initialised with the functions to call.
     """
     def __init__(self, axis, get_relative_to_beam, set_relative_to_beam, get_displacement_for=None,
                  get_displacement=None, set_displacement=None, init_displacement_from_motor=None):

@@ -556,6 +556,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
     def test_GIVEN_component_in_beam_WHEN_set_readback_on_component_THEN_call_back_triggered_on_component_change(self):
 
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 10, 90))
+        sample.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(0, None, None))
         state = True
 
         displacement_parameter = InBeamParameter("param", sample)
@@ -630,6 +631,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
     def test_GIVEN_position_parameter_WHEN_updating_angle_with_alarms_on_component_THEN_parameter_value_and_alarms_are_unchanged(self):
         component = ReflectingComponent("component", setup=PositionAndAngle(0, 10, 90))
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(0.0, None, None))
         new_displacement = 1.0
         alarm_severity = 1
         alarm_status = 2
@@ -661,6 +663,8 @@ class TestBeamlineParameterReadback(unittest.TestCase):
 
     def test_GIVEN_angle_parameter_WHEN_updating_displacement_with_alarms_on_component_THEN_parameter_value_and_alarms_are_unchanged(self):
         component = ReflectingComponent("component", setup=PositionAndAngle(0, 10, 90))
+        component.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(
+            CorrectedReadbackUpdate(0, None, None))
         new_angle = 1.0
         alarm_severity = 1
         alarm_status = 2
@@ -689,8 +693,9 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         self.assertEqual(in_beam_parameter.alarm_severity, alarm_severity)
         self.assertEqual(in_beam_parameter.alarm_status, alarm_status)
 
-    def test_GIVEN_angle_parameter_WHEN_updating_angle_with_alarms_on_component_THEN_parameter_value_and_alarms_are_unchanged(self):
+    def test_GIVEN_inbeam_parameter_WHEN_updating_angle_with_alarms_on_component_THEN_parameter_value_and_alarms_are_unchanged(self):
         component = ReflectingComponent("component", setup=PositionAndAngle(0, 10, 90))
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(0, None, None))
         new_angle = 1.0
         alarm_severity = 1
         alarm_status = 2
