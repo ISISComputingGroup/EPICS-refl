@@ -31,7 +31,7 @@ class TestISISLog(unittest.TestCase):
         logger.stop_thread_pool()
 
         sent_xml = mock_socket.sendall.call_args[0][0]
-        assert_that(sent_xml, contains_string(message))
+        assert_that(str(sent_xml), contains_string(message))
 
     @patch('socket.socket')
     def test_GIVEN_logger_WHEN_message_sent_THEN_connection_on_logger_port_is_opened_and_close(self, socket_mock):
@@ -57,7 +57,7 @@ class TestISISLog(unittest.TestCase):
         IsisLogger.executor.shutdown(wait=True)
 
         sent_xml = mock_socket.sendall.call_args[0][0]
-        assert_that(sent_xml, contains_string(expected_ioc_name))
+        assert_that(str(sent_xml), contains_string(expected_ioc_name))
 
     @patch('socket.socket')
     def test_GIVEN_logger_with_ioc_name_WHEN_message_sent_THEN_message_contains_ioc_name(self, socket_mock):
@@ -71,7 +71,7 @@ class TestISISLog(unittest.TestCase):
         IsisLogger.executor.shutdown(wait=True)
 
         sent_xml = mock_socket.sendall.call_args[0][0]
-        assert_that(sent_xml, contains_string(expected_ioc_name))
+        assert_that(str(sent_xml), contains_string(expected_ioc_name))
 
     @patch('socket.socket')
     def test_GIVEN_logger_with_ioc_name_WHEN_message_sent_with_ioc_name_THEN_message_contains_sent_ioc_name(
@@ -86,7 +86,7 @@ class TestISISLog(unittest.TestCase):
         IsisLogger.executor.shutdown(wait=True)
 
         sent_xml = mock_socket.sendall.call_args[0][0]
-        assert_that(sent_xml, contains_string(expected_ioc_name))
+        assert_that(str(sent_xml), contains_string(expected_ioc_name))
 
     @patch('socket.socket')
     @patch('datetime.datetime')
@@ -108,5 +108,5 @@ class TestISISLog(unittest.TestCase):
         IsisLogger.executor.shutdown(wait=True)
 
         sent_xml = mock_socket.sendall.call_args[0][0]
-        match = re.search("<!\[CDATA\[(.*)\]\]>", sent_xml)
+        match = re.search("<!\[CDATA\[(.*)\]\]>", str(sent_xml))
         assert_that(match.group(1), is_(expected_message))

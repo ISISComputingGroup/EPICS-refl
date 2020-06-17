@@ -1,7 +1,7 @@
 import threading
 import time
 import unittest
-from Queue import Queue, Empty
+from six.moves.queue import Queue, Empty
 
 from concurrent.futures import wait
 from mock import Mock, patch
