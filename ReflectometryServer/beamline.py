@@ -3,6 +3,7 @@ Resources at a beamline level
 """
 import logging
 from collections import OrderedDict
+from dataclasses import dataclass
 from functools import partial
 
 from pcaspy import Severity
@@ -16,6 +17,7 @@ from ReflectometryServer.footprint_manager import FootprintManager
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 from server_common.channel_access import UnableToConnectToPVException
+from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +55,10 @@ class BeamlineMode:
         """
         return beamline_parameter.name in self._beamline_parameters_to_calculate
 
+    def names_of_parameters_in_mode(self):
+        return self._beamline_parameters_to_calculate
+
+    #TODO move this to use above!
     def get_parameters_in_mode(self, beamline_parameters, first_parameter=None):
         """
         Returns, in order, all those parameters which are in this mode. Starting with the parameter after the first
@@ -110,6 +116,15 @@ class BeamlineMode:
             self._sp_inits)
 
 
+@dataclass
+class ActiveModeUpdate:
+    """
+    Event that is triggered when the active mode is changed
+    """
+    mode: BeamlineMode  # mode that has been changed to
+
+
+@observable(ActiveModeUpdate)
 class Beamline:
     """
     The collection of all beamline components.
@@ -138,7 +153,6 @@ class Beamline:
         self._beam_path_calcs_rbv = []
         self._beamline_parameters = OrderedDict()
         self._drivers = drivers
-        self._active_mode_change_listeners = set()
         footprint_setup = footprint_setup if footprint_setup is not None else BaseFootprintSetup()
         self.footprint_manager = FootprintManager(footprint_setup)
         for beamline_parameter in beamline_parameters:
@@ -244,7 +258,7 @@ class Beamline:
             self._init_params_from_mode()
             self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_rbv)
             self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_set_point)
-            self._trigger_active_mode_change()
+            self.trigger_listeners(ActiveModeUpdate(self._active_mode))
         except KeyError:
             raise ValueError("Not a valid mode name: '{}'".format(mode))
 
@@ -276,7 +290,7 @@ class Beamline:
         return self._components[item]
 
     def get_param_names_in_mode(self):
-        """ Returns a list of the name of params in the current mode.
+        """ Returns a list of the name of params in the current mode, in order.
         """
 
         param_names_in_mode = []
@@ -443,23 +457,6 @@ class Beamline:
 
         for component in self._components:
             component.set_incoming_beam_can_change(not mode_is_disabled, on_init=True)
-
-    def _trigger_active_mode_change(self):
-        """
-        Triggers all listeners after a mode change.
-
-        """
-        for listener in self._active_mode_change_listeners:
-            listener(self.active_mode, self.get_param_names_in_mode())
-
-    def add_active_mode_change_listener(self, listener):
-        """
-        Add a listener for mode changes to this beamline.
-
-        Args:
-            listener: the listener function to add with new mode as parameter
-        """
-        self._active_mode_change_listeners.add(listener)
 
     @property
     def drivers(self):
