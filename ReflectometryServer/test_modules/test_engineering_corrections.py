@@ -11,11 +11,14 @@ import unittest
 
 from ReflectometryServer import *
 from ReflectometryServer import beamline_configuration
-from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider, CorrectionUpdate
+from ReflectometryServer.beamline import ActiveModeUpdate
+from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider, CorrectionUpdate, \
+    ModeSelectCorrection, CorrectionRecalculate
 from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_axis, DataMother
 
 from server_common.channel_access import UnableToConnectToPVException
+from server_common.observable import observable
 
 FLOAT_TOLERANCE = 1e-9
 OUT_OF_BEAM_POSITION = OutOfBeamPosition(10)
@@ -510,3 +513,83 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         result = comp.beam_path_set_point.get_angular_displacement()
 
         assert_that(result, is_(close_to(expected_setpoint, 1e-6)))
+
+@observable(ActiveModeUpdate)
+class MockBeamline:
+    pass
+
+
+class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.update = None
+        self.correction_update = None
+
+        def get_update(update: CorrectionRecalculate):
+            self.update = update
+
+        def get_correction_update(update: CorrectionUpdate):
+            self.correction_update = update
+
+        self.mode1 = BeamlineMode("mode1", [])
+        self.mode2 = BeamlineMode("mode2", [])
+        self.default_offset = 1
+        self.mode1_offset = 1
+        self.mode2_offset = 22
+        self.default_correction = ConstantCorrection(self.default_offset)
+        self.mode_selection_correction = ModeSelectCorrection(self.default_correction,
+                                                              {self.mode1: (ConstantCorrection(self.mode1_offset)),
+                                                          self.mode2: (ConstantCorrection(self.mode2_offset))})
+        self.mock_beamline = MockBeamline()
+        self.mode_selection_correction.set_observe_mode_change_on(self.mock_beamline)
+        self.mode_selection_correction.add_listener(CorrectionRecalculate, get_update)
+        self.mode_selection_correction.add_listener(CorrectionUpdate, get_correction_update)
+
+    def test_GIVEN_mode_selecting_correction_WHEN_changed_listener_triggered_THEN_correction_update_triggered(self):
+
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode2))
+
+        assert_that(self.update, is_not(None), "the correction has asked for a recalculate")
+
+    def test_GIVEN_mode_not_yet_selected_WHEN_get_correction_THEN_correction_is_default(self):
+
+        result = self.mode_selection_correction.to_axis(0)
+
+        assert_that(result, is_(self.default_offset))
+
+    def test_GIVEN_mode_selected_WHEN_get_correction_THEN_correction_is_that_mode(self):
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode2))
+
+        result = self.mode_selection_correction.to_axis(0)
+
+        assert_that(result, is_(self.mode2_offset))
+
+    def test_GIVEN_mode_selected_which_has_not_got_a_correction_WHEN_get_correction_THEN_correction_is_default_mode(self):
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(BeamlineMode("another mode", [])))
+
+        result = self.mode_selection_correction.to_axis(0)
+
+        assert_that(result, is_(self.default_offset))
+        assert_that(self.correction_update.correction, is_(self.default_offset))
+        assert_that(self.correction_update.description,
+                    is_("Mode Selected: {}".format(self.default_correction.description)))
+
+    def test_GIVEN_mode_selected_which_has_not_got_a_correction_WHEN_get_init_from_axis_THEN_correction_is_default_mode(self):
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(BeamlineMode("another mode", [])))
+
+        result = self.mode_selection_correction.init_from_axis(0)
+
+        assert_that(result, is_(-self.default_offset))
+        assert_that(self.correction_update.correction, is_(-self.default_offset))
+        assert_that(self.correction_update.description,
+                    is_("Mode Selected: {}".format(self.default_correction.description)))
+
+
+    def test_GIVEN_mode_selected_which_has_not_got_a_correction_WHEN_from_axis_THEN_correction_is_default_mode(self):
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(BeamlineMode("another mode", [])))
+
+        result = self.mode_selection_correction.from_axis(0, 0)
+
+        assert_that(result, is_(-self.default_offset))
+        assert_that(self.correction_update.correction, is_(-self.default_offset))
+        assert_that(self.correction_update.description, is_("Mode Selected: {}".format(self.default_correction.description)))
