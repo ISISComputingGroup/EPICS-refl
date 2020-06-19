@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from hamcrest import *
-from mock import patch
+from mock import patch, Mock
 from parameterized import parameterized
 
 import ReflectometryServer
@@ -584,7 +584,6 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
         assert_that(self.correction_update.description,
                     is_("Mode Selected: {}".format(self.default_correction.description)))
 
-
     def test_GIVEN_mode_selected_which_has_not_got_a_correction_WHEN_from_axis_THEN_correction_is_default_mode(self):
         self.mock_beamline.trigger_listeners(ActiveModeUpdate(BeamlineMode("another mode", [])))
 
@@ -593,3 +592,28 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
         assert_that(result, is_(-self.default_offset))
         assert_that(self.correction_update.correction, is_(-self.default_offset))
         assert_that(self.correction_update.description, is_("Mode Selected: {}".format(self.default_correction.description)))
+
+    def test_GIVEN_ioc_driver_which_has_not_moved_with_engineering_correction_WHEN_update_mode_THEN_readback_not_fired(self):
+        driver = DisplacementDriver(Component("comp", PositionAndAngle(0, 0, 0)), create_mock_axis("mock", 0, 1), engineering_correction=self.mode_selection_correction)
+        driver.set_observe_mode_change_on(self.mock_beamline)
+        mock_listener = Mock()
+        driver.add_listener(CorrectionUpdate, mock_listener)
+
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode1))
+
+        mock_listener.assert_called_never()
+
+    def test_GIVEN_ioc_driver_with_engeineering_correction_WHEN_update_mode_THEN_readback_updated_fired(self):
+        mock_axis = create_mock_axis("mock", 0, 1)
+        driver = DisplacementDriver(Component("comp", PositionAndAngle(0, 0, 0)), mock_axis, engineering_correction=self.mode_selection_correction)
+        mock_axis.trigger_rbv_change()
+        driver.set_observe_mode_change_on(self.mock_beamline)
+        mock_listener = Mock()
+        driver.add_listener(CorrectionUpdate, mock_listener)
+
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode1))
+
+        mock_listener.assert_called_once()
+
+#TODO check that nested mode changers work and that correction updates get passed up chain need source of correct update
+#TODO check that beamline signs up ioc drivers

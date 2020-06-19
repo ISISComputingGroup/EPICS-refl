@@ -8,7 +8,7 @@ from collections import namedtuple
 from pcaspy import Severity
 
 from ReflectometryServer.out_of_beam import OutOfBeamLookup
-from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
+from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate, CorrectionRecalculate
 from ReflectometryServer.components import ChangeAxis, DefineValueAsEvent
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
@@ -51,6 +51,7 @@ class IocDriver:
             self.has_engineering_correction = True
             self._engineering_correction = engineering_correction
             self._engineering_correction.add_listener(CorrectionUpdate, self._on_correction_update)
+            self._engineering_correction.add_listener(CorrectionRecalculate, self._on_recalc_correction)
 
         self._sp_cache = None
         self._rbv_cache = self._engineering_correction.from_axis(self._axis.rbv, self._get_component_sp())
@@ -61,6 +62,14 @@ class IocDriver:
 
         self._component.add_listener(DefineValueAsEvent, self._on_define_value_as)
         self._change_axis_type = None
+
+    def set_observe_mode_change_on(self, mode_changer):
+        """
+        Allow this driver to listen to mode change events from the mode_changer. It signs up the engineering correction.
+        Args:
+            mode_changer: object that can be observed for mode change events
+        """
+        self._engineering_correction.set_observe_mode_change_on(mode_changer)
 
     def _on_define_value_as(self, new_event):
         """
@@ -80,10 +89,10 @@ class IocDriver:
 
     def _on_correction_update(self, new_correction_value):
         """
-
+        When a correction update is got from the engineering correction then trigger our own correction update after
+            updating description.
         Args:
             new_correction_value (CorrectionUpdate): the new correction value
-
         """
         description = "{} on {} for {}".format(new_correction_value.description, self.name, self._component.name)
         self.trigger_listeners(CorrectionUpdate(new_correction_value.correction, description))
@@ -254,6 +263,14 @@ class IocDriver:
         self._rbv_cache = corrected_new_value
         self._propagate_rbv_change(
             CorrectedReadbackUpdate(corrected_new_value, update.alarm_severity, update.alarm_status))
+
+    def _on_recalc_correction(self, _):
+        """
+        The engineering correction has changed so we should recalcuate the rbv based on the last value
+        """
+        last_value = self._axis.listener_last_value(ReadbackUpdate)
+        if last_value is not None:
+            self._on_update_rbv(last_value)
 
     def _propagate_rbv_change(self, update):
         """

@@ -180,6 +180,7 @@ class Beamline:
         self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_set_point)
 
         for driver in self._drivers:
+            driver.set_observe_mode_change_on(self)
             driver.initialise()
 
         self._active_mode = None

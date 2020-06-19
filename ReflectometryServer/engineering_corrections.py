@@ -94,6 +94,14 @@ class EngineeringCorrection:
         """
         return self.from_axis(setpoint, None)
 
+    def set_observe_mode_change_on(self, mode_changer):
+        """
+        Allow this correction to listen to mode change events from the mode_changer. Defaults to not listening
+        Args:
+            mode_changer: object that can be observed for mode change events
+        """
+        pass
+
 
 @six.add_metaclass(abc.ABCMeta)
 class SymmetricEngineeringCorrection(EngineeringCorrection):
@@ -139,6 +147,10 @@ class NoCorrection(SymmetricEngineeringCorrection):
     """
     An engineering correction which does not change the value.
     """
+
+    def __init__(self):
+        super(NoCorrection, self).__init__("No correction")
+
     def correction(self, _):
         """
 
