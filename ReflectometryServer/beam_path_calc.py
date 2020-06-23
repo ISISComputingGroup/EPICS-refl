@@ -623,7 +623,7 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
     def _on_set_incoming_beam(self, incoming_beam, on_init):
         if on_init:
             # Beam has changed position so reapply autosave which is relative to beam, caller will trigger beampath
-            # update init not so this should not trigger beam path update
+            # update init so this should not trigger beam path update
             autosaved_value = self.axis[ChangeAxis.ANGLE].autosaved_value
             if autosaved_value is not None:
                 self._angular_displacement = self._get_angle_for(autosaved_value)

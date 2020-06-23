@@ -527,7 +527,7 @@ class PVManager:
                 logger.exception(err)
                 STATUS_MANAGER.update_error_log("Error adding constant {}: {}".format(beamline_constant.name, err))
                 STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("Error adding parameter PV", beamline_constant.name, Severity.MAJOR_ALARM))
+                    ProblemInfo("Error adding PV for beamline constant", beamline_constant.name, Severity.MAJOR_ALARM))
 
         self._add_pv_with_fields(BEAMLINE_CONSTANT_INFO, None, STANDARD_2048_CHAR_WF_FIELDS, "All value parameters", None,
                                  value=compress_and_hex(json.dumps(beamline_constant_info)))

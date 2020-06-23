@@ -93,10 +93,10 @@ class ChangeAxis(Enum):
     """
     Types of axes in the component that can change.
     """
-    POSITION = 0  # position in collimation axis (i.e. height for horizontal samples)
-    ANGLE = 1  # angle in plane of collimation
-    SEESAW = 2  # Tip of bench
-    CHI = 3  # angle like yaw
-    PSI = 4  # angle like roll
-    TRANS = 5  # translation axis perpendicular to beam and collimation axis
+    POSITION = 0    # position in collimation axis (i.e. height for horizontal samples)
+    ANGLE = 1       # angle in plane of collimation
+    SEESAW = 2      # Tip of bench
+    CHI = 3         # angle like yaw
+    PSI = 4         # angle like roll
+    TRANS = 5       # translation axis perpendicular to beam and collimation axis
 

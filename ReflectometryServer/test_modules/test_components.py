@@ -104,7 +104,7 @@ class TestTiltingJaws(unittest.TestCase):
 
         assert_that(result.angle, is_(beam_angle))
 
-    def test_GIVEN_component_WHEN_set_relative_position_of_position_THEN_position_axis_has_changed_set_but_angle_doesnot(self):
+    def test_GIVEN_component_WHEN_set_relative_position_of_position_THEN_position_axis_has_changed_set_but_angle_does_not(self):
 
         comp = TiltingComponent("component", setup=PositionAndAngle(0, 0, 90))
         comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
@@ -143,7 +143,7 @@ class TestTiltingJaws(unittest.TestCase):
 
 class TestActiveComponents(unittest.TestCase):
 
-    def test_GIVEN_angled_mirror_is_not_in_beam__WHEN_get_beam_out_THEN_outgoing_beam_is_incoming_beam(self):
+    def test_GIVEN_angled_mirror_is_not_in_beam_WHEN_get_beam_out_THEN_outgoing_beam_is_incoming_beam(self):
         mirror_z_position = 10
         mirror_angle = 15
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
@@ -291,7 +291,7 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(isnan(result), is_(True), "Is not a number")
 
-    def test_GIVEN_next_component_is_not_in_beam__WHEN_get_read_back_THEN_nan_returned(self):
+    def test_GIVEN_next_component_is_not_in_beam_WHEN_get_read_back_THEN_nan_returned(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))
@@ -320,7 +320,7 @@ class TestThetaComponent(unittest.TestCase):
         assert_that(result, is_(0.0))
         assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component has defined theta rbv")
 
-    def test_GIVEN_next_component_is_in_beam__and_at_45_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
+    def test_GIVEN_next_component_is_in_beam_and_at_45_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
@@ -334,7 +334,7 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(result, is_(45.0/2.0))
 
-    def test_GIVEN_next_component_is_in_beam__and_at_90_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
+    def test_GIVEN_next_component_is_in_beam_and_at_90_degrees_WHEN_get_read_back_THEN_half_angle_to_component_is_readback(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
@@ -348,7 +348,7 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(result, is_(90/2.0))
 
-    def test_GIVEN_next_component_is_not_in_beam__and_next_component_but_one_is_in_beam__WHEN_get_read_back_THEN_half_angle_to_component_is_readback_and_theta_calc_set_of_incoming_beam_is_set(self):
+    def test_GIVEN_next_component_is_not_in_beam_and_next_component_but_one_is_in_beam_WHEN_get_read_back_THEN_half_angle_to_component_is_readback_and_theta_calc_set_of_incoming_beam_is_set(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         next_component = Component("comp1", setup=PositionAndAngle(0, 10, 90))
@@ -373,7 +373,7 @@ class TestThetaComponent(unittest.TestCase):
         assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(None), "This component does not define theta rbv")
         assert_that(theta_calc_set_of_incoming_beam_next_comp_but_one, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component has defined theta rbv")
 
-    def test_GIVEN_next_component_is_in_beam__and_next_component_but_one_is_also_in_beam__WHEN_get_read_back_THEN_half_angle_to_first_component_is_readback_and_theta_cal_set_only_on_first_component(self):
+    def test_GIVEN_next_component_is_in_beam_and_next_component_but_one_is_also_in_beam_WHEN_get_read_back_THEN_half_angle_to_first_component_is_readback_and_theta_cal_set_only_on_first_component(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
 
@@ -401,7 +401,7 @@ class TestThetaComponent(unittest.TestCase):
         assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component does not define theta rbv")
         assert_that(theta_calc_set_of_incoming_beam_next_comp_but_one, is_(None), "This component has defined theta rbv")
 
-    def test_GIVEN_next_component_is_in_beam__WHEN_set_next_component_displacement_THEN_change_in_beam_path_triggered(self):
+    def test_GIVEN_next_component_is_in_beam_WHEN_set_next_component_displacement_THEN_change_in_beam_path_triggered(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
@@ -419,7 +419,7 @@ class TestThetaComponent(unittest.TestCase):
 
         listener.assert_called_once_with(BeamPathUpdate(theta.beam_path_rbv))
 
-    def test_GIVEN_next_component_is_in_beam__WHEN_set_next_component_incoming_beam_THEN_change_in_beam_path_is_not_triggered(self):
+    def test_GIVEN_next_component_is_in_beam_WHEN_set_next_component_incoming_beam_THEN_change_in_beam_path_is_not_triggered(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
@@ -463,7 +463,7 @@ class TestThetaComponent(unittest.TestCase):
 
         assert_that(result, is_(close_to(45.0/2.0, DEFAULT_TEST_TOLERANCE)))
 
-    def test_GIVEN_next_component_is_in_beam__theta_is_set_to_0_and_component_is_at_45_degrees_WHEN_get_read_back_from_component_THEN_component_readback_is_relative_to_setpoint_beam_not_readback_beam_and_is_not_0_and_outgoing_beam_is_readback_outgoing_beam(self):
+    def test_GIVEN_next_component_is_in_beam_theta_is_set_to_0_and_component_is_at_45_degrees_WHEN_get_read_back_from_component_THEN_component_readback_is_relative_to_setpoint_beam_not_readback_beam_and_is_not_0_and_outgoing_beam_is_readback_outgoing_beam(self):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
         next_component = Component("comp", setup=PositionAndAngle(0, 10, 90))

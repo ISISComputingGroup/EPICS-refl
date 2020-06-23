@@ -229,7 +229,7 @@ class ReflectometryDriver(Driver):
             alarm_status: current alarm status of the parameter
         """
         if value is None:
-            raise ValueError("PV can not be set to None. pv_name '{}'".format(pv_name))
+            raise ValueError("PV cannot be set to None. pv_name '{}'".format(pv_name))
         self.setParam(pv_name, value)
         self.setParam(pv_name + VAL_FIELD, value)
         self.setParamStatus(pv_name, alarm_status, alarm_severity)

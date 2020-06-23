@@ -13,7 +13,7 @@ from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.test_modules.utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
 
 
-class TestBeamCalcPath(unittest.TestCase):
+class TestBeamPathCalc(unittest.TestCase):
 
     def test_GIVEN_no_get_displacement_set_WHEN_get_displacement_THEN_Error(self):
 
@@ -36,7 +36,7 @@ class TestBeamCalcPath(unittest.TestCase):
         assert_that(calling(calc_axis.define_axis_position_as).with_args(None),
                     raises(TypeError, pattern="Axis can not have its position defined"))
 
-    def test_GIVEN_can_define_as_position_as_is_false_WHEN_call_define_event_THEN_Error(self):
+    def test_GIVEN_can_define_position_as_is_false_WHEN_call_define_event_THEN_Error(self):
 
         calc_axis = BeamPathCalcAxis(None, None, None, get_displacement_for=lambda x: x)
         calc_axis.can_define_axis_position_as = False
