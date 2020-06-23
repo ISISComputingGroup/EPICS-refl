@@ -858,10 +858,12 @@ class TestComponentDisablingAndAutosaveInit(unittest.TestCase):
 @parameterized_class(('axis'), [(ChangeAxis.SEESAW,),
                                 (ChangeAxis.CHI,),
                                 (ChangeAxis.TRANS, ),
-                                (ChangeAxis.PSI,)])
+                                (ChangeAxis.PSI,),
+                                (ChangeAxis.PHI,),
+                                (ChangeAxis.HEIGHT,)])
 class TestDirectAxisWithBenchComponent(unittest.TestCase):
     
-    def test_GIVEN_seesaw_updated_WHEN_get_see_saw_THEN_updated_value_is_read(self):
+    def test_GIVEN_axis_updated_WHEN_get_axis_THEN_updated_value_is_read(self):
         expected_result = 10
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
         param = AxisParameter("PARAM", bench, self.axis)
@@ -871,7 +873,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
 
         assert_that(result, is_(expected_result))
 
-    def test_GIVEN_seesaw_updated_with_alarm_WHEN_get_see_saw_THEN_alarm_updated(self):
+    def test_GIVEN_axis_updated_with_alarm_WHEN_get_see_saw_THEN_alarm_updated(self):
         expected_result = (AlarmSeverity.Major, AlarmStatus.Lolo)
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
         param = AxisParameter("PARAM", bench, self.axis)
@@ -881,7 +883,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
 
         assert_that(result, is_(expected_result))
 
-    def test_GIVEN_seesaw_updated_WHEN_THEN_physcal_move_triggered(self):
+    def test_GIVEN_axis_updated_WHEN_THEN_physcal_move_triggered(self):
         self.physical_move = None
 
         def mylistener(pyhsical_move):
@@ -897,7 +899,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
 
         assert_that(result, is_(bench.beam_path_rbv.axis[self.axis]))
 
-    def test_GIVEN_set_seesaw_WHEN_get_axis_value_THEN_value_returned_and_axis_changed(self):
+    def test_GIVEN_set_axis_WHEN_get_axis_value_THEN_value_returned_and_axis_changed(self):
         expected_result = 10
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
         param = AxisParameter("PARAM", bench, self.axis)
@@ -909,7 +911,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
         assert_that(result, is_(expected_result))
         assert_that(changed, is_(True), "axis is changed")
 
-    def test_GIVEN_seesaw_WHEN_define_position_THEN_position_define_event_occurs(self):
+    def test_GIVEN_axis_WHEN_define_position_THEN_position_define_event_occurs(self):
         self.define_event = None
         def mylistener(define_value):
             self.define_event = define_value
@@ -925,7 +927,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
         assert_that(result_pos, is_(expected_result))
         assert_that(result_axis, is_(self.axis))
 
-    def test_GIVEN_seesaw_parameter_WHEN_init_from_motor_on_component_THEN_parameter_sp_is_set(self):
+    def test_GIVEN_axis_parameter_WHEN_init_from_motor_on_component_THEN_parameter_sp_is_set(self):
         expected_result = 10
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
         param = AxisParameter("PARAM", bench, self.axis)
