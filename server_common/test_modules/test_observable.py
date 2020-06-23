@@ -110,6 +110,16 @@ class TestObservable(unittest.TestCase):
         assert_that(self.value, is_(expected_value1))
         assert_that(self.value2, is_(expected_value2))
 
+    def test_GIVEN_class_with_observed_type_WHEN_add_listener_and_remove_listner_and_trigger_THEN_listeners_not_triggers(self):
+        expected_value = 1
+        simple_observable = SimpleObservable()
+        simple_observable.add_listener(ValueUpdate, self.listener)
+        simple_observable.remove_listener(ValueUpdate, self.listener)
+
+        simple_observable.set_value(expected_value)
+
+        assert_that(self.value, is_not(expected_value))
+
     def test_GIVEN_one_class_with_2_observed_type_WHEN_add_listeners_and_triggers_THEN_listeners_triggers_correctly_for_correct_class(self):
         expected_value1 = 1
         expected_value2 = 2

@@ -5,7 +5,6 @@ import abc
 import csv
 import logging
 import os
-from collections import namedtuple
 from contextlib import contextmanager
 from typing import Dict, Optional
 
@@ -425,6 +424,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         super(ModeSelectCorrection, self).__init__("Mode Selected")
         self._corrections_for_mode = corrections_for_mode
         self._default_correction = default_correction
+        self._correction = None
         self._set_correction(None)
 
     def set_observe_mode_change_on(self, mode_changer):
@@ -434,6 +434,9 @@ class ModeSelectCorrection(EngineeringCorrection):
             mode_changer: object that can be observed for mode change events
         """
         mode_changer.add_listener(ActiveModeUpdate, self._mode_updated)
+        self._default_correction.set_observe_mode_change_on(mode_changer)
+        for correction in self._corrections_for_mode.values():
+            correction.set_observe_mode_change_on(mode_changer)
 
     def _mode_updated(self, update: ActiveModeUpdate):
         """
@@ -446,12 +449,37 @@ class ModeSelectCorrection(EngineeringCorrection):
 
     def _set_correction(self, mode: Optional[BeamlineMode]):
         """
-        Sets the correction that is being used based on the mode
+        Sets the correction that is being used based on the mode.
+        Remove listeners from last mode and add listeners for new mode.
         Args:
             mode: mode to use; None for use default
         """
+        if self._correction is not None:
+            self._correction.remove_listener(CorrectionUpdate, self._on_correction_update)
+            self._correction.remove_listener(CorrectionRecalculate, self._on_recalculation_update)
         self._correction = self._corrections_for_mode.get(mode, self._default_correction)
+
+        self._correction.add_listener(CorrectionUpdate, self._on_correction_update)
+        self._correction.add_listener(CorrectionRecalculate, self._on_recalculation_update)
         self.description = "Mode Selected: {}".format(self._correction.description)
+
+    def _on_recalculation_update(self, update: CorrectionRecalculate):
+        """
+        When the correction for the selected correction requests a recalculation then request a
+        recalculation
+        Args:
+            update: update request
+        """
+        self.trigger_listeners(update)
+
+    def _on_correction_update(self, update: CorrectionUpdate):
+        """
+        When the selected correction issues a correction update then call correction update.
+        Args:
+            update: update
+        """
+        self.description = "Mode Selected: {}".format(update.description)
+        self.trigger_listeners(CorrectionUpdate(update.correction, self.description))
 
     def from_axis(self, value, setpoint):
         """
@@ -463,7 +491,6 @@ class ModeSelectCorrection(EngineeringCorrection):
         Returns: the corrected value
         """
         correction = self._correction.from_axis(value, setpoint)
-        self.trigger_listeners(CorrectionUpdate(correction, self.description))
         return correction
 
     def to_axis(self, setpoint):
@@ -475,7 +502,6 @@ class ModeSelectCorrection(EngineeringCorrection):
         Returns: the corrected value
         """
         correction = self._correction.to_axis(setpoint)
-        self.trigger_listeners(CorrectionUpdate(correction, self.description))
         return correction
 
     def init_from_axis(self, setpoint):
@@ -488,5 +514,4 @@ class ModeSelectCorrection(EngineeringCorrection):
             the corrected value; EngineeringCorrectionNotPossible if this is not possible
         """
         correction = self._correction.init_from_axis(setpoint)
-        self.trigger_listeners(CorrectionUpdate(correction, self.description))
         return correction

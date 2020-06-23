@@ -525,12 +525,6 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
         self.update = None
         self.correction_update = None
 
-        def get_update(update: CorrectionRecalculate):
-            self.update = update
-
-        def get_correction_update(update: CorrectionUpdate):
-            self.correction_update = update
-
         self.mode1 = BeamlineMode("mode1", [])
         self.mode2 = BeamlineMode("mode2", [])
         self.default_offset = 1
@@ -542,8 +536,14 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
                                                           self.mode2: (ConstantCorrection(self.mode2_offset))})
         self.mock_beamline = MockBeamline()
         self.mode_selection_correction.set_observe_mode_change_on(self.mock_beamline)
-        self.mode_selection_correction.add_listener(CorrectionRecalculate, get_update)
-        self.mode_selection_correction.add_listener(CorrectionUpdate, get_correction_update)
+        self.mode_selection_correction.add_listener(CorrectionRecalculate, self.get_update)
+        self.mode_selection_correction.add_listener(CorrectionUpdate, self.get_correction_update)
+
+    def get_update(self, update: CorrectionRecalculate):
+        self.update = update
+
+    def get_correction_update(self, update: CorrectionUpdate):
+        self.correction_update = update
 
     def test_GIVEN_mode_selecting_correction_WHEN_changed_listener_triggered_THEN_correction_update_triggered(self):
 
@@ -580,7 +580,7 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
         result = self.mode_selection_correction.init_from_axis(0)
 
         assert_that(result, is_(-self.default_offset))
-        assert_that(self.correction_update.correction, is_(-self.default_offset))
+        assert_that(self.correction_update.correction, is_(self.default_offset))
         assert_that(self.correction_update.description,
                     is_("Mode Selected: {}".format(self.default_correction.description)))
 
@@ -590,7 +590,7 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
         result = self.mode_selection_correction.from_axis(0, 0)
 
         assert_that(result, is_(-self.default_offset))
-        assert_that(self.correction_update.correction, is_(-self.default_offset))
+        assert_that(self.correction_update.correction, is_(self.default_offset))
         assert_that(self.correction_update.description, is_("Mode Selected: {}".format(self.default_correction.description)))
 
     def test_GIVEN_ioc_driver_which_has_not_moved_with_engineering_correction_WHEN_update_mode_THEN_readback_not_fired(self):
@@ -601,9 +601,9 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
 
         self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode1))
 
-        mock_listener.assert_called_never()
+        mock_listener.assert_not_called()
 
-    def test_GIVEN_ioc_driver_with_engeineering_correction_WHEN_update_mode_THEN_readback_updated_fired(self):
+    def test_GIVEN_ioc_driver_with_engineering_correction_WHEN_update_mode_THEN_readback_updated_fired(self):
         mock_axis = create_mock_axis("mock", 0, 1)
         driver = DisplacementDriver(Component("comp", PositionAndAngle(0, 0, 0)), mock_axis, engineering_correction=self.mode_selection_correction)
         mock_axis.trigger_rbv_change()
@@ -615,5 +615,38 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
 
         mock_listener.assert_called_once()
 
-#TODO check that nested mode changers work and that correction updates get passed up chain need source of correct update
+    def test_GIVEN_ioc_driver_with_engineering_correction_containing_a_mode_update_correction_WHEN_update_mode_THEN_correct_readback_updated_fired(self):
+        mode1_mode1_offset = 11
+        mode1_mode2_offset = 12
+        mode2_mode1_offset = 210
+        mode2_mode2_offset = 220
+        default_correction = ConstantCorrection(self.default_offset)
+
+        mode1_mode_selection = ModeSelectCorrection(self.default_correction,
+                             {self.mode1: (ConstantCorrection(mode1_mode1_offset)),
+                              self.mode2: (ConstantCorrection(mode1_mode2_offset))})
+        mode2_mode_selection = ModeSelectCorrection(self.default_correction,
+                                                    {self.mode1: (ConstantCorrection(mode2_mode1_offset)),
+                                                     self.mode2: (ConstantCorrection(mode2_mode2_offset))})
+        mode_selection_correction = ModeSelectCorrection(self.default_correction,
+                                                              {self.mode1: mode1_mode_selection,
+                                                               self.mode2: mode2_mode_selection})
+        mode_selection_correction.set_observe_mode_change_on(self.mock_beamline)
+        mode_selection_correction.add_listener(CorrectionRecalculate, self.get_update)
+        mode_selection_correction.add_listener(CorrectionUpdate, self.get_correction_update)
+
+        mock_axis = create_mock_axis("mock", 0, 1)
+        driver = DisplacementDriver(Component("comp", PositionAndAngle(0, 0, 0)), mock_axis, engineering_correction=mode_selection_correction)
+        mock_axis.trigger_rbv_change()
+        driver.set_observe_mode_change_on(self.mock_beamline)
+        mock_listener = Mock()
+        driver.add_listener(CorrectionUpdate, mock_listener)
+
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode1))
+
+        assert_that(mock_listener.call_count, is_(2), "Two calls one for each mode select")
+        args = mock_listener.call_args[0]
+
+        assert_that(args[0].correction, is_(mode1_mode1_offset))
+
 #TODO check that beamline signs up ioc drivers
