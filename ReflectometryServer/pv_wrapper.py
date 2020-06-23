@@ -617,8 +617,7 @@ class MotorPVWrapper(PVWrapper):
             with self._motor_in_set_mode(self._prefixed_pv):
                 self._write_pv(self._sp_pv, new_position)
         except ValueError as ex:
-            logger.exception(ex)
-            STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex))
+            STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex), ex)
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("Failed to redefine position", self.name, Severity.MINOR_ALARM))
 
@@ -786,8 +785,7 @@ class _JawsAxisPVWrapper(PVWrapper):
                 sp = self._read_pv("{}".format(motor))
                 logger.info("    Motor {name} moved to rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
         except ValueError as ex:
-            logger.exception(ex)
-            STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex))
+            STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex), ex)
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("Failed to redefine position", self.name, Severity.MAJOR_ALARM))
 

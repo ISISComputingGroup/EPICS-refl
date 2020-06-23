@@ -191,19 +191,18 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
         try:
             return self._user_correction_function(setpoint, *[param.sp_rbv for param in self._beamline_parameters])
         except Exception as ex:
-            logger.exception(ex)
             if setpoint is None or None in [param.sp_rbv for param in self._beamline_parameters]:
                 non_initialised_params = [param.name for param in self._beamline_parameters if param.sp_rbv is None]
                 STATUS_MANAGER.update_error_log(
                     "Engineering correction, '{}', raised exception '{}' is this because you have not coped with "
-                    "non-autosaved value, {}".format(self.description, ex, non_initialised_params))
+                    "non-autosaved value, {}".format(self.description, ex, non_initialised_params), ex)
                 STATUS_MANAGER.update_active_problems(
                     ProblemInfo("Invalid engineering correction (uses non autosaved value?)", self.description,
                                 Severity.MINOR_ALARM))
 
             else:
                 STATUS_MANAGER.update_error_log(
-                    "Engineering correction, '{}', raised exception '{}' ".format(self.description, ex))
+                    "Engineering correction, '{}', raised exception '{}' ".format(self.description, ex), ex)
                 STATUS_MANAGER.update_active_problems(
                     ProblemInfo("Engineering correction throws exception", self.description, Severity.MINOR_ALARM))
 
