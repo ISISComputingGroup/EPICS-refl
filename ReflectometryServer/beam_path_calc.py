@@ -197,6 +197,68 @@ class ComponentAxis(metaclass=ABCMeta):
         self._is_changed = is_changed
 
 
+class DirectCalcAxis(ComponentAxis):
+    """
+    Directly connect the relative and the mantid coordinates together
+    """
+    def __init__(self, axis):
+        super(DirectCalcAxis, self).__init__(axis)
+        self.can_define_axis_position_as = True
+        self._position = 0.0
+
+    def get_relative_to_beam(self):
+        """
+        Returns: value of the axis
+        """
+        return self._position
+
+    def set_relative_to_beam(self, position):
+        """
+        Set an axis position
+        Args:
+            position: position to set
+        """
+        super(DirectCalcAxis, self).set_relative_to_beam(position)
+        self._position = position
+
+    def _get_displacement_for(self, position_relative_to_beam):
+        """
+        Get a displacement for a given position
+        Args:
+            position_relative_to_beam: position of axis
+
+        Returns:
+            position in mantid coordinates
+        """
+        return position_relative_to_beam
+
+    def get_displacement(self):
+        """
+        Returns: The displacement of the component from the zero position, E.g. The distance along the movement
+            axis of the component from the set zero position.
+        """
+        return self._position
+
+    def _on_set_displacement(self, displacement):
+        """
+        Update the driver axis from mantid coordinates, e.g. motor position
+        Called from set displacement after setting alarms and before triggering physical movement
+        Args:
+            displacement (float): displacement in mantid coordinates
+        """
+        self._position = displacement
+
+    def init_displacement_from_motor(self, motor_position):
+        """
+        Sets the displacement read from the motor axis on startup.
+
+        Args:
+            motor_position (float): The motor position
+        """
+        self._position = motor_position
+        self.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
+
+
 class BeamPathCalcAxis(ComponentAxis):
     """
     Axes for a component for the beam path calc. Used to setup for either the position and angle axis.
@@ -853,65 +915,3 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
             if not angle_to.incoming_beam_can_change and angle_to.is_in_beam:
                 angle_to.set_incoming_beam(self.get_outgoing_beam(), force=True)
                 break
-
-
-class DirectCalcAxis(ComponentAxis):
-    """
-    Directly connect the relative and the mantid coordinates together
-    """
-    def __init__(self, axis):
-        super(DirectCalcAxis, self).__init__(axis)
-        self.can_define_axis_position_as = True
-        self._position = 0.0
-
-    def get_relative_to_beam(self):
-        """
-        Returns: value of the axis
-        """
-        return self._position
-
-    def set_relative_to_beam(self, position):
-        """
-        Set an axis position
-        Args:
-            position: position to set
-        """
-        super(DirectCalcAxis, self).set_relative_to_beam(position)
-        self._position = position
-
-    def _get_displacement_for(self, position_relative_to_beam):
-        """
-        Get a displacement for a given position
-        Args:
-            position_relative_to_beam: position of axis
-
-        Returns:
-            position in mantid coordinates
-        """
-        return position_relative_to_beam
-
-    def get_displacement(self):
-        """
-        Returns: The displacement of the component from the zero position, E.g. The distance along the movement
-            axis of the component from the set zero position.
-        """
-        return self._position
-
-    def _on_set_displacement(self, displacement):
-        """
-        Update the driver axis from mantid coordinates, e.g. motor position
-        Called from set displacement after setting alarms and before triggering physical movement
-        Args:
-            displacement (float): displacement in mantid coordinates
-        """
-        self._position = displacement
-
-    def init_displacement_from_motor(self, motor_position):
-        """
-        Sets the displacement read from the motor axis on startup.
-
-        Args:
-            motor_position (float): The motor position
-        """
-        self._position = motor_position
-        self.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
