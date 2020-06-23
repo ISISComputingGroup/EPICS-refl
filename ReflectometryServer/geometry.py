@@ -92,11 +92,14 @@ def position_from_radial_coords(r, theta, angle=None):
 class ChangeAxis(Enum):
     """
     Types of axes in the component that can change.
-    """
-    POSITION = 0    # position in collimation axis (i.e. height for horizontal samples)
-    ANGLE = 1       # angle in plane of collimation
-    SEESAW = 2      # Tip of bench
-    CHI = 3         # angle like yaw
-    PSI = 4         # angle like roll
-    TRANS = 5       # translation axis perpendicular to beam and collimation axis
 
+    NB Usually POSITION is used instead of HEIGHT and ANGLE instead of PHI so they track the beam.
+    """
+    POSITION = 0    # tracking position in collimation axis (i.e. height for horizontal samples)
+    ANGLE = 1       # tracking angle in plane of collimation
+    SEESAW = 2      # Tip of bench
+    PHI = 3         # angle like pitch
+    CHI = 4         # angle like yaw
+    PSI = 5         # angle like roll
+    HEIGHT = 6      # height axis perpendicular to beam and the floor
+    TRANS = 7       # translation axis perpendicular to beam and parallel to the floor

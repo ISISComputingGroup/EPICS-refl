@@ -482,7 +482,7 @@ class AxisParameter(BeamlineParameter):
     @property
     def is_changing(self):
         """
-        Returns: Is the parameter changing (rotating)
+        Returns: Is the parameter changing (e.g. rotating or displacing)
         """
         return self._component.beam_path_rbv.axis[self._axis].is_changing
 

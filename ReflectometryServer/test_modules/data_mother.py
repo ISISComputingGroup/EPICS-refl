@@ -99,35 +99,37 @@ class DataMother:
         nr = add_mode("NR")
         disabled = add_mode("DISABLED", is_disabled=True)
 
-        #s1
+        # s1
         s1 = add_component(Component("s1_comp", PositionAndAngle(0.0, 1 * spacing, 90)))
         add_parameter(AxisParameter("s1", s1, ChangeAxis.POSITION), modes = [nr])
+        s1_axis = create_mock_axis("MOT:MTR0101", 0, 1)
+        add_driver(IocDriver(s1, ChangeAxis.POSITION, s1_axis))
 
+        # theta
         theta = add_component(ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90)))
         add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE), modes=[nr, disabled])
 
+        # s3
         s3 = add_component(Component("s3_comp", PositionAndAngle(0.0, 3 * spacing, 90)))
         add_parameter(AxisParameter("s3", s3, ChangeAxis.POSITION), modes=[nr])
+        s3_axis = create_mock_axis("MOT:MTR0102", 0, 1)
+        add_driver(IocDriver(s3, ChangeAxis.POSITION, s3_axis))
 
+        # detector
         detector = add_component(TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90)))
         theta.add_angle_to(detector)
-
         add_parameter(AxisParameter("det", detector, ChangeAxis.POSITION), modes = [nr, disabled])
         add_parameter(AxisParameter("det_angle", detector, ChangeAxis.ANGLE), modes = [nr, disabled])
-
-        s1_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        s3_axis = create_mock_axis("MOT:MTR0102", 0, 1)
         det_axis = create_mock_axis("MOT:MTR0104", 0, 1)
+        add_driver(IocDriver(detector, ChangeAxis.POSITION, det_axis))
         det_angle_axis = create_mock_axis("MOT:MTR0105", 0, 1)
+        add_driver(IocDriver(detector, ChangeAxis.ANGLE, det_angle_axis))
+
         axes = {"s1_axis": s1_axis,
                   "s3_axis": s3_axis,
                   "det_axis": det_axis,
                   "det_angle_axis": det_angle_axis}
 
-        add_driver(IocDriver(s1, ChangeAxis.POSITION, s1_axis))
-        add_driver(IocDriver(s3, ChangeAxis.POSITION, s3_axis))
-        add_driver(IocDriver(detector, ChangeAxis.POSITION, det_axis))
-        add_driver(IocDriver(detector, ChangeAxis.ANGLE, det_angle_axis))
         add_beam_start(PositionAndAngle(0.0, 0.0, 0.0))
         bl = get_configured_beamline()
         if initilise_mode_nr:
