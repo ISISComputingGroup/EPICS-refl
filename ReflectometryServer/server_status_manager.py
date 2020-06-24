@@ -2,6 +2,8 @@ import logging
 from collections import namedtuple
 
 from enum import Enum
+from typing import Optional
+
 from pcaspy import Severity
 
 from server_common.observable import observable
@@ -172,14 +174,18 @@ class _ServerStatusManager:
         self.status = self._get_highest_error_level()
         self._trigger_active_problems_update()
 
-    def update_error_log(self, message):
+    def update_error_log(self, message: str, exception: Optional[Exception] = None):
         """
         Logs an error and appends it to the list of current errors for display to the user.
 
         Params:
-            message(string): The log message to append
+            message: The log message to append
+            exception: exception that was thrown; None for just log the error message
         """
-        logger.error(message)
+        if exception:
+            logger.exception(message, exc_info=exception)
+        else:
+            logger.error(message)
         self._error_log.append(message)
         self._trigger_error_log_update()
 

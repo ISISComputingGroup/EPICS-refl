@@ -23,13 +23,13 @@ class OutOfBeamLookup:
     """
     def __init__(self, positions):
         self._validate(positions)
-        self._sorted_out_of_beam_positions = sorted(positions, key=lambda position: (
-        position.threshold is None, position.threshold), reverse=True)
+        self._sorted_out_of_beam_positions = sorted(positions, key=lambda position:
+                                                    (position.threshold is None, position.threshold), reverse=True)
 
     @staticmethod
     def _validate(positions):
         """
-        Validate the given list of positions for this looukup.
+        Validate the given list of positions for this lookup.
 
         Args:
             positions (list[OutOfBeamPositions]: The positions

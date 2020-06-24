@@ -8,6 +8,7 @@ from functools import partial
 
 from pcaspy import Severity
 
+
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
 from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException, ParameterNotInitializedException
 from ReflectometryServer.geometry import PositionAndAngle
@@ -409,7 +410,7 @@ class Beamline:
         try:
             self._perform_move_for_all_drivers(self._get_max_move_duration())
         except ZeroDivisionError as e:
-            STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e))
+            STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e), e)
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM))
             return

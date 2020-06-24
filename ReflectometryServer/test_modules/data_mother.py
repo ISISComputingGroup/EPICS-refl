@@ -5,17 +5,19 @@ from math import tan, radians, sin, cos
 
 from mock import Mock
 
-from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider
+from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider, ChangeAxis, add_mode, \
+    add_component, add_parameter, ConfigHelper, add_driver, add_beam_start, get_configured_beamline
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from server_common.observable import observable
-from .utils import DEFAULT_TEST_TOLERANCE
+from .utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
-from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent
+from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent, \
+    BenchComponent
 from ReflectometryServer.geometry import PositionAndAngle
-from ReflectometryServer.ioc_driver import DisplacementDriver, AngleDriver
-from ReflectometryServer.parameters import BeamlineParameter, TrackingPosition, AngleParameter, DirectParameter, \
+from ReflectometryServer.ioc_driver import IocDriver
+from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, DirectParameter, \
     SlitGapParameter
 import numpy as np
 
@@ -92,44 +94,46 @@ class DataMother:
         Returns: beamline, axes
 
         """
-        # COMPONENTS
-        s1 = Component("s1_comp", PositionAndAngle(0.0, 1 * spacing, 90))
-        s3 = Component("s3_comp", PositionAndAngle(0.0, 3 * spacing, 90))
+        ConfigHelper.reset()
 
-        detector = TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90))
-        theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90), angle_to=[detector])
-        comps = [s1, theta, s3, detector]
+        nr = add_mode("NR")
+        disabled = add_mode("DISABLED", is_disabled=True)
 
-        # BEAMLINE PARAMETERS
-        slit1_pos = TrackingPosition("s1", s1, True)
-        slit3_pos = TrackingPosition("s3", s3, True)
-        theta_ang = AngleParameter("theta", theta, True)
-        detector_position = TrackingPosition("det", detector, True)
-        detector_angle = AngleParameter("det_angle", detector, True)
-        params = [slit1_pos, theta_ang, slit3_pos, detector_position, detector_angle]
-
-        # DRIVERS
+        # s1
+        s1 = add_component(Component("s1_comp", PositionAndAngle(0.0, 1 * spacing, 90)))
+        add_parameter(AxisParameter("s1", s1, ChangeAxis.POSITION), modes = [nr])
         s1_axis = create_mock_axis("MOT:MTR0101", 0, 1)
+        add_driver(IocDriver(s1, ChangeAxis.POSITION, s1_axis))
+
+        # theta
+        theta = add_component(ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90)))
+        add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE), modes=[nr, disabled])
+
+        # s3
+        s3 = add_component(Component("s3_comp", PositionAndAngle(0.0, 3 * spacing, 90)))
+        add_parameter(AxisParameter("s3", s3, ChangeAxis.POSITION), modes=[nr])
         s3_axis = create_mock_axis("MOT:MTR0102", 0, 1)
+        add_driver(IocDriver(s3, ChangeAxis.POSITION, s3_axis))
+
+        # detector
+        detector = add_component(TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90)))
+        theta.add_angle_to(detector)
+        add_parameter(AxisParameter("det", detector, ChangeAxis.POSITION), modes = [nr, disabled])
+        add_parameter(AxisParameter("det_angle", detector, ChangeAxis.ANGLE), modes = [nr, disabled])
         det_axis = create_mock_axis("MOT:MTR0104", 0, 1)
+        add_driver(IocDriver(detector, ChangeAxis.POSITION, det_axis))
         det_angle_axis = create_mock_axis("MOT:MTR0105", 0, 1)
+        add_driver(IocDriver(detector, ChangeAxis.ANGLE, det_angle_axis))
+
         axes = {"s1_axis": s1_axis,
                   "s3_axis": s3_axis,
                   "det_axis": det_axis,
                   "det_angle_axis": det_angle_axis}
-        drives = [DisplacementDriver(s1, s1_axis),
-                  DisplacementDriver(s3, s3_axis),
-                  DisplacementDriver(detector, det_axis),
-                  AngleDriver(detector, det_angle_axis)]
-        # MODES
-        nr_inits = {}
-        nr_mode = BeamlineMode("NR", [param.name for param in params], nr_inits)
-        disabled_mode = BeamlineMode("DISABLED", [param.name for param in params], nr_inits, is_disabled=True)
-        modes = [nr_mode, disabled_mode]
-        beam_start = PositionAndAngle(0.0, 0.0, 0.0)
-        bl = Beamline(comps, params, drives, modes, beam_start)
+
+        add_beam_start(PositionAndAngle(0.0, 0.0, 0.0))
+        bl = get_configured_beamline()
         if initilise_mode_nr:
-            bl.active_mode = nr_mode.name
+            bl.active_mode = nr
         return bl, axes
 
     @staticmethod
@@ -149,16 +153,17 @@ class DataMother:
         drives = []
 
         # COMPONENTS
+        theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90))
         detector = TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90))
-        theta = ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90), [detector])
+        theta.add_angle_to(detector)
         comps = [theta]
 
         # BEAMLINE PARAMETERS
-        s1_gap = SlitGapParameter("s1_gap", s1_gap_axis, sim=True)
-        theta_ang = AngleParameter("theta", theta, sim=True)
-        s3_gap = SlitGapParameter("s3_gap", s3_gap_axis, sim=True)
-        detector_position = TrackingPosition("det", detector, sim=True)
-        detector_angle = AngleParameter("det_angle", detector, sim=True)
+        s1_gap = create_parameter_with_initial_value(0, SlitGapParameter, "s1_gap", s1_gap_axis)
+        theta_ang = create_parameter_with_initial_value(0, AxisParameter, "theta", theta, ChangeAxis.ANGLE)
+        s3_gap = create_parameter_with_initial_value(0, SlitGapParameter, "s3_gap", s3_gap_axis)
+        detector_position = create_parameter_with_initial_value(0, AxisParameter, "det", detector, ChangeAxis.POSITION)
+        detector_angle = create_parameter_with_initial_value(0, AxisParameter, "det_angle", detector, ChangeAxis.ANGLE)
         params = [s1_gap, theta_ang, s3_gap, detector_position, detector_angle]
 
         # MODES
@@ -166,6 +171,10 @@ class DataMother:
         nr_mode = [BeamlineMode("NR", [param.name for param in params], nr_inits)]
         beam_start = PositionAndAngle(0.0, 0.0, 0.0)
         bl = Beamline(comps, params, drives, nr_mode, beam_start)
+
+        # Initialise motor positions to get rbv call backs set
+        s1_gap_axis.sp = 0
+        s3_gap_axis.sp = 0
 
         return bl, axes
 
@@ -191,15 +200,17 @@ class DataMother:
         z_sample_to_det = 2
         sm_comp = ReflectingComponent("sm_comp", PositionAndAngle(0.0, 0, perp_to_floor_angle_in_mantid))
         detector_comp = TiltingComponent("detector_comp", PositionAndAngle(0.0, z_sm_to_sample + z_sample_to_det, perp_to_floor_angle_in_mantid))
-        theta_comp = ThetaComponent("theta_comp", PositionAndAngle(0.0, z_sm_to_sample, perp_to_floor_angle_in_mantid), [detector_comp])
+        theta_comp = ThetaComponent("theta_comp", PositionAndAngle(0.0, z_sm_to_sample, perp_to_floor_angle_in_mantid))
+        theta_comp.add_angle_to(detector_comp)
 
         comps = [sm_comp, theta_comp, detector_comp]
 
         # BEAMLINE PARAMETERS
-        sm_angle_param = AngleParameter("sm_angle", sm_comp)
-        theta_param = AngleParameter("theta", theta_comp, autosave=autosave_theta_not_offset)
-        detector_position_param = TrackingPosition("det_pos", detector_comp, autosave=not autosave_theta_not_offset)
-        detector_angle_param = AngleParameter("det_angle", detector_comp)
+        sm_angle_param = AxisParameter("sm_angle", sm_comp, ChangeAxis.ANGLE)
+        theta_param = AxisParameter("theta", theta_comp, ChangeAxis.ANGLE, autosave=autosave_theta_not_offset)
+        detector_position_param = AxisParameter("det_pos", detector_comp, ChangeAxis.POSITION,
+                                                autosave=not autosave_theta_not_offset)
+        detector_angle_param = AxisParameter("det_angle", detector_comp, ChangeAxis.ANGLE)
 
         params = [sm_angle_param, theta_param, detector_position_param, detector_angle_param]
 
@@ -230,9 +241,9 @@ class DataMother:
                 "det_axis": det_axis,
                 "det_angle_axis": det_angle_axis}
 
-        drives = [AngleDriver(sm_comp, sm_axis, engineering_correction=correction),
-                  DisplacementDriver(detector_comp, det_axis),
-                  AngleDriver(detector_comp, det_angle_axis)]
+        drives = [IocDriver(sm_comp, ChangeAxis.ANGLE, sm_axis, engineering_correction=correction),
+                  IocDriver(detector_comp, ChangeAxis.POSITION, det_axis),
+                  IocDriver(detector_comp, ChangeAxis.ANGLE, det_angle_axis)]
 
         # MODES
         nr_inits = {}
@@ -270,6 +281,32 @@ class DataMother:
             total_offset += offset_1 + offset_2
 
         return total_offset
+
+    @staticmethod
+    def beamline_sm_theta_bench(sm_angle, theta_angle, driver_bench_offset, autosave_bench_not_theta=False):
+
+        ConfigHelper.reset()
+        test = add_mode("TEST")
+
+        add_beam_start(PositionAndAngle(0, 0, 0))
+
+        sm = add_component(ReflectingComponent("SM", PositionAndAngle(0, 0, 90)))
+        add_parameter(AxisParameter("sm_angle", sm, ChangeAxis.ANGLE))
+        sm_axis = create_mock_axis("MOT:MTR0101", sm_angle, sm_angle)
+        add_driver(IocDriver(sm, ChangeAxis.ANGLE, sm_axis))
+        sm_axis.trigger_rbv_change()
+
+        theta = add_component(ThetaComponent("THETA", PositionAndAngle(0, 10, 90)))
+        add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE, autosave=not autosave_bench_not_theta))
+
+        bench = add_component(BenchComponent("Bench", PositionAndAngle(0, 20, 90)))
+        add_parameter(AxisParameter("bench_angle", bench, ChangeAxis.ANGLE, autosave=autosave_bench_not_theta))
+        bench_axis = create_mock_axis("MOT:MTR0102", driver_bench_offset + theta_angle * 2 + sm_angle * 2, 1)
+        add_driver(IocDriver(bench, ChangeAxis.ANGLE, bench_axis))
+        bench_axis.trigger_rbv_change()
+        theta.add_angle_of(bench)
+
+        return get_configured_beamline(), {"bench_angle": bench_axis, "sm_angle": sm_axis}
 
 
 def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):

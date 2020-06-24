@@ -122,12 +122,12 @@ def add_parameter(parameter, modes=None, mode_inits=None, marker=None):
         Add name to nr and polarised mode
         >>> nr = add_mode("NR")
         >>> polarised = add_mode("POLARISED")
-        >>> add_parameter(TrackingPosition("name", component), modes=(nr, polarised))
+        >>> add_parameter(AxisParameter(ChangeAxis.POSITION,"name", component), modes=(nr, polarised))
 
         Add name to nr and polarised mode but with an initial value in nr of 0
         >>> nr = add_mode("NR")
         >>> polarised = add_mode("POLARISED")
-        >>> add_parameter(TrackingPosition("name", component), modes=(nr, polarised), mode_inits=(nr, 0.0))
+        >>> add_parameter(AxisParameter(ChangeAxis.POSITION,"name", component), modes=(nr, polarised), mode_inits=(nr, 0.0))
 
     """
     if marker is None:

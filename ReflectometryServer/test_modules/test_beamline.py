@@ -7,6 +7,7 @@ from mock import Mock, patch,  call
 from ReflectometryServer import *
 
 from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
 from ReflectometryServer.beamline_constant import BeamlineConstant
 
@@ -18,7 +19,7 @@ class TestComponentBeamline(unittest.TestCase):
     def setup_beamline(self, initial_mirror_angle, mirror_position, beam_start):
         jaws = Component("jaws", setup=PositionAndAngle(0, 0, 90))
         mirror = ReflectingComponent("mirror", setup=PositionAndAngle(0, mirror_position, 90))
-        mirror.beam_path_set_point.set_angular_displacement(initial_mirror_angle)
+        mirror.beam_path_set_point.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(initial_mirror_angle, None, None))
         jaws3 = Component("jaws3", setup=PositionAndAngle(0, 20, 90))
         beamline = Beamline([jaws, mirror, jaws3], [], [], [BeamlineMode("mode", [])], beam_start)
         return beamline, mirror
@@ -57,7 +58,7 @@ class TestComponentBeamline(unittest.TestCase):
         bounced_beam = PositionAndAngle(y=0, z=mirror_position, angle=mirror_final_angle * 2)
         expected_beams = [beam_start, bounced_beam, bounced_beam]
 
-        mirror.beam_path_set_point.set_angular_displacement(mirror_final_angle)
+        mirror.beam_path_set_point.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(mirror_final_angle, None, None))
         results = [component.beam_path_set_point.get_outgoing_beam() for component in beamline]
 
         for index, (result, expected_beam) in enumerate(zip(results, expected_beams)):
@@ -87,7 +88,7 @@ class TestComponentBeamlineReadbacks(unittest.TestCase):
 
         callback = Mock()
         comp2.beam_path_rbv.set_incoming_beam = callback
-        comp1.beam_path_rbv.set_displacement(1.0)
+        comp1.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(1.0, None, None))
 
         assert_that(callback.called, is_(True))
 
@@ -239,7 +240,7 @@ class TestBeamlineValidation(unittest.TestCase):
         component = Component("comp", PositionAndAngle(0, 0, 0))
         beamline_parameter = InBeamParameter("param", component)
         motor_axis = create_mock_axis("axis", 0, 0)
-        driver = DisplacementDriver(component, motor_axis)
+        driver = IocDriver(component, ChangeAxis.POSITION, motor_axis)
 
         assert_that(calling(Beamline).with_args(
             [component],
@@ -252,7 +253,7 @@ class TestBeamlineValidation(unittest.TestCase):
         component = TiltingComponent("comp", PositionAndAngle(0, 0, 0))
         beamline_parameter = InBeamParameter("param", component)
         motor_axis = create_mock_axis("axis", 0, 0)
-        driver = AngleDriver(component, motor_axis)
+        driver = IocDriver(component, ChangeAxis.ANGLE, motor_axis)
 
         assert_that(calling(Beamline).with_args(
             [component],
@@ -529,6 +530,71 @@ class TestRealisticWithAutosaveInit(unittest.TestCase):
         assert_that(bl.parameter("det_pos").sp_rbv, is_(close_to(expected_det_offset, 1e-6)), "det position SP RBV")
         assert_that(bl.parameter("det_angle").sp_rbv, is_(close_to(0, 1e-6)), "det angle SP RBV")
 
+
+class TestRealisticWithAutosaveInitAndBench(unittest.TestCase):
+
+    @patch("ReflectometryServer.parameters.param_float_autosave")
+    def test_GIVEN_beam_line_where_autosave_theta_at_0p1_and_bench_offset_0_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_sm_angle = 0
+        expected_theta = 0.1
+        driver_bench_offset = 0
+        file_io.read_parameter.return_value = expected_theta
+
+        bl, drives = DataMother.beamline_sm_theta_bench(expected_sm_angle, expected_theta, driver_bench_offset)
+
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
+        assert_that(bl.parameter("theta").sp, is_(close_to(expected_theta, 1e-6)), "theta SP")
+        assert_that(bl.parameter("bench_angle").sp, is_(close_to(driver_bench_offset, 1e-6)), "bench angle SP")
+
+        assert_that(bl.parameter("sm_angle").sp_rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP RBV")
+        assert_that(bl.parameter("theta").sp_rbv, is_(close_to(expected_theta, 1e-6)), "theta SP RBV")
+        assert_that(bl.parameter("bench_angle").sp_rbv, is_(close_to(driver_bench_offset, 1e-6)), "bench angle SP RBV")
+
+        assert_that(bl.parameter("sm_angle").rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle RBV")
+        assert_that(bl.parameter("theta").rbv, is_(close_to(expected_theta, 1e-6)), "theta RBV")
+        assert_that(bl.parameter("bench_angle").rbv, is_(close_to(driver_bench_offset, 1e-6)), "bench angle RBV")
+
+    @patch("ReflectometryServer.parameters.param_float_autosave")
+    def test_GIVEN_beam_line_where_autosave_theta_at_0p1_and_bench_offset_2_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_sm_angle = 0
+        expected_theta = 0.1
+        driver_bench_offset = 2
+        file_io.read_parameter.return_value = expected_theta
+
+        bl, drives = DataMother.beamline_sm_theta_bench(expected_sm_angle, expected_theta, driver_bench_offset)
+
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
+        assert_that(bl.parameter("theta").sp, is_(close_to(expected_theta, 1e-6)), "theta SP")
+        assert_that(bl.parameter("bench_angle").sp, is_(close_to(driver_bench_offset, 1e-6)), "bench angle SP")
+
+        assert_that(bl.parameter("sm_angle").sp_rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP RBV")
+        assert_that(bl.parameter("theta").sp_rbv, is_(close_to(expected_theta, 1e-6)), "theta SP RBV")
+        assert_that(bl.parameter("bench_angle").sp_rbv, is_(close_to(driver_bench_offset, 1e-6)), "bench angle SP RBV")
+
+        assert_that(bl.parameter("sm_angle").rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle RBV")
+        assert_that(bl.parameter("theta").rbv, is_(close_to(expected_theta, 1e-6)), "theta RBV")
+        assert_that(bl.parameter("bench_angle").rbv, is_(close_to(driver_bench_offset, 1e-6)), "bench angle RBV")
+
+    @patch("ReflectometryServer.parameters.param_float_autosave")
+    def test_GIVEN_beam_line_where_autosave_bench_offset_2_and_theta_0p1_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_sm_angle = 0
+        expected_theta = 0.1
+        driver_bench_offset = 2
+        file_io.read_parameter.return_value = driver_bench_offset
+
+        bl, drives = DataMother.beamline_sm_theta_bench(expected_sm_angle, expected_theta, driver_bench_offset, autosave_bench_not_theta=True)
+
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
+        assert_that(bl.parameter("theta").sp, is_(close_to(expected_theta, 1e-6)), "theta SP")
+        assert_that(bl.parameter("bench_angle").sp, is_(close_to(driver_bench_offset, 1e-6)), "bench angle SP")
+
+        assert_that(bl.parameter("sm_angle").sp_rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP RBV")
+        assert_that(bl.parameter("theta").sp_rbv, is_(close_to(expected_theta, 1e-6)), "theta SP RBV")
+        assert_that(bl.parameter("bench_angle").sp_rbv, is_(close_to(driver_bench_offset, 1e-6)), "bench angle SP RBV")
+
+        assert_that(bl.parameter("sm_angle").rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle RBV")
+        assert_that(bl.parameter("theta").rbv, is_(close_to(expected_theta, 1e-6)), "theta RBV")
+        assert_that(bl.parameter("bench_angle").rbv, is_(close_to(driver_bench_offset, 1e-6)), "bench angle RBV")
 
 class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
