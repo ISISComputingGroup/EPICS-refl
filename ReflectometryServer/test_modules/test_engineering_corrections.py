@@ -535,7 +535,7 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
         self.mode1 = BeamlineMode("mode1", [])
         self.mode2 = BeamlineMode("mode2", [])
         self.default_offset = 1
-        self.mode1_offset = 1
+        self.mode1_offset = 11
         self.mode2_offset = 22
         self.default_correction = ConstantCorrection(self.default_offset)
         self.mode_selection_correction = ModeSelectCorrection(self.default_correction,
@@ -627,7 +627,6 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
         mode1_mode2_offset = 12
         mode2_mode1_offset = 210
         mode2_mode2_offset = 220
-        default_correction = ConstantCorrection(self.default_offset)
 
         mode1_mode_selection = ModeSelectCorrection(self.default_correction,
                              {self.mode1: (ConstantCorrection(mode1_mode1_offset)),
@@ -651,9 +650,22 @@ class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
 
         self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode1))
 
-        assert_that(mock_listener.call_count, is_(2), "Two calls one for each mode select")
         args = mock_listener.call_args[0]
         assert_that(args[0].correction, is_(mode1_mode1_offset))
 
+    def test_GIVEN_beamline_with_engineering_correction_containing_a_mode_update_correction_WHEN_update_mode_THEN_correct_readback_updated_fired(self):
 
-#TODO check that beamline signs up ioc drivers
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        param = AxisParameter("comp", comp, ChangeAxis.POSITION)
+        mock_axis = create_mock_axis("mock", 0, 1)
+        driver = IocDriver(comp, ChangeAxis.POSITION, mock_axis, engineering_correction=self.mode_selection_correction)
+        mock_axis.trigger_rbv_change()
+        bl = Beamline(components=[comp], beamline_parameters=[param], drivers=[driver], modes=[self.mode1, self.mode2])
+
+        bl.active_mode = self.mode1.name
+
+        assert_that(self.correction_update.correction, is_(self.mode1_offset))
+
+        bl.active_mode = self.mode2.name
+
+        assert_that(self.correction_update.correction, is_(self.mode2_offset))
