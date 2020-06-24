@@ -6,16 +6,14 @@ from hamcrest import *
 from mock import patch
 from parameterized import parameterized
 
-import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
-from ReflectometryServer import beamline_configuration
+from ReflectometryServer import beamline_configuration, ChangeAxis
 from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider, CorrectionUpdate
-from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
-from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_axis, DataMother
-
-from server_common.channel_access import UnableToConnectToPVException
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
+from ReflectometryServer.out_of_beam import OutOfBeamPosition
+from ReflectometryServer.test_modules.data_mother import create_mock_axis, DataMother
 
 FLOAT_TOLERANCE = 1e-9
 OUT_OF_BEAM_POSITION = OutOfBeamPosition(10)
@@ -26,9 +24,9 @@ class TestEngineeringCorrections(unittest.TestCase):
     def _setup_driver_axis_and_correction(self, correction):
         comp = Component("comp", PositionAndAngle(0.0, 0.0, 90.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = DisplacementDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction),
-                                    out_of_beam_positions=[OUT_OF_BEAM_POSITION])
-        driver._is_changed = lambda: True  # simulate that the component has requested a change
+        driver = IocDriver(comp, ChangeAxis.POSITION, mock_axis, out_of_beam_positions=[OUT_OF_BEAM_POSITION],
+                           engineering_correction=ConstantCorrection(correction))
+        comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp
 
     def test_GIVEN_engineering_correction_offset_of_1_WHEN_driver_told_to_go_to_0_THEN_pv_sent_to_1(self):
@@ -44,8 +42,9 @@ class TestEngineeringCorrections(unittest.TestCase):
         expected_correction = 1
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = AngleDriver(comp, mock_axis, engineering_correction=ConstantCorrection(expected_correction))
-        driver._is_changed = lambda: True  # simulate that the component has requested a change
+        driver = IocDriver(comp, ChangeAxis.ANGLE, mock_axis,
+                           engineering_correction=ConstantCorrection(expected_correction))
+        comp.beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed = lambda: True  # simulate that the component has requested a change
         driver.perform_move(1)
 
         result = mock_axis.sp
@@ -59,14 +58,14 @@ class TestEngineeringCorrections(unittest.TestCase):
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
         mock_axis.sp = move_to
 
-        result = comp.beam_path_rbv.get_displacement()
+        result = comp.beam_path_rbv.axis[ChangeAxis.POSITION].get_displacement()
 
         assert_that(result, is_(close_to(expected_correct_value, FLOAT_TOLERANCE)))
 
     def test_GIVEN_engineering_correction_offset_of_1_WHEN_at_set_point_THEN_at_target_setpoint_is_true(self):
         correction = 4
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
-        comp.beam_path_set_point.set_displacement(2)
+        comp.beam_path_set_point.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(2, None, None))
         driver.perform_move(1)
 
         result = driver.at_target_setpoint()
@@ -86,7 +85,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
         driver.initialise()
 
-        result = comp.beam_path_set_point.get_displacement()
+        result = comp.beam_path_set_point.axis[ChangeAxis.POSITION].get_displacement()
 
         assert_that(result, is_(-1 * correction))
 
@@ -96,7 +95,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         mock_axis.sp = OUT_OF_BEAM_POSITION.position
         driver.initialise()
 
-        result = comp.beam_path_set_point.get_displacement()
+        result = comp.beam_path_set_point.axis[ChangeAxis.POSITION].get_displacement()
 
         assert_that(result, is_(OUT_OF_BEAM_POSITION.position))
 
@@ -104,10 +103,10 @@ class TestEngineeringCorrections(unittest.TestCase):
         correction = 1
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
-        driver = AngleDriver(comp, mock_axis, engineering_correction=ConstantCorrection(correction))
+        driver = IocDriver(comp, ChangeAxis.ANGLE, mock_axis, engineering_correction=ConstantCorrection(correction))
         driver.initialise()
 
-        result = comp.beam_path_set_point.get_angular_displacement()
+        result = comp.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement()
 
         assert_that(result, is_(-1 * correction))
 
@@ -162,7 +161,7 @@ class TestEngineeringCorrectionsPureFunction(unittest.TestCase):
 
         parameter_value = 2
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
-        beamline_parameter = TrackingPosition("param", comp)
+        beamline_parameter = AxisParameter("param", comp, ChangeAxis.POSITION)
         beamline_parameter.sp = parameter_value
 
         value = 1
@@ -224,7 +223,7 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
         grid_data_provider.read = lambda: None
 
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
-        beamline_parameter = TrackingPosition("theta", comp)
+        beamline_parameter = AxisParameter("theta", comp, ChangeAxis.POSITION)
         beamline_parameter.sp = value
 
         interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider, beamline_parameter)
@@ -250,7 +249,7 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
         grid_data_provider.read = lambda: None
 
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
-        beamline_parameter = TrackingPosition("theta", comp)
+        beamline_parameter = AxisParameter("theta", comp, ChangeAxis.POSITION)
         beamline_parameter.sp = theta
 
         interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider, beamline_parameter)
@@ -267,7 +266,7 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
         grid_data_provider.read = lambda: None
 
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
-        beamline_parameter = TrackingPosition("not theta", comp)
+        beamline_parameter = AxisParameter("not theta", comp, ChangeAxis.POSITION)
 
         assert_that(
             calling(InterpolateGridDataCorrectionFromProvider).with_args(grid_data_provider, beamline_parameter),
@@ -281,7 +280,7 @@ class TestEngineeringCorrectionsLinear(unittest.TestCase):
         grid_data_provider.read = lambda: None
 
         comp = Component("param_comp", setup=PositionAndAngle(0, 0, 90))
-        beamline_parameter = TrackingPosition("theta", comp)
+        beamline_parameter = AxisParameter("theta", comp, ChangeAxis.POSITION)
 
         interp = InterpolateGridDataCorrectionFromProvider(grid_data_provider, beamline_parameter)
         interp.grid_data_provider = grid_data_provider
@@ -408,8 +407,8 @@ class TestEngineeringCorrectionsChangeListener(unittest.TestCase):
         comp = Component("comp", PositionAndAngle(0.0, 0.0, 0.0))
         mock_axis = create_mock_axis("MOT:MTR0101", 0, 1)
         engineering_correction = ConstantCorrection(correction)
-        driver = DisplacementDriver(comp, mock_axis, engineering_correction=engineering_correction)
-        driver._is_changed = lambda: True  # simulate that the component has requested a change
+        driver = IocDriver(comp, ChangeAxis.POSITION, mock_axis, engineering_correction=engineering_correction)
+        comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp, engineering_correction
 
     def _record_event(self, engineering_correction_update):
@@ -480,14 +479,15 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         param_float_autosave.read_parameter.return_value = expected_setpoint
         offset = expected_setpoint / multiple
         comp = Component("comp", PositionAndAngle(0.0, 0, 90))
-        param = TrackingPosition("param", comp, autosave=True)
+        param = AxisParameter("param", comp, ChangeAxis.POSITION, autosave=True)
         axis = create_mock_axis("MOT:MTR0101", offset + expected_setpoint, 1)
-        driver = DisplacementDriver(comp, axis, engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
+        driver = IocDriver(comp, ChangeAxis.POSITION, axis,
+                           engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
         nr_mode = BeamlineMode("NR", [param.name], {})
         bl = Beamline([comp], [param], [driver], [nr_mode])
         bl.active_mode = nr_mode.name
 
-        result = comp.beam_path_set_point.get_displacement()
+        result = comp.beam_path_set_point.axis[ChangeAxis.POSITION].get_displacement()
 
         assert_that(result, is_(close_to(expected_setpoint, 1e-6)))
 
@@ -499,14 +499,15 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         param_float_autosave.read_parameter.return_value = expected_setpoint
         offset = expected_setpoint / multiple
         comp = TiltingComponent("comp", PositionAndAngle(0.0, 0, 90))
-        param = AngleParameter("param", comp, autosave=True)
+        param = AxisParameter("param", comp, ChangeAxis.ANGLE, autosave=True)
         axis = create_mock_axis("MOT:MTR0101", offset + expected_setpoint, 1)
-        driver = AngleDriver(comp, axis, engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
+        driver = IocDriver(comp, ChangeAxis.ANGLE, axis,
+                           engineering_correction=UserFunctionCorrection(lambda sp: sp / multiple))
 
         nr_mode = BeamlineMode("NR", [param.name], {})
         bl = Beamline([comp], [param], [driver], [nr_mode])
         bl.active_mode = nr_mode.name
 
-        result = comp.beam_path_set_point.get_angular_displacement()
+        result = comp.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement()
 
         assert_that(result, is_(close_to(expected_setpoint, 1e-6)))

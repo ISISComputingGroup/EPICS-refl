@@ -12,7 +12,7 @@ class BeamlineConstant:
         Initialiser.
         Args:
             name: name of the value
-            value: value for it to have (can be float or bool)
+            value: value for it to have (can be float, str or bool)
             description: description of what the value represents
         """
         self.name = name

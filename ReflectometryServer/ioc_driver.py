@@ -9,7 +9,8 @@ from pcaspy import Severity
 
 from ReflectometryServer.out_of_beam import OutOfBeamLookup
 from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
-from ReflectometryServer.components import ChangeAxis, DefineValueAsEvent
+from ReflectometryServer.beam_path_calc import DefineValueAsEvent
+from ReflectometryServer import ChangeAxis
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
@@ -29,20 +30,34 @@ class IocDriver:
     """
     Drives an actual motor axis based on a component in the beamline model.
     """
-    def __init__(self, component, axis, synchronised=True, engineering_correction=None):
+    def __init__(self, component, component_axis, motor_axis, out_of_beam_positions=None, synchronised=True,
+                 engineering_correction=None):
         """
         Drive the IOC based on a component
         Args:
             component (ReflectometryServer.components.Component): Component for IOC driver
-            axis (ReflectometryServer.pv_wrapper.PVWrapper): The PV that this driver controls.
+            motor_axis (ReflectometryServer.pv_wrapper.PVWrapper): The PV that this driver controls.
+            out_of_beam_positions (ReflectometryServer.out_of_beam_lookup.OutOfBeamLookup): Provides the out of beam
+                status as configured for this motor_axis.
             synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
                 time; if false they will move at their current speed.
             engineering_correction (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
                 correction to apply to the value from the component before it is sent to the pv. None for no correction
         """
         self._component = component
-        self._axis = axis
-        self.name = axis.name
+        self._component_axis = component_axis
+        self._motor_axis = motor_axis
+        self.name = motor_axis.name
+        if out_of_beam_positions is None or not component_axis == ChangeAxis.POSITION:  # TODO: sort in park position ticket
+            self._out_of_beam_lookup = None
+        else:
+            try:
+                self._out_of_beam_lookup = OutOfBeamLookup(out_of_beam_positions)
+            except ValueError as e:
+                STATUS_MANAGER.update_error_log(str(e))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Invalid Out Of Beam Positions", self.name, Severity.MINOR_ALARM))
+
         self._synchronised = synchronised
         if engineering_correction is None:
             self._engineering_correction = NoCorrection()
@@ -53,14 +68,12 @@ class IocDriver:
             self._engineering_correction.add_listener(CorrectionUpdate, self._on_correction_update)
 
         self._sp_cache = None
-        self._rbv_cache = self._engineering_correction.from_axis(self._axis.rbv, self._get_component_sp())
+        self._rbv_cache = self._engineering_correction.from_axis(self._motor_axis.rbv, self._get_component_sp())
 
-        self._axis.add_listener(SetpointUpdate, self._on_update_sp)
-        self._axis.add_listener(ReadbackUpdate, self._on_update_rbv)
-        self._axis.add_listener(IsChangingUpdate, self._on_update_is_changing)
-
-        self._component.add_listener(DefineValueAsEvent, self._on_define_value_as)
-        self._change_axis_type = None
+        self._motor_axis.add_listener(SetpointUpdate, self._on_update_sp)
+        self._motor_axis.add_listener(ReadbackUpdate, self._on_update_rbv)
+        self._motor_axis.add_listener(IsChangingUpdate, self._on_update_is_changing)
+        self._component.beam_path_rbv.axis[component_axis].add_listener(DefineValueAsEvent, self._on_define_value_as)
 
     def _on_define_value_as(self, new_event):
         """
@@ -70,13 +83,12 @@ class IocDriver:
             new_event (DefineValueAsEvent): The events value and axis
 
         """
-        if new_event.change_axis == self._change_axis_type:
-            correct_position = self._engineering_correction.to_axis(new_event.new_position)
-            logger.info("Defining position for axis {name} to {corrected_value} (uncorrected {new_value}). "
-                        "From sp {sp} and rbv {rbv}".format(name=self._axis.name, corrected_value=correct_position,
-                                                            new_value=new_event.new_position, sp=self._sp_cache,
-                                                            rbv=self._rbv_cache))
-            self._axis.define_position_as(correct_position)
+        correct_position = self._engineering_correction.to_axis(new_event.new_position)
+        logger.info("Defining position for axis {name} to {corrected_value} (uncorrected {new_value}). "
+                    "From sp {sp} and rbv {rbv}".format(name=self._motor_axis.name, corrected_value=correct_position,
+                                                        new_value=new_event.new_position, sp=self._sp_cache,
+                                                        rbv=self._rbv_cache))
+        self._motor_axis.define_position_as(correct_position)
 
     def _on_correction_update(self, new_correction_value):
         """
@@ -90,20 +102,35 @@ class IocDriver:
 
     def __repr__(self):
         return "{} for axis pv {} and component {}".format(
-            self.__class__.__name__, self._axis.name, self._component.name)
+            self.__class__.__name__, self._motor_axis.name, self._component.name)
 
     def initialise(self):
         """
         Post monitors and read initial value from the axis.
         """
-        self._axis.initialise()
+        self._motor_axis.initialise()
         self.initialise_setpoint()
 
     def initialise_setpoint(self):
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
-        raise NotImplemented()
+        beam_path_setpoint = self._component.beam_path_set_point
+        autosaved_value = beam_path_setpoint.axis[self._component_axis].autosaved_value
+        if autosaved_value is None:
+            corrected_axis_setpoint = self._engineering_correction.init_from_axis(self._motor_axis.sp)
+        else:
+            corrected_axis_setpoint = self._engineering_correction.from_axis(self._motor_axis.sp, autosaved_value)
+
+        if self._out_of_beam_lookup is not None:  # TODO: sort in park position ticket
+            beam_interception = beam_path_setpoint.calculate_beam_interception()
+            in_beam_status = self._get_in_beam_status(beam_interception, self._motor_axis.sp)
+            beam_path_setpoint.is_in_beam = in_beam_status
+            # if the motor_axis is out of the beam then no correction needs adding to setpoint
+            if not in_beam_status:
+                corrected_axis_setpoint = self._motor_axis.sp
+
+        beam_path_setpoint.axis[self._component_axis].init_displacement_from_motor(corrected_axis_setpoint)
 
     def is_for_component(self, component):
         """
@@ -119,14 +146,15 @@ class IocDriver:
         """
         Returns: True if the axis set point has changed and it will move any distance
         """
-        return not self.at_target_setpoint() and self._is_changed()
+        return not self.at_target_setpoint() and \
+            self._component.beam_path_set_point.axis[self._component_axis].is_changed
 
     def _backlash_duration(self):
         """
         Returns: the duration of the backlash move
         """
         backlash_distance, distance_to_move, is_within_backlash_distance = self._get_movement_distances()
-        backlash_velocity = self._axis.backlash_velocity
+        backlash_velocity = self._motor_axis.backlash_velocity
 
         if backlash_velocity is None or backlash_distance == 0 or backlash_distance is None:
             # Return 0 instead of error as when this is called by perform_move it can be on motors which are
@@ -145,7 +173,7 @@ class IocDriver:
         """
         Returns: the duration move without the backlash
         """
-        max_velocity = self._axis.max_velocity
+        max_velocity = self._motor_axis.max_velocity
         if max_velocity is None:
             return 0.0
 
@@ -165,7 +193,7 @@ class IocDriver:
             distance_to_move: distance that the motor needs to move to be the same as the component set point
             is_within_backlash_distance: True if the distance to move is within the backlash distance
         """
-        backlash_distance = self._axis.backlash_distance or 0.0
+        backlash_distance = self._motor_axis.backlash_distance or 0.0
         distance_to_move = self.rbv_cache() - self._get_component_sp()
         is_within_backlash_distance = min([0.0, backlash_distance]) <= distance_to_move <= max([0.0, backlash_distance])
         return backlash_distance, distance_to_move, is_within_backlash_distance
@@ -177,7 +205,7 @@ class IocDriver:
         """
         duration = 0.0
         if self._axis_will_move() and self._synchronised:
-            if self._axis.max_velocity == 0 or self._axis.max_velocity is None:
+            if self._motor_axis.max_velocity == 0 or self._motor_axis.max_velocity is None:
                 raise ZeroDivisionError("Motor max velocity is zero or none")
             backlash_duration = self._backlash_duration()
             base_move_duration = self._base_move_duration()
@@ -199,23 +227,11 @@ class IocDriver:
         if self._axis_will_move() or force:
             move_duration -= self._backlash_duration()
             if move_duration > 1e-6 and self._synchronised:
-                self._axis.cache_velocity()
-                self._axis.velocity = max(self._axis.min_velocity, self._get_distance() / move_duration)
-            self._axis.sp = self._engineering_correction.to_axis(self._get_component_sp())
+                self._motor_axis.cache_velocity()
+                self._motor_axis.velocity = max(self._motor_axis.min_velocity, self._get_distance() / move_duration)
+            self._motor_axis.sp = self._engineering_correction.to_axis(self._get_component_sp())
 
-        self._clear_changed()
-
-    def _is_changed(self):
-        """
-        Returns whether this driver's component has been flagged for change.
-        """
-        raise NotImplemented("This should be implemented in the subclass")
-
-    def _clear_changed(self):
-        """
-        Clears the flag indicating whether this driver's component has been changed.
-        """
-        raise NotImplemented("This should be implemented in the subclass")
+        self._component.beam_path_set_point.axis[self._component_axis].is_changed = False
 
     def rbv_cache(self):
         """
@@ -225,7 +241,7 @@ class IocDriver:
         """
         if self._rbv_cache is None:
             raise ValueError("Axis {} not initialised. Check configuration is correct and motor IOC is running."
-                             .format(self._axis.name))
+                             .format(self._motor_axis.name))
         return self._rbv_cache
 
     def _get_distance(self):
@@ -234,14 +250,27 @@ class IocDriver:
             The distance between the target component position and the actual motor position excluding the backlash.
         """
 
-        backlash_distance = self._axis.backlash_distance
+        backlash_distance = self._motor_axis.backlash_distance
         return math.fabs(self.rbv_cache() - (self._get_component_sp() + backlash_distance))
 
     def _get_component_sp(self):
         """
-        Returns: position that the component is set to
+        Returns: position that the set point axis is set to
         """
-        raise NotImplemented()
+        if self._component.beam_path_set_point.is_in_beam or not self._component_axis == ChangeAxis.POSITION:  # TODO Fix when multiple park postions
+            displacement = self._component.beam_path_set_point.axis[self._component_axis].get_displacement()
+        else:
+            if self._out_of_beam_lookup is None:
+                displacement = 0
+                STATUS_MANAGER.update_error_log(
+                    "The component {} is out of the beam but there is no out of beam position for the driver "
+                    "running motor_axis {}".format(self._component.name, self._motor_axis.name))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("No out of beam position defined for motor_axis", self.name, Severity.MINOR_ALARM))
+            else:
+                beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
+                displacement = self._out_of_beam_lookup.get_position_for_intercept(beam_interception).position
+        return displacement
 
     def _on_update_rbv(self, update):
         """
@@ -260,7 +289,19 @@ class IocDriver:
         Signal that the motor readback value has changed to the middle component layer. Subclass must implement this
         method.
         """
-        raise NotImplemented()
+        if self._component_axis == ChangeAxis.POSITION:  # TODO: sort in park position ticket
+            if self._out_of_beam_lookup is not None:
+                beam_interception = self._component.beam_path_rbv.calculate_beam_interception()
+                self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(beam_interception, update.value)
+
+        self._component.beam_path_rbv.axis[self._component_axis].set_displacement(update)
+
+    def _get_in_beam_status(self, beam_intersect, value):
+        if self._out_of_beam_lookup is not None:
+            in_beam_status = self._out_of_beam_lookup.is_in_beam(beam_intersect, value)
+        else:
+            in_beam_status = True
+        return in_beam_status
 
     def _on_update_sp(self, update):
         """
@@ -278,7 +319,7 @@ class IocDriver:
         Args:
             update (ReflectometryServer.pv_wrapper.IsChangingUpdate): update of the is_moving status of the axis
         """
-        raise NotImplemented()
+        self._component.beam_path_rbv.axis[self._component_axis].is_changing = update.value
 
     def at_target_setpoint(self):
         """
@@ -289,184 +330,10 @@ class IocDriver:
             return False
 
         difference = abs(self._get_component_sp() - self._sp_cache)
-        return difference < self._axis.resolution
-
-
-class DisplacementDriver(IocDriver):
-    """
-    Drives a component with linear displacement movement
-    """
-    def __init__(self, component, motor_axis, out_of_beam_positions=None,
-                 synchronised=True, engineering_correction=None):
-        """
-        Constructor.
-        Args:
-            component (ReflectometryServer.components.Component): The component providing the values for the axes
-            motor_axis (ReflectometryServer.pv_wrapper.MotorPVWrapper): The PV that this driver controls.
-            out_of_beam_positions (ReflectometryServer.out_of_beam_lookup.OutOfBeamLookup): Provides the out of beam status
-                as configured for this axis.
-            synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
-                time; if false they will move at their current speed.
-            engineering_correction (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
-                correction to apply to the value from the component before it is sent to the pv.
-        """
-        if not out_of_beam_positions:
-            self._out_of_beam_lookup = None
-        else:
-            try:
-                self._out_of_beam_lookup = OutOfBeamLookup(out_of_beam_positions)
-            except ValueError as e:
-                STATUS_MANAGER.update_error_log(e.message)
-                STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("Invalid Out Of Beam Positions", self.name, Severity.MINOR_ALARM))
-
-        super(DisplacementDriver, self).__init__(component, motor_axis, synchronised, engineering_correction)
-        self._change_axis_type = ChangeAxis.POSITION
-
-    def _get_in_beam_status(self, beam_intersect, value):
-        if self._out_of_beam_lookup is not None:
-            in_beam_status = self._out_of_beam_lookup.is_in_beam(beam_intersect, value)
-        else:
-            in_beam_status = True
-        return in_beam_status
-
-    def initialise_setpoint(self):
-        """
-        Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
-        """
-        autosaved_offset = self._component.beam_path_set_point.autosaved_offset
-        if autosaved_offset is None:
-            sp = self._engineering_correction.init_from_axis(self._axis.sp)
-        else:
-            sp = self._engineering_correction.from_axis(self._axis.sp, autosaved_offset)
-
-        if self._out_of_beam_lookup is not None:
-            beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
-            in_beam_status = self._get_in_beam_status(beam_interception, self._axis.sp)
-            self._component.beam_path_set_point.is_in_beam = in_beam_status
-            # if the axis is out of the beam then no correction needs adding to setpoint
-            if not in_beam_status:
-                sp = self._axis.sp
-        self._component.beam_path_set_point.init_displacement_from_motor(sp)
-
-    def _propagate_rbv_change(self, update):
-        """
-        Propagate the new height readback value to the middle component layer.
-
-        Args:
-            update (CorrectedReadbackUpdate): The PV update for this axis.
-        """
-        if self._out_of_beam_lookup is not None:
-            beam_interception = self._component.beam_path_rbv.calculate_beam_interception()
-            self._component.beam_path_rbv.is_in_beam = self._get_in_beam_status(beam_interception, update.value)
-        self._component.beam_path_rbv.displacement_update(update)
-
-    def _get_component_sp(self):
-        if self._component.beam_path_set_point.is_in_beam:
-            displacement = self._component.beam_path_set_point.get_displacement()
-        else:
-            if self._out_of_beam_lookup is None:
-                displacement = 0
-                STATUS_MANAGER.update_error_log(
-                    "The component {} is out of the beam but there is no out of beam position for the driver "
-                    "running axis {}".format(self._component.name, self._axis.name))
-                STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("No out of beam position defined for axis", self.name, Severity.MINOR_ALARM))
-            else:
-                beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
-                displacement = self._out_of_beam_lookup.get_position_for_intercept(beam_interception).position
-        return displacement
+        return difference < self._motor_axis.resolution
 
     def has_out_of_beam_position(self):
         """
-        Returns: True if this Displacement driver has out of beam position set; False otherwise.
+        Returns: True if this river has out of beam position set; False otherwise.
         """
         return self._out_of_beam_lookup is not None
-
-    def _on_update_is_changing(self, update):
-        """
-        Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
-
-        Args:
-            update (ReflectometryServer.pv_wrapper.IsChangingUpdate): update of the is_moving status of the axis
-        """
-        self._component.beam_path_rbv.is_displacing = update.value
-
-    def _component_changed(self):
-        return self._component.read_changed_flag(ChangeAxis.POSITION)
-
-    def _is_changed(self):
-        """
-        Returns whether this driver's component's position has been flagged for change.
-        """
-        return self._component.read_changed_flag(ChangeAxis.POSITION)
-
-    def _clear_changed(self):
-        """
-        Clears the flag indicating whether the this driver's component's position has been changed.
-        """
-        self._component.set_changed_flag(ChangeAxis.POSITION, False)
-
-
-class AngleDriver(IocDriver):
-    """
-    Drives a component that has variable angle.
-    """
-    def __init__(self, component, angle_axis, synchronised=True, engineering_correction=None):
-        """
-        Constructor.
-        Args:
-            component (ReflectometryServer.components.Component): Component providing the values for the axes
-            angle_axis(ReflectometryServer.pv_wrapper.MotorPVWrapper): PV for the angle motor axis
-            synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
-                time; if false they will move at their current speed.
-            engineering_correction (ReflectometryServer.engineering_correction.EngineeringCorrection): the engineering
-                correction to apply to the value from the component before it is sent to the pv.
-        """
-        super(AngleDriver, self).__init__(component, angle_axis, synchronised, engineering_correction)
-        self._change_axis_type = ChangeAxis.ANGLE
-
-    def initialise_setpoint(self):
-        """
-        Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
-        """
-        autosaved_angle = self._component.beam_path_set_point.autosaved_angle
-        if autosaved_angle is None:
-            corrected_axis_setpoint = self._engineering_correction.init_from_axis(self._axis.sp)
-        else:
-            corrected_axis_setpoint = self._engineering_correction.from_axis(self._axis.sp, autosaved_angle)
-
-        self._component.beam_path_set_point.init_angle_from_motor(corrected_axis_setpoint)
-
-    def _propagate_rbv_change(self, update):
-        """
-        Propagate the new angle readback value to the middle component layer.
-
-        Args:
-            update (CorrectedReadbackUpdate): The PV update for this axis.
-        """
-        self._component.beam_path_rbv.angle_update(update)
-
-    def _get_component_sp(self):
-        return self._component.beam_path_set_point.get_angular_displacement()
-
-    def _on_update_is_changing(self, update):
-        """
-        Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
-
-        Args:
-            update (ReflectometryServer.pv_wrapper.IsChangingUpdate): update of the is_moving status of the axis
-        """
-        self._component.beam_path_rbv.is_rotating = update.value
-
-    def _is_changed(self):
-        """
-        Returns whether this driver's component angle has been flagged for change.
-        """
-        return self._component.read_changed_flag(ChangeAxis.ANGLE)
-
-    def _clear_changed(self):
-        """
-        Clears the flag indicating whether the this driver's component's angle has been changed.
-        """
-        self._component.set_changed_flag(ChangeAxis.ANGLE, False)

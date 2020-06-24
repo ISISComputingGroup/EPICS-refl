@@ -3,6 +3,8 @@ Objects and classes that handle geometry
 """
 from math import radians, sin, cos
 
+from enum import Enum
+
 
 class Position:
     """
@@ -85,3 +87,19 @@ def position_from_radial_coords(r, theta, angle=None):
         return Position(x, y)
     else:
         return PositionAndAngle(x, y, angle)
+
+
+class ChangeAxis(Enum):
+    """
+    Types of axes in the component that can change.
+
+    NB Usually POSITION is used instead of HEIGHT and ANGLE instead of PHI so they track the beam.
+    """
+    POSITION = 0    # tracking position in collimation axis (i.e. height for horizontal samples)
+    ANGLE = 1       # tracking angle in plane of collimation
+    SEESAW = 2      # Tip of bench
+    PHI = 3         # angle like pitch
+    CHI = 4         # angle like yaw
+    PSI = 5         # angle like roll
+    HEIGHT = 6      # height axis perpendicular to beam and the floor
+    TRANS = 7       # translation axis perpendicular to beam and parallel to the floor

@@ -41,7 +41,7 @@ class FootprintSetup(BaseFootprintSetup):
             s2vg(ReflectometryServer.parameters.SlitGapParameter): Vertical gap parameter for slit 2
             s3vg(ReflectometryServer.parameters.SlitGapParameter): Vertical gap parameter for slit 3
             s4vg(ReflectometryServer.parameters.SlitGapParameter): Vertical gap parameter for slit 4
-            theta(ReflectometryServer.parameters.AngleParameter): Parameter for the beam incident angle Theta
+            theta(ReflectometryServer.parameters.AxisParameter): Parameter for the beam incident angle Theta
             lambda_min: Minimum lambda for this beamline
             lambda_max: Maximum lambda for this beamline
         """
