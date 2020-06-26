@@ -414,7 +414,7 @@ class ModeSelectCorrection(EngineeringCorrection):
     """
 
     def __init__(self, default_correction: EngineeringCorrection,
-                 corrections_for_mode: Dict[BeamlineMode, EngineeringCorrection]):
+                 corrections_for_mode: Dict[str, EngineeringCorrection]):
         """
         Initialisation.
         Args:
@@ -444,20 +444,21 @@ class ModeSelectCorrection(EngineeringCorrection):
         Args:
             update: the mode update event
         """
-        self._set_correction(update.mode)
+        self._set_correction(update.mode.name)
         self.trigger_listeners(CorrectionRecalculate("mode change"))
 
-    def _set_correction(self, mode: Optional[BeamlineMode]):
+    def _set_correction(self, mode_name: Optional[str]):
         """
         Sets the correction that is being used based on the mode.
         Remove listeners from last mode and add listeners for new mode.
         Args:
-            mode: mode to use; None for use default
+            mode_name: mode to use; None for use default
         """
         if self._correction is not None:
             self._correction.remove_listener(CorrectionUpdate, self._on_correction_update)
             self._correction.remove_listener(CorrectionRecalculate, self._on_recalculation_update)
-        self._correction = self._corrections_for_mode.get(mode, self._default_correction)
+
+        self._correction = self._corrections_for_mode.get(mode_name, self._default_correction)
 
         self._correction.add_listener(CorrectionUpdate, self._on_correction_update)
         self._correction.add_listener(CorrectionRecalculate, self._on_recalculation_update)

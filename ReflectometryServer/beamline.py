@@ -180,12 +180,22 @@ class Beamline:
         self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_rbv)
         self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_set_point)
 
+        # Set observers on mode
+        for driver in self._drivers:
+            driver.set_observe_mode_change_on(self)
+
+        # Initialised mode
+        self._active_mode = None
+        self._initialise_mode(modes)
+
+        # initialise drivers (mode must be initialised first because of mode dependent engineering correction
         for driver in self._drivers:
             driver.set_observe_mode_change_on(self)
             driver.initialise()
 
-        self._active_mode = None
-        self._initialise_mode(modes)
+        # set whether incoming beam can change dependent on current mode. Must do this after autosave and init because
+        #  they will change the beam path
+        self._set_incoming_beam_can_change()
 
         STATUS_MANAGER.set_initialised()
 
@@ -445,20 +455,30 @@ class Beamline:
             modes(list[BeamlineMode]): A list of all the modes in this configuration.
         """
         mode_name = mode_autosave.read_parameter(MODE_KEY, default=None)
+        initial_mode = None
         try:
-            self._active_mode = self._modes[mode_name]
-            mode_is_disabled = self._active_mode.is_disabled
+            initial_mode = self._modes[mode_name]
+
         except KeyError:
             STATUS_MANAGER.update_error_log("Mode {} not found in configuration. Setting default.".format(mode_name))
             if len(modes) > 0:
-                self._active_mode = modes[0]
-                mode_is_disabled = self._active_mode.is_disabled
+                initial_mode = modes[0]
             else:
                 STATUS_MANAGER.update_error_log("No modes have been configured.")
-                mode_is_disabled = False
 
-        for component in self._components:
-            component.set_incoming_beam_can_change(not mode_is_disabled, on_init=True)
+        if initial_mode is not None:
+            self._active_mode = initial_mode
+            self.trigger_listeners(ActiveModeUpdate(self._active_mode))
+
+    def _set_incoming_beam_can_change(self):
+        """
+        During initialisation if the there is a mode set then set the incoming beam can change flag on
+        all componented
+        """
+        if self._active_mode is not None:
+            mode_is_disabled = self._active_mode.is_disabled
+            for component in self._components:
+                component.set_incoming_beam_can_change(not mode_is_disabled, on_init=True)
 
     @property
     def drivers(self):

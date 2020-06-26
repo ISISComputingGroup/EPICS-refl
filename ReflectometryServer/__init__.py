@@ -8,7 +8,8 @@ from ReflectometryServer.components import Component, ReflectingComponent, Theta
     BenchComponent
 from ReflectometryServer.engineering_corrections import ConstantCorrection, UserFunctionCorrection, \
     InterpolateGridDataCorrection, SymmetricEngineeringCorrection, NoCorrection, EngineeringCorrection, \
-    GridDataFileReader, InterpolateGridDataCorrectionFromProvider, COLUMN_NAME_FOR_DRIVER_SETPOINT
+    GridDataFileReader, InterpolateGridDataCorrectionFromProvider, COLUMN_NAME_FOR_DRIVER_SETPOINT, \
+    ModeSelectCorrection
 from ReflectometryServer.footprint_manager import FootprintSetup, BaseFootprintSetup
 from ReflectometryServer.geometry import PositionAndAngle, Position, ChangeAxis
 from ReflectometryServer.ioc_driver import IocDriver
