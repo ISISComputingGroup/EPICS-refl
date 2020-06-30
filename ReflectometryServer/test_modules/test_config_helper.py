@@ -188,8 +188,8 @@ class TestConfigHelper(unittest.TestCase):
             assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG"))
 
             assert_that([call[0][0] for call in jaws_wrapper_mock.call_args_list], only_contains("MOT:JAWS1"))
-            assert_that([call[0][1] for call in jaws_wrapper_mock.call_args_list], contains(True, False))
-            assert_that([call[0][2] for call in jaws_wrapper_mock.call_args_list], contains(True, True))
+            assert_that([call[0][1] for call in jaws_wrapper_mock.call_args_list], contains_exactly(True, False))
+            assert_that([call[0][2] for call in jaws_wrapper_mock.call_args_list], contains_exactly(True, True))
 
     def test_GVIEN_add_slits_and_gaps_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_and_centres_exist(self):
 
@@ -227,6 +227,84 @@ class TestConfigHelper(unittest.TestCase):
         result = ConfigHelper.parameters
 
         assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG", "S1HC"))
+
+    def test_GVIEN_add_slits_with_beam_blocker_N_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
+
+        with patch("ReflectometryServer.config_helper.create_blade_pv_driver") as blade_drivers:
+            with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_driver:
+
+                add_slit_parameters(1, beam_blocker="N")
+
+                result = ConfigHelper.parameters
+
+                assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1N", "S1S"))
+
+                assert_that([call[0][0] for call in blade_drivers.call_args_list], only_contains("MOT:JAWS1"))
+                assert_that([call[0][1] for call in blade_drivers.call_args_list], contains_exactly("N", "S"))
+
+    def test_GVIEN_add_slits_with_beam_blocker_S_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
+
+        with patch("ReflectometryServer.config_helper.create_blade_pv_driver") as blade_drivers:
+            with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_driver:
+
+                add_slit_parameters(1, beam_blocker="S")
+
+                result = ConfigHelper.parameters
+
+                parameters = {parameter.name: parameter for parameter in result}
+                assert_that(parameters.keys(), contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1N", "S1S"))
+                assert_that(parameters["S1BLOCK"].options, contains_inanyorder("No", "South"))
+
+                assert_that([call[0][0] for call in blade_drivers.call_args_list], only_contains("MOT:JAWS1"))
+                assert_that([call[0][1] for call in blade_drivers.call_args_list], contains_exactly("N", "S"))
+
+    def test_GVIEN_add_slits_with_beam_blocker_E_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
+
+        with patch("ReflectometryServer.config_helper.create_blade_pv_driver") as blade_drivers:
+            with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_driver:
+
+                add_slit_parameters(1, beam_blocker="E")
+
+                result = ConfigHelper.parameters
+
+                parameters = {parameter.name: parameter for parameter in result}
+                assert_that(parameters.keys(), contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1E", "S1W"))
+                assert_that(parameters["S1BLOCK"].options, contains_inanyorder("No", "East"))
+
+                assert_that([call[0][0] for call in blade_drivers.call_args_list], only_contains("MOT:JAWS1"))
+                assert_that([call[0][1] for call in blade_drivers.call_args_list], contains_exactly("E", "W"))
+
+    def test_GVIEN_add_slits_with_beam_blocker_EN_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
+
+        with patch("ReflectometryServer.config_helper.create_blade_pv_driver") as blade_drivers:
+            with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_driver:
+
+                add_slit_parameters(1, beam_blocker="EN")
+
+                result = ConfigHelper.parameters
+
+                parameters = {parameter.name: parameter for parameter in result}
+                assert_that(parameters.keys(), contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1E", "S1W", "S1S", "S1N"))
+                assert_that(parameters["S1BLOCK"].options, contains_inanyorder("No", "East", "North"))
+
+                assert_that([call[0][0] for call in blade_drivers.call_args_list], only_contains("MOT:JAWS1"))
+                assert_that([call[0][1] for call in blade_drivers.call_args_list], contains_inanyorder("N", "S", "E", "W"))
+
+    def test_GVIEN_add_slits_with_beam_blocker_EN_and_exclude_W_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
+
+        with patch("ReflectometryServer.config_helper.create_blade_pv_driver") as blade_drivers:
+            with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_driver:
+
+                add_slit_parameters(1, beam_blocker="EN", exclude=["W"])
+
+                result = ConfigHelper.parameters
+
+                parameters = {parameter.name: parameter for parameter in result}
+                assert_that(parameters.keys(), contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1E", "S1S", "S1N"))
+                assert_that(parameters["S1BLOCK"].options, contains_inanyorder("No", "East", "North"))
+
+                assert_that([call[0][0] for call in blade_drivers.call_args_list], only_contains("MOT:JAWS1"))
+                assert_that([call[0][1] for call in blade_drivers.call_args_list], contains_inanyorder("N", "S", "E"))
 
     def test_GIVEN_no_beam_start_added_WHEN_get_beamline_THEN_beamstart_is_none(self):
 
