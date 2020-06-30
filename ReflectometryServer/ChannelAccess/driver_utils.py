@@ -133,29 +133,41 @@ class PvSort(Enum):
             parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter to get the value from
             pv_fields: values that the pv can take if
 
-        Returns: the value of the parameter of the correct sort
+        Returns: the value of the parameter of the correct sort and their alarms
         """
+        severity = AlarmSeverity.No
+        status = AlarmStatus.No
         if self == PvSort.SP:
-            return _convert_to_epics_pv_value(parameter.parameter_type, parameter.sp, AlarmSeverity.No, AlarmStatus.No, pv_fields)
+            value, severity, status = _convert_to_epics_pv_value(parameter.parameter_type, parameter.sp,
+                                                                 AlarmSeverity.No, AlarmStatus.No, pv_fields)
         elif self == PvSort.SP_RBV:
-            return _convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_rbv, AlarmSeverity.No, AlarmStatus.No, pv_fields)
+            value, severity, status = _convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_rbv,
+                                                                 AlarmSeverity.No, AlarmStatus.No, pv_fields)
         elif self == PvSort.RBV:
-            return _convert_to_epics_pv_value(parameter.parameter_type, parameter.rbv, parameter.alarm_severity, parameter.alarm_status, pv_fields)
+            value, severity, status = _convert_to_epics_pv_value(parameter.parameter_type, parameter.rbv,
+                                                                 parameter.alarm_severity, parameter.alarm_status,
+                                                                 pv_fields)
         elif self == PvSort.SET_AND_NO_ACTION:
-            return _convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_no_move, AlarmSeverity.No, AlarmStatus.No, pv_fields)
+            value, severity, status = _convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_no_move,
+                                                                 AlarmSeverity.No, AlarmStatus.No, pv_fields)
         elif self == PvSort.CHANGED:
-            return parameter.sp_changed, AlarmSeverity.No, AlarmStatus.No
+            value = parameter.sp_changed
         elif self == PvSort.ACTION:
-            return parameter.move, AlarmSeverity.No, AlarmStatus.No
+            value = parameter.move
         elif self == PvSort.CHANGING:
-            return parameter.is_changing, AlarmSeverity.No, AlarmStatus.No
+            value = parameter.is_changing
         elif self == PvSort.RBV_AT_SP:
-            return parameter.rbv_at_sp, AlarmSeverity.No, AlarmStatus.No
+            value = parameter.rbv_at_sp
         elif self == PvSort.DEFINE_POS_AS:
             if parameter.define_current_value_as is None:
-                return float("NaN")
-            return parameter.define_current_value_as.new_value
-        return float("NaN")
+                value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
+            else:
+                value = parameter.define_current_value_as.new_value
+        else:
+            value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
+            STATUS_MANAGER.update_error_log("PVSort not understood {}".format(PvSort))
+
+        return value, severity, status
 
 
 class DriverParamHelper:
