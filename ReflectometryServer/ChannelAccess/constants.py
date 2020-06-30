@@ -11,8 +11,10 @@ def _get_env_var(name):
 # Prefix for PVs on this instrument
 MYPVPREFIX = _get_env_var('MYPVPREFIX')
 
+REFL_IOC_NAME = "REFL_01"
+
 # Prefix for all PVs in the server
-REFLECTOMETRY_PREFIX = "{}REFL:".format(MYPVPREFIX)
+REFLECTOMETRY_PREFIX = "{}{}:".format(MYPVPREFIX, REFL_IOC_NAME)
 
 # Reflectometry configuration file path
 REFL_CONFIG_PATH = os.path.abspath(os.path.join("{}".format(_get_env_var('ICPCONFIGROOT')), "refl"))

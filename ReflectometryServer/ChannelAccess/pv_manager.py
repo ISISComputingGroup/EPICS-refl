@@ -7,6 +7,7 @@ from enum import Enum
 from pcaspy import Severity
 
 import ReflectometryServer
+from ReflectometryServer.ChannelAccess.constants import REFL_IOC_NAME
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER, ProblemInfo
 from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY
 from pcaspy.alarm import SeverityStrings
@@ -191,7 +192,7 @@ class PvSort(Enum):
         elif pv_sort == PvSort.DEFINE_POS_AS:
             return "(Define the value of current position)"
         else:
-            print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
+            print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src=REFL_IOC_NAME)
             return "(unknown)"
 
     def get_from_parameter(self, parameter):

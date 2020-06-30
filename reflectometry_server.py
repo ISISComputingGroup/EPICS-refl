@@ -40,6 +40,8 @@ logging.config.dictConfig({
     }
 })
 
+sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
+
 try:
     from ReflectometryServer.ChannelAccess.reflectometry_driver import ReflectometryDriver
 except ImportError:
@@ -47,7 +49,8 @@ except ImportError:
     from ReflectometryServer.ChannelAccess.reflectometry_driver import ReflectometryDriver
 
 from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
-from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, MYPVPREFIX, DEFAULT_ASG_RULES
+from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, MYPVPREFIX, DEFAULT_ASG_RULES, \
+    REFL_IOC_NAME
 from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 from server_common.helpers import register_ioc_start
 from server_common.channel_access import ChannelAccess
@@ -92,7 +95,7 @@ pvdb_to_add = pv_manager.get_init_filtered_pvdb()
 SERVER.createPV(REFLECTOMETRY_PREFIX, pvdb_to_add)
 driver.set_beamline(beamline)
 
-register_ioc_start("REFL", pv_manager.PVDB, REFLECTOMETRY_PREFIX)
+register_ioc_start(REFL_IOC_NAME, pv_manager.PVDB, REFLECTOMETRY_PREFIX)
 
 logger.info("Reflectometry IOC started.")
 

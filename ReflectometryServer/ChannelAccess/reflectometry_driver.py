@@ -7,7 +7,7 @@ from functools import partial
 from pcaspy import Driver, Alarm, Severity
 from pcaspy.driver import manager, Data
 
-from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX
+from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, REFL_IOC_NAME
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, SERVER_STATUS, \
     SERVER_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
     convert_from_epics_pv_value, IN_MODE_SUFFIX, MAX_ALARM_ID, SERVER_ERROR_LOG
@@ -43,7 +43,7 @@ class ReflectometryDriver(Driver):
 
         self.add_trigger_status_change_listener()
         self.add_trigger_log_update_listener()
-        self.put_log = IsisPutLog("REFL")
+        self.put_log = IsisPutLog(REFL_IOC_NAME)
 
     def set_beamline(self, beamline):
         """
