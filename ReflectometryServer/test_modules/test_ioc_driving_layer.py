@@ -8,8 +8,9 @@ from hamcrest import *
 
 from ReflectometryServer import *
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
-from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, PVWrapperForParameter
 from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
+from ReflectometryServer.pv_wrapper import IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
 from server_common.channel_access import UnableToConnectToPVException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
@@ -594,3 +595,85 @@ class BeamlineBacklashMoveDurationTest(unittest.TestCase):
                 mock.assert_not_called()
             else:
                 mock.assert_called_with(expected_max_duration)
+
+
+class TestIocDriverWithAxesDependentOnParam(unittest.TestCase):
+
+    def setUp(self):
+        start_position = 0.0
+        max_velocity = 10.0
+        self.height_axis = create_mock_axis("JAWS:HEIGHT", start_position, max_velocity)
+        self.alt_axis = create_mock_axis("JAWS:NORTH", start_position, max_velocity)
+
+        self.jaws = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
+        self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+        self.jaws.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
+
+        self.opt1 = "height_axis"
+        self.opt2 = "alt_axis"
+        self.opt3 = "other"
+        self.param = EnumParameter("param", options=[self.opt1, self.opt2, self.opt3])
+
+        self.jaws_driver = IocDriver(self.jaws, ChangeAxis.POSITION, self.height_axis,
+                                     pv_wrapper_for_parameter=PVWrapperForParameter(self.param, {self.opt2: self.alt_axis}))
+
+    def test_GIVEN_component_WHEN_both_axis_moves_THEN_displacement_is_axis_value(self):
+        expected = 1
+        self.height_axis.sp = expected
+        self.alt_axis.sp = 99
+
+        assert_that(self.jaws.beam_path_rbv.axis[ChangeAxis.POSITION].get_displacement(), is_(expected))
+
+    def test_GIVEN_component_and_param_set_to_alt_WHEN_alt_axis_moves_THEN_displacement_is_alt_axis_value(self):
+        expected = 1
+        self.param.sp = self.opt2
+
+        self.height_axis.sp = 99
+        self.alt_axis.sp = expected
+
+        assert_that(self.jaws.beam_path_rbv.axis[ChangeAxis.POSITION].get_displacement(), is_(expected))
+
+    def test_GIVEN_component_and_axis_position_set_WHEN_change_param_THEN_displacement_changes(self):
+        expected = 1
+        self.height_axis.sp =99
+        self.alt_axis.sp = expected
+
+        self.param.sp = self.opt2
+
+        assert_that(self.jaws.beam_path_rbv.axis[ChangeAxis.POSITION].get_displacement(), is_(expected))
+
+    def test_GIVEN_component_and_axis_position_set_WHEN_change_param_to_non_change_THEN_displacement_changes_to_default_axis(self):
+        expected = 1
+        self.height_axis.sp = expected
+        self.alt_axis.sp = 99
+        self.param.sp = self.opt2
+
+        self.param.sp = self.opt3
+
+        assert_that(self.jaws.beam_path_rbv.axis[ChangeAxis.POSITION].get_displacement(), is_(expected))
+
+    def test_GIVEN_component_and_param_set_to_alt_WHEN_alt_axis_changes_THEN_change_is_alt_axis_value(self):
+        expected = True
+        self.param.sp = self.opt2
+
+        # set before and after to make sure that listeners are being removed
+        self.height_axis.trigger_listeners(IsChangingUpdate(not expected, None, None))
+        self.alt_axis.trigger_listeners(IsChangingUpdate(expected, None, None))
+        self.height_axis.trigger_listeners(IsChangingUpdate(not expected, None, None))
+
+        assert_that(self.jaws.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing, is_(expected))
+
+    def test_GIVEN_component_and_axis_set_to_changing_WHEN_switch_axis_THEN_is_changing_true(self):
+        expected = True
+        self.height_axis.trigger_listeners(IsChangingUpdate(not expected, None, None))
+        self.alt_axis.trigger_listeners(IsChangingUpdate(expected, None, None))
+
+        self.param.sp = self.opt2
+
+        assert_that(self.jaws.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing, is_(expected))
+
+    def test_GIVEN_axis_to_change_on_param_WHEN_init_THEN_all_axes_are_initialised(self):
+        self.jaws_driver.initialise()
+
+        assert_that(self.height_axis.is_initialised, is_(True))
+        assert_that(self.alt_axis.is_initialised, is_(True))

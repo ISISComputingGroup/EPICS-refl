@@ -345,9 +345,10 @@ class MockMotorPVWrapper:
         self.is_vertical = is_vertical
         self.set_position_as_value = None
         self._last_set_point_set = None
+        self.is_initialised = False
 
     def initialise(self):
-        pass
+        self.is_initialised = True
 
     def add_after_status_change_listener(self, listener):
         self.after_status_change_listener.add(listener)

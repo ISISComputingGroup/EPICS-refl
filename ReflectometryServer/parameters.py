@@ -3,11 +3,12 @@ Parameters that the user would interact with
 """
 from collections import namedtuple
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List, Optional, Union, TYPE_CHECKING
 
 from pcaspy import Severity
 
-from ReflectometryServer import ioc_driver
+if TYPE_CHECKING:
+    from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate
 from ReflectometryServer.exceptions import ParameterNotInitializedException
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave, param_string_autosave
@@ -780,7 +781,7 @@ class EnumParameter(BeamlineParameter):
         if self._autosave:
             self._initialise_sp_from_file()
 
-    def validate(self, drivers: List[ioc_driver.IocDriver]) -> List[str]:
+    def validate(self, drivers: List['IocDriver']) -> List[str]:
         """
         Perform validation of this parameter returning a list of errors.
 
