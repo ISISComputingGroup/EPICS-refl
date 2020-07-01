@@ -45,6 +45,16 @@ def observable(*allowed_listener_types):
             """
             _get_listeners_info(self, listener_type).listeners.add(listener)
 
+        def _remove_listener(self, listener_type, listener):
+            """
+            Remove a listener of the given type from this class
+            Args:
+                self: instance of the class
+                listener_type: the type of listener
+                listener: listener to remove
+            """
+            _get_listeners_info(self, listener_type).listeners.remove(listener)
+
         def _add_pre_trigger_function(self, listener_type, pre_trigger_function):
             """
             Add a function to be executed before triggering the listeners for a given type.
@@ -112,6 +122,9 @@ def observable(*allowed_listener_types):
 
         # add the method which allows observers of the class to add their listeners to it
         setattr(cls, "add_listener", _add_listener)
+
+        # add the method which allows observers of the class to remove their listeners
+        setattr(cls, "remove_listener", _remove_listener)
 
         # add the method which triggers all the listeners
         setattr(cls, "trigger_listeners", _trigger_listeners)
