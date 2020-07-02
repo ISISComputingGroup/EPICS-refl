@@ -260,7 +260,7 @@ def add_slit_parameters(slit_number: int, rbv_to_sp_tolerance: float = DEFAULT_R
         mode_inits: list of modes and init value see add_parameter for explanation
         exclude: slit parameters to exclude, these should be one of VG, VC, HG, HC
         include_centres: True to include centres; False to just have the gaps
-        beam_blocker: string containing code for beam blocker config, N,S,E,W for each blade which blokes the beam
+        beam_blocker: string containing code for beam blocker config, N,S,E,W for each blade which blocks the beam
 
     Returns:
         slit gap parameters
@@ -311,8 +311,7 @@ def _add_beam_block(slit_number, modes, mode_inits, exclude: List[str], beam_blo
         options = ["No"]
         options.extend([BLADE_DETAILS[blade]["name"] for blade in beam_blocker])
         parameter = EnumParameter("S{}BLOCK".format(slit_number), options,
-                                  description="Sets the beam into shaping or blocking mode, "
-                                              "where this is the blade blocking the beam ")
+                                  description="Which blade is blocking the beam; No for none")
         add_parameter(parameter, modes, mode_inits)
         parameters["block"] = parameter
         blade_names = set()

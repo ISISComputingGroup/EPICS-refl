@@ -3,6 +3,7 @@ Driver for the reflectometry server.
 """
 import logging
 from functools import partial
+from typing import Optional
 
 from pcaspy import Driver, Alarm, Severity
 from pcaspy.driver import manager, Data
@@ -30,7 +31,8 @@ class ReflectometryDriver(Driver):
     The driver which provides an interface for the reflectometry server to channel access by creating PVs and processing
     incoming CA get and put requests.
     """
-    _beamline: Beamline
+    _driver_help: Optional[DriverParamHelper]
+    _beamline: Optional[Beamline]
 
     def __init__(self, server, pv_manager):
         """
@@ -226,7 +228,7 @@ class ReflectometryDriver(Driver):
             update (NamedTuple): update from this parameter, expected to have at least a "value" attribute.
         """
         pv_name, value, alarm_severity, alarm_status = \
-            self._driver_help.get_param_update_from_event(pv_name, update, param_type)
+            self._driver_help.get_param_update_from_event(pv_name, param_type, update)
         self._update_param_both_pv_and_pv_val(pv_name, value, alarm_severity, alarm_status)
         self.updatePVs()
 
@@ -236,11 +238,14 @@ class ReflectometryDriver(Driver):
         """
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pv_names_and_sort():
             parameter = self._beamline.parameter(param_name)
-            parameter.add_listener(ParameterInitUpdate, partial(self._update_param_listener, pv_name, parameter.parameter_type))
+            parameter.add_listener(ParameterInitUpdate, partial(self._update_param_listener,
+                                                                pv_name, parameter.parameter_type))
             if param_sort == PvSort.RBV:
-                parameter.add_listener(ParameterReadbackUpdate, partial(self._update_param_listener, pv_name, parameter.parameter_type))
+                parameter.add_listener(ParameterReadbackUpdate, partial(self._update_param_listener,
+                                                                        pv_name, parameter.parameter_type))
             if param_sort == PvSort.SP_RBV:
-                parameter.add_listener(ParameterSetpointReadbackUpdate, partial(self._update_param_listener, pv_name, parameter.parameter_type))
+                parameter.add_listener(ParameterSetpointReadbackUpdate, partial(self._update_param_listener,
+                                                                                pv_name, parameter.parameter_type))
             if param_sort == PvSort.CHANGING:
                 parameter.add_listener(ParameterChangingUpdate, partial(self._update_binary_listener, pv_name))
             if param_sort == PvSort.RBV_AT_SP:
@@ -282,12 +287,12 @@ class ReflectometryDriver(Driver):
         self._update_param_both_pv_and_pv_val(SERVER_MESSAGE, update.server_message)
         self.updatePVs()
 
-    def _on_error_log_update(self, update):
+    def _on_error_log_update(self, update: StatusUpdate):
         """
         Update the overall status of the beamline.
 
         Args:
-            update (ReflectometryServer.server_status_manager.StatusUpdate): The new server status and message.
+            update: The new server status and message.
         """
         self._update_param_both_pv_and_pv_val(SERVER_ERROR_LOG, update.log_as_string)
         self.updatePVs()
