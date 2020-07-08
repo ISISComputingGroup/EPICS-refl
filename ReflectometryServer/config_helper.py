@@ -1,7 +1,7 @@
 """
 Objects to help configure the beamline
 """
-from typing import Dict, Optional, List, Any
+from typing import Dict, Optional, List, Any, Union
 
 from ReflectometryServer import Beamline, BeamlineMode, SlitGapParameter, JawsGapPVWrapper, JawsCentrePVWrapper, \
     PVWrapper, MotorPVWrapper
@@ -246,7 +246,7 @@ def create_blade_pv_driver(jaws_pv_prefix: str, blade: str) -> PVWrapper:
     return MotorPVWrapper("{}:J{}:MTR".format(jaws_pv_prefix, blade))
 
 
-def add_slit_parameters(slit_number: int, rbv_to_sp_tolerance: float = DEFAULT_RBV_TO_SP_TOLERANCE,
+def add_slit_parameters(slit_number: Union[str, int], rbv_to_sp_tolerance: float = DEFAULT_RBV_TO_SP_TOLERANCE,
                         modes: Optional[List[str]] = None, mode_inits: Optional[Dict[str, Any]] = None,
                         exclude: List[str] = None, include_centres: bool = False, beam_blocker: Optional[str] = None):
     """
