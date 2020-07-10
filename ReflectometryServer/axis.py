@@ -2,7 +2,6 @@ from abc import ABCMeta, abstractmethod, ABC
 from collections import namedtuple
 from dataclasses import dataclass
 from math import radians, tan, cos
-from typing import Callable
 
 
 from ReflectometryServer.geometry import ChangeAxis
@@ -18,7 +17,15 @@ DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
     "change_axis"])  # the axis it applies to of type ChangeAxis
 
 
-@observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate)
+@dataclass()
+class AxisChangedUpdate:
+    """
+    Event when changed if updated
+    """
+    has_unapplied_update: bool
+
+
+@observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate, AxisChangedUpdate)
 class ComponentAxis(metaclass=ABCMeta):
     """
     A components axis of movement, allowing setting in both mantid and relative coordinates. Transmits alarms,
@@ -172,6 +179,7 @@ class ComponentAxis(metaclass=ABCMeta):
             is_changed (bool): True axis has un-applied changed; False otherwise
         """
         self._is_changed = is_changed
+        self.trigger_listeners(AxisChangedUpdate(is_changed))
 
 
 class DirectCalcAxis(ComponentAxis):
@@ -325,10 +333,9 @@ class BenchAxisSetup:
     angle_axis: ComponentAxis
     seesaw_axis: ComponentAxis
     pivot_to_j1_dist: float
-    pivot_to_j2_dist: float
+    pivot_to_rear_jack_dist: float
     initial_bench_angle: float
     pivot_to_beam: float
-    on_is_changed_update: Callable[[], None]
 
 
 class _BenchAxis(ComponentAxis, ABC):
@@ -345,30 +352,6 @@ class _BenchAxis(ComponentAxis, ABC):
         super(_BenchAxis, self).__init__(axis)
         self._bench_axis_setup = bench_axis_setup
 
-    def only_this_axis_is_changed(self):
-        return self._is_changed
-
-    @property
-    def is_changed(self):
-        """
-        Returns: True if any of the pivot or seesaw axes are changed
-        """
-        return self._bench_axis_setup.position_axis.is_changed or \
-            self._bench_axis_setup.angle_axis.is_changed or \
-            self._bench_axis_setup.seesaw_axis.is_changed
-
-    @is_changed.setter
-    def is_changed(self, is_changed):
-        """
-        Set a flag signalling whether this axis has an un-applied change. After setting will call another function
-        passed in setup.
-
-        Args:
-            is_changed (bool): True axis has un-applied changed; False otherwise
-        """
-        self._is_changed = is_changed
-        self._bench_axis_setup.on_is_changed_update()
-
 
 class JackCalcAxis(_BenchAxis):
     """
@@ -381,7 +364,7 @@ class JackCalcAxis(_BenchAxis):
         if axis == ChangeAxis.JACK_FRONT:
             self._distance_to_pivot = self._bench_axis_setup.pivot_to_j1_dist
         else:
-            self._distance_to_pivot = self._bench_axis_setup.pivot_to_j2_dist
+            self._distance_to_pivot = self._bench_axis_setup.pivot_to_rear_jack_dist
 
     def get_relative_to_beam(self):
         pass
@@ -393,15 +376,20 @@ class JackCalcAxis(_BenchAxis):
         pass
 
     def get_displacement(self):
+        """
+        Height of the beam at jack position - rotation of the pivots
+        Returns:
+            position of the jack
+        """
         pivot_height = self._bench_axis_setup.position_axis.get_displacement()
         pivot_angle = self._bench_axis_setup.angle_axis.get_displacement()
         if self._axis == ChangeAxis.JACK_FRONT:
             seesaw = self._bench_axis_setup.seesaw_axis.get_displacement()
         else:
             seesaw = -self._bench_axis_setup.seesaw_axis.get_displacement()
-        angle_from_intial_postion = pivot_angle - self._bench_axis_setup.initial_bench_angle
-        height = self._distance_to_pivot * tan(radians(angle_from_intial_postion))
-        correction = self._bench_axis_setup.pivot_to_beam * (1 - cos(radians(angle_from_intial_postion)))
+        angle_from_intial_position = pivot_angle - self._bench_axis_setup.initial_bench_angle
+        height = self._distance_to_pivot * tan(radians(angle_from_intial_position))
+        correction = self._bench_axis_setup.pivot_to_beam * (1 - cos(radians(angle_from_intial_position)))
 
         return pivot_height + height - correction + seesaw
 
@@ -427,7 +415,19 @@ class SlideCalcAxis(_BenchAxis):
         pass
 
     def get_displacement(self):
-        pass
+        """
+        Position of the horizontal slide, keeping distance to the sample a constant apart from the limits.
+        Returns:
+            Position of the slide in motor axis coordinates
+        """
+        distance_to_rear_jack = self._bench_axis_setup.pivot_to_rear_jack_dist
+        pivot_angle = self._bench_axis_setup.angle_axis.get_displacement()
+        angle_from_initial_position = pivot_angle - self._bench_axis_setup.initial_bench_angle
+
+        hor = distance_to_rear_jack * (1 - cos(radians(angle_from_initial_position)))
+        correction = self._bench_axis_setup.pivot_to_beam * tan(radians(angle_from_initial_position))
+
+        return correction - hor
 
     def _on_set_displacement(self, displacement):
         pass

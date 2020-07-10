@@ -3,7 +3,8 @@ Components on a beam
 """
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
-from ReflectometryServer.axis import DirectCalcAxis, JackCalcAxis, BenchAxisSetup, SlideCalcAxis
+from ReflectometryServer.axis import DirectCalcAxis, JackCalcAxis, BenchAxisSetup, SlideCalcAxis, AxisChangedUpdate, \
+    AxisChangingUpdate
 from ReflectometryServer.movement_strategy import LinearMovementCalc
 from ReflectometryServer.geometry import ChangeAxis
 
@@ -198,39 +199,68 @@ class BenchComponent(TiltingComponent):
         """
         super(BenchComponent, self)._init_beam_path_calcs(setup)
 
-        self.beam_path_set_point.axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
-        self.beam_path_rbv.axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
-        bench_axis_setup = BenchAxisSetup(self.beam_path_set_point.axis[ChangeAxis.POSITION],
-                                          self.beam_path_set_point.axis[ChangeAxis.ANGLE],
-                                          self.beam_path_set_point.axis[ChangeAxis.SEESAW],
+        set_point_axis = self.beam_path_set_point.axis
+        set_point_axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
+        rbv_axis = self.beam_path_rbv.axis
+        rbv_axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
+        bench_axis_setup = BenchAxisSetup(set_point_axis[ChangeAxis.POSITION],
+                                          set_point_axis[ChangeAxis.ANGLE],
+                                          set_point_axis[ChangeAxis.SEESAW],
                                           self._jack_front_x, self._jack_rear_x,
                                           self._inital_table_angle,
-                                          self._pivot_to_beam, self._is_changed_update)
-        bench_axis_setup_rbv = BenchAxisSetup(self.beam_path_rbv.axis[ChangeAxis.POSITION],
-                                              self.beam_path_rbv.axis[ChangeAxis.ANGLE],
-                                              self.beam_path_rbv.axis[ChangeAxis.SEESAW],
+                                          self._pivot_to_beam)
+        bench_axis_setup_rbv = BenchAxisSetup(rbv_axis[ChangeAxis.POSITION],
+                                              rbv_axis[ChangeAxis.ANGLE],
+                                              rbv_axis[ChangeAxis.SEESAW],
                                               self._jack_front_x, self._jack_rear_x,
                                               self._inital_table_angle,
-                                              self._pivot_to_beam, self._is_changed_update)
+                                              self._pivot_to_beam)
 
-        self.beam_path_set_point.axis[ChangeAxis.JACK_FRONT] = JackCalcAxis(ChangeAxis.JACK_FRONT, bench_axis_setup)
-        self.beam_path_rbv.axis[ChangeAxis.JACK_FRONT] = JackCalcAxis(ChangeAxis.JACK_FRONT, bench_axis_setup_rbv)
+        set_point_axis[ChangeAxis.JACK_FRONT] = JackCalcAxis(ChangeAxis.JACK_FRONT, bench_axis_setup)
+        rbv_axis[ChangeAxis.JACK_FRONT] = JackCalcAxis(ChangeAxis.JACK_FRONT, bench_axis_setup_rbv)
 
-        self.beam_path_set_point.axis[ChangeAxis.JACK_REAR] = JackCalcAxis(ChangeAxis.JACK_REAR, bench_axis_setup)
-        self.beam_path_rbv.axis[ChangeAxis.JACK_REAR] = JackCalcAxis(ChangeAxis.JACK_REAR, bench_axis_setup_rbv)
+        set_point_axis[ChangeAxis.JACK_REAR] = JackCalcAxis(ChangeAxis.JACK_REAR, bench_axis_setup)
+        rbv_axis[ChangeAxis.JACK_REAR] = JackCalcAxis(ChangeAxis.JACK_REAR, bench_axis_setup_rbv)
 
-        self.beam_path_set_point.axis[ChangeAxis.SLIDE] = SlideCalcAxis(ChangeAxis.SLIDE, bench_axis_setup)
-        self.beam_path_rbv.axis[ChangeAxis.SLIDE] = SlideCalcAxis(ChangeAxis.SLIDE, bench_axis_setup_rbv)
+        set_point_axis[ChangeAxis.SLIDE] = SlideCalcAxis(ChangeAxis.SLIDE, bench_axis_setup)
+        rbv_axis[ChangeAxis.SLIDE] = SlideCalcAxis(ChangeAxis.SLIDE, bench_axis_setup_rbv)
 
-    def _is_changed_update(self):
+        self._motor_axes = [ChangeAxis.JACK_FRONT, ChangeAxis.JACK_REAR, ChangeAxis.SLIDE]
+        self._control_axes = [ChangeAxis.ANGLE, ChangeAxis.POSITION, ChangeAxis.SEESAW]
+
+        for axis in self._motor_axes:
+            set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_motor_axis_changed)
+            rbv_axis[axis].add_listener(AxisChangingUpdate, self._is_changing_update)
+
+        for axis in self._control_axes:
+            set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_control_axis_changed)
+
+    def on_motor_axis_changed(self, update: AxisChangedUpdate):
         """
-        Update the changed property on bench pivot and seesaw control axis based on jacks and slide changed. If one
-        of jacks or slide is_changed then all bench pivot and seesaw axes are changed.
+        If all motor axes have no unapplied changes then set control axes to no-unapplied changes
 
         """
-        is_changed = self.beam_path_set_point.axis[ChangeAxis.JACK_FRONT].only_this_axis_is_changed() or \
-            self.beam_path_set_point.axis[ChangeAxis.JACK_REAR].only_this_axis_is_changed() or \
-            self.beam_path_set_point.axis[ChangeAxis.SLIDE].only_this_axis_is_changed()
-        self._beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = is_changed
-        self._beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed = is_changed
-        self._beam_path_set_point.axis[ChangeAxis.SEESAW].is_changed = is_changed
+        if not update.has_unapplied_update:
+            set_point_axes = self.beam_path_set_point.axis
+            any_have_unapplied_update = any([set_point_axes[axis].is_changed for axis in self._motor_axes])
+            if not any_have_unapplied_update:
+                for axis in self._control_axes:
+                    set_point_axes[axis].is_changed = False
+
+    def on_control_axis_changed(self, update: AxisChangedUpdate):
+        """
+        If the current control axis has changes to apply then all motor axes have change to apply
+        """
+        if update.has_unapplied_update:
+            set_point_axes = self.beam_path_set_point.axis
+            for axis in self._motor_axes:
+                set_point_axes[axis].is_changed = update.has_unapplied_update
+
+    def _is_changing_update(self, _):
+        """
+        If any of the jacks or slide is changing then bench pivot and seesaw are changing
+        """
+        read_back_axes = self._beam_path_rbv.axis
+        is_changing = any([read_back_axes[axis].is_changing for axis in self._motor_axes])
+        for axis in self._control_axes:
+            read_back_axes[axis].is_changing = is_changing

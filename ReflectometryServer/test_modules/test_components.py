@@ -951,7 +951,8 @@ class testBenchComponent(unittest.TestCase):
         (ChangeAxis.JACK_FRONT, 1, 1),
         (ChangeAxis.JACK_REAR, 1, 1),
         (ChangeAxis.JACK_FRONT, -4, -4),
-        (ChangeAxis.JACK_REAR, 2, 2)
+        (ChangeAxis.JACK_REAR, 2, 2),
+        (ChangeAxis.SLIDE, 1, 0)
     ])
     def test_GIVEN_set_height_axis_with_0_angle_WHEN_get_axis_value_THEN_j1_value_returned_and_axis_changed(self, axis, position, expected_result):
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, 0, PIVOT_TO_BEAM)
@@ -970,6 +971,9 @@ class testBenchComponent(unittest.TestCase):
         (ChangeAxis.JACK_REAR, 12.3, 476.9454087),  # expected values from spreadsheet + height
         (ChangeAxis.JACK_FRONT, -0.1, -50.88767676),  # expected values from spreadsheet + height
         (ChangeAxis.JACK_REAR, 0.0, -111.3188069),  # expected values from spreadsheet + height
+        (ChangeAxis.SLIDE, 3.3, 10.54157171), # expected values from spreadsheet + height
+        (ChangeAxis.SLIDE, 0.1, -26.15894011),  # expected values from spreadsheet + height
+        #TODO add slide outside of limits of movement
     ])
     def test_GIVEN_set_height_axis_WHEN_get_axis_value_THEN_j1_value_returned_and_axis_changed(self, axis, angle, expected_result):
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH, PIVOT_TO_BEAM)
@@ -1004,30 +1008,29 @@ class testBenchComponent(unittest.TestCase):
         assert_that(changed, is_(True), "axis is changed")
 
     @parameterized.expand([
-        ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_FRONT, ), (), False),
+        ((ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (), ( ), (ChangeAxis.JACK_FRONT,), True),
+        ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_FRONT,), (), False),
         ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_REAR,), (), False),
-        ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.SLIDE,), (), False),
         ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_REAR,), (ChangeAxis.JACK_FRONT,), True),
-        ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_FRONT,),  (ChangeAxis.JACK_REAR,), True),
         ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_FRONT,), (ChangeAxis.SLIDE,), True),
     ])
-    def test_GIVEN_changed_true_on_some_axis_WHEN_changed_false_set_on_an_axis_THEN_bench_angle_seesaw_and_height_changes_to_expected_answer(self, inital_setup_false, inital_setup_true, axes_to_set_false, axes_to_set_true, expected_result):
+    def test_GIVEN_changing_true_on_some_axis_WHEN_changing_set_on_an_axis_THEN_bench_angle_seesaw_and_height_on_changing_to_expected_answer(self, inital_setup_false, inital_setup_true, axes_to_set_false, axes_to_set_true, expected_result):
         bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, 0, PIVOT_TO_BEAM)
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         for axis in inital_setup_true:
-            bench.beam_path_set_point.axis[axis].is_changed = True
+            bench.beam_path_rbv.axis[axis].is_changing = True
         for axis in inital_setup_false:
-            bench.beam_path_set_point.axis[axis].is_changed = False
+            bench.beam_path_rbv.axis[axis].is_changing = False
 
         for axis in axes_to_set_false:
-            bench.beam_path_set_point.axis[axis].is_changed = False
+            bench.beam_path_rbv.axis[axis].is_changing = False
 
         for axis in axes_to_set_true:
-            bench.beam_path_set_point.axis[axis].is_changed = True
+            bench.beam_path_rbv.axis[axis].is_changing = True
 
-        assert_that(bench.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed, is_(expected_result))
-        assert_that(bench.beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed, is_(expected_result))
-        assert_that(bench.beam_path_set_point.axis[ChangeAxis.SEESAW].is_changed, is_(expected_result))
+        assert_that(bench.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing, is_(expected_result))
+        assert_that(bench.beam_path_rbv.axis[ChangeAxis.ANGLE].is_changing, is_(expected_result))
+        assert_that(bench.beam_path_rbv.axis[ChangeAxis.SEESAW].is_changing, is_(expected_result))
 
 
 if __name__ == '__main__':
