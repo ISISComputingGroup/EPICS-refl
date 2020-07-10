@@ -2,7 +2,8 @@
 Components on a beam
 """
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
-    BeamPathCalcThetaRBV, BeamPathCalcThetaSP, DirectCalcAxis
+    BeamPathCalcThetaRBV, BeamPathCalcThetaSP
+from ReflectometryServer.axis import DirectCalcAxis, JackCalcAxis, BenchAxisSetup, SlideCalcAxis
 from ReflectometryServer.movement_strategy import LinearMovementCalc
 from ReflectometryServer.geometry import ChangeAxis
 
@@ -175,17 +176,61 @@ class BenchComponent(TiltingComponent):
     Bench component, this rotates about a pivot. The pivot can be raised and lowered. Finally the bench can be see sawed
     """
 
-    def __init__(self, name, setup):
+    def __init__(self, name, setup, jack_front_x, jack_rear_x, initial_table_angle, pivot_to_beam):
         """
         Initializer.
         Args:
             name (str): name of the component
             setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
         """
+        self._jack_front_x = jack_front_x
+        self._jack_rear_x = jack_rear_x
+        self._inital_table_angle = initial_table_angle
+        self._pivot_to_beam = pivot_to_beam
         super(TiltingComponent, self).__init__(name, setup)
 
     def _init_beam_path_calcs(self, setup):
+        """
+        Initialise the beam path calcs for the bench.
+        Args:
+            setup: for bench pivot
+
+        """
         super(BenchComponent, self)._init_beam_path_calcs(setup)
 
         self.beam_path_set_point.axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
         self.beam_path_rbv.axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
+        bench_axis_setup = BenchAxisSetup(self.beam_path_set_point.axis[ChangeAxis.POSITION],
+                                          self.beam_path_set_point.axis[ChangeAxis.ANGLE],
+                                          self.beam_path_set_point.axis[ChangeAxis.SEESAW],
+                                          self._jack_front_x, self._jack_rear_x,
+                                          self._inital_table_angle,
+                                          self._pivot_to_beam, self._is_changed_update)
+        bench_axis_setup_rbv = BenchAxisSetup(self.beam_path_rbv.axis[ChangeAxis.POSITION],
+                                              self.beam_path_rbv.axis[ChangeAxis.ANGLE],
+                                              self.beam_path_rbv.axis[ChangeAxis.SEESAW],
+                                              self._jack_front_x, self._jack_rear_x,
+                                              self._inital_table_angle,
+                                              self._pivot_to_beam, self._is_changed_update)
+
+        self.beam_path_set_point.axis[ChangeAxis.JACK_FRONT] = JackCalcAxis(ChangeAxis.JACK_FRONT, bench_axis_setup)
+        self.beam_path_rbv.axis[ChangeAxis.JACK_FRONT] = JackCalcAxis(ChangeAxis.JACK_FRONT, bench_axis_setup_rbv)
+
+        self.beam_path_set_point.axis[ChangeAxis.JACK_REAR] = JackCalcAxis(ChangeAxis.JACK_REAR, bench_axis_setup)
+        self.beam_path_rbv.axis[ChangeAxis.JACK_REAR] = JackCalcAxis(ChangeAxis.JACK_REAR, bench_axis_setup_rbv)
+
+        self.beam_path_set_point.axis[ChangeAxis.SLIDE] = SlideCalcAxis(ChangeAxis.SLIDE, bench_axis_setup)
+        self.beam_path_rbv.axis[ChangeAxis.SLIDE] = SlideCalcAxis(ChangeAxis.SLIDE, bench_axis_setup_rbv)
+
+    def _is_changed_update(self):
+        """
+        Update the changed property on bench pivot and seesaw control axis based on jacks and slide changed. If one
+        of jacks or slide is_changed then all bench pivot and seesaw axes are changed.
+
+        """
+        is_changed = self.beam_path_set_point.axis[ChangeAxis.JACK_FRONT].only_this_axis_is_changed() or \
+            self.beam_path_set_point.axis[ChangeAxis.JACK_REAR].only_this_axis_is_changed() or \
+            self.beam_path_set_point.axis[ChangeAxis.SLIDE].only_this_axis_is_changed()
+        self._beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = is_changed
+        self._beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed = is_changed
+        self._beam_path_set_point.axis[ChangeAxis.SEESAW].is_changed = is_changed

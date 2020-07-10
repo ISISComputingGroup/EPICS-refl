@@ -8,7 +8,8 @@ from mock import Mock, patch, call
 from parameterized import parameterized, parameterized_class
 
 from ReflectometryServer import AxisParameter
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, DefineValueAsEvent, PhysicalMoveUpdate
+from ReflectometryServer.beam_path_calc import BeamPathUpdate
+from ReflectometryServer.axis import PhysicalMoveUpdate, DefineValueAsEvent
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent, \
     BenchComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle, ChangeAxis
@@ -936,6 +937,97 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
         result = param.sp
 
         assert_that(result, is_(expected_result))
+
+
+PIVOT_TO_J1 = 1201
+PIVOT_TO_J2 = 1201 + 1558.0
+ANGLE_OF_BENCH = 2.3
+PIVOT_TO_BEAM = 628
+
+
+class testBenchComponent(unittest.TestCase):
+
+    @parameterized.expand([
+        (ChangeAxis.JACK_FRONT, 1, 1),
+        (ChangeAxis.JACK_REAR, 1, 1),
+        (ChangeAxis.JACK_FRONT, -4, -4),
+        (ChangeAxis.JACK_REAR, 2, 2)
+    ])
+    def test_GIVEN_set_height_axis_with_0_angle_WHEN_get_axis_value_THEN_j1_value_returned_and_axis_changed(self, axis, position, expected_result):
+        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, 0, PIVOT_TO_BEAM)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        param = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
+
+        param.sp = position
+        result = bench.beam_path_set_point.axis[axis].get_displacement()
+        changed = bench.beam_path_set_point.axis[axis].is_changed
+
+        assert_that(result, is_(close_to(expected_result, 1e-6)))
+        assert_that(changed, is_(True), "axis is changed")
+
+    @parameterized.expand([
+        (ChangeAxis.JACK_FRONT, 12.3,  202.2279727),  # expected values from spreadsheet + height
+        (ChangeAxis.JACK_REAR, 12.3, 476.9454087),  # expected values from spreadsheet + height
+        (ChangeAxis.JACK_FRONT, -0.1, -50.88767676),  # expected values from spreadsheet + height
+        (ChangeAxis.JACK_REAR, 0.0, -111.3188069),  # expected values from spreadsheet + height
+    ])
+    def test_GIVEN_set_height_axis_WHEN_get_axis_value_THEN_j1_value_returned_and_axis_changed(self, axis, angle, expected_result):
+        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH, PIVOT_TO_BEAM)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        param = AxisParameter("PARAM", bench, ChangeAxis.ANGLE)
+
+        param.sp = angle
+        result = bench.beam_path_set_point.axis[axis].get_displacement()
+        changed = bench.beam_path_set_point.axis[axis].is_changed
+
+        assert_that(result, is_(close_to(expected_result, 1E-6)))
+        assert_that(changed, is_(True), "axis is changed")
+
+    @parameterized.expand([
+        (ChangeAxis.JACK_FRONT, 1, 1),
+        (ChangeAxis.JACK_REAR, 1, -1),
+        (ChangeAxis.JACK_FRONT, -4, -4),
+        (ChangeAxis.JACK_REAR, -2, 2),
+        (ChangeAxis.JACK_FRONT, 0, 0),
+        (ChangeAxis.JACK_REAR, 0, 0)
+    ])
+    def test_GIVEN_set_seesaw_axis_with_0_angle_and_height_WHEN_get_axis_value_THEN_j1_value_returned_and_axis_changed(self, axis, see_saw, expected_result):
+        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, 0, PIVOT_TO_BEAM)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        param = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
+
+        param.sp = see_saw
+        result = bench.beam_path_set_point.axis[axis].get_displacement()
+        changed = bench.beam_path_set_point.axis[axis].is_changed
+
+        assert_that(result, is_(close_to(expected_result, 1e-6)))
+        assert_that(changed, is_(True), "axis is changed")
+
+    @parameterized.expand([
+        ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_FRONT, ), (), False),
+        ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_REAR,), (), False),
+        ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.SLIDE,), (), False),
+        ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_REAR,), (ChangeAxis.JACK_FRONT,), True),
+        ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_FRONT,),  (ChangeAxis.JACK_REAR,), True),
+        ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_FRONT,), (ChangeAxis.SLIDE,), True),
+    ])
+    def test_GIVEN_changed_true_on_some_axis_WHEN_changed_false_set_on_an_axis_THEN_bench_angle_seesaw_and_height_changes_to_expected_answer(self, inital_setup_false, inital_setup_true, axes_to_set_false, axes_to_set_true, expected_result):
+        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, 0, PIVOT_TO_BEAM)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        for axis in inital_setup_true:
+            bench.beam_path_set_point.axis[axis].is_changed = True
+        for axis in inital_setup_false:
+            bench.beam_path_set_point.axis[axis].is_changed = False
+
+        for axis in axes_to_set_false:
+            bench.beam_path_set_point.axis[axis].is_changed = False
+
+        for axis in axes_to_set_true:
+            bench.beam_path_set_point.axis[axis].is_changed = True
+
+        assert_that(bench.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed, is_(expected_result))
+        assert_that(bench.beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed, is_(expected_result))
+        assert_that(bench.beam_path_set_point.axis[ChangeAxis.SEESAW].is_changed, is_(expected_result))
 
 
 if __name__ == '__main__':

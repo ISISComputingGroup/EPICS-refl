@@ -5,7 +5,8 @@ from collections import namedtuple
 
 from pcaspy import Severity
 
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate
+from ReflectometryServer.beam_path_calc import BeamPathUpdate
+from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate
 from ReflectometryServer.exceptions import ParameterNotInitializedException
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave
 import logging
