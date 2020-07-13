@@ -1,10 +1,8 @@
-from abc import ABCMeta, abstractmethod, ABC
+from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
-from math import radians, tan, cos
 
 
-from ReflectometryServer.geometry import ChangeAxis
 from server_common.channel_access import AlarmStatus, AlarmSeverity
 from server_common.observable import observable
 
@@ -22,10 +20,19 @@ class AxisChangedUpdate:
     """
     Event when changed if updated
     """
-    has_unapplied_update: bool
+    is_changed_update: bool  # True if there is an unapplied updated; False otherwise
 
 
-@observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate, AxisChangedUpdate)
+@dataclass()
+class SetRelativeToBeamUpdate:
+    """
+    Event when relative to beam has been updated
+    """
+    relative_to_beam: float
+
+
+@observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate, AxisChangedUpdate,
+            SetRelativeToBeamUpdate)
 class ComponentAxis(metaclass=ABCMeta):
     """
     A components axis of movement, allowing setting in both mantid and relative coordinates. Transmits alarms,
@@ -34,7 +41,7 @@ class ComponentAxis(metaclass=ABCMeta):
 
     def __init__(self, axis):
         """
-        Initalisation.
+        Initialisation.
 
         Args:
             axis: axis that the component is for
@@ -53,7 +60,6 @@ class ComponentAxis(metaclass=ABCMeta):
         """
         pass
 
-    @abstractmethod
     def set_relative_to_beam(self, value):
         """
         Set a axis value relative to the beam, e.g. position relative to the beam.
@@ -61,6 +67,17 @@ class ComponentAxis(metaclass=ABCMeta):
             value: value to set
         """
         self.is_changed = True
+        self.on_set_relative_to_beam(value)
+        self.trigger_listeners(SetRelativeToBeamUpdate(value))
+
+    @abstractmethod
+    def on_set_relative_to_beam(self, value):
+        """
+        Set a axis value relative to the beam, e.g. position relative to the beam. But without triggers event or
+        setting is_changed
+        Args:
+            value: value to set
+        """
 
     def set_alarm(self, alarm_severity, alarm_status):
         """
@@ -197,13 +214,12 @@ class DirectCalcAxis(ComponentAxis):
         """
         return self._position
 
-    def set_relative_to_beam(self, position):
+    def on_set_relative_to_beam(self, position):
         """
         Set an axis position
         Args:
             position: position to set
         """
-        super(DirectCalcAxis, self).set_relative_to_beam(position)
         self._position = position
 
     def _get_displacement_for(self, position_relative_to_beam):
@@ -284,13 +300,12 @@ class BeamPathCalcAxis(ComponentAxis):
         """
         return self._get_relative_to_beam()
 
-    def set_relative_to_beam(self, value):
+    def on_set_relative_to_beam(self, value):
         """
         Set a axis value relative to the beam, e.g. position relative to the beam.
         Args:
             value: value to set
         """
-        super(BeamPathCalcAxis, self).set_relative_to_beam(value)
         return self._set_relative_to_beam(value)
 
     def get_displacement(self):
@@ -322,115 +337,3 @@ class BeamPathCalcAxis(ComponentAxis):
         if self._init_displacement_from_motor is not None:
             return self._init_displacement_from_motor(value)
         raise TypeError("Axis does not support init_displacement_from_motor")
-
-
-@dataclass
-class BenchAxisSetup:
-    """
-    Hold setup for the bench axis
-    """
-    position_axis: ComponentAxis
-    angle_axis: ComponentAxis
-    seesaw_axis: ComponentAxis
-    pivot_to_j1_dist: float
-    pivot_to_rear_jack_dist: float
-    initial_bench_angle: float
-    pivot_to_beam: float
-
-
-class _BenchAxis(ComponentAxis, ABC):
-    """
-    base class for jack and slide classes to capture common properties
-    """
-    def __init__(self, axis: ChangeAxis, bench_axis_setup: BenchAxisSetup):
-        """
-        Initialise.
-        Args:
-            axis: the axis type
-            bench_axis_setup: setup values for class
-        """
-        super(_BenchAxis, self).__init__(axis)
-        self._bench_axis_setup = bench_axis_setup
-
-
-class JackCalcAxis(_BenchAxis):
-    """
-    Jack Axis, capturing motion of the bench jack.
-    """
-
-    def __init__(self, axis: ChangeAxis, bench_axis_setup: BenchAxisSetup):
-        super(JackCalcAxis, self).__init__(axis, bench_axis_setup)
-
-        if axis == ChangeAxis.JACK_FRONT:
-            self._distance_to_pivot = self._bench_axis_setup.pivot_to_j1_dist
-        else:
-            self._distance_to_pivot = self._bench_axis_setup.pivot_to_rear_jack_dist
-
-    def get_relative_to_beam(self):
-        pass
-
-    def set_relative_to_beam(self, value):
-        pass
-
-    def _get_displacement_for(self, position_relative_to_beam):
-        pass
-
-    def get_displacement(self):
-        """
-        Height of the beam at jack position - rotation of the pivots
-        Returns:
-            position of the jack
-        """
-        pivot_height = self._bench_axis_setup.position_axis.get_displacement()
-        pivot_angle = self._bench_axis_setup.angle_axis.get_displacement()
-        if self._axis == ChangeAxis.JACK_FRONT:
-            seesaw = self._bench_axis_setup.seesaw_axis.get_displacement()
-        else:
-            seesaw = -self._bench_axis_setup.seesaw_axis.get_displacement()
-        angle_from_intial_position = pivot_angle - self._bench_axis_setup.initial_bench_angle
-        height = self._distance_to_pivot * tan(radians(angle_from_intial_position))
-        correction = self._bench_axis_setup.pivot_to_beam * (1 - cos(radians(angle_from_intial_position)))
-
-        return pivot_height + height - correction + seesaw
-
-    def _on_set_displacement(self, displacement):
-        pass
-
-    def init_displacement_from_motor(self, value):
-        pass
-
-
-class SlideCalcAxis(_BenchAxis):
-    """
-    Slide axis capturing motion of the bench slide.
-    """
-
-    def get_relative_to_beam(self):
-        pass
-
-    def set_relative_to_beam(self, value):
-        pass
-
-    def _get_displacement_for(self, position_relative_to_beam):
-        pass
-
-    def get_displacement(self):
-        """
-        Position of the horizontal slide, keeping distance to the sample a constant apart from the limits.
-        Returns:
-            Position of the slide in motor axis coordinates
-        """
-        distance_to_rear_jack = self._bench_axis_setup.pivot_to_rear_jack_dist
-        pivot_angle = self._bench_axis_setup.angle_axis.get_displacement()
-        angle_from_initial_position = pivot_angle - self._bench_axis_setup.initial_bench_angle
-
-        hor = distance_to_rear_jack * (1 - cos(radians(angle_from_initial_position)))
-        correction = self._bench_axis_setup.pivot_to_beam * tan(radians(angle_from_initial_position))
-
-        return correction - hor
-
-    def _on_set_displacement(self, displacement):
-        pass
-
-    def init_displacement_from_motor(self, value):
-        pass

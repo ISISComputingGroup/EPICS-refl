@@ -1,10 +1,13 @@
 """
 Components on a beam
 """
+from math import atan, cos, tan, radians, degrees
+
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
-from ReflectometryServer.axis import DirectCalcAxis, JackCalcAxis, BenchAxisSetup, SlideCalcAxis, AxisChangedUpdate, \
-    AxisChangingUpdate
+from ReflectometryServer.axis import DirectCalcAxis, AxisChangedUpdate, \
+    AxisChangingUpdate, PhysicalMoveUpdate, SetRelativeToBeamUpdate
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.movement_strategy import LinearMovementCalc
 from ReflectometryServer.geometry import ChangeAxis
 
@@ -203,27 +206,15 @@ class BenchComponent(TiltingComponent):
         set_point_axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
         rbv_axis = self.beam_path_rbv.axis
         rbv_axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
-        bench_axis_setup = BenchAxisSetup(set_point_axis[ChangeAxis.POSITION],
-                                          set_point_axis[ChangeAxis.ANGLE],
-                                          set_point_axis[ChangeAxis.SEESAW],
-                                          self._jack_front_x, self._jack_rear_x,
-                                          self._inital_table_angle,
-                                          self._pivot_to_beam)
-        bench_axis_setup_rbv = BenchAxisSetup(rbv_axis[ChangeAxis.POSITION],
-                                              rbv_axis[ChangeAxis.ANGLE],
-                                              rbv_axis[ChangeAxis.SEESAW],
-                                              self._jack_front_x, self._jack_rear_x,
-                                              self._inital_table_angle,
-                                              self._pivot_to_beam)
 
-        set_point_axis[ChangeAxis.JACK_FRONT] = JackCalcAxis(ChangeAxis.JACK_FRONT, bench_axis_setup)
-        rbv_axis[ChangeAxis.JACK_FRONT] = JackCalcAxis(ChangeAxis.JACK_FRONT, bench_axis_setup_rbv)
+        set_point_axis[ChangeAxis.JACK_FRONT] = DirectCalcAxis(ChangeAxis.JACK_FRONT)
+        rbv_axis[ChangeAxis.JACK_FRONT] = DirectCalcAxis(ChangeAxis.JACK_FRONT)
 
-        set_point_axis[ChangeAxis.JACK_REAR] = JackCalcAxis(ChangeAxis.JACK_REAR, bench_axis_setup)
-        rbv_axis[ChangeAxis.JACK_REAR] = JackCalcAxis(ChangeAxis.JACK_REAR, bench_axis_setup_rbv)
+        set_point_axis[ChangeAxis.JACK_REAR] = DirectCalcAxis(ChangeAxis.JACK_REAR)
+        rbv_axis[ChangeAxis.JACK_REAR] = DirectCalcAxis(ChangeAxis.JACK_REAR)
 
-        set_point_axis[ChangeAxis.SLIDE] = SlideCalcAxis(ChangeAxis.SLIDE, bench_axis_setup)
-        rbv_axis[ChangeAxis.SLIDE] = SlideCalcAxis(ChangeAxis.SLIDE, bench_axis_setup_rbv)
+        set_point_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
+        rbv_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
 
         self._motor_axes = [ChangeAxis.JACK_FRONT, ChangeAxis.JACK_REAR, ChangeAxis.SLIDE]
         self._control_axes = [ChangeAxis.ANGLE, ChangeAxis.POSITION, ChangeAxis.SEESAW]
@@ -231,16 +222,18 @@ class BenchComponent(TiltingComponent):
         for axis in self._motor_axes:
             set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_motor_axis_changed)
             rbv_axis[axis].add_listener(AxisChangingUpdate, self._is_changing_update)
+            rbv_axis[axis].add_listener(PhysicalMoveUpdate, self._on_physical_move)
 
         for axis in self._control_axes:
             set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_control_axis_changed)
+            set_point_axis[axis].add_listener(SetRelativeToBeamUpdate, self.on_set_relative_to_beam)
 
     def on_motor_axis_changed(self, update: AxisChangedUpdate):
         """
         If all motor axes have no unapplied changes then set control axes to no-unapplied changes
 
         """
-        if not update.has_unapplied_update:
+        if not update.is_changed_update:
             set_point_axes = self.beam_path_set_point.axis
             any_have_unapplied_update = any([set_point_axes[axis].is_changed for axis in self._motor_axes])
             if not any_have_unapplied_update:
@@ -251,10 +244,10 @@ class BenchComponent(TiltingComponent):
         """
         If the current control axis has changes to apply then all motor axes have change to apply
         """
-        if update.has_unapplied_update:
+        if update.is_changed_update:
             set_point_axes = self.beam_path_set_point.axis
             for axis in self._motor_axes:
-                set_point_axes[axis].is_changed = update.has_unapplied_update
+                set_point_axes[axis].is_changed = update.is_changed_update
 
     def _is_changing_update(self, _):
         """
@@ -264,3 +257,51 @@ class BenchComponent(TiltingComponent):
         is_changing = any([read_back_axes[axis].is_changing for axis in self._motor_axes])
         for axis in self._control_axes:
             read_back_axes[axis].is_changing = is_changing
+
+    def _on_physical_move(self, _):
+        """
+        When a motor axis moves physically update the control axes
+        """
+        rbv_axis = self.beam_path_rbv.axis
+        jack1 = rbv_axis[ChangeAxis.JACK_FRONT].get_displacement()
+        jack2 = rbv_axis[ChangeAxis.JACK_REAR].get_displacement()
+
+        tan_angle_from_initial_position = (jack1 - jack2) / (self._jack_front_x - self._jack_rear_x)
+        angle_from_initial_position = atan(tan_angle_from_initial_position)
+
+        height = jack1 - self._jack_front_x * tan_angle_from_initial_position + \
+            self._pivot_to_beam * (1-cos(angle_from_initial_position))
+        pivot_angle = degrees(angle_from_initial_position) + self._inital_table_angle
+
+        rbv_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(height, None, None))
+        rbv_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(pivot_angle, None, None))
+        rbv_axis[ChangeAxis.SEESAW].set_displacement(CorrectedReadbackUpdate(0, None, None))
+
+    def on_set_relative_to_beam(self, _):
+        """
+        When a position is set relative to the beam on the control axes set the transformed values on the motor axes.
+        """
+        set_point_axes = self.beam_path_set_point.axis
+        pivot_height = set_point_axes[ChangeAxis.POSITION].get_displacement()
+        pivot_angle = set_point_axes[ChangeAxis.ANGLE].get_displacement()
+        seesaw = set_point_axes[ChangeAxis.SEESAW].get_displacement()
+
+        angle_from_initial_position = pivot_angle - self._inital_table_angle
+        tan_bench_angle = tan(radians(angle_from_initial_position))
+        one_minus_cos_angle = (1 - cos(radians(angle_from_initial_position)))
+
+        # jacks
+        height1 = self._jack_front_x * tan_bench_angle
+        height2 = self._jack_rear_x * tan_bench_angle
+        correction = self._pivot_to_beam * one_minus_cos_angle
+
+        front_jack_height = pivot_height + height1 - correction + seesaw
+        rear_jack_height = pivot_height + height2 - correction - seesaw
+        set_point_axes[ChangeAxis.JACK_FRONT].set_relative_to_beam(front_jack_height)
+        set_point_axes[ChangeAxis.JACK_REAR].set_relative_to_beam(rear_jack_height)
+
+        # pivot
+        hor = self._jack_rear_x * one_minus_cos_angle
+        correction = self._pivot_to_beam * tan_bench_angle
+        horizontal_position = correction - hor
+        set_point_axes[ChangeAxis.SLIDE].set_relative_to_beam(horizontal_position)

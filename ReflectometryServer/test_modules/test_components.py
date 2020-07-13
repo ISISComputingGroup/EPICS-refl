@@ -1032,6 +1032,46 @@ class testBenchComponent(unittest.TestCase):
         assert_that(bench.beam_path_rbv.axis[ChangeAxis.ANGLE].is_changing, is_(expected_result))
         assert_that(bench.beam_path_rbv.axis[ChangeAxis.SEESAW].is_changing, is_(expected_result))
 
+    @parameterized.expand([
+        (1, 1, 1),
+        (-4, -4, -4),
+        (2, 2, 2)
+    ])
+    def test_GIVEN_set_jacks_with_height_with_0_angle_at_seesaw_setpoint_0_WHEN_get_control_axis_value_THEN_values_correct(self, jack_front_position, jack_rear_position, expected_position):
+        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, 0, PIVOT_TO_BEAM)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        position = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
+        seesaw = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
+        angle = AxisParameter("PARAM", bench, ChangeAxis.ANGLE)
+        seesaw.sp = 0
+
+        bench.beam_path_rbv.axis[ChangeAxis.JACK_FRONT].set_displacement(CorrectedReadbackUpdate(jack_front_position, AlarmSeverity.No, AlarmStatus.No))
+        bench.beam_path_rbv.axis[ChangeAxis.JACK_REAR].set_displacement(CorrectedReadbackUpdate(jack_rear_position, AlarmSeverity.No, AlarmStatus.No))
+
+        assert_that(position.rbv, is_(close_to(expected_position, 1e-6)))
+        assert_that(angle.rbv, is_(close_to(0, 1e-6)))
+        assert_that(seesaw.rbv, is_(close_to(0, 1e-6)))
+
+    @parameterized.expand([
+        (202.2279727, 476.9454087, 0, 12.3),
+        (-46.6006546, -106.4529773, 0, 0.1),
+        (-70.29056346, -160.1242782, 0, -1)
+    ])
+    def test_GIVEN_set_jacks_with_height_seesaw_setpoint_0_WHEN_get_control_axis_value_THEN_values_correct(self, jack_front_position, jack_rear_position, expected_position, expected_angle):
+        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH, PIVOT_TO_BEAM)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        position = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
+        seesaw = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
+        angle = AxisParameter("PARAM", bench, ChangeAxis.ANGLE)
+        seesaw.sp = 0
+
+        bench.beam_path_rbv.axis[ChangeAxis.JACK_FRONT].set_displacement(CorrectedReadbackUpdate(jack_front_position, AlarmSeverity.No, AlarmStatus.No))
+        bench.beam_path_rbv.axis[ChangeAxis.JACK_REAR].set_displacement(CorrectedReadbackUpdate(jack_rear_position, AlarmSeverity.No, AlarmStatus.No))
+
+        assert_that(position.rbv, is_(close_to(expected_position, 1e-6)))
+        assert_that(angle.rbv, is_(close_to(expected_angle, 1e-6)))
+        assert_that(seesaw.rbv, is_(close_to(0, 1e-6)))
+
 
 if __name__ == '__main__':
     unittest.main()

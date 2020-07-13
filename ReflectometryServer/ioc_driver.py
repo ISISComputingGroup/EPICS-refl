@@ -10,7 +10,7 @@ from pcaspy import Severity
 from ReflectometryServer.out_of_beam import OutOfBeamLookup
 from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
 from ReflectometryServer.axis import DefineValueAsEvent
-from ReflectometryServer import ChangeAxis
+from ReflectometryServer.geometry import ChangeAxis
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
