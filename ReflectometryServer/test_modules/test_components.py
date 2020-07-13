@@ -13,7 +13,8 @@ from ReflectometryServer.axis import PhysicalMoveUpdate, DefineValueAsEvent
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent, \
     BenchComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle, ChangeAxis
-from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, IocDriver
+from ReflectometryServer.test_modules.data_mother import create_mock_axis
 from ReflectometryServer.test_modules.utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
 from server_common.channel_access import AlarmStatus
 
@@ -947,6 +948,29 @@ PIVOT_TO_BEAM = 628
 
 class testBenchComponent(unittest.TestCase):
 
+    def _setup_bench(self, initial_position):
+
+        initial_angle, initial_height, initial_seesaw = initial_position
+        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH,
+                               PIVOT_TO_BEAM)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        j1_axis = create_mock_axis("j1", 0, 1)
+        j2_axis = create_mock_axis("j2", 0, 1)
+        slide_axis = create_mock_axis("axis", 0, 1)
+        j1_driver = IocDriver(bench, ChangeAxis.JACK_FRONT, j1_axis)
+        j2_driver = IocDriver(bench, ChangeAxis.JACK_REAR, j2_axis)
+        slide_driver = IocDriver(bench, ChangeAxis.SLIDE, slide_axis)
+        position = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
+        seesaw = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
+        angle = AxisParameter("PARAM", bench, ChangeAxis.ANGLE)
+        angle.sp = initial_angle
+        seesaw.sp = initial_seesaw
+        position.sp = initial_height
+        j1_driver.perform_move(1, False)
+        j2_driver.perform_move(1, False)
+        slide_driver.perform_move(1, False)
+        return position, angle, seesaw, j1_axis, j2_axis, slide_axis
+
     @parameterized.expand([
         (ChangeAxis.JACK_FRONT, 1, 1),
         (ChangeAxis.JACK_REAR, 1, 1),
@@ -1093,6 +1117,75 @@ class testBenchComponent(unittest.TestCase):
         assert_that(position.rbv, is_(close_to(expected_position, 1e-6)))
         assert_that(angle.rbv, is_(close_to(angle_sp, 1e-6)))
         assert_that(seesaw.rbv, is_(close_to(expected_seesaw, 1e-6)))
+
+    NO_ALARM = (AlarmSeverity.No, AlarmStatus.No)
+    MAJOR_ALARM = (AlarmSeverity.Major, AlarmStatus.HiHi)
+    INVALID_ALARM = (AlarmSeverity.Invalid, AlarmStatus.Timeout)
+
+
+    @parameterized.expand([
+        (MAJOR_ALARM, NO_ALARM, NO_ALARM, MAJOR_ALARM),
+        (NO_ALARM, MAJOR_ALARM, NO_ALARM, MAJOR_ALARM),
+        (NO_ALARM, NO_ALARM, MAJOR_ALARM, MAJOR_ALARM),
+        (INVALID_ALARM, NO_ALARM, MAJOR_ALARM, INVALID_ALARM)
+    ])
+    def test_GIVEN_set_alarms_on_jacks_and_slide_WHEN_get_control_axis_alarm_THEN_alarm_is_most_sever(self, front_alarm, rear_alarm, slide_alarm, expected_alarm):
+        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH, PIVOT_TO_BEAM)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        position = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
+        seesaw = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
+        angle = AxisParameter("PARAM", bench, ChangeAxis.ANGLE)
+        angle.sp = 0
+        seesaw.sp = 0
+
+        bench.beam_path_rbv.axis[ChangeAxis.JACK_FRONT].set_displacement(CorrectedReadbackUpdate(0, *front_alarm))
+        bench.beam_path_rbv.axis[ChangeAxis.JACK_REAR].set_displacement(CorrectedReadbackUpdate(0, *rear_alarm))
+        bench.beam_path_rbv.axis[ChangeAxis.SLIDE].set_displacement(CorrectedReadbackUpdate(0, *slide_alarm))
+
+        assert_that(position.alarm_severity, is_(expected_alarm[0]))
+        assert_that(position.alarm_status, is_(expected_alarm[1]))
+
+    @parameterized.expand([((ANGLE_OF_BENCH, 1, 0), 2, (2, 2, None)),
+                           ((0, 1, 0), 0, (-48.74306278, -111.3188069, None)),
+                           ((0.1, 1, 0), 0, (-46.6006546, -106.4529773, None)),
+                           ((0, 1, 2), 0, (-48.74306278+2, -111.3188069-2, None)),])
+    def test_GIVEN_bench_in_location_WHEN_define_position_THEN_new_height_defined(self, initial_position, define_height_as, expected_positions):
+        expected_jack_front_height, expected_jack_rear_height, expected_slide_position = expected_positions
+        position, angle, seesaw, j1_axis, j2_axis, slide_axis = self._setup_bench(initial_position)
+
+        position.define_current_value_as.new_value = define_height_as
+
+        assert_that(j1_axis.set_position_as_value, is_(close_to(expected_jack_front_height, 1e-6)))
+        assert_that(j2_axis.set_position_as_value, is_(close_to(expected_jack_rear_height, 1e-6)))
+        assert_that(slide_axis.set_position_as_value, is_(None))
+
+    @parameterized.expand([((0.1, 0, 0), 0, (-48.74306278, -111.3188069, -27.44574943)),  # no height or seesaw set to 0
+                           ((2, 0, 0), 0.1, (-46.6006546, -106.4529773, -26.15894011)),  # no height or seesaw set to non-zero
+                           ((0, 0, 2), 0, (-48.74306278+2, -111.3188069-2, -27.44574943)),  # with seesaw
+                           ((0, 1, 2), 0, (-48.74306278+1+2, -111.3188069+1-2, -27.44574943))])  # with height and seesaw
+    def test_GIVEN_bench_in_location_WHEN_define_angle_THEN_new_height_defined(self, initial_position, define_height_as, expected_positions):
+        expected_jack_front_height, expected_jack_rear_height, expected_slide_position = expected_positions
+        position, angle, seesaw, j1_axis, j2_axis, slide_axis = self._setup_bench(initial_position)
+
+        angle.define_current_value_as.new_value = define_height_as
+
+        assert_that(j1_axis.set_position_as_value, is_(close_to(expected_jack_front_height, 1e-6)))
+        assert_that(j2_axis.set_position_as_value, is_(close_to(expected_jack_rear_height, 1e-6)))
+        assert_that(slide_axis.set_position_as_value, is_(close_to(expected_slide_position, 1e-6)))
+
+    @parameterized.expand([((0, 0, 2), 0, (-48.74306278, -111.3188069, -27.44574943)),  # no height or angle set to 0
+                           ((0, 0, 0), 3, (-48.74306278 + 3.0, -111.3188069 - 3.0, -27.44574943)),  # no height or angle set to non-zero
+                           ((0.1, 0, 2), 0, (-46.6006546, -106.4529773, -26.15894011)),  # no height but angle set
+                           ((0.1, 1, 2), 0, (-46.6006546 + 1, -106.4529773 + 1, -26.15894011))])  # height, and angle
+    def test_GIVEN_bench_in_location_WHEN_define_seesaw_THEN_new_height_defined(self, initial_position, define_height_as, expected_positions):
+        expected_jack_front_height, expected_jack_rear_height, expected_slide_position = expected_positions
+        position, angle, seesaw, j1_axis, j2_axis, slide_axis = self._setup_bench(initial_position)
+
+        seesaw.define_current_value_as.new_value = define_height_as
+
+        assert_that(j1_axis.set_position_as_value, is_(close_to(expected_jack_front_height, 1e-6)))
+        assert_that(j2_axis.set_position_as_value, is_(close_to(expected_jack_rear_height, 1e-6)))
+        assert_that(slide_axis.set_position_as_value, is_(close_to(expected_slide_position, 1e-6)))
 
 if __name__ == '__main__':
     unittest.main()

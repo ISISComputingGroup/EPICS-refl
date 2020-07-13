@@ -9,8 +9,8 @@ from mock import Mock, patch
 from hamcrest import *
 
 import server_common
-from server_common.channel_access import ChannelAccess, NUMBER_OF_CAPUT_THREADS
-
+from server_common.channel_access import ChannelAccess, NUMBER_OF_CAPUT_THREADS, maximum_severity, AlarmSeverity, \
+    AlarmStatus
 
 thread_ids = Queue()
 thread_calls = Queue()
@@ -87,3 +87,49 @@ class TestChannelAccess(unittest.TestCase):
 
         assert_that(ids, has_length(NUMBER_OF_CAPUT_THREADS),
                     "Number of ids should be the same as number of threads so that multiple tasks use the same thread")
+
+
+class TestMaximumSeverity(unittest.TestCase):
+
+    def test_GIVEN_empty_list_WHEN_get_THEN_None_returned(self):
+        result = maximum_severity()
+
+        assert_that(result, is_(none()))
+
+    def test_GIVEN_one_entry_WHEN_get_THEN_that_entry_returned(self):
+        no_alarms = (AlarmSeverity.No, AlarmStatus.No)
+        result = maximum_severity(no_alarms)
+
+        assert_that(result, is_(no_alarms))
+
+    def test_GIVEN_none_and_minor_WHEN_get_THEN_minor_returned(self):
+        no_alarms = (AlarmSeverity.No, AlarmStatus.No)
+        minor_alarm = (AlarmSeverity.Minor, AlarmStatus.Low)
+        result = maximum_severity(minor_alarm, no_alarms)
+
+        assert_that(result, is_(minor_alarm))
+
+    def test_GIVEN_no_and_minor_major_WHEN_get_THEN_major_returned(self):
+        no_alarms = (AlarmSeverity.No, AlarmStatus.No)
+        minor_alarm = (AlarmSeverity.Minor, AlarmStatus.Low)
+        major_alarm = (AlarmSeverity.Major, AlarmStatus.Lolo)
+        result = maximum_severity(minor_alarm, major_alarm, no_alarms)
+
+        assert_that(result, is_(major_alarm))
+
+    def test_GIVEN_no_minor_major_and_invalid_WHEN_get_THEN_invalid_returned(self):
+        no_alarms = (AlarmSeverity.No, AlarmStatus.No)
+        minor_alarm = (AlarmSeverity.Minor, AlarmStatus.Low)
+        major_alarm = (AlarmSeverity.Major, AlarmStatus.Lolo)
+        invalid_alarm = (AlarmSeverity.Invalid, AlarmStatus.Timeout)
+        result = maximum_severity(minor_alarm, invalid_alarm, major_alarm, no_alarms)
+
+        assert_that(result, is_(invalid_alarm))
+
+    def test_GIVEN_two_minor_alarms_WHEN_get_THEN_first_returned(self):
+        minor_alarm1 = (AlarmSeverity.Minor, AlarmStatus.Low)
+        minor_alarm2 = (AlarmSeverity.Minor, AlarmStatus.High)
+
+        result = maximum_severity(minor_alarm1, minor_alarm2)
+
+        assert_that(result, is_(minor_alarm1))

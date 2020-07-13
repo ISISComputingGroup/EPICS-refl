@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals, division
 
+from typing import Tuple, List, Optional
+
 """
 Make channel access not dependent on genie_python.
 """
@@ -283,3 +285,22 @@ def verify_manager_mode(channel_access=ChannelAccess(), message="Operation must 
 
     if not is_manager:
         raise ManagerModeRequiredException(message)
+
+
+def maximum_severity(*alarms: Tuple[AlarmSeverity, AlarmStatus]) -> Optional[Tuple[AlarmSeverity, AlarmStatus]]:
+    """
+    Get the alarm with maximum severity (or first if items have equal severity)
+    Args:
+        *alarms: alarms to choose from
+
+    Returns:
+        alarm with maximum severity; none for no arguments
+    """
+
+    maximum_severity_alarm = None
+
+    for alarm in alarms:
+        if maximum_severity_alarm is None or alarm[0] > maximum_severity_alarm[0]:
+            maximum_severity_alarm = alarm
+
+    return maximum_severity_alarm

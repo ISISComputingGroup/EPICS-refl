@@ -2,16 +2,17 @@
 Components on a beam
 """
 from math import atan, cos, tan, radians, degrees
+import logging
 
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
 from ReflectometryServer.axis import DirectCalcAxis, AxisChangedUpdate, \
-    AxisChangingUpdate, PhysicalMoveUpdate, SetRelativeToBeamUpdate
+    AxisChangingUpdate, PhysicalMoveUpdate, SetRelativeToBeamUpdate, DefineValueAsEvent
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.movement_strategy import LinearMovementCalc
 from ReflectometryServer.geometry import ChangeAxis
-
-import logging
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo, Severity
+from server_common.channel_access import maximum_severity
 
 logger = logging.getLogger(__name__)
 
@@ -227,6 +228,7 @@ class BenchComponent(TiltingComponent):
         for axis in self._control_axes:
             set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_control_axis_changed)
             set_point_axis[axis].add_listener(SetRelativeToBeamUpdate, self.on_set_relative_to_beam)
+            rbv_axis[axis].add_listener(DefineValueAsEvent, self.on_define_position)
 
     def on_motor_axis_changed(self, update: AxisChangedUpdate):
         """
@@ -263,17 +265,35 @@ class BenchComponent(TiltingComponent):
         When a motor axis moves physically update the control axes
         """
         rbv_axis = self.beam_path_rbv.axis
+        height, pivot_angle, seesaw = self._calculate_motor_rbvs(rbv_axis)
+
+        alarm_severity, alarm_status = maximum_severity(rbv_axis[ChangeAxis.JACK_FRONT].alarm,
+                                                        rbv_axis[ChangeAxis.JACK_REAR].alarm,
+                                                        rbv_axis[ChangeAxis.SLIDE].alarm)
+
+        rbv_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(height, alarm_severity, alarm_status))
+        rbv_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(pivot_angle, alarm_severity, alarm_status))
+        rbv_axis[ChangeAxis.SEESAW].set_displacement(CorrectedReadbackUpdate(seesaw, alarm_severity, alarm_status))
+
+    def _calculate_motor_rbvs(self, rbv_axis):
+        """
+        Calculate from the rbv axes the control readback values.
+        Args:
+            rbv_axis: axis set to use
+
+        Returns:
+            height, pivot_angle and seesaw positions
+        """
         jack1 = rbv_axis[ChangeAxis.JACK_FRONT].get_displacement()
         jack2 = rbv_axis[ChangeAxis.JACK_REAR].get_displacement()
         seesaw_sp = self.beam_path_set_point.axis[ChangeAxis.SEESAW].get_displacement()
-
         if seesaw_sp == 0.0:
             # assume seesaw readback is 0
             tan_angle_from_initial_position = (jack1 - jack2) / (self._jack_front_x - self._jack_rear_x)
             angle_from_initial_position = atan(tan_angle_from_initial_position)
 
             height = jack1 - self._jack_front_x * tan_angle_from_initial_position + \
-                     self._pivot_to_beam * (1 - cos(angle_from_initial_position))
+                self._pivot_to_beam * (1 - cos(angle_from_initial_position))
             pivot_angle = degrees(angle_from_initial_position) + self._inital_table_angle
             seesaw = 0
         else:
@@ -286,10 +306,7 @@ class BenchComponent(TiltingComponent):
             height = (jack1 + jack2 - (self._jack_front_x + self._jack_rear_x) * tan_bench_angle_sp
                       + 2 * self._pivot_to_beam * one_minus_cos_angle_sp) / 2.0
             seesaw = ((self._jack_rear_x - self._jack_front_x) * tan_bench_angle_sp + jack1 - jack2) / 2.0
-
-        rbv_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(height, None, None))
-        rbv_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(pivot_angle, None, None))
-        rbv_axis[ChangeAxis.SEESAW].set_displacement(CorrectedReadbackUpdate(seesaw, None, None))
+        return height, pivot_angle, seesaw
 
     def on_set_relative_to_beam(self, _):
         """
@@ -300,22 +317,68 @@ class BenchComponent(TiltingComponent):
         pivot_angle = set_point_axes[ChangeAxis.ANGLE].get_displacement()
         seesaw = set_point_axes[ChangeAxis.SEESAW].get_displacement()
 
+        front_jack_height, rear_jack_height, horizontal_position = \
+            self._calculate_motor_positions(pivot_height, pivot_angle, seesaw)
+
+        set_point_axes[ChangeAxis.JACK_FRONT].set_relative_to_beam(front_jack_height)
+        set_point_axes[ChangeAxis.JACK_REAR].set_relative_to_beam(rear_jack_height)
+        set_point_axes[ChangeAxis.SLIDE].set_relative_to_beam(horizontal_position)
+
+    def _calculate_motor_positions(self, pivot_height, pivot_angle, seesaw):
+        """
+        Give the control axes positions calculate the motor parameters
+        Args:
+            pivot_height: pivot height
+            pivot_angle: pivot angle
+            seesaw: seesaw value
+
+        Returns:
+            jack height and horizontal position
+        """
         angle_from_initial_position = pivot_angle - self._inital_table_angle
         tan_bench_angle = tan(radians(angle_from_initial_position))
         one_minus_cos_angle = (1 - cos(radians(angle_from_initial_position)))
-
         # jacks
         height1 = self._jack_front_x * tan_bench_angle
         height2 = self._jack_rear_x * tan_bench_angle
         correction = self._pivot_to_beam * one_minus_cos_angle
-
         front_jack_height = pivot_height + height1 - correction + seesaw
         rear_jack_height = pivot_height + height2 - correction - seesaw
-        set_point_axes[ChangeAxis.JACK_FRONT].set_relative_to_beam(front_jack_height)
-        set_point_axes[ChangeAxis.JACK_REAR].set_relative_to_beam(rear_jack_height)
-
         # pivot
         hor = self._jack_rear_x * one_minus_cos_angle
         correction = self._pivot_to_beam * tan_bench_angle
-        horizontal_position = correction - hor
-        set_point_axes[ChangeAxis.SLIDE].set_relative_to_beam(horizontal_position)
+        slide_position = correction - hor
+        return front_jack_height, rear_jack_height, slide_position
+
+    def on_define_position(self, define_position: DefineValueAsEvent):
+        """
+        When a define position happens on the rbv control parameters take it and apply it to the motor axes after
+        transforming the parameters by getting their readback values and setting the newly set parameter.
+        Args:
+            define_position: the position defined for the axis
+        """
+        rbv_axis = self.beam_path_rbv.axis
+        height, pivot_angle, seesaw = self._calculate_motor_rbvs(rbv_axis)
+
+        change_axis = define_position.change_axis
+        if change_axis == ChangeAxis.POSITION:
+            height = define_position.new_position
+
+        elif change_axis == ChangeAxis.ANGLE:
+            pivot_angle = define_position.new_position
+
+        elif change_axis == ChangeAxis.SEESAW:
+            seesaw = define_position.new_position
+
+        else:
+            STATUS_MANAGER.update_error_log("Define on bench using axis {} is not allowed".format(change_axis))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Invalid bench update axis", self.name, Severity.MINOR_ALARM))
+
+        front_jack_height, rear_jack_height, horizontal_position = \
+            self._calculate_motor_positions(height, pivot_angle, seesaw)
+
+        rbv_axis[ChangeAxis.JACK_FRONT].define_axis_position_as(front_jack_height)
+        rbv_axis[ChangeAxis.JACK_REAR].define_axis_position_as(rear_jack_height)
+        if change_axis is not ChangeAxis.POSITION:
+            rbv_axis[ChangeAxis.SLIDE].define_axis_position_as(horizontal_position)

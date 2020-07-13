@@ -9,6 +9,7 @@ from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectio
     add_component, add_parameter, ConfigHelper, add_driver, add_beam_start, get_configured_beamline
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
+from server_common.channel_access import AlarmStatus, AlarmSeverity
 from server_common.observable import observable
 from .utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
@@ -373,7 +374,7 @@ class MockMotorPVWrapper:
         self._last_set_point_set = new_value
         self._value = new_value
         self.trigger_listeners(SetpointUpdate(new_value, None, None))
-        self.trigger_listeners(ReadbackUpdate(new_value, None, None))
+        self.trigger_listeners(ReadbackUpdate(new_value, AlarmSeverity.No, AlarmStatus.No))
 
     def trigger_rbv_change(self):
         self.trigger_listeners(ReadbackUpdate(self._value, None, None))
@@ -385,8 +386,8 @@ class MockMotorPVWrapper:
     def define_position_as(self, new_value):
         self.set_position_as_value = new_value
         self._value = new_value
-        self.trigger_listeners(SetpointUpdate(new_value, None, None))
-        self.trigger_listeners(ReadbackUpdate(new_value, None, None))
+        self.trigger_listeners(SetpointUpdate(new_value, AlarmSeverity.No, AlarmStatus.No))
+        self.trigger_listeners(ReadbackUpdate(new_value, AlarmSeverity.No, AlarmStatus.No))
 
 
 class MockChannelAccess:
