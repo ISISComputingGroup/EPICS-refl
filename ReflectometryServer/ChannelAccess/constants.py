@@ -11,6 +11,8 @@ def _get_env_var(name):
 # Prefix for PVs on this instrument
 MYPVPREFIX = _get_env_var('MYPVPREFIX')
 
+IOC_DIR = _get_env_var('MYDIRBLOCK')
+
 REFL_IOC_NAME = "REFL_01"
 
 # Prefix for all PVs in the server

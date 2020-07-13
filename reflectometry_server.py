@@ -1,14 +1,16 @@
 """
 Reflectometry Server
 """
-
+import json
 import logging.config
 import sys
 import os
+import xml.etree.ElementTree as ET
 
 from pcaspy import SimpleServer
 from threading import Thread
 
+from ReflectometryServer.ChannelAccess import constants
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -50,7 +52,7 @@ except ImportError:
 
 from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
 from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, MYPVPREFIX, DEFAULT_ASG_RULES, \
-    REFL_IOC_NAME
+    REFL_IOC_NAME, IOC_DIR
 from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 from server_common.helpers import register_ioc_start
 from server_common.channel_access import ChannelAccess
@@ -66,8 +68,21 @@ def process_ca_loop():
             break
 
 
+def get_macro_values():
+    ioc_config_path = os.path.join(IOC_DIR, 'config.xml')
+    ioc_config_xml = ET.parse(ioc_config_path).getroot()
+    valid_macro_names = []
+    for macro in ioc_config_xml.iter('macro'):
+        valid_macro_names.append(macro.get('name'))
+
+    macros = json.loads(os.environ.get("MACROS", ""))
+    macros = {key: macros[key] for key in valid_macro_names}
+    return macros
+
+
 logger.info("Initialising...")
 logger.info("Prefix: {}".format(REFLECTOMETRY_PREFIX))
+input()
 
 SERVER = SimpleServer()
 # Add security access to pvs. NB this is only for local rules because we have not substituted in the correct macros for
@@ -86,7 +101,7 @@ process_ca_thread.daemon = True
 process_ca_thread.start()
 
 logger.info("Instantiating Beamline Model")
-beamline = create_beamline_from_configuration()
+beamline = create_beamline_from_configuration(get_macro_values())
 pv_manager.set_beamline(beamline)
 
 # Do not re-create PVs that already exist

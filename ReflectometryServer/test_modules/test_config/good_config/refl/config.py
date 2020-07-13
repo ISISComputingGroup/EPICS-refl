@@ -4,8 +4,10 @@
 from ReflectometryServer import *
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
+OPTIONAL_PARAM_1 = "OPTIONAL_PARAM_1"
 
-def get_beamline():
+
+def get_beamline(macros):
     beam_angle_natural = -45
     perp_to_floor = 90.0
 
@@ -17,8 +19,8 @@ def get_beamline():
     add_component(Component("s1", PositionAndAngle(0.0, 1, perp_to_floor)))
 
     super_mirror = add_component(ReflectingComponent("sm", PositionAndAngle(0.0, 5, perp_to_floor)))
-    add_parameter(InBeamParameter("smenabled", super_mirror), modes=[pnr], mode_inits={nr: False, pnr: True})
-    add_parameter(AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE), modes=[pnr], mode_inits={nr: 0.0, pnr: 0.5})
+    add_parameter(InBeamParameter("smenabled", super_mirror), modes=[pnr], mode_inits=[(nr, False), (pnr, True)])
+    add_parameter(AxisParameter("smangle", super_mirror, ChangeAxis.ANGLE), modes=[pnr], mode_inits=[(nr, 0.0), (pnr, 0.5)])
     add_driver(IocDriver(super_mirror, ChangeAxis.POSITION, create_mock_axis("MOT:MTR0101", 0, 1),
                          out_of_beam_positions=[OutOfBeamPosition(position=-10)]))
 
@@ -40,6 +42,9 @@ def get_beamline():
     point_det = add_component(TiltingComponent("det", PositionAndAngle(0.0, 20, perp_to_floor)))
     add_parameter(AxisParameter("detpos", point_det, ChangeAxis.POSITION), modes=[nr, pnr, disabled])
     theta.add_angle_to(point_det)
+
+    if optional_is_set(1, macros):
+        add_parameter(AxisParameter(OPTIONAL_PARAM_1, point_det, ChangeAxis.CHI))
 
     add_beam_start(PositionAndAngle(0.0, 0.0, beam_angle_natural))
 
