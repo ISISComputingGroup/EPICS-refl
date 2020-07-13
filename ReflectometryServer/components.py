@@ -265,17 +265,31 @@ class BenchComponent(TiltingComponent):
         rbv_axis = self.beam_path_rbv.axis
         jack1 = rbv_axis[ChangeAxis.JACK_FRONT].get_displacement()
         jack2 = rbv_axis[ChangeAxis.JACK_REAR].get_displacement()
+        seesaw_sp = self.beam_path_set_point.axis[ChangeAxis.SEESAW].get_displacement()
 
-        tan_angle_from_initial_position = (jack1 - jack2) / (self._jack_front_x - self._jack_rear_x)
-        angle_from_initial_position = atan(tan_angle_from_initial_position)
+        if seesaw_sp == 0.0:
+            # assume seesaw readback is 0
+            tan_angle_from_initial_position = (jack1 - jack2) / (self._jack_front_x - self._jack_rear_x)
+            angle_from_initial_position = atan(tan_angle_from_initial_position)
 
-        height = jack1 - self._jack_front_x * tan_angle_from_initial_position + \
-            self._pivot_to_beam * (1-cos(angle_from_initial_position))
-        pivot_angle = degrees(angle_from_initial_position) + self._inital_table_angle
+            height = jack1 - self._jack_front_x * tan_angle_from_initial_position + \
+                     self._pivot_to_beam * (1 - cos(angle_from_initial_position))
+            pivot_angle = degrees(angle_from_initial_position) + self._inital_table_angle
+            seesaw = 0
+        else:
+            # assume angle is set correctly and any variation is because of seesaw and height
+            angle_sp = self.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement()
+            pivot_angle = angle_sp
+            angle_sp_from_initial_position = angle_sp - self._inital_table_angle
+            tan_bench_angle_sp = tan(radians(angle_sp_from_initial_position))
+            one_minus_cos_angle_sp = (1 - cos(radians(angle_sp_from_initial_position)))
+            height = (jack1 + jack2 - (self._jack_front_x + self._jack_rear_x) * tan_bench_angle_sp
+                      + 2 * self._pivot_to_beam * one_minus_cos_angle_sp) / 2.0
+            seesaw = ((self._jack_rear_x - self._jack_front_x) * tan_bench_angle_sp + jack1 - jack2) / 2.0
 
         rbv_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(height, None, None))
         rbv_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(pivot_angle, None, None))
-        rbv_axis[ChangeAxis.SEESAW].set_displacement(CorrectedReadbackUpdate(0, None, None))
+        rbv_axis[ChangeAxis.SEESAW].set_displacement(CorrectedReadbackUpdate(seesaw, None, None))
 
     def on_set_relative_to_beam(self, _):
         """
