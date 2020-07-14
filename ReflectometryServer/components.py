@@ -7,7 +7,7 @@ import logging
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
 from ReflectometryServer.axis import DirectCalcAxis, AxisChangedUpdate, \
-    AxisChangingUpdate, PhysicalMoveUpdate, SetRelativeToBeamUpdate, DefineValueAsEvent
+    AxisChangingUpdate, PhysicalMoveUpdate, SetRelativeToBeamUpdate, DefineValueAsEvent, InitUpdate
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.movement_strategy import LinearMovementCalc
 from ReflectometryServer.geometry import ChangeAxis
@@ -230,6 +230,10 @@ class BenchComponent(TiltingComponent):
             set_point_axis[axis].add_listener(SetRelativeToBeamUpdate, self.on_set_relative_to_beam)
             rbv_axis[axis].add_listener(DefineValueAsEvent, self.on_define_position)
 
+        set_point_axis[ChangeAxis.JACK_FRONT].add_listener(InitUpdate, self.on_init_update)
+        set_point_axis[ChangeAxis.JACK_REAR].add_listener(InitUpdate, self.on_init_update)
+        # Slide does not set angles or height so doesn't need an init update listener
+
     def on_motor_axis_changed(self, update: AxisChangedUpdate):
         """
         If all motor axes have no unapplied changes then set control axes to no-unapplied changes
@@ -284,28 +288,59 @@ class BenchComponent(TiltingComponent):
         Returns:
             height, pivot_angle and seesaw positions
         """
-        jack1 = rbv_axis[ChangeAxis.JACK_FRONT].get_displacement()
-        jack2 = rbv_axis[ChangeAxis.JACK_REAR].get_displacement()
+        front_jack = rbv_axis[ChangeAxis.JACK_FRONT].get_displacement()
+        rear_jack = rbv_axis[ChangeAxis.JACK_REAR].get_displacement()
         seesaw_sp = self.beam_path_set_point.axis[ChangeAxis.SEESAW].get_displacement()
         if seesaw_sp == 0.0:
             # assume seesaw readback is 0
-            tan_angle_from_initial_position = (jack1 - jack2) / (self._jack_front_x - self._jack_rear_x)
-            angle_from_initial_position = atan(tan_angle_from_initial_position)
-
-            height = jack1 - self._jack_front_x * tan_angle_from_initial_position + \
-                self._pivot_to_beam * (1 - cos(angle_from_initial_position))
-            pivot_angle = degrees(angle_from_initial_position) + self._inital_table_angle
-            seesaw = 0
+            height, pivot_angle, seesaw = \
+                self._calculate_pivot_height_and_angle_with_fixed_seesaw(front_jack, rear_jack, 0)
         else:
             # assume angle is set correctly and any variation is because of seesaw and height
             angle_sp = self.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement()
-            pivot_angle = angle_sp
-            angle_sp_from_initial_position = angle_sp - self._inital_table_angle
-            tan_bench_angle_sp = tan(radians(angle_sp_from_initial_position))
-            one_minus_cos_angle_sp = (1 - cos(radians(angle_sp_from_initial_position)))
-            height = (jack1 + jack2 - (self._jack_front_x + self._jack_rear_x) * tan_bench_angle_sp
-                      + 2 * self._pivot_to_beam * one_minus_cos_angle_sp) / 2.0
-            seesaw = ((self._jack_rear_x - self._jack_front_x) * tan_bench_angle_sp + jack1 - jack2) / 2.0
+            height, pivot_angle, seesaw = \
+                self._calculate_pivot_height_and_seesaw_with_fixed_pivot_angle(front_jack, rear_jack, angle_sp)
+        return height, pivot_angle, seesaw
+
+    def _calculate_pivot_height_and_seesaw_with_fixed_pivot_angle(self, front_jack, rear_jack, pivot_angle):
+        """
+        Calculate the pivot height and the seesaw value given a fixed pivot angle
+        Args:
+
+            front_jack: front jack position
+            rear_jack: rear jack position
+            pivot_angle: pivot angle
+
+        Returns:
+            pivot height, angle and seesaw
+        """
+        angle_sp_from_initial_position = pivot_angle - self._inital_table_angle
+        tan_bench_angle_sp = tan(radians(angle_sp_from_initial_position))
+        one_minus_cos_angle_sp = (1 - cos(radians(angle_sp_from_initial_position)))
+        height = (front_jack + rear_jack - (self._jack_front_x + self._jack_rear_x) * tan_bench_angle_sp
+                  + 2 * self._pivot_to_beam * one_minus_cos_angle_sp) / 2.0
+        seesaw = ((self._jack_rear_x - self._jack_front_x) * tan_bench_angle_sp + front_jack - rear_jack) / 2.0
+        return height, pivot_angle, seesaw
+
+    def _calculate_pivot_height_and_angle_with_fixed_seesaw(self, front_jack, rear_jack, seesaw):
+        """
+        Calculate the control values based on the jack if seesaw is fixed at a value
+        Args:
+            front_jack: front_jack position
+            rear_jack: rear jack position
+            seesaw: seesaw value
+
+        Returns:
+            height, angle and seesaw
+        """
+        front_jack -= seesaw
+        rear_jack += seesaw
+        tan_angle_from_initial_position = (front_jack - rear_jack) / (self._jack_front_x - self._jack_rear_x)
+        angle_from_initial_position = atan(tan_angle_from_initial_position)
+        height = front_jack - self._jack_front_x * tan_angle_from_initial_position + \
+            self._pivot_to_beam * (1 - cos(angle_from_initial_position))
+        pivot_angle = degrees(angle_from_initial_position) + self._inital_table_angle
+        seesaw = 0
         return height, pivot_angle, seesaw
 
     def on_set_relative_to_beam(self, _):
@@ -382,3 +417,21 @@ class BenchComponent(TiltingComponent):
         rbv_axis[ChangeAxis.JACK_REAR].define_axis_position_as(rear_jack_height)
         if change_axis is not ChangeAxis.POSITION:
             rbv_axis[ChangeAxis.SLIDE].define_axis_position_as(horizontal_position)
+
+    def on_init_update(self, _):
+        """
+        Jack axis has issued an init update so calculate the pivot height and angle and send an init on those.
+        """
+        sp_axis = self.beam_path_set_point.axis
+        front_jack = sp_axis[ChangeAxis.JACK_FRONT].get_relative_to_beam()
+        rear_jack = sp_axis[ChangeAxis.JACK_REAR].get_relative_to_beam()
+        seesaw = sp_axis[ChangeAxis.SEESAW].autosaved_value
+        if seesaw is None:
+            # if autosave is corrupt we must default to 0 (set this on parameter too)
+            seesaw = 0
+            sp_axis[ChangeAxis.SEESAW].init_displacement_from_motor(seesaw)
+        pivot_height, pivot_angle, seesaw = \
+            self._calculate_pivot_height_and_angle_with_fixed_seesaw(front_jack, rear_jack, seesaw)
+
+        sp_axis[ChangeAxis.POSITION].init_displacement_from_motor(pivot_height)
+        sp_axis[ChangeAxis.ANGLE].init_displacement_from_motor(pivot_angle)

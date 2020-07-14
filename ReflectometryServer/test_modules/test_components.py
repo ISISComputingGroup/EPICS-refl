@@ -1122,7 +1122,6 @@ class testBenchComponent(unittest.TestCase):
     MAJOR_ALARM = (AlarmSeverity.Major, AlarmStatus.HiHi)
     INVALID_ALARM = (AlarmSeverity.Invalid, AlarmStatus.Timeout)
 
-
     @parameterized.expand([
         (MAJOR_ALARM, NO_ALARM, NO_ALARM, MAJOR_ALARM),
         (NO_ALARM, MAJOR_ALARM, NO_ALARM, MAJOR_ALARM),
@@ -1186,6 +1185,38 @@ class testBenchComponent(unittest.TestCase):
         assert_that(j1_axis.set_position_as_value, is_(close_to(expected_jack_front_height, 1e-6)))
         assert_that(j2_axis.set_position_as_value, is_(close_to(expected_jack_rear_height, 1e-6)))
         assert_that(slide_axis.set_position_as_value, is_(close_to(expected_slide_position, 1e-6)))
+
+    @parameterized.expand([
+        (0, 0, 0, ANGLE_OF_BENCH, 0, 0),  # seesaw zero
+        (1, -1, 1, ANGLE_OF_BENCH, 0, 1),  # seesaw non-zero
+        (0, 0, None, ANGLE_OF_BENCH, 0, 0),   # autosave not set
+        (-46.6006546, -106.4529773, 0.0, 0.1, 0, 0.0),  # non-zero angle and zero seesaw
+        (-46.6006546 + 0.3, -106.4529773-0.3, 0.3, 0.1, 0, 0.3),  # non-zero angle and seesaw
+        (-46.6006546 + 0.3 + 0.5, -106.4529773 - 0.3 + 0.5, 0.3, 0.1, + 0.5, 0.3),   # non-zero angle and height and seesaw
+    ])
+    def test_GIVEN_jacks_init_with_height_seesaw_setpoint_set_WHEN_get_parameter_sp_THEN_values_correct(self, jack_front_position, jack_rear_position, seesaw_autosave, expected_angle, expected_position, expected_seesaw):
+        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH, PIVOT_TO_BEAM)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        position = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
+        with patch('ReflectometryServer.parameters.param_float_autosave') as bench_autosave:
+            bench_autosave.read_parameter.return_value = seesaw_autosave
+            seesaw = AxisParameter("PARAM", bench, ChangeAxis.SEESAW, autosave=True)
+        angle = AxisParameter("PARAM", bench, ChangeAxis.ANGLE)
+        j1_axis = create_mock_axis("j1", jack_front_position, 1)
+        j2_axis = create_mock_axis("j2", jack_rear_position, 1)
+        slide_axis = create_mock_axis("axis", 0.1, 1)
+        j1_driver = IocDriver(bench, ChangeAxis.JACK_FRONT, j1_axis)
+        j2_driver = IocDriver(bench, ChangeAxis.JACK_REAR, j2_axis)
+        slide_driver = IocDriver(bench, ChangeAxis.SLIDE, slide_axis)
+
+        j1_driver.initialise()
+        j2_driver.initialise()
+        slide_driver.initialise()
+
+        assert_that(position.sp, is_(close_to(expected_position, 1e-6)))
+        assert_that(angle.sp, is_(close_to(expected_angle, 1e-6)))
+        assert_that(seesaw.sp, is_(close_to(expected_seesaw, 1e-6)))
+
 
 if __name__ == '__main__':
     unittest.main()
