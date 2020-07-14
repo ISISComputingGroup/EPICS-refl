@@ -10,7 +10,7 @@ from ReflectometryServer.axis import DirectCalcAxis, AxisChangedUpdate, \
     AxisChangingUpdate, PhysicalMoveUpdate, SetRelativeToBeamUpdate, DefineValueAsEvent, InitUpdate
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.movement_strategy import LinearMovementCalc
-from ReflectometryServer.geometry import ChangeAxis
+from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo, Severity
 from server_common.channel_access import maximum_severity
 
@@ -176,22 +176,45 @@ class ThetaComponent(ReflectingComponent):
                                                    self._beam_path_set_point)
 
 
+class BenchSetup(PositionAndAngle):
+    """
+    Setup parameters for the bench component
+    """
+    def __init__(self, y, z, angle, jack_front_z, jack_rear_z, initial_table_angle, pivot_to_beam):
+        """
+        Initialise.
+        Args:
+            y: y position of pivot at 0
+            z: z position of pivot at 0
+            angle: angle that bench pivot moves at
+            jack_front_z: distance to the front jack on the bench from the pivot
+            jack_rear_z: distance to the rear jack on the bench from the pivot
+            initial_table_angle: initial table angle
+            pivot_to_beam: distance from the pivot of the bench to the beam
+        """
+        super(BenchSetup, self).__init__(y, z, angle)
+        self.jack_front_z = jack_front_z
+        self.jack_rear_z = jack_rear_z
+        self.initial_table_angle = initial_table_angle
+        self.pivot_to_beam = pivot_to_beam
+
+
 class BenchComponent(TiltingComponent):
     """
     Bench component, this rotates about a pivot. The pivot can be raised and lowered. Finally the bench can be see sawed
     """
 
-    def __init__(self, name, setup, jack_front_x, jack_rear_x, initial_table_angle, pivot_to_beam):
+    def __init__(self, name: str, setup: BenchSetup):
         """
         Initializer.
         Args:
             name (str): name of the component
             setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
         """
-        self._jack_front_x = jack_front_x
-        self._jack_rear_x = jack_rear_x
-        self._inital_table_angle = initial_table_angle
-        self._pivot_to_beam = pivot_to_beam
+        self._jack_front_z = setup.jack_front_z
+        self._jack_rear_z = setup.jack_rear_z
+        self._initial_table_angle = setup.initial_table_angle
+        self._pivot_to_beam = setup.pivot_to_beam
         super(TiltingComponent, self).__init__(name, setup)
 
     def _init_beam_path_calcs(self, setup):
@@ -314,12 +337,12 @@ class BenchComponent(TiltingComponent):
         Returns:
             pivot height, angle and seesaw
         """
-        angle_sp_from_initial_position = pivot_angle - self._inital_table_angle
+        angle_sp_from_initial_position = pivot_angle - self._initial_table_angle
         tan_bench_angle_sp = tan(radians(angle_sp_from_initial_position))
         one_minus_cos_angle_sp = (1 - cos(radians(angle_sp_from_initial_position)))
-        height = (front_jack + rear_jack - (self._jack_front_x + self._jack_rear_x) * tan_bench_angle_sp
+        height = (front_jack + rear_jack - (self._jack_front_z + self._jack_rear_z) * tan_bench_angle_sp
                   + 2 * self._pivot_to_beam * one_minus_cos_angle_sp) / 2.0
-        seesaw = ((self._jack_rear_x - self._jack_front_x) * tan_bench_angle_sp + front_jack - rear_jack) / 2.0
+        seesaw = ((self._jack_rear_z - self._jack_front_z) * tan_bench_angle_sp + front_jack - rear_jack) / 2.0
         return height, pivot_angle, seesaw
 
     def _calculate_pivot_height_and_angle_with_fixed_seesaw(self, front_jack, rear_jack, seesaw):
@@ -335,11 +358,11 @@ class BenchComponent(TiltingComponent):
         """
         front_jack -= seesaw
         rear_jack += seesaw
-        tan_angle_from_initial_position = (front_jack - rear_jack) / (self._jack_front_x - self._jack_rear_x)
+        tan_angle_from_initial_position = (front_jack - rear_jack) / (self._jack_front_z - self._jack_rear_z)
         angle_from_initial_position = atan(tan_angle_from_initial_position)
-        height = front_jack - self._jack_front_x * tan_angle_from_initial_position + \
+        height = front_jack - self._jack_front_z * tan_angle_from_initial_position + \
             self._pivot_to_beam * (1 - cos(angle_from_initial_position))
-        pivot_angle = degrees(angle_from_initial_position) + self._inital_table_angle
+        pivot_angle = degrees(angle_from_initial_position) + self._initial_table_angle
         seesaw = 0
         return height, pivot_angle, seesaw
 
@@ -370,17 +393,17 @@ class BenchComponent(TiltingComponent):
         Returns:
             jack height and horizontal position
         """
-        angle_from_initial_position = pivot_angle - self._inital_table_angle
+        angle_from_initial_position = pivot_angle - self._initial_table_angle
         tan_bench_angle = tan(radians(angle_from_initial_position))
         one_minus_cos_angle = (1 - cos(radians(angle_from_initial_position)))
         # jacks
-        height1 = self._jack_front_x * tan_bench_angle
-        height2 = self._jack_rear_x * tan_bench_angle
+        height1 = self._jack_front_z * tan_bench_angle
+        height2 = self._jack_rear_z * tan_bench_angle
         correction = self._pivot_to_beam * one_minus_cos_angle
         front_jack_height = pivot_height + height1 - correction + seesaw
         rear_jack_height = pivot_height + height2 - correction - seesaw
         # pivot
-        hor = self._jack_rear_x * one_minus_cos_angle
+        hor = self._jack_rear_z * one_minus_cos_angle
         correction = self._pivot_to_beam * tan_bench_angle
         slide_position = correction - hor
         return front_jack_height, rear_jack_height, slide_position

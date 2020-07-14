@@ -10,11 +10,10 @@ from parameterized import parameterized, parameterized_class
 from ReflectometryServer import AxisParameter
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.axis import PhysicalMoveUpdate, DefineValueAsEvent
-from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent, \
-    BenchComponent
+from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle, ChangeAxis
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, IocDriver
-from ReflectometryServer.test_modules.data_mother import create_mock_axis
+from ReflectometryServer.test_modules.data_mother import create_mock_axis, get_standard_bench, ANGLE_OF_BENCH
 from ReflectometryServer.test_modules.utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
 from server_common.channel_access import AlarmStatus
 
@@ -867,7 +866,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
     
     def test_GIVEN_axis_updated_WHEN_get_axis_THEN_updated_value_is_read(self):
         expected_result = 10
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
+        bench = get_standard_bench()
         param = AxisParameter("PARAM", bench, self.axis)
 
         bench.beam_path_rbv.axis[self.axis].set_displacement(CorrectedReadbackUpdate(expected_result, None, None))
@@ -877,7 +876,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
 
     def test_GIVEN_axis_updated_with_alarm_WHEN_get_see_saw_THEN_alarm_updated(self):
         expected_result = (AlarmSeverity.Major, AlarmStatus.Lolo)
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
+        bench = get_standard_bench()
         param = AxisParameter("PARAM", bench, self.axis)
 
         bench.beam_path_rbv.axis[self.axis].set_displacement(CorrectedReadbackUpdate(expected_result, *expected_result))
@@ -892,7 +891,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
             self.physical_move = pyhsical_move
 
         expected_result = (AlarmSeverity.Major, AlarmStatus.Lolo)
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
+        bench = get_standard_bench(with_z_position=0)
         param = AxisParameter("PARAM", bench, self.axis)
         bench.beam_path_rbv.axis[self.axis].add_listener(PhysicalMoveUpdate, mylistener)
 
@@ -903,7 +902,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
 
     def test_GIVEN_set_axis_WHEN_get_axis_value_THEN_value_returned_and_axis_changed(self):
         expected_result = 10
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
+        bench = get_standard_bench()
         param = AxisParameter("PARAM", bench, self.axis)
 
         param.sp = expected_result
@@ -918,7 +917,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
         def mylistener(define_value):
             self.define_event = define_value
         expected_result = 10
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
+        bench = get_standard_bench()
         bench.beam_path_rbv.axis[self.axis].add_listener(DefineValueAsEvent, mylistener)
         param = AxisParameter("PARAM", bench, self.axis)
 
@@ -931,7 +930,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
 
     def test_GIVEN_axis_parameter_WHEN_init_from_motor_on_component_THEN_parameter_sp_is_set(self):
         expected_result = 10
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 0))
+        bench = get_standard_bench()
         param = AxisParameter("PARAM", bench, self.axis)
         bench.beam_path_set_point.axis[self.axis].init_displacement_from_motor(expected_result)
 
@@ -940,10 +939,6 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
         assert_that(result, is_(expected_result))
 
 
-PIVOT_TO_J1 = 1201
-PIVOT_TO_J2 = 1201 + 1558.0
-ANGLE_OF_BENCH = 2.3
-PIVOT_TO_BEAM = 628
 
 
 class testBenchComponent(unittest.TestCase):
@@ -951,8 +946,7 @@ class testBenchComponent(unittest.TestCase):
     def _setup_bench(self, initial_position):
 
         initial_angle, initial_height, initial_seesaw = initial_position
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH,
-                               PIVOT_TO_BEAM)
+        bench = get_standard_bench()
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         j1_axis = create_mock_axis("j1", 0, 1)
         j2_axis = create_mock_axis("j2", 0, 1)
@@ -979,7 +973,7 @@ class testBenchComponent(unittest.TestCase):
         (ChangeAxis.SLIDE, 1, 0)
     ])
     def test_GIVEN_set_height_axis_with_0_angle_WHEN_get_axis_value_THEN_j1_value_returned_and_axis_changed(self, axis, position, expected_result):
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, 0, PIVOT_TO_BEAM)
+        bench = get_standard_bench(with_angle=0)
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         param = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
 
@@ -1000,7 +994,7 @@ class testBenchComponent(unittest.TestCase):
         #TODO add slide outside of limits of movement
     ])
     def test_GIVEN_set_height_axis_WHEN_get_axis_value_THEN_j1_value_returned_and_axis_changed(self, axis, angle, expected_result):
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH, PIVOT_TO_BEAM)
+        bench = get_standard_bench()
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         param = AxisParameter("PARAM", bench, ChangeAxis.ANGLE)
 
@@ -1020,7 +1014,7 @@ class testBenchComponent(unittest.TestCase):
         (ChangeAxis.JACK_REAR, 0, 0)
     ])
     def test_GIVEN_set_seesaw_axis_with_0_angle_and_height_WHEN_get_axis_value_THEN_j1_value_returned_and_axis_changed(self, axis, see_saw, expected_result):
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, 0, PIVOT_TO_BEAM)
+        bench = get_standard_bench(with_angle=0)
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         param = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
 
@@ -1039,7 +1033,7 @@ class testBenchComponent(unittest.TestCase):
         ((), (ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.SEESAW), (ChangeAxis.JACK_FRONT,), (ChangeAxis.SLIDE,), True),
     ])
     def test_GIVEN_changing_true_on_some_axis_WHEN_changing_set_on_an_axis_THEN_bench_angle_seesaw_and_height_on_changing_to_expected_answer(self, inital_setup_false, inital_setup_true, axes_to_set_false, axes_to_set_true, expected_result):
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, 0, PIVOT_TO_BEAM)
+        bench = get_standard_bench(with_angle=0)
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         for axis in inital_setup_true:
             bench.beam_path_rbv.axis[axis].is_changing = True
@@ -1062,7 +1056,7 @@ class testBenchComponent(unittest.TestCase):
         (2, 2, 2)
     ])
     def test_GIVEN_set_jacks_with_height_with_0_angle_at_seesaw_setpoint_0_WHEN_get_control_axis_value_THEN_values_correct(self, jack_front_position, jack_rear_position, expected_position):
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, 0, PIVOT_TO_BEAM)
+        bench = get_standard_bench(with_angle=0)
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         position = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
         seesaw = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
@@ -1082,7 +1076,7 @@ class testBenchComponent(unittest.TestCase):
         (-70.29056346, -160.1242782, 0, -1)
     ])
     def test_GIVEN_set_jacks_with_height_seesaw_setpoint_0_WHEN_get_control_axis_value_THEN_values_correct(self, jack_front_position, jack_rear_position, expected_position, expected_angle):
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH, PIVOT_TO_BEAM)
+        bench = get_standard_bench()
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         position = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
         seesaw = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
@@ -1103,7 +1097,7 @@ class testBenchComponent(unittest.TestCase):
         (-46.6006546 + 0.3 + 0.5, -106.4529773 - 0.3 + 0.5, 0.1, + 0.5, 0.3),
     ])
     def test_GIVEN_set_jacks_with_height_seesaw_setpoint_non_zero_WHEN_get_control_axis_value_THEN_values_correct(self, jack_front_position, jack_rear_position, angle_sp, expected_position, expected_seesaw):
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH, PIVOT_TO_BEAM)
+        bench = get_standard_bench()
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         position = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
         seesaw = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
@@ -1129,7 +1123,7 @@ class testBenchComponent(unittest.TestCase):
         (INVALID_ALARM, NO_ALARM, MAJOR_ALARM, INVALID_ALARM)
     ])
     def test_GIVEN_set_alarms_on_jacks_and_slide_WHEN_get_control_axis_alarm_THEN_alarm_is_most_sever(self, front_alarm, rear_alarm, slide_alarm, expected_alarm):
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH, PIVOT_TO_BEAM)
+        bench = get_standard_bench()
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         position = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
         seesaw = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
@@ -1195,7 +1189,7 @@ class testBenchComponent(unittest.TestCase):
         (-46.6006546 + 0.3 + 0.5, -106.4529773 - 0.3 + 0.5, 0.3, 0.1, + 0.5, 0.3),   # non-zero angle and height and seesaw
     ])
     def test_GIVEN_jacks_init_with_height_seesaw_setpoint_set_WHEN_get_parameter_sp_THEN_values_correct(self, jack_front_position, jack_rear_position, seesaw_autosave, expected_angle, expected_position, expected_seesaw):
-        bench = BenchComponent("rear_bench", PositionAndAngle(0, 0, 90), PIVOT_TO_J1, PIVOT_TO_J2, ANGLE_OF_BENCH, PIVOT_TO_BEAM)
+        bench = get_standard_bench()
         bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
         position = AxisParameter("PARAM", bench, ChangeAxis.POSITION)
         with patch('ReflectometryServer.parameters.param_float_autosave') as bench_autosave:
