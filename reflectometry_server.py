@@ -69,20 +69,24 @@ def process_ca_loop():
 
 
 def get_macro_values():
+    """
+    Parse macro JSON into dict, filtering by valid macros for the reflectometry server.
+    :return:
+    """
     ioc_config_path = os.path.join(IOC_DIR, 'config.xml')
     ioc_config_xml = ET.parse(ioc_config_path).getroot()
+
     valid_macro_names = []
     for macro in ioc_config_xml.iter('macro'):
         valid_macro_names.append(macro.get('name'))
 
     macros = json.loads(os.environ.get("MACROS", ""))
-    macros = {key: macros[key] for key in valid_macro_names}
+    macros = {key: value for (key, value) in macros.items() if key in valid_macro_names}
     return macros
 
 
 logger.info("Initialising...")
 logger.info("Prefix: {}".format(REFLECTOMETRY_PREFIX))
-input()
 
 SERVER = SimpleServer()
 # Add security access to pvs. NB this is only for local rules because we have not substituted in the correct macros for
