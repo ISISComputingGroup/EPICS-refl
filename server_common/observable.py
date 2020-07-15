@@ -35,15 +35,19 @@ def observable(*allowed_listener_types):
         Returns: class
         """
 
-        def _add_listener(self, listener_type, listener):
+        def _add_listener(self, listener_type, listener, run_listener=False):
             """
             Add a listener of the given type to this class
             Args:
                 self: instance of the class
                 listener_type: the type of listener
                 listener: listener to add
+                run_listener: if the last value is set then run the listener just added with it
             """
-            _get_listeners_info(self, listener_type).listeners.add(listener)
+            info = _get_listeners_info(self, listener_type)
+            info.listeners.add(listener)
+            if run_listener and info.last_value is not None:
+                listener(info.last_value)
 
         def _remove_listener(self, listener_type, listener):
             """

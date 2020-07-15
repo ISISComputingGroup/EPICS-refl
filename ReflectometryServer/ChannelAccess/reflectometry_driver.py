@@ -301,7 +301,7 @@ class ReflectometryDriver(Driver):
         """
         Adds the monitor on the active mode, if this changes a monitor update is posted.
         """
-        self._beamline.add_listener(ActiveModeUpdate, self._on_bl_mode_change)
+        self._beamline.add_listener(ActiveModeUpdate, self._on_bl_mode_change, run_listener=True)
 
     def add_trigger_status_change_listener(self):
         """
