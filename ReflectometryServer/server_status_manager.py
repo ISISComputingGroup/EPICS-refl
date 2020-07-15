@@ -76,6 +76,9 @@ class _ServerStatusManager:
                            "are running if this is taking longer than expected."
 
     def __init__(self):
+        self._reset()
+
+    def _reset(self):
         self._status = STATUS.OKAY
         self._message = ""
         self._error_log = []
