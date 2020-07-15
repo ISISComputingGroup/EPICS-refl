@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function, unicode_literals, division
-
-from typing import Tuple, List, Optional
+from time import sleep
 
 """
 Make channel access not dependent on genie_python.
@@ -198,6 +197,7 @@ class ChannelAccess(object):
         current_value = None
         for _ in range(retry_count):
             ChannelAccess.caput(pv_name, value, wait=True)
+            sleep(0.2)
             current_value = ChannelAccess.caget(pv_name)
             if current_value == value:
                 break
@@ -287,14 +287,14 @@ def verify_manager_mode(channel_access=ChannelAccess(), message="Operation must 
         raise ManagerModeRequiredException(message)
 
 
-def maximum_severity(*alarms: Tuple[AlarmSeverity, AlarmStatus]) -> Optional[Tuple[AlarmSeverity, AlarmStatus]]:
+def maximum_severity(*alarms):
     """
     Get the alarm with maximum severity (or first if items have equal severity)
     Args:
-        *alarms: alarms to choose from
+        *alarms (Tuple[AlarmSeverity, AlarmStatus]): alarms to choose from
 
     Returns:
-        alarm with maximum severity; none for no arguments
+        (Optional[Tuple[AlarmSeverity, AlarmStatus]]) alarm with maximum severity; none for no arguments
     """
 
     maximum_severity_alarm = None
