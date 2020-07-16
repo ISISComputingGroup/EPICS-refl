@@ -1,6 +1,7 @@
 """
 Objects to Create a beamline from the configuration.
 """
+import logging
 import os
 import sys
 import traceback
@@ -60,6 +61,9 @@ def create_beamline_from_configuration(macros):
                       SEVERITY.INFO, src=REFL_IOC_NAME)
         sys.path.insert(0, REFL_CONFIG_PATH)
         # noinspection PyUnresolvedReferences
+        config_to_load = _get_config_to_load(macros)
+        print_and_log("Importing get_beamline function from {} in {}".format(config_to_load, REFL_CONFIG_PATH),
+                      SEVERITY.INFO, src=REFL_IOC_NAME)
         config = import_module(_get_config_to_load(macros))
         beamline = config.get_beamline(macros)
 

@@ -80,7 +80,7 @@ def get_macro_values():
     for macro in ioc_config_xml.iter('macro'):
         valid_macro_names.append(macro.get('name'))
 
-    macros = json.loads(os.environ.get("MACROS", ""))
+    macros = json.loads(os.environ.get("REFL_MACROS", ""))
     macros = {key: value for (key, value) in macros.items() if key in valid_macro_names}
     return macros
 
