@@ -35,7 +35,14 @@ def _create_beamline_in_error(error_message):
 
 
 def _get_config_to_load(macros):
+    """
+    Get the name of the config to load. Returns default if file name is invalid.
 
+    Args:
+        macros (dict): Dict of user-set IOC macros
+
+    Returns: Name of the config to load
+    """
     try:
         config_file = macros["CONFIG_FILE"]
         if len(config_file) > 0:
@@ -52,6 +59,9 @@ def _get_config_to_load(macros):
 def create_beamline_from_configuration(macros):
     """
     Create a beamline from a configuration file in the configuration area.
+
+    Args:
+        macros (dict): Dict of user-set IOC macros
 
     Returns: Configured beamline; on error returns blank beamline with error status.
     """

@@ -71,7 +71,8 @@ def process_ca_loop():
 def get_macro_values():
     """
     Parse macro JSON into dict, filtering by valid macros for the reflectometry server.
-    :return:
+
+    Returns: Macro Key:Value pairs as dict
     """
     ioc_config_path = os.path.join(IOC_DIR, 'config.xml')
     ioc_config_xml = ET.parse(ioc_config_path).getroot()
