@@ -1,0 +1,40 @@
+O.*/
+/db
+/bin
+/dbd
+/include
+/lib
+/templates
+envPaths
+cdCommands
+dllPath.bat
+runIOC.bat
+runIOC.sh
+relPaths.sh
+*.py[oc]
+*.sq3
+/.idea
+.project
+*.py.bak
+
+# PyCharm files
+.idea/
+misc.xml
+modules.xml
+workspace.xml
+*.iml
+.name
+vcs.xml
+
+# Test reports
+/test-reports
+NULL
+
+# File generated during test-reports
+last_config.txt
+rc_settings.cmd
+**/NONSENSICAL_PATH
+**/test_modules/refl
+ReflectometryServer/test_modules/test_config/NONSENSICAL_PATH.txt
+.coverage
+cobertura.xml

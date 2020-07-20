@@ -1,16 +1,12 @@
 """
 Reflectometry Server
 """
-import json
 import logging.config
 import sys
 import os
-import xml.etree.ElementTree as ET
 
 from pcaspy import SimpleServer
 from threading import Thread
-
-from ReflectometryServer.ChannelAccess import constants
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -52,9 +48,9 @@ except ImportError:
 
 from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
 from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, MYPVPREFIX, DEFAULT_ASG_RULES, \
-    REFL_IOC_NAME, IOC_DIR
+    REFL_IOC_NAME
 from ReflectometryServer.ChannelAccess.pv_manager import PVManager
-from server_common.helpers import register_ioc_start
+from server_common.helpers import register_ioc_start, get_macro_values
 from server_common.channel_access import ChannelAccess
 
 
@@ -66,25 +62,6 @@ def process_ca_loop():
             ChannelAccess.poll()
         except Exception as err:
             break
-
-
-def get_macro_values():
-    """
-    Parse macro JSON into dict, filtering by valid macros for the reflectometry server.
-
-    Returns: Macro Key:Value pairs as dict
-    """
-    ioc_config_path = os.path.join(IOC_DIR, 'config.xml')
-    ioc_config_xml = ET.parse(ioc_config_path).getroot()
-
-    valid_macro_names = []
-    for macro in ioc_config_xml.iter('macro'):
-        valid_macro_names.append(macro.get('name'))
-
-    macros = json.loads(os.environ.get("REFL_MACROS", ""))
-    macros = {key: value for (key, value) in macros.items() if key in valid_macro_names}
-    return macros
-
 
 logger.info("Initialising...")
 logger.info("Prefix: {}".format(REFLECTOMETRY_PREFIX))
