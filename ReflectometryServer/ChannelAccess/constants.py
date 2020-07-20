@@ -24,7 +24,7 @@ REFL_AUTOSAVE_PATH = os.path.join("{}".format(_get_env_var('ICPVARDIR')), "refl"
 
 # Path to security access rules file
 DEFAULT_ASG_RULES = os.path.join("{}".format(
-    os.environ.get('KIT_ROOT', os.path.join('C:\Instrument', 'Apps', 'EPICS'))),
+    os.environ.get('KIT_ROOT', os.path.join(r'C:\Instrument', 'Apps', 'EPICS'))),
     "support", "AccessSecurity", "master", "default.acf")
 
 # alias motor DMOV values
