@@ -314,6 +314,11 @@ def optional_is_set(optional_id, macros):
     try:
         macro_name = "OPTIONAL_{}".format(optional_id)
         macro_val = macros[macro_name]
-        return int(macro_val)
+        # Only expected possible values are "True" or "False" (enforced by macro pattern)
+        if macro_val == "True":
+            macro_val = True
+        else:
+            macro_val = False
+        return macro_val
     except (KeyError, ValueError):
         return False
