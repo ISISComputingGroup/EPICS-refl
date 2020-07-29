@@ -4,14 +4,19 @@ The driving layer communicates between the component layer and underlying pvs.
 import math
 import logging
 from collections import namedtuple
+from dataclasses import dataclass
+from typing import Dict, Any, List, Optional
 
 from pcaspy import Severity
 
-from ReflectometryServer.out_of_beam import OutOfBeamLookup
-from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate
+from ReflectometryServer import Component
+from ReflectometryServer.out_of_beam import OutOfBeamLookup, OutOfBeamPosition
+from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate, CorrectionRecalculate, \
+    EngineeringCorrection
 from ReflectometryServer.beam_path_calc import DefineValueAsEvent
-from ReflectometryServer import ChangeAxis
-from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
+from ReflectometryServer.geometry import ChangeAxis
+from ReflectometryServer.parameters import BeamlineParameter, ParameterSetpointReadbackUpdate
+from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate, PVWrapper
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
 
@@ -25,29 +30,47 @@ CorrectedReadbackUpdate = namedtuple("CorrectedReadbackUpdate", [
     "alarm_status"])    # The alarm status of the axis, represented as an integer (see Channel Access doc)
 
 
+@dataclass
+class PVWrapperForParameter:
+    """
+    Setting to allow a PV Wrapper to be changed based on the value of a parameter
+    """
+    parameter: BeamlineParameter  # the parameter whose value the axis depends on
+    value_wrapper_map: Dict[Any, PVWrapper]  # the wrapper that should be used for each value
+
+
 @observable(CorrectionUpdate, CorrectedReadbackUpdate)
 class IocDriver:
     """
     Drives an actual motor axis based on a component in the beamline model.
     """
-    def __init__(self, component, component_axis, motor_axis, out_of_beam_positions=None, synchronised=True,
-                 engineering_correction=None):
+    _motor_axis: Optional[PVWrapper]
+
+    def __init__(self, component: Component, component_axis: ChangeAxis, motor_axis: PVWrapper,
+                 out_of_beam_positions: Optional[List[OutOfBeamPosition]] = None, synchronised: bool = True,
+                 engineering_correction: Optional[EngineeringCorrection] = None,
+                 pv_wrapper_for_parameter: Optional[PVWrapperForParameter] = None):
         """
         Drive the IOC based on a component
         Args:
-            component (ReflectometryServer.components.Component): Component for IOC driver
-            motor_axis (ReflectometryServer.pv_wrapper.PVWrapper): The PV that this driver controls.
-            out_of_beam_positions (ReflectometryServer.out_of_beam_lookup.OutOfBeamLookup): Provides the out of beam
-                status as configured for this motor_axis.
-            synchronised (bool): If True then axes will set their velocities so they arrive at the end point at the same
+            component: Component for IOC driver
+            motor_axis: The PV that this driver controls.
+            out_of_beam_positions: Provides the out of beam status as configured for this pv_wrapper.
+            synchronised: If True then axes will set their velocities so they arrive at the end point at the same
                 time; if false they will move at their current speed.
-            engineering_correction (ReflectometryServer.engineering_corrections.EngineeringCorrection): the engineering
-                correction to apply to the value from the component before it is sent to the pv. None for no correction
+            engineering_correction: the engineering correction to apply to the value from the component before it is
+                sent to the pv. None for no correction
+            pv_wrapper_for_parameter: change the pv wrapper based on the value of a parameter
         """
         self._component = component
         self._component_axis = component_axis
-        self._motor_axis = motor_axis
-        self.name = motor_axis.name
+        self._default_motor_axis = motor_axis
+        self._motor_axis = None
+        self._set_motor_axis(motor_axis, False)
+        self._pv_wrapper_for_parameter = pv_wrapper_for_parameter
+        if pv_wrapper_for_parameter is not None:
+            pv_wrapper_for_parameter.parameter.add_listener(ParameterSetpointReadbackUpdate, self._on_parameter_update)
+
         if out_of_beam_positions is None or not component_axis == ChangeAxis.POSITION:  # TODO: sort in park position ticket
             self._out_of_beam_lookup = None
         else:
@@ -66,14 +89,41 @@ class IocDriver:
             self.has_engineering_correction = True
             self._engineering_correction = engineering_correction
             self._engineering_correction.add_listener(CorrectionUpdate, self._on_correction_update)
+            self._engineering_correction.add_listener(CorrectionRecalculate, self._retrigger_motor_axis_updates)
 
         self._sp_cache = None
         self._rbv_cache = self._engineering_correction.from_axis(self._motor_axis.rbv, self._get_component_sp())
 
+        self._component.beam_path_rbv.axis[component_axis].add_listener(DefineValueAsEvent, self._on_define_value_as)
+
+    def _set_motor_axis(self, pv_wrapper: PVWrapper, trigger_update: bool) -> None:
+        """
+        Set the motor axis and optional trigger its listeners
+        Args:
+            pv_wrapper: pv wrapper to swap to
+            trigger_update: True to trigger updates on the motor axis; False otherwise
+
+        """
+        if self._motor_axis is not None:
+            self._motor_axis.remove_listener(SetpointUpdate, self._on_update_sp)
+            self._motor_axis.remove_listener(ReadbackUpdate, self._on_update_rbv)
+            self._motor_axis.remove_listener(IsChangingUpdate, self._on_update_is_changing)
+        self._motor_axis = pv_wrapper
+        self.name = pv_wrapper.name
         self._motor_axis.add_listener(SetpointUpdate, self._on_update_sp)
         self._motor_axis.add_listener(ReadbackUpdate, self._on_update_rbv)
         self._motor_axis.add_listener(IsChangingUpdate, self._on_update_is_changing)
-        self._component.beam_path_rbv.axis[component_axis].add_listener(DefineValueAsEvent, self._on_define_value_as)
+
+        if trigger_update:
+            self._retrigger_motor_axis_updates(None)
+
+    def set_observe_mode_change_on(self, mode_changer):
+        """
+        Allow this driver to listen to mode change events from the mode_changer. It signs up the engineering correction.
+        Args:
+            mode_changer: object that can be observed for mode change events
+        """
+        self._engineering_correction.set_observe_mode_change_on(mode_changer)
 
     def _on_define_value_as(self, new_event):
         """
@@ -92,10 +142,10 @@ class IocDriver:
 
     def _on_correction_update(self, new_correction_value):
         """
-
+        When a correction update is got from the engineering correction then trigger our own correction update after
+            updating description.
         Args:
             new_correction_value (CorrectionUpdate): the new correction value
-
         """
         description = "{} on {} for {}".format(new_correction_value.description, self.name, self._component.name)
         self.trigger_listeners(CorrectionUpdate(new_correction_value.correction, description))
@@ -109,6 +159,9 @@ class IocDriver:
         Post monitors and read initial value from the axis.
         """
         self._motor_axis.initialise()
+        if self._pv_wrapper_for_parameter is not None:
+            for motor_axis in self._pv_wrapper_for_parameter.value_wrapper_map.values():
+                motor_axis.initialise()
         self.initialise_setpoint()
 
     def initialise_setpoint(self):
@@ -284,6 +337,21 @@ class IocDriver:
         self._propagate_rbv_change(
             CorrectedReadbackUpdate(corrected_new_value, update.alarm_severity, update.alarm_status))
 
+    def _retrigger_motor_axis_updates(self, _):
+        """
+        Something about the axis has changed, e.g. engineering correction or motor axis change, so we should recalcuate
+        anything that depends on the axis bc
+        """
+        last_value = self._motor_axis.listener_last_value(ReadbackUpdate)
+        if last_value is not None:
+            self._on_update_rbv(last_value)
+        last_set_point = self._motor_axis.listener_last_value(SetpointUpdate)
+        if last_set_point is not None:
+            self._on_update_sp(last_set_point)
+        last_changing = self._motor_axis.listener_last_value(IsChangingUpdate)
+        if last_changing is not None:
+            self._on_update_is_changing(last_changing)
+
     def _propagate_rbv_change(self, update):
         """
         Signal that the motor readback value has changed to the middle component layer. Subclass must implement this
@@ -337,3 +405,18 @@ class IocDriver:
         Returns: True if this river has out of beam position set; False otherwise.
         """
         return self._out_of_beam_lookup is not None
+
+    def _on_parameter_update(self, update:  ParameterSetpointReadbackUpdate) -> None:
+        """
+        When the parameter that the change axis updates see if we need to change axis
+
+        Args:
+            update: parameter update
+        """
+        try:
+            new_axis = self._pv_wrapper_for_parameter.value_wrapper_map[update.value]
+        except KeyError:
+            new_axis = self._default_motor_axis
+
+        if self._motor_axis != new_axis:
+            self._set_motor_axis(new_axis, True)

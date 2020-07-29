@@ -2,12 +2,16 @@
 Parameters that the user would interact with
 """
 from collections import namedtuple
+from dataclasses import dataclass
+from typing import List, Optional, Union, TYPE_CHECKING
 
 from pcaspy import Severity
 
+if TYPE_CHECKING:
+    from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate
 from ReflectometryServer.exceptions import ParameterNotInitializedException
-from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave
+from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave, param_string_autosave
 import logging
 
 from enum import Enum
@@ -17,33 +21,53 @@ import six
 
 from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
+from server_common.channel_access import AlarmSeverity, AlarmStatus
 from server_common.observable import observable
 
 DEFAULT_RBV_TO_SP_TOLERANCE = 0.002
 
 logger = logging.getLogger(__name__)
 
-# An update of the parameter readback value
-ParameterReadbackUpdate = namedtuple("ParameterReadbackUpdate", [
-    "value",            # The new readback value of the parameter
-    "alarm_severity",   # The alarm severity of the parameter, represented as an integer (see Channel Access doc)
-    "alarm_status"])    # The alarm status of the parameter, represented as an integer (see Channel Access doc)
 
-# An update of the parameter setpoint readback value
-ParameterSetpointReadbackUpdate = namedtuple("ParameterSetpointReadbackUpdate", [
-    "value"])           # The new setpoint readback value of the parameter
+@dataclass
+class ParameterUpdateBase:
+    """
+    An update of a parameter used as a base for other events
+    """
+    value: Union[float, bool, str]  # The new value
+    alarm_severity: [AlarmSeverity]  # The alarm severity of the parameter, represented as an integer
+    alarm_status: [AlarmStatus]  # The alarm status of the parameter, represented as an integer
+
+
+@dataclass
+class ParameterReadbackUpdate(ParameterUpdateBase):
+    """
+    An update of the parameter readback value
+    """
+
+
+@dataclass
+class ParameterInitUpdate(ParameterReadbackUpdate):
+    """
+    An update that is triggered when the parameter has received an initial value either from autosave or motor rbv.
+    """
+
+
+@dataclass
+class ParameterSetpointReadbackUpdate(ParameterReadbackUpdate):
+    """
+    An update of the parameter setpoint readback value
+    """
+
 
 # An update of the parameter at-setpoint state
 ParameterAtSetpointUpdate = namedtuple("ParameterAtSetpointUpdate", [
     "value"])           # The new state (boolean)
 
+
 # An update of the parameter is-changing state
 ParameterChangingUpdate = namedtuple("ParameterChangingUpdate", [
     "value"])           # The new state (boolean)
-
-# An update that is triggered when the parameter has received an initial value either from autosave or motor rbv.
-ParameterInitUpdate = namedtuple("ParameterInitUpdate", [
-    "value"])           # The initial parameter value
 
 
 class DefineCurrentValueAsParameter:
@@ -90,6 +114,7 @@ class BeamlineParameterType(Enum):
     """
     FLOAT = 0
     IN_OUT = 1
+    ENUM = 2
 
     @staticmethod
     def name_for_param_list(param_type):
@@ -100,6 +125,8 @@ class BeamlineParameterType(Enum):
             return "float"
         elif param_type is BeamlineParameterType.IN_OUT:
             return "in_out"
+        elif param_type is BeamlineParameterType.ENUM:
+            return "enum"
         else:
             raise ValueError("Parameter doesn't have recognised type {}".format(param_type))
 
@@ -169,7 +196,7 @@ class BeamlineParameter:
         """
         self._set_point = sp_init
         self._set_point_rbv = sp_init
-        self.trigger_listeners(ParameterInitUpdate(self._set_point))
+        self.trigger_listeners(ParameterInitUpdate(self._set_point, AlarmSeverity.No, AlarmStatus.No))
 
     @property
     def rbv(self):
@@ -266,10 +293,16 @@ class BeamlineParameter:
         """
         Move the component but don't call a callback indicating a move has been performed.
         """
+        original_set_point_rbv = self._set_point_rbv
         self._set_point_rbv = self._set_point
         if self._sp_is_changed:
             logger.info("New value set for parameter {}: {}".format(self.name, self._set_point_rbv))
-        self._check_and_move_component()
+        try:
+            self._check_and_move_component()
+        except Exception:
+            self._set_point_rbv = original_set_point_rbv
+            raise
+
         self._sp_is_changed = False
         if self._autosave:
             param_float_autosave.write_parameter(self._name, self._set_point_rbv)
@@ -326,9 +359,9 @@ class BeamlineParameter:
 
     def _on_update_sp_rbv(self):
         """
-        Trigger all rbv listeners
+        Trigger all sp rbv listeners
         """
-        self.trigger_listeners(ParameterSetpointReadbackUpdate(self._set_point_rbv))
+        self.trigger_listeners(ParameterSetpointReadbackUpdate(self._set_point_rbv, AlarmSeverity.No, AlarmStatus.No))
         self.trigger_listeners(ParameterAtSetpointUpdate(self.rbv_at_sp))
 
     @property
@@ -582,16 +615,6 @@ class InBeamParameter(BeamlineParameter):
         return self._component.beam_path_rbv.axis[ChangeAxis.POSITION].alarm
 
     @property
-    def rbv_at_sp(self):
-        """
-        Returns: Does the read back value match the set point target within a defined tolerance
-        """
-        if self.rbv is None or self._set_point_rbv is None:
-            return False
-
-        return abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
-
-    @property
     def is_changing(self):
         """
         Returns: Is the parameter changing (rotating, displacing etc.)
@@ -604,6 +627,7 @@ class DirectParameter(BeamlineParameter):
     Parameter which is not linked to the beamline component layer but hooks directly into a motor axis. This parameter
     is just a wrapper to present a motor PV as a reflectometry style PV and does not track the beam path.
     """
+
     def __init__(self, name, pv_wrapper, description=None, autosave=False,
                  rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLERANCE):
         """
@@ -734,3 +758,78 @@ class SlitGapParameter(DirectParameter):
             self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
         else:
             self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
+
+
+class EnumParameter(BeamlineParameter):
+    """
+    Beamline parameter with a number of options that can be selected. The readback is the same as the setpoint readback
+    and get set as soon as a move occurs.
+    """
+
+    def __init__(self, name: str, options: List[str], description: Optional[str] = None):
+        """
+        Initializer.
+        NB parameter is always autosaved
+        Args:
+            name: name of the parameter
+            options: a list of string options allowed
+            description: description of the parameter
+        """
+        super(EnumParameter, self).__init__(name, description=description, autosave=True)
+        self.parameter_type = BeamlineParameterType.ENUM
+        self.options = options
+        if self._autosave:
+            self._initialise_sp_from_file()
+
+    def validate(self, drivers: List['IocDriver']) -> List[str]:
+        """
+        Perform validation of this parameter returning a list of errors.
+
+        Args:
+            drivers: list of driver to help with validation
+
+        Returns:
+            list of problems; Empty list if there are no errors
+
+        """
+        errors = []
+        if len(self.options) < 1:
+            errors.append("There are no options set for parameter {}".format(self.name))
+        if len(self.options) != len(set(self.options)):
+            errors.append("There are duplicate options for parameter {}".format(self.name))
+        return errors
+
+    def _on_update_sp_rbv(self):
+        """
+        Trigger all set point rbv listeners. Also because it set the rbv trigger those listeners.
+        """
+        super(EnumParameter, self)._on_update_sp_rbv()
+        self._on_update_rbv(self)
+
+    def _rbv(self):
+        return self.sp_rbv
+
+    def _initialise_sp_from_file(self):
+        try:
+            sp_init = param_string_autosave.read_parameter(self._name, self.options[0])
+            self._set_initial_sp(sp_init)
+        except IndexError:
+            STATUS_MANAGER.update_error_log("No options for optional parameter, {}".format(self.name))
+
+    def _initialise_sp_from_motor(self, _):
+        STATUS_MANAGER.update_error_log("Optional parameter, {}, was asked up init from motor".format(self.name))
+        STATUS_MANAGER.update_active_problems("Optional Parameter updating from motor")
+
+    def _move_component(self):
+        if self.sp_rbv not in self.options:
+            raise ValueError("Invalid option: {}".format(self.sp_rbv))
+
+    @property
+    def rbv_at_sp(self) -> bool:
+        """
+        Returns: Does the read back value match the set point target within a defined tolerance
+        """
+        return True
+
+    def _get_alarm_info(self):
+        return AlarmSeverity.No, AlarmStatus.No

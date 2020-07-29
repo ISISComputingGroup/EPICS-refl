@@ -30,3 +30,9 @@ DEFAULT_ASG_RULES = os.path.join("{}".format(
 # alias motor DMOV values
 MTR_MOVING = 0
 MTR_STOPPED = 1
+
+# maximum allowable alarm value
+MAX_ALARM_ID = 15
+
+# standard field for float pvs
+STANDARD_FLOAT_PV_FIELDS = {'type': 'float', 'prec': 3, 'value': 0.0}

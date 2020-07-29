@@ -2,7 +2,7 @@ import unittest
 from math import isnan
 
 from hamcrest import *
-from mock import Mock
+from mock import Mock, patch
 from parameterized import parameterized
 
 from ReflectometryServer import *
@@ -942,6 +942,79 @@ class TestInitSetpoints(unittest.TestCase):
         actual = self.component.beam_path_set_point.axis[ChangeAxis.POSITION].autosaved_value
 
         self.assertIsNone(actual)
+
+
+class TestMultiChoiceParameter(unittest.TestCase):
+    def test_GIVEN_enum_parameter_WHEN_set_THEN_sp_readback_is_value_and_readback_is_triggered(self):
+
+        opt1 = "opt1"
+        opt2 = "opt2"
+        param = EnumParameter("name", options=[opt1, opt2])
+        mock_listener = Mock()
+        param.add_listener(ParameterReadbackUpdate, mock_listener)
+        param.sp = opt1
+
+        result = param.sp_rbv
+
+        assert_that(result, is_(opt1))
+        mock_listener.assert_called_once()
+        args = mock_listener.call_args
+        assert_that(args[0][0].value, is_(opt1))
+
+    def test_GIVEN_enum_parameter_WHEN_set_THEN_readback_is_same_as_sp_rbv(self):
+
+        opt1 = "opt1"
+        opt2 = "opt2"
+        param = EnumParameter("name", options=[opt1, opt2])
+        param.sp = "opt1"
+
+        result = param.rbv
+
+        assert_that(result, is_(opt1))
+
+    @patch("ReflectometryServer.parameters.param_string_autosave")
+    def test_GIVEN_enum_parameter_WHEN_autosaved_THEN_autosaved_value_is_sp_rbv(self, autosave):
+        opt1 = "opt1"
+        opt2 = "opt2"
+
+        autosave.read_parameter.return_value = opt2
+        param = EnumParameter("name", options=[opt1, opt2])
+
+        result = param.sp_rbv
+
+        assert_that(result, is_(opt2))
+
+    @patch("ReflectometryServer.parameters.param_string_autosave")
+    def test_GIVEN_enum_parameter_with_no_options_WHEN_validate_THEN_error(self, autosave):
+
+        autosave.read_parameter.return_value = None
+        param = EnumParameter("name", options=[])
+
+        errors = param.validate([])
+
+        assert_that(errors, has_length(1))
+
+    @patch("ReflectometryServer.parameters.param_string_autosave")
+    def test_GIVEN_enum_parameter_with_duplicate_options_WHEN_validate_THEN_error(self, autosave):
+
+        autosave.read_parameter.return_value = None
+        param = EnumParameter("name", options=["dup", "dup"])
+
+        errors = param.validate([])
+
+        assert_that(errors, has_length(1))
+
+    def test_GIVEN_enum_parameter_WHEN_set_non_option_THEN_error(self):
+
+        opt1 = "opt1"
+        opt2 = "opt2"
+        param = EnumParameter("name", options=[opt1, opt2])
+        param.sp = opt1
+
+        with self.assertRaises(ValueError):
+            param.sp = "unknown"
+
+        assert_that(param.sp_rbv, is_("opt1"))
 
 
 if __name__ == '__main__':
