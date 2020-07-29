@@ -362,3 +362,20 @@ def add_footprint_setup(footprint_setup):
     """
     ConfigHelper.footprint_setup = footprint_setup
     return footprint_setup
+
+
+def optional_is_set(optional_id, macros):
+    """
+    Check whether an optional macro for use in the configuration is set or not.
+
+    Args:
+        optional_id (String): The ID of the optional macro
+        macros (dict): The macro values passed into the reflectometry server
+
+    Returns: True if macro with given ID is set to True, otherwise False
+    """
+    try:
+        macro_name = "OPTIONAL_{}".format(optional_id)
+        return macros[macro_name]
+    except KeyError:
+        return False

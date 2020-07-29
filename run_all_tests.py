@@ -31,7 +31,7 @@ try:
 except ImportError:
     from contextlib2 import contextmanager, nullcontext
 
-DEFAULT_DIRECTORY = os.path.join('..', '..', '..', 'test-reports')
+DEFAULT_DIRECTORY = os.path.join('.', 'test-reports')
 
 
 @contextmanager

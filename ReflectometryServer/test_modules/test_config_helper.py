@@ -373,6 +373,33 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(ConfigHelper.drivers, contains(driver1, driver2, driver3))
         assert_that(ConfigHelper.components, contains(comp1, comp2, comp3))
 
+    def test_GIVEN_optional_is_not_set_WHEN_checking_optional_is_set_THEN_return_false(self):
+        macros = {}
+        optional_id = 1
+        expected = False
+
+        actual = optional_is_set(optional_id, macros)
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_optional_is_set_to_true_WHEN_checking_optional_is_set_THEN_return_true(self):
+        macros = {"OPTIONAL_1": True}
+        optional_id = 1
+        expected = True
+
+        actual = optional_is_set(optional_id, macros)
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_optional_is_set_to_false_WHEN_checking_optional_is_set_THEN_return_false(self):
+        macros = {"OPTIONAL_1": False}
+        optional_id = 1
+        expected = False
+
+        actual = optional_is_set(optional_id, macros)
+
+        assert_that(actual, is_(expected))
+
 
 if __name__ == '__main__':
     unittest.main()

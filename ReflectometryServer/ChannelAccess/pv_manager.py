@@ -7,7 +7,7 @@ from enum import Enum
 from pcaspy import Severity
 
 import ReflectometryServer
-from ReflectometryServer.ChannelAccess.channel_access_constant import STANDARD_FLOAT_PV_FIELDS
+from ReflectometryServer.ChannelAccess.constants import REFL_IOC_NAME, STANDARD_FLOAT_PV_FIELDS
 from ReflectometryServer.ChannelAccess.driver_utils import PvSort, \
     PARAMS_FIELDS_BEAMLINE_TYPES
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER, ProblemInfo

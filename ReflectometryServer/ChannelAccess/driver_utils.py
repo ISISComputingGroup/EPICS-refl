@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Tuple, Union, Dict
 
 from ReflectometryServer import Beamline
-from ReflectometryServer.ChannelAccess.channel_access_constant import STANDARD_FLOAT_PV_FIELDS, MAX_ALARM_ID
+from ReflectometryServer.ChannelAccess.constants import STANDARD_FLOAT_PV_FIELDS, MAX_ALARM_ID
 
 from ReflectometryServer.parameters import BeamlineParameterType, ParameterUpdateBase
 from ReflectometryServer.server_status_manager import STATUS_MANAGER

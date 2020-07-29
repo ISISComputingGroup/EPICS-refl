@@ -319,7 +319,7 @@ class Test1DInterpolationFileReader(unittest.TestCase):
         assert_that(calling(reader.read), raises(IOError, ".*No such file.*"))
 
     def test_GIVEN_1d_interp_WHEN_file_does_exist_but_is_empty_THEN_error(self):
-        beamline_configuration.REFL_CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "good_config", "refl"))
+        beamline_configuration.REFL_CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "refl"))
         reader = GridDataFileReader("blankfile.dat")
 
         assert_that(calling(reader.read), raises(IOError, "No data found.*"))
