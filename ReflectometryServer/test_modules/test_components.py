@@ -129,16 +129,16 @@ class TestTiltingJaws(unittest.TestCase):
         assert_that(result_angle, is_(True))
 
     def test_GIVEN_component_WHEN_set_in_beam_THEN_position_axis_has_changed_set_but_angle_doesnot(self):
-
+        # TODO is this outdated?
         comp = TiltingComponent("component", setup=PositionAndAngle(0, 0, 90))
         comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
-        comp.beam_path_set_point.set_in_beam(False)
+        comp.beam_path_set_point.is_in_beam = False
 
         result_pos = comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed
         result_angle = comp.beam_path_set_point.axis[ChangeAxis.ANGLE].is_changed
 
-        assert_that(result_pos, is_(True))
         assert_that(result_angle, is_(False))
+        assert_that(result_pos, is_(True))
 
 
 class TestActiveComponents(unittest.TestCase):

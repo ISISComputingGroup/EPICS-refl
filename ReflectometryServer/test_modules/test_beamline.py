@@ -3,6 +3,7 @@ import unittest
 from math import tan, radians
 from hamcrest import *
 from mock import Mock, patch,  call
+from parameterized import parameterized
 
 from ReflectometryServer import *
 
@@ -596,6 +597,7 @@ class TestRealisticWithAutosaveInitAndBench(unittest.TestCase):
         assert_that(bl.parameter("theta").rbv, is_(close_to(expected_theta, 1e-6)), "theta RBV")
         assert_that(bl.parameter("bench_angle").rbv, is_(close_to(driver_bench_offset, 1e-6)), "bench angle RBV")
 
+
 class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
     def setup_beamline(self, parameters):
@@ -628,6 +630,157 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
         result = beamline.beamline_constants
 
         assert_that(result, is_(expected_parameters))
+
+
+class TestComponentOutOfBeam(unittest.TestCase):
+
+    # TODO check iocdriver sets shit on axis correctly (test individual)
+
+    # TODO test component reports correct composite status (tests below, may have to go into test_beamline)
+
+    def setUp(self):
+        self.comp = Component("test_component", PositionAndAngle(0, 0, 90))
+        self.IN_BEAM_VALUE = 0
+        self.OUT_OF_BEAM_VALUE = -5
+
+    @parameterized.expand([(ChangeAxis.PHI,), (ChangeAxis.CHI,), (ChangeAxis.PSI,), (ChangeAxis.TRANS,), (ChangeAxis.HEIGHT,), (ChangeAxis.POSITION,)])
+    def test_GIVEN_driver_on_component_has_no_out_of_beam_position_THEN_appropriate_change_axes_reports_not_having_out_of_beam_position(self, change_axis_to_set):
+        IocDriver(self.comp, change_axis_to_set, create_mock_axis("axis", 0, 1), out_of_beam_positions=None)
+
+        for change_axis, component_axis in self.comp.beam_path_rbv.axis.items():
+            assert_that(component_axis.has_out_of_beam_position, is_(False))
+
+        for change_axis, component_axis in self.comp.beam_path_set_point.axis.items():
+            assert_that(component_axis.has_out_of_beam_position, is_(False))
+
+    @parameterized.expand([(ChangeAxis.PHI,), (ChangeAxis.CHI,), (ChangeAxis.PSI,), (ChangeAxis.TRANS,), (ChangeAxis.HEIGHT,), (ChangeAxis.POSITION,)])
+    def test_GIVEN_driver_on_component_has_out_of_beam_position_THEN_appropriate_change_axis_report_having_out_of_beam_position(self, change_axis_to_set):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        IocDriver(self.comp, change_axis_to_set, create_mock_axis("axis", 0, 1),
+                           out_of_beam_positions=[out_of_beam_position])
+
+        for change_axis, component_axis in self.comp.beam_path_rbv.axis.items():
+            if change_axis == change_axis_to_set:
+                assert_that(component_axis.has_out_of_beam_position, is_(True))
+            else:
+                assert_that(component_axis.has_out_of_beam_position, is_(False))
+
+        for change_axis, component_axis in self.comp.beam_path_set_point.axis.items():
+            if change_axis == change_axis_to_set:
+                assert_that(component_axis.has_out_of_beam_position, is_(True))
+            else:
+                assert_that(component_axis.has_out_of_beam_position, is_(False))
+
+    @parameterized.expand([(ChangeAxis.PHI,), (ChangeAxis.CHI,), (ChangeAxis.PSI,), (ChangeAxis.TRANS,), (ChangeAxis.HEIGHT,), (ChangeAxis.POSITION,)])
+    def test_GIVEN_component_with_driver_with_out_of_beam_position_WHEN_motor_is_in_beam_THEN_component_axis_reports_in_beam(self, change_axis_to_set):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        motor_axis = create_mock_axis("axis", self.IN_BEAM_VALUE, 1)
+        IocDriver(self.comp, change_axis_to_set, motor_axis, out_of_beam_positions=[out_of_beam_position])
+        expected = True
+
+        motor_axis.trigger_rbv_change()
+        actual = self.comp.beam_path_rbv.axis[change_axis_to_set].is_in_beam
+
+        assert_that(actual, is_(expected))
+
+    @parameterized.expand([(ChangeAxis.PHI,), (ChangeAxis.CHI,), (ChangeAxis.PSI,), (ChangeAxis.TRANS,), (ChangeAxis.HEIGHT,), (ChangeAxis.POSITION,)])
+    def test_GIVEN_component_with_driver_with_out_of_beam_position_WHEN_motor_is_out_of_beam_THEN_component_axis_reports_out_of_beam(self, change_axis_to_set):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        motor_axis = create_mock_axis("axis", self.OUT_OF_BEAM_VALUE, 1)
+        IocDriver(self.comp, change_axis_to_set, motor_axis, out_of_beam_positions=[out_of_beam_position])
+        expected = False
+
+        motor_axis.trigger_rbv_change()
+        actual = self.comp.beam_path_rbv.axis[change_axis_to_set].is_in_beam
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_with_one_driver_with_out_of_beam_position_WHEN_axis_is_not_in_beam_THEN_in_beam_rbv_is_false(self):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.OUT_OF_BEAM_VALUE, 1)
+        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        expected = False
+
+        chi_axis.trigger_rbv_change()
+        actual = self.comp.beam_path_rbv.is_in_beam
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_with_one_driver_with_out_of_beam_position_WHEN_axis_is_in_beam_THEN_in_beam_rbv_is_true(self):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.IN_BEAM_VALUE, 1)
+        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        expected = True
+
+        chi_axis.trigger_rbv_change()
+        actual = self.comp.beam_path_rbv.is_in_beam
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_with_multiple_drivers_with_out_of_beam_position_WHEN_all_are_in_beam_THEN_in_beam_rbv_is_true(self):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.IN_BEAM_VALUE, 1)
+        psi_axis = create_mock_axis("psi", self.IN_BEAM_VALUE, 1)
+        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        IocDriver(self.comp, ChangeAxis.PSI, psi_axis, out_of_beam_positions=[out_of_beam_position])
+        expected = True
+
+        chi_axis.trigger_rbv_change()
+        actual = self.comp.beam_path_rbv.is_in_beam
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_with_multiple_axes_with_out_of_beam_position_WHEN_none_are_in_beam_THEN_in_beam_rbv_is_false(self):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.OUT_OF_BEAM_VALUE, 1)
+        psi_axis = create_mock_axis("psi", self.OUT_OF_BEAM_VALUE, 1)
+        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        IocDriver(self.comp, ChangeAxis.PSI, psi_axis, out_of_beam_positions=[out_of_beam_position])
+        expected = False
+
+        chi_axis.trigger_rbv_change()
+        psi_axis.trigger_rbv_change()
+        actual = self.comp.beam_path_rbv.is_in_beam
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_with_multiple_axes_with_out_of_beam_position_WHEN_one_is_in_beam_THEN_in_beam_rbv_is_true(self):
+        # TODO but alarms set?
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.OUT_OF_BEAM_VALUE, 1)
+        psi_axis = create_mock_axis("psi", self.IN_BEAM_VALUE, 1)
+        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        IocDriver(self.comp, ChangeAxis.PSI, psi_axis, out_of_beam_positions=[out_of_beam_position])
+        expected = True
+
+        chi_axis.trigger_rbv_change()
+        psi_axis.trigger_rbv_change()
+        actual = self.comp.beam_path_rbv.is_in_beam
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_with_multiple_axes_with_out_of_beam_position_WHEN_setting_sp_THEN_in_beam_sp_moved_to_for_all_axes_with_out_of_beam_position(self):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.IN_BEAM_VALUE, 1)
+        psi_axis = create_mock_axis("psi", self.IN_BEAM_VALUE, 1)
+        phi_axis = create_mock_axis("phi", self.IN_BEAM_VALUE, 1)
+        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        IocDriver(self.comp, ChangeAxis.PSI, psi_axis, out_of_beam_positions=[out_of_beam_position])
+        IocDriver(self.comp, ChangeAxis.PSI, psi_axis, out_of_beam_positions=None)
+        chi_axis.trigger_rbv_change()
+        psi_axis.trigger_rbv_change()
+        phi_axis.trigger_rbv_change()
+
+        self.comp.beam_path_set_point.is_in_beam = False
+
+        assert_that(self.comp.beam_path_set_point.axis[ChangeAxis.CHI].is_in_beam, is_(False))
+        assert_that(self.comp.beam_path_set_point.axis[ChangeAxis.PSI].is_in_beam, is_(False))
+        assert_that(self.comp.beam_path_set_point.axis[ChangeAxis.PHI].is_in_beam, is_(True))
+
+    def test_GIVEN_component_with_multiple_axes_with_out_of_beam_position_WHEN_moving_out_of_beam_THEN_all_axes_moving_to_out_of_beam_position(self):
+        pass
+
+    # TODO parameters alarms & changing state
 
 
 if __name__ == '__main__':

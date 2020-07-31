@@ -58,8 +58,10 @@ class ComponentAxis(metaclass=ABCMeta):
         self._is_changing = False
         self.autosaved_value = None
         self._is_changed = False
+        self._is_in_beam = True
         self._axis = axis
         self._alarm = (AlarmSeverity.Invalid, AlarmStatus.UDF)
+        self._has_out_of_beam_position = False
         self.can_define_axis_position_as = False
 
     @abstractmethod
@@ -195,6 +197,43 @@ class ComponentAxis(metaclass=ABCMeta):
             is_changed (bool): True axis has un-applied changed; False otherwise
         """
         self._is_changed = is_changed
+
+    @property
+    def has_out_of_beam_position(self):
+        """
+        Returns:
+            Whether any out of beam positions have been defined for this axis.
+        """
+        return self._has_out_of_beam_position
+
+    @has_out_of_beam_position.setter
+    def has_out_of_beam_position(self, has_out_of_beam_position):
+        """
+        Args:
+            has_out_of_beam_position (bool): sets the flag showing whether any out of beam positions have been defined
+            for this axis.
+        """
+        self._has_out_of_beam_position = has_out_of_beam_position
+
+    @property
+    def is_in_beam(self):
+        """
+        Returns:
+            Whether this axis is currently in beam
+        """
+        if self.has_out_of_beam_position:
+            return self._is_in_beam
+        return True
+
+    @is_in_beam.setter
+    def is_in_beam(self, is_in_beam):
+        """
+        Args:
+            is_in_beam (bool): sets the new in beam status
+        """
+        if self.has_out_of_beam_position:
+            self._is_in_beam = is_in_beam
+            self.is_changed = True
 
 
 class DirectCalcAxis(ComponentAxis):
@@ -533,12 +572,39 @@ class TrackingBeamPathCalc:
         intercept_displacement = self._get_displacement() - offset
         return self._movement_strategy.position_in_mantid_coordinates(intercept_displacement)
 
+    def axes_with_out_of_beam_positions(self):
+        """
+        Returns:
+            A dictionary of all axes for which an out of beam position has been defined.
+        """
+        return {change_axis: component_axis for change_axis, component_axis in self.axis.items() if
+                component_axis.has_out_of_beam_position}
+
+    def check_flag_for_out_of_beam_axes(self, flag_name, default, check_all=False):
+        """
+        Read a flag on component axes for which an out of beam position has been defined.
+        Args:
+            flag_name (str): The name of the (boolean) axis property to check
+            default (str): The default value that should be returned if no such axes exist
+            check_all (bool): If True, this method returns True if the flag is set for all axes; otherwise this method
+                returns True if the flag is set for at least one axis
+        Returns:
+            The composite status of the component for the given flag.
+        """
+        filtered_axes = self.axes_with_out_of_beam_positions()
+        if len(filtered_axes) == 0:
+            return default
+        if check_all:
+            return all([getattr(axis, flag_name) for axis in filtered_axes.values()])
+        else:
+            return any([getattr(axis, flag_name) for axis in filtered_axes.values()])
+
     @property
     def is_in_beam(self):
         """
-        Returns: the enabled status
+        Returns: the in beam status
         """
-        return self._is_in_beam
+        return self.check_flag_for_out_of_beam_axes("is_in_beam", True)
 
     @is_in_beam.setter
     def is_in_beam(self, is_in_beam):
@@ -547,7 +613,8 @@ class TrackingBeamPathCalc:
         Args:
             is_in_beam: True if set the component to be in the beam; False otherwise
         """
-        self._is_in_beam = is_in_beam
+        for axis in self.axes_with_out_of_beam_positions().values():
+            axis.is_in_beam = is_in_beam
         self.trigger_listeners(BeamPathUpdate(self))
         for axis in self.axis.values():
             axis.trigger_listeners(PhysicalMoveUpdate(axis))
@@ -645,7 +712,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         """
         Returns: the outgoing beam based on the last set incoming beam and any interaction with the component
         """
-        if not self._is_in_beam or not self._is_reflecting:
+        if not self.is_in_beam or not self._is_reflecting:
             return self._incoming_beam
 
         target_position = self.calculate_beam_interception()
