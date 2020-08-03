@@ -7,7 +7,7 @@ import logging
 
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ChannelAccess.constants import REFL_AUTOSAVE_PATH
-from server_common.autosave import AutosaveFile, FloatConversion, BoolConversion
+from server_common.autosave import AutosaveFile, FloatConversion, BoolConversion, StringConversion
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,10 @@ param_float_autosave = AutosaveFile(service_name="refl", file_name=PARAM_AUTOSAV
 # the parameter autosave service for booleans
 param_bool_autosave = AutosaveFile(service_name="refl", file_name=PARAM_AUTOSAVE_FILE,
                                    conversion=BoolConversion, folder=REFL_AUTOSAVE_PATH)
+
+# the parameter autosave service for strings
+param_string_autosave = AutosaveFile(service_name="refl", file_name=PARAM_AUTOSAVE_FILE,
+                                     conversion=StringConversion, folder=REFL_AUTOSAVE_PATH)
 
 # the velocity autosave service for floats
 velocity_float_autosave = AutosaveFile(service_name="refl", file_name=VELOCITY_AUTOSAVE_FILE,

@@ -1,14 +1,23 @@
 """
 Objects to help configure the beamline
 """
-from ReflectometryServer import Beamline, BeamlineMode, SlitGapParameter, JawsGapPVWrapper, JawsCentrePVWrapper
+from typing import Dict, Optional, List, Any, Union
+
+from ReflectometryServer import Beamline, BeamlineMode, SlitGapParameter, JawsGapPVWrapper, JawsCentrePVWrapper, \
+    PVWrapper, MotorPVWrapper
 from ReflectometryServer.geometry import PositionAndAngle
 import logging
 import six
 
-from ReflectometryServer.parameters import DEFAULT_RBV_TO_SP_TOLERANCE
+from ReflectometryServer.parameters import DEFAULT_RBV_TO_SP_TOLERANCE, EnumParameter, DirectParameter, \
+    BeamlineParameter
 
 logger = logging.getLogger(__name__)
+
+BLADE_DETAILS = {"N": {"name": "North", "pair": "S"},
+                 "S": {"name": "South", "pair": "N"},
+                 "E": {"name": "East", "pair": "W"},
+                 "W": {"name": "West", "pair": "E"}}
 
 
 class ConfigHelper:
@@ -224,8 +233,22 @@ def create_jaws_pv_driver(jaws_pv_prefix, is_vertical, is_gap_not_centre):
         return JawsCentrePVWrapper(jaws_pv_prefix, is_vertical=is_vertical)
 
 
-def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLERANCE, modes=None, mode_inits=None,
-                        exclude=None, include_centres=False):
+def create_blade_pv_driver(jaws_pv_prefix: str, blade: str) -> PVWrapper:
+    """
+    Create a driver for a blade
+    Args:
+        jaws_pv_prefix: pv prefix
+        blade: blade to set jaw for
+
+    Returns: driver
+
+    """
+    return MotorPVWrapper("{}:J{}:MTR".format(jaws_pv_prefix, blade))
+
+
+def add_slit_parameters(slit_number: Union[str, int], rbv_to_sp_tolerance: float = DEFAULT_RBV_TO_SP_TOLERANCE,
+                        modes: Optional[List[str]] = None, mode_inits: Optional[Dict[str, Any]] = None,
+                        exclude: List[str] = None, include_centres: bool = False, beam_blocker: Optional[str] = None):
     """
     Add parameters for a slit, this is horizontal and vertical gaps and centres. Also add modes, mode inits and
     tolerance if needed.
@@ -237,6 +260,7 @@ def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLER
         mode_inits: list of modes and init value see add_parameter for explanation
         exclude: slit parameters to exclude, these should be one of VG, VC, HG, HC
         include_centres: True to include centres; False to just have the gaps
+        beam_blocker: string containing code for beam blocker config, N,S,E,W for each blade which blocks the beam
 
     Returns:
         slit gap parameters
@@ -252,7 +276,8 @@ def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLER
 
     jaws_pv_prefix = "MOT:JAWS{}".format(slit_number)
 
-    parameters = {}
+    parameters = _add_beam_block(slit_number, modes, mode_inits, exclude, beam_blocker, jaws_pv_prefix)
+
     for name in names:
         is_vertical = name[0] == "V"
         is_gap_not_centre = name[1] == "G"
@@ -263,6 +288,44 @@ def add_slit_parameters(slit_number, rbv_to_sp_tolerance=DEFAULT_RBV_TO_SP_TOLER
         add_parameter(parameter, modes, mode_inits)
         parameters[name] = parameter
 
+    return parameters
+
+
+def _add_beam_block(slit_number, modes, mode_inits, exclude: List[str], beam_blocker: str, jaws_pv_prefix) \
+        -> Dict[str, BeamlineParameter]:
+    """
+    Add beam block parameters and drivers
+    Args:
+        slit_number: slit number
+        modes: modes that blocker parameter should belong to
+        mode_inits: initialiser for each mode
+        exclude: exclude these parameters
+        beam_blocker: beam blocker slits
+        jaws_pv_prefix: prefix for the jaw pv
+
+    Returns:
+        parameters in a dictionary
+    """
+    parameters = {}
+    if beam_blocker is not None:
+        options = ["No"]
+        options.extend([BLADE_DETAILS[blade]["name"] for blade in beam_blocker])
+        parameter = EnumParameter("S{}BLOCK".format(slit_number), options,
+                                  description="Which blade is blocking the beam; No for none")
+        add_parameter(parameter, modes, mode_inits)
+        parameters["block"] = parameter
+        blade_names = set()
+        for blade in beam_blocker:
+            blade_names.update(blade)
+            blade_names.update(BLADE_DETAILS[blade]["pair"])
+        if exclude is not None:
+            [blade_names.discard(name) for name in exclude]
+        # keep parameters ordered nicely
+        for name in ["N", "S", "E", "W"]:
+            if name in blade_names:
+                driver = create_blade_pv_driver(jaws_pv_prefix, name)
+                add_parameter(DirectParameter("S{}{}".format(slit_number, name), driver), modes, mode_inits)
+                parameters[name] = parameter
     return parameters
 
 
@@ -299,3 +362,20 @@ def add_footprint_setup(footprint_setup):
     """
     ConfigHelper.footprint_setup = footprint_setup
     return footprint_setup
+
+
+def optional_is_set(optional_id, macros):
+    """
+    Check whether an optional macro for use in the configuration is set or not.
+
+    Args:
+        optional_id (String): The ID of the optional macro
+        macros (dict): The macro values passed into the reflectometry server
+
+    Returns: True if macro with given ID is set to True, otherwise False
+    """
+    try:
+        macro_name = "OPTIONAL_{}".format(optional_id)
+        return macros[macro_name]
+    except KeyError:
+        return False

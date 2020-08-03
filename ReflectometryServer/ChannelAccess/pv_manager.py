@@ -7,6 +7,9 @@ from enum import Enum
 from pcaspy import Severity
 
 import ReflectometryServer
+from ReflectometryServer.ChannelAccess.constants import REFL_IOC_NAME, STANDARD_FLOAT_PV_FIELDS
+from ReflectometryServer.ChannelAccess.driver_utils import PvSort, \
+    PARAMS_FIELDS_BEAMLINE_TYPES
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER, ProblemInfo
 from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY
 from pcaspy.alarm import SeverityStrings
@@ -17,8 +20,6 @@ import json
 from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
-
-MAX_ALARM_ID = 15
 
 # PCASpy Enum PVs are limited to 14 items
 AlarmStringsTruncated = [
@@ -85,53 +86,9 @@ FOOTPRINT_PREFIXES = [FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY]
 PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_FIELDS_ACTION = {'type': 'int', 'count': 1, 'value': 0}
-OUT_IN_ENUM_TEXT = ["OUT", "IN"]
-STANDARD_FLOAT_PV_FIELDS = {'type': 'float', 'prec': 3, 'value': 0.0}
 STANDARD_2048_CHAR_WF_FIELDS = {'type': 'char', 'count': 2048, 'value': ""}
 ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStringsTruncated}
 ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
-
-PARAMS_FIELDS_BEAMLINE_TYPES = {
-    BeamlineParameterType.IN_OUT: {'type': 'enum', 'enums': OUT_IN_ENUM_TEXT},
-    BeamlineParameterType.FLOAT: STANDARD_FLOAT_PV_FIELDS}
-
-
-def convert_to_epics_pv_value(parameter_type, value):
-    """
-    Convert from parameter value to the epic pv value
-    Args:
-        parameter_type (BeamlineParameterType): parameters type
-        value: value to convert
-
-    Returns: epics value
-
-    """
-    if parameter_type == BeamlineParameterType.IN_OUT:
-        if value:
-            return OUT_IN_ENUM_TEXT.index("IN")
-        else:
-            return OUT_IN_ENUM_TEXT.index("OUT")
-    else:
-        if value is None:
-            return float("NaN")
-        else:
-            return value
-
-
-def convert_from_epics_pv_value(parameter_type, value):
-    """
-    Convert from epic pv value to the parameter value
-    Args:
-        parameter_type (BeamlineParameterType): parameters type
-        value: value to convert
-
-    Returns: epics value
-
-    """
-    if parameter_type == BeamlineParameterType.IN_OUT:
-        return value == OUT_IN_ENUM_TEXT.index("IN")
-    else:
-        return value
 
 
 def is_pv_name_this_field(field_name, pv_name):
@@ -145,98 +102,6 @@ def is_pv_name_this_field(field_name, pv_name):
     """
     pv_name_no_val = remove_from_end(pv_name, VAL_FIELD)
     return pv_name_no_val == field_name
-
-
-class PvSort(Enum):
-    """
-    Enum for the type of PV
-    """
-    RBV = 0
-    ACTION = 1
-    SP_RBV = 2
-    SP = 3
-    SET_AND_NO_ACTION = 4
-    CHANGED = 6
-    IN_MODE = 7
-    CHANGING = 8
-    RBV_AT_SP = 9
-    DEFINE_POS_AS = 10
-
-    @staticmethod
-    def what(pv_sort):
-        """
-        Args:
-            pv_sort: pv sort to determine
-
-        Returns: what the pv sort does
-        """
-        if pv_sort == PvSort.RBV:
-            return ""
-        elif pv_sort == PvSort.ACTION:
-            return "(Do the action)"
-        elif pv_sort == PvSort.SP_RBV:
-            return "(Set point readback)"
-        elif pv_sort == PvSort.SP:
-            return "(Set point)"
-        elif pv_sort == PvSort.SET_AND_NO_ACTION:
-            return "(Set point with no action executed)"
-        elif pv_sort == PvSort.CHANGED:
-            return "(Is changed)"
-        elif pv_sort == PvSort.IN_MODE:
-            return "(Is in mode)"
-        elif pv_sort == PvSort.CHANGING:
-            return "(Is changing)"
-        elif pv_sort == PvSort.RBV_AT_SP:
-            return "(Tolerance between RBV and target set point)"
-        elif pv_sort == PvSort.DEFINE_POS_AS:
-            return "(Define the value of current position)"
-        else:
-            print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
-            return "(unknown)"
-
-    def get_from_parameter(self, parameter):
-        """
-        Get the value of the correct sort from a parameter
-        Args:
-            parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter to get the value from
-
-        Returns: the value of the parameter of the correct sort
-        """
-        if self == PvSort.SP:
-            return convert_to_epics_pv_value(parameter.parameter_type, parameter.sp)
-        elif self == PvSort.SP_RBV:
-            return convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_rbv)
-        elif self == PvSort.RBV:
-            return convert_to_epics_pv_value(parameter.parameter_type, parameter.rbv)
-        elif self == PvSort.SET_AND_NO_ACTION:
-            return convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_no_move)
-        elif self == PvSort.CHANGED:
-            return parameter.sp_changed
-        elif self == PvSort.ACTION:
-            return parameter.move
-        elif self == PvSort.CHANGING:
-            return parameter.is_changing
-        elif self == PvSort.RBV_AT_SP:
-            return parameter.rbv_at_sp
-        elif self == PvSort.DEFINE_POS_AS:
-            if parameter.define_current_value_as is None:
-                return float("NaN")
-            return parameter.define_current_value_as.new_value
-        return float("NaN")
-
-    def get_parameter_alarm(self, parameter):
-        """
-        Get the alarm status of this parameter. Only applicable for Readback PVs.
-
-        Args:
-            parameter(ReflectometryServer.parameters.BeamlineParameter): the parameter to get the value from
-
-        Returns: the alarm severity and status of this parameter.
-        """
-        if self == PvSort.RBV:
-            return parameter.alarm_severity, parameter.alarm_status
-        else:
-            return None, None
 
 
 class PVManager:
@@ -367,6 +232,8 @@ class PVManager:
 
         parameter_type = parameter.parameter_type
         fields = PARAMS_FIELDS_BEAMLINE_TYPES[parameter_type]
+        if parameter_type == BeamlineParameterType.ENUM:
+            fields["enums"] = parameter.options
 
         # Readback PV
         self._add_pv_with_fields(prepended_alias, param_name, fields, description, PvSort.RBV, archive=True,
@@ -413,7 +280,6 @@ class PVManager:
         return {"name": param_name,
                 "prepended_alias": prepended_alias,
                 "type": BeamlineParameterType.name_for_param_list(parameter_type)}
-
 
     def _add_pv_with_fields(self, pv_name, param_name, pv_fields, description, sort, archive=False, interest=None,
                             alarm=False, value=None, on_init=False):

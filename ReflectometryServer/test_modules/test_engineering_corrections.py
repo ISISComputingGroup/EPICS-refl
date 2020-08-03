@@ -3,16 +3,21 @@ import numpy as np
 import os
 
 from hamcrest import *
-from mock import patch
+from mock import patch, Mock
 from parameterized import parameterized
 
 import unittest
 
-from ReflectometryServer import *
-from ReflectometryServer import beamline_configuration, ChangeAxis
-from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider, CorrectionUpdate
-from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
+
+from ReflectometryServer import beamline_configuration, Component, TiltingComponent, AxisParameter
+from ReflectometryServer.beamline import ActiveModeUpdate, BeamlineMode, Beamline
+from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
+from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider, CorrectionUpdate, \
+    ModeSelectCorrection, CorrectionRecalculate, ConstantCorrection, UserFunctionCorrection, GridDataFileReader
+
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, IocDriver
 from ReflectometryServer.out_of_beam import OutOfBeamPosition
+from server_common.observable import observable
 from ReflectometryServer.test_modules.data_mother import create_mock_axis, DataMother
 
 FLOAT_TOLERANCE = 1e-9
@@ -314,7 +319,7 @@ class Test1DInterpolationFileReader(unittest.TestCase):
         assert_that(calling(reader.read), raises(IOError, ".*No such file.*"))
 
     def test_GIVEN_1d_interp_WHEN_file_does_exist_but_is_empty_THEN_error(self):
-        beamline_configuration.REFL_CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "good_config", "refl"))
+        beamline_configuration.REFL_CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "refl"))
         reader = GridDataFileReader("blankfile.dat")
 
         assert_that(calling(reader.read), raises(IOError, "No data found.*"))
@@ -511,3 +516,178 @@ class TestRealisticWithAutosaveInitAndEngineeringCorrections(unittest.TestCase):
         result = comp.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement()
 
         assert_that(result, is_(close_to(expected_setpoint, 1e-6)))
+
+@observable(ActiveModeUpdate)
+class MockBeamline:
+    pass
+
+
+class TestEngineeringCorrectionsDependOnMode(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.update = None
+        self.correction_update = None
+
+        self.mode1 = BeamlineMode("mode1", [])
+        self.mode2 = BeamlineMode("mode2", [])
+        self.default_offset = 1
+        self.mode1_offset = 11
+        self.mode2_offset = 22
+        self.default_correction = ConstantCorrection(self.default_offset)
+        self.mode_selection_correction = ModeSelectCorrection(self.default_correction,
+                                                              {self.mode1.name: (ConstantCorrection(self.mode1_offset)),
+                                                               self.mode2.name: (ConstantCorrection(self.mode2_offset))})
+        self.mock_beamline = MockBeamline()
+        self.mode_selection_correction.set_observe_mode_change_on(self.mock_beamline)
+        self.mode_selection_correction.add_listener(CorrectionRecalculate, self.get_update)
+        self.mode_selection_correction.add_listener(CorrectionUpdate, self.get_correction_update)
+
+    def get_update(self, update: CorrectionRecalculate):
+        self.update = update
+
+    def get_correction_update(self, update: CorrectionUpdate):
+        self.correction_update = update
+
+    def test_GIVEN_mode_selecting_correction_WHEN_changed_listener_triggered_THEN_correction_update_triggered(self):
+
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode2))
+
+        assert_that(self.update, is_not(None), "the correction has asked for a recalculate")
+
+    def test_GIVEN_mode_not_yet_selected_WHEN_get_correction_THEN_correction_is_default(self):
+
+        result = self.mode_selection_correction.to_axis(0)
+
+        assert_that(result, is_(self.default_offset))
+
+    def test_GIVEN_mode_selected_WHEN_get_correction_THEN_correction_is_that_mode(self):
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode2))
+
+        result = self.mode_selection_correction.to_axis(0)
+
+        assert_that(result, is_(self.mode2_offset))
+
+    def test_GIVEN_mode_selected_which_has_not_got_a_correction_WHEN_get_correction_THEN_correction_is_default_mode(self):
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(BeamlineMode("another mode", [])))
+
+        result = self.mode_selection_correction.to_axis(0)
+
+        assert_that(result, is_(self.default_offset))
+        assert_that(self.correction_update.correction, is_(self.default_offset))
+        assert_that(self.correction_update.description,
+                    is_("Mode Selected: {}".format(self.default_correction.description)))
+
+    def test_GIVEN_mode_selected_which_has_not_got_a_correction_WHEN_get_init_from_axis_THEN_correction_is_default_mode(self):
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(BeamlineMode("another mode", [])))
+
+        result = self.mode_selection_correction.init_from_axis(0)
+
+        assert_that(result, is_(-self.default_offset))
+        assert_that(self.correction_update.correction, is_(self.default_offset))
+        assert_that(self.correction_update.description,
+                    is_("Mode Selected: {}".format(self.default_correction.description)))
+
+    def test_GIVEN_mode_selected_which_has_not_got_a_correction_WHEN_from_axis_THEN_correction_is_default_mode(self):
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(BeamlineMode("another mode", [])))
+
+        result = self.mode_selection_correction.from_axis(0, 0)
+
+        assert_that(result, is_(-self.default_offset))
+        assert_that(self.correction_update.correction, is_(self.default_offset))
+        assert_that(self.correction_update.description, is_("Mode Selected: {}".format(self.default_correction.description)))
+
+    def test_GIVEN_ioc_driver_which_has_not_moved_with_engineering_correction_WHEN_update_mode_THEN_readback_not_fired(self):
+        driver = IocDriver(Component("comp", PositionAndAngle(0, 0, 0)), ChangeAxis.POSITION, create_mock_axis("mock", 0, 1), engineering_correction=self.mode_selection_correction)
+        driver.set_observe_mode_change_on(self.mock_beamline)
+        mock_listener = Mock()
+        driver.add_listener(CorrectionUpdate, mock_listener)
+
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode1))
+
+        mock_listener.assert_not_called()
+
+    def test_GIVEN_ioc_driver_with_engineering_correction_WHEN_update_mode_THEN_readback_updated_fired(self):
+        mock_axis = create_mock_axis("mock", 0, 1)
+        driver = IocDriver(Component("comp", PositionAndAngle(0, 0, 0)), ChangeAxis.POSITION, mock_axis, engineering_correction=self.mode_selection_correction)
+        mock_axis.trigger_rbv_change()
+        driver.set_observe_mode_change_on(self.mock_beamline)
+        mock_listener = Mock()
+        driver.add_listener(CorrectionUpdate, mock_listener)
+
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode1))
+
+        mock_listener.assert_called_once()
+
+    def test_GIVEN_ioc_driver_with_engineering_correction_WHEN_update_mode_THEN_setpoint_updated_fired(self):
+        mock_axis = create_mock_axis("mock", 0, 1)
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        driver = IocDriver(component, ChangeAxis.POSITION, mock_axis, engineering_correction=self.mode_selection_correction)
+        component.beam_path_set_point.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(0, None, None))
+        mock_axis.sp = self.default_offset
+        driver.set_observe_mode_change_on(self.mock_beamline)
+        assert_that(driver.at_target_setpoint(), is_(True), "Should be at the target setpoint before mode is changed")
+
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode1))
+        result = driver.at_target_setpoint()
+
+        assert_that(result, is_(False), "Should NOT be at the target setpoint after mode is changed, because of new correction")
+
+    def test_GIVEN_ioc_driver_with_engineering_correction_containing_a_mode_update_correction_WHEN_update_mode_THEN_correct_readback_updated_fired(self):
+        mode1_mode1_offset = 11
+        mode1_mode2_offset = 12
+        mode2_mode1_offset = 210
+        mode2_mode2_offset = 220
+
+        mode1_mode_selection = ModeSelectCorrection(self.default_correction,
+                             {self.mode1.name: (ConstantCorrection(mode1_mode1_offset)),
+                              self.mode2.name: (ConstantCorrection(mode1_mode2_offset))})
+        mode2_mode_selection = ModeSelectCorrection(self.default_correction,
+                                                    {self.mode1.name: (ConstantCorrection(mode2_mode1_offset)),
+                                                     self.mode2.name: (ConstantCorrection(mode2_mode2_offset))})
+        mode_selection_correction = ModeSelectCorrection(self.default_correction,
+                                                              {self.mode1.name: mode1_mode_selection,
+                                                               self.mode2.name: mode2_mode_selection})
+        mode_selection_correction.set_observe_mode_change_on(self.mock_beamline)
+        mode_selection_correction.add_listener(CorrectionRecalculate, self.get_update)
+        mode_selection_correction.add_listener(CorrectionUpdate, self.get_correction_update)
+
+        mock_axis = create_mock_axis("mock", 0, 1)
+        driver = IocDriver(Component("comp", PositionAndAngle(0, 0, 0)), ChangeAxis.POSITION, mock_axis, engineering_correction=mode_selection_correction)
+        mock_axis.trigger_rbv_change()
+        driver.set_observe_mode_change_on(self.mock_beamline)
+        mock_listener = Mock()
+        driver.add_listener(CorrectionUpdate, mock_listener)
+
+        self.mock_beamline.trigger_listeners(ActiveModeUpdate(self.mode1))
+
+        args = mock_listener.call_args[0]
+        assert_that(args[0].correction, is_(mode1_mode1_offset))
+
+    def test_GIVEN_beamline_with_engineering_correction_containing_a_mode_update_correction_WHEN_update_mode_THEN_correct_readback_updated_fired(self):
+
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        param = AxisParameter("comp", comp, ChangeAxis.POSITION)
+        mock_axis = create_mock_axis("mock", 0, 1)
+        driver = IocDriver(comp, ChangeAxis.POSITION, mock_axis, engineering_correction=self.mode_selection_correction)
+        mock_axis.trigger_rbv_change()
+        bl = Beamline(components=[comp], beamline_parameters=[param], drivers=[driver], modes=[self.mode1, self.mode2])
+
+        bl.active_mode = self.mode1.name
+
+        assert_that(self.correction_update.correction, is_(self.mode1_offset))
+
+        bl.active_mode = self.mode2.name
+
+        assert_that(self.correction_update.correction, is_(self.mode2_offset))
+
+    @patch("ReflectometryServer.beamline.mode_autosave")
+    def test_GIVEN_beamline_with_engineering_correction_containing_a_mode_update_correction_WHEN_init_THEN_set_point_includes_correction(self, autosave):
+        autosave.read_parameter = Mock(return_value=self.mode1.name)
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        param = AxisParameter("comp", comp, ChangeAxis.POSITION)
+        mock_axis = create_mock_axis("mock", 0, 1)
+        driver = IocDriver(comp, ChangeAxis.POSITION, mock_axis, engineering_correction=self.mode_selection_correction)
+
+        bl = Beamline(components=[comp], beamline_parameters=[param], drivers=[driver], modes=[self.mode1, self.mode2])
+
+        assert_that(param.sp, is_(-self.mode1_offset))  # readback is -11 so sp must be set to this
