@@ -685,6 +685,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         in_beam_parameter = InBeamParameter("param", component)
         listener = Mock()
         in_beam_parameter.add_listener(ParameterReadbackUpdate, listener)
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].has_out_of_beam_position = True
 
         component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(new_value, alarm_severity, alarm_status))
 

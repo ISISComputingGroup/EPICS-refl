@@ -12,7 +12,7 @@ from typing import Dict
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
 
-from server_common.channel_access import AlarmSeverity, AlarmStatus
+from server_common.channel_access import AlarmSeverity, AlarmStatus, maximum_severity
 from server_common.observable import observable
 from ReflectometryServer.file_io import disable_mode_autosave
 
@@ -397,6 +397,9 @@ class InBeamManager:
         self.axes = {}
         self._sim_is_in_beam = True
 
+    def _has_parking_axes(self):
+        return len(self.get_parking_axes()) > 0
+
     def add_axes(self, axes):
         """
         Add all movement axes that have been defined for the host component.
@@ -447,10 +450,9 @@ class InBeamManager:
         """
         Returns: the in beam status
         """
-        if len(self.get_parking_axes()) > 0:
+        if self._has_parking_axes():
             return self._check_flag_for_parking_axes("is_in_beam")
-        else:
-            return self._sim_is_in_beam
+        return self._sim_is_in_beam
 
     def set_is_in_beam(self, is_in_beam):
         """
@@ -458,7 +460,7 @@ class InBeamManager:
         Args:
             is_in_beam: True if set the component to be in the beam; False otherwise
         """
-        if len(self.get_parking_axes()) > 0:
+        if self._has_parking_axes():
             for axis in self.get_parking_axes().values():
                 axis.is_in_beam = is_in_beam
         else:
@@ -466,13 +468,15 @@ class InBeamManager:
 
     @property
     def is_changing(self):
-        return self._check_flag_for_parking_axes("is_changing")
+        if self._has_parking_axes():
+            return self._check_flag_for_parking_axes("is_changing")
+        return False
 
     @property
     def alarm(self):
-        # TODO
-        #  alarms = [axis.alarm for axis in self.get_parking_axes()]
-        #  return maximum_severity(alarms)
+        if self._has_parking_axes():
+            alarms = [axis.alarm for axis in self.get_parking_axes().values()]
+            return maximum_severity(*alarms)
         return None, None
 
 
