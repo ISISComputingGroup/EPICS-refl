@@ -759,6 +759,21 @@ class TestComponentOutOfBeam(unittest.TestCase):
 
         assert_that(actual, is_(expected))
 
+    def test_GIVEN_component_with_axis_with_out_of_beam_position_WHEN_in_beam_sp_changes_THEN_only_axis_with_out_of_beam_position_marked_as_changed(self):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.IN_BEAM_VALUE, 1)
+        psi_axis = create_mock_axis("psi", self.IN_BEAM_VALUE, 1)
+        phi_axis = create_mock_axis("phi", self.IN_BEAM_VALUE, 1)
+        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        IocDriver(self.comp, ChangeAxis.PSI, psi_axis, out_of_beam_positions=[out_of_beam_position])
+        IocDriver(self.comp, ChangeAxis.PHI, phi_axis, out_of_beam_positions=None)
+
+        self.comp.beam_path_set_point.is_in_beam = False
+
+        assert_that(self.comp.beam_path_set_point.axis[ChangeAxis.CHI].is_changed, is_(True))
+        assert_that(self.comp.beam_path_set_point.axis[ChangeAxis.PSI].is_changed, is_(True))
+        assert_that(self.comp.beam_path_set_point.axis[ChangeAxis.PHI].is_changed, is_(False))
+
     def test_GIVEN_component_with_multiple_axes_with_out_of_beam_position_WHEN_setting_sp_THEN_in_beam_sp_moved_to_for_all_axes_with_out_of_beam_position(self):
         out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
         chi_axis = create_mock_axis("chi", self.IN_BEAM_VALUE, 1)
@@ -766,10 +781,7 @@ class TestComponentOutOfBeam(unittest.TestCase):
         phi_axis = create_mock_axis("phi", self.IN_BEAM_VALUE, 1)
         IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
         IocDriver(self.comp, ChangeAxis.PSI, psi_axis, out_of_beam_positions=[out_of_beam_position])
-        IocDriver(self.comp, ChangeAxis.PSI, psi_axis, out_of_beam_positions=None)
-        chi_axis.trigger_rbv_change()
-        psi_axis.trigger_rbv_change()
-        phi_axis.trigger_rbv_change()
+        IocDriver(self.comp, ChangeAxis.PHI, phi_axis, out_of_beam_positions=None)
 
         self.comp.beam_path_set_point.is_in_beam = False
 
@@ -777,11 +789,35 @@ class TestComponentOutOfBeam(unittest.TestCase):
         assert_that(self.comp.beam_path_set_point.axis[ChangeAxis.PSI].is_in_beam, is_(False))
         assert_that(self.comp.beam_path_set_point.axis[ChangeAxis.PHI].is_in_beam, is_(True))
 
-    def test_GIVEN_component_with_multiple_axes_with_out_of_beam_position_WHEN_moving_out_of_beam_THEN_all_axes_moving_to_out_of_beam_position(self):
-        pass
+    def test_GIVEN_component_WHEN_adding_driver_with_out_of_beam_position_THEN_inbeam_parameter_listens_to_relevant_axis(self):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.OUT_OF_BEAM_VALUE, 1)
+        in_beam_param = InBeamParameter("in_beam", self.comp)
 
-    # TODO parameters alarms & changing state
+        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        chi_axis.trigger_rbv_change()
 
+        assert_that(in_beam_param.rbv, is_(False))
+
+    def test_GIVEN_parameter_on_component_WHEN_adding_driver_with_out_of_beam_position_THEN_parameter_gets_init_value(self):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.OUT_OF_BEAM_VALUE, 1)
+        in_beam_param = InBeamParameter("in_beam", self.comp)
+
+        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        chi_axis.trigger_rbv_change()
+
+        assert_that(in_beam_param.rbv, is_(False))
+
+    def test_GIVEN_parameter_on_component_WHEN_adding_driver_with_out_of_beam_position_THEN_parameter_gets_init_value(self):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.OUT_OF_BEAM_VALUE, 1)
+        in_beam_param = InBeamParameter("in_beam", self.comp)
+
+        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        chi_axis.trigger_rbv_change()
+
+        assert_that(in_beam_param.rbv, is_(False))
 
 if __name__ == '__main__':
     unittest.main()

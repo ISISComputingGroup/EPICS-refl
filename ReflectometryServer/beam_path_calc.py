@@ -4,6 +4,8 @@ set points or readbacks etc.
 """
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
+from functools import partial
+
 from math import degrees, atan2
 from typing import Dict
 
@@ -40,8 +42,11 @@ DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
     "new_position",  # the new value
     "change_axis"])  # the axis it applies to of type ChangeAxis
 
+# Event that is triggered an ioc driver with a parked position is added to an axis
+AddOutOfBeamPositionEvent = namedtuple("AddOutOfBeamPositionEvent", [])
 
-@observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate)
+
+@observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate, AddOutOfBeamPositionEvent)
 class ComponentAxis(metaclass=ABCMeta):
     """
     A components axis of movement, allowing setting in both mantid and relative coordinates. Transmits alarms,
@@ -214,6 +219,8 @@ class ComponentAxis(metaclass=ABCMeta):
             for this axis.
         """
         self._has_out_of_beam_position = has_out_of_beam_position
+        if has_out_of_beam_position:
+            self.trigger_listeners(AddOutOfBeamPositionEvent())
 
     @property
     def is_in_beam(self):
@@ -378,6 +385,97 @@ class BeamPathCalcAxis(ComponentAxis):
         raise TypeError("Axis does not support init_displacement_from_motor")
 
 
+@observable(InitUpdate, AxisChangingUpdate)
+class InBeamManager:
+    """
+    Manages the in-beam status of a component as a whole by combining information from all axes on the component that
+    can be parked.
+    """
+    axes: Dict[ChangeAxis, ComponentAxis]
+
+    def __init__(self):
+        self.axes = {}
+        self._sim_is_in_beam = True
+
+    def add_axes(self, axes):
+        """
+        Add all movement axes that have been defined for the host component.
+
+        Args:
+            axes (Dict[ChangeAxis, ComponentAxis]): The axes to add
+        """
+        self.axes = axes
+        for change_axis, component_axis in self.axes.items():
+            component_axis.add_listener(AddOutOfBeamPositionEvent,
+                                        partial(self._on_add_out_of_beam_position, component_axis))
+
+    def _on_add_out_of_beam_position(self, axis, _):
+        axis.add_listener(AxisChangingUpdate, self._on_axis_changing)
+        axis.add_listener(InitUpdate, self._on_axis_init)
+
+    def _on_axis_changing(self, _):
+        self.trigger_listeners(AxisChangingUpdate())
+
+    def _on_axis_init(self, _):
+        self.trigger_listeners(InitUpdate())
+
+    def get_parking_axes(self):
+        """
+        Returns:
+            A dictionary of all axes for which an out of beam position has been defined.
+        """
+        return {change_axis: component_axis for change_axis, component_axis in self.axes.items() if
+                component_axis.has_out_of_beam_position}
+
+    def _check_flag_for_parking_axes(self, flag_name, check_all=False):
+        """
+        Read a flag on component axes for which an out of beam position has been defined.
+        Args:
+            flag_name (str): The name of the (boolean) axis property to check
+            check_all (bool): If True, this method returns True if the flag is set for all axes; otherwise this method
+                returns True if the flag is set for at least one axis
+        Returns:
+            The composite status of the component for the given flag.
+        """
+        parking_axes = self.get_parking_axes()
+        if check_all:
+            return all([getattr(axis, flag_name) for axis in parking_axes.values()])
+        else:
+            return any([getattr(axis, flag_name) for axis in parking_axes.values()])
+
+    def get_is_in_beam(self):
+        """
+        Returns: the in beam status
+        """
+        if len(self.get_parking_axes()) > 0:
+            return self._check_flag_for_parking_axes("is_in_beam")
+        else:
+            return self._sim_is_in_beam
+
+    def set_is_in_beam(self, is_in_beam):
+        """
+        Updates the components in_beam status and notifies the beam path update listener
+        Args:
+            is_in_beam: True if set the component to be in the beam; False otherwise
+        """
+        if len(self.get_parking_axes()) > 0:
+            for axis in self.get_parking_axes().values():
+                axis.is_in_beam = is_in_beam
+        else:
+            self._sim_is_in_beam = is_in_beam
+
+    @property
+    def is_changing(self):
+        return self._check_flag_for_parking_axes("is_changing")
+
+    @property
+    def alarm(self):
+        # TODO
+        #  alarms = [axis.alarm for axis in self.get_parking_axes()]
+        #  return maximum_severity(alarms)
+        return None, None
+
+
 @observable(BeamPathUpdate, BeamPathUpdateOnInit)
 class TrackingBeamPathCalc:
     """
@@ -395,7 +493,6 @@ class TrackingBeamPathCalc:
         """
         self._name = name
         self._incoming_beam = PositionAndAngle(0, 0, 0)
-        self._is_in_beam = True
         self._movement_strategy = movement_strategy
 
         # This is used in disable mode where the incoming
@@ -405,6 +502,8 @@ class TrackingBeamPathCalc:
         #   will always be exact. So we use this to calculate the position of the component not the incoming beam.
         #  If it is None then this does not define theta
         self.substitute_incoming_beam_for_displacement = None
+
+        self.in_beam_manager = InBeamManager()
 
         self.axis = {
             ChangeAxis.POSITION: BeamPathCalcAxis(ChangeAxis.POSITION,
@@ -572,39 +671,12 @@ class TrackingBeamPathCalc:
         intercept_displacement = self._get_displacement() - offset
         return self._movement_strategy.position_in_mantid_coordinates(intercept_displacement)
 
-    def axes_with_out_of_beam_positions(self):
-        """
-        Returns:
-            A dictionary of all axes for which an out of beam position has been defined.
-        """
-        return {change_axis: component_axis for change_axis, component_axis in self.axis.items() if
-                component_axis.has_out_of_beam_position}
-
-    def check_flag_for_out_of_beam_axes(self, flag_name, default, check_all=False):
-        """
-        Read a flag on component axes for which an out of beam position has been defined.
-        Args:
-            flag_name (str): The name of the (boolean) axis property to check
-            default (str): The default value that should be returned if no such axes exist
-            check_all (bool): If True, this method returns True if the flag is set for all axes; otherwise this method
-                returns True if the flag is set for at least one axis
-        Returns:
-            The composite status of the component for the given flag.
-        """
-        filtered_axes = self.axes_with_out_of_beam_positions()
-        if len(filtered_axes) == 0:
-            return default
-        if check_all:
-            return all([getattr(axis, flag_name) for axis in filtered_axes.values()])
-        else:
-            return any([getattr(axis, flag_name) for axis in filtered_axes.values()])
-
     @property
     def is_in_beam(self):
         """
         Returns: the in beam status
         """
-        return self.check_flag_for_out_of_beam_axes("is_in_beam", True)
+        return self.in_beam_manager.get_is_in_beam()
 
     @is_in_beam.setter
     def is_in_beam(self, is_in_beam):
@@ -613,20 +685,10 @@ class TrackingBeamPathCalc:
         Args:
             is_in_beam: True if set the component to be in the beam; False otherwise
         """
-        for axis in self.axes_with_out_of_beam_positions().values():
-            axis.is_in_beam = is_in_beam
+        self.in_beam_manager.set_is_in_beam(is_in_beam)
         self.trigger_listeners(BeamPathUpdate(self))
         for axis in self.axis.values():
             axis.trigger_listeners(PhysicalMoveUpdate(axis))
-
-    def set_in_beam(self, is_in_beam):
-        """
-        Set is in beam with the intention of moving to this position
-        Args:
-            is_in_beam: True for component is in beam; False otherwise
-        """
-        self.axis[ChangeAxis.POSITION].is_changed = True
-        self.is_in_beam = is_in_beam
 
     def incoming_beam_auto_save(self):
         """
@@ -728,7 +790,6 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
     """
     def __init__(self, name, movement_strategy, is_reflecting):
         super(SettableBeamPathCalcWithAngle, self).__init__(name, movement_strategy, is_reflecting)
-
         self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(ChangeAxis.ANGLE,
                                                        self._get_angle_relative_to_beam,
                                                        self._set_angle_relative_to_beam,

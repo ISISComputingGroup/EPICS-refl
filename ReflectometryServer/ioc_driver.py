@@ -71,7 +71,7 @@ class IocDriver:
         if pv_wrapper_for_parameter is not None:
             pv_wrapper_for_parameter.parameter.add_listener(ParameterSetpointReadbackUpdate, self._on_parameter_update)
 
-        if out_of_beam_positions is None:  # or not component_axis == ChangeAxis.POSITION:  # TODO: sort in park position ticket
+        if out_of_beam_positions is None:
             self._out_of_beam_lookup = None
         else:
             try:
@@ -177,7 +177,7 @@ class IocDriver:
         else:
             corrected_axis_setpoint = self._engineering_correction.from_axis(self._motor_axis.sp, autosaved_value)
 
-        if self._out_of_beam_lookup is not None:  # TODO: sort in park position ticket
+        if self._out_of_beam_lookup is not None:
             beam_interception = beam_path_setpoint.calculate_beam_interception()
             in_beam_status = self._get_in_beam_status(beam_interception, self._motor_axis.sp)
             beam_path_setpoint.is_in_beam = in_beam_status
@@ -312,7 +312,7 @@ class IocDriver:
         """
         Returns: position that the set point axis is set to
         """
-        if self._component.beam_path_set_point.is_in_beam or not self._component_axis == ChangeAxis.POSITION:  # TODO Fix when multiple park postions
+        if self._component.beam_path_set_point.axis[self._component_axis].is_in_beam:
             displacement = self._component.beam_path_set_point.axis[self._component_axis].get_displacement()
         else:
             if self._out_of_beam_lookup is None:
