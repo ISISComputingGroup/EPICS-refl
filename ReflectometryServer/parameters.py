@@ -597,7 +597,7 @@ class InBeamParameter(BeamlineParameter):
                 if driver.has_out_of_beam_position():
                     break
         else:
-            errors.append("No driver found with out of beam position for component {}".format(self.name))
+            errors.append("No driver found with out of beam position for component {}".format(self._component.name))
         return errors
 
     def _rbv(self):

@@ -37,11 +37,7 @@ class InBeamManager:
     axes: Dict[ChangeAxis, ComponentAxis]
 
     def __init__(self):
-        self.axes = {}
-        self._sim_is_in_beam = True
-
-    def _has_parking_axes(self):
-        return len(self.get_parking_axes()) > 0
+        self.parking_axes = []
 
     def add_axes(self, axes):
         """
@@ -50,14 +46,15 @@ class InBeamManager:
         Args:
             axes (Dict[ChangeAxis, ComponentAxis]): The axes to add
         """
-        self.axes = axes
-        for change_axis, component_axis in self.axes.items():
+        for component_axis in axes.values():
             component_axis.add_listener(AddOutOfBeamPositionEvent,
                                         partial(self._on_add_out_of_beam_position, component_axis))
 
     def _on_add_out_of_beam_position(self, axis, _):
+        self.parking_axes.append(axis)
         axis.add_listener(AxisChangingUpdate, self._on_axis_changing)
         axis.add_listener(InitUpdate, self._on_axis_init)
+        #TODO sign up to axis physical change that should call beam path update!
 
     def _on_axis_changing(self, _):
         self.trigger_listeners(AxisChangingUpdate())
@@ -65,37 +62,11 @@ class InBeamManager:
     def _on_axis_init(self, _):
         self.trigger_listeners(InitUpdate())
 
-    def get_parking_axes(self):
-        """
-        Returns:
-            A dictionary of all axes for which an out of beam position has been defined.
-        """
-        return {change_axis: component_axis for change_axis, component_axis in self.axes.items() if
-                component_axis.has_out_of_beam_position}
-
-    def _check_flag_for_parking_axes(self, flag_name, check_all=False):
-        """
-        Read a flag on component axes for which an out of beam position has been defined.
-        Args:
-            flag_name (str): The name of the (boolean) axis property to check
-            check_all (bool): If True, this method returns True if the flag is set for all axes; otherwise this method
-                returns True if the flag is set for at least one axis
-        Returns:
-            The composite status of the component for the given flag.
-        """
-        parking_axes = self.get_parking_axes()
-        if check_all:
-            return all([getattr(axis, flag_name) for axis in parking_axes.values()])
-        else:
-            return any([getattr(axis, flag_name) for axis in parking_axes.values()])
-
     def get_is_in_beam(self):
         """
-        Returns: the in beam status
+        Returns: the in beam status; in if any axis is in the beam or there are no axes to park
         """
-        if self._has_parking_axes():
-            return self._check_flag_for_parking_axes("is_in_beam")
-        return self._sim_is_in_beam
+        return any([axis.is_in_beam for axis in self.parking_axes]) or self.parking_axes == []
 
     def set_is_in_beam(self, is_in_beam):
         """
@@ -103,20 +74,15 @@ class InBeamManager:
         Args:
             is_in_beam: True if set the component to be in the beam; False otherwise
         """
-        if self._has_parking_axes():
-            for axis in self.get_parking_axes().values():
-                axis.is_in_beam = is_in_beam
-        else:
-            self._sim_is_in_beam = is_in_beam
+        for axis in self.parking_axes:
+            axis.is_in_beam = is_in_beam
 
     @property
     def is_changing(self):
         """
-        Returns: Is the axis currently moving
+        Returns: Is any axis currently moving; if there are no axes then False
         """
-        if self._has_parking_axes():
-            return self._check_flag_for_parking_axes("is_changing")
-        return False
+        return any([axis.is_changing for axis in self.parking_axes])
 
     @property
     def alarm(self):
@@ -124,10 +90,8 @@ class InBeamManager:
         Returns:
             the alarm tuple for the axis, alarm_severity and alarm_status
         """
-        if self._has_parking_axes():
-            alarms = [axis.alarm for axis in self.get_parking_axes().values()]
-            return maximum_severity(*alarms)
-        return None, None
+        alarms = [axis.alarm for axis in self.parking_axes]
+        return maximum_severity(*alarms)
 
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit)

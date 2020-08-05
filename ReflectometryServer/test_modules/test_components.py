@@ -694,7 +694,8 @@ class TestComponentAlarms(unittest.TestCase):
         component2 = ReflectingComponent("component2", setup=PositionAndAngle(0, 2, 90))
         self.theta.add_angle_to(self.component)
         self.theta.add_angle_to(component2)
-        self.component.beam_path_rbv.is_in_beam = False
+        self.component.beam_path_rbv.axis[ChangeAxis.POSITION].has_out_of_beam_position = True
+        self.component.beam_path_rbv.axis[ChangeAxis.POSITION].is_in_beam = False
 
         update = CorrectedReadbackUpdate(0, self.ALARM_SEVERITY, self.ALARM_STATUS)
 
