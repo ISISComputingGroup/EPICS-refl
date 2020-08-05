@@ -16,7 +16,7 @@ else:
     from ReflectometryServer.beamline import Beamline, BeamlineMode
     from ReflectometryServer.beamline_constant import BeamlineConstant
     from ReflectometryServer.components import Component, ReflectingComponent, ThetaComponent, TiltingComponent, \
-        BenchComponent
+        BenchComponent, BenchSetup
     from ReflectometryServer.engineering_corrections import ConstantCorrection, UserFunctionCorrection, \
         InterpolateGridDataCorrection, SymmetricEngineeringCorrection, NoCorrection, EngineeringCorrection, \
         GridDataFileReader, InterpolateGridDataCorrectionFromProvider, COLUMN_NAME_FOR_DRIVER_SETPOINT, \

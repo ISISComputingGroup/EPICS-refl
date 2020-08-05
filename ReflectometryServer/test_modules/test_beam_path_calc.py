@@ -5,8 +5,9 @@ from hamcrest import *
 from mock import Mock, patch, call
 from parameterized import parameterized
 
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathCalcAxis, BeamPathCalcThetaSP, \
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathCalcThetaSP, \
     BeamPathCalcThetaRBV
+from ReflectometryServer.axis import BeamPathCalcAxis
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle, ChangeAxis
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
