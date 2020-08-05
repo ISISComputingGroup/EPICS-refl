@@ -1,7 +1,7 @@
 """
 Objects and classes that handle geometry
 """
-from math import radians, sin, cos
+from math import radians, sin, cos, sqrt
 
 from enum import Enum
 
@@ -16,6 +16,15 @@ class Position:
 
     def __add__(self, other):
         return Position(self.y + other.y, self.z + other.z)
+
+    def __sub__(self, other):
+        return Position(self.y - other.y, self.z - other.z)
+
+    def __abs__(self):
+        """
+        :return: distance to the point from the origin
+        """
+        return sqrt(pow(self.y, 2.0) + pow(self.z, 2.0))
 
     def __repr__(self):
         return "Position(x, {}, {})".format(self.y, self.z)
@@ -70,23 +79,18 @@ class PositionAndAngle(Position):
             raise ValueError("Converting from string to {}".format(PositionAndAngle.__name__))
 
 
-def position_from_radial_coords(r, theta, angle=None):
+def position_from_radial_coords(r: float, theta: float):
     """
     Create a position based on radial coordinates. If angle included create a position and angle.
     Args:
         r: radius
         theta: angle of the point position
-        angle: clockwise angle measured from the horizon (90 to -90 with 0 pointing away from the source); if None
-            return just position
 
     Returns (Position): position object
     """
     x = r * sin(radians(theta))
     y = r * cos(radians(theta))
-    if angle is None:
-        return Position(x, y)
-    else:
-        return PositionAndAngle(x, y, angle)
+    return Position(x, y)
 
 
 class ChangeAxis(Enum):

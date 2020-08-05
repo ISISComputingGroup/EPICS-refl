@@ -3,7 +3,9 @@ Classes and objects describing the movement of items
 """
 from __future__ import division
 
-from math import fabs, tan, radians, sqrt
+from functools import partial
+from math import fabs, tan, radians
+from typing import Callable, Optional
 
 from ReflectometryServer.geometry import PositionAndAngle, Position, position_from_radial_coords
 
@@ -18,14 +20,21 @@ class LinearMovementCalc:
     the straight through beam
     """
 
-    def __init__(self, setup):
+    def __init__(self, setup: PositionAndAngle,
+                 calc_zero_position_and_tilt_fn: Optional[Callable[[PositionAndAngle], PositionAndAngle]] = None):
         """
 
         Args:
-            setup (ReflectometryServer.geometry.PositionAndAngle):
+            setup: position in mantid coordinates of the zero point of the axis and its direction of positive travel
+            calc_zero_position_and_tilt_fn: function to calculate the position in mantid coordinates of the zero point
+                of the axis and its direction of positive travel based on the setup used when
         """
-        self._angle = setup.angle
-        self._position_at_zero = Position(setup.y, setup.z)
+        # Define a function which returns the angle of the axis of travel and the zero position of that axis in mantid
+        # coordinates
+        if calc_zero_position_and_tilt_fn is None:
+            self._get_position_and_angle_of_axis_at_zero = lambda: setup
+        else:
+            self._get_position_and_angle_of_axis_at_zero = partial(calc_zero_position_and_tilt_fn, setup)
         self._displacement = 0
 
     def calculate_interception(self, beam):
@@ -38,9 +47,10 @@ class LinearMovementCalc:
 
         """
         assert beam is not None
-        y_m = self._position_at_zero.y
-        z_m = self._position_at_zero.z
-        angle_m = self._angle
+        # movement, angle and zero
+        m0 = self._get_position_and_angle_of_axis_at_zero()
+        angle_m = m0.angle
+        # beam angle and zero
         y_b = beam.y
         z_b = beam.z
         angle_b = beam.angle
@@ -48,18 +58,18 @@ class LinearMovementCalc:
         if fabs(angle_b % 180.0 - angle_m % 180.0) <= ANGULAR_TOLERANCE:
             raise ValueError("No interception between beam and movement")
         elif fabs(angle_b % 180.0) <= ANGULAR_TOLERANCE:
-            y, z = self._zero_angle(y_b, self._position_at_zero, self._angle)
+            y, z = self._zero_angle(y_b, m0, angle_m)
         elif fabs(angle_m % 180.0) <= ANGULAR_TOLERANCE:
-            y, z = self._zero_angle(y_m, beam, beam.angle)
+            y, z = self._zero_angle(m0.y, beam, beam.angle)
         elif fabs(angle_m % 180.0 - 90) <= ANGULAR_TOLERANCE or fabs(angle_m % 180.0 + 90) <= ANGULAR_TOLERANCE:
-            y, z = self._right_angle(z_m, beam, beam.angle)
+            y, z = self._right_angle(m0.z, beam, beam.angle)
         elif fabs(angle_b % 180.0 - 90) <= ANGULAR_TOLERANCE or fabs(angle_b % 180.0 + 90) <= ANGULAR_TOLERANCE:
-            y, z = self._right_angle(z_b, self._position_at_zero, self._angle)
+            y, z = self._right_angle(z_b, m0, angle_m)
         else:
             tan_b = tan(radians(angle_b))
             tan_m = tan(radians(angle_m))
-            z = 1/(tan_m - tan_b) * (y_b - y_m + z_m * tan_m - z_b * tan_b)
-            y = tan_b * tan_m / (tan_b - tan_m) * (y_m / tan_m - y_b / tan_b + z_b - z_m)
+            z = 1 / (tan_m - tan_b) * (y_b - m0.y + m0.z * tan_m - z_b * tan_b)
+            y = tan_b * tan_m / (tan_b - tan_m) * (m0.y / tan_m - y_b / tan_b + z_b - m0.z)
 
         return Position(y, z)
 
@@ -103,14 +113,14 @@ class LinearMovementCalc:
 
         """
         beam_intercept = self.calculate_interception(beam)
-        y_diff = self._position_at_zero.y - beam_intercept.y
-        z_diff = self._position_at_zero.z - beam_intercept.z
-        dist_to_beam = sqrt(pow(y_diff, 2) + pow(z_diff, 2))
-        if y_diff > 0:
+        position_at_zero = self._get_position_and_angle_of_axis_at_zero()
+        diff = position_at_zero - beam_intercept
+        dist_to_beam = abs(diff)
+        if diff.y > 0:
             direction = -1.0
         else:
             direction = 1.0
-        if (self._angle % 360.0) >= 180.0:
+        if (position_at_zero.angle % 360.0) >= 180.0:
             direction *= -1
         dist_along_axis_from_zero_to_beam_intercept = dist_to_beam * direction
         return dist_along_axis_from_zero_to_beam_intercept
@@ -123,7 +133,8 @@ class LinearMovementCalc:
         if displacement is None:
             displacement = self._displacement
 
-        return self._position_at_zero + position_from_radial_coords(displacement, self._angle)
+        position_at_zero = self._get_position_and_angle_of_axis_at_zero()
+        return position_at_zero + position_from_radial_coords(displacement, position_at_zero.angle)
 
     def set_displacement(self, displacement):
         """
@@ -161,8 +172,9 @@ class LinearMovementCalc:
         """
         Returns (ReflectometryServer.geometry.Position): distance to the beam in mantid coordinates as a vector
         """
-        distance_relative_to_beam = self.get_distance_relative_to_beam(incoming_beam)
-        return position_from_radial_coords(distance_relative_to_beam, self._angle)
+        beam_intercept = self.calculate_interception(incoming_beam)
+        position = self.position_in_mantid_coordinates()
+        return position - beam_intercept
 
     def get_displacement(self):
         """

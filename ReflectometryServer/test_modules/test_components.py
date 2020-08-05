@@ -1,6 +1,6 @@
 import unittest
 
-from math import tan, radians, isnan
+from math import tan, radians, isnan, sin, cos
 
 from CaChannel._ca import AlarmSeverity
 from hamcrest import *
@@ -936,6 +936,98 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
         result = param.sp
 
         assert_that(result, is_(expected_result))
+
+
+class TestNestingComponents(unittest.TestCase):
+
+    @parameterized.expand([(1, 0, 0, 0),  # just component
+                           (0, 1, 0, 0),  # just nested
+                           (1, 2, 0, 0),  # both nested and componet
+                           (0, 0, 1, 0),  # component zero position not zero
+                           (0, 0, 0, 1),  # nested zero position not zero
+                           (1, -2, 3, -4)  # everything on
+                           ] )
+    def test_GIVEN_nested_component_on_component_WHEN_height_of_component_updates_THEN_nested_height_changes(self, component_height, nested_height, component_zero, nested_zero):
+
+        expected_height = component_height + nested_height + component_zero + nested_zero
+        component = Component("comp", PositionAndAngle(component_zero, 0, 90))
+        nested_component = Component("nested", PositionAndAngle(nested_zero, 0, 90), on=component)
+        nested_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(nested_height, AlarmSeverity.No, AlarmStatus.No))
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(component_height, AlarmSeverity.No, AlarmStatus.No))
+        component.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        nested_component.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
+
+        result = nested_component.beam_path_rbv.axis[ChangeAxis.POSITION].get_relative_to_beam()
+
+        assert_that(result, is_(close_to(expected_height, 1e-6)))
+
+    @parameterized.expand([(1, 0, 0, 0, 1, 0),  # just component
+                           (0, 1, 0, 0, 1, 0),  # just nested
+                           (1, 2, 0, 0, 1, 0),  # both nested and componet
+                           (0, 0, 1, 0, 1, 0),  # component zero position not zero
+                           (0, 0, 0, 1, 1, 0),  # nested zero position not zero
+                           (1, -2, 3, -4, 1, 0),  # everything but moving vertically
+                           (0, 0, 0, 0, 1, 10),  # small angle
+                           (0, 0, 0, 0, 1, 100),  # large angle
+                           (1, 0, 0, 0, 1, 10),  # angle and component height
+                           (0, 1, 0, 0, 1, 10),  # angle and nested height
+                           (0, 0, 1, 0, 1, 10),  # angle and component zero
+                           (0, 0, 0, 1, 1, 10),  # angle and nested zero
+                           (1, 2, 3, 4, 5, 22),  # everything
+                           ])
+    def test_GIVEN_nested_component_on_component_WHEN_angle_of_component_updates_THEN_nested_height_changes(self, component_height, nested_height, component_zero, nested_zero_y, nested_zero_z,component_angle):
+
+        # expected height is along the axis of movement to the beam, hence cos for component height and
+        # tan for nested z and add for y
+        angle_in_rad = radians(component_angle)
+        expected_height = (component_height + component_zero) / cos(angle_in_rad) + \
+                          nested_zero_z * tan(angle_in_rad) + nested_height + nested_zero_y
+        # expected position is above and to the left of the beam interception point
+        expected_position = Position(expected_height * cos(angle_in_rad), -expected_height * sin(angle_in_rad))
+        component = TiltingComponent("comp", PositionAndAngle(component_zero, 0, 90))
+        nested_component = Component("nested", PositionAndAngle(nested_zero_y, nested_zero_z, 90), on=component)
+        nested_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(nested_height, AlarmSeverity.No, AlarmStatus.No))
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(component_height, AlarmSeverity.No, AlarmStatus.No))
+        component.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(component_angle, AlarmSeverity.No, AlarmStatus.No))
+        component.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        nested_component.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
+
+        result = nested_component.beam_path_rbv.axis[ChangeAxis.POSITION].get_relative_to_beam()
+        result_in_mantid = nested_component.beam_path_rbv.get_distance_relative_to_beam_in_mantid_coordinates()
+
+        assert_that(result, is_(close_to(expected_height, 1e-6)))
+        assert_that(result_in_mantid, position(expected_position, 1e-6))
+
+    def test_GIVEN_nested_component_on_component_with_angle_of_component_updates_WHEN_get_intercept_THEN_intercept_is_correct(self):
+
+        comp_axis_angle = 15
+        comp_y0 = 1
+        comp_z0 = 8
+        component = TiltingComponent("comp", PositionAndAngle(comp_y0, comp_z0, comp_axis_angle))
+        y = comp_y0
+        z = comp_z0
+        comp_disp = 2
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(comp_disp, AlarmSeverity.No, AlarmStatus.No))
+        y += comp_disp * sin(radians(comp_axis_angle))
+        z += comp_disp * cos(radians(comp_axis_angle))
+        comp_angle = 10
+        component.beam_path_rbv.axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(comp_angle, AlarmSeverity.No, AlarmStatus.No))
+
+        nest_y0 = 3
+        nest_z0 = 4
+        nest_axis_angle = 25
+        nested_component = Component("nested", PositionAndAngle(nest_y0, nest_z0, nest_axis_angle), on=component)
+        y += nest_z0 * sin(radians(comp_angle)) + nest_y0 * cos(radians(comp_angle))
+        z += nest_z0 * cos(radians(comp_angle)) - nest_y0 * sin(radians(comp_angle))
+
+        nest_disp = 6
+        nested_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(nest_disp, AlarmSeverity.No, AlarmStatus.No))
+        y += nest_disp * sin(radians(comp_angle + nest_axis_angle))
+        z += nest_disp * cos(radians(comp_angle + nest_axis_angle))
+
+        result = nested_component.beam_path_rbv.position_in_mantid_coordinates()
+
+        assert_that(result, is_(position(Position(y,z), 1e-6)))
 
 
 if __name__ == '__main__':

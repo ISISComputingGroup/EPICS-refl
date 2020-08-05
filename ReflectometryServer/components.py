@@ -1,10 +1,12 @@
 """
 Components on a beam
 """
+from typing import Optional
+
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP, DirectCalcAxis
 from ReflectometryServer.movement_strategy import LinearMovementCalc
-from ReflectometryServer.geometry import ChangeAxis
+from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
 
 import logging
 
@@ -16,15 +18,24 @@ class Component:
     Base object for all components that can sit on a beam line
     """
 
-    def __init__(self, name, setup):
+    def __init__(self, name: str, setup: PositionAndAngle, on: Optional['Component'] = None):
         """
         Initializer.
         Args:
-            name (str): name of the component
-            setup (ReflectometryServer.geometry.PositionAndAngle): initial setup for the component
+            name: name of the component
+            setup: initial setup for the component
+            on: the component on which this component is mounted, component then moves with underlying component;
+                None for not on another component
         """
         self._name = name
-        self._init_beam_path_calcs(setup)
+        self._on_component = on
+        if self._on_component is None:
+            on_beam_path_sp = None
+            on_beam_path_rbv = None
+        else:
+            on_beam_path_sp = self._on_component.beam_path_set_point.mantid_position_at
+            on_beam_path_rbv = self._on_component.beam_path_rbv.mantid_position_at
+        self._init_beam_path_calcs(setup, on_beam_path_sp, on_beam_path_rbv)
         for axis_to_add in [ChangeAxis.PHI, ChangeAxis.CHI, ChangeAxis.PSI, ChangeAxis.TRANS, ChangeAxis.HEIGHT]:
             self._beam_path_set_point.axis[axis_to_add] = DirectCalcAxis(axis_to_add)
             self._beam_path_rbv.axis[axis_to_add] = DirectCalcAxis(axis_to_add)
@@ -33,9 +44,11 @@ class Component:
         return "{}({} beampath sp:{!r}, beampath rbv:{!r})), ".format(
             self.__class__.__name__, self._name, self._beam_path_set_point, self._beam_path_rbv)
 
-    def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = TrackingBeamPathCalc("{}_sp".format(self.name), LinearMovementCalc(setup))
-        self._beam_path_rbv = TrackingBeamPathCalc("{}_rbv".format(self.name), LinearMovementCalc(setup))
+    def _init_beam_path_calcs(self, setup, on_beam_path_sp, on_beam_path_rbv):
+        self._beam_path_set_point = TrackingBeamPathCalc("{}_sp".format(self.name),
+                                                         LinearMovementCalc(setup, on_beam_path_sp))
+        self._beam_path_rbv = TrackingBeamPathCalc("{}_rbv".format(self.name),
+                                                   LinearMovementCalc(setup, on_beam_path_rbv))
 
     @property
     def name(self):
@@ -98,10 +111,12 @@ class TiltingComponent(Component):
         """
         super(TiltingComponent, self).__init__(name, setup)
 
-    def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name), LinearMovementCalc(setup),
+    def _init_beam_path_calcs(self, setup, on_beam_path_sp, on_beam_path_rbv):
+        self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name),
+                                                                  LinearMovementCalc(setup, on_beam_path_sp),
                                                                   is_reflecting=False)
-        self._beam_path_rbv = SettableBeamPathCalcWithAngle("{}_rbv".format(self.name), LinearMovementCalc(setup),
+        self._beam_path_rbv = SettableBeamPathCalcWithAngle("{}_rbv".format(self.name),
+                                                            LinearMovementCalc(setup, on_beam_path_rbv),
                                                             is_reflecting=False)
 
 
@@ -118,10 +133,12 @@ class ReflectingComponent(Component):
         """
         super(ReflectingComponent, self).__init__(name, setup)
 
-    def _init_beam_path_calcs(self, setup):
-        self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name), LinearMovementCalc(setup),
+    def _init_beam_path_calcs(self, setup, on_beam_path_sp, on_beam_path_rbv):
+        self._beam_path_set_point = SettableBeamPathCalcWithAngle("{}_sp".format(self.name),
+                                                                  LinearMovementCalc(setup, on_beam_path_sp),
                                                                   is_reflecting=True)
-        self._beam_path_rbv = SettableBeamPathCalcWithAngle("{}_rbv".format(self.name), LinearMovementCalc(setup),
+        self._beam_path_rbv = SettableBeamPathCalcWithAngle("{}_rbv".format(self.name),
+                                                            LinearMovementCalc(setup, on_beam_path_rbv),
                                                             is_reflecting=True)
 
 
@@ -162,11 +179,11 @@ class ThetaComponent(ReflectingComponent):
         self._beam_path_set_point.add_angle_to(component.beam_path_set_point, ChangeAxis.ANGLE)
         self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point, ChangeAxis.ANGLE)
 
-    def _init_beam_path_calcs(self, setup):
-        linear_movement_calc = LinearMovementCalc(setup)
-
-        self._beam_path_set_point = BeamPathCalcThetaSP("{}_sp".format(self.name), linear_movement_calc)
-        self._beam_path_rbv = BeamPathCalcThetaRBV("{}_rbv".format(self.name), linear_movement_calc,
+    def _init_beam_path_calcs(self, setup, on_beam_path_sp, on_beam_path_rbv):
+        self._beam_path_set_point = BeamPathCalcThetaSP("{}_sp".format(self.name),
+                                                        LinearMovementCalc(setup, on_beam_path_sp))
+        self._beam_path_rbv = BeamPathCalcThetaRBV("{}_rbv".format(self.name),
+                                                   LinearMovementCalc(setup, on_beam_path_rbv),
                                                    self._beam_path_set_point)
 
 
@@ -184,8 +201,8 @@ class BenchComponent(TiltingComponent):
         """
         super(TiltingComponent, self).__init__(name, setup)
 
-    def _init_beam_path_calcs(self, setup):
-        super(BenchComponent, self)._init_beam_path_calcs(setup)
+    def _init_beam_path_calcs(self, setup, on_beam_path_sp, on_beam_path_rbv):
+        super(BenchComponent, self)._init_beam_path_calcs(setup, on_beam_path_sp, on_beam_path_rbv)
 
         self.beam_path_set_point.axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
         self.beam_path_rbv.axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)

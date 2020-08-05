@@ -4,7 +4,7 @@ set points or readbacks etc.
 """
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
-from math import degrees, atan2
+from math import degrees, atan2, radians, sin, cos
 from typing import Dict
 
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
@@ -581,6 +581,17 @@ class TrackingBeamPathCalc:
                 logger.error("Incoming beam was not initialised for component {}".format(self._name))
             self.set_incoming_beam(incoming_beam, force=True, on_init=True)
 
+    def mantid_position_at(self, position_and_axis_angle_on_component: PositionAndAngle):
+        """
+        For a position on the component return the position based on this components position. This is used when a
+        component is placed on this component, when this component moves then all the components on it must also move.
+        For a non-tilting component this just effects the height.
+        :param position_and_axis_angle_on_component: position on the component
+        :return: position and axis angle in mantid coordinates
+        """
+        new_position = self.position_in_mantid_coordinates() + position_and_axis_angle_on_component
+        return PositionAndAngle(new_position.y, new_position.z, position_and_axis_angle_on_component.angle)
+
 
 class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
     """
@@ -652,6 +663,24 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         angle_between_beam_and_component = (self._angular_displacement - self._incoming_beam.angle)
         angle = angle_between_beam_and_component * 2 + self._incoming_beam.angle
         return PositionAndAngle(target_position.y, target_position.z, angle)
+
+    def mantid_position_at(self, position_and_axis_angle_on_component: PositionAndAngle):
+        """
+        For a position on the component return the position based on this components position. This is used when a
+        component is placed on this component, when this component moves then all the components on it must also move.
+        For a tilting component this effects the height and distance along the beam, and tilt of the movement axis
+        :param position_and_axis_angle_on_component: position on the component
+        :return: position and axis angle in mantid coordinates
+        """
+        angle_to_nested = atan2(position_and_axis_angle_on_component.y, position_and_axis_angle_on_component.z)
+        distance_to_nested = abs(position_and_axis_angle_on_component)
+        angle_in_mantid = angle_to_nested + radians(self._angular_displacement)
+        nested_components_position_at_angle_y = distance_to_nested * sin(angle_in_mantid)
+        nested_components_position_at_angle_z = distance_to_nested * cos(angle_in_mantid)
+        component_position = self.position_in_mantid_coordinates()
+        return PositionAndAngle(nested_components_position_at_angle_y + component_position.y,
+                                nested_components_position_at_angle_z + component_position.z,
+                                position_and_axis_angle_on_component.angle + self._angular_displacement)
 
 
 class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
