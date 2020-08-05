@@ -9,12 +9,13 @@ from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectio
     add_component, add_parameter, ConfigHelper, add_driver, add_beam_start, get_configured_beamline
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
+from server_common.channel_access import AlarmStatus, AlarmSeverity
 from server_common.observable import observable
 from .utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent, \
-    BenchComponent
+    BenchComponent, BenchSetup
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, DirectParameter, \
@@ -299,14 +300,18 @@ class DataMother:
         theta = add_component(ThetaComponent("THETA", PositionAndAngle(0, 10, 90)))
         add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE, autosave=not autosave_bench_not_theta))
 
-        bench = add_component(BenchComponent("Bench", PositionAndAngle(0, 20, 90)))
+        bench = add_component(get_standard_bench(with_z_position=10, with_angle=0))
         add_parameter(AxisParameter("bench_angle", bench, ChangeAxis.ANGLE, autosave=autosave_bench_not_theta))
-        bench_axis = create_mock_axis("MOT:MTR0102", driver_bench_offset + theta_angle * 2 + sm_angle * 2, 1)
-        add_driver(IocDriver(bench, ChangeAxis.ANGLE, bench_axis))
-        bench_axis.trigger_rbv_change()
+        bench_angle = radians(driver_bench_offset + theta_angle * 2 + sm_angle * 2)
+        bench_jack_front = create_mock_axis("MOT:MTR0102", tan(bench_angle) * PIVOT_TO_J1 - PIVOT_TO_BEAM * (1 - cos(bench_angle)), 1)
+        bench_jack_rear = create_mock_axis("MOT:MTR0103", tan(bench_angle) * PIVOT_TO_J2 - PIVOT_TO_BEAM * (1 - cos(bench_angle)), 1)
+        add_driver(IocDriver(bench, ChangeAxis.JACK_REAR, bench_jack_rear))
+        add_driver(IocDriver(bench, ChangeAxis.JACK_FRONT, bench_jack_front))
+        bench_jack_rear.trigger_rbv_change()
+        bench_jack_front.trigger_rbv_change()
         theta.add_angle_of(bench)
 
-        return get_configured_beamline(), {"bench_angle": bench_axis, "sm_angle": sm_axis}
+        return get_configured_beamline(), {"bench_jack_rear": bench_jack_rear, "bench_jack_front": bench_jack_front, "sm_angle": sm_axis}
 
 
 def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):
@@ -373,11 +378,11 @@ class MockMotorPVWrapper:
     def sp(self, new_value):
         self._last_set_point_set = new_value
         self._value = new_value
-        self.trigger_listeners(SetpointUpdate(new_value, None, None))
-        self.trigger_listeners(ReadbackUpdate(new_value, None, None))
+        self.trigger_listeners(SetpointUpdate(new_value, AlarmSeverity.No, AlarmStatus.No))
+        self.trigger_listeners(ReadbackUpdate(new_value, AlarmSeverity.No, AlarmStatus.No))
 
     def trigger_rbv_change(self):
-        self.trigger_listeners(ReadbackUpdate(self._value, None, None))
+        self.trigger_listeners(ReadbackUpdate(self._value, AlarmSeverity.No, AlarmStatus.No))
 
     @property
     def rbv(self):
@@ -386,8 +391,8 @@ class MockMotorPVWrapper:
     def define_position_as(self, new_value):
         self.set_position_as_value = new_value
         self._value = new_value
-        self.trigger_listeners(SetpointUpdate(new_value, None, None))
-        self.trigger_listeners(ReadbackUpdate(new_value, None, None))
+        self.trigger_listeners(SetpointUpdate(new_value, AlarmSeverity.No, AlarmStatus.No))
+        self.trigger_listeners(ReadbackUpdate(new_value, AlarmSeverity.No, AlarmStatus.No))
 
 
 class MockChannelAccess:
@@ -422,3 +427,20 @@ def create_mock_JawsCentrePVWrapper(name, init_position, max_velocity, backlash_
 
     return mock_jaws_wrapper
 
+
+PIVOT_TO_J1 = 1201
+PIVOT_TO_J2 = 1201 + 1558.0
+ANGLE_OF_BENCH = 2.3
+PIVOT_TO_BEAM = 628
+
+
+def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH):
+    """
+    Get the standard bench setup as per POLREF
+    Args:
+        with_z_position: z position of the pivot
+        with_angle: set the initial angle
+    Returns:
+        Bench setup correctly
+    """
+    return BenchComponent("rear_bench", BenchSetup(0, with_z_position, 90, PIVOT_TO_J1, PIVOT_TO_J2, with_angle, PIVOT_TO_BEAM))

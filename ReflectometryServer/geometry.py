@@ -103,3 +103,6 @@ class ChangeAxis(Enum):
     PSI = 5         # angle like roll
     HEIGHT = 6      # height axis perpendicular to beam and the floor
     TRANS = 7       # translation axis perpendicular to beam and parallel to the floor
+    JACK_FRONT = 8  # on the bench the jack at the front of the table
+    JACK_REAR = 9   # on the bench the jack at the rear of the table
+    SLIDE = 10      # on the bench the horizontal slide
