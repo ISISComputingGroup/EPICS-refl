@@ -5,15 +5,17 @@ import math
 import logging
 from collections import namedtuple
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, TYPE_CHECKING
 
 from pcaspy import Severity
 
-from ReflectometryServer import Component
+if TYPE_CHECKING:
+    from ReflectometryServer.components import Component
+from ReflectometryServer.axis import DefineValueAsEvent
 from ReflectometryServer.out_of_beam import OutOfBeamLookup, OutOfBeamPosition
 from ReflectometryServer.engineering_corrections import NoCorrection, CorrectionUpdate, CorrectionRecalculate, \
     EngineeringCorrection
-from ReflectometryServer.beam_path_calc import DefineValueAsEvent
+
 from ReflectometryServer.geometry import ChangeAxis
 from ReflectometryServer.parameters import BeamlineParameter, ParameterSetpointReadbackUpdate
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate, PVWrapper
@@ -46,7 +48,7 @@ class IocDriver:
     """
     _motor_axis: Optional[PVWrapper]
 
-    def __init__(self, component: Component, component_axis: ChangeAxis, motor_axis: PVWrapper,
+    def __init__(self, component: 'Component', component_axis: ChangeAxis, motor_axis: PVWrapper,
                  out_of_beam_positions: Optional[List[OutOfBeamPosition]] = None, synchronised: bool = True,
                  engineering_correction: Optional[EngineeringCorrection] = None,
                  pv_wrapper_for_parameter: Optional[PVWrapperForParameter] = None):

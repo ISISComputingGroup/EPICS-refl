@@ -7,7 +7,7 @@ import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
-from ReflectometryServer.beam_path_calc import DefineValueAsEvent
+from ReflectometryServer.axis import DefineValueAsEvent
 from ReflectometryServer import ChangeAxis
 from ReflectometryServer.pv_wrapper import _JawsAxisPVWrapper
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_JawsCentrePVWrapper, \
