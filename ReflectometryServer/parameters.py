@@ -577,7 +577,6 @@ class InBeamParameter(BeamlineParameter):
         self._set_initial_sp(init_sp)
 
     def _move_component(self):
-        # Use set in beam instead of just property so change flag gets set on the axis correctly
         self._component.beam_path_set_point.is_in_beam = self._set_point_rbv
 
     def validate(self, drivers):
