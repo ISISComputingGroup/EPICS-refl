@@ -2,17 +2,31 @@ from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
 
-
 from server_common.channel_access import AlarmStatus, AlarmSeverity
 from server_common.observable import observable
 
+# Event that is triggered when the physical position of this component changes.
 PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", [
     "source"])  # The source of the beam path change. (the axis itself)
+
+# Event that is triggered when the changing state of the axis is updated (i.e. it starts or stops moving)
 AxisChangingUpdate = namedtuple("AxisChangingUpdate", [])
+
+# Event that is triggered when the position or angle of the beam path calc gets an initial value.
 InitUpdate = namedtuple("InitUpdate", [])
+
+# Event that happens when a value is redefine to a different value, e.g. offset is set from 2 to 3
 DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
     "new_position",  # the new value
     "change_axis"])  # the axis it applies to of type ChangeAxis
+
+
+@dataclass()
+class AddOutOfBeamPositionEvent:
+    """
+    Event that is triggered an ioc driver with a parked position is added to an axis
+    """
+    source: "ComponentAxis"
 
 
 @dataclass()
@@ -32,7 +46,7 @@ class SetRelativeToBeamUpdate:
 
 
 @observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate, AxisChangedUpdate,
-            SetRelativeToBeamUpdate)
+            SetRelativeToBeamUpdate, AddOutOfBeamPositionEvent)
 class ComponentAxis(metaclass=ABCMeta):
     """
     A components axis of movement, allowing setting in both mantid and relative coordinates. Transmits alarms,
@@ -49,8 +63,10 @@ class ComponentAxis(metaclass=ABCMeta):
         self._is_changing = False
         self.autosaved_value = None
         self._is_changed = False
+        self._is_in_beam = True
         self._axis = axis
         self._alarm = (AlarmSeverity.Invalid, AlarmStatus.UDF)
+        self._has_out_of_beam_position = False
         self.can_define_axis_position_as = False
 
     @abstractmethod
@@ -153,7 +169,7 @@ class ComponentAxis(metaclass=ABCMeta):
     @property
     def is_changing(self):
         """
-        Returns: Is the component with angle currently rotating
+        Returns: Is the axis currently moving
         """
         return self._is_changing
 
@@ -197,6 +213,45 @@ class ComponentAxis(metaclass=ABCMeta):
         """
         self._is_changed = is_changed
         self.trigger_listeners(AxisChangedUpdate(is_changed))
+
+    @property
+    def has_out_of_beam_position(self):
+        """
+        Returns:
+            Whether any out of beam positions have been defined for this axis.
+        """
+        return self._has_out_of_beam_position
+
+    @has_out_of_beam_position.setter
+    def has_out_of_beam_position(self, has_out_of_beam_position):
+        """
+        Args:
+            has_out_of_beam_position (bool): sets the flag showing whether any out of beam positions have been defined
+            for this axis.
+        """
+        self._has_out_of_beam_position = has_out_of_beam_position
+        if has_out_of_beam_position:
+            self.trigger_listeners(AddOutOfBeamPositionEvent(self))
+
+    @property
+    def is_in_beam(self):
+        """
+        Returns:
+            Whether this axis is currently in beam
+        """
+        if self.has_out_of_beam_position:
+            return self._is_in_beam
+        return True
+
+    @is_in_beam.setter
+    def is_in_beam(self, is_in_beam):
+        """
+        Args:
+            is_in_beam (bool): sets the new in beam status
+        """
+        if self.has_out_of_beam_position:
+            self._is_in_beam = is_in_beam
+            self.is_changed = True
 
 
 class DirectCalcAxis(ComponentAxis):

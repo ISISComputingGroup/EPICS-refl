@@ -477,8 +477,8 @@ class AxisParameter(BeamlineParameter):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
         """
-        if self._axis == ChangeAxis.POSITION and not self._component.beam_path_set_point.is_in_beam: #TODO: sort in park position ticket
-            # If the component is out of the beam the setpoint should be set to 0 for the position axis only
+        if not self._component.beam_path_set_point.axis[self._axis].is_in_beam:
+            # If the axis is out of the beam the displacement should be set to 0
             init_sp = 0.0
         else:
             init_sp = self._component.beam_path_set_point.axis[self._axis].get_relative_to_beam()
@@ -503,7 +503,7 @@ class AxisParameter(BeamlineParameter):
         if self.rbv is None or self._set_point_rbv is None:
             return False
 
-        return not self._component.beam_path_set_point.is_in_beam or \
+        return not self._component.beam_path_set_point.axis[self._axis].is_in_beam or \
             abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
 
     def _get_alarm_info(self):
@@ -554,11 +554,9 @@ class InBeamParameter(BeamlineParameter):
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
-            self._component.beam_path_set_point.axis[ChangeAxis.POSITION].add_listener(InitUpdate,
-                                                                                       self._initialise_sp_from_motor)
+            self._component.beam_path_set_point.in_beam_manager.add_listener(InitUpdate, self._initialise_sp_from_motor)
         self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
-        self._component.beam_path_rbv.axis[ChangeAxis.POSITION].add_listener(AxisChangingUpdate,
-                                                                             self._on_update_changing_state)
+        self._component.beam_path_rbv.in_beam_manager.add_listener(AxisChangingUpdate, self._on_update_changing_state)
 
         self.parameter_type = BeamlineParameterType.IN_OUT
 
@@ -579,8 +577,7 @@ class InBeamParameter(BeamlineParameter):
         self._set_initial_sp(init_sp)
 
     def _move_component(self):
-        # Use set in beam instead of just property so change flag gets set on the axis correctly
-        self._component.beam_path_set_point.set_in_beam(self._set_point_rbv)
+        self._component.beam_path_set_point.is_in_beam = self._set_point_rbv
 
     def validate(self, drivers):
         """
@@ -596,13 +593,10 @@ class InBeamParameter(BeamlineParameter):
         errors = []
         for driver in drivers:
             if driver.is_for_component(self._component):
-                try:
-                    if driver.has_out_of_beam_position():
-                        break
-                except AttributeError:
-                    pass  # this is not a displacement driver so can not have this
+                if driver.has_out_of_beam_position():
+                    break
         else:
-            errors.append("No driver found with out of beam position for component {}".format(self.name))
+            errors.append("No driver found with out of beam position for component {}".format(self._component.name))
         return errors
 
     def _rbv(self):
@@ -612,14 +606,14 @@ class InBeamParameter(BeamlineParameter):
         """
         Returns the alarm information for the displacement axis of this component.
         """
-        return self._component.beam_path_rbv.axis[ChangeAxis.POSITION].alarm
+        return self._component.beam_path_rbv.in_beam_manager.alarm
 
     @property
     def is_changing(self):
         """
         Returns: Is the parameter changing (rotating, displacing etc.)
         """
-        return self._component.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing
+        return self._component.beam_path_rbv.in_beam_manager.is_changing
 
 
 class DirectParameter(BeamlineParameter):

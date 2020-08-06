@@ -35,6 +35,10 @@ class Component:
             self._beam_path_set_point.axis[axis_to_add] = DirectCalcAxis(axis_to_add)
             self._beam_path_rbv.axis[axis_to_add] = DirectCalcAxis(axis_to_add)
 
+        # Do this after all ChangeAxis have been defined for this component
+        self._beam_path_rbv.in_beam_manager.add_axes(self._beam_path_rbv.axis)
+        self._beam_path_set_point.in_beam_manager.add_axes(self._beam_path_set_point.axis)
+
     def __repr__(self):
         return "{}({} beampath sp:{!r}, beampath rbv:{!r})), ".format(
             self.__class__.__name__, self._name, self._beam_path_set_point, self._beam_path_rbv)

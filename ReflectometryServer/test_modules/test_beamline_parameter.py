@@ -137,7 +137,8 @@ class TestBeamlineParameter(unittest.TestCase):
 
     def test_GIVEN_component_in_beam_parameter_in_mode_WHEN_parameter_moved_to_THEN_component_is_not_in_beam(self):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
-        super_mirror.beam_path_set_point.is_in_beam = True
+        super_mirror.beam_path_set_point.axis[ChangeAxis.POSITION].has_out_of_beam_position = True
+        super_mirror.beam_path_set_point.axis[ChangeAxis.POSITION].is_in_beam = True
         sm_in_beam = InBeamParameter("sminbeam", super_mirror)
         in_beam_sp = False
 
@@ -685,10 +686,13 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         in_beam_parameter = InBeamParameter("param", component)
         listener = Mock()
         in_beam_parameter.add_listener(ParameterReadbackUpdate, listener)
+        component.beam_path_rbv.axis[ChangeAxis.POSITION].has_out_of_beam_position = True
 
         component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(new_value, alarm_severity, alarm_status))
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
+        listener.assert_called_with(ParameterReadbackUpdate(True, alarm_severity, alarm_status))
+        #  once for beam path update and once for physical move update
+        assert_that(listener.call_count, is_(2))
         self.assertEqual(in_beam_parameter.alarm_severity, alarm_severity)
         self.assertEqual(in_beam_parameter.alarm_status, alarm_status)
 
@@ -791,7 +795,8 @@ class TestBeamlineThetaComponentWhenDisabled(unittest.TestCase):
         sample.add_angle_to(detector2)
         theta = AxisParameter("param", sample, ChangeAxis.ANGLE)
         detector.set_incoming_beam_can_change(False)
-        detector.beam_path_set_point.is_in_beam = False
+        detector.beam_path_set_point.axis[ChangeAxis.POSITION].has_out_of_beam_position = True
+        detector.beam_path_set_point.axis[ChangeAxis.POSITION].is_in_beam = False
         detector2.set_incoming_beam_can_change(False)
 
         theta.sp = 22.5
