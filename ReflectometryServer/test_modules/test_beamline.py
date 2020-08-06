@@ -73,7 +73,8 @@ class TestComponentBeamline(unittest.TestCase):
         beamline, mirror = self.setup_beamline(initial_mirror_angle, mirror_position, beam_start)
         expected_beams = [beam_start, beam_start, beam_start]
 
-        mirror.beam_path_set_point.is_in_beam = False
+        mirror.beam_path_set_point.axis[ChangeAxis.POSITION].has_out_of_beam_position = True
+        mirror.beam_path_set_point.axis[ChangeAxis.POSITION].is_in_beam = False
         results = [component.beam_path_set_point.get_outgoing_beam() for component in beamline]
 
         for index, (result, expected_beam) in enumerate(zip(results, expected_beams)):
@@ -634,10 +635,6 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
 class TestComponentOutOfBeam(unittest.TestCase):
 
-    # TODO check iocdriver sets shit on axis correctly (test individual)
-
-    # TODO test component reports correct composite status (tests below, may have to go into test_beamline)
-
     def setUp(self):
         self.comp = Component("test_component", PositionAndAngle(0, 0, 90))
         self.IN_BEAM_VALUE = 0
@@ -745,7 +742,6 @@ class TestComponentOutOfBeam(unittest.TestCase):
         assert_that(actual, is_(expected))
 
     def test_GIVEN_component_with_multiple_axes_with_out_of_beam_position_WHEN_one_is_in_beam_THEN_in_beam_rbv_is_true(self):
-        # TODO but alarms set?
         out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
         chi_axis = create_mock_axis("chi", self.OUT_OF_BEAM_VALUE, 1)
         psi_axis = create_mock_axis("psi", self.IN_BEAM_VALUE, 1)
@@ -799,7 +795,7 @@ class TestComponentOutOfBeam(unittest.TestCase):
 
         assert_that(in_beam_param.rbv, is_(False))
 
-    def test_GIVEN_parameter_on_component_WHEN_adding_driver_with_out_of_beam_position_THEN_parameter_gets_init_value(self):
+    def test_GIVEN_inbeam_parameter_on_component_WHEN_adding_driver_with_out_of_beam_position_THEN_parameter_gets_init_value(self):
         out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
         chi_axis = create_mock_axis("chi", self.OUT_OF_BEAM_VALUE, 1)
         in_beam_param = InBeamParameter("in_beam", self.comp)
@@ -809,15 +805,6 @@ class TestComponentOutOfBeam(unittest.TestCase):
 
         assert_that(in_beam_param.rbv, is_(False))
 
-    def test_GIVEN_parameter_on_component_WHEN_adding_driver_with_out_of_beam_position_THEN_parameter_gets_init_value(self):
-        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
-        chi_axis = create_mock_axis("chi", self.OUT_OF_BEAM_VALUE, 1)
-        in_beam_param = InBeamParameter("in_beam", self.comp)
-
-        IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
-        chi_axis.trigger_rbv_change()
-
-        assert_that(in_beam_param.rbv, is_(False))
 
 if __name__ == '__main__':
     unittest.main()

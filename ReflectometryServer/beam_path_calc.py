@@ -9,7 +9,7 @@ from math import degrees, atan2
 from typing import Dict
 
 from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
-    BeamPathCalcAxis, AddOutOfBeamPositionEvent
+    BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
 
@@ -28,7 +28,7 @@ BeamPathUpdateOnInit = namedtuple("BeamPathUpdateOnInit", [
     "source"])  # The source of the beam path change. (the component itself)
 
 
-@observable(InitUpdate, AxisChangingUpdate)
+@observable(InitUpdate, AxisChangingUpdate, AxisChangedUpdate, PhysicalMoveUpdate)
 class InBeamManager:
     """
     Manages the in-beam status of a component as a whole by combining information from all axes on the component that
@@ -47,20 +47,18 @@ class InBeamManager:
             axes (Dict[ChangeAxis, ComponentAxis]): The axes to add
         """
         for component_axis in axes.values():
-            component_axis.add_listener(AddOutOfBeamPositionEvent,
-                                        partial(self._on_add_out_of_beam_position, component_axis))
+            component_axis.add_listener(AddOutOfBeamPositionEvent, self._on_add_out_of_beam_position)
 
-    def _on_add_out_of_beam_position(self, axis, _):
+    def _on_add_out_of_beam_position(self, event):
+        axis = event.source
         self.parking_axes.append(axis)
-        axis.add_listener(AxisChangingUpdate, self._on_axis_changing)
-        axis.add_listener(InitUpdate, self._on_axis_init)
-        #TODO sign up to axis physical change that should call beam path update!
+        axis.add_listener(AxisChangingUpdate, self._propagate_axis_event)
+        axis.add_listener(AxisChangedUpdate, self._propagate_axis_event)
+        axis.add_listener(InitUpdate, self._propagate_axis_event)
+        axis.add_listener(PhysicalMoveUpdate, self._propagate_axis_event)
 
-    def _on_axis_changing(self, _):
-        self.trigger_listeners(AxisChangingUpdate())
-
-    def _on_axis_init(self, _):
-        self.trigger_listeners(InitUpdate())
+    def _propagate_axis_event(self, event):
+        self.trigger_listeners(event)
 
     def get_is_in_beam(self):
         """
@@ -122,6 +120,8 @@ class TrackingBeamPathCalc:
         self.substitute_incoming_beam_for_displacement = None
 
         self.in_beam_manager = InBeamManager()
+        self.in_beam_manager.add_listener(PhysicalMoveUpdate, self._on_in_beam_status_update)
+        self.in_beam_manager.add_listener(AxisChangedUpdate, self._on_in_beam_status_update)
 
         self.axis = {
             ChangeAxis.POSITION: BeamPathCalcAxis(ChangeAxis.POSITION,
@@ -180,6 +180,9 @@ class TrackingBeamPathCalc:
             on_init(bool): True for this is during init; False otherwise
         """
         pass
+
+    def _on_in_beam_status_update(self, _):
+        self.trigger_listeners(BeamPathUpdate(self))
 
     def get_outgoing_beam(self):
         """
@@ -398,7 +401,8 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         target_position = self.calculate_beam_interception()
         angle_between_beam_and_component = (self._angular_displacement - self._incoming_beam.angle)
         angle = angle_between_beam_and_component * 2 + self._incoming_beam.angle
-        return PositionAndAngle(target_position.y, target_position.z, angle)
+        outgoing_beam = PositionAndAngle(target_position.y, target_position.z, angle)
+        return outgoing_beam
 
 
 class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):

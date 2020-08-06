@@ -2,7 +2,6 @@ from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
 
-
 from server_common.channel_access import AlarmStatus, AlarmSeverity
 from server_common.observable import observable
 
@@ -27,6 +26,7 @@ class AddOutOfBeamPositionEvent:
     """
     Event that is triggered an ioc driver with a parked position is added to an axis
     """
+    source: "ComponentAxis"
 
 
 @dataclass()
@@ -231,7 +231,7 @@ class ComponentAxis(metaclass=ABCMeta):
         """
         self._has_out_of_beam_position = has_out_of_beam_position
         if has_out_of_beam_position:
-            self.trigger_listeners(AddOutOfBeamPositionEvent())
+            self.trigger_listeners(AddOutOfBeamPositionEvent(self))
 
     @property
     def is_in_beam(self):
