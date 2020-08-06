@@ -15,6 +15,7 @@ from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.file_io import mode_autosave, MODE_KEY
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
+from ReflectometryServer.parameters import RequestMoveEvent
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 from server_common.channel_access import UnableToConnectToPVException
@@ -158,7 +159,7 @@ class Beamline:
         self.footprint_manager = FootprintManager(footprint_setup)
         for beamline_parameter in beamline_parameters:
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
-            beamline_parameter.after_move_listener = self._move_for_single_beamline_parameters
+            beamline_parameter.add_listener(RequestMoveEvent, self._move_for_single_beamline_parameters)
 
         self._modes = OrderedDict()
         for mode in modes:
@@ -376,20 +377,20 @@ class Beamline:
 
         self._move_drivers()
 
-    def _move_for_single_beamline_parameters(self, source):
+    def _move_for_single_beamline_parameters(self, request: RequestMoveEvent):
         """
         Moves starts from a single beamline parameter and move is to parameters sp read backs. If the
-        source is not in the mode then don't update any other parameters. Move to latest position.
+        request source is not in the mode then don't update any other parameters. Move to latest position.
 
-        the beamline.
         Args:
-            source: source to start the update from; None start from the beginning.
+            request: request to move a single parameter; if source is None start from the beginning,
+                otherwise start from source
         """
         STATUS_MANAGER.clear_all()
-        logger.info("PARAMETER MOVE TRIGGERED (source: {})".format(source.name))
-        if self._active_mode.has_beamline_parameter(source):
+        logger.info("PARAMETER MOVE TRIGGERED (source: {})".format(request.source.name))
+        if self._active_mode.has_beamline_parameter(request.source):
             parameters = self._beamline_parameters.values()
-            parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, source)
+            parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, request.source)
 
             for beamline_parameter in parameters_in_mode:
                 beamline_parameter.move_to_sp_rbv_no_callback()

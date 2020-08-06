@@ -9,6 +9,7 @@ import unittest
 from ReflectometryServer import *
 from ReflectometryServer.axis import DefineValueAsEvent
 from ReflectometryServer import ChangeAxis
+from ReflectometryServer.parameters import RequestMoveEvent
 from ReflectometryServer.pv_wrapper import _JawsAxisPVWrapper
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_JawsCentrePVWrapper, \
     create_mock_axis
@@ -116,7 +117,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         assert_that(parameter.define_current_value_as, is_(None))
 
-    def test_GIVEN_tracking_beamline_parameter_and_component_WHEN_set_position_to_THEN_component_and_parameter_set_points_are_new_values(self):
+    def test_GIVEN_tracking_beamline_parameter_and_component_WHEN_set_position_to_THEN_component_and_parameter_set_points_are_new_values_motor_is_not_moved(self):
         incoming_beam = PositionAndAngle(0, 0, 0)
         expected_position = 1
         component = Component("comp", PositionAndAngle(0, 0, 90))
@@ -124,6 +125,8 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         parameter = AxisParameter("param", component, ChangeAxis.POSITION)
         parameter.sp = 0
         parameter.move = 0
+        move_listener = Mock()
+        parameter.add_listener(RequestMoveEvent, move_listener)
 
         parameter.define_current_value_as.new_value = expected_position
 
@@ -131,6 +134,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
                     "component setpoint")
         assert_that(parameter.sp, is_(expected_position), "Parameter setpoint")
         assert_that(parameter.sp_rbv, is_(expected_position), "Parameter setpoint read back")
+        move_listener.assert_not_called()
 
     def test_GIVEN_angle_beamline_parameter_and_component_WHEN_set_position_to_THEN_component_and_parameter_set_points_are_new_values(self):
         incoming_beam = PositionAndAngle(0, 0, 0)

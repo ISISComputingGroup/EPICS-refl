@@ -1,7 +1,6 @@
 """
 Parameters that the user would interact with
 """
-from collections import namedtuple
 from dataclasses import dataclass
 from typing import List, Optional, Union, TYPE_CHECKING
 
@@ -60,14 +59,28 @@ class ParameterSetpointReadbackUpdate(ParameterReadbackUpdate):
     """
 
 
-# An update of the parameter at-setpoint state
-ParameterAtSetpointUpdate = namedtuple("ParameterAtSetpointUpdate", [
-    "value"])           # The new state (boolean)
+@dataclass
+class ParameterAtSetpointUpdate:
+    """
+    An update of the parameter at-setpoint state
+    """
+    value: bool  # The new state (boolean)
 
 
-# An update of the parameter is-changing state
-ParameterChangingUpdate = namedtuple("ParameterChangingUpdate", [
-    "value"])           # The new state (boolean)
+@dataclass
+class ParameterChangingUpdate:
+    """
+    An update of the parameter is-changing state
+    """
+    value: bool  # The new state
+
+
+@dataclass
+class RequestMoveEvent:
+    """
+    Called after a move has been requested on a parameter
+    """
+    source: 'BeamlineParameter'  # beamline parameter which caused the move to be triggered
 
 
 class DefineCurrentValueAsParameter:
@@ -142,7 +155,7 @@ class BeamlineParameterGroup(Enum):
 
 
 @observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate,
-            ParameterChangingUpdate, ParameterInitUpdate)
+            ParameterChangingUpdate, ParameterInitUpdate, RequestMoveEvent)
 @six.add_metaclass(abc.ABCMeta)
 class BeamlineParameter:
     """
@@ -158,7 +171,6 @@ class BeamlineParameter:
         self._name = name
         self.alarm_status = None
         self.alarm_severity = None
-        self.after_move_listener = lambda x: None
         self.parameter_type = BeamlineParameterType.FLOAT
         if description is None:
             self.description = name
@@ -262,6 +274,15 @@ class BeamlineParameter:
         """
         self._set_sp(value)
 
+    def _set_sp_perform_no_move(self, value):
+        """
+        Set the set points as far down as the component layer but don't move the drivers
+        Args:
+            value: new value for setpoint
+        """
+        self._sp_no_move(value)
+        self.move_to_sp_no_callback()
+
     def _set_sp(self, value):
         """
         Set the set point and move to do, private function needed for define position
@@ -287,7 +308,7 @@ class BeamlineParameter:
 
     def _do_move(self):
         self.move_to_sp_no_callback()
-        self.after_move_listener(self)
+        self.trigger_listeners(RequestMoveEvent(self))
 
     def move_to_sp_no_callback(self):
         """
@@ -314,12 +335,12 @@ class BeamlineParameter:
         """
         self._check_and_move_component()
 
-    def _on_update_rbv(self, source):
+    def _on_update_rbv(self, _):
         """
         Trigger all rbv listeners
 
         Args:
-            source: source of change which is not used
+            _: source of change which is not used
         """
         rbv = self._rbv()
         self._update_alarms()
@@ -348,12 +369,12 @@ class BeamlineParameter:
         """
         raise NotImplemented()
 
-    def _on_update_changing_state(self, update):
+    def _on_update_changing_state(self, _):
         """
         Runs all the current listeners on the changing state because something has changed.
 
         Args:
-            update (ReflectometryServer.beam_path_calc.AxisChangingUpdate): The update event
+            _ (ReflectometryServer.beam_path_calc.AxisChangingUpdate): The update event
         """
         self.trigger_listeners(ParameterChangingUpdate(self.is_changing))
 
@@ -460,8 +481,8 @@ class AxisParameter(BeamlineParameter):
         rbv_axis.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
 
         if rbv_axis.can_define_axis_position_as:
-            self.define_current_value_as = DefineCurrentValueAsParameter(rbv_axis.define_axis_position_as, self._set_sp,
-                                                                         self)
+            self.define_current_value_as = DefineCurrentValueAsParameter(rbv_axis.define_axis_position_as,
+                                                                         self._set_sp_perform_no_move, self)
 
     def _initialise_sp_from_file(self):
         """
