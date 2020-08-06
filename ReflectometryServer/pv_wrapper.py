@@ -316,7 +316,7 @@ class PVWrapper:
             value (float): The value to set
         """
         logger.info("{}: Setting velocity to : {}".format(self.name, value))
-        self._write_pv(self._velo_pv, value)
+        self._write_pv(self._velo_pv, value, wait=True)
 
     @property
     def max_velocity(self):
