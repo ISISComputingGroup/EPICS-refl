@@ -7,6 +7,8 @@ from typing import List, Optional, Union, TYPE_CHECKING
 
 from pcaspy import Severity
 
+from server_common.utilities import SEVERITY
+
 if TYPE_CHECKING:
     from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate
@@ -135,10 +137,31 @@ class BeamlineParameterGroup(Enum):
     """
     Types of groups a parameter can belong to
     """
-    TRACKING = 1
-    FOOTPRINT_PARAMETER = 2
-    GAP_VERTICAL = 3
-    GAP_HORIZONTAL = 4
+    ALL = 1
+    COLLIMATION_PLANE = 2
+    FOOTPRINT_PARAMETER = 3
+    GAP_VERTICAL = 4
+    GAP_HORIZONTAL = 5
+    TOGGLE = 6
+    MISC = 7
+
+    @staticmethod
+    def description(parameter_group):
+        if parameter_group == BeamlineParameterGroup.ALL:
+            return "All beamline parameters"
+        elif parameter_group == BeamlineParameterGroup.COLLIMATION_PLANE:
+            return "Axis Parameters in collimation plane"
+        elif parameter_group == BeamlineParameterGroup.FOOTPRINT_PARAMETER:
+            return "Parameters relevant to footprint calculation"
+        elif parameter_group in [BeamlineParameterGroup.GAP_VERTICAL, BeamlineParameterGroup.GAP_HORIZONTAL]:
+            return "Slit gap parameters"
+        elif parameter_group == BeamlineParameterGroup.TOGGLE:
+            return "Toggle status parameters"
+        elif parameter_group == BeamlineParameterGroup.MISC:
+            return "Other beamline parameters"
+        else:
+            logger.error("Unknown parameter group! {}".format(parameter_group), severity=SEVERITY.MAJOR, src="REFL")
+            return "(Unknown)"
 
 
 @observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate,
@@ -165,7 +188,7 @@ class BeamlineParameter:
         else:
             self.description = description
         self._autosave = autosave
-        self.group_names = []
+        self.group_names = [BeamlineParameterGroup.ALL]
         self._rbv_to_sp_tolerance = rbv_to_sp_tolerance
 
         self.define_current_value_as = None
@@ -447,6 +470,10 @@ class AxisParameter(BeamlineParameter):
         super(AxisParameter, self).__init__(name, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance)
         self._component = component
         self._axis = axis
+        if axis in [ChangeAxis.POSITION, ChangeAxis.ANGLE]:
+            self.group_names.append(BeamlineParameterGroup.COLLIMATION_PLANE)
+        else:
+            self.group_names.append(BeamlineParameterGroup.MISC)
 
         if self._autosave:
             self._initialise_sp_from_file()
@@ -559,6 +586,7 @@ class InBeamParameter(BeamlineParameter):
         self._component.beam_path_rbv.in_beam_manager.add_listener(AxisChangingUpdate, self._on_update_changing_state)
 
         self.parameter_type = BeamlineParameterType.IN_OUT
+        self.group_names.append(BeamlineParameterGroup.TOGGLE)
 
     def _initialise_sp_from_file(self):
         """
@@ -747,9 +775,11 @@ class SlitGapParameter(DirectParameter):
         """
         super(SlitGapParameter, self).__init__(name, pv_wrapper, description, autosave,
                                                rbv_to_sp_tolerance=rbv_to_sp_tolerance)
+
         if pv_wrapper.is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
             self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
+            self.group_names.append(BeamlineParameterGroup.COLLIMATION_PLANE)
         else:
             self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
 
@@ -774,6 +804,7 @@ class EnumParameter(BeamlineParameter):
         self.options = options
         if self._autosave:
             self._initialise_sp_from_file()
+        self.group_names.append(BeamlineParameterGroup.TOGGLE)
 
     def validate(self, drivers: List['IocDriver']) -> List[str]:
         """

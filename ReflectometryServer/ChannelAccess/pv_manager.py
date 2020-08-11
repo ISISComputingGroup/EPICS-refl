@@ -13,7 +13,7 @@ from ReflectometryServer.ChannelAccess.driver_utils import PvSort, \
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER, ProblemInfo
 from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY
 from pcaspy.alarm import SeverityStrings
-from ReflectometryServer.parameters import BeamlineParameterType
+from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
 from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY, compress_and_hex
 import json
@@ -55,10 +55,26 @@ SERVER_MESSAGE = "MSG"
 SERVER_ERROR_LOG = "LOG"
 BEAMLINE_MODE = BEAMLINE_PREFIX + "MODE"
 BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
+
 PARAM_INFO = "PARAM_INFO"
+PARAM_INFO_COLLIMATION = "COLLIM_INFO"
+PARAM_INFO_TOGGLE = "TOGGLE_INFO"
+PARAM_INFO_SLITS = "SLITS_INFO"
+PARAM_INFO_MISC = "MISC_INFO"
+PARAM_INFO_FOOTPRINT = "FOOTPRINT_INFO"
 DRIVER_INFO = "DRIVER_INFO"
 BEAMLINE_CONSTANT_INFO = "CONST_INFO"
 ALIGN_INFO = "ALIGN_INFO"
+PARAM_INFO_LOOKUP = {BeamlineParameterGroup.ALL: PARAM_INFO,
+                     BeamlineParameterGroup.COLLIMATION_PLANE: PARAM_INFO_COLLIMATION,
+                     BeamlineParameterGroup.TOGGLE: PARAM_INFO_TOGGLE,
+                     BeamlineParameterGroup.GAP_VERTICAL: PARAM_INFO_SLITS,
+                     BeamlineParameterGroup.GAP_HORIZONTAL: PARAM_INFO_SLITS,
+                     BeamlineParameterGroup.MISC: PARAM_INFO_MISC,
+                     BeamlineParameterGroup.FOOTPRINT_PARAMETER: PARAM_INFO_FOOTPRINT,
+                     }
+
+
 IN_MODE_SUFFIX = ":IN_MODE"
 SP_SUFFIX = ":SP"
 SP_RBV_SUFFIX = ":SP:RBV"
@@ -189,13 +205,16 @@ class PVManager:
         """
         Add PVs for each beamline parameter in the reflectometry configuration to the server's PV database.
         """
-        param_info = []
+        param_info = {}
+        for group in BeamlineParameterGroup:
+            param_info[group] = []
         align_info = []
         for parameter in self._beamline.parameters.values():
             try:
                 param_info_record = self._add_parameter_pvs(parameter)
                 if param_info_record is not None:
-                    param_info.append(param_info_record)
+                    for group in parameter.group_names:
+                        param_info[group].append(param_info_record)
                     if parameter.define_current_value_as is not None:
                         align_info_record = {
                             "name": param_info_record["name"],
@@ -209,8 +228,10 @@ class PVManager:
                 STATUS_MANAGER.update_active_problems(
                     ProblemInfo("Error adding parameter PV", parameter.name, Severity.MAJOR_ALARM))
 
-        self._add_pv_with_fields(PARAM_INFO, None, STANDARD_2048_CHAR_WF_FIELDS, "All parameters information",
-                                 None, value=compress_and_hex(json.dumps(param_info)))
+        for param_group in BeamlineParameterGroup:
+            self._add_pv_with_fields(PARAM_INFO_LOOKUP[param_group], None, STANDARD_2048_CHAR_WF_FIELDS,
+                                     BeamlineParameterGroup.description(param_group), None,
+                                     value=compress_and_hex(json.dumps(param_info[param_group])))
 
         self._add_pv_with_fields(ALIGN_INFO, None, STANDARD_2048_CHAR_WF_FIELDS, "All alignment pvs information",
                                  None, value=compress_and_hex(json.dumps(align_info)))
