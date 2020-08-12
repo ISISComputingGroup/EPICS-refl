@@ -59,7 +59,7 @@ BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
 PARAM_INFO = "PARAM_INFO"
 PARAM_INFO_COLLIMATION = "COLLIM_INFO"
 PARAM_INFO_TOGGLE = "TOGGLE_INFO"
-PARAM_INFO_SLITS = "SLITS_INFO"
+PARAM_INFO_SLITS = "SLIT_INFO"
 PARAM_INFO_MISC = "MISC_INFO"
 PARAM_INFO_FOOTPRINT = "FOOTPRINT_INFO"
 DRIVER_INFO = "DRIVER_INFO"
@@ -68,8 +68,7 @@ ALIGN_INFO = "ALIGN_INFO"
 PARAM_INFO_LOOKUP = {BeamlineParameterGroup.ALL: PARAM_INFO,
                      BeamlineParameterGroup.COLLIMATION_PLANE: PARAM_INFO_COLLIMATION,
                      BeamlineParameterGroup.TOGGLE: PARAM_INFO_TOGGLE,
-                     BeamlineParameterGroup.GAP_VERTICAL: PARAM_INFO_SLITS,
-                     BeamlineParameterGroup.GAP_HORIZONTAL: PARAM_INFO_SLITS,
+                     BeamlineParameterGroup.SLIT: PARAM_INFO_SLITS,
                      BeamlineParameterGroup.MISC: PARAM_INFO_MISC,
                      BeamlineParameterGroup.FOOTPRINT_PARAMETER: PARAM_INFO_FOOTPRINT,
                      }

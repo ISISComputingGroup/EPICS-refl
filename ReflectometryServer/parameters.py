@@ -140,10 +140,9 @@ class BeamlineParameterGroup(Enum):
     ALL = 1
     COLLIMATION_PLANE = 2
     FOOTPRINT_PARAMETER = 3
-    GAP_VERTICAL = 4
-    GAP_HORIZONTAL = 5
-    TOGGLE = 6
-    MISC = 7
+    SLIT = 4
+    TOGGLE = 5
+    MISC = 6
 
     @staticmethod
     def description(parameter_group):
@@ -153,8 +152,8 @@ class BeamlineParameterGroup(Enum):
             return "Axis Parameters in collimation plane"
         elif parameter_group == BeamlineParameterGroup.FOOTPRINT_PARAMETER:
             return "Parameters relevant to footprint calculation"
-        elif parameter_group in [BeamlineParameterGroup.GAP_VERTICAL, BeamlineParameterGroup.GAP_HORIZONTAL]:
-            return "Slit gap parameters"
+        elif parameter_group in [BeamlineParameterGroup.SLIT]:
+            return "Slit parameters"
         elif parameter_group == BeamlineParameterGroup.TOGGLE:
             return "Toggle status parameters"
         elif parameter_group == BeamlineParameterGroup.MISC:
@@ -668,6 +667,7 @@ class DirectParameter(BeamlineParameter):
         self._pv_wrapper.add_listener(ReadbackUpdate, self._cache_and_update_rbv)
         self._pv_wrapper.add_listener(IsChangingUpdate, self._on_is_changing_change)
         self._pv_wrapper.initialise()
+        self.group_names.append(BeamlineParameterGroup.SLIT)
 
         if self._autosave:
             self._initialise_sp_from_file()
@@ -778,10 +778,6 @@ class SlitGapParameter(DirectParameter):
 
         if pv_wrapper.is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
-            self.group_names.append(BeamlineParameterGroup.GAP_VERTICAL)
-            self.group_names.append(BeamlineParameterGroup.COLLIMATION_PLANE)
-        else:
-            self.group_names.append(BeamlineParameterGroup.GAP_HORIZONTAL)
 
 
 class EnumParameter(BeamlineParameter):
