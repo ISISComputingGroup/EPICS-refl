@@ -5,10 +5,10 @@ import six
 import sys
 import os
 
-try:
-    sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
-except TypeError:
-    pass
+epics_path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir, os.path.pardir)
+server_common_path = os.path.abspath(os.path.join(epics_path, "ISIS", "inst_servers", "master"))
+sys.path.insert(2, server_common_path)
+
 
 if six.PY2:
     print("Reflectometry IOC can not be run in python 2!!")
