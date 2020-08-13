@@ -615,7 +615,7 @@ class MotorPVWrapper(PVWrapper):
         """
         try:
             with self._motor_in_set_mode(self._prefixed_pv):
-                self._write_pv(self._sp_pv, new_position)
+                self._write_pv_with_retry(self._sp_pv, new_position)
         except ValueError as ex:
             STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex), ex)
             STATUS_MANAGER.update_active_problems(
