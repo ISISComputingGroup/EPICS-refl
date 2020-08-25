@@ -106,7 +106,7 @@ class ComponentAxis(metaclass=ABCMeta):
         self._alarm = (alarm_severity, alarm_status)
 
     @abstractmethod
-    def _get_displacement_for(self, position_relative_to_beam):
+    def get_displacement_for(self, position_relative_to_beam):
         """
         Get the displacement for a given position relative to the beam
         Args:
@@ -123,7 +123,7 @@ class ComponentAxis(metaclass=ABCMeta):
             new_value: new value of the position relative to the beam
         """
         if self.can_define_axis_position_as:
-            axis_displacement = self._get_displacement_for(new_value)
+            axis_displacement = self.get_displacement_for(new_value)
             self.trigger_listeners(DefineValueAsEvent(axis_displacement, self._axis))
         else:
             raise TypeError("Axis can not have its position defined")
@@ -277,7 +277,7 @@ class DirectCalcAxis(ComponentAxis):
         """
         self._position = position
 
-    def _get_displacement_for(self, position_relative_to_beam):
+    def get_displacement_for(self, position_relative_to_beam):
         """
         Get a displacement for a given position
         Args:
@@ -346,7 +346,7 @@ class BeamPathCalcAxis(ComponentAxis):
         self._set_displacement = set_displacement
         self._init_displacement_from_motor = init_displacement_from_motor
 
-    def _get_displacement_for(self, position_relative_to_beam):
+    def get_displacement_for(self, position_relative_to_beam):
         return self._get_displacement_for_fn(position_relative_to_beam)
 
     def get_relative_to_beam(self):

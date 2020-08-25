@@ -181,11 +181,9 @@ class IocDriver:
 
         if self._out_of_beam_lookup is not None:
             beam_interception = beam_path_setpoint.calculate_beam_interception()
-            in_beam_status = self._get_in_beam_status(beam_interception, self._motor_axis.sp)
+            distance_relative_to_beam = corrected_axis_setpoint - beam_path_setpoint.axis[self._component_axis].get_displacement_for(0)
+            in_beam_status = self._get_in_beam_status(beam_interception, self._motor_axis.sp, distance_relative_to_beam)
             beam_path_setpoint.is_in_beam = in_beam_status
-            # if the motor_axis is out of the beam then no correction needs adding to setpoint
-            if not in_beam_status:
-                corrected_axis_setpoint = self._motor_axis.sp
 
         beam_path_setpoint.axis[self._component_axis].init_displacement_from_motor(corrected_axis_setpoint)
 
@@ -326,7 +324,12 @@ class IocDriver:
                     ProblemInfo("No out of beam position defined for motor_axis", self.name, Severity.MINOR_ALARM))
             else:
                 beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
-                displacement = self._out_of_beam_lookup.get_position_for_intercept(beam_interception).position
+                out_of_beam_position = self._out_of_beam_lookup.get_position_for_intercept(beam_interception)
+                if out_of_beam_position.is_offset:
+                    displacement = self._component.beam_path_set_point.axis[self._component_axis].\
+                        get_displacement_for(out_of_beam_position.position)
+                else:
+                    displacement = out_of_beam_position.position
         return displacement
 
     def _on_update_rbv(self, update):
@@ -361,16 +364,17 @@ class IocDriver:
         Signal that the motor readback value has changed to the middle component layer. Subclass must implement this
         method.
         """
-        if self._out_of_beam_lookup is not None:
-            beam_interception = self._component.beam_path_rbv.calculate_beam_interception()
-            self._component.beam_path_rbv.axis[self._component_axis].is_in_beam = self._get_in_beam_status(
-                beam_interception, update.value)
-
         self._component.beam_path_rbv.axis[self._component_axis].set_displacement(update)
 
-    def _get_in_beam_status(self, beam_intersect, value):
         if self._out_of_beam_lookup is not None:
-            in_beam_status = self._out_of_beam_lookup.is_in_beam(beam_intersect, value)
+            beam_interception = self._component.beam_path_rbv.calculate_beam_interception()
+            distance_relative_to_beam = self._component.beam_path_rbv.axis[self._component_axis].get_relative_to_beam()
+            self._component.beam_path_rbv.axis[self._component_axis].is_in_beam = self._get_in_beam_status(
+                beam_interception, update.value, distance_relative_to_beam)
+
+    def _get_in_beam_status(self, beam_intersect, value, distance_relative_to_beam):
+        if self._out_of_beam_lookup is not None:
+            in_beam_status = self._out_of_beam_lookup.is_in_beam(beam_intersect, value, distance_relative_to_beam)
         else:
             in_beam_status = True
         return in_beam_status
