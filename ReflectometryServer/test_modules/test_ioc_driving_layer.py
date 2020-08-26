@@ -678,16 +678,20 @@ class TestIocDriverWithAxesDependentOnParam(unittest.TestCase):
         assert_that(self.height_axis.is_initialised, is_(True))
         assert_that(self.alt_axis.is_initialised, is_(True))
 
-class TestIOCDriverInAndOutOfBeamWithOffsetDispalcement(unittest.TestCase):
 
-    def test_GIVEN_out_of_beam_with_offset_WHEN_move_THEN_component_moves_to_correct_place(self):
+class TestIOCDriverInAndOutOfBeamWithOffsetOutOfBeamPosition(unittest.TestCase):
+
+    @parameterized.expand([(0,), (1,)])
+    def test_GIVEN_out_of_beam_with_offset_WHEN_move_THEN_component_moves_to_correct_place(self, correction):
         offset = 10
         beam_height = 2
-        expected_position = beam_height + offset
+        expected_position = beam_height + offset + correction
 
         comp = Component("Comp", PositionAndAngle(0, 1, 90))
         mock_axis = create_mock_axis("axis", 0, 1)
-        iocDriver = IocDriver(comp, ChangeAxis.POSITION, mock_axis, out_of_beam_positions=[OutOfBeamPosition(offset, is_offset=True)])
+        iocDriver = IocDriver(comp, ChangeAxis.POSITION, mock_axis,
+                              out_of_beam_positions=[OutOfBeamPosition(offset, is_offset=True)],
+                              engineering_correction=ConstantCorrection(correction))
 
         comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
         comp.beam_path_set_point.is_in_beam = False
@@ -758,7 +762,6 @@ class TestIOCDriverInAndOutOfBeamWithOffsetDispalcement(unittest.TestCase):
         comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
 
         iocdriver.initialise_setpoint()
-
 
         result = comp.beam_path_set_point.is_in_beam
 
