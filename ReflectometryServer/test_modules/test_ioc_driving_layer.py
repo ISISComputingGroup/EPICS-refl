@@ -689,14 +689,14 @@ class TestIOCDriverInAndOutOfBeamWithOffsetOutOfBeamPosition(unittest.TestCase):
 
         comp = Component("Comp", PositionAndAngle(0, 1, 90))
         mock_axis = create_mock_axis("axis", 0, 1)
-        iocDriver = IocDriver(comp, ChangeAxis.POSITION, mock_axis,
-                              out_of_beam_positions=[OutOfBeamPosition(offset, is_offset=True)],
-                              engineering_correction=ConstantCorrection(correction))
+        driver = IocDriver(comp, ChangeAxis.POSITION, mock_axis,
+                           out_of_beam_positions=[OutOfBeamPosition(offset, is_offset=True)],
+                           engineering_correction=ConstantCorrection(correction))
 
         comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
         comp.beam_path_set_point.is_in_beam = False
 
-        iocDriver.perform_move(1)
+        driver.perform_move(1)
 
         result = mock_axis.sp
 
@@ -709,18 +709,19 @@ class TestIOCDriverInAndOutOfBeamWithOffsetOutOfBeamPosition(unittest.TestCase):
 
         comp = TiltingComponent("Comp", PositionAndAngle(0, 1, 90))
         mock_axis = create_mock_axis("axis", 0, 1)
-        iocDriver = IocDriver(comp, ChangeAxis.ANGLE, mock_axis, out_of_beam_positions=[OutOfBeamPosition(offset, is_offset=True)])
+        driver = IocDriver(comp, ChangeAxis.ANGLE, mock_axis,
+                           out_of_beam_positions=[OutOfBeamPosition(offset, is_offset=True)])
 
         comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, beam_angle))
         comp.beam_path_set_point.is_in_beam = False
 
-        iocDriver.perform_move(1)
+        driver.perform_move(1)
 
         result = mock_axis.sp
 
         assert_that(result, is_(expected_position))
 
-    def test_GIVEN_out_of_beam_with_offset_WHEN_axis_move_THEN_component_in_beam_is_out(self):
+    def test_GIVEN_out_of_beam_with_offset_WHEN_axis_move_THEN_component_is_out_of_beam(self):
         offset = 10
         beam_height = 2
         comp = Component("Comp", PositionAndAngle(0, 1, 90))
@@ -735,7 +736,7 @@ class TestIOCDriverInAndOutOfBeamWithOffsetOutOfBeamPosition(unittest.TestCase):
 
         assert_that(result, is_(False))
 
-    def test_GIVEN_out_of_beam_with_offset_for_angle_WHEN_axis_move_THEN_component_in_beam_is_out(self):
+    def test_GIVEN_out_of_beam_with_offset_for_angle_WHEN_axis_move_THEN_component_is_out_of_beam(self):
         offset = 10
         beam_angle = 2
         comp = TiltingComponent("Comp", PositionAndAngle(0, 1, 90))
@@ -756,12 +757,12 @@ class TestIOCDriverInAndOutOfBeamWithOffsetOutOfBeamPosition(unittest.TestCase):
         comp = Component("Comp", PositionAndAngle(0, 1, 90))
         mock_axis = create_mock_axis("axis", 0, 1)
         mock_axis.sp = offset + beam_height
-        iocdriver = IocDriver(comp, ChangeAxis.POSITION, mock_axis,
-                  out_of_beam_positions=[OutOfBeamPosition(offset, is_offset=True)])
+        driver = IocDriver(comp, ChangeAxis.POSITION, mock_axis,
+                           out_of_beam_positions=[OutOfBeamPosition(offset, is_offset=True)])
 
         comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(beam_height, 0, 0))
 
-        iocdriver.initialise_setpoint()
+        driver.initialise_setpoint()
 
         result = comp.beam_path_set_point.is_in_beam
 
