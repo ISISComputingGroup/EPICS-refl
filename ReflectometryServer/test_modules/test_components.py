@@ -13,7 +13,8 @@ from ReflectometryServer.axis import PhysicalMoveUpdate, DefineValueAsEvent
 from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
 from ReflectometryServer.geometry import Position, PositionAndAngle, ChangeAxis
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, IocDriver
-from ReflectometryServer.test_modules.data_mother import create_mock_axis, get_standard_bench, ANGLE_OF_BENCH
+from ReflectometryServer.test_modules.data_mother import create_mock_axis, get_standard_bench, ANGLE_OF_BENCH, \
+    BENCH_MIN_ANGLE, BENCH_MAX_ANGLE
 from ReflectometryServer.test_modules.utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
 from server_common.channel_access import AlarmStatus
 
@@ -182,32 +183,6 @@ class TestActiveComponents(unittest.TestCase):
 
         assert_that(result, is_(position_and_angle(expected)),
                     "beam_angle: {}, mirror_angle: {}".format(beam_angle, mirror_angle))
-
-
-
-            # def test_GIVEN_bench_at_radius_10_input_beam_is_at_0_deg_and_z0_y0_WHEN_get_position_THEN_z_is_10_y_is_0(self):
-    #     bench_center_of_rotation = Position(10, 0)
-    #     bench_radius = 10
-    #     beam_start = PositionAndAngle(z=0, y=0, angle=0)
-    #     expected_position = Position(z=bench_center_of_rotation.z + bench_radius, y=0)
-    #     bench = Component("component", movement_strategy=ArcMovement(bench_center_of_rotation, bench_radius))
-    #     bench.beam_path_set_point.set_incoming_beam(beam_start)
-    #
-    #     result = bench.calculate_beam_interception()
-    #
-    #     assert_that(result, is_(position(expected_position)))
-    #
-    # def test_GIVEN_bench_at_radius_10_input_beam_is_at_45_deg_and_z0_y0_WHEN_get_position_THEN_z_is_10_root2_y_is_10_root2(self):
-    #     bench_center_of_rotation = Position(10, 0)
-    #     bench_radius = 10
-    #     beam_start = PositionAndAngle(z=0, y=0, angle=0)
-    #     expected_position = Position(z=(bench_center_of_rotation.z + bench_radius) * sqrt(2), y=(bench_center_of_rotation.z + bench_radius) * sqrt(2))
-    #     bench = Component("component", movement_strategy=ArcMovement(bench_center_of_rotation, bench_radius))
-    #     bench.beam_path_set_point.set_incoming_beam(beam_start)
-    #
-    #     result = bench.calculate_beam_interception()
-    #
-    #     assert_that(result, is_(position(expected_position)))
 
 
 class TestObservationOfComponentReadback(unittest.TestCase):
@@ -948,9 +923,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
         assert_that(result, is_(expected_result))
 
 
-
-
-class testBenchComponent(unittest.TestCase):
+class TestBenchComponent(unittest.TestCase):
 
     def _setup_bench(self, initial_position):
 
@@ -1000,7 +973,10 @@ class testBenchComponent(unittest.TestCase):
         (ChangeAxis.JACK_REAR, 0.0, -111.3188069),  # expected values from spreadsheet + height
         (ChangeAxis.SLIDE, 3.3, 10.54157171), # expected values from spreadsheet + height
         (ChangeAxis.SLIDE, 0.1, -26.15894011),  # expected values from spreadsheet + height
-        #TODO add slide outside of limits of movement
+        (ChangeAxis.SLIDE, BENCH_MIN_ANGLE + ANGLE_OF_BENCH, -27.44574943),  # expected values from spreadsheet + height at min angle
+        (ChangeAxis.SLIDE, BENCH_MIN_ANGLE + ANGLE_OF_BENCH - 0.1, -27.44574943),  # expected values from spreadsheet + height at 0 deg because of cut off
+        (ChangeAxis.SLIDE, BENCH_MAX_ANGLE + ANGLE_OF_BENCH, 24.79311549),  # expected values from spreadsheet + height at max angle
+        (ChangeAxis.SLIDE, BENCH_MAX_ANGLE + ANGLE_OF_BENCH + 1.0, 24.79311549),  # expected values from spreadsheet + height at 4.8 deg because of cut off
     ])
     def test_GIVEN_set_height_axis_WHEN_get_axis_value_THEN_j1_value_returned_and_axis_changed(self, axis, angle, expected_result):
         bench = get_standard_bench()

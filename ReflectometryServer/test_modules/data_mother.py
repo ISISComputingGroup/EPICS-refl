@@ -432,7 +432,8 @@ PIVOT_TO_J1 = 1201
 PIVOT_TO_J2 = 1201 + 1558.0
 ANGLE_OF_BENCH = 2.3
 PIVOT_TO_BEAM = 628
-
+BENCH_MIN_ANGLE = -2.3
+BENCH_MAX_ANGLE = 2.5
 
 def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH):
     """
@@ -443,4 +444,5 @@ def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH):
     Returns:
         Bench setup correctly
     """
-    return BenchComponent("rear_bench", BenchSetup(0, with_z_position, 90, PIVOT_TO_J1, PIVOT_TO_J2, with_angle, PIVOT_TO_BEAM))
+    return BenchComponent("rear_bench", BenchSetup(0, with_z_position, 90, PIVOT_TO_J1, PIVOT_TO_J2, with_angle,
+                                                   PIVOT_TO_BEAM, BENCH_MIN_ANGLE, BENCH_MAX_ANGLE))

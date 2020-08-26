@@ -3,6 +3,7 @@ Components on a beam
 """
 from math import atan, cos, tan, radians, degrees
 import logging
+from typing import Tuple
 
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
@@ -184,7 +185,8 @@ class BenchSetup(PositionAndAngle):
     """
     Setup parameters for the bench component
     """
-    def __init__(self, y, z, angle, jack_front_z, jack_rear_z, initial_table_angle, pivot_to_beam):
+    def __init__(self, y, z, angle, jack_front_z, jack_rear_z, initial_table_angle, pivot_to_beam,
+                 min_angle_for_slide, max_angle_for_slide):
         """
         Initialise.
         Args:
@@ -195,12 +197,16 @@ class BenchSetup(PositionAndAngle):
             jack_rear_z: distance to the rear jack on the bench from the pivot
             initial_table_angle: initial table angle
             pivot_to_beam: distance from the pivot of the bench to the beam
+            min_angle_for_slide: minimum angle for moving the horizontal slide; clamp to this angle below
+            max_angle_for_slide: maximum angle for moving the horizontal slide; clamp to this angle above
         """
         super(BenchSetup, self).__init__(y, z, angle)
         self.jack_front_z = jack_front_z
         self.jack_rear_z = jack_rear_z
         self.initial_table_angle = initial_table_angle
         self.pivot_to_beam = pivot_to_beam
+        self.min_angle_for_slide = min_angle_for_slide
+        self.max_angle_for_slide = max_angle_for_slide
 
 
 class BenchComponent(TiltingComponent):
@@ -219,6 +225,10 @@ class BenchComponent(TiltingComponent):
         self._jack_rear_z = setup.jack_rear_z
         self._initial_table_angle = setup.initial_table_angle
         self._pivot_to_beam = setup.pivot_to_beam
+        self._min_angle_for_slide = setup.min_angle_for_slide
+        self._max_angle_for_slide = setup.max_angle_for_slide
+        _, _, self._min_slide_position = self._calculate_motor_positions(0.0, self._min_angle_for_slide+self._initial_table_angle, 0.0)
+        _, _, self._max_slide_position = self._calculate_motor_positions(0.0, self._max_angle_for_slide+self._initial_table_angle, 0.0)
         super(TiltingComponent, self).__init__(name, setup)
 
     def _init_beam_path_calcs(self, setup):
@@ -395,7 +405,7 @@ class BenchComponent(TiltingComponent):
             seesaw: seesaw value
 
         Returns:
-            jack height and horizontal position
+            jack front height, jack rear height and horizontal position
         """
         angle_from_initial_position = pivot_angle - self._initial_table_angle
         tan_bench_angle = tan(radians(angle_from_initial_position))
@@ -406,10 +416,16 @@ class BenchComponent(TiltingComponent):
         correction = self._pivot_to_beam * one_minus_cos_angle
         front_jack_height = pivot_height + height1 - correction + seesaw
         rear_jack_height = pivot_height + height2 - correction - seesaw
-        # pivot
-        hor = self._jack_rear_z * one_minus_cos_angle
-        correction = self._pivot_to_beam * tan_bench_angle
-        slide_position = correction - hor
+        # horizontal slide
+        if angle_from_initial_position < self._min_angle_for_slide:
+            slide_position = self._min_slide_position
+        elif angle_from_initial_position <= self._max_angle_for_slide:
+            hor = self._jack_rear_z * one_minus_cos_angle
+            correction = self._pivot_to_beam * tan_bench_angle
+            slide_position = correction - hor
+        else:
+            slide_position = self._max_slide_position
+
         return front_jack_height, rear_jack_height, slide_position
 
     def on_define_position(self, define_position: DefineValueAsEvent):
