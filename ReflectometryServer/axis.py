@@ -1,3 +1,7 @@
+"""
+Axis module, defining the position of a component. Contains associated events as well.
+"""
+
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
@@ -347,6 +351,14 @@ class BeamPathCalcAxis(ComponentAxis):
         self._init_displacement_from_motor = init_displacement_from_motor
 
     def get_displacement_for(self, position_relative_to_beam):
+        """
+        Get the displacement for a given position relative to the beam
+        Args:
+            position_relative_to_beam: position relative to the beam
+
+        Returns:
+            displacement in mantid coordinates
+        """
         return self._get_displacement_for_fn(position_relative_to_beam)
 
     def get_relative_to_beam(self):

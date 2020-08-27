@@ -2,6 +2,7 @@
 Module to define Out of beam position.
 """
 from typing import Optional, List
+from ReflectometryServer.geometry import Position
 
 
 class OutOfBeamPosition:
@@ -74,13 +75,14 @@ class OutOfBeamLookup:
             position_to_use = default_pos
         return position_to_use
 
-    def is_in_beam(self, beam_intercept, displacement, distance_from_beam):
+    def is_in_beam(self, beam_intercept: Position, displacement: float, distance_from_beam: float) -> bool:
         """
         Checks whether a given value for displacement represents an out of beam position for a given beam interception.
 
         Args:
-            beam_intercept(ReflectometryServer.geometry.Position): The current beam interception
-            displacement(float): The value to search in out of beam positions.
+            beam_intercept: The current beam interception
+            displacement: The value to search in out of beam positions.
+            distance_from_beam: Distance from the beam to the current position
 
         Returns: False if the given displacement represents an out of beam position, True otherwise
         """
