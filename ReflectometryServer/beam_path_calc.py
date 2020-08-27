@@ -3,10 +3,9 @@ Objects to help with calculating the beam path when interacting with a component
 set points or readbacks etc.
 """
 from collections import namedtuple
-from functools import partial
 
 from math import degrees, atan2
-from typing import Dict
+from typing import Dict, List, Tuple
 
 from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
     BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate
@@ -446,6 +445,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
     A reflecting beam path calculator which has a read only angle based on the angle to a list of beam path
     calculations. This is used for example for Theta where the angle is the angle to the next enabled component.
     """
+    _angle_to: List[Tuple[TrackingBeamPathCalc, TrackingBeamPathCalc, ChangeAxis]]
 
     def __init__(self, name, movement_strategy, theta_setpoint_beam_path_calc):
         """
@@ -474,7 +474,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         Args:
             readback_beam_path_calc (ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): readback calc
             setpoint_beam_path_calc (ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): set point calc needed for
-                the offset from the beam that should be sused
+                the offset from the beam that should be used
             axis (ChangeAxis.POSITION|ChangeAxis.ANGLE): axis on which to base the angle to
         """
         self._angle_to.append((readback_beam_path_calc, setpoint_beam_path_calc, axis))

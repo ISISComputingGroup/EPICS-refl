@@ -45,7 +45,7 @@ class TestComponentWithOutOfBeamPositions(unittest.TestCase):
         lookup = OutOfBeamLookup(self.positions)
         beam_intercept = Position(beam_height, 0)
 
-        actual = lookup.is_in_beam(beam_intercept, displacement)
+        actual = lookup.is_in_beam(beam_intercept, displacement, None)  # out of been distance should not mater
 
         assert_that(actual, is_(expected))
 
@@ -67,7 +67,7 @@ class TestComponentWithOutOfBeamPositions(unittest.TestCase):
         lookup = OutOfBeamLookup([park_low_with_tolerance, park_high_with_tolerance])
 
         for position in [position_to_check + offset_from_pos, position_to_check - offset_from_pos]:
-            in_beam_status = lookup.is_in_beam(beam_intercept, position)
+            in_beam_status = lookup.is_in_beam(beam_intercept, position, None)  # only absolute position is used
             assert_that(in_beam_status, is_(expected))
 
     def test_GIVEN_no_positions_given_WHEN_creating_lookup_THEN_exception_thrown(self):

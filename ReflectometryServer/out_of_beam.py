@@ -1,19 +1,29 @@
+"""
+Module to define Out of beam position.
+"""
+from typing import Optional, List
+from ReflectometryServer.geometry import Position
+
+
 class OutOfBeamPosition:
     """
     The definition of a geometry component's out of beam position.
     """
-    def __init__(self, position, tolerance=1, threshold=None):
+    def __init__(self, position, tolerance: float = 1, threshold: Optional[float] = None, is_offset: bool = False):
         """
         Params:
-            position(float): The out-of-beam position along the movement axis.
-            tolerance(float): The tolerance around the position in which to consider the component as "out of beam"
-            threshold(float): The threshold for the beam above which to consider this position to be "out of beam"
+            position: The out-of-beam position along the movement axis.
+            tolerance: The tolerance around the position in which to consider the component as "out of beam"
+            threshold: The threshold for the beam above which to consider this position to be "out of beam"
+            if_offset: Turns the position into an offset so that the parked position follows the beam with the offset
+                set added to it.
         """
         self.position = float(position)
         self.tolerance = float(tolerance)
         if threshold is not None:
             threshold = float(threshold)
         self.threshold = threshold
+        self.is_offset = is_offset
 
 
 class OutOfBeamLookup:
@@ -21,7 +31,7 @@ class OutOfBeamLookup:
     Facilitates lookup of out-of-beam positions / status for a single axis out of a list of possible positions depending
     on where the beam intersects with that movement axis.
     """
-    def __init__(self, positions):
+    def __init__(self, positions: List[OutOfBeamPosition]):
         self._validate(positions)
         self._sorted_out_of_beam_positions = sorted(positions, key=lambda position:
                                                     (position.threshold is None, position.threshold), reverse=True)
@@ -65,15 +75,20 @@ class OutOfBeamLookup:
             position_to_use = default_pos
         return position_to_use
 
-    def is_in_beam(self, beam_intercept, displacement):
+    def is_in_beam(self, beam_intercept: Position, displacement: float, distance_from_beam: float) -> bool:
         """
         Checks whether a given value for displacement represents an out of beam position for a given beam interception.
 
         Args:
-            beam_intercept(ReflectometryServer.geometry.Position): The current beam interception
-            displacement(float): The value to search in out of beam positions.
+            beam_intercept: The current beam interception
+            displacement: The value to search in out of beam positions.
+            distance_from_beam: Distance from the beam to the current position
 
         Returns: False if the given displacement represents an out of beam position, True otherwise
         """
         out_of_beam_position = self.get_position_for_intercept(beam_intercept)
-        return abs(displacement - out_of_beam_position.position) > out_of_beam_position.tolerance
+        if out_of_beam_position.is_offset:
+            park_position = distance_from_beam
+        else:
+            park_position = displacement
+        return abs(park_position - out_of_beam_position.position) > out_of_beam_position.tolerance
