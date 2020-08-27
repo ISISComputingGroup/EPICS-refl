@@ -3,7 +3,6 @@ Components on a beam
 """
 from math import atan, cos, tan, radians, degrees
 import logging
-from typing import Tuple
 
 from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
     BeamPathCalcThetaRBV, BeamPathCalcThetaSP
@@ -227,8 +226,8 @@ class BenchComponent(TiltingComponent):
         self._pivot_to_beam = setup.pivot_to_beam
         self._min_angle_for_slide = setup.min_angle_for_slide
         self._max_angle_for_slide = setup.max_angle_for_slide
-        _, _, self._min_slide_position = self._calculate_motor_positions(0.0, self._min_angle_for_slide+self._initial_table_angle, 0.0)
-        _, _, self._max_slide_position = self._calculate_motor_positions(0.0, self._max_angle_for_slide+self._initial_table_angle, 0.0)
+        _, _, self._min_slide_position = self._calculate_motor_positions(0.0, self._min_angle_for_slide, 0.0)
+        _, _, self._max_slide_position = self._calculate_motor_positions(0.0, self._max_angle_for_slide, 0.0)
         super(TiltingComponent, self).__init__(name, setup)
 
     def _init_beam_path_calcs(self, setup):
@@ -417,9 +416,9 @@ class BenchComponent(TiltingComponent):
         front_jack_height = pivot_height + height1 - correction + seesaw
         rear_jack_height = pivot_height + height2 - correction - seesaw
         # horizontal slide
-        if angle_from_initial_position < self._min_angle_for_slide:
+        if pivot_angle < self._min_angle_for_slide:
             slide_position = self._min_slide_position
-        elif angle_from_initial_position <= self._max_angle_for_slide:
+        elif pivot_angle <= self._max_angle_for_slide:
             hor = self._jack_rear_z * one_minus_cos_angle
             correction = self._pivot_to_beam * tan_bench_angle
             slide_position = correction - hor
