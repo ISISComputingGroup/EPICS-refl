@@ -4,7 +4,7 @@ set points or readbacks etc.
 """
 from collections import namedtuple
 
-from math import degrees, atan2
+from math import degrees, atan2, isnan
 from typing import Dict, List, Tuple
 
 from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
@@ -12,7 +12,7 @@ from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, Ini
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
 
-from server_common.channel_access import maximum_severity
+from server_common.channel_access import maximum_severity, AlarmStatus, AlarmSeverity
 from server_common.observable import observable
 from ReflectometryServer.file_io import disable_mode_autosave
 
@@ -480,21 +480,29 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         self._angle_to.append((readback_beam_path_calc, setpoint_beam_path_calc, axis))
         # add to the physical change for the rbv so that we don't get an infinite loop
         readback_beam_path_calc.axis[axis].add_listener(PhysicalMoveUpdate, self._angle_update)
+        readback_beam_path_calc.in_beam_manager.add_listener(PhysicalMoveUpdate, self._angle_update)
         # add to beamline change of set point because no loop is created from the setpoint action
         setpoint_beam_path_calc.add_listener(BeamPathUpdate, self._angle_update)
         readback_beam_path_calc.axis[axis].add_listener(AxisChangingUpdate, self._on_is_changing_change)
+        readback_beam_path_calc.in_beam_manager.add_listener(AxisChangingUpdate, self._on_is_changing_change)
 
     def _on_is_changing_change(self, _):
         """
-        Updates the changing state of this component.
+        Updates the changing state of this component. Theta is changing if the first in beam component is changing or
+        if there are no in beam components and one out of beam component is changing
 
         Args:
             _ (AxisChangingUpdate): The update event
         """
+        theta_is_changing = False
         for readback_beam_path_calc, setpoint_beam_path_calc, axis in self._angle_to:
+            is_changing = readback_beam_path_calc.axis[axis].is_changing
+            theta_is_changing = theta_is_changing or is_changing
             if readback_beam_path_calc.is_in_beam:
-                self.axis[ChangeAxis.ANGLE].is_changing = readback_beam_path_calc.axis[axis].is_changing
+                theta_is_changing = is_changing
                 break
+
+        self.axis[ChangeAxis.ANGLE].is_changing = theta_is_changing
 
     def _angle_update(self, _):
         self._set_angular_displacement(self._set_up_next_component_and_return_angle_set_by_it(self._incoming_beam))
@@ -549,6 +557,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
                 break
         else:
             angle = float("NaN")
+            self.axis[ChangeAxis.ANGLE].set_alarm(AlarmSeverity.Major, AlarmStatus.Link)
         return angle
 
     def _on_set_incoming_beam(self, incoming_beam, on_init):
@@ -603,6 +612,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         """
         self._angle_to.append((beam_path_calc, axis))
         beam_path_calc.axis[axis].add_listener(InitUpdate, self._init_listener)
+        beam_path_calc.in_beam_manager.add_listener(InitUpdate, self._init_listener)
 
     def _init_listener(self, _):
         """
@@ -614,7 +624,9 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         """
         autosaved_value = self.axis[ChangeAxis.ANGLE].autosaved_value
         if autosaved_value is None:
-            self._angular_displacement = self._calc_angle_from_next_component(self._incoming_beam)
+            angle_to_init = self._calc_angle_from_next_component(self._incoming_beam)
+            self._angular_displacement = 0 if isnan(angle_to_init) else angle_to_init
+
         else:
             self._angular_displacement = self._incoming_beam.angle + autosaved_value
 
