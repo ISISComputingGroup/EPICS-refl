@@ -6,7 +6,7 @@ from math import tan, radians, sin, cos
 from mock import Mock
 
 from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider, ChangeAxis, add_mode, \
-    add_component, add_parameter, ConfigHelper, add_driver, add_beam_start, get_configured_beamline
+    add_component, add_parameter, ConfigHelper, add_driver, add_beam_start, get_configured_beamline, OutOfBeamPosition
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
 from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
 from server_common.channel_access import AlarmStatus, AlarmSeverity
@@ -19,7 +19,7 @@ from ReflectometryServer.components import Component, TiltingComponent, ThetaCom
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, DirectParameter, \
-    SlitGapParameter
+    SlitGapParameter, InBeamParameter
 import numpy as np
 
 
@@ -312,6 +312,23 @@ class DataMother:
         theta.add_angle_of(bench)
 
         return get_configured_beamline(), {"bench_jack_rear": bench_jack_rear, "bench_jack_front": bench_jack_front, "sm_angle": sm_axis}
+
+    @staticmethod
+    def beamline_theta_detector(out_of_beam_pos_z, inital_pos_z, out_of_beam_pos_ang, initial_pos_ang):
+        ConfigHelper.reset()
+        theta_comp = add_component(ThetaComponent("theta", PositionAndAngle(0, 0, 90)))
+        theta = add_parameter(AxisParameter("theta", theta_comp, ChangeAxis.ANGLE))
+        detector_comp = TiltingComponent("detector", PositionAndAngle(0, 1, 90))
+        axis_det_z = create_mock_axis("det_z", inital_pos_z, 1)
+        add_driver(IocDriver(detector_comp, ChangeAxis.POSITION, axis_det_z,
+                             out_of_beam_positions=[OutOfBeamPosition(out_of_beam_pos_z)]))
+        axis_det_ang = create_mock_axis("det_ang", initial_pos_ang, 1)
+        add_driver(IocDriver(detector_comp, ChangeAxis.ANGLE, axis_det_ang,
+                             out_of_beam_positions=[OutOfBeamPosition(out_of_beam_pos_ang)]))
+        det_in = add_parameter(InBeamParameter("det_in", detector_comp))
+        theta_comp.add_angle_to(detector_comp)
+        get_configured_beamline()
+        return det_in, theta
 
 
 def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):

@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from math import tan, radians
@@ -606,7 +607,7 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
         beamline = Beamline([], [], [], [], beamline_constants=parameters)
         return beamline
 
-    def test_GIVEN_there_are_no_beamline_constant_set_WHEN_get_beamline_constant_THEN_empty(self):
+    def test_GIVEN_there_are_no_beamline_constant_set_empty_list_WHEN_get_beamline_constant_THEN_empty(self):
 
         beamline = self.setup_beamline([])
 
@@ -614,7 +615,7 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
         assert_that(result, is_([]))
 
-    def test_GIVEN_there_are_no_beamline_constant_set_WHEN_get_beamline_constant_THEN_empty(self):
+    def test_GIVEN_there_are_no_beamline_constant_set_using_none_WHEN_get_beamline_constant_THEN_empty(self):
 
         beamline = self.setup_beamline(None)
 
@@ -804,6 +805,29 @@ class TestComponentOutOfBeam(unittest.TestCase):
         chi_axis.trigger_rbv_change()
 
         assert_that(in_beam_param.rbv, is_(False))
+
+    def test_GIVEN_inbeam_parameter_on_detector_WHEN_init_with_angle_in_beam_THEN_theta_is_defined(self):
+        out_of_beam_pos = -5
+        det_in, theta = DataMother.beamline_theta_detector(out_of_beam_pos, out_of_beam_pos, -2, 0)
+
+        assert_that(det_in.sp, is_(True))
+        assert_that(theta.sp, is_(0.0))
+
+    def test_GIVEN_inbeam_parameter_on_detector_WHEN_init_with_pos_in_beam_THEN_theta_is_defined(self):
+        out_of_beam_pos = -5
+        det_in, theta = DataMother.beamline_theta_detector(-2, 0, out_of_beam_pos, out_of_beam_pos)
+
+        assert_that(det_in.sp, is_(True))
+        assert_that(theta.sp, is_(0.0))
+
+    def test_GIVEN_inbeam_parameter_on_detector_WHEN_init_with_both_out_of_beam_THEN_theta_sp_is_0(self):
+        out_of_beam_pos = -5
+        out_of_beam_pos_z = -2
+        det_in, theta = DataMother.beamline_theta_detector(out_of_beam_pos_z, out_of_beam_pos_z, out_of_beam_pos, out_of_beam_pos)
+
+        assert_that(det_in.sp, is_(False))
+        assert_that(theta.sp, is_(0))
+
 
 
 if __name__ == '__main__':

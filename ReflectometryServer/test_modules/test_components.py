@@ -375,7 +375,7 @@ class TestThetaComponent(unittest.TestCase):
         assert_that(theta_calc_set_of_incoming_beam_next_comp, is_(position_and_angle(theta.beam_path_set_point.get_outgoing_beam())), "This component does not define theta rbv")
         assert_that(theta_calc_set_of_incoming_beam_next_comp_but_one, is_(None), "This component has defined theta rbv")
 
-    def test_GIVEN_next_component_is_in_beam_WHEN_set_next_component_displacement_THEN_change_in_beam_path_triggered(self):
+    def test_GIVEN_next_component_is_in_beam_WHEN_set_next_component_displacement_THEN_change_in_beam_path_triggered_at_least_once(self):
 
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         theta = ThetaComponent("theta", setup=PositionAndAngle(0, 5, 90))
@@ -392,7 +392,7 @@ class TestThetaComponent(unittest.TestCase):
 
         next_component.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(1, None, None))
 
-        listener.assert_called_once_with(BeamPathUpdate(theta.beam_path_rbv))
+        listener.assert_called_with(BeamPathUpdate(theta.beam_path_rbv))
 
     def test_GIVEN_next_component_is_in_beam_WHEN_set_next_component_incoming_beam_THEN_change_in_beam_path_is_not_triggered(self):
 
@@ -750,6 +750,23 @@ class TestThetaChange(unittest.TestCase):
         result = self.theta.beam_path_rbv.axis[ChangeAxis.ANGLE].is_changing
 
         assert_that(result, is_(is_changing), "Theta is changing")
+
+    @parameterized.expand([(True, True), (False, True), (True, False), (False, False)])
+    def test_GIVEN_2_components_pointed_at_by_theta_changes_when_neither_in_WHEN_get_theta_change_THEN_theta_is_changing_as_first_or_second_component(self, is_changing_1, is_changing_2):
+        # on the hope that one is moving to define theta
+        self.theta.add_angle_to(self.component)
+        self.component.beam_path_rbv.axis[ChangeAxis.POSITION].has_out_of_beam_position = True
+        self.component.beam_path_rbv.axis[ChangeAxis.POSITION].is_in_beam = False
+        self.component.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing = is_changing_2
+        component2 = ReflectingComponent("cmp2", PositionAndAngle(0, 0, 0))
+        self.theta.add_angle_to(component2)
+        component2.beam_path_rbv.axis[ChangeAxis.POSITION].has_out_of_beam_position = True
+        component2.beam_path_rbv.axis[ChangeAxis.POSITION].is_in_beam = False
+        component2.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing = is_changing_1
+
+        result = self.theta.beam_path_rbv.axis[ChangeAxis.ANGLE].is_changing
+
+        assert_that(result, is_(is_changing_1 or is_changing_2), "Theta is changing")
 
 class TestComponentDisablingAndAutosaveInit(unittest.TestCase):
 

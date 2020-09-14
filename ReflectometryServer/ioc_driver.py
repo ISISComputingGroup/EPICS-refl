@@ -183,7 +183,7 @@ class IocDriver:
             beam_interception = beam_path_setpoint.calculate_beam_interception()
             distance_relative_to_beam = corrected_axis_setpoint - beam_path_setpoint.axis[self._component_axis].get_displacement_for(0)
             in_beam_status = self._get_in_beam_status(beam_interception, self._motor_axis.sp, distance_relative_to_beam)
-            beam_path_setpoint.is_in_beam = in_beam_status
+            beam_path_setpoint.axis[self._component_axis].is_in_beam = in_beam_status
             # if the motor_axis is out of the beam then no correction needs adding to setpoint
             if not in_beam_status:
                 corrected_axis_setpoint = self._motor_axis.sp
