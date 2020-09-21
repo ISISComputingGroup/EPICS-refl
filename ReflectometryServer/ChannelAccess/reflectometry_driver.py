@@ -134,7 +134,7 @@ class ReflectometryDriver(Driver):
 
     def write(self, reason, value):
         """
-        Process an incoming caput request.
+        Process an incoming channel_access request.
         :param reason: The PV that is being written to.
         :param value: The value being written to the PV
         """

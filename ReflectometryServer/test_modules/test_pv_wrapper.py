@@ -1,15 +1,17 @@
 import time
 
 from hamcrest import *
-from mock import Mock
+from mock import Mock, patch
 from parameterized import parameterized
 
 import ReflectometryServer
 import unittest
 
 from ReflectometryServer import *
+from ReflectometryServer.ChannelAccess.constants import MOTOR_MOVING_PV
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR, ProcessMonitorEvents
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess
+from server_common.channel_access import UnableToConnectToPVException
 
 FLOAT_TOLERANCE = 1e-9
 
@@ -384,3 +386,32 @@ class TestAggregateMonitorEvents(unittest.TestCase):
 
             assert_that(self.event_arg, is_([expected_value]))
             self.event_arg = []
+
+    @patch('ReflectometryServer.pv_wrapper.ChannelAccess')
+    def test_GIVEN_nothing_WHEN_event_THEN_in_motion_flag_is_set(self, channel_access):
+        expected_value = "HI"
+        self.pme.add_trigger(self.event, expected_value)
+
+        self.pme.process_triggers_loop()
+
+        channel_access.caput.assert_any_call(MOTOR_MOVING_PV, 1)
+
+    @patch('ReflectometryServer.pv_wrapper.ChannelAccess')
+    def test_GIVEN_nothing_WHEN_no_more_events_THEN_in_motion_flag_is_cleared(self, channel_access):
+
+        expected_value = "HI"
+        self.pme.add_trigger(self.event, expected_value)
+
+        self.pme.process_triggers_loop()
+        time.sleep(0.1)
+        channel_access.caput.assert_called_with(MOTOR_MOVING_PV, 0)
+
+    @patch('ReflectometryServer.pv_wrapper.ChannelAccess')
+    def test_GIVEN_moving_pv_does_not_exist_WHEN_event_THEN_event_is_processed(self, channel_access):
+        channel_access.caput.side_effect = UnableToConnectToPVException("pvname", "error")
+        expected_value = "HI"
+        self.pme.add_trigger(self.event, expected_value)
+
+        self.pme.process_triggers_loop()
+
+        assert_that(self.event_arg, is_([expected_value]))

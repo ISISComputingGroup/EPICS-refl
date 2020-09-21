@@ -31,6 +31,9 @@ DEFAULT_ASG_RULES = os.path.join("{}".format(
 MTR_MOVING = 0
 MTR_STOPPED = 1
 
+# PV to set that reflectometry calculation is not complete, i.e. it still considered that motors are moving
+MOTOR_MOVING_PV = "{}CS:MOT:_MOVING1.K".format(MYPVPREFIX)
+
 # maximum allowable alarm value
 MAX_ALARM_ID = 15
 

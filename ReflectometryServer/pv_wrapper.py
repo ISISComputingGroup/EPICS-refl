@@ -12,7 +12,7 @@ from contextlib2 import contextmanager
 from pcaspy import Severity
 
 from ReflectometryServer.server_status_manager import ProblemInfo, STATUS_MANAGER
-from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED
+from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED, MOTOR_MOVING_PV
 from ReflectometryServer.file_io import velocity_float_autosave, velocity_bool_autosave
 import logging
 
@@ -78,6 +78,8 @@ class ProcessMonitorEvents:
         """
         Process triggers on the list while process triggers is True
         """
+
+        self._set_motor_moving_pv(1)
         while True:
             try:
                 self.process_current_triggers()
@@ -87,6 +89,20 @@ class ProcessMonitorEvents:
                     break
             except Exception as e:
                 logger.error("Exception occurred in process events: {}".format(e))
+        self._set_motor_moving_pv(0)
+
+    def _set_motor_moving_pv(self, value):
+        """
+        Set/clear the motor is moving pv to indicate we are calculating the readback value
+        Args:
+            value: value to set it to. 1 is moving, 0 not moving
+        """
+        try:
+            ChannelAccess.caput(MOTOR_MOVING_PV, value)
+        except Exception as e:
+            STATUS_MANAGER.update_error_log("Failed to set motor moving pv: {}".format(e), e)
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Failed to update motor moving pv", "pv_wrapper", Severity.MAJOR_ALARM))
 
     def process_current_triggers(self):
         """
