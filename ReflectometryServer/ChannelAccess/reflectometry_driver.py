@@ -230,7 +230,8 @@ class ReflectometryDriver(Driver):
         pv_name, value, alarm_severity, alarm_status = \
             self._driver_help.get_param_update_from_event(pv_name, param_type, update)
         self._update_param_both_pv_and_pv_val(pv_name, value, alarm_severity, alarm_status)
-        self.updatePVs()
+        for pv in self._pv_manager.get_all_pvs_for_param(pv_name):
+            self.updatePV(pv)
 
     def add_param_listeners(self):
         """
@@ -253,7 +254,8 @@ class ReflectometryDriver(Driver):
 
     def _update_binary_listener(self, pv_name, update):
         self.setParam(pv_name, update.value)
-        self.updatePVs()
+        for pv in self._pv_manager.get_all_pvs_for_param(pv_name):
+            self.updatePV(pv)
 
     def _on_bl_mode_change(self, mode_update):
         """
@@ -274,7 +276,7 @@ class ReflectometryDriver(Driver):
         self._update_param_both_pv_and_pv_val(BEAMLINE_MODE + SP_SUFFIX, mode_value)
         self.updatePVs()
 
-    def _on_server_status_change(self, update):
+    def _on_server_status_change(self, update: StatusUpdate):
         """
         Update the overall status of the beamline.
 
@@ -287,7 +289,7 @@ class ReflectometryDriver(Driver):
         self._update_param_both_pv_and_pv_val(SERVER_MESSAGE, update.server_message)
         self.updatePVs()
 
-    def _on_error_log_update(self, update: StatusUpdate):
+    def _on_error_log_update(self, update: ErrorLogUpdate):
         """
         Update the overall status of the beamline.
 
