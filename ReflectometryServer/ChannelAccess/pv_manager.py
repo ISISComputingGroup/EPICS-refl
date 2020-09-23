@@ -83,12 +83,16 @@ RBV_AT_SP = ":RBV:AT_SP"
 CHANGING = ":CHANGING"
 CHANGED_SUFFIX = ":CHANGED"
 DEFINE_POSITION_AS = ":DEFINE_POSITION_AS"
-CONST_PREFIX = "CONST"
 
 VAL_FIELD = ".VAL"
 STAT_FIELD = ".STAT"
 SEVR_FIELD = ".SEVR"
 DESC_FIELD = ".DESC"
+
+ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX, SET_AND_NO_ACTION_SUFFIX,
+                      CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP]
+
+CONST_PREFIX = "CONST"
 
 FOOTPRINT_PREFIX = "FP"
 SAMPLE_LENGTH = "{}:{}".format(FOOTPRINT_PREFIX, "SAMPLE_LENGTH")
@@ -447,6 +451,32 @@ class PVManager:
             (str, PvSort): parameter name and sort for the given pv
         """
         return self._params_pv_lookup[self.strip_fields_from_pv(pv_name)]
+
+    def _get_base_param_pv(self, pv_name):
+        """
+        Args:
+            pv_name: name of pv for which to get the base pv
+
+        Returns:
+            (str): base parameter pv stripped of any fields / suffixes
+        """
+        for field in ALL_PARAM_SUFFIXES:
+            pv_name = remove_from_end(pv_name, field)
+        return pv_name
+
+    def get_all_pvs_for_param(self, pv_name):
+        """
+        Get a list of all suffixed PVs for a given parameter.
+
+        Args:
+            pv_name: name of pv for which to get the list of PVs
+
+        Returns:
+            (list[str]): The list of all PVs related to this parameter
+        """
+        base_pv = self._get_base_param_pv(pv_name)
+        all_pvs = [base_pv] + [(base_pv + suffix) for suffix in ALL_PARAM_SUFFIXES]
+        return all_pvs
 
     def strip_fields_from_pv(self, pv_name):
         """
