@@ -756,6 +756,25 @@ class TestComponentOutOfBeam(unittest.TestCase):
 
         assert_that(actual, is_(expected))
 
+    def test_GIVEN_component_partially_in_beam_WHEN_setting_new_setpoint_for_axis_out_of_beam_THEN_driver_moves(self):
+        out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
+        chi_axis = create_mock_axis("chi", self.IN_BEAM_VALUE, 1)
+        psi_axis = create_mock_axis("psi", self.OUT_OF_BEAM_VALUE, 1)
+        chi_driver = IocDriver(self.comp, ChangeAxis.CHI, chi_axis, out_of_beam_positions=[out_of_beam_position])
+        psi_driver = IocDriver(self.comp, ChangeAxis.PSI, psi_axis, out_of_beam_positions=[out_of_beam_position])
+        chi_axis.sp = self.IN_BEAM_VALUE
+        psi_axis.sp = self.OUT_OF_BEAM_VALUE
+        chi_driver.initialise_setpoint()
+        psi_driver.initialise_setpoint()
+
+        expected = self.IN_BEAM_VALUE
+
+        self.comp.beam_path_set_point.axis[ChangeAxis.PSI].set_displacement(CorrectedReadbackUpdate(self.IN_BEAM_VALUE, None, None))
+        psi_driver.perform_move(1)
+        actual = psi_axis.sp
+
+        assert_that(actual, is_(expected))
+
     def test_GIVEN_component_with_axis_with_out_of_beam_position_WHEN_in_beam_sp_changes_THEN_only_axis_with_out_of_beam_position_marked_as_changed(self):
         out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
         chi_axis = create_mock_axis("chi", self.IN_BEAM_VALUE, 1)

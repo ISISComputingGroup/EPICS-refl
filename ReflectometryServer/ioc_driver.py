@@ -315,16 +315,18 @@ class IocDriver:
         """
         Returns: position that the set point axis is set to
         """
-        if self._component.beam_path_set_point.axis[self._component_axis].is_in_beam:
+        if self._component.beam_path_set_point.is_in_beam:
             displacement = self._component.beam_path_set_point.axis[self._component_axis].get_displacement()
         else:
             if self._out_of_beam_lookup is None:
                 displacement = 0
-                STATUS_MANAGER.update_error_log(
-                    "The component {} is out of the beam but there is no out of beam position for the driver "
-                    "running motor_axis {}".format(self._component.name, self._motor_axis.name))
-                STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("No out of beam position defined for motor_axis", self.name, Severity.MINOR_ALARM))
+                if not self._component.beam_path_set_point.axis[self._component_axis].is_in_beam:
+                    STATUS_MANAGER.update_error_log(
+                        "An axis for component {} is set to out of beam but there is no out of beam position defined "
+                        "for the driver for the associated motor axis {}".format(self._component.name,
+                                                                                 self._motor_axis.name))
+                    STATUS_MANAGER.update_active_problems(
+                        ProblemInfo("No out of beam position defined for motor_axis", self.name, Severity.MINOR_ALARM))
             else:
                 beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
                 out_of_beam_position = self._out_of_beam_lookup.get_position_for_intercept(beam_interception)
