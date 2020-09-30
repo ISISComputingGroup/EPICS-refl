@@ -231,13 +231,14 @@ class BenchComponent(TiltingComponent):
         self._max_angle_for_slide = setup.max_angle_for_slide
         if setup.vertical_mode:
             self._angle_axis = ChangeAxis.CHI
-            self._position_axis = ChangeAxis.HEIGHT
+            self._position_axis = ChangeAxis.TRANS
         else:
             self._angle_axis = ChangeAxis.ANGLE
             self._position_axis = ChangeAxis.POSITION
         _, _, self._min_slide_position = self._calculate_motor_positions(0.0, self._min_angle_for_slide, 0.0)
         _, _, self._max_slide_position = self._calculate_motor_positions(0.0, self._max_angle_for_slide, 0.0)
         super(TiltingComponent, self).__init__(name, setup)
+        self._add_axis_listeners()
 
     def _init_beam_path_calcs(self, setup):
         """
@@ -262,8 +263,11 @@ class BenchComponent(TiltingComponent):
         set_point_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
         rbv_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
 
+    def _add_axis_listeners(self):
         self._motor_axes = [ChangeAxis.JACK_FRONT, ChangeAxis.JACK_REAR, ChangeAxis.SLIDE]
         self._control_axes = [self._angle_axis, self._position_axis, ChangeAxis.SEESAW]
+        set_point_axis = self.beam_path_set_point.axis
+        rbv_axis = self.beam_path_rbv.axis
 
         for axis in self._motor_axes:
             set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_motor_axis_changed)
