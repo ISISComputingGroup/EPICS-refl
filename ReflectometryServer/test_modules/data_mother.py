@@ -452,7 +452,7 @@ PIVOT_TO_BEAM = 628
 BENCH_MIN_ANGLE = 0
 BENCH_MAX_ANGLE = 4.8
 
-def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH):
+def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH, vertical_mode=False):
     """
     Get the standard bench setup as per POLREF
     Args:
@@ -462,4 +462,4 @@ def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH):
         Bench setup correctly
     """
     return BenchComponent("rear_bench", BenchSetup(0, with_z_position, 90, PIVOT_TO_J1, PIVOT_TO_J2, with_angle,
-                                                   PIVOT_TO_BEAM, BENCH_MIN_ANGLE, BENCH_MAX_ANGLE))
+                                                   PIVOT_TO_BEAM, BENCH_MIN_ANGLE, BENCH_MAX_ANGLE, vertical_mode))
