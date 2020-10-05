@@ -1240,9 +1240,9 @@ class TestBenchComponentVertical(unittest.TestCase):
         for axis in [self.j1_axis, self.j2_axis, self.slide_axis, self.arc_axis]:
             axis.sp = self.initial_motor_position
 
-        self.param_chi.sp = 2.3  # bring level to ground to make numbers more readable
+        self.param_chi.sp = 2.3  # bring bench level to ground to make numbers more readable
 
-    def test_GIVEN_vertical_bench_WHEN_moving_angle_THEN_arc_moves_to_correct_place_and_nothing_else(self):
+    def test_GIVEN_vertical_bench_WHEN_moving_angle_THEN_arc_moves_to_correct_position(self):
         expected = 10.0
 
         self.param_angle.sp = expected
@@ -1254,7 +1254,7 @@ class TestBenchComponentVertical(unittest.TestCase):
         assert_that(self.slide_axis.rbv, is_(self.initial_motor_position))
         assert_that(self.arc_axis.rbv, is_(expected))
 
-    def test_GIVEN_vertical_bench_WHEN_moving_trans_THEN_jacks_move_to_correct_place_and_nothing_else(self):
+    def test_GIVEN_vertical_bench_WHEN_moving_trans_THEN_jacks_move_to_correct_position(self):
         expected = 10.0
 
         self.param_trans.sp = expected
@@ -1263,10 +1263,10 @@ class TestBenchComponentVertical(unittest.TestCase):
 
         assert_that(self.j1_axis.rbv, is_(expected))
         assert_that(self.j2_axis.rbv, is_(expected))
-        assert_that(self.slide_axis.rbv, is_(0))
-        assert_that(self.arc_axis.rbv, is_(0))
+        assert_that(self.slide_axis.rbv, is_(self.initial_motor_position))
+        assert_that(self.arc_axis.rbv, is_(self.initial_motor_position))
 
-    def test_GIVEN_vertical_bench_WHEN_moving_seesaw_THEN_jacks_move_to_correct_place_and_nothing_else(self):
+    def test_GIVEN_vertical_bench_WHEN_moving_seesaw_THEN_jacks_move_to_correct_position(self):
         expected = 10.0
 
         self.param_seesaw.sp = expected
@@ -1278,7 +1278,7 @@ class TestBenchComponentVertical(unittest.TestCase):
         assert_that(self.slide_axis.rbv, is_(self.initial_motor_position))
         assert_that(self.arc_axis.rbv, is_(self.initial_motor_position))
 
-    def test_GIVEN_vertical_bench_WHEN_moving_chi_THEN_jacks_and_slide_move_to_correct_place_and_nothing_else(self):
+    def test_GIVEN_vertical_bench_WHEN_moving_chi_THEN_jacks_and_slide_move_to_correct_position(self):
         bench_angle = 0  # relative to natural beam of -2.3 deg
         # Expected values taken from bench calc spreadsheet
         expected_j1 = -48.74306278
@@ -1297,6 +1297,7 @@ class TestBenchComponentVertical(unittest.TestCase):
     NO_ALARM = (AlarmSeverity.No, AlarmStatus.No)
     MAJOR_ALARM = (AlarmSeverity.Major, AlarmStatus.HiHi)
     INVALID_ALARM = (AlarmSeverity.Invalid, AlarmStatus.Timeout)
+
     @parameterized.expand([
         (MAJOR_ALARM, NO_ALARM, NO_ALARM, MAJOR_ALARM),
         (NO_ALARM, MAJOR_ALARM, NO_ALARM, MAJOR_ALARM),
