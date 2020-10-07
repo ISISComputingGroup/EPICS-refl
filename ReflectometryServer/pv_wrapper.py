@@ -483,7 +483,7 @@ class PVWrapper:
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        if new_value == MTR_STOPPED:
+        if self._moving_state_cache is not None and new_value == MTR_STOPPED:
             self.restore_pre_move_velocity()
         self._moving_state_cache = new_value
 
