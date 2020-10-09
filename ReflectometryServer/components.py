@@ -199,7 +199,7 @@ class BenchSetup(PositionAndAngle):
             min_angle_for_slide: minimum angle for moving the horizontal slide; clamp to this angle below
             max_angle_for_slide: maximum angle for moving the horizontal slide; clamp to this angle above
             vertical_mode: True for sample in vertical mode, jacks react to CHI and angle;
-                False sample in horixontal mode, jacks move to ANGLE and POSITION
+                False sample in horizontal mode, jacks move to ANGLE and POSITION
         """
         super(BenchSetup, self).__init__(y, z, angle)
         self.jack_front_z = jack_front_z
