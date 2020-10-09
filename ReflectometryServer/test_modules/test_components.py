@@ -1214,5 +1214,147 @@ class TestBenchComponent(unittest.TestCase):
         assert_that(seesaw.sp, is_(close_to(expected_seesaw, 1e-6)))
 
 
+class TestBenchComponentVertical(unittest.TestCase):
+    def setUp(self):
+        self.bench = get_standard_bench(vertical_mode=True)
+        self.bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+
+        self.param_angle = AxisParameter("ANGLE", self.bench, ChangeAxis.ANGLE)
+        self.param_trans = AxisParameter("TRANS", self.bench, ChangeAxis.TRANS)
+        self.param_seesaw = AxisParameter("SEESAW", self.bench, ChangeAxis.SEESAW)
+        self.param_chi = AxisParameter("CHI", self.bench, ChangeAxis.CHI)
+        
+        self.j1_axis = create_mock_axis("j1", 0, 1)
+        self.j2_axis = create_mock_axis("j2", 0, 1)
+        self.slide_axis = create_mock_axis("axis", 0, 1)
+        self.arc_axis = create_mock_axis("arc", 0, 1)
+        
+        j1_driver = IocDriver(self.bench, ChangeAxis.JACK_FRONT, self.j1_axis)
+        j2_driver = IocDriver(self.bench, ChangeAxis.JACK_REAR, self.j2_axis)
+        slide_driver = IocDriver(self.bench, ChangeAxis.SLIDE, self.slide_axis)
+        arc_driver = IocDriver(self.bench, ChangeAxis.ANGLE, self.arc_axis)
+        self.drivers = [j1_driver, j2_driver, slide_driver, arc_driver]
+
+        self.initial_motor_position = 0
+        self.axes = [self.j1_axis, self.j2_axis, self.slide_axis, self.arc_axis]
+        for axis in [self.j1_axis, self.j2_axis, self.slide_axis, self.arc_axis]:
+            axis.sp = self.initial_motor_position
+
+        self.param_chi.sp = 2.3  # bring bench level to ground to make numbers more readable
+
+    def test_GIVEN_vertical_bench_WHEN_moving_angle_THEN_arc_moves_to_correct_position(self):
+        expected = 10.0
+
+        self.param_angle.sp = expected
+        for driver in self.drivers:
+            driver.perform_move(1)
+
+        assert_that(self.j1_axis.rbv, is_(self.initial_motor_position))
+        assert_that(self.j2_axis.rbv, is_(self.initial_motor_position))
+        assert_that(self.slide_axis.rbv, is_(self.initial_motor_position))
+        assert_that(self.arc_axis.rbv, is_(expected))
+
+    def test_GIVEN_vertical_bench_WHEN_moving_trans_THEN_jacks_move_to_correct_position(self):
+        expected = 10.0
+
+        self.param_trans.sp = expected
+        for driver in self.drivers:
+            driver.perform_move(1)
+
+        assert_that(self.j1_axis.rbv, is_(expected))
+        assert_that(self.j2_axis.rbv, is_(expected))
+        assert_that(self.slide_axis.rbv, is_(self.initial_motor_position))
+        assert_that(self.arc_axis.rbv, is_(self.initial_motor_position))
+
+    def test_GIVEN_vertical_bench_WHEN_moving_seesaw_THEN_jacks_move_to_correct_position(self):
+        expected = 10.0
+
+        self.param_seesaw.sp = expected
+        for driver in self.drivers:
+            driver.perform_move(1)
+
+        assert_that(self.j1_axis.rbv, is_(expected))
+        assert_that(self.j2_axis.rbv, is_(-expected))
+        assert_that(self.slide_axis.rbv, is_(self.initial_motor_position))
+        assert_that(self.arc_axis.rbv, is_(self.initial_motor_position))
+
+    def test_GIVEN_vertical_bench_WHEN_moving_chi_THEN_jacks_and_slide_move_to_correct_position(self):
+        bench_angle = 0  # relative to natural beam of -2.3 deg
+        # Expected values taken from bench calc spreadsheet
+        expected_j1 = -48.74306278
+        expected_j2 = -111.3188069
+        expected_slide = -27.44574943
+
+        self.param_chi.sp = bench_angle
+        for driver in self.drivers:
+            driver.perform_move(1)
+
+        assert_that(self.j1_axis.rbv, is_(close_to(expected_j1, 1e-6)))
+        assert_that(self.j2_axis.rbv, is_(close_to(expected_j2, 1e-6)))
+        assert_that(self.slide_axis.rbv, is_(close_to(expected_slide, 1e-6)))
+        assert_that(self.arc_axis.rbv, is_(self.initial_motor_position))
+
+    NO_ALARM = (AlarmSeverity.No, AlarmStatus.No)
+    MAJOR_ALARM = (AlarmSeverity.Major, AlarmStatus.HiHi)
+    INVALID_ALARM = (AlarmSeverity.Invalid, AlarmStatus.Timeout)
+
+    @parameterized.expand([
+        (MAJOR_ALARM, NO_ALARM, NO_ALARM, MAJOR_ALARM),
+        (NO_ALARM, MAJOR_ALARM, NO_ALARM, MAJOR_ALARM),
+        (NO_ALARM, NO_ALARM, MAJOR_ALARM, MAJOR_ALARM),
+        (INVALID_ALARM, NO_ALARM, MAJOR_ALARM, INVALID_ALARM)
+    ])
+    def test_GIVEN_set_alarms_on_jacks_and_slide_for_vertical_bench_WHEN_get_control_axis_alarm_THEN_alarm_is_most_sever(self, front_alarm, rear_alarm, slide_alarm, expected_alarm):
+        bench = get_standard_bench(vertical_mode=True)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        chi = AxisParameter("PARAM", bench, ChangeAxis.CHI)
+        trans = AxisParameter("PARAM", bench, ChangeAxis.TRANS)
+        seesaw = AxisParameter("PARAM", bench, ChangeAxis.SEESAW)
+        angle = AxisParameter("PARAM", bench, ChangeAxis.ANGLE)
+        angle.alarm_severity = AlarmSeverity.No
+        angle.alarm_status = AlarmStatus.No
+        angle.sp = 0
+        seesaw.sp = 0
+
+        bench.beam_path_rbv.axis[ChangeAxis.JACK_FRONT].set_displacement(CorrectedReadbackUpdate(0, *front_alarm))
+        bench.beam_path_rbv.axis[ChangeAxis.JACK_REAR].set_displacement(CorrectedReadbackUpdate(0, *rear_alarm))
+        bench.beam_path_rbv.axis[ChangeAxis.SLIDE].set_displacement(CorrectedReadbackUpdate(0, *slide_alarm))
+
+        for param in [chi, trans, seesaw]:
+            assert_that(param.alarm_severity, is_(expected_alarm[0]))
+            assert_that(param.alarm_status, is_(expected_alarm[1]))
+
+        assert_that(angle.alarm_severity, is_(AlarmSeverity.No))
+        assert_that(angle.alarm_status, is_(AlarmStatus.No))
+
+
+    @parameterized.expand([
+        ((ChangeAxis.TRANS, ChangeAxis.CHI, ChangeAxis.SEESAW), (), ( ), (ChangeAxis.JACK_FRONT,), True),
+        ((), (ChangeAxis.TRANS, ChangeAxis.CHI, ChangeAxis.SEESAW), (ChangeAxis.JACK_FRONT,), (), False),
+        ((), (ChangeAxis.TRANS, ChangeAxis.CHI, ChangeAxis.SEESAW), (ChangeAxis.JACK_REAR,), (), False),
+        ((), (ChangeAxis.TRANS, ChangeAxis.CHI, ChangeAxis.SEESAW), (ChangeAxis.JACK_REAR,), (ChangeAxis.JACK_FRONT,), True),
+        ((), (ChangeAxis.TRANS, ChangeAxis.CHI, ChangeAxis.SEESAW), (ChangeAxis.JACK_FRONT,), (ChangeAxis.SLIDE,), True),
+    ])
+    def test_GIVEN_changing_true_on_some_axis_WHEN_changing_set_on_an_axis_THEN_bench_chi_seesaw_and_trans_on_changing_to_expected_answer(self, inital_setup_false, inital_setup_true, axes_to_set_false, axes_to_set_true, expected_result):
+        bench = get_standard_bench(with_angle=0, vertical_mode=True)
+        bench.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        for axis in inital_setup_true:
+            bench.beam_path_rbv.axis[axis].is_changing = True
+        for axis in inital_setup_false:
+            bench.beam_path_rbv.axis[axis].is_changing = False
+
+        for axis in axes_to_set_false:
+            bench.beam_path_rbv.axis[axis].is_changing = False
+
+        for axis in axes_to_set_true:
+            bench.beam_path_rbv.axis[axis].is_changing = True
+
+        assert_that(bench.beam_path_rbv.axis[ChangeAxis.TRANS].is_changing, is_(expected_result))
+        assert_that(bench.beam_path_rbv.axis[ChangeAxis.CHI].is_changing, is_(expected_result))
+        assert_that(bench.beam_path_rbv.axis[ChangeAxis.SEESAW].is_changing, is_(expected_result))
+        assert_that(bench.beam_path_rbv.axis[ChangeAxis.POSITION].is_changing, is_(False))
+        assert_that(bench.beam_path_rbv.axis[ChangeAxis.ANGLE].is_changing, is_(False))
+
+
 if __name__ == '__main__':
     unittest.main()

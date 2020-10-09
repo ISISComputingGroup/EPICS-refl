@@ -185,7 +185,7 @@ class BenchSetup(PositionAndAngle):
     Setup parameters for the bench component
     """
     def __init__(self, y, z, angle, jack_front_z, jack_rear_z, initial_table_angle, pivot_to_beam,
-                 min_angle_for_slide, max_angle_for_slide):
+                 min_angle_for_slide, max_angle_for_slide, vertical_mode=False):
         """
         Initialise.
         Args:
@@ -198,6 +198,8 @@ class BenchSetup(PositionAndAngle):
             pivot_to_beam: distance from the pivot of the bench to the beam
             min_angle_for_slide: minimum angle for moving the horizontal slide; clamp to this angle below
             max_angle_for_slide: maximum angle for moving the horizontal slide; clamp to this angle above
+            vertical_mode: True for sample in vertical mode, jacks react to CHI and angle;
+                False sample in horizontal mode, jacks move to ANGLE and POSITION
         """
         super(BenchSetup, self).__init__(y, z, angle)
         self.jack_front_z = jack_front_z
@@ -206,6 +208,7 @@ class BenchSetup(PositionAndAngle):
         self.pivot_to_beam = pivot_to_beam
         self.min_angle_for_slide = min_angle_for_slide
         self.max_angle_for_slide = max_angle_for_slide
+        self.vertical_mode = vertical_mode
 
 
 class BenchComponent(TiltingComponent):
@@ -226,9 +229,16 @@ class BenchComponent(TiltingComponent):
         self._pivot_to_beam = setup.pivot_to_beam
         self._min_angle_for_slide = setup.min_angle_for_slide
         self._max_angle_for_slide = setup.max_angle_for_slide
+        if setup.vertical_mode:
+            self._angle_axis = ChangeAxis.CHI
+            self._position_axis = ChangeAxis.TRANS
+        else:
+            self._angle_axis = ChangeAxis.ANGLE
+            self._position_axis = ChangeAxis.POSITION
         _, _, self._min_slide_position = self._calculate_motor_positions(0.0, self._min_angle_for_slide, 0.0)
         _, _, self._max_slide_position = self._calculate_motor_positions(0.0, self._max_angle_for_slide, 0.0)
         super(TiltingComponent, self).__init__(name, setup)
+        self._add_axis_listeners()
 
     def _init_beam_path_calcs(self, setup):
         """
@@ -253,8 +263,11 @@ class BenchComponent(TiltingComponent):
         set_point_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
         rbv_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
 
+    def _add_axis_listeners(self):
         self._motor_axes = [ChangeAxis.JACK_FRONT, ChangeAxis.JACK_REAR, ChangeAxis.SLIDE]
-        self._control_axes = [ChangeAxis.ANGLE, ChangeAxis.POSITION, ChangeAxis.SEESAW]
+        self._control_axes = [self._angle_axis, self._position_axis, ChangeAxis.SEESAW]
+        set_point_axis = self.beam_path_set_point.axis
+        rbv_axis = self.beam_path_rbv.axis
 
         for axis in self._motor_axes:
             set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_motor_axis_changed)
@@ -311,8 +324,8 @@ class BenchComponent(TiltingComponent):
                                                         rbv_axis[ChangeAxis.JACK_REAR].alarm,
                                                         rbv_axis[ChangeAxis.SLIDE].alarm)
 
-        rbv_axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(height, alarm_severity, alarm_status))
-        rbv_axis[ChangeAxis.ANGLE].set_displacement(CorrectedReadbackUpdate(pivot_angle, alarm_severity, alarm_status))
+        rbv_axis[self._position_axis].set_displacement(CorrectedReadbackUpdate(height, alarm_severity, alarm_status))
+        rbv_axis[self._angle_axis].set_displacement(CorrectedReadbackUpdate(pivot_angle, alarm_severity, alarm_status))
         rbv_axis[ChangeAxis.SEESAW].set_displacement(CorrectedReadbackUpdate(seesaw, alarm_severity, alarm_status))
 
     def _calculate_motor_rbvs(self, rbv_axis):
@@ -333,7 +346,7 @@ class BenchComponent(TiltingComponent):
                 self._calculate_pivot_height_and_angle_with_fixed_seesaw(front_jack, rear_jack, 0)
         else:
             # assume angle is set correctly and any variation is because of seesaw and height
-            angle_sp = self.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement()
+            angle_sp = self.beam_path_set_point.axis[self._angle_axis].get_displacement()
             height, pivot_angle, seesaw = \
                 self._calculate_pivot_height_and_seesaw_with_fixed_pivot_angle(front_jack, rear_jack, angle_sp)
         return height, pivot_angle, seesaw
@@ -384,8 +397,8 @@ class BenchComponent(TiltingComponent):
         When a position is set relative to the beam on the control axes set the transformed values on the motor axes.
         """
         set_point_axes = self.beam_path_set_point.axis
-        pivot_height = set_point_axes[ChangeAxis.POSITION].get_displacement()
-        pivot_angle = set_point_axes[ChangeAxis.ANGLE].get_displacement()
+        pivot_height = set_point_axes[self._position_axis].get_displacement()
+        pivot_angle = set_point_axes[self._angle_axis].get_displacement()
         seesaw = set_point_axes[ChangeAxis.SEESAW].get_displacement()
 
         front_jack_height, rear_jack_height, horizontal_position = \
@@ -438,10 +451,10 @@ class BenchComponent(TiltingComponent):
         height, pivot_angle, seesaw = self._calculate_motor_rbvs(rbv_axis)
 
         change_axis = define_position.change_axis
-        if change_axis == ChangeAxis.POSITION:
+        if change_axis == self._position_axis:
             height = define_position.new_position
 
-        elif change_axis == ChangeAxis.ANGLE:
+        elif change_axis == self._angle_axis:
             pivot_angle = define_position.new_position
 
         elif change_axis == ChangeAxis.SEESAW:
@@ -457,7 +470,7 @@ class BenchComponent(TiltingComponent):
 
         rbv_axis[ChangeAxis.JACK_FRONT].define_axis_position_as(front_jack_height)
         rbv_axis[ChangeAxis.JACK_REAR].define_axis_position_as(rear_jack_height)
-        if change_axis is not ChangeAxis.POSITION:
+        if change_axis is not self._position_axis:
             rbv_axis[ChangeAxis.SLIDE].define_axis_position_as(horizontal_position)
 
     def on_init_update(self, _):
@@ -475,5 +488,5 @@ class BenchComponent(TiltingComponent):
         pivot_height, pivot_angle, seesaw = \
             self._calculate_pivot_height_and_angle_with_fixed_seesaw(front_jack, rear_jack, seesaw)
 
-        sp_axis[ChangeAxis.POSITION].init_displacement_from_motor(pivot_height)
-        sp_axis[ChangeAxis.ANGLE].init_displacement_from_motor(pivot_angle)
+        sp_axis[self._position_axis].init_displacement_from_motor(pivot_height)
+        sp_axis[self._angle_axis].init_displacement_from_motor(pivot_angle)
