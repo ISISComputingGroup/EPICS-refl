@@ -76,6 +76,11 @@ logger.info("Starting Reflectometry Driver")
 # Create server status PVs only
 pv_manager = PVManager()
 SERVER.createPV(REFLECTOMETRY_PREFIX, pv_manager.PVDB)
+
+# Run heartbeat IOC, this is done with a different prefix
+SERVER.createPV(prefix="{pv_prefix}CS:IOC:{ioc_name}:DEVIOS:".format(pv_prefix=MYPVPREFIX, ioc_name=REFL_IOC_NAME),
+                pvdb={"HEARTBEAT": {"type": "int", "value": 0}})
+
 driver = ReflectometryDriver(SERVER, pv_manager)
 
 process_ca_thread = Thread(target=process_ca_loop)
