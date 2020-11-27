@@ -98,7 +98,7 @@ class ProcessMonitorEvents:
             value: value to set it to. 1 is moving, 0 not moving
         """
         try:
-            ChannelAccess.caput(MOTOR_MOVING_PV, value)
+            ChannelAccess.caput(MOTOR_MOVING_PV, value, safe_not_quick=False)
         except Exception as e:
             STATUS_MANAGER.update_error_log("Failed to set motor moving pv: {}".format(e), e)
             STATUS_MANAGER.update_active_problems(
