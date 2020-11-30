@@ -328,11 +328,12 @@ class IocDriver:
         else:
             beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
             out_of_beam_position = self._out_of_beam_lookup.get_position_for_intercept(beam_interception)
+            parking_sequence_number = self._component.beam_path_set_point.in_beam_manager.parking_sequence
             if out_of_beam_position.is_offset:
                 displacement = self._component.beam_path_set_point.axis[self._component_axis].\
-                    get_displacement_for(out_of_beam_position.position)
+                    get_displacement_for(out_of_beam_position.get_sequence_position(parking_sequence_number))
             else:
-                displacement = out_of_beam_position.position
+                displacement = out_of_beam_position.get_sequence_position(parking_sequence_number)
         return displacement
 
     def _on_update_rbv(self, update):

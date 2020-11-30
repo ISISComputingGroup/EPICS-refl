@@ -5,7 +5,7 @@ set points or readbacks etc.
 from collections import namedtuple
 
 from math import degrees, atan2, isnan
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
     BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate
@@ -33,10 +33,13 @@ class InBeamManager:
     Manages the in-beam status of a component as a whole by combining information from all axes on the component that
     can be parked.
     """
-    axes: Dict[ChangeAxis, ComponentAxis]
+
+    # position in the out of beam parking sequence None for not in sequence, either axis is parked or in beam
+    parking_sequence: Optional[int]
 
     def __init__(self):
         self.parking_axes = []
+        self.parking_sequence = None
 
     def add_axes(self, axes):
         """
@@ -48,7 +51,7 @@ class InBeamManager:
         for component_axis in axes.values():
             component_axis.add_listener(AddOutOfBeamPositionEvent, self._on_add_out_of_beam_position)
 
-    def _on_add_out_of_beam_position(self, event):
+    def _on_add_out_of_beam_position(self, event: AddOutOfBeamPositionEvent):
         axis = event.source
         self.parking_axes.append(axis)
         axis.add_listener(AxisChangingUpdate, self._propagate_axis_event)

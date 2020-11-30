@@ -97,12 +97,12 @@ class TestEngineeringCorrections(unittest.TestCase):
     def test_GIVEN_engineering_correction_offset_of_1_and_out_of_beam_WHEN_initialise_THEN_sp_set_correctly(self):
         correction = 4
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(correction)
-        mock_axis.sp = OUT_OF_BEAM_POSITION.position
+        mock_axis.sp = OUT_OF_BEAM_POSITION.get_final_position()
         driver.initialise()
 
         result = comp.beam_path_set_point.axis[ChangeAxis.POSITION].get_displacement()
 
-        assert_that(result, is_(OUT_OF_BEAM_POSITION.position))
+        assert_that(result, is_(OUT_OF_BEAM_POSITION.get_final_position()))
 
     def test_GIVEN_engineering_correction_offset_of_1_on_angle_driver_WHEN_initialise_THEN_rbv_set_correctly(self):
         correction = 1

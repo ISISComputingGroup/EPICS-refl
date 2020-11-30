@@ -6,7 +6,7 @@ from hamcrest.core.core import is_
 from parameterized import parameterized
 
 from ReflectometryServer import Position
-from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
+from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup, OutOfBeamSequence
 
 PARK_HIGH_POS = 10
 PARK_HIHI_POS = 20
@@ -28,7 +28,7 @@ class TestComponentWithOutOfBeamPositions(unittest.TestCase):
 
         actual = lookup.get_position_for_intercept(beam_intercept)
 
-        assert_that(actual.position, is_(expected))
+        assert_that(actual.get_final_position(), is_(expected))
 
     @parameterized.expand([(-5, PARK_LOW_POS, True),
                            (-5, PARK_HIGH_POS, False),
@@ -93,3 +93,31 @@ class TestComponentWithOutOfBeamPositions(unittest.TestCase):
         positions = [pos_1, pos_2]
 
         assert_that(calling(OutOfBeamLookup).with_args(positions), raises(ValueError))
+
+
+class TestComponentWithSequenceOutOfBeamPositions(unittest.TestCase):
+
+    def test_GIVEN_sequence_number_is_None_WHEN_get_parking_position_THEN_last_position_in_sequence_returned(self):
+        expected_value = 10
+        lookup = OutOfBeamLookup([OutOfBeamSequence([0.1, expected_value])])
+        beam_intercept = Position(0, 0)
+
+        actual = lookup.get_position_for_intercept(beam_intercept).get_final_position()
+
+        assert_that(actual, is_(expected_value))
+
+    @parameterized.expand([([111, 222, 333], 0, 111), # first item
+                           ([111, 222, 333], None, 333), # no item so final position
+                           ([111, 222, 333], 1, 222), # middle item
+                           ([111, 222, 333], 2, 333), # last item
+                           ([111, 222, 333], 5, 333), # past last item returns the last item
+                           ([111, None, 333], 1, None),  # none is fine to return
+                           ])
+    def test_GIVEN_sequence_is_0_WHEN_get_parking_position_THEN_first_position_in_sequence_returned(self, sequence, sequence_number, expected_value):
+
+        lookup = OutOfBeamLookup([OutOfBeamSequence(sequence)])
+        beam_intercept = Position(0, 0)
+
+        actual = lookup.get_position_for_intercept(beam_intercept).get_sequence_position(sequence_number)
+
+        assert_that(actual, is_(expected_value))

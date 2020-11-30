@@ -301,7 +301,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
 
     def test_GIVEN_component_which_is_out_of_beam_WHEN_calculating_move_duration_THEN_returned_duration_is_time_taken_to_move_to_out_of_beam_position(self):
 
-        expected = - self.out_of_beam_position.position / self.max_velocity
+        expected = - self.out_of_beam_position.get_final_position() / self.max_velocity
         self.jaws.beam_path_set_point.is_in_beam = False
 
         result = self.jaws_driver.get_max_move_duration()
@@ -309,7 +309,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         assert_that(result, is_(expected))
 
     def test_GIVEN_component_which_is_out_of_beam_WHEN_moving_axis_THEN_computed_axis_velocity_is_correct_and_setpoint_set(self):
-        expected_position = self.out_of_beam_position.position
+        expected_position = self.out_of_beam_position.get_final_position()
         target_duration = 4.0
         expected_velocity = - expected_position / 4.0
         self.jaws.beam_path_set_point.is_in_beam = False
@@ -324,7 +324,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = False
 
-        self.height_axis.sp = self.out_of_beam_position.position
+        self.height_axis.sp = self.out_of_beam_position.get_final_position()
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
@@ -334,7 +334,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = True
 
-        self.height_axis.sp = self.out_of_beam_position.position + 2 * self.tolerance_on_out_of_beam_position
+        self.height_axis.sp = self.out_of_beam_position.get_final_position() + 2 * self.tolerance_on_out_of_beam_position
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
@@ -344,7 +344,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = False
 
-        self.height_axis.sp = self.out_of_beam_position.position + self.tolerance_on_out_of_beam_position * 0.9
+        self.height_axis.sp = self.out_of_beam_position.get_final_position() + self.tolerance_on_out_of_beam_position * 0.9
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
