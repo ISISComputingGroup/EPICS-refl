@@ -394,7 +394,7 @@ class TestAggregateMonitorEvents(unittest.TestCase):
 
         self.pme.process_triggers_loop()
 
-        channel_access.caput.assert_any_call(MOTOR_MOVING_PV, 1)
+        channel_access.caput.assert_any_call(MOTOR_MOVING_PV, 1, safe_not_quick=False)
 
     @patch('ReflectometryServer.pv_wrapper.ChannelAccess')
     def test_GIVEN_nothing_WHEN_no_more_events_THEN_in_motion_flag_is_cleared(self, channel_access):
@@ -404,7 +404,7 @@ class TestAggregateMonitorEvents(unittest.TestCase):
 
         self.pme.process_triggers_loop()
         time.sleep(0.1)
-        channel_access.caput.assert_called_with(MOTOR_MOVING_PV, 0)
+        channel_access.caput.assert_called_with(MOTOR_MOVING_PV, 0, safe_not_quick=False)
 
     @patch('ReflectometryServer.pv_wrapper.ChannelAccess')
     def test_GIVEN_moving_pv_does_not_exist_WHEN_event_THEN_event_is_processed(self, channel_access):
