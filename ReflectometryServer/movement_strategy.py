@@ -182,12 +182,3 @@ class LinearMovementCalc:
             (float): The sum of the position and distance along axis from 0 to beam intercept
         """
         return position + self._dist_along_axis_from_zero_to_beam_intercept(beam)
-
-
-# class ArcMovement(PositionAndAngle):
-#     """
-#     A strategy for calculating the interception of the beam with a component that can only move on a radius
-#     """
-#
-#     def __init__(self, y_center_of_rotation, z_centre_of_rotation):
-#         super(ArcMovement, self).__init__(y_center_of_rotation, z_centre_of_rotation, 0)

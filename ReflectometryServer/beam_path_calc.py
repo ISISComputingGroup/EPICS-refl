@@ -330,6 +330,9 @@ class TrackingBeamPathCalc:
                 logger.error("Incoming beam was not initialised for component {}".format(self._name))
             self.set_incoming_beam(incoming_beam, force=True, on_init=True)
 
+    def __repr__(self):
+        return f"{self._name}: {self.__class__.__name__} {id(self)}"
+
 
 class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
     """
