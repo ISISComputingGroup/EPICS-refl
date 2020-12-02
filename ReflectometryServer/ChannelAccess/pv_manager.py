@@ -55,6 +55,7 @@ SERVER_MESSAGE = "MSG"
 SERVER_ERROR_LOG = "LOG"
 BEAMLINE_MODE = BEAMLINE_PREFIX + "MODE"
 BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
+REAPPLY_MODE_INITS = BEAMLINE_PREFIX + "INIT_ON_MOVE"
 
 PARAM_INFO = "PARAM_INFO"
 PARAM_INFO_COLLIMATION = "COLLIM_INFO"
@@ -187,6 +188,9 @@ class PVManager:
         self._add_pv_with_fields(BEAMLINE_MODE, None, mode_fields, "Beamline mode", PvSort.RBV, archive=True,
                                  interest="HIGH")
         self._add_pv_with_fields(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
+
+        self._add_pv_with_fields(REAPPLY_MODE_INITS, None, PARAM_FIELDS_BINARY, "Apply mode inits on move all", PvSort.RBV,
+                                 archive=True, interest="MEDIUM")
 
     def _add_footprint_calculator_pvs(self):
         """
@@ -571,3 +575,13 @@ class PVManager:
         Returns: True if this is an alarm severity pv
         """
         return pv_name.endswith(SEVR_FIELD)
+
+    @staticmethod
+    def is_reapply_mode_inits(pv_name):
+        """
+        Args:
+            pv_name: name of the pv
+
+        Returns: True if this the reapply mode inits pv
+        """
+        return is_pv_name_this_field(REAPPLY_MODE_INITS, pv_name)

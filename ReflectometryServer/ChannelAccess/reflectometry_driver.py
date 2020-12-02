@@ -103,6 +103,9 @@ class ReflectometryDriver(Driver):
                 elif self._pv_manager.is_beamline_move(reason):
                     return self._beamline.move
 
+                elif self._pv_manager.is_reapply_mode_inits(reason):
+                    return self._beamline.reinit_mode_on_move
+
                 elif self._pv_manager.is_server_status(reason):
                     beamline_status_enums = self._pv_manager.PVDB[SERVER_STATUS]["enums"]
                     new_value = beamline_status_enums.index(STATUS_MANAGER.status.display_string)
@@ -144,6 +147,8 @@ class ReflectometryDriver(Driver):
                 value_accepted = self._driver_help.param_write(reason, value)
             elif self._pv_manager.is_beamline_move(reason):
                 self._beamline.move = 1
+            elif self._pv_manager.is_reapply_mode_inits(reason):
+                self._beamline.reinit_mode_on_move = value
             elif self._pv_manager.is_beamline_mode(reason):
                 try:
                     beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
