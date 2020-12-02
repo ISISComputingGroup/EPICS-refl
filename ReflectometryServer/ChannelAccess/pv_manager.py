@@ -117,7 +117,7 @@ def is_pv_name_this_field(field_name, pv_name):
         field_name: field name to match
         pv_name: pv name to match
 
-    Returns: True if field name is pv name (with oe without VAL  field)
+    Returns: True if field name is pv name (with oe without VAL field)
 
     """
     pv_name_no_val = remove_from_end(pv_name, VAL_FIELD)
@@ -507,56 +507,6 @@ class PVManager:
         return pv_name_no_val == BEAMLINE_MODE or pv_name_no_val == BEAMLINE_MODE + SP_SUFFIX
 
     @staticmethod
-    def is_beamline_move(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the beamline move pv
-        """
-        return is_pv_name_this_field(BEAMLINE_MOVE, pv_name)
-
-    @staticmethod
-    def is_sample_length(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the sample length pv
-        """
-        return is_pv_name_this_field(SAMPLE_LENGTH, pv_name)
-
-    @staticmethod
-    def is_server_status(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the server status pv
-        """
-        return is_pv_name_this_field(SERVER_STATUS, pv_name)
-
-    @staticmethod
-    def is_server_message(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the server message pv
-        """
-        return is_pv_name_this_field(SERVER_MESSAGE, pv_name)
-
-    @staticmethod
-    def is_error_log(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the server error log pv
-        """
-        return is_pv_name_this_field(SERVER_ERROR_LOG, pv_name)
-
-    @staticmethod
     def is_alarm_status(pv_name):
         """
         Args:
@@ -575,13 +525,3 @@ class PVManager:
         Returns: True if this is an alarm severity pv
         """
         return pv_name.endswith(SEVR_FIELD)
-
-    @staticmethod
-    def is_reapply_mode_inits(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the reapply mode inits pv
-        """
-        return is_pv_name_this_field(REAPPLY_MODE_INITS, pv_name)
