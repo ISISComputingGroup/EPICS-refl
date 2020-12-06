@@ -366,8 +366,9 @@ class MockMotorPVWrapper:
         self.after_velocity_change_listener = set()
         self.is_vertical = is_vertical
         self.set_position_as_value = None
-        self._last_set_point_set = None
+        self.last_set_point_set = None
         self.is_initialised = False
+        self.all_setpoints = []
 
     def initialise(self):
         self.is_initialised = True
@@ -393,7 +394,8 @@ class MockMotorPVWrapper:
 
     @sp.setter
     def sp(self, new_value):
-        self._last_set_point_set = new_value
+        self.all_setpoints.append(new_value)
+        self.last_set_point_set = new_value
         self._value = new_value
         self.trigger_listeners(SetpointUpdate(new_value, AlarmSeverity.No, AlarmStatus.No))
         self.trigger_listeners(ReadbackUpdate(new_value, AlarmSeverity.No, AlarmStatus.No))

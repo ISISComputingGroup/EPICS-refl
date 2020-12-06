@@ -5,7 +5,9 @@ Axis module, defining the position of a component. Contains associated events as
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
+from typing import Optional
 
+from ReflectometryServer.geometry import ChangeAxis
 from server_common.channel_access import AlarmStatus, AlarmSeverity
 from server_common.observable import observable
 
@@ -49,15 +51,25 @@ class SetRelativeToBeamUpdate:
     relative_to_beam: float
 
 
+@dataclass()
+class ParkingSequenceUpdate:
+    """
+    Event when parking sequence has been updated
+    """
+    parking_sequence: Optional[int]  # the parking sequence we are at the end of
+
+
 @observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate, AxisChangedUpdate,
-            SetRelativeToBeamUpdate, AddOutOfBeamPositionEvent)
+            SetRelativeToBeamUpdate, AddOutOfBeamPositionEvent, ParkingSequenceUpdate)
 class ComponentAxis(metaclass=ABCMeta):
     """
     A components axis of movement, allowing setting in both mantid and relative coordinates. Transmits alarms,
     changed and changes.
     """
 
-    def __init__(self, axis):
+    _parking_index: Optional[int]  # The last parking sequence position moved to (rbv)/about to be moved to (sp)
+
+    def __init__(self, axis: ChangeAxis):
         """
         Initialisation.
 
@@ -70,8 +82,9 @@ class ComponentAxis(metaclass=ABCMeta):
         self._is_in_beam = True
         self._axis = axis
         self._alarm = (AlarmSeverity.Invalid, AlarmStatus.UDF)
-        self._has_out_of_beam_position = False
+        self._max_parking_sequence_count = 0
         self.can_define_axis_position_as = False
+        self._parking_index = None
 
     @abstractmethod
     def get_relative_to_beam(self):
@@ -219,21 +232,21 @@ class ComponentAxis(metaclass=ABCMeta):
         self.trigger_listeners(AxisChangedUpdate(is_changed))
 
     @property
-    def has_out_of_beam_position(self):
+    def park_sequence_count(self):
         """
         Returns:
             Whether any out of beam positions have been defined for this axis.
         """
-        return self._has_out_of_beam_position
+        return self._max_parking_sequence_count
 
-    @has_out_of_beam_position.setter
-    def has_out_of_beam_position(self, has_out_of_beam_position):
+    @park_sequence_count.setter
+    def park_sequence_count(self, has_out_of_beam_position):
         """
         Args:
             has_out_of_beam_position (bool): sets the flag showing whether any out of beam positions have been defined
             for this axis.
         """
-        self._has_out_of_beam_position = has_out_of_beam_position
+        self._max_parking_sequence_count = has_out_of_beam_position
         if has_out_of_beam_position:
             self.trigger_listeners(AddOutOfBeamPositionEvent(self))
 
@@ -243,9 +256,9 @@ class ComponentAxis(metaclass=ABCMeta):
         Returns:
             Whether this axis is currently in beam
         """
-        if self.has_out_of_beam_position:
-            return self._is_in_beam
-        return True
+        if self.park_sequence_count == 0:
+            return True
+        return self._is_in_beam
 
     @is_in_beam.setter
     def is_in_beam(self, is_in_beam):
@@ -253,16 +266,48 @@ class ComponentAxis(metaclass=ABCMeta):
         Args:
             is_in_beam (bool): sets the new in beam status
         """
-        if self.has_out_of_beam_position:
+        if self.park_sequence_count != 0:
             self._is_in_beam = is_in_beam
             self.is_changed = True
+
+    @property
+    def parking_index(self):
+        """
+        For RBV this is the index of the last parking sequence the motor got to
+        For SP this is the index that the motor should be going to
+
+        Returns: parking index
+        """
+        return self._parking_index
+
+    @parking_index.setter
+    def parking_index(self, parking_index):
+        """
+        For RBV set the index of the parking sequence index just reached by the motor; These must be generated in order
+        For SP set the index of the parking sequence the motor should be going to
+
+        Args:
+            parking_index: parking index to set
+
+        """
+        self._parking_index = parking_index
+        self.trigger_listeners(ParkingSequenceUpdate(self._parking_index))
+
+    def init_parking_index(self, parking_index):
+        """
+        Set the parking index of initialisation (no events triggered)
+        Args:
+            parking_index: parking index to set
+
+        """
+        self._parking_index = parking_index
 
 
 class DirectCalcAxis(ComponentAxis):
     """
     Directly connect the relative and the mantid coordinates together
     """
-    def __init__(self, axis):
+    def __init__(self, axis: ChangeAxis):
         super(DirectCalcAxis, self).__init__(axis)
         self.can_define_axis_position_as = True
         self._position = 0.0

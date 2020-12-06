@@ -9,7 +9,7 @@ from hamcrest import *
 from ReflectometryServer import *
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, PVWrapperForParameter
-from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
+from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup, OutOfBeamSequence
 from ReflectometryServer.pv_wrapper import IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
 from server_common.channel_access import UnableToConnectToPVException
@@ -440,7 +440,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         slit_3_driver = IocDriver(slit_3, ChangeAxis.POSITION, slit_3_height_axis)
         self.slit_3_driver = slit_3_driver
 
-        detector = TiltingComponent("jaws", setup=PositionAndAngle(y=0.0, z=40.0, angle=90.0))
+        detector = TiltingComponent("comp", setup=PositionAndAngle(y=0.0, z=40.0, angle=90.0))
         detector_height_axis = create_mock_axis("DETECTOR:HEIGHT", 0.0, 10.0)
         detector_tilt_axis = create_mock_axis("DETECTOR:TILT", 0.0, 10.0)
         detector_driver_disp = IocDriver(detector, ChangeAxis.POSITION, detector_height_axis)
@@ -609,7 +609,7 @@ class TestIocDriverWithAxesDependentOnParam(unittest.TestCase):
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
         self.jaws.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
 
-        self.opt1 = "height_axis"
+        self.opt1 = "axis"
         self.opt2 = "alt_axis"
         self.opt3 = "other"
         self.param = EnumParameter("param", options=[self.opt1, self.opt2, self.opt3])
@@ -767,3 +767,45 @@ class TestIOCDriverInAndOutOfBeamWithOffsetOutOfBeamPosition(unittest.TestCase):
         result = comp.beam_path_set_point.is_in_beam
 
         assert_that(result, is_(False))
+
+
+class TestIOCDriverInAndOutOfBeamWithParkingsequence(unittest.TestCase):
+
+    def setUp(self):
+        self.start_position = 0.0
+        self.max_velocity = 10.0
+        self.tolerance_on_out_of_beam_position = 1
+        self.parking_sequence = [-1, -2, -3]
+        self.out_of_beam_position = OutOfBeamSequence(self.parking_sequence, tolerance=self.tolerance_on_out_of_beam_position)
+
+        self.axis = create_mock_axis("HEIGHT", self.start_position, self.max_velocity)
+
+        self.comp = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
+        self.comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+        self.comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
+
+        self.jaws_driver = IocDriver(self.comp, ChangeAxis.POSITION, self.axis,
+                                     out_of_beam_positions=[self.out_of_beam_position])
+
+    def test_GIVEN_parking_sequence_WHEN_ioc_driver_moves_to_be_at_end_of_sequence_THEN_axis_has_end_of_sequence_set(self):
+        parking_index = 1
+        self.comp.beam_path_set_point.in_beam_manager.parking_index = parking_index
+        self.axis._value = self.parking_sequence[parking_index]
+        self.axis.trigger_rbv_change()
+
+        result = self.comp.beam_path_rbv.axis[ChangeAxis.POSITION].parking_index
+
+        assert_that(result, is_(parking_index))
+
+    def test_GIVEN_parking_sequence_WHEN_ioc_driver_moves_to_be_not_at_end_of_sequence_THEN_parking_sequence_not_changed(self):
+        expected_sequence = 200
+        self.comp.beam_path_rbv.axis[ChangeAxis.POSITION].parking_index = expected_sequence
+        parking_index = 1
+        self.comp.beam_path_set_point.in_beam_manager.parking_index = parking_index
+        self.axis._value = self.parking_sequence[parking_index] + 1000
+        self.axis.trigger_rbv_change()
+
+        result = self.comp.beam_path_rbv.axis[ChangeAxis.POSITION].parking_index
+
+        assert_that(result, is_(expected_sequence))
+

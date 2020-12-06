@@ -2,58 +2,81 @@
 Objects to help with calculating the beam path when interacting with a component. This is used for instance for the
 set points or readbacks etc.
 """
-from collections import namedtuple
+from dataclasses import dataclass
 
 from math import degrees, atan2, isnan
 from typing import Dict, List, Tuple, Optional
 
 from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
-    BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate
+    BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate, ParkingSequenceUpdate
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
 
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.channel_access import maximum_severity, AlarmStatus, AlarmSeverity
 from server_common.observable import observable
 from ReflectometryServer.file_io import disable_mode_autosave
 
 logger = logging.getLogger(__name__)
 
-# Event that is triggered when the path of the beam has changed.
-BeamPathUpdate = namedtuple("BeamPathUpdate", [
-    "source"])  # The source of the beam path change. (the component itself)
 
-# Event that is triggered when the path of the beam has changed as a result of being initialised from file or motor rbv.
-BeamPathUpdateOnInit = namedtuple("BeamPathUpdateOnInit", [
-    "source"])  # The source of the beam path change. (the component itself)
+@dataclass
+class BeamPathUpdate:
+    """
+    Event that is triggered when the path of the beam has changed.
+    """
+    source: 'TrackingBeamPathCalc'  # The source of the beam path change. (the beam path calc itself)
 
 
-@observable(InitUpdate, AxisChangingUpdate, AxisChangedUpdate, PhysicalMoveUpdate)
+@dataclass
+class BeamPathUpdateOnInit:
+    """
+    Event that is triggered when the path of the beam has changed as a result of being initialised from file or motor
+     rbv.
+    """
+    source: 'TrackingBeamPathCalc'  # The source of the beam path change. (the beam path calc itself)
+
+
+@observable(InitUpdate, AxisChangingUpdate, AxisChangedUpdate, PhysicalMoveUpdate, ParkingSequenceUpdate)
 class InBeamManager:
     """
     Manages the in-beam status of a component as a whole by combining information from all axes on the component that
     can be parked.
     """
+    # axes which are for associated with parking
+    _parking_axes: List[ComponentAxis]
 
     # position in the out of beam parking sequence None for not in sequence, either axis is parked or in beam
-    parking_sequence: Optional[int]
+    parking_index: Optional[int]
 
     def __init__(self):
-        self.parking_axes = []
-        self.parking_sequence = None
+        self._parking_axes = []
+        self.parking_index = None
+        self._maximum_sequence_count = 0
 
-    def add_axes(self, axes):
+    def add_axes(self, axes: Dict[ChangeAxis, ComponentAxis]):
         """
         Add all movement axes that have been defined for the host component.
 
         Args:
-            axes (Dict[ChangeAxis, ComponentAxis]): The axes to add
+            axes: The axes to add
         """
         for component_axis in axes.values():
             component_axis.add_listener(AddOutOfBeamPositionEvent, self._on_add_out_of_beam_position)
+            component_axis.add_listener(ParkingSequenceUpdate, self._on_axis_end_of_parking_sequence_change)
+
+    def add_rbv_in_beam_manager(self, rbv_in_beam_manager):
+        """
+        Make the rbv in beam manager report when it gets to the end of a sequence to this in beam manager
+        Args:
+            rbv_in_beam_manager: rbv in beam manager
+        """
+        rbv_in_beam_manager.add_listener(ParkingSequenceUpdate, self._on_end_of_sequence)
 
     def _on_add_out_of_beam_position(self, event: AddOutOfBeamPositionEvent):
         axis = event.source
-        self.parking_axes.append(axis)
+        self._parking_axes.append(axis)
+        self._maximum_sequence_count = max(self._maximum_sequence_count, axis.park_sequence_count)
         axis.add_listener(AxisChangingUpdate, self._propagate_axis_event)
         axis.add_listener(AxisChangedUpdate, self._propagate_axis_event)
         axis.add_listener(InitUpdate, self._propagate_axis_event)
@@ -66,7 +89,7 @@ class InBeamManager:
         """
         Returns: the in beam status; in if any axis is in the beam or there are no axes to park
         """
-        return any([axis.is_in_beam for axis in self.parking_axes]) or self.parking_axes == []
+        return any([axis.is_in_beam for axis in self._parking_axes]) or self._parking_axes == []
 
     def set_is_in_beam(self, is_in_beam):
         """
@@ -74,15 +97,23 @@ class InBeamManager:
         Args:
             is_in_beam: True if set the component to be in the beam; False otherwise
         """
-        for axis in self.parking_axes:
+        for axis in self._parking_axes:
             axis.is_in_beam = is_in_beam
+        if is_in_beam:
+            # if fully out of the beam, i.e. at last parking sequence start unpark sequence
+            if self.parking_index == self._maximum_sequence_count - 1:
+                self.parking_index -= 1
+        else:
+            # if fully in the beam start out parking sequence
+            if self.parking_index is None:
+                self.parking_index = 0
 
     @property
     def is_changing(self):
         """
         Returns: Is any axis currently moving; if there are no axes then False
         """
-        return any([axis.is_changing for axis in self.parking_axes])
+        return any([axis.is_changing for axis in self._parking_axes])
 
     @property
     def alarm(self):
@@ -90,8 +121,55 @@ class InBeamManager:
         Returns:
             the alarm tuple for the axis, alarm_severity and alarm_status
         """
-        alarms = [axis.alarm for axis in self.parking_axes]
+        alarms = [axis.alarm for axis in self._parking_axes]
         return maximum_severity(*alarms)
+
+    def _on_end_of_sequence(self, parking_sequence_update: ParkingSequenceUpdate):
+        """
+        If reached a sequence position then move sequence set point on to next position
+
+        Only move if sequence reported agrees with sequence this manager set and haven't already reached the end of the
+        sequence.
+
+        Args:
+            parking_sequence_update: update indicating that a parking sequence has ended
+        """
+        if parking_sequence_update.parking_sequence == self.parking_index:
+            if self.get_is_in_beam():
+                # axes are unparking
+                if self.parking_index == 0:
+                    self._move_axis_to(None)
+                elif self.parking_index is not None:
+                    self._move_axis_to(self.parking_index - 1)
+                # If we are at None we are already unparked
+            else:
+                # axes are parking
+                if self.parking_index is None:
+                    STATUS_MANAGER.update_error_log("Parking sequence error the parking index is None but we are "
+                                                    "parking the axis, should not be possible")
+                    STATUS_MANAGER.update_active_problems(
+                        ProblemInfo("Next park sequence triggered but manager is inbeam (report error)",
+                                    "InBeamManager", AlarmSeverity.MINOR_ALARM))
+                if self.parking_index + 1 != self._maximum_sequence_count:
+                    self._move_axis_to(self.parking_index + 1)
+
+    def _move_axis_to(self, new_parking_index):
+        """
+        Move all the axes to the new sequence position
+        Args:
+            new_parking_index: new index to moce to
+        """
+        self.parking_index = new_parking_index
+        for axis in self._parking_axes:
+            axis.is_changed = True
+            axis.parking_index = new_parking_index
+
+    def _on_axis_end_of_parking_sequence_change(self, _: ParkingSequenceUpdate):
+        all_axis_parking_indexes = set([axis.parking_index for axis in self._parking_axes])
+        if len(all_axis_parking_indexes) == 1:
+            # all axes with in/out are now at the same parking sequence number (this may not be where they are trying
+            # to get to if there is an old event in the system)
+            self.trigger_listeners(ParkingSequenceUpdate(all_axis_parking_indexes.pop()))
 
 
 @observable(BeamPathUpdate, BeamPathUpdateOnInit)
@@ -563,6 +641,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
                 break
         else:
             angle = float("NaN")
+            # noinspection PyTypeChecker
             self.axis[ChangeAxis.ANGLE].set_alarm(AlarmSeverity.Major, AlarmStatus.Link)
         return angle
 
@@ -594,6 +673,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
     beam on the component it is pointing at when in disable mode. It will only change the beam if the component is in
     the beam.
     """
+    _angle_to: List[Tuple[TrackingBeamPathCalc, ChangeAxis]]
 
     def __init__(self, name, movement_strategy):
         """

@@ -10,6 +10,7 @@ from ReflectometryServer import *
 
 from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
+from ReflectometryServer.out_of_beam import OutOfBeamSequence
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
 from ReflectometryServer.beamline_constant import BeamlineConstant
 
@@ -74,7 +75,7 @@ class TestComponentBeamline(unittest.TestCase):
         beamline, mirror = self.setup_beamline(initial_mirror_angle, mirror_position, beam_start)
         expected_beams = [beam_start, beam_start, beam_start]
 
-        mirror.beam_path_set_point.axis[ChangeAxis.POSITION].has_out_of_beam_position = True
+        mirror.beam_path_set_point.axis[ChangeAxis.POSITION].park_sequence_count = 1
         mirror.beam_path_set_point.axis[ChangeAxis.POSITION].is_in_beam = False
         results = [component.beam_path_set_point.get_outgoing_beam() for component in beamline]
 
@@ -646,10 +647,10 @@ class TestComponentOutOfBeam(unittest.TestCase):
         IocDriver(self.comp, change_axis_to_set, create_mock_axis("axis", 0, 1), out_of_beam_positions=None)
 
         for change_axis, component_axis in self.comp.beam_path_rbv.axis.items():
-            assert_that(component_axis.has_out_of_beam_position, is_(False))
+            assert_that(component_axis.park_sequence_count, is_(0))
 
         for change_axis, component_axis in self.comp.beam_path_set_point.axis.items():
-            assert_that(component_axis.has_out_of_beam_position, is_(False))
+            assert_that(component_axis.park_sequence_count, is_(0))
 
     @parameterized.expand([(ChangeAxis.PHI,), (ChangeAxis.CHI,), (ChangeAxis.PSI,), (ChangeAxis.TRANS,), (ChangeAxis.HEIGHT,), (ChangeAxis.POSITION,)])
     def test_GIVEN_driver_on_component_has_out_of_beam_position_THEN_appropriate_change_axis_report_having_out_of_beam_position(self, change_axis_to_set):
@@ -659,15 +660,15 @@ class TestComponentOutOfBeam(unittest.TestCase):
 
         for change_axis, component_axis in self.comp.beam_path_rbv.axis.items():
             if change_axis == change_axis_to_set:
-                assert_that(component_axis.has_out_of_beam_position, is_(True))
+                assert_that(component_axis.park_sequence_count, is_(1))
             else:
-                assert_that(component_axis.has_out_of_beam_position, is_(False))
+                assert_that(component_axis.park_sequence_count, is_(0))
 
         for change_axis, component_axis in self.comp.beam_path_set_point.axis.items():
             if change_axis == change_axis_to_set:
-                assert_that(component_axis.has_out_of_beam_position, is_(True))
+                assert_that(component_axis.park_sequence_count, is_(1))
             else:
-                assert_that(component_axis.has_out_of_beam_position, is_(False))
+                assert_that(component_axis.park_sequence_count, is_(0))
 
     @parameterized.expand([(ChangeAxis.PHI,), (ChangeAxis.CHI,), (ChangeAxis.PSI,), (ChangeAxis.TRANS,), (ChangeAxis.HEIGHT,), (ChangeAxis.POSITION,)])
     def test_GIVEN_component_with_driver_with_out_of_beam_position_WHEN_motor_is_in_beam_THEN_component_axis_reports_in_beam(self, change_axis_to_set):
@@ -847,6 +848,39 @@ class TestComponentOutOfBeam(unittest.TestCase):
         assert_that(det_in.sp, is_(False))
         assert_that(theta.sp, is_(0))
 
+
+class TestComponentParkingSequence(unittest.TestCase):
+
+    def test_GIVEN_component_with_one_axis_and_parking_sequence_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
+        pos1 = -3
+        pos2 = -6
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        parameter = InBeamParameter("val", comp)
+        mock_axis = create_mock_axis("axis_motor", 0, 1)
+        driver = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis, out_of_beam_positions=[OutOfBeamSequence([pos1, pos2])])
+        beamline = Beamline([comp], [parameter], [driver], [BeamlineMode("mode", [])])
+
+        parameter.sp = False
+
+        assert_that(mock_axis.sp, is_(pos2))
+        assert_that(parameter.rbv, is_(False))
+
+    def test_GIVEN_component_with_two_axes_and_parking_sequence_with_repeat_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
+        pos1 = -3
+        expected_sequence = [4, 6, 8]
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        parameter = InBeamParameter("val", comp)
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+        mock_axis2 = create_mock_axis("axis_motor2", 0, 1)
+        driver1 = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence([pos1, pos1, pos1])])
+        driver2 = IocDriver(comp, ChangeAxis.TRANS, mock_axis2, out_of_beam_positions=[OutOfBeamSequence(expected_sequence)])
+        beamline = Beamline([comp], [parameter], [driver1, driver2], [BeamlineMode("mode", [])])
+
+        parameter.sp = False
+
+        assert_that(mock_axis1.all_setpoints, is_([pos1]))
+        assert_that(mock_axis2.all_setpoints, is_(expected_sequence))
+        assert_that(parameter.rbv, is_(False))
 
 
 if __name__ == '__main__':

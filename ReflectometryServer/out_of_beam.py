@@ -1,7 +1,7 @@
 """
 Module to define Out of beam position.
 """
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from ReflectometryServer.geometry import Position
 
 
@@ -24,7 +24,7 @@ class OutOfBeamPosition:
             threshold = float(threshold)
         self.threshold = threshold
         self.is_offset = is_offset
-        self._sequence = []
+        self._sequence = [position]
 
     def get_final_position(self) -> float:
         """
@@ -34,19 +34,25 @@ class OutOfBeamPosition:
         """
         return self._final_position
 
-    def get_sequence_position(self, parking_sequence_number):
+    def get_sequence_position(self, parking_index):
         """
         Get the position at the current parking sequence. If past the end of the sequence return the final position
         Args:
 
-            parking_sequence_number: parking sequence number; None for finally parking position
+            parking_index: parking sequence number; None for finally parking position
 
         Returns:
-            parking position for sequence
+            parking position for index; None there is no sequence position for this index
         """
-        if parking_sequence_number is None or len(self._sequence) < parking_sequence_number:
-            return self._final_position
-        return self._sequence[parking_sequence_number]
+        if parking_index is None or len(self._sequence) <= parking_index:
+            return None
+        return self._sequence[parking_index]
+
+    def get_parking_sequence_length(self):
+        """
+        Returns: length of the parking sequence
+        """
+        return len(self._sequence)
 
 
 class OutOfBeamLookup:
@@ -98,23 +104,46 @@ class OutOfBeamLookup:
             position_to_use = default_pos
         return position_to_use
 
-    def is_in_beam(self, beam_intercept: Position, displacement: float, distance_from_beam: float) -> bool:
+    def out_of_beam_status(self, beam_intercept: Position, displacement: float, distance_from_beam: float,
+                           parking_index: Optional[int]) -> Tuple[bool, bool]:
         """
-        Checks whether a given value for displacement represents an out of beam position for a given beam interception.
+        Checks whether a given value for displacement represents an out of beam position or at the end of the current
+            sequence for a given beam interception and parking sequence number.
 
         Args:
             beam_intercept: The current beam interception
             displacement: The value to search in out of beam positions.
             distance_from_beam: Distance from the beam to the current position
+            parking_index: current parking sequence index
 
-        Returns: False if the given displacement represents an out of beam position, True otherwise
+        Returns:
+            False if the given displacement represents an out of beam position, True otherwise
+            True if the given displacement is at the end of the current sequence number, False otherwise;
+                if parking sequence is None then return True we are at the end of the sequence because we are not
+                waiting to finish movement; If we are after the last parking sequence also return True because we must
+                have reached the last position
         """
         out_of_beam_position = self.get_position_for_intercept(beam_intercept)
         if out_of_beam_position.is_offset:
-            park_position = distance_from_beam
+            axis_position = distance_from_beam
         else:
-            park_position = displacement
-        return abs(park_position - out_of_beam_position.get_final_position()) > out_of_beam_position.tolerance
+            axis_position = displacement
+        in_beam = abs(axis_position - out_of_beam_position.get_final_position()) > out_of_beam_position.tolerance
+        is_at_sequence_position = out_of_beam_position.get_sequence_position(parking_index)
+        if is_at_sequence_position is None:
+            at_sequence_index = True
+        else:
+            at_sequence_index = abs(axis_position - is_at_sequence_position) < out_of_beam_position.tolerance
+
+        return in_beam, at_sequence_index
+
+    def get_max_sequence_count(self):
+        """
+
+        Returns: maximum sequence length for any parking sequence
+
+        """
+        return max([position.get_parking_sequence_length() for position in self._sorted_out_of_beam_positions])
 
 
 class OutOfBeamSequence(OutOfBeamPosition):
