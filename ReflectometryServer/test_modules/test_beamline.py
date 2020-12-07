@@ -882,6 +882,40 @@ class TestComponentParkingSequence(unittest.TestCase):
         assert_that(mock_axis2.all_setpoints, is_(expected_sequence))
         assert_that(parameter.rbv, is_(False))
 
+    def test_GIVEN_component_with_two_axes_and_parking_sequence_with_none_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
+        pos1 = -3
+        expected_sequence = [4, 6, 8]
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        parameter = InBeamParameter("val", comp)
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+        mock_axis2 = create_mock_axis("axis_motor2", 0, 1)
+        driver1 = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence([None, None, pos1])])
+        driver2 = IocDriver(comp, ChangeAxis.TRANS, mock_axis2, out_of_beam_positions=[OutOfBeamSequence(expected_sequence)])
+        beamline = Beamline([comp], [parameter], [driver1, driver2], [BeamlineMode("mode", [])])
+
+        parameter.sp = False
+
+        assert_that(mock_axis1.all_setpoints, is_([pos1]))
+        assert_that(mock_axis2.all_setpoints, is_(expected_sequence))
+        assert_that(parameter.rbv, is_(False))
+
+    def test_GIVEN_component_with_two_axes_and_one_parking_sequence_is_shorted_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
+        pos1 = -3
+        expected_sequence = [4, 6, 8]
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        parameter = InBeamParameter("val", comp)
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+        mock_axis2 = create_mock_axis("axis_motor2", 0, 1)
+        driver1 = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence([None, pos1])])
+        driver2 = IocDriver(comp, ChangeAxis.TRANS, mock_axis2, out_of_beam_positions=[OutOfBeamSequence(expected_sequence)])
+        beamline = Beamline([comp], [parameter], [driver1, driver2], [BeamlineMode("mode", [])])
+
+        parameter.sp = False
+
+        assert_that(mock_axis1.all_setpoints, is_([pos1]))
+        assert_that(mock_axis2.all_setpoints, is_(expected_sequence))
+        assert_that(parameter.rbv, is_(False))
+
 
 if __name__ == '__main__':
     unittest.main()
