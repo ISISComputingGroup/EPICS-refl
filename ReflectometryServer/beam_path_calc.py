@@ -9,13 +9,14 @@ from typing import Dict, List, Tuple, Optional
 
 from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
     BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate, ParkingSequenceUpdate
+from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
 
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.channel_access import maximum_severity, AlarmStatus, AlarmSeverity
 from server_common.observable import observable
-from ReflectometryServer.file_io import disable_mode_autosave
+from ReflectometryServer.file_io import disable_mode_autosave, parking_index_autosave
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +50,13 @@ class InBeamManager:
     # position in the out of beam parking sequence None for not in sequence, either axis is parked or in beam
     parking_index: Optional[int]
 
-    def __init__(self):
+    def __init__(self, name):
         self._parking_axes = []
-        self.parking_index = None
         self._maximum_sequence_count = 0
+        self._name = name
+        self._autosave_name = "{}_parking_index".format(name.replace(" ", "_"))
+        # if there is no autosave we assume not parked but in beam may set this to end of park sequence
+        self.parking_index = parking_index_autosave.read_parameter(self._autosave_name, None)
 
     def add_axes(self, axes: Dict[ChangeAxis, ComponentAxis]):
         """
@@ -77,6 +81,9 @@ class InBeamManager:
         axis = event.source
         self._parking_axes.append(axis)
         self._maximum_sequence_count = max(self._maximum_sequence_count, axis.park_sequence_count)
+        if not (self.parking_index is None or self.parking_index + 1 >= self._maximum_sequence_count):
+            parking_index_autosave.write_parameter(self._autosave_name, None)  # Make it so refl ioc can start next time
+            raise BeamlineConfigurationParkAutosaveInvalidException(self._name, axis.parking_index, self.parking_index, self._maximum_sequence_count)
         axis.add_listener(AxisChangingUpdate, self._propagate_axis_event)
         axis.add_listener(AxisChangedUpdate, self._propagate_axis_event)
         axis.add_listener(InitUpdate, self._propagate_axis_event)
@@ -102,11 +109,12 @@ class InBeamManager:
         if is_in_beam:
             # if fully out of the beam, i.e. at last parking sequence start unpark sequence
             if self.parking_index == self._maximum_sequence_count - 1:
-                self.parking_index -= 1
+                self._update_parking_index(self._maximum_sequence_count - 2)  # sequence 1 before last
+
         else:
             # if fully in the beam start out parking sequence
             if self.parking_index is None:
-                self.parking_index = 0
+                self._update_parking_index(0)
 
     @property
     def is_changing(self):
@@ -157,12 +165,21 @@ class InBeamManager:
         """
         Move all the axes to the new sequence position
         Args:
-            new_parking_index: new index to moce to
+            new_parking_index: new index to move to
         """
-        self.parking_index = new_parking_index
+        self._update_parking_index(new_parking_index)
         for axis in self._parking_axes:
             axis.is_changed = True
             axis.parking_index = new_parking_index
+
+    def _update_parking_index(self, new_parking_index):
+        """
+        Update the parking index and autosave it, but don't updates axes
+        Args:
+            new_parking_index: parking index to set
+        """
+        self.parking_index = new_parking_index
+        parking_index_autosave.write_parameter(self._autosave_name, self.parking_index)
 
     def _on_axis_end_of_parking_sequence_change(self, _: ParkingSequenceUpdate):
         all_axis_parking_indexes = set([axis.parking_index for axis in self._parking_axes])
@@ -199,7 +216,7 @@ class TrackingBeamPathCalc:
         #  If it is None then this does not define theta
         self.substitute_incoming_beam_for_displacement = None
 
-        self.in_beam_manager = InBeamManager()
+        self.in_beam_manager = InBeamManager(self._name)
         self.in_beam_manager.add_listener(PhysicalMoveUpdate, self._on_in_beam_status_update)
         self.in_beam_manager.add_listener(AxisChangedUpdate, self._on_in_beam_status_update)
 

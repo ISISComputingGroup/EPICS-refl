@@ -86,6 +86,12 @@ class ComponentAxis(metaclass=ABCMeta):
         self.can_define_axis_position_as = False
         self._parking_index = None
 
+    def get_name(self):
+        """
+        Returns: axis name; minimum is axis type
+        """
+        return self._axis.name
+
     @abstractmethod
     def get_relative_to_beam(self):
         """

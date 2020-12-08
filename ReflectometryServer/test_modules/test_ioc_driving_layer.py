@@ -3,7 +3,7 @@ from math import fabs
 
 from parameterized import parameterized
 
-from mock import MagicMock, patch
+from mock import MagicMock, patch, Mock
 from hamcrest import *
 
 from ReflectometryServer import *
@@ -780,7 +780,9 @@ class TestIOCDriverInAndOutOfBeamWithParkingsequence(unittest.TestCase):
 
         self.axis = create_mock_axis("HEIGHT", self.start_position, self.max_velocity)
 
-        self.comp = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
+        with patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter',
+                   new=Mock(return_value=None)):
+            self.comp = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
         self.comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
         self.comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
 

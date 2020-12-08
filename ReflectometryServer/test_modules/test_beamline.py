@@ -9,6 +9,7 @@ from parameterized import parameterized
 from ReflectometryServer import *
 
 from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
+from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.out_of_beam import OutOfBeamSequence
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
@@ -851,6 +852,7 @@ class TestComponentOutOfBeam(unittest.TestCase):
 
 class TestComponentParkingSequence(unittest.TestCase):
 
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
     def test_GIVEN_component_with_one_axis_and_parking_sequence_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
         pos1 = -3
         pos2 = -6
@@ -865,6 +867,7 @@ class TestComponentParkingSequence(unittest.TestCase):
         assert_that(mock_axis.sp, is_(pos2))
         assert_that(parameter.rbv, is_(False))
 
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
     def test_GIVEN_component_with_two_axes_and_parking_sequence_with_repeat_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
         pos1 = -3
         expected_sequence = [4, 6, 8]
@@ -882,6 +885,7 @@ class TestComponentParkingSequence(unittest.TestCase):
         assert_that(mock_axis2.all_setpoints, is_(expected_sequence))
         assert_that(parameter.rbv, is_(False))
 
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
     def test_GIVEN_component_with_two_axes_and_parking_sequence_with_none_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
         pos1 = -3
         expected_sequence = [4, 6, 8]
@@ -899,6 +903,7 @@ class TestComponentParkingSequence(unittest.TestCase):
         assert_that(mock_axis2.all_setpoints, is_(expected_sequence))
         assert_that(parameter.rbv, is_(False))
 
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
     def test_GIVEN_component_with_two_axes_and_one_parking_sequence_is_shorted_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
         pos1 = -3
         expected_sequence = [4, 6, 8]
@@ -915,6 +920,30 @@ class TestComponentParkingSequence(unittest.TestCase):
         assert_that(mock_axis1.all_setpoints, is_([pos1]))
         assert_that(mock_axis2.all_setpoints, is_(expected_sequence))
         assert_that(parameter.rbv, is_(False))
+
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave')
+    def test_GIVEN_sequence_and_autosave_position_not_at_end_of_sequence_WHEN_init_THEN_init_error_and_autosave_overwriten(self, auto_save):
+        auto_save.read_parameter.return_value = 1
+        comp = Component("comp name", PositionAndAngle(0, 0, 90))
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+
+        with self.assertRaises(BeamlineConfigurationParkAutosaveInvalidException):
+            IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence([1, 2, 3])])
+
+        auto_save.write_parameter.assert_called()
+
+    @parameterized.expand([(None, [1]),  # unparked
+                           (0, [1]),  # last value in length 1 sequence
+                           (1, [1, 2]),  # last value in length 2 sequence
+                           (5, [1, 2])   # after the last value in a sequence (it may be a different sequence this parked in)
+                           ])
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave')
+    def test_GIVEN_sequence_and_autosave_position_ok_WHEN_init_THEN_no_error(self, auto_save_value, sequence, auto_save):
+        auto_save.read_parameter.return_value = auto_save_value
+        comp = Component("comp name", PositionAndAngle(0, 0, 90))
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+
+        IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence(sequence)])
 
 
 if __name__ == '__main__':
