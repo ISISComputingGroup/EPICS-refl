@@ -129,6 +129,51 @@ class TestMovementIntercept(unittest.TestCase):
 
         assert_that(result, is_(position(Position(displacement, z))))
 
+    def test_GIVEN_movement_45_to_z_at_beam_along_z_WHEN_z_of_movement_axis_changes_THEN_position_is_new_z(self):
+        y = 0
+        z = 7
+        z_offset = 9
+        movement = LinearMovementCalc(PositionAndAngle(y, z, 45))
+        beam = PositionAndAngle(y, 0, 0)
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(y, z))))
+
+        movement.offset_position_at_zero(Position(0, z_offset))
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(y, z + z_offset))))
+
+    def test_GIVEN_movement_45_to_z_at_beam_offset_along_z_WHEN_z_of_movement_axis_changes_THEN_position_is_as_expected(self):
+        y = 0
+        z = 7
+        z_offset = 9
+        beam_y = 5
+        movement = LinearMovementCalc(PositionAndAngle(y, z, 45))
+        beam = PositionAndAngle(beam_y, 0, 0)
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(beam_y, z + beam_y))))
+
+        movement.offset_position_at_zero(Position(0, z_offset))
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(beam_y, z + beam_y + z_offset))))
+
+    def test_GIVEN_movement_perp_to_z_at_beam_angle_45_WHEN_z_of_movement_axis_changes_THEN_position_is_as_expected(self):
+        y = 0
+        z = 7
+        z_offset = 9
+        movement = LinearMovementCalc(PositionAndAngle(y, z, 90))
+        beam = PositionAndAngle(0, 0, 45)
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(z, z))))
+
+        movement.offset_position_at_zero(Position(0, z_offset))
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(z + z_offset, z + z_offset))))
 
 
 class TestMovementRelativeToBeam(unittest.TestCase):

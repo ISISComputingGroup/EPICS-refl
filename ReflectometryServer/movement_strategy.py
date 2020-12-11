@@ -34,7 +34,7 @@ class LinearMovementCalc:
         Args:
             beam (PositionAndAngle) : beam to intercept
 
-        Returns (float): position of the interception
+        Returns (Position): position of the interception
 
         """
         assert beam is not None
@@ -182,3 +182,11 @@ class LinearMovementCalc:
             (float): The sum of the position and distance along axis from 0 to beam intercept
         """
         return position + self._dist_along_axis_from_zero_to_beam_intercept(beam)
+
+    def offset_position_at_zero(self, position_offset: Position):
+        """
+        Offset the position at zero by the amount specified. Used to change where the movement axis is.
+        Args:
+            position_offset: The amount to change the zero position by.
+        """
+        self._position_at_zero += position_offset
