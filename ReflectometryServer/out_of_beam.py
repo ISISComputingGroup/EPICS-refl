@@ -163,5 +163,17 @@ class OutOfBeamSequence(OutOfBeamPosition):
             is_offset: Turns the position into an offset so that the parked position follows the beam with the offset
                 set added to it.
         """
+        self._validate(sequence)
         super(OutOfBeamSequence, self).__init__(sequence[-1], tolerance, threshold, is_offset)
         self._sequence = sequence
+
+    def _validate(self, sequence):
+        if sequence[-1] is None:
+            raise ValueError("ERROR: Out of beam sequence ends in None this is not allowed")
+
+        found_non_none = False
+        for val in sequence:
+            if val is None and found_non_none:
+                raise ValueError("ERROR: Out of beam sequence has a None between values this is not allowed")
+            elif val is not None:
+                found_non_none = True

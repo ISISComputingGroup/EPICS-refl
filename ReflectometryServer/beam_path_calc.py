@@ -9,7 +9,8 @@ from typing import Dict, List, Tuple, Optional
 
 from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
     BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate, ParkingSequenceUpdate
-from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException
+from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException, \
+    BeamlineConfigurationInvalidException
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
 
@@ -57,6 +58,7 @@ class InBeamManager:
         self._autosave_name = "{}_parking_index".format(name.replace(" ", "_"))
         # if there is no autosave we assume not parked but in beam may set this to end of park sequence
         self.parking_index = parking_index_autosave.read_parameter(self._autosave_name, None)
+        self._parking_sequence_started = False
 
     def add_axes(self, axes: Dict[ChangeAxis, ComponentAxis]):
         """
@@ -80,10 +82,21 @@ class InBeamManager:
     def _on_add_out_of_beam_position(self, event: AddOutOfBeamPositionEvent):
         axis = event.source
         self._parking_axes.append(axis)
-        self._maximum_sequence_count = max(self._maximum_sequence_count, axis.park_sequence_count)
+        if self._maximum_sequence_count == 0:
+            self._maximum_sequence_count = axis.park_sequence_count
+        elif axis.park_sequence_count != self._maximum_sequence_count:
+            # The reason for needing all parking sequences to have the same length is subtle it is because on
+            # initialisation a smaller sequence if initialised first will set the component out of beam which will set
+            # the parking index to that length. The longer sequence will then trigger an end of sequence which now moves
+            # the sequence index on and cause that axis to move
+            raise BeamlineConfigurationInvalidException(
+                f"Beamline component {self._name} can not have parking sequences of different lengths, the axes are "
+                f"{[axis.get_name() for axis in self._parking_axes]}")
+
         if not (self.parking_index is None or self.parking_index + 1 >= self._maximum_sequence_count):
             parking_index_autosave.write_parameter(self._autosave_name, None)  # Make it so refl ioc can start next time
-            raise BeamlineConfigurationParkAutosaveInvalidException(self._name, axis.parking_index, self.parking_index, self._maximum_sequence_count)
+            raise BeamlineConfigurationParkAutosaveInvalidException(self._name, axis.get_name(), self.parking_index,
+                                                                    self._maximum_sequence_count)
         axis.add_listener(AxisChangingUpdate, self._propagate_axis_event)
         axis.add_listener(AxisChangedUpdate, self._propagate_axis_event)
         axis.add_listener(InitUpdate, self._propagate_axis_event)
@@ -115,6 +128,7 @@ class InBeamManager:
             # if fully in the beam start out parking sequence
             if self.parking_index is None:
                 self._update_parking_index(0)
+        self._parking_sequence_started = True
 
     @property
     def is_changing(self):
@@ -142,14 +156,15 @@ class InBeamManager:
         Args:
             parking_sequence_update: update indicating that a parking sequence has ended
         """
-        if parking_sequence_update.parking_sequence == self.parking_index:
+        if parking_sequence_update.parking_sequence == self.parking_index and self._parking_sequence_started:
             if self.get_is_in_beam():
                 # axes are unparking
                 if self.parking_index == 0:
                     self._move_axis_to(None)
                 elif self.parking_index is not None:
                     self._move_axis_to(self.parking_index - 1)
-                # If we are at None we are already unparked
+                else:
+                    self._parking_sequence_started = False
             else:
                 # axes are parking
                 if self.parking_index is None:
@@ -160,6 +175,8 @@ class InBeamManager:
                                     "InBeamManager", AlarmSeverity.MINOR_ALARM))
                 if self.parking_index + 1 != self._maximum_sequence_count:
                     self._move_axis_to(self.parking_index + 1)
+                else:
+                    self._parking_sequence_started = False
 
     def _move_axis_to(self, new_parking_index):
         """
@@ -167,6 +184,7 @@ class InBeamManager:
         Args:
             new_parking_index: new index to move to
         """
+        logger.info(f"MOVE {self._name} to next parking sequence {new_parking_index}")
         self._update_parking_index(new_parking_index)
         for axis in self._parking_axes:
             axis.is_changed = True

@@ -6,8 +6,9 @@ from hamcrest import *
 from mock import patch, Mock
 from parameterized import parameterized
 
-from ReflectometryServer.axis import DirectCalcAxis
+from ReflectometryServer.axis import DirectCalcAxis, ParkingSequenceUpdate
 from ReflectometryServer.beam_path_calc import InBeamManager
+from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException
 from ReflectometryServer.geometry import ChangeAxis
 
 
@@ -195,6 +196,27 @@ class TestInBeamManager(unittest.TestCase):
 
         auto_save.write_parameter.assert_called_with(expected_name, 0)
 
+    def test_GIVEN_in_beam_manager_with_two_axis_with_sequences_of_different_lengths_WHEN_init_THEN_config_error(self):
+
+        assert_that(calling(self.set_up_beam_manager)
+                    .with_args(None, axis_park_indexs=[None, None], axis_park_sequence_counts=[2, 3],
+                                                         number_of_axes=2),
+                    raises(BeamlineConfigurationInvalidException))
+
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=2))
+    def test_GIVEN_in_beam_manager_WHEN_parking_sequence_fires_but_no_set_in_beam_called_THEN_next_sequence_is_not_triggered(self):
+        # on setup if we get a sequence finished at the last entry but the beam is in because we haven't setup all
+        # axes yet then we should not get movement
+        unchanged_value = 100
+        axis = DirectCalcAxis(ChangeAxis.POSITION)
+        axis.parking_index = unchanged_value
+        beam_path_set_point = InBeamManager("name")
+        beam_path_set_point.add_axes({ChangeAxis.POSITION: axis})
+        axis.park_sequence_count = 1
+
+        beam_path_set_point._on_end_of_sequence(ParkingSequenceUpdate(2))
+
+        assert_that(axis.parking_index, is_(unchanged_value))
 
 if __name__ == '__main__':
     unittest.main()

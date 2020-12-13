@@ -78,9 +78,12 @@ class IocDriver:
         else:
             try:
                 self._out_of_beam_lookup = OutOfBeamLookup(out_of_beam_positions)
-                self._component.beam_path_rbv.axis[component_axis].park_sequence_count = self._out_of_beam_lookup.get_max_sequence_count()
-                self._component.beam_path_set_point.axis[component_axis].park_sequence_count = self._out_of_beam_lookup.get_max_sequence_count()
-                self._component.beam_path_set_point.axis[component_axis].add_listener(ParkingSequenceUpdate, self._move_to_parking_sequence)
+                self._component.beam_path_rbv.axis[component_axis].park_sequence_count = \
+                    self._out_of_beam_lookup.get_max_sequence_count()
+                self._component.beam_path_set_point.axis[component_axis].park_sequence_count = \
+                    self._out_of_beam_lookup.get_max_sequence_count()
+                self._component.beam_path_set_point.axis[component_axis].add_listener(ParkingSequenceUpdate,
+                                                                                      self._move_to_parking_sequence)
             except ValueError as e:
                 STATUS_MANAGER.update_error_log(str(e))
                 STATUS_MANAGER.update_active_problems(
@@ -182,14 +185,17 @@ class IocDriver:
 
         if self._out_of_beam_lookup is not None:
             beam_interception = beam_path_setpoint.calculate_beam_interception()
-            distance_relative_to_beam = corrected_axis_setpoint - beam_path_setpoint.axis[self._component_axis].get_displacement_for(0)
+            distance_relative_to_beam = \
+                corrected_axis_setpoint - beam_path_setpoint.axis[self._component_axis].get_displacement_for(0)
 
-            in_beam_status, is_at_sequence_end = self._get_in_beam_status(beam_interception, self._motor_axis.sp, distance_relative_to_beam, self._out_of_beam_lookup.get_max_sequence_count())
+            max_sequence_count = self._out_of_beam_lookup.get_max_sequence_count()
+            in_beam_status, is_at_sequence_end = self._get_in_beam_status(beam_interception, self._motor_axis.sp,
+                                                                          distance_relative_to_beam, max_sequence_count)
             beam_path_setpoint.axis[self._component_axis].is_in_beam = in_beam_status
             if in_beam_status:
                 beam_path_setpoint.axis[self._component_axis].init_parking_index(None)
             else:
-                beam_path_setpoint.axis[self._component_axis].init_parking_index(self._out_of_beam_lookup.get_max_sequence_count())
+                beam_path_setpoint.axis[self._component_axis].init_parking_index(max_sequence_count)
 
             # if the motor_axis is out of the beam then no correction needs adding to setpoint
             if not in_beam_status:
@@ -294,19 +300,16 @@ class IocDriver:
             force (bool): move even if component does not report changed
         """
         component_sp = self._get_component_sp()
-        if component_sp is None:
-            # component sp is only None as a request for a parking sequence non-move, if true then the move should
-            # trigger that we are currently at the parking index since any position is fine
-            parking_index = self._component.beam_path_set_point.in_beam_manager.parking_index
-            self._component.beam_path_rbv.axis[self._component_axis].parking_index = parking_index
-        else:
-            if self._axis_will_move() or force:
-                move_duration -= self._backlash_duration()
-                if move_duration > 1e-6 and self._synchronised:
-                    self._motor_axis.cache_velocity()
-                    self._motor_axis.velocity = max(self._motor_axis.min_velocity, self._get_distance() / move_duration)
+        if component_sp is not None and (self._axis_will_move() or force):
+            move_duration -= self._backlash_duration()
+            if move_duration > 1e-6 and self._synchronised:
+                self._motor_axis.cache_velocity()
+                self._motor_axis.velocity = max(self._motor_axis.min_velocity, self._get_distance() / move_duration)
 
-                self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
+            self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
+
+        # re update in case the new position is at the end of a sequence
+        self._retrigger_motor_axis_updates(None)
 
         self._component.beam_path_set_point.axis[self._component_axis].is_changed = False
 
@@ -347,12 +350,13 @@ class IocDriver:
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("No out of beam position defined for motor_axis", self.name, Severity.MINOR_ALARM))
 
-        if self._component.beam_path_set_point.is_in_beam or self._out_of_beam_lookup is None:
+        parking_index = self._component.beam_path_set_point.in_beam_manager.parking_index
+        if parking_index is None or self._out_of_beam_lookup is None:
             displacement = self._component.beam_path_set_point.axis[self._component_axis].get_displacement()
         else:
             beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
             out_of_beam_position = self._out_of_beam_lookup.get_position_for_intercept(beam_interception)
-            parking_index = self._component.beam_path_set_point.in_beam_manager.parking_index
+
             if out_of_beam_position.is_offset:
                 displacement = self._component.beam_path_set_point.axis[self._component_axis].\
                     get_displacement_for(out_of_beam_position.get_sequence_position(parking_index))
@@ -410,7 +414,9 @@ class IocDriver:
 
     def _get_in_beam_status(self, beam_intersect, value, distance_relative_to_beam, parking_index):
         if self._out_of_beam_lookup is not None:
-            in_beam_status, is_at_sequence_position = self._out_of_beam_lookup.out_of_beam_status(beam_intersect, value, distance_relative_to_beam, parking_index)
+            in_beam_status, is_at_sequence_position = \
+                self._out_of_beam_lookup.out_of_beam_status(beam_intersect, value,
+                                                            distance_relative_to_beam, parking_index)
         else:
             in_beam_status, is_at_sequence_position = True, False
         return in_beam_status, is_at_sequence_position
@@ -471,4 +477,3 @@ class IocDriver:
 
     def _move_to_parking_sequence(self, _: ParkingSequenceUpdate):
         self.perform_move(0)
-        self._retrigger_motor_axis_updates(None)  # check we are not already at the new parking position

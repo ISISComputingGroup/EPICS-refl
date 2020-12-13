@@ -119,7 +119,7 @@ class TestComponentWithSequenceOutOfBeamPositions(unittest.TestCase):
                            ([111, 222, 333], 1, 222), # middle item
                            ([111, 222, 333], 2, 333), # last item
                            ([111, 222, 333], 5, None), # past last item returns None
-                           ([111, None, 333], 1, None),  # none is fine to return
+                           ([None, None, 333], 1, None),  # none is fine to return
                            ])
     def test_GIVEN_sequence_index_WHEN_get_parking_position_THEN_correct_position_in_sequence_returned_or_None(self, sequence, sequence_number, expected_value):
 
@@ -135,8 +135,8 @@ class TestComponentWithSequenceOutOfBeamPositions(unittest.TestCase):
                            ([1, 2, 3, 4], 1, 1 + 0.1, False),  # within tolerance of first sequence end but not current end
                            ([1, 2, 3, 4], 0, 1 + 0.3, False),  # out of tolerance
                            ([1, 2, 3, 4], None, 4, True),  # sequence index is none so it is at the end of the current sequence
-                           ([1, None, 3, 4], 1, 4, True),  # sequence position is None
-                           ([1, None, 3, 4], 4, 4, True),  # sequence index is greater than sequence lenght
+                           ([None, None, 3, 4], 1, 4, True),  # sequence position is None
+                           ([None, None, 3, 4], 4, 4, True),  # sequence index is greater than sequence length
             ])
     def test_GIVEN_positions_with_tolerance_WHEN_checking_whether_component_is_at_end_of_sequence_THEN_returns_correct_status(self, sequence, parking_index, position, expected):
         tolerance = 0.2
@@ -145,3 +145,13 @@ class TestComponentWithSequenceOutOfBeamPositions(unittest.TestCase):
 
         _, result = lookup.out_of_beam_status(Position(0, 0), position, None, parking_index=parking_index)  # only absolute position is used
         assert_that(result, is_(expected))
+
+    def test_GIVEN_sequence_positions_ending_in_none_WHEN_creating_lookup_THEN_exception_thrown(self):
+        positions = [1, None]
+
+        assert_that(calling(OutOfBeamSequence).with_args(positions), raises(ValueError))
+
+    def test_GIVEN_sequence_positions_with_none_between_values_WHEN_creating_lookup_THEN_exception_thrown(self):
+        positions = [1, None, 2]
+
+        assert_that(calling(OutOfBeamSequence).with_args(positions), raises(ValueError))
