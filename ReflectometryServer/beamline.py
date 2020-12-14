@@ -189,6 +189,9 @@ class Beamline:
         self._active_mode = None
         self._initialise_mode(modes)
 
+        # Say whether to reinitialise the paramter mode_inits on a move all
+        self.reinit_mode_on_move = False
+
         # initialise drivers (mode must be initialised first because of mode dependent engineering correction
         for driver in self._drivers:
             driver.set_observe_mode_change_on(self)
@@ -291,6 +294,8 @@ class Beamline:
             _: dummy can be anything
         """
         STATUS_MANAGER.clear_all()
+        if self.reinit_mode_on_move:
+            self._init_params_from_mode()
         self._move_for_all_beamline_parameters()
 
     def __getitem__(self, item):
