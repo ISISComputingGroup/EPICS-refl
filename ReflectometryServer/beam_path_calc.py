@@ -8,8 +8,8 @@ from math import degrees, atan2, isnan
 from typing import Dict, List, Tuple
 
 from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
-    BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate
-from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
+    BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate, DirectCalcAxis
+from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis, Position
 import logging
 
 from server_common.channel_access import maximum_severity, AlarmStatus, AlarmSeverity
@@ -129,8 +129,12 @@ class TrackingBeamPathCalc:
                                                   self._get_displacement_for,
                                                   self._get_displacement,
                                                   self._displacement_update,
-                                                  self._init_displacement_from_motor)
+                                                  self._init_displacement_from_motor),
+            ChangeAxis.LONG_AXIS: DirectCalcAxis(ChangeAxis.LONG_AXIS)
         }
+
+        self.axis[ChangeAxis.LONG_AXIS].add_listener(PhysicalMoveUpdate, self._on_long_axis_change)
+        self.axis[ChangeAxis.LONG_AXIS].add_listener(AxisChangedUpdate, self._on_long_axis_change)
 
     def _init_displacement_from_motor(self, value):
         """
@@ -181,6 +185,15 @@ class TrackingBeamPathCalc:
         pass
 
     def _on_in_beam_status_update(self, _):
+        self.trigger_listeners(BeamPathUpdate(self))
+
+    def _on_long_axis_change(self, _):
+        """
+        Changes the location of the movement strategy when the long axis (the axis along the beam) changes.
+        For now assume that the movement is entirely perpendicular to the natural beam.
+        """
+        offset_position = Position(0, self.axis[ChangeAxis.LONG_AXIS].get_displacement())
+        self._movement_strategy.offset_position_at_zero(offset_position)
         self.trigger_listeners(BeamPathUpdate(self))
 
     def get_outgoing_beam(self):
