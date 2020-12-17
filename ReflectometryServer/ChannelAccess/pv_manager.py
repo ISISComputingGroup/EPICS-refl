@@ -55,6 +55,7 @@ SERVER_MESSAGE = "MSG"
 SERVER_ERROR_LOG = "LOG"
 BEAMLINE_MODE = BEAMLINE_PREFIX + "MODE"
 BEAMLINE_MOVE = BEAMLINE_PREFIX + "MOVE"
+REAPPLY_MODE_INITS = BEAMLINE_PREFIX + "INIT_ON_MOVE"
 
 PARAM_INFO = "PARAM_INFO"
 PARAM_INFO_COLLIMATION = "COLLIM_INFO"
@@ -116,7 +117,7 @@ def is_pv_name_this_field(field_name, pv_name):
         field_name: field name to match
         pv_name: pv name to match
 
-    Returns: True if field name is pv name (with oe without VAL  field)
+    Returns: True if field name is pv name (with oe without VAL field)
 
     """
     pv_name_no_val = remove_from_end(pv_name, VAL_FIELD)
@@ -187,6 +188,9 @@ class PVManager:
         self._add_pv_with_fields(BEAMLINE_MODE, None, mode_fields, "Beamline mode", PvSort.RBV, archive=True,
                                  interest="HIGH")
         self._add_pv_with_fields(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
+
+        self._add_pv_with_fields(REAPPLY_MODE_INITS, None, PARAM_FIELDS_BINARY, "Apply mode inits on move all", PvSort.RBV,
+                                 archive=True, interest="MEDIUM")
 
     def _add_footprint_calculator_pvs(self):
         """
@@ -501,56 +505,6 @@ class PVManager:
         """
         pv_name_no_val = remove_from_end(pv_name, VAL_FIELD)
         return pv_name_no_val == BEAMLINE_MODE or pv_name_no_val == BEAMLINE_MODE + SP_SUFFIX
-
-    @staticmethod
-    def is_beamline_move(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the beamline move pv
-        """
-        return is_pv_name_this_field(BEAMLINE_MOVE, pv_name)
-
-    @staticmethod
-    def is_sample_length(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the sample length pv
-        """
-        return is_pv_name_this_field(SAMPLE_LENGTH, pv_name)
-
-    @staticmethod
-    def is_server_status(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the server status pv
-        """
-        return is_pv_name_this_field(SERVER_STATUS, pv_name)
-
-    @staticmethod
-    def is_server_message(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the server message pv
-        """
-        return is_pv_name_this_field(SERVER_MESSAGE, pv_name)
-
-    @staticmethod
-    def is_error_log(pv_name):
-        """
-        Args:
-            pv_name: name of the pv
-
-        Returns: True if this the server error log pv
-        """
-        return is_pv_name_this_field(SERVER_ERROR_LOG, pv_name)
 
     @staticmethod
     def is_alarm_status(pv_name):
