@@ -339,6 +339,9 @@ class IocDriver:
 
     def _get_component_sp(self, for_correction=False):
         """
+        Args:
+            for_correction (bool): Setpoint is for engineering correction
+
         Returns: position that the set point axis is set to or None if it should not move because it is in a parking
             sequence with a None in it
         """

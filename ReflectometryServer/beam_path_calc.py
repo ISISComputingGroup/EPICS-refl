@@ -168,8 +168,8 @@ class InBeamManager:
             else:
                 # axes are parking
                 if self.parking_index is None:
-                    STATUS_MANAGER.update_error_log("Parking sequence error the parking index is None but we are "
-                                                    "parking the axis, should not be possible")
+                    STATUS_MANAGER.update_error_log("Parking sequence error - the parking index is None but we are "
+                                                    "parking the axis, this should not be possible")
                     STATUS_MANAGER.update_active_problems(
                         ProblemInfo("Next park sequence triggered but manager is inbeam (report error)",
                                     "InBeamManager", AlarmSeverity.MINOR_ALARM))

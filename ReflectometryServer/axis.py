@@ -241,19 +241,18 @@ class ComponentAxis(metaclass=ABCMeta):
     def park_sequence_count(self):
         """
         Returns:
-            Whether any out of beam positions have been defined for this axis.
+            The number of steps in the parking sequence of this axis
         """
         return self._max_parking_sequence_count
 
     @park_sequence_count.setter
-    def park_sequence_count(self, has_out_of_beam_position):
+    def park_sequence_count(self, count):
         """
         Args:
-            has_out_of_beam_position (bool): sets the flag showing whether any out of beam positions have been defined
-            for this axis.
+            count (bool): The number of steps in the park sequence for this axis to set.
         """
-        self._max_parking_sequence_count = has_out_of_beam_position
-        if has_out_of_beam_position:
+        self._max_parking_sequence_count = count
+        if count:
             self.trigger_listeners(AddOutOfBeamPositionEvent(self))
 
     @property
