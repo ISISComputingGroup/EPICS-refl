@@ -18,7 +18,7 @@ from ReflectometryServer.components import Component, TiltingComponent, ThetaCom
     BenchComponent, BenchSetup
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import IocDriver
-from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, DirectParameter, \
+from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, \
     SlitGapParameter, InBeamParameter
 import numpy as np
 
@@ -102,7 +102,7 @@ class DataMother:
 
         # s1
         s1 = add_component(Component("s1_comp", PositionAndAngle(0.0, 1 * spacing, 90)))
-        add_parameter(AxisParameter("s1", s1, ChangeAxis.POSITION), modes = [nr])
+        add_parameter(AxisParameter("s1", s1, ChangeAxis.POSITION), modes=[nr])
         s1_axis = create_mock_axis("MOT:MTR0101", 0, 1)
         add_driver(IocDriver(s1, ChangeAxis.POSITION, s1_axis))
 
@@ -119,17 +119,17 @@ class DataMother:
         # detector
         detector = add_component(TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90)))
         theta.add_angle_to(detector)
-        add_parameter(AxisParameter("det", detector, ChangeAxis.POSITION), modes = [nr, disabled])
-        add_parameter(AxisParameter("det_angle", detector, ChangeAxis.ANGLE), modes = [nr, disabled])
+        add_parameter(AxisParameter("det", detector, ChangeAxis.POSITION), modes=[nr, disabled])
+        add_parameter(AxisParameter("det_angle", detector, ChangeAxis.ANGLE), modes=[nr, disabled])
         det_axis = create_mock_axis("MOT:MTR0104", 0, 1)
         add_driver(IocDriver(detector, ChangeAxis.POSITION, det_axis))
         det_angle_axis = create_mock_axis("MOT:MTR0105", 0, 1)
         add_driver(IocDriver(detector, ChangeAxis.ANGLE, det_angle_axis))
 
         axes = {"s1_axis": s1_axis,
-                  "s3_axis": s3_axis,
-                  "det_axis": det_axis,
-                  "det_angle_axis": det_angle_axis}
+                "s3_axis": s3_axis,
+                "det_axis": det_axis,
+                "det_angle_axis": det_angle_axis}
 
         add_beam_start(PositionAndAngle(0.0, 0.0, 0.0))
         bl = get_configured_beamline()
@@ -329,6 +329,16 @@ class DataMother:
         theta_comp.add_angle_to(detector_comp)
         get_configured_beamline()
         return det_in, theta
+
+    @staticmethod
+    def beamline_with_one_mode_init_param_in_mode_and_at_off_init(init_sm_angle, off_init, param_name):
+        super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
+        smangle = AxisParameter(param_name, super_mirror, ChangeAxis.ANGLE)
+        beamline_mode = BeamlineMode("mode name", [smangle.name], {smangle.name: init_sm_angle})
+        beamline = Beamline([super_mirror], [smangle], [], [beamline_mode])
+        beamline.active_mode = beamline_mode.name
+        smangle.sp = off_init
+        return Beamline([super_mirror], [smangle], [], [beamline_mode])
 
 
 def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):

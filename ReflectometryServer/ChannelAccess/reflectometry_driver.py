@@ -11,9 +11,9 @@ from pcaspy.driver import manager, Data
 from ReflectometryServer import Beamline
 from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, REFL_IOC_NAME
 from ReflectometryServer.ChannelAccess.driver_utils import DriverParamHelper
-from ReflectometryServer.ChannelAccess.pv_manager import PvSort, BEAMLINE_MODE, VAL_FIELD, SERVER_STATUS, \
-    SERVER_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
-    IN_MODE_SUFFIX, SERVER_ERROR_LOG
+from ReflectometryServer.ChannelAccess.pv_manager import PvSort, is_pv_name_this_field, BEAMLINE_MODE, VAL_FIELD, \
+    SERVER_STATUS, SERVER_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
+    IN_MODE_SUFFIX, SERVER_ERROR_LOG, SAMPLE_LENGTH, REAPPLY_MODE_INITS, BEAMLINE_MOVE
 from ReflectometryServer.beamline import ActiveModeUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, StatusUpdate, ProblemInfo, ErrorLogUpdate
 from ReflectometryServer.footprint_manager import FootprintSort
@@ -100,21 +100,24 @@ class ReflectometryDriver(Driver):
                 elif self._pv_manager.is_beamline_mode(reason):
                     return self._beamline_mode_value(self._beamline.active_mode)
 
-                elif self._pv_manager.is_beamline_move(reason):
+                elif is_pv_name_this_field(BEAMLINE_MOVE, reason):
                     return self._beamline.move
 
-                elif self._pv_manager.is_server_status(reason):
+                elif is_pv_name_this_field(REAPPLY_MODE_INITS, reason):
+                    return self._beamline.reinit_mode_on_move
+
+                elif is_pv_name_this_field(SERVER_STATUS, reason):
                     beamline_status_enums = self._pv_manager.PVDB[SERVER_STATUS]["enums"]
                     new_value = beamline_status_enums.index(STATUS_MANAGER.status.display_string)
                     #  Set the value so that the error condition is set
                     self.setParam(reason, new_value)
                     return new_value
 
-                elif self._pv_manager.is_server_message(reason):
+                elif is_pv_name_this_field(SERVER_MESSAGE, reason):
                     return STATUS_MANAGER.message
-                elif self._pv_manager.is_error_log(reason):
+                elif is_pv_name_this_field(SERVER_ERROR_LOG, reason):
                     return STATUS_MANAGER.error_log
-                elif self._pv_manager.is_sample_length(reason):
+                elif is_pv_name_this_field(SAMPLE_LENGTH, reason):
                     return self._footprint_manager.get_sample_length()
                 elif self._pv_manager.is_alarm_status(reason):
                     return self.getParamDB(self._pv_manager.strip_fields_from_pv(reason)).alarm
@@ -142,8 +145,10 @@ class ReflectometryDriver(Driver):
         try:
             if self._pv_manager.is_param(reason):
                 value_accepted = self._driver_help.param_write(reason, value)
-            elif self._pv_manager.is_beamline_move(reason):
+            elif is_pv_name_this_field(BEAMLINE_MOVE, reason):
                 self._beamline.move = 1
+            elif is_pv_name_this_field(REAPPLY_MODE_INITS, reason):
+                self._beamline.reinit_mode_on_move = value
             elif self._pv_manager.is_beamline_mode(reason):
                 try:
                     beamline_mode_enums = self._pv_manager.PVDB[BEAMLINE_MODE]["enums"]
@@ -153,7 +158,7 @@ class ReflectometryDriver(Driver):
                     STATUS_MANAGER.update_error_log("Invalid value entered for mode. (Possible modes: {})".format(
                         ",".join(self._beamline.mode_names)))
                     value_accepted = False
-            elif self._pv_manager.is_sample_length(reason):
+            elif is_pv_name_this_field(SAMPLE_LENGTH, reason):
                 self._footprint_manager.set_sample_length(value)
             else:
                 STATUS_MANAGER.update_error_log("Error: PV is read only")
