@@ -56,7 +56,7 @@ class ParkingSequenceUpdate:
     """
     Event when parking sequence has been updated
     """
-    parking_sequence: Optional[int]  # the parking sequence we are at the end of
+    parking_sequence: Optional[int]  # the parking sequence index set
 
 
 @observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate, AxisChangedUpdate,

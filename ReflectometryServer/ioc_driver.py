@@ -5,7 +5,7 @@ import math
 import logging
 from collections import namedtuple
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional, TYPE_CHECKING
+from typing import Dict, Any, List, Optional, TYPE_CHECKING, Tuple
 
 from pcaspy import Severity
 
@@ -267,7 +267,7 @@ class IocDriver:
         backlash_distance = self._motor_axis.backlash_distance or 0.0
         component_sp = self._get_component_sp()
         if component_sp is None:
-            distance_to_move = 0.0  # if we are not moving then the distance ot move is 0
+            distance_to_move = 0.0  # if we are not moving then the distance to move is 0
         else:
             distance_to_move = self.rbv_cache() - component_sp
         is_within_backlash_distance = min([0.0, backlash_distance]) <= distance_to_move <= max([0.0, backlash_distance])
@@ -279,7 +279,8 @@ class IocDriver:
         will return 0 but movement will still be required.
         """
         duration = 0.0
-        if self._axis_will_move() and self._synchronised:
+        _, is_to_from_park = self._get_component_sp_and_is_to_from_parking()
+        if self._axis_will_move() and self._synchronised and not is_to_from_park:
             if self._motor_axis.max_velocity == 0 or self._motor_axis.max_velocity is None:
                 raise ZeroDivisionError("Motor max velocity is zero or none")
             backlash_duration = self._backlash_duration()
@@ -299,10 +300,10 @@ class IocDriver:
             move_duration (float): The duration in which to perform this move
             force (bool): move even if component does not report changed
         """
-        component_sp = self._get_component_sp()
+        component_sp, is_to_from_park = self._get_component_sp_and_is_to_from_parking()
         if component_sp is not None and (self._axis_will_move() or force):
             move_duration -= self._backlash_duration()
-            if move_duration > 1e-6 and self._synchronised:
+            if move_duration > 1e-6 and self._synchronised and not is_to_from_park:
                 self._motor_axis.cache_velocity()
                 self._motor_axis.velocity = max(self._motor_axis.min_velocity, self._get_distance() / move_duration)
 
@@ -332,18 +333,32 @@ class IocDriver:
         """
 
         backlash_distance = self._motor_axis.backlash_distance
-        component_sp = self._get_component_sp()
-        if component_sp is None:
+        component_sp, is_to_from_park = self._get_component_sp_and_is_to_from_parking()
+        if component_sp is None or is_to_from_park:
             return 0.0
         return math.fabs(self.rbv_cache() - (component_sp + backlash_distance))
 
-    def _get_component_sp(self, for_correction=False):
+    def _get_component_sp(self, for_correction=False) -> Optional[float]:
         """
         Args:
             for_correction (bool): Setpoint is for engineering correction
 
-        Returns: position that the set point axis is set to or None if it should not move because it is in a parking
-            sequence with a None in it
+        Returns:
+            position that the set point axis is set to or None if it should not move because it is in a parking
+                sequence with a None in it
+        """
+        component_sp, _ = self._get_component_sp_and_is_to_from_parking(for_correction)
+        return component_sp
+
+    def _get_component_sp_and_is_to_from_parking(self, for_correction=False) -> Tuple[Optional[float], bool]:
+        """
+        Args:
+            for_correction (bool): Setpoint is for engineering correction
+
+        Returns:
+            position that the set point axis is set to or None if it should not move because it is in a parking
+                sequence with a None in it
+            whether the movement is from or to a park position
         """
         if not self._component.beam_path_set_point.axis[self._component_axis].is_in_beam \
                 and self._out_of_beam_lookup is None:
@@ -356,7 +371,9 @@ class IocDriver:
         parking_index = self._component.beam_path_set_point.in_beam_manager.parking_index
         if parking_index is None or self._out_of_beam_lookup is None:
             displacement = self._component.beam_path_set_point.axis[self._component_axis].get_displacement()
+            is_to_from_park = not self._component.beam_path_rbv.axis[self._component_axis].is_in_beam
         else:
+            is_to_from_park = True
             beam_interception = self._component.beam_path_set_point.calculate_beam_interception()
             out_of_beam_position = self._out_of_beam_lookup.get_position_for_intercept(beam_interception)
 
@@ -367,7 +384,7 @@ class IocDriver:
                 displacement = out_of_beam_position.get_sequence_position(parking_index)
             if displacement is None and for_correction:
                 displacement = out_of_beam_position.get_final_position()
-        return displacement
+        return displacement, is_to_from_park
 
     def _on_update_rbv(self, update):
         """

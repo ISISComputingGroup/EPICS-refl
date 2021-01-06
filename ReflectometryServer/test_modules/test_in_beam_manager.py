@@ -185,6 +185,18 @@ class TestInBeamManager(unittest.TestCase):
 
         assert_that(result, is_(park_sequence_count[0] - 2))
 
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
+    def test_GIVEN_in_beam_manager_is_out_with_length_1_parking_sequence_WHEN_set_in_THEN_goes_to_first_parking_sequence(self):
+        park_sequence_count = [1]
+        current_parking_axis = park_sequence_count[0] - 1
+
+        axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis, number_of_axes=1, axis_park_sequence_counts=park_sequence_count)
+
+        beam_manager_sp.set_is_in_beam(True)
+        result = beam_manager_sp.parking_index
+
+        assert_that(result, is_(None))
+
     @patch('ReflectometryServer.beam_path_calc.parking_index_autosave')
     def test_GIVEN_sequence_WHEN_changes_parking_index_THEN_parking_index_auto_saved(self, auto_save):
         auto_save.read_parameter.return_value = None
@@ -214,7 +226,7 @@ class TestInBeamManager(unittest.TestCase):
         beam_path_set_point.add_axes({ChangeAxis.POSITION: axis})
         axis.park_sequence_count = 1
 
-        beam_path_set_point._on_end_of_sequence(ParkingSequenceUpdate(2))
+        beam_path_set_point._on_at_parking_sequence_position(ParkingSequenceUpdate(2))
 
         assert_that(axis.parking_index, is_(unchanged_value))
 

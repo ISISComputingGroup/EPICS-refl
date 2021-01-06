@@ -12,6 +12,7 @@ from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, PVWrapperFor
 from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup, OutOfBeamSequence
 from ReflectometryServer.pv_wrapper import IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
+from ReflectometryServer.test_modules.utils import no_autosave
 from server_common.channel_access import UnableToConnectToPVException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
@@ -284,6 +285,7 @@ class TestHeightAndIocDriver(unittest.TestCase):
 
 class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
 
+    @no_autosave
     def setUp(self):
         self.start_position = 0.0
         self.max_velocity = 10.0
@@ -299,24 +301,31 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws_driver = IocDriver(self.jaws, ChangeAxis.POSITION, self.height_axis,
                                      out_of_beam_positions=[self.out_of_beam_position])
 
-    def test_GIVEN_component_which_is_out_of_beam_WHEN_calculating_move_duration_THEN_returned_duration_is_time_taken_to_move_to_out_of_beam_position(self):
+    def test_GIVEN_component_which_is_out_of_beam_WHEN_calculating_move_duration_THEN_returned_duration_is_0(self):
 
-        expected = - self.out_of_beam_position.get_final_position() / self.max_velocity
         self.jaws.beam_path_set_point.is_in_beam = False
 
         result = self.jaws_driver.get_max_move_duration()
 
-        assert_that(result, is_(expected))
+        assert_that(result, is_(0.0))
 
-    def test_GIVEN_component_which_is_out_of_beam_WHEN_moving_axis_THEN_computed_axis_velocity_is_correct_and_setpoint_set(self):
+    def test_GIVEN_component_which_is_moving_into_beam_from_out_of_beam_WHEN_calculating_move_duration_THEN_returned_duration_is_0(self):
+        self.height_axis.sp = self.out_of_beam_position.get_final_position()
+        self.jaws.beam_path_rbv.is_in_beam = False
+        self.jaws.beam_path_set_point.is_in_beam = True
+
+        result = self.jaws_driver.get_max_move_duration()
+
+        assert_that(result, is_(0.0))
+
+    def test_GIVEN_component_which_is_out_of_beam_WHEN_moving_axis_THEN_velocity_is_not_set_and_setpoint_is_set(self):
         expected_position = self.out_of_beam_position.get_final_position()
         target_duration = 4.0
-        expected_velocity = - expected_position / 4.0
         self.jaws.beam_path_set_point.is_in_beam = False
 
         self.jaws_driver.perform_move(target_duration, True)
 
-        assert_that(self.height_axis.velocity, is_(expected_velocity))
+        assert_that(self.height_axis.velocity, is_(None)) # i.e. not set because parking
         assert_that(self.height_axis.sp, is_(expected_position))
 
     def test_GIVEN_displacement_changed_to_out_of_beam_position_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_false(self):

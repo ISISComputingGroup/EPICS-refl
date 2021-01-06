@@ -263,7 +263,7 @@ class PVWrapper:
             value: The new value
             wait: wait for call back
         """
-        self._ca.caput(pv, value, wait=wait)
+        self._ca.caput(pv, value, wait=wait, safe_not_quick=False)
 
     def _write_pv_with_retry(self, pv, value, retry_count=5):
         """
@@ -275,7 +275,7 @@ class PVWrapper:
             value: value to write
             retry_count: number of retries
         """
-        self._ca.caput_retry_on_fail(pv, value, retry_count=retry_count)
+        self._ca.caput_retry_on_fail(pv, value, retry_count=retry_count, safe_not_quick=False)
 
     @property
     def name(self):

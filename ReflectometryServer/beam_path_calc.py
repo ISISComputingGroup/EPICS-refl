@@ -77,7 +77,7 @@ class InBeamManager:
         Args:
             rbv_in_beam_manager: rbv in beam manager
         """
-        rbv_in_beam_manager.add_listener(ParkingSequenceUpdate, self._on_end_of_sequence)
+        rbv_in_beam_manager.add_listener(ParkingSequenceUpdate, self._on_at_parking_sequence_position)
 
     def _on_add_out_of_beam_position(self, event: AddOutOfBeamPositionEvent):
         axis = event.source
@@ -122,7 +122,11 @@ class InBeamManager:
         if is_in_beam:
             # if fully out of the beam, i.e. at last parking sequence start unpark sequence
             if self.parking_index == self._maximum_sequence_count - 1:
-                self._update_parking_index(self._maximum_sequence_count - 2)  # sequence 1 before last
+                if self._maximum_sequence_count <= 2:
+                    new_index = None
+                else:
+                    new_index = self._maximum_sequence_count - 2
+                self._update_parking_index(new_index)  # sequence 1 before last
 
         else:
             # if fully in the beam start out parking sequence
@@ -146,7 +150,7 @@ class InBeamManager:
         alarms = [axis.alarm for axis in self._parking_axes]
         return maximum_severity(*alarms)
 
-    def _on_end_of_sequence(self, parking_sequence_update: ParkingSequenceUpdate):
+    def _on_at_parking_sequence_position(self, parking_sequence_update: ParkingSequenceUpdate):
         """
         If reached a sequence position then move sequence set point on to next position
 
