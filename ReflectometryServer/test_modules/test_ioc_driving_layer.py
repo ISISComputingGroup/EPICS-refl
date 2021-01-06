@@ -118,6 +118,7 @@ class TestNonSynchronisedHeightDriver(unittest.TestCase):
 
         assert_that(self.height_axis.velocity, is_(expected_velocity))
         assert_that(self.height_axis.sp, is_(target_position))
+        assert_that(self.height_axis.moving_without_changing_velocity, is_(True))
 
 
 class TestHeightAndTiltDriver(unittest.TestCase):

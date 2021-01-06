@@ -306,6 +306,8 @@ class IocDriver:
             if move_duration > 1e-6 and self._synchronised and not is_to_from_park:
                 self._motor_axis.cache_velocity()
                 self._motor_axis.velocity = max(self._motor_axis.min_velocity, self._get_distance() / move_duration)
+            else:
+                self._motor_axis.record_no_cache_velocity()
 
             self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
 

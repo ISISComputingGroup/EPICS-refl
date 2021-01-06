@@ -379,6 +379,7 @@ class MockMotorPVWrapper:
         self.last_set_point_set = None
         self.is_initialised = False
         self.all_setpoints = []
+        self.moving_without_changing_velocity = None
 
     def initialise(self):
         self.is_initialised = True
@@ -393,7 +394,10 @@ class MockMotorPVWrapper:
         pass
 
     def cache_velocity(self):
-        pass
+        self.moving_without_changing_velocity = False
+
+    def record_no_cache_velocity(self):
+        self.moving_without_changing_velocity = True
 
     def restore_velocity(self):
         pass
