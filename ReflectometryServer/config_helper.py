@@ -381,13 +381,14 @@ def optional_is_set(optional_id, macros):
         return False
 
 
-def as_mode_correction(correction: float, modes: List[str], default: float=0.0):
+def as_mode_correction(correction: float, modes: List[str], default: float = 0.0):
     """
-    Helper method for creating a mode dependent engineering correction.
+    Helper method for creating a fixed offset engineering correction that gets applied for each mode in a given list.
 
     Args:
-        correction (String): The value of the constant correction
-        modes (list[str]): The macro values passed into the reflectometry server
+        correction: The value of the constant correction
+        modes: The modes for which to apply the correction
+        default: The value of the constant correction for all other modes
 
     Returns: True if macro with given ID is set to True, otherwise False
     """
