@@ -173,9 +173,10 @@ class TestInBeamManager(unittest.TestCase):
 
         assert_that(result, is_(current_parking_axis))
 
+    @parameterized.expand([([5],),
+                           ([2],)])
     @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
-    def test_GIVEN_in_beam_manager_is_out_WHEN_set_in_THEN_goes_to_first_parking_sequence(self):
-        park_sequence_count = [5]
+    def test_GIVEN_in_beam_manager_is_out_WHEN_set_in_THEN_goes_to_first_parking_sequence(self, park_sequence_count):
         current_parking_axis = park_sequence_count[0] - 1
 
         axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis, number_of_axes=1, axis_park_sequence_counts=park_sequence_count)

@@ -122,16 +122,23 @@ class InBeamManager:
         if is_in_beam:
             # if fully out of the beam, i.e. at last parking sequence start unpark sequence
             if self.parking_index == self._maximum_sequence_count - 1:
-                if self._maximum_sequence_count <= 2:
+                if self._maximum_sequence_count < 2:
                     new_index = None
+                    logger.info(f"MOVE {self._name} to parking sequence 'in beam'")
                 else:
                     new_index = self._maximum_sequence_count - 2
+                    logger.info(f"MOVE {self._name} to parking sequence {new_index}")
                 self._update_parking_index(new_index)  # sequence 1 before last
+            else:
+                logger.info(f"Set in beam but not set parking sequence")
 
         else:
             # if fully in the beam start out parking sequence
             if self.parking_index is None:
                 self._update_parking_index(0)
+                logger.info(f"MOVE {self._name} to parking sequence {0}")
+            else:
+                logger.info(f"Set out of beam but not set parking sequence")
         self._parking_sequence_started = True
 
     @property
