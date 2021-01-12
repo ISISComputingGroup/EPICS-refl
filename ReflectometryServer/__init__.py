@@ -24,7 +24,7 @@ else:
     from ReflectometryServer.footprint_manager import FootprintSetup, BaseFootprintSetup
     from ReflectometryServer.geometry import PositionAndAngle, Position, ChangeAxis
     from ReflectometryServer.ioc_driver import IocDriver, PVWrapperForParameter
-    from ReflectometryServer.out_of_beam import OutOfBeamPosition
+    from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamSequence
     from ReflectometryServer.parameters import InBeamParameter, AxisParameter, DirectParameter, \
         SlitGapParameter, EnumParameter
     from ReflectometryServer.pv_wrapper import MotorPVWrapper, JawsCentrePVWrapper, JawsGapPVWrapper, PVWrapper

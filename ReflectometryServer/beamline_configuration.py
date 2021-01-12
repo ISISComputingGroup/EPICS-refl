@@ -11,6 +11,7 @@ from pcaspy import Severity
 
 from ReflectometryServer.ChannelAccess.constants import REFL_CONFIG_PATH, REFL_IOC_NAME
 from ReflectometryServer.beamline import Beamline, BeamlineMode, BeamlineConfigurationInvalidException
+from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.utilities import print_and_log, SEVERITY
 
@@ -82,6 +83,11 @@ def create_beamline_from_configuration(macros):
         print_and_log(error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME)
 
         beamline = _create_beamline_in_error("Configuration not found.")
+
+    except BeamlineConfigurationParkAutosaveInvalidException as error:
+        print_and_log(error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME)
+        traceback.print_exc(file=sys.stdout)
+        beamline = _create_beamline_in_error(str(error))
 
     except BeamlineConfigurationInvalidException as error:
         print_and_log(error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME)

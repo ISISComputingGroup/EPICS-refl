@@ -175,6 +175,8 @@ class Beamline:
                 self.update_next_beam_component, calc_path_list=self._beam_path_calcs_set_point))
             component.beam_path_rbv.add_listener(BeamPathUpdate, partial(
                 self.update_next_beam_component, calc_path_list=self._beam_path_calcs_rbv))
+            component.beam_path_set_point.in_beam_manager.add_rbv_in_beam_manager(
+                component.beam_path_rbv.in_beam_manager)
 
         self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
 

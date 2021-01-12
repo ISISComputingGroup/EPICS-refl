@@ -158,6 +158,7 @@ class PVWrapper:
             self._min_velocity_scale_factor = min_velocity_scale_factor
 
         self._moving_state_cache = None
+        self._moving_without_changing_velocity = False
         self._moving_direction_cache = None
         self._velocity_restored = None
         self._velocity_to_restore = None
@@ -263,7 +264,7 @@ class PVWrapper:
             value: The new value
             wait: wait for call back
         """
-        self._ca.caput(pv, value, wait=wait)
+        self._ca.caput(pv, value, wait=wait, safe_not_quick=False)
 
     def _write_pv_with_retry(self, pv, value, retry_count=5):
         """
@@ -275,7 +276,7 @@ class PVWrapper:
             value: value to write
             retry_count: number of retries
         """
-        self._ca.caput_retry_on_fail(pv, value, retry_count=retry_count)
+        self._ca.caput_retry_on_fail(pv, value, retry_count=retry_count, safe_not_quick=False)
 
     @property
     def name(self):
@@ -404,6 +405,12 @@ class PVWrapper:
                 STATUS_MANAGER.update_active_problems(
                     ProblemInfo("Unable to read autosaved velocity_restored flag", self.name, Severity.MINOR_ALARM))
 
+    def record_no_cache_velocity(self):
+        """
+        Record that we didn't cache the velocity so that we don't try to restore it
+        """
+        self._moving_without_changing_velocity = True
+
     def cache_velocity(self):
         """
         Cache the current axis velocity.
@@ -411,6 +418,8 @@ class PVWrapper:
         Cache the current axis velocity unless a previously stored cache has not been restored. If the previous cache
         has not been restored then we suspect that a move has been made from outside of the reflectometry server.
         """
+        self._moving_without_changing_velocity = False
+
         if self._velocity_restored:
             self._velocity_to_restore = self.velocity
             velocity_float_autosave.write_parameter(self.name, self._velocity_to_restore)
@@ -483,7 +492,8 @@ class PVWrapper:
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        if self._moving_state_cache is not None and new_value == MTR_STOPPED:
+        if self._moving_state_cache is not None and new_value == MTR_STOPPED \
+                and not self._moving_without_changing_velocity:
             self.restore_pre_move_velocity()
         self._moving_state_cache = new_value
 

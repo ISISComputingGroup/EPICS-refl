@@ -7,7 +7,8 @@ import logging
 
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ChannelAccess.constants import REFL_AUTOSAVE_PATH
-from server_common.autosave import AutosaveFile, FloatConversion, BoolConversion, StringConversion
+from server_common.autosave import AutosaveFile, FloatConversion, BoolConversion, StringConversion, \
+    OptionalIntConversion
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ PARAM_AUTOSAVE_FILE = "params"
 VELOCITY_AUTOSAVE_FILE = "velocity"
 MODE_AUTOSAVE_FILE = "mode"
 DISABLE_MODE_AUTOSAVE_FILE = "disable_mode_incoming_beams"
+COMPONENT_AUTOSAVE_FILE = "component"
 
 MODE_KEY = "mode"
 
@@ -44,3 +46,6 @@ velocity_float_autosave = AutosaveFile(service_name="refl", file_name=VELOCITY_A
 # the velocity autosave service for booleans
 velocity_bool_autosave = AutosaveFile(service_name="refl", file_name=VELOCITY_AUTOSAVE_FILE,
                                       conversion=BoolConversion, folder=REFL_AUTOSAVE_PATH)
+
+parking_index_autosave = AutosaveFile(service_name="refl", file_name=COMPONENT_AUTOSAVE_FILE,
+                                      conversion=OptionalIntConversion, folder=REFL_AUTOSAVE_PATH)

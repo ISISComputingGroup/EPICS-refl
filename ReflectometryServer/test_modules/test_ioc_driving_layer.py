@@ -3,15 +3,16 @@ from math import fabs
 
 from parameterized import parameterized
 
-from mock import MagicMock, patch
+from mock import MagicMock, patch, Mock
 from hamcrest import *
 
 from ReflectometryServer import *
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, PVWrapperForParameter
-from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup
+from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup, OutOfBeamSequence
 from ReflectometryServer.pv_wrapper import IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
+from ReflectometryServer.test_modules.utils import no_autosave
 from server_common.channel_access import UnableToConnectToPVException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
@@ -117,6 +118,7 @@ class TestNonSynchronisedHeightDriver(unittest.TestCase):
 
         assert_that(self.height_axis.velocity, is_(expected_velocity))
         assert_that(self.height_axis.sp, is_(target_position))
+        assert_that(self.height_axis.moving_without_changing_velocity, is_(True))
 
 
 class TestHeightAndTiltDriver(unittest.TestCase):
@@ -284,6 +286,7 @@ class TestHeightAndIocDriver(unittest.TestCase):
 
 class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
 
+    @no_autosave
     def setUp(self):
         self.start_position = 0.0
         self.max_velocity = 10.0
@@ -299,24 +302,31 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws_driver = IocDriver(self.jaws, ChangeAxis.POSITION, self.height_axis,
                                      out_of_beam_positions=[self.out_of_beam_position])
 
-    def test_GIVEN_component_which_is_out_of_beam_WHEN_calculating_move_duration_THEN_returned_duration_is_time_taken_to_move_to_out_of_beam_position(self):
+    def test_GIVEN_component_which_is_out_of_beam_WHEN_calculating_move_duration_THEN_returned_duration_is_0(self):
 
-        expected = - self.out_of_beam_position.position / self.max_velocity
         self.jaws.beam_path_set_point.is_in_beam = False
 
         result = self.jaws_driver.get_max_move_duration()
 
-        assert_that(result, is_(expected))
+        assert_that(result, is_(0.0))
 
-    def test_GIVEN_component_which_is_out_of_beam_WHEN_moving_axis_THEN_computed_axis_velocity_is_correct_and_setpoint_set(self):
-        expected_position = self.out_of_beam_position.position
+    def test_GIVEN_component_which_is_moving_into_beam_from_out_of_beam_WHEN_calculating_move_duration_THEN_returned_duration_is_0(self):
+        self.height_axis.sp = self.out_of_beam_position.get_final_position()
+        self.jaws.beam_path_rbv.is_in_beam = False
+        self.jaws.beam_path_set_point.is_in_beam = True
+
+        result = self.jaws_driver.get_max_move_duration()
+
+        assert_that(result, is_(0.0))
+
+    def test_GIVEN_component_which_is_out_of_beam_WHEN_moving_axis_THEN_velocity_is_not_set_and_setpoint_is_set(self):
+        expected_position = self.out_of_beam_position.get_final_position()
         target_duration = 4.0
-        expected_velocity = - expected_position / 4.0
         self.jaws.beam_path_set_point.is_in_beam = False
 
         self.jaws_driver.perform_move(target_duration, True)
 
-        assert_that(self.height_axis.velocity, is_(expected_velocity))
+        assert_that(self.height_axis.velocity, is_(None)) # i.e. not set because parking
         assert_that(self.height_axis.sp, is_(expected_position))
 
     def test_GIVEN_displacement_changed_to_out_of_beam_position_WHEN_listeners_on_axis_triggered_THEN_listeners_on_driving_layer_triggered_and_have_in_beam_is_false(self):
@@ -324,7 +334,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = False
 
-        self.height_axis.sp = self.out_of_beam_position.position
+        self.height_axis.sp = self.out_of_beam_position.get_final_position()
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
@@ -334,7 +344,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = True
 
-        self.height_axis.sp = self.out_of_beam_position.position + 2 * self.tolerance_on_out_of_beam_position
+        self.height_axis.sp = self.out_of_beam_position.get_final_position() + 2 * self.tolerance_on_out_of_beam_position
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
@@ -344,7 +354,7 @@ class TestHeightDriverInAndOutOfBeam(unittest.TestCase):
         self.jaws.beam_path_rbv.add_listener(BeamPathUpdate, listener)
         expected_value = False
 
-        self.height_axis.sp = self.out_of_beam_position.position + self.tolerance_on_out_of_beam_position * 0.9
+        self.height_axis.sp = self.out_of_beam_position.get_final_position() + self.tolerance_on_out_of_beam_position * 0.9
 
         listener.assert_called()
         assert_that(self.jaws.beam_path_rbv.is_in_beam, is_(expected_value))
@@ -440,7 +450,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         slit_3_driver = IocDriver(slit_3, ChangeAxis.POSITION, slit_3_height_axis)
         self.slit_3_driver = slit_3_driver
 
-        detector = TiltingComponent("jaws", setup=PositionAndAngle(y=0.0, z=40.0, angle=90.0))
+        detector = TiltingComponent("comp", setup=PositionAndAngle(y=0.0, z=40.0, angle=90.0))
         detector_height_axis = create_mock_axis("DETECTOR:HEIGHT", 0.0, 10.0)
         detector_tilt_axis = create_mock_axis("DETECTOR:TILT", 0.0, 10.0)
         detector_driver_disp = IocDriver(detector, ChangeAxis.POSITION, detector_height_axis)
@@ -609,7 +619,7 @@ class TestIocDriverWithAxesDependentOnParam(unittest.TestCase):
         self.jaws.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
         self.jaws.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
 
-        self.opt1 = "height_axis"
+        self.opt1 = "axis"
         self.opt2 = "alt_axis"
         self.opt3 = "other"
         self.param = EnumParameter("param", options=[self.opt1, self.opt2, self.opt3])
@@ -767,3 +777,47 @@ class TestIOCDriverInAndOutOfBeamWithOffsetOutOfBeamPosition(unittest.TestCase):
         result = comp.beam_path_set_point.is_in_beam
 
         assert_that(result, is_(False))
+
+
+class TestIOCDriverInAndOutOfBeamWithParkingsequence(unittest.TestCase):
+
+    def setUp(self):
+        self.start_position = 0.0
+        self.max_velocity = 10.0
+        self.tolerance_on_out_of_beam_position = 1
+        self.parking_sequence = [-1, -2, -3]
+        self.out_of_beam_position = OutOfBeamSequence(self.parking_sequence, tolerance=self.tolerance_on_out_of_beam_position)
+
+        self.axis = create_mock_axis("HEIGHT", self.start_position, self.max_velocity)
+
+        with patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter',
+                   new=Mock(return_value=None)):
+            self.comp = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
+        self.comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+        self.comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
+
+        self.jaws_driver = IocDriver(self.comp, ChangeAxis.POSITION, self.axis,
+                                     out_of_beam_positions=[self.out_of_beam_position])
+
+    def test_GIVEN_parking_sequence_WHEN_ioc_driver_moves_to_be_at_end_of_sequence_THEN_axis_has_end_of_sequence_set(self):
+        parking_index = 1
+        self.comp.beam_path_set_point.in_beam_manager.parking_index = parking_index
+        self.axis._value = self.parking_sequence[parking_index]
+        self.axis.trigger_rbv_change()
+
+        result = self.comp.beam_path_rbv.axis[ChangeAxis.POSITION].parking_index
+
+        assert_that(result, is_(parking_index))
+
+    def test_GIVEN_parking_sequence_WHEN_ioc_driver_moves_to_be_not_at_end_of_sequence_THEN_parking_sequence_not_changed(self):
+        expected_sequence = 200
+        self.comp.beam_path_rbv.axis[ChangeAxis.POSITION].parking_index = expected_sequence
+        parking_index = 1
+        self.comp.beam_path_set_point.in_beam_manager.parking_index = parking_index
+        self.axis._value = self.parking_sequence[parking_index] + 1000
+        self.axis.trigger_rbv_change()
+
+        result = self.comp.beam_path_rbv.axis[ChangeAxis.POSITION].parking_index
+
+        assert_that(result, is_(expected_sequence))
+
