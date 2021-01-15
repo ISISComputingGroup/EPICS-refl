@@ -313,6 +313,40 @@ class DataMother:
 
         return get_configured_beamline(), {"bench_jack_rear": bench_jack_rear, "bench_jack_front": bench_jack_front, "sm_angle": sm_axis}
 
+
+
+    @staticmethod
+    def beamline_sm_theta_ang_det(sm_angle, theta_angle, driver_comp_offset, autosave_bench_not_theta=False):
+
+        ConfigHelper.reset()
+        test = add_mode("TEST")
+
+        add_beam_start(PositionAndAngle(0, 0, 0))
+
+        sm = add_component(ReflectingComponent("SM", PositionAndAngle(0, 0, 90)))
+        add_parameter(AxisParameter("sm_angle", sm, ChangeAxis.ANGLE))
+        sm_axis = create_mock_axis("MOT:MTR0101", sm_angle, sm_angle)
+        add_driver(IocDriver(sm, ChangeAxis.ANGLE, sm_axis))
+        sm_axis.trigger_rbv_change()
+
+        theta = add_component(ThetaComponent("THETA", PositionAndAngle(0, 10, 90)))
+        add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE, autosave=not autosave_bench_not_theta))
+
+        DIST = 10
+        bench = add_component(TiltingComponent("comp", PositionAndAngle(0, DIST, 90)))
+        add_parameter(AxisParameter("comp_angle", bench, ChangeAxis.ANGLE, autosave=autosave_bench_not_theta))
+        comp_angle = driver_comp_offset + theta_angle * 2 + sm_angle * 2
+        comp_height = create_mock_axis("MOT:MTR0102", tan(radians(comp_angle)) * DIST, 1)
+        comp_ang = create_mock_axis("MOT:MTR0103", comp_angle, 1)
+        add_driver(IocDriver(bench, ChangeAxis.HEIGHT, comp_height))
+        add_driver(IocDriver(bench, ChangeAxis.ANGLE, comp_ang))
+        comp_ang.trigger_rbv_change()
+        comp_height.trigger_rbv_change()
+        theta.add_angle_of(bench)
+
+        return get_configured_beamline(), {"comp_ang": comp_ang, "comp_height": comp_height,
+                                           "sm_angle": sm_axis}
+
     @staticmethod
     def beamline_theta_detector(out_of_beam_pos_z, inital_pos_z, out_of_beam_pos_ang, initial_pos_ang):
         ConfigHelper.reset()

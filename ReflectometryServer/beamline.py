@@ -479,7 +479,7 @@ class Beamline:
     def _set_incoming_beam_can_change(self):
         """
         During initialisation if the there is a mode set then set the incoming beam can change flag on
-        all componented
+        all components
         """
         if self._active_mode is not None:
             mode_is_disabled = self._active_mode.is_disabled

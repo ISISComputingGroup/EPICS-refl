@@ -139,7 +139,10 @@ class TrackingBeamPathCalc:
         Args:
             value(float): The motor position
         """
-        self._movement_strategy.set_displacement(value)
+        self.axis[ChangeAxis.POSITION].init_from_motor = value
+        if self.axis[ChangeAxis.POSITION].autosaved_value is None:
+            logger.debug(f"Setting {self._name} displacement initial value from motor to {value}")
+            self._movement_strategy.set_displacement(value)
         self.axis[ChangeAxis.POSITION].trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
 
     def set_incoming_beam(self, incoming_beam, force=False, on_init=False):
@@ -162,8 +165,6 @@ class TrackingBeamPathCalc:
             autosaved_value = self.axis[ChangeAxis.POSITION].autosaved_value
             if autosaved_value is not None:
                 self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, autosaved_value)
-            for axis in self.axis.values():
-                axis.trigger_listeners(InitUpdate())
             self.trigger_listeners(BeamPathUpdateOnInit(self))
         else:
             self.trigger_listeners(BeamPathUpdate(self))
@@ -285,10 +286,14 @@ class TrackingBeamPathCalc:
         """
         autosaved_value = self.axis[ChangeAxis.POSITION].autosaved_value
         if on_init and autosaved_value is not None:
-            offset = autosaved_value
+            init_from_motor = self.axis[ChangeAxis.POSITION].init_from_motor
+            # If this is before the motor is initialised then this will be called when it is and so we set it to 0
+            if init_from_motor is None:
+                init_from_motor = 0
+            intercept_displacement = init_from_motor - autosaved_value
         else:
             offset = self.axis[ChangeAxis.POSITION].get_relative_to_beam() or 0
-        intercept_displacement = self._get_displacement() - offset
+            intercept_displacement = self._get_displacement() - offset
         return self._movement_strategy.position_in_mantid_coordinates(intercept_displacement)
 
     @property
@@ -329,6 +334,9 @@ class TrackingBeamPathCalc:
                 incoming_beam = PositionAndAngle(0, 0, 0)
                 logger.error("Incoming beam was not initialised for component {}".format(self._name))
             self.set_incoming_beam(incoming_beam, force=True, on_init=True)
+            # re trigger on init specifically so that if this is the component theta depends on theta get reset
+            for axis in self.axis.values():
+                axis.trigger_listeners(InitUpdate())
 
     def __repr__(self):
         return f"{self._name}: {self.__class__.__name__} {id(self)}"
@@ -429,7 +437,10 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
         Args:
             angle(float): The angle read from the motor
         """
-        self._angular_displacement = angle
+        self.axis[ChangeAxis.ANGLE].init_from_motor = angle
+        if self.axis[ChangeAxis.ANGLE].autosaved_value is None:
+            logger.debug(f"Setting {self._name} angle initial value from motor to {angle}")
+            self._angular_displacement = angle
         self.axis[ChangeAxis.ANGLE].trigger_listeners(InitUpdate())
         if self._is_reflecting:
             self.trigger_listeners(BeamPathUpdateOnInit(self))
@@ -486,6 +497,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         readback_beam_path_calc.in_beam_manager.add_listener(PhysicalMoveUpdate, self._angle_update)
         # add to beamline change of set point because no loop is created from the setpoint action
         setpoint_beam_path_calc.add_listener(BeamPathUpdate, self._angle_update)
+        setpoint_beam_path_calc.add_listener(BeamPathUpdateOnInit, self._angle_update)
         readback_beam_path_calc.axis[axis].add_listener(AxisChangingUpdate, self._on_is_changing_change)
         readback_beam_path_calc.in_beam_manager.add_listener(AxisChangingUpdate, self._on_is_changing_change)
 
@@ -602,6 +614,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         super(BeamPathCalcThetaSP, self).__init__(name, movement_strategy, is_reflecting=True)
         self._angle_to = []
         self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
+        self._add_pre_trigger_function(BeamPathUpdateOnInit, self._set_incoming_beam_at_next_angled_to_component)
 
     def add_angle_to(self, beam_path_calc, axis):
         """
@@ -634,7 +647,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
             self._angular_displacement = self._incoming_beam.angle + autosaved_value
 
         self.axis[ChangeAxis.ANGLE].trigger_listeners(InitUpdate())
-        self.trigger_listeners(BeamPathUpdate(self))
+        self.trigger_listeners(BeamPathUpdateOnInit(self))
 
     def _calc_angle_from_next_component(self, incoming_beam):
         """
@@ -662,7 +675,10 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
                     # if there is an auto saved offset then take this off before calculating theta
                     offset = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].autosaved_value
                     if offset is not None:
-                        angle_of_outgoing_beam -= offset
+                        init_from_motor = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].init_from_motor
+                        if init_from_motor is None:
+                            init_from_motor = 0
+                        angle_of_outgoing_beam = init_from_motor - offset
                 else:
                     raise RuntimeError("Can not set theta angle based on {} axis".format(axis))
 

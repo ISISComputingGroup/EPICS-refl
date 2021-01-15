@@ -323,7 +323,7 @@ class TestBeamlineModeInitialization(unittest.TestCase):
 
     @patch('ReflectometryServer.beamline.mode_autosave')
     @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave')
-    def test_GIVEN_beam_line_with_disable_autosave_position_WHEN_init_THEN_incoming_beams_set_correctly_on_start(self, mock_diable_mode_auto_save, mock_mode_auto_save):
+    def test_GIVEN_beam_line_with_disable_autosave_position_WHEN_init_THEN_incoming_beams_set_correctly_on_start(self, mock_disable_mode_auto_save, mock_mode_auto_save):
 
         mock_mode_auto_save.read_parameter.return_value = "DISABLED"
 
@@ -344,7 +344,7 @@ class TestBeamlineModeInitialization(unittest.TestCase):
             else:
                 return None
 
-        mock_diable_mode_auto_save.read_parameter.side_effect = autosave_value
+        mock_disable_mode_auto_save.read_parameter.side_effect = autosave_value
         spacing = 2.0
         bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing, initilise_mode_nr=False)
 
@@ -599,6 +599,27 @@ class TestRealisticWithAutosaveInitAndBench(unittest.TestCase):
         assert_that(bl.parameter("theta").rbv, is_(close_to(expected_theta, 1e-6)), "theta RBV")
         assert_that(bl.parameter("bench_angle").rbv, is_(close_to(driver_bench_offset, 1e-6)), "bench angle RBV")
 
+    @patch("ReflectometryServer.parameters.param_float_autosave")
+    def test_GIVEN_beam_line_where_autosave_ang_offset_2_and_theta_0p1_WHEN_init_THEN_beamline_is_at_given_place(self, file_io):
+        expected_sm_angle = 0
+        expected_theta = 0.1
+        angle_offset = 2
+        file_io.read_parameter.return_value = angle_offset
+
+        bl, drives = DataMother.beamline_sm_theta_ang_det(expected_sm_angle, expected_theta, angle_offset, autosave_bench_not_theta=True)
+        for drive in drives.values():
+            drive.trigger_rbv_change()
+        assert_that(bl.parameter("sm_angle").sp, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP")
+        assert_that(bl.parameter("theta").sp, is_(close_to(expected_theta, 1e-6)), "theta SP")
+        assert_that(bl.parameter("comp_angle").sp, is_(close_to(angle_offset, 1e-6)), "comp angle SP")
+
+        assert_that(bl.parameter("sm_angle").sp_rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle SP RBV")
+        assert_that(bl.parameter("theta").sp_rbv, is_(close_to(expected_theta, 1e-6)), "theta SP RBV")
+        assert_that(bl.parameter("comp_angle").sp_rbv, is_(close_to(angle_offset, 1e-6)), "comp angle SP RBV")
+
+        assert_that(bl.parameter("sm_angle").rbv, is_(close_to(expected_sm_angle, 1e-6)), "sm angle RBV")
+        assert_that(bl.parameter("theta").rbv, is_(close_to(expected_theta, 1e-6)), "theta RBV")
+        assert_that(bl.parameter("comp_angle").rbv, is_(close_to(angle_offset, 1e-6)), "comp angle RBV")
 
 class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
@@ -847,6 +868,116 @@ class TestComponentOutOfBeam(unittest.TestCase):
         assert_that(det_in.sp, is_(False))
         assert_that(theta.sp, is_(0))
 
+
+class TestComponentOutOfBeamFullBeamline(unittest.TestCase):
+
+    def setUp(self) -> None:
+        ConfigHelper.reset()
+
+    @parameterized.expand([(-2, -3, -4, -2, -3, -4, -2, -3, -4, False),  # all axes start out of beam, moving in moves to autosaved positions
+                           (-2, -3, -4, 0, -3, -4, 0, -3, -4, True),  # first axes in beam others out of beam, moving in moves to autosaved positions
+                           (-2, -3, -4, -2, 0, -4, -2, 0, -4, True),  # middle axes in beam others out of beam, moving in moves to autosaved positions
+                           (-2, -3, -4, -2, -3, 0, -2, -3, 0, True), # last axes in beam others out of beam, moving in moves to autosaved positions
+                           (-2, -3, -4, 0, -3, -4, 0, -3, -4, True), # first axes not in beam others in beam, moving in moves to autosaved positions
+                           (-2, -3, -4, -2, 0, -4, -2, 0, -4, True), # middle axes not in beam others in beam, moving in moves to autosaved positions
+                           (-2, -3, -4, -2, -3, 0, -2, -3, 0, True), # last axes not in beam others in beam, moving in moves to autosaved positions
+                           (-2, -3, -4, 1, 2, 3, 1, 2, 3, True),  # all axes in the beam, move to current position
+                          ])
+    @patch("ReflectometryServer.parameters.param_float_autosave")
+    def test_GIVEN_component_with_multiple_axes_out_of_beam_with_autosave_WHEN_init_and_move_in_THEN_component_moves_to_expected_palce(self,
+           pos_out_of_beam_pos, ang_out_of_beam_pos, phi_out_of_beam_pos,
+           init_pos, init_ang, init_phi,
+           expected_pos, expected_ang, expected_phi,
+           expected_initial_inbeam, mock_autosave):
+
+        mock_autosave.read_parameter.side_effect = [expected_pos, expected_ang, expected_phi]
+        axis_ang, axis_phi, axis_pos, inbeam = self.setup_beamline(ang_out_of_beam_pos, init_ang, init_phi,
+                                                                   init_pos, phi_out_of_beam_pos, pos_out_of_beam_pos)
+        assert_that(inbeam.sp, is_(expected_initial_inbeam))
+
+        inbeam.sp = True
+
+        assert_that(axis_pos.rbv, is_(expected_pos))
+        assert_that(axis_ang.rbv, is_(expected_ang))
+        assert_that(axis_phi.rbv, is_(expected_phi))
+
+    def setup_beamline(self, ang_out_of_beam_pos, init_ang, init_phi, init_pos, phi_out_of_beam_pos, pos_out_of_beam_pos, autosave_axes=True):
+        # Setup is in or out of the beam and with autosaved positions, on move should move to autosaved positions
+        mode = add_mode("MODE")
+        comp = add_component(TiltingComponent("comp", PositionAndAngle(0, 0, 90)))
+
+        param_pos = add_parameter(AxisParameter("pos", comp, ChangeAxis.POSITION, autosave=autosave_axes), [mode])
+        param_ang = add_parameter(AxisParameter("angle", comp, ChangeAxis.ANGLE, autosave=autosave_axes), [mode])
+        param_phi = add_parameter(AxisParameter("phi", comp, ChangeAxis.PHI, autosave=autosave_axes), [mode])
+        inbeam = add_parameter(InBeamParameter("in beam", comp), [mode])
+        axis_pos = create_mock_axis("pos_axis", init_pos, 1)
+        axis_ang = create_mock_axis("ang_axis", init_ang, 1)
+        axis_phi = create_mock_axis("phi_axis", init_phi, 1)
+        driver_pos = add_driver(IocDriver(comp, ChangeAxis.POSITION, axis_pos,
+                                          out_of_beam_positions=[OutOfBeamPosition(pos_out_of_beam_pos)]))
+        driver_ang = add_driver(IocDriver(comp, ChangeAxis.ANGLE, axis_ang,
+                                          out_of_beam_positions=[OutOfBeamPosition(ang_out_of_beam_pos)]))
+        driver_phi = add_driver(IocDriver(comp, ChangeAxis.PHI, axis_phi,
+                                          out_of_beam_positions=[OutOfBeamPosition(phi_out_of_beam_pos)]))
+        beamline = get_configured_beamline()
+        assert_that(axis_ang._last_set_point_set, is_(None))  # set point wasn't set during init
+        assert_that(axis_pos._last_set_point_set, is_(None))  # set point wasn't set during init
+        assert_that(axis_phi._last_set_point_set, is_(None))  # set point wasn't set during init
+        return axis_ang, axis_phi, axis_pos, inbeam
+
+    @parameterized.expand([(-2, -3, -4, -2, -3, -4, 0, 0, 0, False), # all axes start out of beam, moving in moves to 0
+                           (-2, -3, -4, 0, -3, -4, 0, -3, -4, True), # first axes in beam others out of beam, moving in moves to current positions
+                           (-2, -3, -4, -2, 0, -4, -2, 0, -4, True), # middle axes in beam others out of beam, moving in moves to current positions
+                           (-2, -3, -4, -2, -3, 0, -2, -3, 0, True), # last axes in beam others out of beam, moving in moves to current positions
+                           (-2, -3, -4, 0, -3, -4, 0, -3, -4, True), # first axes not in beam others in beam, moving in moves to current positions
+                           (-2, -3, -4, -2, 0, -4, -2, 0, -4, True), # middle axes not in beam others in beam, moving in moves to current positions
+                           (-2, -3, -4, -2, -3, 0, -2, -3, 0, True), # last axes not in beam others in beam, moving in moves to current positions
+                           (-2, -3, -4, 1, 2, 3, 1, 2, 3, True),  # all axes in the beam, move to current position
+                           ])
+    def test_GIVEN_component_with_multiple_axes_out_of_beam_no_auto_save_WHEN_init_and_move_in_THEN_component_moves_to_expected_palce(self,
+          pos_out_of_beam_pos, ang_out_of_beam_pos, phi_out_of_beam_pos,
+          init_pos, init_ang, init_phi,
+          expected_pos, expected_ang, expected_phi,
+          expected_initial_inbeam):
+
+        axis_ang, axis_phi, axis_pos, inbeam = self.setup_beamline(ang_out_of_beam_pos, init_ang, init_phi,
+                                                                   init_pos, phi_out_of_beam_pos, pos_out_of_beam_pos, False)
+
+        assert_that(inbeam.sp, is_(expected_initial_inbeam))
+
+        inbeam.sp = True
+
+        assert_that(axis_ang.rbv, is_(expected_ang))
+        assert_that(axis_pos.rbv, is_(expected_pos))
+        assert_that(axis_phi.rbv, is_(expected_phi))
+
+    @parameterized.expand([(-2, -3, -4, -2, -3, -4, 0, 0, 0, False), # all axes start out of beam, moving in moves to 0
+                           (-2, -3, -4, 0, -3, -4, 0, -3, -4, True), # first axes in beam others out of beam, moving in moves to current positions
+                           (-2, -3, -4, -2, 0, -4, -2, 0, -4, True), # middle axes in beam others out of beam, moving in moves to current positions
+                           (-2, -3, -4, -2, -3, 0, -2, -3, 0, True), # last axes in beam others out of beam, moving in moves to current positions
+                           (-2, -3, -4, 0, -3, -4, 0, -3, -4, True), # first axes not in beam others in beam, moving in moves to current positions
+                           (-2, -3, -4, -2, 0, -4, -2, 0, -4, True), # middle axes not in beam others in beam, moving in moves to current positions
+                           (-2, -3, -4, -2, -3, 0, -2, -3, 0, True), # last axes not in beam others in beam, moving in moves to current positions
+                           (-2, -3, -4, 1, 2, 3, 1, 2, 3, True),  # all axes in the beam, move to current position
+                           ])
+    @patch("ReflectometryServer.parameters.param_float_autosave")
+    def test_GIVEN_component_with_multiple_axes_out_of_beam_with_autosave_not_no_value_WHEN_init_and_move_in_THEN_component_moves_to_expected_palce(self,
+          pos_out_of_beam_pos, ang_out_of_beam_pos, phi_out_of_beam_pos,
+          init_pos, init_ang, init_phi,
+          expected_pos, expected_ang, expected_phi,
+          expected_initial_inbeam, mock_autosave):
+
+        mock_autosave.read_parameter.side_effect = [None, None, None]
+        axis_ang, axis_phi, axis_pos, inbeam = self.setup_beamline(ang_out_of_beam_pos, init_ang, init_phi,
+                                                                   init_pos, phi_out_of_beam_pos, pos_out_of_beam_pos, True)
+
+        assert_that(inbeam.sp, is_(expected_initial_inbeam))
+
+        inbeam.sp = True
+
+        assert_that(axis_ang.rbv, is_(expected_ang))
+        assert_that(axis_pos.rbv, is_(expected_pos))
+        assert_that(axis_phi.rbv, is_(expected_phi))
 
 
 if __name__ == '__main__':
