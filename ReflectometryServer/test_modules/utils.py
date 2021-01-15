@@ -6,6 +6,7 @@ from unittest import skipIf
 
 import six
 from hamcrest.core.base_matcher import BaseMatcher
+from mock import patch, Mock
 
 from ReflectometryServer import file_io
 
@@ -113,3 +114,20 @@ def create_parameter_with_initial_value(init_value, param_class, *args, **kwargs
     setup_autosave({name: init_value}, {})
     kwargs["autosave"] = True
     return param_class(*args, **kwargs)
+
+
+def no_autosave(func):
+    """
+    A wrapper to make setup and tests not load autosave values
+    """
+    @patch('ReflectometryServer.parameters.param_float_autosave.read_parameter', new=Mock(return_value=None)) # use new so that we don't create another argument
+    @patch('ReflectometryServer.parameters.param_bool_autosave.read_parameter', new=Mock(return_value=None))
+    @patch('ReflectometryServer.parameters.param_string_autosave.read_parameter', new=Mock(return_value=None))
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
+    @patch('ReflectometryServer.beam_path_calc.disable_mode_autosave.read_parameter', new=Mock(return_value=None))
+    @patch('ReflectometryServer.beamline.mode_autosave.read_parameter', new=Mock(return_value=None))
+    @patch('ReflectometryServer.pv_wrapper.velocity_float_autosave.read_parameter', new=Mock(return_value=None))
+    @patch('ReflectometryServer.pv_wrapper.velocity_bool_autosave.read_parameter', new=Mock(return_value=None))
+    def _wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return _wrapper

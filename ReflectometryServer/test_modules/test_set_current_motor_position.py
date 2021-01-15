@@ -166,7 +166,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
 
         assert_that(parameter.sp, is_(expected_position))
         assert_that(parameter.sp_rbv, is_(expected_position))
-        assert_that(mock_jaws_wrapper._last_set_point_set, is_(expected_mock_jaws_wrapper_value), "sp should not be set")
+        assert_that(mock_jaws_wrapper.last_set_point_set, is_(expected_mock_jaws_wrapper_value), "sp should not be set")
 
 
 class TestCurrentMotorPositionEventsToMotor(unittest.TestCase):

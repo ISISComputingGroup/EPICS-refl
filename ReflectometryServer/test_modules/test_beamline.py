@@ -9,11 +9,13 @@ from parameterized import parameterized
 from ReflectometryServer import *
 
 from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
+from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
+from ReflectometryServer.out_of_beam import OutOfBeamSequence
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
 from ReflectometryServer.beamline_constant import BeamlineConstant
 
-from ReflectometryServer.test_modules.utils import position_and_angle
+from ReflectometryServer.test_modules.utils import position_and_angle, no_autosave
 
 
 class TestComponentBeamline(unittest.TestCase):
@@ -74,7 +76,7 @@ class TestComponentBeamline(unittest.TestCase):
         beamline, mirror = self.setup_beamline(initial_mirror_angle, mirror_position, beam_start)
         expected_beams = [beam_start, beam_start, beam_start]
 
-        mirror.beam_path_set_point.axis[ChangeAxis.POSITION].has_out_of_beam_position = True
+        mirror.beam_path_set_point.axis[ChangeAxis.POSITION].park_sequence_count = 1
         mirror.beam_path_set_point.axis[ChangeAxis.POSITION].is_in_beam = False
         results = [component.beam_path_set_point.get_outgoing_beam() for component in beamline]
 
@@ -657,6 +659,7 @@ class TestBeamlineReadOnlyParameters(unittest.TestCase):
 
 class TestComponentOutOfBeam(unittest.TestCase):
 
+    @no_autosave
     def setUp(self):
         self.comp = Component("test_component", PositionAndAngle(0, 0, 90))
         self.IN_BEAM_VALUE = 0
@@ -667,10 +670,10 @@ class TestComponentOutOfBeam(unittest.TestCase):
         IocDriver(self.comp, change_axis_to_set, create_mock_axis("axis", 0, 1), out_of_beam_positions=None)
 
         for change_axis, component_axis in self.comp.beam_path_rbv.axis.items():
-            assert_that(component_axis.has_out_of_beam_position, is_(False))
+            assert_that(component_axis.park_sequence_count, is_(0))
 
         for change_axis, component_axis in self.comp.beam_path_set_point.axis.items():
-            assert_that(component_axis.has_out_of_beam_position, is_(False))
+            assert_that(component_axis.park_sequence_count, is_(0))
 
     @parameterized.expand([(ChangeAxis.PHI,), (ChangeAxis.CHI,), (ChangeAxis.PSI,), (ChangeAxis.TRANS,), (ChangeAxis.HEIGHT,), (ChangeAxis.POSITION,)])
     def test_GIVEN_driver_on_component_has_out_of_beam_position_THEN_appropriate_change_axis_report_having_out_of_beam_position(self, change_axis_to_set):
@@ -680,15 +683,15 @@ class TestComponentOutOfBeam(unittest.TestCase):
 
         for change_axis, component_axis in self.comp.beam_path_rbv.axis.items():
             if change_axis == change_axis_to_set:
-                assert_that(component_axis.has_out_of_beam_position, is_(True))
+                assert_that(component_axis.park_sequence_count, is_(1))
             else:
-                assert_that(component_axis.has_out_of_beam_position, is_(False))
+                assert_that(component_axis.park_sequence_count, is_(0))
 
         for change_axis, component_axis in self.comp.beam_path_set_point.axis.items():
             if change_axis == change_axis_to_set:
-                assert_that(component_axis.has_out_of_beam_position, is_(True))
+                assert_that(component_axis.park_sequence_count, is_(1))
             else:
-                assert_that(component_axis.has_out_of_beam_position, is_(False))
+                assert_that(component_axis.park_sequence_count, is_(0))
 
     @parameterized.expand([(ChangeAxis.PHI,), (ChangeAxis.CHI,), (ChangeAxis.PSI,), (ChangeAxis.TRANS,), (ChangeAxis.HEIGHT,), (ChangeAxis.POSITION,)])
     def test_GIVEN_component_with_driver_with_out_of_beam_position_WHEN_motor_is_in_beam_THEN_component_axis_reports_in_beam(self, change_axis_to_set):
@@ -920,9 +923,9 @@ class TestComponentOutOfBeamFullBeamline(unittest.TestCase):
         driver_phi = add_driver(IocDriver(comp, ChangeAxis.PHI, axis_phi,
                                           out_of_beam_positions=[OutOfBeamPosition(phi_out_of_beam_pos)]))
         beamline = get_configured_beamline()
-        assert_that(axis_ang._last_set_point_set, is_(None))  # set point wasn't set during init
-        assert_that(axis_pos._last_set_point_set, is_(None))  # set point wasn't set during init
-        assert_that(axis_phi._last_set_point_set, is_(None))  # set point wasn't set during init
+        assert_that(axis_ang.last_set_point_set, is_(None))  # set point wasn't set during init
+        assert_that(axis_pos.last_set_point_set, is_(None))  # set point wasn't set during init
+        assert_that(axis_phi.last_set_point_set, is_(None))  # set point wasn't set during init
         return axis_ang, axis_phi, axis_pos, inbeam
 
     @parameterized.expand([(-2, -3, -4, -2, -3, -4, 0, 0, 0, False), # all axes start out of beam, moving in moves to 0
@@ -978,6 +981,149 @@ class TestComponentOutOfBeamFullBeamline(unittest.TestCase):
         assert_that(axis_ang.rbv, is_(expected_ang))
         assert_that(axis_pos.rbv, is_(expected_pos))
         assert_that(axis_phi.rbv, is_(expected_phi))
+
+
+class TestComponentParkingSequence(unittest.TestCase):
+
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
+    def test_GIVEN_component_with_one_axis_and_parking_sequence_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
+        pos1 = -3
+        pos2 = -6
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        parameter = InBeamParameter("val", comp)
+        mock_axis = create_mock_axis("axis_motor", 0, 1)
+        driver = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis, out_of_beam_positions=[OutOfBeamSequence([pos1, pos2])])
+        beamline = Beamline([comp], [parameter], [driver], [BeamlineMode("mode", [])])
+
+        parameter.sp = False
+
+        assert_that(mock_axis.sp, is_(pos2))
+        assert_that(parameter.rbv, is_(False))
+
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
+    def test_GIVEN_component_with_two_axes_and_parking_sequence_with_repeat_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
+        pos1 = -3
+        expected_sequence = [4, 6, 8]
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        parameter = InBeamParameter("val", comp)
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+        mock_axis2 = create_mock_axis("axis_motor2", 0, 1)
+        driver1 = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence([pos1, pos1, pos1])])
+        driver2 = IocDriver(comp, ChangeAxis.TRANS, mock_axis2, out_of_beam_positions=[OutOfBeamSequence(expected_sequence)])
+        beamline = Beamline([comp], [parameter], [driver1, driver2], [BeamlineMode("mode", [])])
+
+        parameter.sp = False
+
+        assert_that(mock_axis1.all_setpoints, is_([pos1]))
+        assert_that(mock_axis2.all_setpoints, is_(expected_sequence))
+        assert_that(parameter.rbv, is_(False))
+
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
+    def test_GIVEN_component_with_two_axes_and_parking_sequence_with_none_WHEN_out_of_beam_THEN_component_moves_to_correct_places(self):
+        pos1 = -3
+        expected_sequence = [4, 6, 8]
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        parameter = InBeamParameter("val", comp)
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+        mock_axis2 = create_mock_axis("axis_motor2", 0, 1)
+        driver1 = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence([None, None, pos1])])
+        driver2 = IocDriver(comp, ChangeAxis.TRANS, mock_axis2, out_of_beam_positions=[OutOfBeamSequence(expected_sequence)])
+        beamline = Beamline([comp], [parameter], [driver1, driver2], [BeamlineMode("mode", [])])
+        mock_axis1.trigger_rbv_change()
+        mock_axis2.trigger_rbv_change()
+
+        parameter.sp = False
+
+        assert_that(mock_axis1.all_setpoints, is_([pos1]))
+        assert_that(mock_axis2.all_setpoints, is_(expected_sequence))
+        assert_that(parameter.rbv, is_(False))
+
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave')
+    def test_GIVEN_sequence_and_autosave_position_not_at_end_of_sequence_WHEN_init_THEN_init_error_and_autosave_overwriten(self, auto_save):
+        auto_save.read_parameter.return_value = 1
+        comp = Component("comp name", PositionAndAngle(0, 0, 90))
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+
+        with self.assertRaises(BeamlineConfigurationParkAutosaveInvalidException):
+            IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence([1, 2, 3])])
+
+        auto_save.write_parameter.assert_called()
+
+    @parameterized.expand([(None, [1]),  # unparked
+                           (0, [1]),  # last value in length 1 sequence
+                           (1, [1, 2]),  # last value in length 2 sequence
+                           (5, [1, 2])   # after the last value in a sequence (it may be a different sequence this parked in)
+                           ])
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave')
+    def test_GIVEN_sequence_and_autosave_position_ok_WHEN_init_THEN_no_error(self, auto_save_value, sequence, auto_save):
+        auto_save.read_parameter.return_value = auto_save_value
+        comp = Component("comp name", PositionAndAngle(0, 0, 90))
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+
+        IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence(sequence)])
+
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
+    def test_GIVEN_component_with_two_axes_and_parking_sequence_WHEN_out_of_beam_and_then_in_beam_THEN_component_moves_to_correct_places(self):
+        sequence1 = [4, 6, 8]
+        expected_motor1_sps = [4, 6, 8, 6, 4, 0]  # 0 is final in beam position
+        sequence2 = [5, 7, 9]
+        expected_motor2_sps = [5, 7, 9, 7, 5, 0]
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        parameter = InBeamParameter("val", comp)
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+        mock_axis2 = create_mock_axis("axis_motor2", 0, 1)
+        driver1 = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence(sequence1)])
+        driver2 = IocDriver(comp, ChangeAxis.TRANS, mock_axis2, out_of_beam_positions=[OutOfBeamSequence(sequence2)])
+        beamline = Beamline([comp], [parameter], [driver1, driver2], [BeamlineMode("mode", [])])
+
+        parameter.sp = False
+        parameter.sp = True
+
+        assert_that(mock_axis1.all_setpoints, is_(expected_motor1_sps))
+        assert_that(mock_axis2.all_setpoints, is_(expected_motor2_sps))
+
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=None))
+    def test_GIVEN_component_with_two_axes_and_parking_sequence_with_repeated_entry_at_end_WHEN_out_of_beam_and_then_in_beam_THEN_component_moves_to_correct_places(self):
+        sequence1 = [4, 6, 6]
+        expected_motor1_sps = [4, 6, 4, 0]
+        sequence2 = [3, 5, 7]
+        expected_motor2_sps = [3, 5, 7, 5, 3, 0]
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        parameter = InBeamParameter("val", comp)
+        mock_axis1 = create_mock_axis("axis_motor1", 0, 1)
+        mock_axis2 = create_mock_axis("axis_motor2", 0, 1)
+        driver1 = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence(sequence1)])
+        driver2 = IocDriver(comp, ChangeAxis.TRANS, mock_axis2, out_of_beam_positions=[OutOfBeamSequence(sequence2)])
+        beamline = Beamline([comp], [parameter], [driver1, driver2], [BeamlineMode("mode", [])])
+
+        parameter.sp = False
+        parameter.sp = True
+
+        assert_that(mock_axis1.all_setpoints, is_(expected_motor1_sps))
+        assert_that(mock_axis2.all_setpoints, is_(expected_motor2_sps))
+
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=2))
+    def test_GIVEN_component_with_two_axes_and_parking_sequence_WHEN_motors_out_of_beam_and_init_THEN_motors_do_not_move(self):
+        last_pos1 = 6
+        sequence1 = [4, 1, last_pos1]
+
+        last_pos2 = 5
+        sequence2 = [3, 2, last_pos2]
+
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        parameter = InBeamParameter("val", comp)
+        mock_axis1 = create_mock_axis("axis_motor1", last_pos1, 1)
+        mock_axis2 = create_mock_axis("axis_motor2", last_pos2, 1)
+        driver1 = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence(sequence1)])
+        driver2 = IocDriver(comp, ChangeAxis.TRANS, mock_axis2, out_of_beam_positions=[OutOfBeamSequence(sequence2)])
+        comp.beam_path_set_point.in_beam_manager.add_rbv_in_beam_manager(comp.beam_path_rbv.in_beam_manager)
+        driver1.initialise_setpoint()
+        mock_axis1.trigger_rbv_change()
+        mock_axis2.trigger_rbv_change()  # this is not quite how it happens on start up where this is generated during
+                                         # the initalise but it is good enough
+
+        assert_that(mock_axis1.all_setpoints, is_([]))
+        assert_that(mock_axis2.all_setpoints, is_([]))
 
 
 if __name__ == '__main__':
