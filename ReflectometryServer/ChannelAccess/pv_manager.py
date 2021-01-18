@@ -415,7 +415,8 @@ class PVManager:
                     fields = STANDARD_FLOAT_PV_FIELDS
 
                 self._add_pv_with_fields(prepended_alias, None, fields, beamline_constant.description, None,
-                                         archive=True, interest="MEDIUM", value=value)
+                                         interest="MEDIUM", value=value)
+                logger.info("Adding Constant {} with value {}".format(beamline_constant.name, beamline_constant.value))
                 beamline_constant_info.append(
                     {"name": beamline_constant.name, "prepended_alias": prepended_alias, "type": "float_value"})
             except Exception as err:
