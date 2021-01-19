@@ -155,23 +155,22 @@ class InBeamManager:
             if self.parking_index == self._maximum_sequence_count - 1:
                 if self._maximum_sequence_count < 2:
                     new_index = None
-                    logger.info(f"MOVE {self._name} to parking sequence 'in beam'")
+
                 else:
                     new_index = self._maximum_sequence_count - 2
-                    logger.info(f"MOVE {self._name} to parking sequence {new_index}")
+
                 self._update_parking_index(new_index)  # sequence 1 before last
             else:
-                logger.info(f"Set in beam; not set parking sequence is at "
-                            f"{self.parking_index}/{self._maximum_sequence_count}")
+                logger.info(f"Set in beam; not set parking sequence is at {self.parking_index} "
+                            f"(vals None, 0-{self._maximum_sequence_count+1})")
 
         else:
             # if fully in the beam start out parking sequence
             if self.parking_index is None:
                 self._update_parking_index(0)
-                logger.info(f"MOVE {self._name} to parking sequence {0}")
             else:
-                logger.info(f"Set out of beam; not set parking sequence is at "
-                            f"{self.parking_index}/{self._maximum_sequence_count}")
+                logger.info(f"Set out of beam; not set parking sequence is at {self.parking_index} "
+                            f"(vals None, 0-{self._maximum_sequence_count+1})")
         self._parking_sequence_started = True
 
     @property
@@ -215,7 +214,7 @@ class InBeamManager:
                     STATUS_MANAGER.update_error_log("Parking sequence error - the parking index is None but we are "
                                                     "parking the axis, this should not be possible")
                     STATUS_MANAGER.update_active_problems(
-                        ProblemInfo("Next park sequence triggered but manager is inbeam (report error)",
+                        ProblemInfo("Next park sequence triggered but manager is in beam (report error)",
                                     "InBeamManager", AlarmSeverity.MINOR_ALARM))
                 if self.parking_index + 1 < self._maximum_sequence_count:
                     self._move_axis_to(self.parking_index + 1)
@@ -228,7 +227,8 @@ class InBeamManager:
         Args:
             new_parking_index: new index to move to
         """
-        logger.info(f"MOVE {self._name} to next parking sequence {new_parking_index}")
+        logger.info(f"MOVE {self._name} to next parking sequence {new_parking_index}  "
+                    f"(vals None, 0-{self._maximum_sequence_count+1})")
         self._update_parking_index(new_parking_index)
         for axis in self._parking_axes:
             axis.is_changed = True
@@ -240,6 +240,8 @@ class InBeamManager:
         Args:
             new_parking_index: parking index to set
         """
+        logger.info(f"MOVE {self._name} to parking sequence {new_parking_index} "
+                    f"(vals None, 0-{self._maximum_sequence_count+1})")
         self.parking_index = new_parking_index
         parking_index_autosave.write_parameter(self._autosave_name, self.parking_index)
 

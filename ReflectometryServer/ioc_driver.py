@@ -306,6 +306,8 @@ class IocDriver:
                 self._motor_axis.record_no_cache_velocity()
 
             self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
+        elif self.at_target_setpoint():
+            logger.debug(f"{self.name}: Not moving already at set point : {component_sp}")
 
         # re update in case the new position is at the end of a sequence
         self._retrigger_motor_axis_updates(None)
