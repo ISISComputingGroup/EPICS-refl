@@ -57,8 +57,9 @@ class InBeamManager:
         self._name = name
         self._autosave_name = "{}_parking_index".format(name.replace(" ", "_"))
         # if there is no autosave we assume not parked but in beam may set this to end of park sequence
-        self.parking_index = parking_index_autosave.read_parameter(self._autosave_name, None)
+        self.parking_index = None
         self._parking_sequence_started = False
+        self.autosave = None
 
     def add_axes(self, axes: Dict[ChangeAxis, ComponentAxis]):
         """
@@ -93,16 +94,36 @@ class InBeamManager:
                 f"Beamline component {self._name} can not have parking sequences of different lengths, the axes are "
                 f"{[axis.get_name() for axis in self._parking_axes]}")
 
-        if not (self.parking_index is None or self.parking_index + 1 >= self._maximum_sequence_count):
+        auto_saved_parking_index = parking_index_autosave.read_parameter(self._autosave_name, None)
+        if not (auto_saved_parking_index is None or auto_saved_parking_index + 1 >= self._maximum_sequence_count):
             parking_index_autosave.write_parameter(self._autosave_name, None)  # Make it so refl ioc can start next time
-            raise BeamlineConfigurationParkAutosaveInvalidException(self._name, axis.get_name(), self.parking_index,
+            raise BeamlineConfigurationParkAutosaveInvalidException(self._name, axis.get_name(),
+                                                                    auto_saved_parking_index,
                                                                     self._maximum_sequence_count)
+
         axis.add_listener(AxisChangingUpdate, self._propagate_axis_event)
         axis.add_listener(AxisChangedUpdate, self._propagate_axis_event)
-        axis.add_listener(InitUpdate, self._propagate_axis_event)
+        axis.add_listener(InitUpdate, self._init_update)
         axis.add_listener(PhysicalMoveUpdate, self._propagate_axis_event)
 
+    def _init_update(self, event: InitUpdate):
+        """
+        Initialise the parking index when an axis is initialised
+        :param event: initialise event
+        """
+        if self.autosave or (self.autosave is None and self.get_is_in_beam()):
+            self.parking_index = None
+        else:
+            self.parking_index = self._maximum_sequence_count - 1
+        for axis in self._parking_axes:
+            axis.init_parking_index(self.parking_index)
+        self.trigger_listeners(event)
+
     def _propagate_axis_event(self, event):
+        """
+        Simply propagate event
+        :param event: event to propagate
+        """
         self.trigger_listeners(event)
 
     def get_is_in_beam(self):
@@ -110,6 +131,16 @@ class InBeamManager:
         Returns: the in beam status; in if any axis is in the beam or there are no axes to park
         """
         return any([axis.is_in_beam for axis in self._parking_axes]) or self._parking_axes == []
+
+    def initialise_is_in_beam_from_file(self, is_in_beam):
+        """
+        Initialise the is in beam from file
+        Args:
+            is_in_beam: True component is in beam; False otherwise
+        """
+        self.autosave = is_in_beam
+        for axis in self._parking_axes:
+            axis.is_in_beam = is_in_beam
 
     def set_is_in_beam(self, is_in_beam):
         """
@@ -130,7 +161,8 @@ class InBeamManager:
                     logger.info(f"MOVE {self._name} to parking sequence {new_index}")
                 self._update_parking_index(new_index)  # sequence 1 before last
             else:
-                logger.info(f"Set in beam but not set parking sequence")
+                logger.info(f"Set in beam; not set parking sequence is at "
+                            f"{self.parking_index}/{self._maximum_sequence_count}")
 
         else:
             # if fully in the beam start out parking sequence
@@ -138,7 +170,8 @@ class InBeamManager:
                 self._update_parking_index(0)
                 logger.info(f"MOVE {self._name} to parking sequence {0}")
             else:
-                logger.info(f"Set out of beam but not set parking sequence")
+                logger.info(f"Set out of beam; not set parking sequence is at "
+                            f"{self.parking_index}/{self._maximum_sequence_count}")
         self._parking_sequence_started = True
 
     @property
@@ -184,7 +217,7 @@ class InBeamManager:
                     STATUS_MANAGER.update_active_problems(
                         ProblemInfo("Next park sequence triggered but manager is inbeam (report error)",
                                     "InBeamManager", AlarmSeverity.MINOR_ALARM))
-                if self.parking_index + 1 != self._maximum_sequence_count:
+                if self.parking_index + 1 < self._maximum_sequence_count:
                     self._move_axis_to(self.parking_index + 1)
                 else:
                     self._parking_sequence_started = False
@@ -438,6 +471,16 @@ class TrackingBeamPathCalc:
             is_in_beam: True if set the component to be in the beam; False otherwise
         """
         self.in_beam_manager.set_is_in_beam(is_in_beam)
+        self.trigger_listeners(BeamPathUpdate(self))
+        for axis in self.axis.values():
+            axis.trigger_listeners(PhysicalMoveUpdate(axis))
+
+    def initialise_is_in_beam_from_file(self, is_in_beam):
+        """
+        Initialise the is in beam from file
+        :param is_in_beam: True component is in beam; False otherwise
+        """
+        self.in_beam_manager.initialise_is_in_beam_from_file(is_in_beam)
         self.trigger_listeners(BeamPathUpdate(self))
         for axis in self.axis.values():
             axis.trigger_listeners(PhysicalMoveUpdate(axis))

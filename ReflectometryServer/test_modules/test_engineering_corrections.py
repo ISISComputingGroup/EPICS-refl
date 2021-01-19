@@ -32,11 +32,13 @@ class TestEngineeringCorrections(unittest.TestCase):
         driver = IocDriver(comp, ChangeAxis.POSITION, mock_axis, out_of_beam_positions=[OUT_OF_BEAM_POSITION],
                            engineering_correction=ConstantCorrection(correction))
         comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = lambda: True  # simulate that the component has requested a change
+        comp.beam_path_set_point.in_beam_manager.parking_index = 0  # The parking index is normally set initialised either through autosave or through initialise on the motor
         return driver, mock_axis, comp
 
     def test_GIVEN_engineering_correction_offset_of_1_WHEN_driver_told_to_go_to_0_THEN_pv_sent_to_1(self):
         expected_correction = 1
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(expected_correction)
+        comp.beam_path_set_point.in_beam_manager.set_is_in_beam(True)
         driver.perform_move(1)
 
         result = mock_axis.sp

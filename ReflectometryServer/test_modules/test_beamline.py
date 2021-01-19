@@ -904,7 +904,7 @@ class TestComponentOutOfBeamFullBeamline(unittest.TestCase):
         assert_that(axis_ang.rbv, is_(expected_ang))
         assert_that(axis_phi.rbv, is_(expected_phi))
 
-    def setup_beamline(self, ang_out_of_beam_pos, init_ang, init_phi, init_pos, phi_out_of_beam_pos, pos_out_of_beam_pos, autosave_axes=True):
+    def setup_beamline(self, ang_out_of_beam_pos, init_ang, init_phi, init_pos, phi_out_of_beam_pos, pos_out_of_beam_pos, autosave_axes=True, autosave_inbeam=False):
         # Setup is in or out of the beam and with autosaved positions, on move should move to autosaved positions
         mode = add_mode("MODE")
         comp = add_component(TiltingComponent("comp", PositionAndAngle(0, 0, 90)))
@@ -912,7 +912,7 @@ class TestComponentOutOfBeamFullBeamline(unittest.TestCase):
         param_pos = add_parameter(AxisParameter("pos", comp, ChangeAxis.POSITION, autosave=autosave_axes), [mode])
         param_ang = add_parameter(AxisParameter("angle", comp, ChangeAxis.ANGLE, autosave=autosave_axes), [mode])
         param_phi = add_parameter(AxisParameter("phi", comp, ChangeAxis.PHI, autosave=autosave_axes), [mode])
-        inbeam = add_parameter(InBeamParameter("in beam", comp), [mode])
+        inbeam = add_parameter(InBeamParameter("in_beam", comp, autosave=autosave_inbeam), [mode])
         axis_pos = create_mock_axis("pos_axis", init_pos, 1)
         axis_ang = create_mock_axis("ang_axis", init_ang, 1)
         axis_phi = create_mock_axis("phi_axis", init_phi, 1)
@@ -982,6 +982,38 @@ class TestComponentOutOfBeamFullBeamline(unittest.TestCase):
         assert_that(axis_pos.rbv, is_(expected_pos))
         assert_that(axis_phi.rbv, is_(expected_phi))
 
+# @parameterized.expand([(-2, -3, -4, -2, -3, -4, 0, 0, 0, False), # all axes start out of beam, moving in moves to 0
+#                            (-2, -3, -4, 0, -3, -4, 0, -3, -4, True), # first axes in beam others out of beam, moving in moves to current positions
+#                            (-2, -3, -4, -2, 0, -4, -2, 0, -4, True), # middle axes in beam others out of beam, moving in moves to current positions
+#                            (-2, -3, -4, -2, -3, 0, -2, -3, 0, True), # last axes in beam others out of beam, moving in moves to current positions
+#                            (-2, -3, -4, 0, -3, -4, 0, -3, -4, True), # first axes not in beam others in beam, moving in moves to current positions
+#                            (-2, -3, -4, -2, 0, -4, -2, 0, -4, True), # middle axes not in beam others in beam, moving in moves to current positions
+#                            (-2, -3, -4, -2, -3, 0, -2, -3, 0, True), # last axes not in beam others in beam, moving in moves to current positions
+#                            (-2, -3, -4, 1, 2, 3, 1, 2, 3, True),  # all axes in the beam, move to current position
+#                            ])
+    @patch("ReflectometryServer.beam_path_calc.parking_index_autosave")
+    @patch("ReflectometryServer.parameters.param_bool_autosave")
+    def test_GIVEN_component_with_multiple_axes_out_of_beam_with_autosave_only_on_in_beam_WHEN_init_and_move_in_THEN_component_moves_to_expected_place_and_do_not_move_on_init(self,
+           mock_autosave, mock_parking_index):
+
+        pos_out_of_beam_pos, ang_out_of_beam_pos, phi_out_of_beam_pos,init_pos, init_ang, init_phi,expected_pos, expected_ang, expected_phi,expected_initial_inbeam = (-2, -3, -4, -2, -3, -4, 0, 0, 0, False)
+        mock_autosave.read_parameter.side_effect = [False]
+        mock_parking_index.read_parameter.return_value = None
+        axis_ang, axis_phi, axis_pos, inbeam = self.setup_beamline(ang_out_of_beam_pos, init_ang, init_phi,
+                                                                   init_pos, phi_out_of_beam_pos, pos_out_of_beam_pos, False, True)
+
+        assert_that(inbeam.sp, is_(expected_initial_inbeam))
+        for axis in [axis_pos, axis_ang, axis_phi]:
+            axis.trigger_rbv_change()
+        assert_that(axis_ang.last_set_point_set, is_(None))  # set point wasn't set during init
+        assert_that(axis_pos.last_set_point_set, is_(None))  # set point wasn't set during init
+        assert_that(axis_phi.last_set_point_set, is_(None))  # set point wasn't set during init
+
+        inbeam.sp = True
+
+        assert_that(axis_ang.rbv, is_(expected_ang))
+        assert_that(axis_pos.rbv, is_(expected_pos))
+        assert_that(axis_phi.rbv, is_(expected_phi))
 
 class TestComponentParkingSequence(unittest.TestCase):
 
@@ -1112,6 +1144,31 @@ class TestComponentParkingSequence(unittest.TestCase):
 
         comp = Component("comp", PositionAndAngle(0, 0, 90))
         parameter = InBeamParameter("val", comp)
+        mock_axis1 = create_mock_axis("axis_motor1", last_pos1, 1)
+        mock_axis2 = create_mock_axis("axis_motor2", last_pos2, 1)
+        driver1 = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence(sequence1)])
+        driver2 = IocDriver(comp, ChangeAxis.TRANS, mock_axis2, out_of_beam_positions=[OutOfBeamSequence(sequence2)])
+        comp.beam_path_set_point.in_beam_manager.add_rbv_in_beam_manager(comp.beam_path_rbv.in_beam_manager)
+        driver1.initialise_setpoint()
+        mock_axis1.trigger_rbv_change()
+        mock_axis2.trigger_rbv_change()  # this is not quite how it happens on start up where this is generated during
+                                         # the initalise but it is good enough
+
+        assert_that(mock_axis1.all_setpoints, is_([]))
+        assert_that(mock_axis2.all_setpoints, is_([]))
+
+    @patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter', new=Mock(return_value=2))
+    def test_GIVEN_component_with_two_axes_and_parking_sequence_WHEN_motors_out_of_beam_and_init_with_autosaved_bean_out_THEN_motors_do_not_move(self):
+        last_pos1 = 6
+        sequence1 = [4, 1, last_pos1]
+
+        last_pos2 = 5
+        sequence2 = [3, 2, last_pos2]
+
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        with patch('ReflectometryServer.parameters.param_bool_autosave.read_parameter') as param_autosave:
+            param_autosave.return_value = True
+            parameter = InBeamParameter("val", comp, autosave=True)
         mock_axis1 = create_mock_axis("axis_motor1", last_pos1, 1)
         mock_axis2 = create_mock_axis("axis_motor2", last_pos2, 1)
         driver1 = IocDriver(comp, ChangeAxis.HEIGHT, mock_axis1, out_of_beam_positions=[OutOfBeamSequence(sequence1)])

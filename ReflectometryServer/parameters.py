@@ -159,6 +159,14 @@ class BeamlineParameterGroup(Enum):
 
     @staticmethod
     def description(parameter_group):
+        """
+        Description of the parameter group
+        Args:
+            parameter_group: parameter group enum
+
+        Returns:
+            Description of group
+        """
         if parameter_group == BeamlineParameterGroup.ALL:
             return "All beamline parameters"
         elif parameter_group == BeamlineParameterGroup.COLLIMATION_PLANE:
@@ -501,7 +509,7 @@ class AxisParameter(BeamlineParameter):
             self._component.beam_path_set_point.axis[self._axis].add_listener(InitUpdate,
                                                                               self._initialise_sp_from_motor)
             self._component.beam_path_set_point.in_beam_manager.add_listener(InitUpdate,
-                                                                              self._initialise_sp_from_motor)
+                                                                             self._initialise_sp_from_motor)
 
         self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         rbv_axis = self._component.beam_path_rbv.axis[self._axis]
@@ -626,7 +634,7 @@ class InBeamParameter(BeamlineParameter):
         sp_init = param_bool_autosave.read_parameter(self._name, None)
         if sp_init is not None:
             self._set_initial_sp(sp_init)
-            self._move_component()
+            self._component.beam_path_set_point.initialise_is_in_beam_from_file(self._set_point_rbv)
 
     def _initialise_sp_from_motor(self, _):
         """
