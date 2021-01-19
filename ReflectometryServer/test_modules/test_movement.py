@@ -287,20 +287,6 @@ class TestMovementRelativeToBeam(unittest.TestCase):
 
         assert_that(result, is_(position(Position(beam_intercept.y - dist/2.0, beam_intercept.z + dist * sqrt(3)/2.0))))
 
-    @parameterized.expand([(0,), (360,), (-360,)])
-    def test_GIVEN_movement_at_minus_180_and_similar_to_z_beam_intercept_to_the_right_of_zero_WHEN_set_position_relative_to_beam_to_10_THEN_position_is_at_10_along_intercept(self, add_angle):
-        # here the beam intercept is above and to the right of the zero point
-        movement = LinearMovementCalc(PositionAndAngle(0, 10, 180 + add_angle))
-        y_diff = 2.0
-        beam = PositionAndAngle(0, 10 + y_diff, 90)
-        beam_intercept = Position(0, 10 + y_diff)
-        dist = 10
-
-        movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.position_in_mantid_coordinates()
-
-        assert_that(result, is_(position(Position(beam_intercept.y, beam_intercept.z - dist))))
-
 
 class TestMovementValueObserver(unittest.TestCase):
 

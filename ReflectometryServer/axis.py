@@ -36,7 +36,7 @@ class AddOutOfBeamPositionEvent:
 @dataclass()
 class AxisChangedUpdate:
     """
-    Event when changed if updated
+    Event when the user has changed the parameter but not yet been moved to (e.g. the yellow background)
     """
     is_changed_update: bool  # True if there is an unapplied updated; False otherwise
 

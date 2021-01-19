@@ -65,7 +65,7 @@ class TestBeamPathCalc(unittest.TestCase):
 
         theta_sp = BeamPathCalcThetaRBV("theta", None, None)
         comp = Component("comp", PositionAndAngle(0, 0, 0))
-        theta_sp.add_angle_to(comp.beam_path_rbv, comp.beam_path_set_point, ChangeAxis.CHI)
+        theta_sp.add_angle_to(comp.beam_path_rbv, comp.beam_path_set_point, [ChangeAxis.CHI])
 
         assert_that(calling(comp.beam_path_rbv.axis[ChangeAxis.CHI].set_displacement).with_args(
             CorrectedReadbackUpdate(10, None, None)), raises(RuntimeError))

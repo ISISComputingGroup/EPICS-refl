@@ -158,7 +158,8 @@ class ThetaComponent(ReflectingComponent):
 
         """
         self._beam_path_set_point.add_angle_to(component.beam_path_set_point, ChangeAxis.POSITION)
-        self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point, ChangeAxis.POSITION)
+        self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point,
+                                         [ChangeAxis.POSITION, ChangeAxis.LONG_AXIS])
 
     def add_angle_of(self, component):
         """
@@ -170,7 +171,7 @@ class ThetaComponent(ReflectingComponent):
 
         """
         self._beam_path_set_point.add_angle_to(component.beam_path_set_point, ChangeAxis.ANGLE)
-        self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point, ChangeAxis.ANGLE)
+        self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point, [ChangeAxis.ANGLE])
 
     def _init_beam_path_calcs(self, setup):
         linear_movement_calc = LinearMovementCalc(setup)
