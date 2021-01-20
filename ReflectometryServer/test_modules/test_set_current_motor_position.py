@@ -10,7 +10,7 @@ from ReflectometryServer import *
 from ReflectometryServer.axis import DefineValueAsEvent
 from ReflectometryServer import ChangeAxis
 from ReflectometryServer.parameters import RequestMoveEvent
-from ReflectometryServer.pv_wrapper import _JawsAxisPVWrapper
+from ReflectometryServer.pv_wrapper import JawsAxisPVWrapper
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_JawsCentrePVWrapper, \
     create_mock_axis
 from ReflectometryServer.test_modules.utils import create_parameter_with_initial_value

@@ -1,5 +1,6 @@
 import unittest
 from math import isnan
+from time import sleep
 
 from hamcrest import *
 from mock import Mock, patch
@@ -11,6 +12,7 @@ from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.parameters import ParameterReadbackUpdate
 from ReflectometryServer.pv_wrapper import ReadbackUpdate
+from ReflectometryServer.server_status_manager import STATUS_MANAGER
 
 from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis
 from ReflectometryServer.test_modules.utils import position, DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value, setup_autosave
@@ -1043,6 +1045,157 @@ class TestMultiChoiceParameter(unittest.TestCase):
             param.sp = "unknown"
 
         assert_that(param.sp_rbv, is_("opt1"))
+
+
+class TestCustomFunctionCall(unittest.TestCase):
+
+    def setUp(self) -> None:
+        STATUS_MANAGER.clear_all()
+
+    def test_GIVEN_Parameter_WHEN_move_THEN_custom_function_is_called_with_move_to_and_move_from_values(self):
+        mock_func = Mock()
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        expected_original_sp = False
+        with patch('ReflectometryServer.parameters.param_bool_autosave.read_parameter', new=Mock(return_value=expected_original_sp)):
+            param = InBeamParameter("myname", component, custom_function=mock_func, autosave=True)
+
+        expected_sp = True
+
+        param.sp = expected_sp
+
+        sleep(0.1)  # wait for thread to run
+
+        mock_func.assert_called_with(expected_sp, expected_original_sp)
+
+    def test_GIVEN_Parameter_with_no_function_WHEN_move_THEN_no_custom_function_is_called_and_there_is_no_error(self):
+
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+
+        param = InBeamParameter("myname", component, autosave=True)
+
+        param.sp = True
+
+        sleep(0.1)  # wait for thread to run
+
+        assert_that(STATUS_MANAGER.error_log, is_(""))
+
+    def test_GIVEN_parameter_with_function_that_takes_time_WHEN_move_THEN_function_returns_immediately(self):
+        self.myval=None
+        def my_function(*args):
+            sleep(1)
+            self.myval=1
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        param = InBeamParameter("myname", component, custom_function=my_function)
+
+        param.sp = True
+
+        assert_that(self.myval, is_(None))
+
+    def test_GIVEN_parameter_with_function_that_takes_time_WHEN_move_THEN_function_returns_immediately(self):
+        self.myval=None
+        def my_function(*args):
+            sleep(1)
+            self.myval=1
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        param = InBeamParameter("myname", component, custom_function=my_function)
+
+        param.sp = True
+
+        assert_that(self.myval, is_(None))
+
+    def test_GIVEN_parameter_with_function_that_causes_an_exception_WHEN_move_THEN_exception_is_put_in_error_log(self):
+        expected_text = "Oh Dear"
+        def my_function(*args):
+            raise ValueError(expected_text)
+
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        param_name = "myname"
+        param = InBeamParameter(param_name, component, custom_function=my_function)
+
+        param.sp = True
+
+        sleep(0.1)
+
+        assert_that(STATUS_MANAGER.error_log, contains_string(expected_text))
+        assert_that(STATUS_MANAGER.error_log, contains_string(param_name))
+
+    def test_GIVEN_parameter_with_function_returns_a_string_WHEN_move_THEN_string_is_put_in_log(self):
+        expected_text = "information!!"
+        def my_function(*args):
+            return expected_text
+
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        param_name = "myname"
+        param = InBeamParameter(param_name, component, custom_function=my_function)
+
+        param.sp = True
+
+        sleep(0.1)
+
+        assert_that(STATUS_MANAGER.error_log, contains_string(expected_text))
+
+    def test_GIVEN_Axis_Parameter_WHEN_move_THEN_custom_function_is_called_with_move_to_and_move_from_values(self):
+        mock_func = Mock()
+        component = Component("comp", PositionAndAngle(0, 0, 0))
+        expected_original_sp = 0.1
+        with patch('ReflectometryServer.parameters.param_float_autosave.read_parameter', new=Mock(return_value=expected_original_sp)):
+            param = AxisParameter("myname", component, ChangeAxis.HEIGHT, custom_function=mock_func, autosave=True)
+
+        expected_sp = 0.3
+
+        param.sp = expected_sp
+
+        sleep(0.1)  # wait for thread to run
+
+        mock_func.assert_called_with(expected_sp, expected_original_sp)
+
+    def test_GIVEN_Direct_Parameter_WHEN_move_THEN_custom_function_is_called_with_move_to_and_move_from_values(self):
+        mock_func = Mock()
+        expected_original_sp = 0.1
+        mock_axis = create_mock_axis("axis", expected_original_sp, 1)
+        with patch('ReflectometryServer.parameters.param_float_autosave.read_parameter', new=Mock(return_value=expected_original_sp)):
+            param = DirectParameter("myname", mock_axis, custom_function=mock_func, autosave=True)
+        mock_axis.sp = expected_original_sp
+
+        expected_sp = 0.3
+
+        param.sp = expected_sp
+
+        sleep(0.1)  # wait for thread to run
+
+        mock_func.assert_called_with(expected_sp, expected_original_sp)
+
+    def test_GIVEN_Slit_Gap_Parameter_WHEN_move_THEN_custom_function_is_called_with_move_to_and_move_from_values(self):
+        mock_func = Mock()
+        expected_original_sp = 0.1
+        mock_axis = create_mock_axis("axis", expected_original_sp, 1)
+        with patch('ReflectometryServer.parameters.param_float_autosave.read_parameter', new=Mock(return_value=expected_original_sp)):
+            param = SlitGapParameter("myname", mock_axis, custom_function=mock_func, autosave=True)
+        mock_axis.sp = expected_original_sp
+
+        expected_sp = 0.3
+
+        param.sp = expected_sp
+
+        sleep(0.1)  # wait for thread to run
+
+        mock_func.assert_called_with(expected_sp, expected_original_sp)
+
+    def test_GIVEN_Enum_Parameter_WHEN_move_THEN_custom_function_is_called_with_move_to_and_move_from_values(self):
+        mock_func = Mock()
+        expected_original_sp = "orig"
+        mock_axis = create_mock_axis("axis", expected_original_sp, 1)
+        with patch('ReflectometryServer.parameters.param_string_autosave.read_parameter', new=Mock(return_value=expected_original_sp)):
+            param = EnumParameter("myname", ["orig", "new"], custom_function=mock_func)
+        mock_axis.sp = expected_original_sp
+
+        expected_sp = "new"
+
+        param.sp = expected_sp
+
+        sleep(0.1)  # wait for thread to run
+
+        mock_func.assert_called_with(expected_sp, expected_original_sp)
 
 
 if __name__ == '__main__':

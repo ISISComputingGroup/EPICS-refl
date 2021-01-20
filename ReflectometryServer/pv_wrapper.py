@@ -649,7 +649,10 @@ class MotorPVWrapper(PVWrapper):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class _JawsAxisPVWrapper(PVWrapper):
+class JawsAxisPVWrapper(PVWrapper):
+    """
+    Creates a wrapper around a jaws axis.
+    """
     def __init__(self, base_pv, is_vertical, ca=None):
         """
         Creates a wrapper around a jaws axis.
@@ -665,7 +668,7 @@ class _JawsAxisPVWrapper(PVWrapper):
         self._set_directions()
         self._velocities = {}
 
-        super(_JawsAxisPVWrapper, self).__init__(base_pv, ca)
+        super(JawsAxisPVWrapper, self).__init__(base_pv, ca)
 
     def _set_directions(self):
         """
@@ -816,7 +819,7 @@ class _JawsAxisPVWrapper(PVWrapper):
                 ProblemInfo("Failed to redefine position", self.name, Severity.MAJOR_ALARM))
 
 
-class JawsGapPVWrapper(_JawsAxisPVWrapper):
+class JawsGapPVWrapper(JawsAxisPVWrapper):
     """
     Wrap the axis PVs on top of a motor record to allow easy access to all axis PV values needed.
     """
@@ -840,7 +843,7 @@ class JawsGapPVWrapper(_JawsAxisPVWrapper):
         self._dmov_pv = "{}:{}GAP:DMOV".format(self._prefixed_pv, self._direction_symbol)
 
 
-class JawsCentrePVWrapper(_JawsAxisPVWrapper):
+class JawsCentrePVWrapper(JawsAxisPVWrapper):
     """
     Wrap the vertical jaws PVs to allow easy access to all motor PV values needed, to allow the centre to track a
     height.
