@@ -319,9 +319,47 @@ class DirectCalcAxis(ComponentAxis):
         self.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
 
 
+class BeamPathCalcModificationAxis(DirectCalcAxis):
+    """
+    Axes where the relative and mantid coordinates are directly connected but changing them may affect the beam path
+    calc for other axes. E.g. used for the long axis
+
+    This is basically a thin layer that calls the function on the direct calc axis but informs the beam path calc of
+    what it's doing. This object is initialised with the functions to call.
+    """
+    def __init__(self, axis, update_calc_function):
+        """
+        Initialiser.
+        Args:
+            axis: the axis this object is of
+            update_calc_function: function to call when the axis position changes
+                                 (will give the new position as an argument)
+        """
+        super().__init__(axis)
+        self.update_calc_function = update_calc_function
+
+    def _on_set_displacement(self, displacement):
+        """
+        Update the driver axis as usual then inform the beam path calc of the new value.
+        Args:
+            displacement (float): pv update for this axis
+        """
+        super()._on_set_displacement(displacement)
+        self.update_calc_function(displacement)
+
+    def on_set_relative_to_beam(self, position):
+        """
+        Update the driver axis as usual then inform the beam path calc of the new value.
+        Args:
+            position (float): pv update for this axis
+        """
+        super().on_set_relative_to_beam(position)
+        self.update_calc_function(position)
+
+
 class BeamPathCalcAxis(ComponentAxis):
     """
-    Axes for a component for the beam path calc. Used to setup for either the position and angle axis.
+    Axes where the value is derived from a beam path calc. Used to setup for either the position and angle axis.
 
     This is basically a thin layer that calls the function on the axis and then delegates to the beam path calc. This
     object is initialised with the functions to call.
