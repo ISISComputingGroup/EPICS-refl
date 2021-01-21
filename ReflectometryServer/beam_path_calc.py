@@ -628,18 +628,18 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         self._angle_to = []
         self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
 
-    def add_angle_to(self, beam_path_calc, axis):
+    def add_angle_to(self, beam_path_calc, axes):
         """
         Add beam path calc that will be used to initialise setpoint
         Args:
             beam_path_calc (ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): calc to use
-            axis (ChangeAxis.POSITION|ChangeAxis.ANGLE):  axis to base angle on
-
+            axes (List[ChangeAxis]): axes on which to base the angle to
         Returns:
 
         """
-        self._angle_to.append((beam_path_calc, axis))
-        beam_path_calc.axis[axis].add_listener(InitUpdate, self._init_listener)
+        self._angle_to.append((beam_path_calc, axes))
+        for axis in axes:
+            beam_path_calc.axis[axis].add_listener(InitUpdate, self._init_listener)
         beam_path_calc.in_beam_manager.add_listener(InitUpdate, self._init_listener)
 
     def _init_listener(self, _):
@@ -670,7 +670,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         """
         for setpoint_beam_path_calc, axis in self._angle_to:
             if setpoint_beam_path_calc.is_in_beam:
-                if axis == ChangeAxis.POSITION:
+                if ChangeAxis.POSITION in axis:
                     other_pos = setpoint_beam_path_calc.intercept_in_mantid_coordinates(on_init=True)
                     this_pos = self._movement_strategy.calculate_interception(incoming_beam)
 
@@ -682,7 +682,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
                     # x + incoming_beam.angle: angle of sample in room coordinate
 
                     angle_of_outgoing_beam = degrees(atan2(opp, adj))
-                elif axis == ChangeAxis.ANGLE:
+                elif ChangeAxis.ANGLE in axis:
                     angle_of_outgoing_beam = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].get_displacement()
                     # if there is an auto saved offset then take this off before calculating theta
                     offset = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].autosaved_value
@@ -701,7 +701,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         """
         Sets the incoming beam at the next disabled component in beam that this theta component is angled to.
         """
-        for angle_to, axis in self._angle_to:
+        for angle_to, _ in self._angle_to:
             if not angle_to.incoming_beam_can_change and angle_to.is_in_beam:
                 angle_to.set_incoming_beam(self.get_outgoing_beam(), force=True)
                 break

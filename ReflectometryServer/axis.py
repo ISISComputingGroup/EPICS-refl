@@ -356,6 +356,16 @@ class BeamPathCalcModificationAxis(DirectCalcAxis):
         super().on_set_relative_to_beam(position)
         self.update_calc_function(position)
 
+    def init_displacement_from_motor(self, motor_position):
+        """
+        Sets the displacement read from the motor axis on startup and informs the beam path calc of this.
+
+        Args:
+            motor_position (float): The motor position
+        """
+        self.update_calc_function(motor_position)
+        super().init_displacement_from_motor(motor_position)
+
 
 class BeamPathCalcAxis(ComponentAxis):
     """

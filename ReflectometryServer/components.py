@@ -157,9 +157,9 @@ class ThetaComponent(ReflectingComponent):
             component (ReflectometryServer.components.Component): component that defines theta
 
         """
-        self._beam_path_set_point.add_angle_to(component.beam_path_set_point, ChangeAxis.POSITION)
-        self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point,
-                                         [ChangeAxis.POSITION, ChangeAxis.LONG_AXIS])
+        axes = [ChangeAxis.POSITION, ChangeAxis.LONG_AXIS]
+        self._beam_path_set_point.add_angle_to(component.beam_path_set_point, axes)
+        self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point, axes)
 
     def add_angle_of(self, component):
         """
@@ -170,7 +170,7 @@ class ThetaComponent(ReflectingComponent):
             component (ReflectometryServer.components.Component): component that defines theta
 
         """
-        self._beam_path_set_point.add_angle_to(component.beam_path_set_point, ChangeAxis.ANGLE)
+        self._beam_path_set_point.add_angle_to(component.beam_path_set_point, [ChangeAxis.ANGLE])
         self._beam_path_rbv.add_angle_to(component.beam_path_rbv, component.beam_path_set_point, [ChangeAxis.ANGLE])
 
     def _init_beam_path_calcs(self, setup):

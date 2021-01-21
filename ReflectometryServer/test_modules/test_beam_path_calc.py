@@ -1,17 +1,12 @@
 import unittest
 
-from math import tan, radians, isnan
 from hamcrest import *
-from mock import Mock, patch, call
-from parameterized import parameterized
 
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathCalcThetaSP, \
-    BeamPathCalcThetaRBV
+from ReflectometryServer.beam_path_calc import BeamPathCalcThetaSP, BeamPathCalcThetaRBV
 from ReflectometryServer.axis import BeamPathCalcAxis
-from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
-from ReflectometryServer.geometry import Position, PositionAndAngle, ChangeAxis
+from ReflectometryServer.components import Component
+from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
-from ReflectometryServer.test_modules.utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
 
 
 class TestBeamPathCalc(unittest.TestCase):
@@ -56,7 +51,7 @@ class TestBeamPathCalc(unittest.TestCase):
 
         theta_sp = BeamPathCalcThetaSP("theta", None)
         comp = Component("comp", PositionAndAngle(0, 0, 0))
-        theta_sp.add_angle_to(comp.beam_path_rbv, ChangeAxis.CHI)
+        theta_sp.add_angle_to(comp.beam_path_rbv, [ChangeAxis.CHI])
 
         assert_that(calling(comp.beam_path_rbv.axis[ChangeAxis.CHI].init_displacement_from_motor).with_args(10),
                     raises(RuntimeError))
