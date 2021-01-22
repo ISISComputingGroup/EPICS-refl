@@ -2,26 +2,41 @@
 Resources at a beamline level
 """
 import logging
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
 from functools import partial
 
 from pcaspy import Severity
 
-
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
 from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException, ParameterNotInitializedException
-from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 from ReflectometryServer.file_io import mode_autosave, MODE_KEY
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
 from ReflectometryServer.footprint_manager import FootprintManager
-from ReflectometryServer.parameters import RequestMoveEvent
+from ReflectometryServer.parameters import RequestMoveEvent, AxisParameter
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 from server_common.channel_access import UnableToConnectToPVException
 from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
+
+
+def check_long_axis_before_position(axes_per_component, error_string):
+    """
+    Checks that for each component if the long axis and position are defined then they are in the correct order.
+    Args:
+        axes_per_component (dict[str: list[ReflectometryServer.geometry.ChangeAxis]]): Axis in each component
+        error_string (str): The type of object we are checking e.g. driver or parameter
+    Returns: A list of strings describing any errors
+    """
+    errors = []
+    for component, axes in axes_per_component.items():
+        if ChangeAxis.LONG_AXIS in axes and ChangeAxis.POSITION in axes:
+            if axes.index(ChangeAxis.LONG_AXIS) > axes.index(ChangeAxis.POSITION):
+                errors.append(f"Long axis {error_string} must be added before position for '{component}'")
+    return errors
 
 
 class BeamlineMode:
@@ -165,7 +180,7 @@ class Beamline:
         for mode in modes:
             self._modes[mode.name] = mode
 
-        self._validate(beamline_parameters, modes)
+        self._validate(beamline_parameters, modes, drivers)
 
         for component in components:
             self._beam_path_calcs_set_point.append(component.beam_path_set_point)
@@ -208,7 +223,7 @@ class Beamline:
         else:
             self.beamline_constants = []
 
-    def _validate(self, beamline_parameters, modes):
+    def _validate(self, beamline_parameters, modes, drivers):
         errors = []
 
         beamline_parameters_names = [beamline_parameter.name for beamline_parameter in beamline_parameters]
@@ -220,6 +235,16 @@ class Beamline:
         for mode in mode_names:
             if mode_names.count(mode) > 1:
                 errors.append("Mode must be uniquely named. Duplicate '{}'".format(mode))
+
+        # Validate the order of long_axis and position
+        axis_params = [param for param in beamline_parameters if isinstance(param, AxisParameter)]
+        axes_per_comp = defaultdict(list)
+        [axes_per_comp[param.component.name].append(param.axis) for param in axis_params]
+        errors.extend(check_long_axis_before_position(axes_per_comp, "parameter"))
+
+        axes_per_comp = defaultdict(list)
+        [axes_per_comp[driver.component.name].append(driver.component_axis) for driver in drivers]
+        errors.extend(check_long_axis_before_position(axes_per_comp, "driver"))
 
         for mode in modes:
             errors.extend(mode.validate(self._beamline_parameters.keys()))
