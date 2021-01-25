@@ -25,7 +25,8 @@ class LinearMovementCalc:
             setup (ReflectometryServer.geometry.PositionAndAngle):
         """
         self._angle = setup.angle
-        self._position_at_zero = Position(setup.y, setup.z)
+        self._initial_position_at_zero = Position(setup.y, setup.z)
+        self._current_position_at_zero = self._initial_position_at_zero
         self._displacement = 0
 
     def calculate_interception(self, beam):
@@ -34,27 +35,29 @@ class LinearMovementCalc:
         Args:
             beam (PositionAndAngle) : beam to intercept
 
-        Returns (float): position of the interception
+        Returns (Position): position of the interception
 
         """
         assert beam is not None
-        y_m = self._position_at_zero.y
-        z_m = self._position_at_zero.z
+        y_m = self._current_position_at_zero.y
+        z_m = self._current_position_at_zero.z
         angle_m = self._angle
         y_b = beam.y
         z_b = beam.z
         angle_b = beam.angle
 
+        if z_b > z_m:
+            raise ValueError("Component ordered incorrectly, has LONG_AXIS moved too far?")
         if fabs(angle_b % 180.0 - angle_m % 180.0) <= ANGULAR_TOLERANCE:
             raise ValueError("No interception between beam and movement")
         elif fabs(angle_b % 180.0) <= ANGULAR_TOLERANCE:
-            y, z = self._zero_angle(y_b, self._position_at_zero, self._angle)
+            y, z = self._zero_angle(y_b, self._current_position_at_zero, self._angle)
         elif fabs(angle_m % 180.0) <= ANGULAR_TOLERANCE:
             y, z = self._zero_angle(y_m, beam, beam.angle)
         elif fabs(angle_m % 180.0 - 90) <= ANGULAR_TOLERANCE or fabs(angle_m % 180.0 + 90) <= ANGULAR_TOLERANCE:
             y, z = self._right_angle(z_m, beam, beam.angle)
         elif fabs(angle_b % 180.0 - 90) <= ANGULAR_TOLERANCE or fabs(angle_b % 180.0 + 90) <= ANGULAR_TOLERANCE:
-            y, z = self._right_angle(z_b, self._position_at_zero, self._angle)
+            y, z = self._right_angle(z_b, self._current_position_at_zero, self._angle)
         else:
             tan_b = tan(radians(angle_b))
             tan_m = tan(radians(angle_m))
@@ -103,8 +106,8 @@ class LinearMovementCalc:
 
         """
         beam_intercept = self.calculate_interception(beam)
-        y_diff = self._position_at_zero.y - beam_intercept.y
-        z_diff = self._position_at_zero.z - beam_intercept.z
+        y_diff = self._current_position_at_zero.y - beam_intercept.y
+        z_diff = self._current_position_at_zero.z - beam_intercept.z
         dist_to_beam = sqrt(pow(y_diff, 2) + pow(z_diff, 2))
         if y_diff > 0:
             direction = -1.0
@@ -123,7 +126,7 @@ class LinearMovementCalc:
         if displacement is None:
             displacement = self._displacement
 
-        return self._position_at_zero + position_from_radial_coords(displacement, self._angle)
+        return self._current_position_at_zero + position_from_radial_coords(displacement, self._angle)
 
     def set_displacement(self, displacement):
         """
@@ -182,3 +185,11 @@ class LinearMovementCalc:
             (float): The sum of the position and distance along axis from 0 to beam intercept
         """
         return position + self._dist_along_axis_from_zero_to_beam_intercept(beam)
+
+    def offset_position_at_zero(self, position_offset: Position):
+        """
+        Offset the position at zero by the amount specified. Used to change where the movement axis is.
+        Args:
+            position_offset: The amount to change the zero position by.
+        """
+        self._current_position_at_zero = self._initial_position_at_zero + position_offset
