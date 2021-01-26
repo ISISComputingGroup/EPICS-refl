@@ -8,10 +8,10 @@ from math import degrees, atan2, isnan
 from typing import Dict, List, Tuple, Optional
 
 from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
-    BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate, ParkingSequenceUpdate
+    BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate, BeamPathCalcModificationAxis, ParkingSequenceUpdate
+from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis, Position
 from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException, \
     BeamlineConfigurationInvalidException
-from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 import logging
 
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
@@ -256,7 +256,10 @@ class TrackingBeamPathCalc:
                                                   self._get_displacement_for,
                                                   self._get_displacement,
                                                   self._displacement_update,
-                                                  self._init_displacement_from_motor)
+                                                  self._init_displacement_from_motor),
+
+            ChangeAxis.LONG_AXIS: BeamPathCalcModificationAxis(ChangeAxis.LONG_AXIS,
+                                                               self._on_long_axis_change)
         }
 
     def _init_displacement_from_motor(self, value):
@@ -308,6 +311,17 @@ class TrackingBeamPathCalc:
         pass
 
     def _on_in_beam_status_update(self, _):
+        self.trigger_listeners(BeamPathUpdate(self))
+
+    def _on_long_axis_change(self, displacement):
+        """
+        Changes the location of the movement strategy when the long axis (the axis along the beam) changes.
+        For now assume that the movement is entirely perpendicular to the natural beam.
+        Args:
+            displacement: the change in the long axis
+        """
+        offset_position = Position(0, displacement)
+        self._movement_strategy.offset_position_at_zero(offset_position)
         self.trigger_listeners(BeamPathUpdate(self))
 
     def get_outgoing_beam(self):
@@ -575,7 +589,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
     A reflecting beam path calculator which has a read only angle based on the angle to a list of beam path
     calculations. This is used for example for Theta where the angle is the angle to the next enabled component.
     """
-    _angle_to: List[Tuple[TrackingBeamPathCalc, TrackingBeamPathCalc, ChangeAxis]]
+    _angle_to: List[Tuple[TrackingBeamPathCalc, TrackingBeamPathCalc, List[ChangeAxis]]]
 
     def __init__(self, name, movement_strategy, theta_setpoint_beam_path_calc):
         """
@@ -597,7 +611,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
         self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
 
-    def add_angle_to(self, readback_beam_path_calc, setpoint_beam_path_calc, axis):
+    def add_angle_to(self, readback_beam_path_calc, setpoint_beam_path_calc, axes):
         """
         Add angle to these beam path calcs and setpoints on this axis on which to base the angle and setpoint on which
             the offset is taken. This add it to the end of the list.
@@ -605,31 +619,36 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
             readback_beam_path_calc (ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): readback calc
             setpoint_beam_path_calc (ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): set point calc needed for
                 the offset from the beam that should be used
-            axis (ChangeAxis.POSITION|ChangeAxis.ANGLE): axis on which to base the angle to
+            axes (List[ChangeAxis]): axes on which to base the angle to
         """
-        self._angle_to.append((readback_beam_path_calc, setpoint_beam_path_calc, axis))
+        self._angle_to.append((readback_beam_path_calc, setpoint_beam_path_calc, axes))
+
         # add to the physical change for the rbv so that we don't get an infinite loop
-        readback_beam_path_calc.axis[axis].add_listener(PhysicalMoveUpdate, self._angle_update)
+        # and add to beamline change of set point because no loop is created from the setpoint action
+        for axis in axes:
+            readback_beam_path_calc.axis[axis].add_listener(PhysicalMoveUpdate, self._angle_update)
+            readback_beam_path_calc.axis[axis].add_listener(AxisChangingUpdate, self._on_is_changing_change)
         readback_beam_path_calc.in_beam_manager.add_listener(PhysicalMoveUpdate, self._angle_update)
-        # add to beamline change of set point because no loop is created from the setpoint action
+
         setpoint_beam_path_calc.add_listener(BeamPathUpdate, self._angle_update)
-        readback_beam_path_calc.axis[axis].add_listener(AxisChangingUpdate, self._on_is_changing_change)
         readback_beam_path_calc.in_beam_manager.add_listener(AxisChangingUpdate, self._on_is_changing_change)
 
     def _on_is_changing_change(self, _):
         """
-        Updates the changing state of this component. Theta is changing if the first in beam component is changing or
-        if there are no in beam components and one out of beam component is changing
+        Updates the changing state of this component. Theta is changing if an axis on the first in beam component is
+        changing or if there are no in beam components and one out of beam component is changing
 
         Args:
             _ (AxisChangingUpdate): The update event
         """
         theta_is_changing = False
-        for readback_beam_path_calc, setpoint_beam_path_calc, axis in self._angle_to:
-            is_changing = readback_beam_path_calc.axis[axis].is_changing
-            theta_is_changing = theta_is_changing or is_changing
+        for readback_beam_path_calc, _, axes in self._angle_to:
+            axis_is_changing = False
+            for axis in axes:
+                axis_is_changing |= readback_beam_path_calc.axis[axis].is_changing
+            theta_is_changing = theta_is_changing or axis_is_changing
             if readback_beam_path_calc.is_in_beam:
-                theta_is_changing = is_changing
+                theta_is_changing = axis_is_changing
                 break
 
         self.axis[ChangeAxis.ANGLE].is_changing = theta_is_changing
@@ -653,9 +672,9 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         for readback_beam_path_calc, _, _ in self._angle_to:
             readback_beam_path_calc.substitute_incoming_beam_for_displacement = None
 
-        for readback_beam_path_calc, set_point_beam_path_calc, axis in self._angle_to:
+        for readback_beam_path_calc, set_point_beam_path_calc, axes in self._angle_to:
             if readback_beam_path_calc.is_in_beam:
-                if axis == ChangeAxis.POSITION:
+                if ChangeAxis.POSITION in axes:
                     other_pos = readback_beam_path_calc.position_in_mantid_coordinates()
                     set_point_offset = set_point_beam_path_calc.get_distance_relative_to_beam_in_mantid_coordinates()
                     this_pos = self._movement_strategy.calculate_interception(incoming_beam)
@@ -668,21 +687,26 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
                     # x + incoming_beam.angle: angle of sample in room coordinate
 
                     angle_of_outgoing_beam = degrees(atan2(opp, adj))
-                elif axis == ChangeAxis.ANGLE:
+                elif ChangeAxis.ANGLE in axes:
                     # rbv should not include setpoint offset angle
                     other_angle = readback_beam_path_calc.axis[ChangeAxis.ANGLE].get_displacement()
                     other_setpoint_offset = set_point_beam_path_calc.axis[ChangeAxis.ANGLE].get_relative_to_beam()
                     angle_of_outgoing_beam = other_angle - other_setpoint_offset
                 else:
-                    raise RuntimeError("Theta can not depend on the {} axis".format(axis))
+                    raise RuntimeError("Theta can not depend on the {} axes".format(axes))
 
                 angle = (angle_of_outgoing_beam - incoming_beam.angle) / 2.0 + incoming_beam.angle
                 # set the beam path for the selected component
                 readback_beam_path_calc.substitute_incoming_beam_for_displacement = \
                     self.theta_setpoint_beam_path_calc.get_outgoing_beam()
-                # set alarms from component setting the angle
-                alarm_severity, alarm_status = readback_beam_path_calc.axis[axis].alarm
-                self.axis[ChangeAxis.ANGLE].set_alarm(alarm_severity, alarm_status)
+
+                # set the most major alarm from component setting the angle
+                severity, status = AlarmSeverity.No, AlarmStatus.No
+                for axis in axes:
+                    axis_severity, axis_status = readback_beam_path_calc.axis[axis].alarm
+                    if axis_severity > severity:
+                        severity, status = axis_severity, axis_status
+                self.axis[ChangeAxis.ANGLE].set_alarm(severity, status)
 
                 break
         else:
@@ -732,18 +756,18 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         self._angle_to = []
         self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
 
-    def add_angle_to(self, beam_path_calc, axis):
+    def add_angle_to(self, beam_path_calc, axes):
         """
         Add beam path calc that will be used to initialise setpoint
         Args:
             beam_path_calc (ReflectometryServer.beam_path_calc.TrackingBeamPathCalc): calc to use
-            axis (ChangeAxis.POSITION|ChangeAxis.ANGLE):  axis to base angle on
-
+            axes (List[ChangeAxis]): axes on which to base the angle to
         Returns:
 
         """
-        self._angle_to.append((beam_path_calc, axis))
-        beam_path_calc.axis[axis].add_listener(InitUpdate, self._init_listener)
+        self._angle_to.append((beam_path_calc, axes))
+        for axis in axes:
+            beam_path_calc.axis[axis].add_listener(InitUpdate, self._init_listener)
         beam_path_calc.in_beam_manager.add_listener(InitUpdate, self._init_listener)
 
     def _init_listener(self, _):
@@ -774,7 +798,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         """
         for setpoint_beam_path_calc, axis in self._angle_to:
             if setpoint_beam_path_calc.is_in_beam:
-                if axis == ChangeAxis.POSITION:
+                if ChangeAxis.POSITION in axis:
                     other_pos = setpoint_beam_path_calc.intercept_in_mantid_coordinates(on_init=True)
                     this_pos = self._movement_strategy.calculate_interception(incoming_beam)
 
@@ -786,7 +810,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
                     # x + incoming_beam.angle: angle of sample in room coordinate
 
                     angle_of_outgoing_beam = degrees(atan2(opp, adj))
-                elif axis == ChangeAxis.ANGLE:
+                elif ChangeAxis.ANGLE in axis:
                     angle_of_outgoing_beam = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].get_displacement()
                     # if there is an auto saved offset then take this off before calculating theta
                     offset = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].autosaved_value
@@ -805,7 +829,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         """
         Sets the incoming beam at the next disabled component in beam that this theta component is angled to.
         """
-        for angle_to, axis in self._angle_to:
+        for angle_to, _ in self._angle_to:
             if not angle_to.incoming_beam_can_change and angle_to.is_in_beam:
                 angle_to.set_incoming_beam(self.get_outgoing_beam(), force=True)
                 break

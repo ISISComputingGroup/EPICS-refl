@@ -533,8 +533,8 @@ class AxisParameter(BeamlineParameter):
             description = name
         super(AxisParameter, self).__init__(name, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance,
                                             custom_function=custom_function)
-        self._component = component
-        self._axis = axis
+        self.component = component
+        self.axis = axis
         if axis in [ChangeAxis.POSITION, ChangeAxis.ANGLE]:
             self.group_names.append(BeamlineParameterGroup.COLLIMATION_PLANE)
         else:
@@ -543,11 +543,11 @@ class AxisParameter(BeamlineParameter):
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
-            self._component.beam_path_set_point.axis[self._axis].add_listener(InitUpdate,
-                                                                              self._initialise_sp_from_motor)
+            self.component.beam_path_set_point.axis[self.axis].add_listener(InitUpdate,
+                                                                            self._initialise_sp_from_motor)
 
-        self._component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
-        rbv_axis = self._component.beam_path_rbv.axis[self._axis]
+        self.component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
+        rbv_axis = self.component.beam_path_rbv.axis[self.axis]
         rbv_axis.add_listener(AxisChangingUpdate, self._on_update_changing_state)
         rbv_axis.add_listener(PhysicalMoveUpdate, self._on_update_rbv)
 
@@ -562,29 +562,29 @@ class AxisParameter(BeamlineParameter):
         sp_init = param_float_autosave.read_parameter(self._name, None)
         if sp_init is not None:
             self._set_initial_sp(sp_init)
-            self._component.beam_path_set_point.axis[self._axis].autosaved_value = sp_init
+            self.component.beam_path_set_point.axis[self.axis].autosaved_value = sp_init
             self._move_component()
 
     def _initialise_sp_from_motor(self, _):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
         """
-        if not self._component.beam_path_set_point.axis[self._axis].is_in_beam:
+        if not self.component.beam_path_set_point.axis[self.axis].is_in_beam:
             # If the axis is out of the beam the displacement should be set to 0
             init_sp = 0.0
         else:
-            init_sp = self._component.beam_path_set_point.axis[self._axis].get_relative_to_beam()
+            init_sp = self.component.beam_path_set_point.axis[self.axis].get_relative_to_beam()
 
         self._set_initial_sp(init_sp)
 
     def _move_component(self):
-        self._component.beam_path_set_point.axis[self._axis].set_relative_to_beam(self._set_point_rbv)
+        self.component.beam_path_set_point.axis[self.axis].set_relative_to_beam(self._set_point_rbv)
 
     def _rbv(self):
         """
         Returns: readback value for the parameter, e.g. tracking displacement above the beam
         """
-        return self._component.beam_path_rbv.axis[self._axis].get_relative_to_beam()
+        return self.component.beam_path_rbv.axis[self.axis].get_relative_to_beam()
 
     @property
     def rbv_at_sp(self):
@@ -595,21 +595,21 @@ class AxisParameter(BeamlineParameter):
         if self.rbv is None or self._set_point_rbv is None:
             return False
 
-        return not self._component.beam_path_set_point.axis[self._axis].is_in_beam or \
-            abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
+        return not self.component.beam_path_set_point.axis[self.axis].is_in_beam or \
+               abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
 
     def _get_alarm_info(self):
         """
         Returns the alarm information for the axis of this component.
         """
-        return self._component.beam_path_rbv.axis[self._axis].alarm
+        return self.component.beam_path_rbv.axis[self.axis].alarm
 
     @property
     def is_changing(self):
         """
         Returns: Is the parameter changing (e.g. rotating or displacing)
         """
-        return self._component.beam_path_rbv.axis[self._axis].is_changing
+        return self.component.beam_path_rbv.axis[self.axis].is_changing
 
     def validate(self, drivers):
         """

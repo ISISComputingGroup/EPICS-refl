@@ -30,8 +30,8 @@ class PositionAndAngle(Position):
         """
 
         Args:
-            z: z position in room co-ordinates
             y: y position in room co-ordinates
+            z: z position in room co-ordinates
             angle: clockwise angle measured from the horizon (90 to -90 with 0 pointing away from the source)
         """
         super(PositionAndAngle, self).__init__(y, z)
@@ -103,6 +103,8 @@ class ChangeAxis(Enum):
     PSI = 5         # angle like roll
     HEIGHT = 6      # height axis perpendicular to beam and the floor
     TRANS = 7       # translation axis perpendicular to beam and parallel to the floor
-    JACK_FRONT = 8  # on the bench the jack at the front of the table
-    JACK_REAR = 9   # on the bench the jack at the rear of the table
-    SLIDE = 10      # on the bench the horizontal slide
+    LONG_AXIS = 8   # axis along the beam
+    JACK_FRONT = 9  # on the bench the jack at the front of the table
+    JACK_REAR = 10  # on the bench the jack at the rear of the table
+    SLIDE = 11      # on the bench the horizontal slide
+

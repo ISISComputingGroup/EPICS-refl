@@ -214,6 +214,8 @@ class _ServerStatusManager:
     @message.setter
     def message(self, message_to_set):
         self._message = message_to_set
+        logger.info("New Status Message:")
+        logger.info("{}".format(message_to_set))
         self._trigger_status_update()
 
     @property

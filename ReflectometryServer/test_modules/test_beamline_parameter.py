@@ -590,7 +590,7 @@ class TestBeamlineParameterReadback(unittest.TestCase):
         displacement_parameter.add_listener(ParameterReadbackUpdate, listener)
         sample.beam_path_rbv.is_in_beam = state
 
-        listener.assert_called_once_with(ParameterReadbackUpdate(state, None, None))
+        listener.assert_called_with(ParameterReadbackUpdate(state, None, None))
 
     def test_GIVEN_theta_WHEN_no_next_component_THEN_value_is_nan(self):
 
