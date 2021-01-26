@@ -1091,18 +1091,6 @@ class TestCustomFunctionCall(unittest.TestCase):
 
         assert_that(self.myval, is_(None))
 
-    def test_GIVEN_parameter_with_function_that_takes_time_WHEN_move_THEN_function_returns_immediately(self):
-        self.myval=None
-        def my_function(*args):
-            sleep(1)
-            self.myval=1
-        component = Component("comp", PositionAndAngle(0, 0, 0))
-        param = InBeamParameter("myname", component, custom_function=my_function)
-
-        param.sp = True
-
-        assert_that(self.myval, is_(None))
-
     def test_GIVEN_parameter_with_function_that_causes_an_exception_WHEN_move_THEN_exception_is_put_in_error_log(self):
         expected_text = "Oh Dear"
         def my_function(*args):
