@@ -152,9 +152,9 @@ class PVManager:
         self._add_pv_with_fields(SERVER_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV,
                                  archive=True, interest="HIGH", alarm=True, on_init=True)
         self._add_pv_with_fields(SERVER_MESSAGE, None, {'type': 'char', 'count': 400}, "Message about the beamline",
-                                 PvSort.RBV, archive=True, interest="HIGH", on_init=True)
+                                 PvSort.RBV, interest="HIGH", on_init=True)
         self._add_pv_with_fields(SERVER_ERROR_LOG, None, {'type': 'char', 'count': 10000},
-                                 "Error log for the Reflectometry Server", PvSort.RBV, archive=True, interest="HIGH",
+                                 "Error log for the Reflectometry Server", PvSort.RBV, interest="HIGH",
                                  on_init=True)
 
     def set_beamline(self, beamline):
@@ -415,7 +415,8 @@ class PVManager:
                     fields = STANDARD_FLOAT_PV_FIELDS
 
                 self._add_pv_with_fields(prepended_alias, None, fields, beamline_constant.description, None,
-                                         archive=True, interest="MEDIUM", value=value)
+                                         interest="MEDIUM", value=value)
+                logger.info("Adding Constant {} with value {}".format(beamline_constant.name, beamline_constant.value))
                 beamline_constant_info.append(
                     {"name": beamline_constant.name, "prepended_alias": prepended_alias, "type": "float_value"})
             except Exception as err:
