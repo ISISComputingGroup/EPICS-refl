@@ -152,7 +152,7 @@ class PVManager:
         self._add_pv_with_fields(SERVER_STATUS, None, status_fields, "Status of the beam line", PvSort.RBV,
                                  archive=True, interest="HIGH", alarm=True, on_init=True)
         self._add_pv_with_fields(SERVER_MESSAGE, None, {'type': 'char', 'count': 400}, "Message about the beamline",
-                                 PvSort.RBV, archive=True, interest="HIGH", on_init=True)
+                                 PvSort.RBV, interest="HIGH", on_init=True)
         self._add_pv_with_fields(SERVER_ERROR_LOG, None, {'type': 'char', 'count': 10000},
                                  "Error log for the Reflectometry Server", PvSort.RBV, interest="HIGH",
                                  on_init=True)
