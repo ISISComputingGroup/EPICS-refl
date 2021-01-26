@@ -915,6 +915,8 @@ class EnumParameter(BeamlineParameter):
             STATUS_MANAGER.update_error_log("No options for optional parameter, {}".format(self.name))
 
     def _initialise_sp_from_motor(self, _):
+        # Optional parameters should always be autosaved and should not be initialised from the motor there is no code
+        # to perform this operation so this is a major error if triggered.
         STATUS_MANAGER.update_error_log("Optional parameter, {}, was asked up init from motor".format(self.name))
         STATUS_MANAGER.update_active_problems(ProblemInfo("Optional Parameter updating from motor", self.name,
                                                           Severity.MAJOR_ALARM))
