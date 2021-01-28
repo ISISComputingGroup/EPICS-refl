@@ -444,6 +444,8 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         slit_2_height_axis = create_mock_axis("SLIT2:HEIGHT", 0.0, 10.0)
         self.slit_2_driver = MagicMock(IocDriver)
         self.slit_2_driver.get_max_move_duration = MagicMock(return_value=0)
+        self.slit_2_driver.component = slit_2
+        self.slit_2_driver.component_axis = ChangeAxis.POSITION
 
         slit_3 = Component("slit_3", setup=PositionAndAngle(y=0.0, z=30.0, angle=90.0))
         slit_3_height_axis = create_mock_axis("SLIT3:HEIGHT", 0.0, 10.0)
@@ -793,11 +795,11 @@ class TestIOCDriverInAndOutOfBeamWithParkingsequence(unittest.TestCase):
         with patch('ReflectometryServer.beam_path_calc.parking_index_autosave.read_parameter',
                    new=Mock(return_value=None)):
             self.comp = Component("component", setup=PositionAndAngle(0.0, 10.0, 90.0))
-        self.comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
-        self.comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
+            self.comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0.0, 0.0, 0.0))
+            self.comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = True
 
-        self.jaws_driver = IocDriver(self.comp, ChangeAxis.POSITION, self.axis,
-                                     out_of_beam_positions=[self.out_of_beam_position])
+            self.jaws_driver = IocDriver(self.comp, ChangeAxis.POSITION, self.axis,
+                                         out_of_beam_positions=[self.out_of_beam_position])
 
     def test_GIVEN_parking_sequence_WHEN_ioc_driver_moves_to_be_at_end_of_sequence_THEN_axis_has_end_of_sequence_set(self):
         parking_index = 1

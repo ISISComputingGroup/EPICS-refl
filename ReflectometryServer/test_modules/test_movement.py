@@ -11,6 +11,12 @@ from ReflectometryServer.test_modules.utils import position
 
 class TestMovementIntercept(unittest.TestCase):
 
+    def test_GIVEN_incoming_beam_after_component_WHEN_get_intercept_THEN_raises_value_error(self):
+        movement = LinearMovementCalc(PositionAndAngle(1, 1, 90))
+        beam = PositionAndAngle(0, 2, 0)
+
+        assert_that(calling(movement.calculate_interception).with_args(beam), raises(ValueError))
+
     def test_GIVEN_movement_and_beam_at_the_same_angle_WHEN_get_intercept_THEN_raises_calc_error(self):
         angle = 12.3
         movement = LinearMovementCalc(PositionAndAngle(1, 1, angle))
@@ -129,6 +135,51 @@ class TestMovementIntercept(unittest.TestCase):
 
         assert_that(result, is_(position(Position(displacement, z))))
 
+    def test_GIVEN_movement_45_to_z_at_beam_along_z_WHEN_z_of_movement_axis_changes_THEN_position_is_new_z(self):
+        y = 0
+        z = 7
+        z_offset = 9
+        movement = LinearMovementCalc(PositionAndAngle(y, z, 45))
+        beam = PositionAndAngle(y, 0, 0)
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(y, z))))
+
+        movement.offset_position_at_zero(Position(0, z_offset))
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(y, z + z_offset))))
+
+    def test_GIVEN_movement_45_to_z_at_beam_offset_along_z_WHEN_z_of_movement_axis_changes_THEN_position_is_as_expected(self):
+        y = 0
+        z = 7
+        z_offset = 9
+        beam_y = 5
+        movement = LinearMovementCalc(PositionAndAngle(y, z, 45))
+        beam = PositionAndAngle(beam_y, 0, 0)
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(beam_y, z + beam_y))))
+
+        movement.offset_position_at_zero(Position(0, z_offset))
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(beam_y, z + beam_y + z_offset))))
+
+    def test_GIVEN_movement_perp_to_z_at_beam_angle_45_WHEN_z_of_movement_axis_changes_THEN_position_is_as_expected(self):
+        y = 0
+        z = 7
+        z_offset = 9
+        movement = LinearMovementCalc(PositionAndAngle(y, z, 90))
+        beam = PositionAndAngle(0, 0, 45)
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(z, z))))
+
+        movement.offset_position_at_zero(Position(0, z_offset))
+
+        result = movement.calculate_interception(beam)
+        assert_that(result, is_(position(Position(z + z_offset, z + z_offset))))
 
 
 class TestMovementRelativeToBeam(unittest.TestCase):
@@ -235,20 +286,6 @@ class TestMovementRelativeToBeam(unittest.TestCase):
         result = movement.position_in_mantid_coordinates()
 
         assert_that(result, is_(position(Position(beam_intercept.y - dist/2.0, beam_intercept.z + dist * sqrt(3)/2.0))))
-
-    @parameterized.expand([(0,), (360,), (-360,)])
-    def test_GIVEN_movement_at_minus_180_and_similar_to_z_beam_intercept_to_the_right_of_zero_WHEN_set_position_relative_to_beam_to_10_THEN_position_is_at_10_along_intercept(self, add_angle):
-        # here the beam intercept is above and to the right of the zero point
-        movement = LinearMovementCalc(PositionAndAngle(0, 10, 180 + add_angle))
-        y_diff = 2.0
-        beam = PositionAndAngle(0, 10 + y_diff, 90)
-        beam_intercept = Position(0, 10 + y_diff)
-        dist = 10
-
-        movement.set_distance_relative_to_beam(beam, dist)
-        result = movement.position_in_mantid_coordinates()
-
-        assert_that(result, is_(position(Position(beam_intercept.y, beam_intercept.z - dist))))
 
 
 class TestMovementValueObserver(unittest.TestCase):

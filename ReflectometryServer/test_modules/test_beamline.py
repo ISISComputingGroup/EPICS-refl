@@ -266,6 +266,54 @@ class TestBeamlineValidation(unittest.TestCase):
             [driver],
             [mode]), raises(BeamlineConfigurationInvalidException))
 
+    def test_GIVEN_beamline_with_LONG_AXIS_parameter_before_POSITION_WHEN_construct_THEN_no_error(self):
+        mode = BeamlineMode("mode", [])
+        component = TiltingComponent("comp", PositionAndAngle(0, 0, 90))
+        beamline_parameters = [AxisParameter("param_1", component, ChangeAxis.LONG_AXIS),
+                               AxisParameter("param_2", component, ChangeAxis.POSITION)]
+
+        try:
+            Beamline([component], beamline_parameters, [], [mode])
+        except BeamlineConfigurationInvalidException:
+            assert_that(True, is_(False), "Beamline construction raised unexpected error")
+
+    def test_GIVEN_beamline_with_POSITION_parameter_before_LONG_AXIS_WHEN_construct_THEN_error(self):
+        mode = BeamlineMode("mode", [])
+        component = TiltingComponent("comp", PositionAndAngle(0, 0, 90))
+        beamline_parameters = [AxisParameter("param_1", component, ChangeAxis.POSITION),
+                               AxisParameter("param_2", component, ChangeAxis.LONG_AXIS)]
+        assert_that(calling(Beamline).with_args(
+            [component],
+            beamline_parameters,
+            [],
+            [mode]), raises(BeamlineConfigurationInvalidException))
+
+    def test_GIVEN_beamline_with_LONG_AXIS_driver_before_POSITION_WHEN_construct_THEN_no_error(self):
+        mode = BeamlineMode("mode", [])
+        component = TiltingComponent("comp", PositionAndAngle(0, 0, 90))
+        motor_axis = [create_mock_axis("axis_1", 0, 0),
+                      create_mock_axis("axis_2", 0, 0)]
+        drivers = [IocDriver(component, ChangeAxis.LONG_AXIS, motor_axis[0]),
+                   IocDriver(component, ChangeAxis.POSITION, motor_axis[1])]
+
+        try:
+            Beamline([component], [], drivers, [mode])
+        except BeamlineConfigurationInvalidException:
+            assert_that(True, is_(False), "Beamline construction raised unexpected error")
+
+    def test_GIVEN_beamline_with_POSITION_parameter_before_LONG_AXIS_WHEN_construct_THEN_error(self):
+        mode = BeamlineMode("mode", [])
+        component = TiltingComponent("comp", PositionAndAngle(0, 0, 90))
+        motor_axis = [create_mock_axis("axis_1", 0, 0),
+                      create_mock_axis("axis_2", 0, 0)]
+        drivers = [IocDriver(component, ChangeAxis.POSITION, motor_axis[0]),
+                   IocDriver(component, ChangeAxis.LONG_AXIS, motor_axis[1])]
+        assert_that(calling(Beamline).with_args(
+            [component],
+            [],
+            drivers,
+            [mode]), raises(BeamlineConfigurationInvalidException))
+
 
 class TestBeamlineModeInitialization(unittest.TestCase):
 
