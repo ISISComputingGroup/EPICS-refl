@@ -34,6 +34,7 @@ class TestEngineeringCorrections(unittest.TestCase):
         comp.beam_path_set_point.axis[ChangeAxis.POSITION].is_changed = lambda: True  # simulate that the component has requested a change
         return driver, mock_axis, comp
 
+    @unittest.skip("Skip until PR 26 is merged")
     def test_GIVEN_engineering_correction_offset_of_1_WHEN_driver_told_to_go_to_0_THEN_pv_sent_to_1(self):
         expected_correction = 1
         driver, mock_axis, comp = self._setup_driver_axis_and_correction(expected_correction)
