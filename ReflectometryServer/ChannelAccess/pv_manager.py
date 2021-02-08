@@ -330,10 +330,10 @@ class PVManager:
 
         """
         pv_fields = pv_fields.copy()
-        desciption_for_pv = description
+        description_for_pv = description
         if sort is not None:
-            desciption_for_pv = description + PvSort.what(sort)
-        pv_fields[PV_DESCRIPTION_NAME] = desciption_for_pv[0:DESCRIPTION_LENGTH]
+            description_for_pv = description + PvSort.what(sort)
+        pv_fields[PV_DESCRIPTION_NAME] = description_for_pv[0:DESCRIPTION_LENGTH]
 
         if value is not None:
             pv_fields["value"] = value

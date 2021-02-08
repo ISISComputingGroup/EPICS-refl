@@ -2,14 +2,11 @@ import unittest
 
 from hamcrest import *
 
-from ReflectometryServer.ChannelAccess.driver_utils import DriverParamHelper
 from ReflectometryServer.ChannelAccess.pv_manager import PVManager, PARAM_INFO_LOOKUP
-from ReflectometryServer.components import ReflectingComponent, Component
-from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle, ChangeAxis
+from ReflectometryServer.components import Component
+from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 from ReflectometryServer.beamline import Beamline, BeamlineMode
-from ReflectometryServer.parameters import AxisParameter, EnumParameter, ParameterUpdateBase, BeamlineParameterGroup
-from ReflectometryServer.test_modules.utils import create_parameter_with_initial_value
-from server_common.channel_access import AlarmSeverity, AlarmStatus
+from ReflectometryServer.parameters import AxisParameter, BeamlineParameterGroup
 from server_common.utilities import dehex_and_decompress, convert_from_json
 
 
@@ -45,7 +42,7 @@ class TestDriverUtils(unittest.TestCase):
 
         assert_that(pv_value[0], has_entry("characteristic_value", ""))
 
-    def test_GIVEN_axis_param_with_descirption_WHEN_create_beamline_THEN_param_info_contains_descirption(self):
+    def test_GIVEN_axis_param_with_description_WHEN_create_beamline_THEN_param_info_contains_description(self):
         expected_description = "MOT:MTR0101.RBV"
         param = AxisParameter("MYVALUE", self.comp, ChangeAxis.POSITION,
                               description=expected_description)
