@@ -14,7 +14,7 @@ from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER, Pr
 from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY
 from pcaspy.alarm import SeverityStrings
 from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
-from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME
+from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME, DESCRIPTION_LENGTH
 from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY, compress_and_hex
 import json
 from collections import OrderedDict
@@ -226,7 +226,8 @@ class PVManager:
                         align_info_record = {
                             "name": param_info_record["name"],
                             "prepended_alias": param_info_record["prepended_alias"],
-                            "type": "align"
+                            "type": "align",
+                            "description": ""
                         }
                         align_info.append(align_info_record)
 
@@ -307,7 +308,9 @@ class PVManager:
 
         return {"name": param_name,
                 "prepended_alias": prepended_alias,
-                "type": BeamlineParameterType.name_for_param_list(parameter_type)}
+                "type": BeamlineParameterType.name_for_param_list(parameter_type),
+                "characteristic_value": parameter.characteristic_value,
+                "description": parameter.description}
 
     def _add_pv_with_fields(self, pv_name, param_name, pv_fields, description, sort, archive=False, interest=None,
                             alarm=False, value=None, on_init=False):
@@ -327,10 +330,10 @@ class PVManager:
 
         """
         pv_fields = pv_fields.copy()
-        if sort is None:
-            pv_fields[PV_DESCRIPTION_NAME] = description
-        else:
-            pv_fields[PV_DESCRIPTION_NAME] = description + PvSort.what(sort)
+        description_for_pv = description
+        if sort is not None:
+            description_for_pv = description + PvSort.what(sort)
+        pv_fields[PV_DESCRIPTION_NAME] = description_for_pv[0:DESCRIPTION_LENGTH]
 
         if value is not None:
             pv_fields["value"] = value
@@ -418,7 +421,10 @@ class PVManager:
                                          interest="MEDIUM", value=value)
                 logger.info("Adding Constant {} with value {}".format(beamline_constant.name, beamline_constant.value))
                 beamline_constant_info.append(
-                    {"name": beamline_constant.name, "prepended_alias": prepended_alias, "type": "float_value"})
+                    {"name": beamline_constant.name,
+                     "prepended_alias": prepended_alias,
+                     "type": "float_value",
+                     "description": beamline_constant.description})
             except Exception as err:
                 STATUS_MANAGER.update_error_log("Error adding constant {}: {}".format(beamline_constant.name, err), err)
                 STATUS_MANAGER.update_active_problems(

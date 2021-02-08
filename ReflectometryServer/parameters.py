@@ -193,7 +193,7 @@ class BeamlineParameter:
     """
 
     def __init__(self, name, description=None, autosave=False, rbv_to_sp_tolerance=0.01,
-                 custom_function: Optional[Callable[[Any, Any], str]] = None):
+                 custom_function: Optional[Callable[[Any, Any], str]] = None, characteristic_value=""):
         """
         Initializer.
         Args:
@@ -202,6 +202,8 @@ class BeamlineParameter:
             autosave: True if the parameter should be autosaved on change and read on start; False otherwise
             rbv_to_sp_tolerance: tolerance between the sp and rbv over which a warning should be indicated
             custom_function: custom function to run on move
+            characteristic_value: PV which the user wants to group with this parameter; leave out for no value.
+                This should not include the instrument prefix, e.g. MOT:MTR0101
         """
         self._set_point = None
         self._set_point_rbv = None
@@ -221,6 +223,7 @@ class BeamlineParameter:
 
         self.define_current_value_as = None
         self._custom_function = custom_function
+        self.characteristic_value = characteristic_value
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
@@ -516,7 +519,7 @@ class AxisParameter(BeamlineParameter):
 
     def __init__(self, name: str, component: 'Component', axis: ChangeAxis, description: str = None,
                  autosave: bool = False, rbv_to_sp_tolerance: float = 0.002,
-                 custom_function: Optional[Callable[[Any, Any], str]] = None):
+                 custom_function: Optional[Callable[[Any, Any], str]] = None, characteristic_value=""):
         """
         Initialiser.
         Args:
@@ -528,11 +531,13 @@ class AxisParameter(BeamlineParameter):
             rbv_to_sp_tolerance: an error is reported if the difference between the read back value and setpoint
                 is larger than this value
             custom_function: custom function to run on move
+            characteristic_value: PV which the user wants to group with this parameter; leave out for no value.
+                This should not include the instrument prefix, e.g. MOT:MTR0101
         """
         if description is None:
             description = name
         super(AxisParameter, self).__init__(name, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance,
-                                            custom_function=custom_function)
+                                            custom_function=custom_function, characteristic_value=characteristic_value)
         self.component = component
         self.axis = axis
         if axis in [ChangeAxis.POSITION, ChangeAxis.ANGLE]:
