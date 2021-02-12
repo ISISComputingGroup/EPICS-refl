@@ -166,6 +166,14 @@ class BeamlineParameterGroup(Enum):
 
     @staticmethod
     def description(parameter_group):
+        """
+        Description of the parameter group
+        Args:
+            parameter_group: parameter group enum
+
+        Returns:
+            Description of group
+        """
         if parameter_group == BeamlineParameterGroup.ALL:
             return "All beamline parameters"
         elif parameter_group == BeamlineParameterGroup.COLLIMATION_PLANE:
@@ -550,6 +558,8 @@ class AxisParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self.component.beam_path_set_point.axis[self.axis].add_listener(InitUpdate,
                                                                             self._initialise_sp_from_motor)
+            self.component.beam_path_set_point.in_beam_manager.add_listener(InitUpdate,
+                                                                            self._initialise_sp_from_motor)
 
         self.component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         rbv_axis = self.component.beam_path_rbv.axis[self.axis]
@@ -574,9 +584,18 @@ class AxisParameter(BeamlineParameter):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
         """
-        if not self.component.beam_path_set_point.axis[self.axis].is_in_beam:
-            # If the axis is out of the beam the displacement should be set to 0
-            init_sp = 0.0
+        if not self.component.beam_path_set_point.in_beam_manager.get_is_in_beam():
+            autosave_val = self.component.beam_path_set_point.axis[self.axis].autosaved_value
+            if autosave_val is not None:
+                init_sp = autosave_val
+            else:
+                # If the axis is out of the beam and there is not autosave the displacement should be set to 0
+                init_sp = 0.0
+                STATUS_MANAGER.update_error_log("Parameter {} is parkable so should have an autosave value but "
+                                                "doesn't. Has been set to 0 check its value".format(self.name))
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Parameter has no autosave value", self.name, Severity.MAJOR_ALARM))
+            self.component.beam_path_set_point.axis[self.axis].set_relative_to_beam(init_sp)
         else:
             init_sp = self.component.beam_path_set_point.axis[self.axis].get_relative_to_beam()
 
@@ -601,7 +620,7 @@ class AxisParameter(BeamlineParameter):
             return False
 
         return not self.component.beam_path_set_point.axis[self.axis].is_in_beam or \
-               abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
+            abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
 
     def _get_alarm_info(self):
         """
@@ -669,7 +688,7 @@ class InBeamParameter(BeamlineParameter):
         sp_init = param_bool_autosave.read_parameter(self._name, None)
         if sp_init is not None:
             self._set_initial_sp(sp_init)
-            self._move_component()
+            self._component.beam_path_set_point.initialise_is_in_beam_from_file(self._set_point_rbv)
 
     def _initialise_sp_from_motor(self, _):
         """

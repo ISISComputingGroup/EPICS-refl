@@ -349,7 +349,7 @@ class Beamline:
         Updates the next component in the beamline.
 
         Args:
-            update(ReflectometryServer.beam_path_calc.BeamPathUpdateOnInit): Update event with source component of the
+            update(ReflectometryServer.beam_path_calc.BeamPathUpdate): Update event with source component of the
                 update (or None for source if change is not originating from a component)
             calc_path_list(List[ReflectometryServer.components.BeamPathCalc]): list of beam calcs order in the same
                 order as components
@@ -506,7 +506,7 @@ class Beamline:
     def _set_incoming_beam_can_change(self):
         """
         During initialisation if the there is a mode set then set the incoming beam can change flag on
-        all componented
+        all components
         """
         if self._active_mode is not None:
             mode_is_disabled = self._active_mode.is_disabled

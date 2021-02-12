@@ -1,7 +1,7 @@
 """
 Axis module, defining the position of a component. Contains associated events as well.
 """
-
+import logging
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
@@ -11,6 +11,8 @@ from ReflectometryServer.geometry import ChangeAxis
 from server_common.channel_access import AlarmStatus, AlarmSeverity
 from server_common.observable import observable
 
+logger = logging.getLogger(__name__)
+
 # Event that is triggered when the physical position of this component changes.
 PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", [
     "source"])  # The source of the beam path change. (the axis itself)
@@ -18,8 +20,14 @@ PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", [
 # Event that is triggered when the changing state of the axis is updated (i.e. it starts or stops moving)
 AxisChangingUpdate = namedtuple("AxisChangingUpdate", [])
 
-# Event that is triggered when the position or angle of the beam path calc gets an initial value.
-InitUpdate = namedtuple("InitUpdate", [])
+
+@dataclass()
+class InitUpdate:
+    """
+    Event that is triggered when the position or angle of the beam path calc gets an initial value.
+    """
+    pass
+
 
 # Event that happens when a value is redefine to a different value, e.g. offset is set from 2 to 3
 DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
@@ -78,6 +86,7 @@ class ComponentAxis(metaclass=ABCMeta):
         """
         self._is_changing = False
         self.autosaved_value = None
+        self.init_from_motor = 0
         self._is_changed = False
         self._is_in_beam = True
         self._axis = axis
@@ -365,7 +374,10 @@ class DirectCalcAxis(ComponentAxis):
         Args:
             motor_position (float): The motor position
         """
-        self._position = motor_position
+        self.init_from_motor = motor_position
+        if self.autosaved_value is None:
+            logger.debug(f"Setting {self._axis} initial value from motor to {motor_position}")
+            self._position = motor_position
         self.trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
 
 

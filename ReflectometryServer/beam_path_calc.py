@@ -27,7 +27,10 @@ class BeamPathUpdate:
     """
     Event that is triggered when the path of the beam has changed.
     """
-    source: 'TrackingBeamPathCalc'  # The source of the beam path change. (the beam path calc itself)
+    # The source of the beam path change. (the beam path calc itself);
+    # None for whole beamline
+    source: Optional['TrackingBeamPathCalc']
+
 
 
 @dataclass
@@ -57,8 +60,9 @@ class InBeamManager:
         self._name = name
         self._autosave_name = "{}_parking_index".format(name.replace(" ", "_"))
         # if there is no autosave we assume not parked but in beam may set this to end of park sequence
-        self.parking_index = parking_index_autosave.read_parameter(self._autosave_name, None)
+        self.parking_index = None
         self._parking_sequence_started = False
+        self.autosave = None
 
     def add_axes(self, axes: Dict[ChangeAxis, ComponentAxis]):
         """
@@ -93,16 +97,36 @@ class InBeamManager:
                 f"Beamline component {self._name} can not have parking sequences of different lengths, the axes are "
                 f"{[axis.get_name() for axis in self._parking_axes]}")
 
-        if not (self.parking_index is None or self.parking_index + 1 >= self._maximum_sequence_count):
+        auto_saved_parking_index = parking_index_autosave.read_parameter(self._autosave_name, None)
+        if not (auto_saved_parking_index is None or auto_saved_parking_index + 1 >= self._maximum_sequence_count):
             parking_index_autosave.write_parameter(self._autosave_name, None)  # Make it so refl ioc can start next time
-            raise BeamlineConfigurationParkAutosaveInvalidException(self._name, axis.get_name(), self.parking_index,
+            raise BeamlineConfigurationParkAutosaveInvalidException(self._name, axis.get_name(),
+                                                                    auto_saved_parking_index,
                                                                     self._maximum_sequence_count)
+
         axis.add_listener(AxisChangingUpdate, self._propagate_axis_event)
         axis.add_listener(AxisChangedUpdate, self._propagate_axis_event)
-        axis.add_listener(InitUpdate, self._propagate_axis_event)
+        axis.add_listener(InitUpdate, self._init_update)
         axis.add_listener(PhysicalMoveUpdate, self._propagate_axis_event)
 
+    def _init_update(self, event: InitUpdate):
+        """
+        Initialise the parking index when an axis is initialised
+        :param event: initialise event
+        """
+        if self.autosave or (self.autosave is None and self.get_is_in_beam()):
+            self.parking_index = None
+        else:
+            self.parking_index = self._maximum_sequence_count - 1
+        for axis in self._parking_axes:
+            axis.init_parking_index(self.parking_index)
+        self.trigger_listeners(event)
+
     def _propagate_axis_event(self, event):
+        """
+        Simply propagate event
+        :param event: event to propagate
+        """
         self.trigger_listeners(event)
 
     def get_is_in_beam(self):
@@ -110,6 +134,16 @@ class InBeamManager:
         Returns: the in beam status; in if any axis is in the beam or there are no axes to park
         """
         return any([axis.is_in_beam for axis in self._parking_axes]) or self._parking_axes == []
+
+    def initialise_is_in_beam_from_file(self, is_in_beam):
+        """
+        Initialise the is in beam from file
+        Args:
+            is_in_beam: True component is in beam; False otherwise
+        """
+        self.autosave = is_in_beam
+        for axis in self._parking_axes:
+            axis.is_in_beam = is_in_beam
 
     def set_is_in_beam(self, is_in_beam):
         """
@@ -124,21 +158,22 @@ class InBeamManager:
             if self.parking_index == self._maximum_sequence_count - 1:
                 if self._maximum_sequence_count < 2:
                     new_index = None
-                    logger.info(f"MOVE {self._name} to parking sequence 'in beam'")
+
                 else:
                     new_index = self._maximum_sequence_count - 2
-                    logger.info(f"MOVE {self._name} to parking sequence {new_index}")
+
                 self._update_parking_index(new_index)  # sequence 1 before last
             else:
-                logger.info(f"Set in beam but not set parking sequence")
+                logger.info(f"Set in beam; not set parking sequence is at {self.parking_index} "
+                            f"(vals None, 0-{self._maximum_sequence_count+1})")
 
         else:
             # if fully in the beam start out parking sequence
             if self.parking_index is None:
                 self._update_parking_index(0)
-                logger.info(f"MOVE {self._name} to parking sequence {0}")
             else:
-                logger.info(f"Set out of beam but not set parking sequence")
+                logger.info(f"Set out of beam; not set parking sequence is at {self.parking_index} "
+                            f"(vals None, 0-{self._maximum_sequence_count+1})")
         self._parking_sequence_started = True
 
     @property
@@ -182,9 +217,9 @@ class InBeamManager:
                     STATUS_MANAGER.update_error_log("Parking sequence error - the parking index is None but we are "
                                                     "parking the axis, this should not be possible")
                     STATUS_MANAGER.update_active_problems(
-                        ProblemInfo("Next park sequence triggered but manager is inbeam (report error)",
+                        ProblemInfo("Next park sequence triggered but manager is in beam (report error)",
                                     "InBeamManager", AlarmSeverity.MINOR_ALARM))
-                if self.parking_index + 1 != self._maximum_sequence_count:
+                if self.parking_index + 1 < self._maximum_sequence_count:
                     self._move_axis_to(self.parking_index + 1)
                 else:
                     self._parking_sequence_started = False
@@ -195,7 +230,8 @@ class InBeamManager:
         Args:
             new_parking_index: new index to move to
         """
-        logger.info(f"MOVE {self._name} to next parking sequence {new_parking_index}")
+        logger.info(f"MOVE {self._name} to next parking sequence {new_parking_index}  "
+                    f"(vals None, 0-{self._maximum_sequence_count+1})")
         self._update_parking_index(new_parking_index)
         for axis in self._parking_axes:
             axis.is_changed = True
@@ -207,6 +243,8 @@ class InBeamManager:
         Args:
             new_parking_index: parking index to set
         """
+        logger.info(f"MOVE {self._name} to parking sequence {new_parking_index} "
+                    f"(vals None, 0-{self._maximum_sequence_count+1})")
         self.parking_index = new_parking_index
         parking_index_autosave.write_parameter(self._autosave_name, self.parking_index)
 
@@ -269,7 +307,10 @@ class TrackingBeamPathCalc:
         Args:
             value(float): The motor position
         """
-        self._movement_strategy.set_displacement(value)
+        self.axis[ChangeAxis.POSITION].init_from_motor = value
+        if self.axis[ChangeAxis.POSITION].autosaved_value is None:
+            logger.debug(f"Setting {self._name} displacement initial value from motor to {value}")
+            self._movement_strategy.set_displacement(value)
         self.axis[ChangeAxis.POSITION].trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
 
     def set_incoming_beam(self, incoming_beam, force=False, on_init=False):
@@ -292,8 +333,6 @@ class TrackingBeamPathCalc:
             autosaved_value = self.axis[ChangeAxis.POSITION].autosaved_value
             if autosaved_value is not None:
                 self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, autosaved_value)
-            for axis in self.axis.values():
-                axis.trigger_listeners(InitUpdate())
             self.trigger_listeners(BeamPathUpdateOnInit(self))
         else:
             self.trigger_listeners(BeamPathUpdate(self))
@@ -426,10 +465,11 @@ class TrackingBeamPathCalc:
         """
         autosaved_value = self.axis[ChangeAxis.POSITION].autosaved_value
         if on_init and autosaved_value is not None:
-            offset = autosaved_value
+            init_from_motor = self.axis[ChangeAxis.POSITION].init_from_motor
+            intercept_displacement = init_from_motor - autosaved_value
         else:
             offset = self.axis[ChangeAxis.POSITION].get_relative_to_beam() or 0
-        intercept_displacement = self._get_displacement() - offset
+            intercept_displacement = self._get_displacement() - offset
         return self._movement_strategy.position_in_mantid_coordinates(intercept_displacement)
 
     @property
@@ -447,6 +487,16 @@ class TrackingBeamPathCalc:
             is_in_beam: True if set the component to be in the beam; False otherwise
         """
         self.in_beam_manager.set_is_in_beam(is_in_beam)
+        self.trigger_listeners(BeamPathUpdate(self))
+        for axis in self.axis.values():
+            axis.trigger_listeners(PhysicalMoveUpdate(axis))
+
+    def initialise_is_in_beam_from_file(self, is_in_beam):
+        """
+        Initialise the is in beam from file
+        :param is_in_beam: True component is in beam; False otherwise
+        """
+        self.in_beam_manager.initialise_is_in_beam_from_file(is_in_beam)
         self.trigger_listeners(BeamPathUpdate(self))
         for axis in self.axis.values():
             axis.trigger_listeners(PhysicalMoveUpdate(axis))
@@ -470,6 +520,9 @@ class TrackingBeamPathCalc:
                 incoming_beam = PositionAndAngle(0, 0, 0)
                 logger.error("Incoming beam was not initialised for component {}".format(self._name))
             self.set_incoming_beam(incoming_beam, force=True, on_init=True)
+            # re trigger on init specifically so that if this is the component theta depends on theta get reset
+            for axis in self.axis.values():
+                axis.trigger_listeners(InitUpdate())
 
     def __repr__(self):
         return f"{self._name}: {self.__class__.__name__} {id(self)}"
@@ -570,7 +623,10 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
         Args:
             angle(float): The angle read from the motor
         """
-        self._angular_displacement = angle
+        self.axis[ChangeAxis.ANGLE].init_from_motor = angle
+        if self.axis[ChangeAxis.ANGLE].autosaved_value is None:
+            logger.debug(f"Setting {self._name} angle initial value from motor to {angle}")
+            self._angular_displacement = angle
         self.axis[ChangeAxis.ANGLE].trigger_listeners(InitUpdate())
         if self._is_reflecting:
             self.trigger_listeners(BeamPathUpdateOnInit(self))
@@ -631,6 +687,8 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         readback_beam_path_calc.in_beam_manager.add_listener(PhysicalMoveUpdate, self._angle_update)
 
         setpoint_beam_path_calc.add_listener(BeamPathUpdate, self._angle_update)
+        setpoint_beam_path_calc.add_listener(BeamPathUpdateOnInit, self._angle_update)
+
         readback_beam_path_calc.in_beam_manager.add_listener(AxisChangingUpdate, self._on_is_changing_change)
 
     def _on_is_changing_change(self, _):
@@ -743,7 +801,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
     beam on the component it is pointing at when in disable mode. It will only change the beam if the component is in
     the beam.
     """
-    _angle_to: List[Tuple[TrackingBeamPathCalc, ChangeAxis]]
+    _angle_to: List[Tuple[TrackingBeamPathCalc, List[ChangeAxis]]]
 
     def __init__(self, name, movement_strategy):
         """
@@ -755,6 +813,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         super(BeamPathCalcThetaSP, self).__init__(name, movement_strategy, is_reflecting=True)
         self._angle_to = []
         self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
+        self._add_pre_trigger_function(BeamPathUpdateOnInit, self._set_incoming_beam_at_next_angled_to_component)
 
     def add_angle_to(self, beam_path_calc, axes):
         """
@@ -787,7 +846,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
             self._angular_displacement = self._incoming_beam.angle + autosaved_value
 
         self.axis[ChangeAxis.ANGLE].trigger_listeners(InitUpdate())
-        self.trigger_listeners(BeamPathUpdate(self))
+        self.trigger_listeners(BeamPathUpdateOnInit(self))
 
     def _calc_angle_from_next_component(self, incoming_beam):
         """
@@ -815,7 +874,8 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
                     # if there is an auto saved offset then take this off before calculating theta
                     offset = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].autosaved_value
                     if offset is not None:
-                        angle_of_outgoing_beam -= offset
+                        init_from_motor = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].init_from_motor
+                        angle_of_outgoing_beam = init_from_motor - offset
                 else:
                     raise RuntimeError("Can not set theta angle based on {} axis".format(axis))
 

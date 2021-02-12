@@ -6,10 +6,11 @@ from hamcrest import *
 from mock import patch, Mock
 from parameterized import parameterized
 
-from ReflectometryServer.axis import DirectCalcAxis, ParkingSequenceUpdate
+from ReflectometryServer.axis import DirectCalcAxis, ParkingSequenceUpdate, InitUpdate
 from ReflectometryServer.beam_path_calc import InBeamManager
 from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException
 from ReflectometryServer.geometry import ChangeAxis
+from ReflectometryServer.test_modules.utils import no_autosave
 
 
 class TestInBeamManager(unittest.TestCase):
@@ -60,7 +61,7 @@ class TestInBeamManager(unittest.TestCase):
     def test_GIVEN_in_beam_manager_with_one_axis_parking_starting_at_first_park_postion_WHEN_axis_finishing_sequence_THEN_beam_manager_sp_sequence_is_updated(self):
 
         current_parking_axis = 1
-        axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis, axis_park_indexs=[0])
+        axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis, axis_park_indexs=[0], axis_park_sequence_counts=[3])
 
         beam_manager_sp.set_is_in_beam(False)
         axis[0].parking_index = current_parking_axis
@@ -105,10 +106,10 @@ class TestInBeamManager(unittest.TestCase):
 
         assert_that(beam_manager_sp.parking_index, is_(None))
 
-    def test_GIVEN_in_beam_manager_with_one_axis_WHEN_axis_finishing_different_sequence_THEN_beam_manager_sp_sequence_is_not_updated(self):
+    def test_GIVEN_in_beam_manager_with_one_axis_WHEN_axis_finishing_at_different_sequence_index_THEN_beam_manager_sp_sequence_is_not_updated(self):
 
         current_parking_axis = 1
-        axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis)
+        axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis, axis_park_sequence_counts=[4])
 
         beam_manager_sp.set_is_in_beam(True)
         axis[0].parking_index = current_parking_axis + 1
@@ -117,16 +118,16 @@ class TestInBeamManager(unittest.TestCase):
 
     def test_GIVEN_in_beam_manager_with_one_axis_WHEN_axis_finishing_un_parked_THEN_beam_manager_sp_sequence_is_not_updated(self):
         current_parking_axis = 1
-        axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis)
+        axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis, axis_park_sequence_counts=[1])
 
-        axis[0].parking_index = None
+        axis[0].parking_index = current_parking_axis
 
         assert_that(beam_manager_sp.parking_index, is_(current_parking_axis))
 
     def test_GIVEN_in_beam_manager_with_two_axis_WHEN_one_axis_at_end_one_not_THEN_beam_manager_sp_sequence_is_not_updated(self):
         current_parking_axis = 0
         axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis, axis_park_indexs=[None, None],
-                                                         number_of_axes=2)
+                                                         number_of_axes=2, axis_park_sequence_counts=[2, 2])
 
         beam_manager_sp.set_is_in_beam(False)
         axis[0].parking_index = None
@@ -137,7 +138,7 @@ class TestInBeamManager(unittest.TestCase):
     def test_GIVEN_in_beam_manager_with_two_axis_WHEN_one_axis_at_end_one_not_other_way_round_THEN_beam_manager_sp_sequence_is_not_updated(self):
         current_parking_axis = 0
         axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis, axis_park_indexs=[None, None],
-                                                         number_of_axes=2)
+                                                         number_of_axes=2, axis_park_sequence_counts=[2, 2])
 
         beam_manager_sp.set_is_in_beam(False)
         axis[1].parking_index = None
@@ -145,9 +146,10 @@ class TestInBeamManager(unittest.TestCase):
 
         assert_that(beam_manager_sp.parking_index, is_(current_parking_axis))
 
+    @no_autosave
     def test_GIVEN_in_beam_manager_with_two_axis_WHEN_both_axis_at_end_THEN_beam_manager_sp_sequence_is_updated(self):
         current_parking_axis = 1
-        axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis, axis_park_indexs=[0, 0], number_of_axes=2)
+        axis, beam_manager_sp = self.set_up_beam_manager(current_parking_axis, axis_park_indexs=[0, 0], number_of_axes=2, axis_park_sequence_counts=[3, 3])
 
         beam_manager_sp.set_is_in_beam(False)
         axis[1].parking_index = current_parking_axis
@@ -204,6 +206,10 @@ class TestInBeamManager(unittest.TestCase):
         comp_name = "comp"
         expected_name = f"{comp_name}_parking_index"
         in_beam_manager = InBeamManager(comp_name)
+        axis = DirectCalcAxis(ChangeAxis.POSITION)
+        in_beam_manager.add_axes({ChangeAxis.POSITION: axis})
+        axis.park_sequence_count = 1
+        axis.trigger_listeners(InitUpdate())
 
         in_beam_manager.set_is_in_beam(False)
 
