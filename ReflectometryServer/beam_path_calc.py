@@ -466,9 +466,6 @@ class TrackingBeamPathCalc:
         autosaved_value = self.axis[ChangeAxis.POSITION].autosaved_value
         if on_init and autosaved_value is not None:
             init_from_motor = self.axis[ChangeAxis.POSITION].init_from_motor
-            # If this is before the motor is initialised then this will be called when it is and so we set it to 0
-            if init_from_motor is None:
-                init_from_motor = 0
             intercept_displacement = init_from_motor - autosaved_value
         else:
             offset = self.axis[ChangeAxis.POSITION].get_relative_to_beam() or 0
@@ -686,7 +683,6 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         # and add to beamline change of set point because no loop is created from the setpoint action
         for axis in axes:
             readback_beam_path_calc.axis[axis].add_listener(PhysicalMoveUpdate, self._angle_update)
-            readback_beam_path_calc.axis[axis].add_listener(AxisChangingUpdate, self._on_is_changing_change)
             readback_beam_path_calc.axis[axis].add_listener(AxisChangingUpdate, self._on_is_changing_change)
         readback_beam_path_calc.in_beam_manager.add_listener(PhysicalMoveUpdate, self._angle_update)
 

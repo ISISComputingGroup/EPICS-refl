@@ -86,7 +86,7 @@ class ComponentAxis(metaclass=ABCMeta):
         """
         self._is_changing = False
         self.autosaved_value = None
-        self.init_from_motor = None
+        self.init_from_motor = 0
         self._is_changed = False
         self._is_in_beam = True
         self._axis = axis
