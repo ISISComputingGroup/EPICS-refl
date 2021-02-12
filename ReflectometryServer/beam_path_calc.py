@@ -875,8 +875,6 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
                     offset = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].autosaved_value
                     if offset is not None:
                         init_from_motor = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].init_from_motor
-                        if init_from_motor is None:
-                            init_from_motor = 0
                         angle_of_outgoing_beam = init_from_motor - offset
                 else:
                     raise RuntimeError("Can not set theta angle based on {} axis".format(axis))
