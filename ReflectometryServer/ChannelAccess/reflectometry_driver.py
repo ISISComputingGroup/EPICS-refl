@@ -20,7 +20,7 @@ from ReflectometryServer.footprint_manager import FootprintSort
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
 from ReflectometryServer.parameters import BeamlineParameterGroup, ParameterReadbackUpdate, \
     ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate, ParameterChangingUpdate, ParameterInitUpdate, \
-    ParameterUpdateBase, BeamlineParameterType
+    ParameterUpdateBase, BeamlineParameterType, ParameterActiveUpdate
 from server_common.loggers.isis_logger import IsisPutLog
 
 logger = logging.getLogger(__name__)
@@ -256,6 +256,8 @@ class ReflectometryDriver(Driver):
                 parameter.add_listener(ParameterChangingUpdate, partial(self._update_binary_listener, pv_name))
             if param_sort == PvSort.RBV_AT_SP:
                 parameter.add_listener(ParameterAtSetpointUpdate, partial(self._update_binary_listener, pv_name))
+            if param_sort == PvSort.ACTIVE:
+                parameter.add_listener(ParameterActiveUpdate, partial(self._update_binary_listener, pv_name))
 
     def _update_binary_listener(self, pv_name, update):
         self.setParam(pv_name, update.value)

@@ -93,6 +93,7 @@ class PvSort(Enum):
     CHANGING = 8
     RBV_AT_SP = 9
     DEFINE_POS_AS = 10
+    ACTIVE = 11
 
     @staticmethod
     def what(pv_sort):
@@ -122,6 +123,8 @@ class PvSort(Enum):
             return "(Tolerance between RBV and target set point)"
         elif pv_sort == PvSort.DEFINE_POS_AS:
             return "(Define the value of current position)"
+        elif pv_sort == PvSort.ACTIVE:
+            return "(Is active)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -163,6 +166,8 @@ class PvSort(Enum):
                 value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
             else:
                 value = parameter.define_current_value_as.new_value
+        elif self == PvSort.ACTIVE:
+            value = parameter.is_active
         else:
             value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
             STATUS_MANAGER.update_error_log("PVSort not understood {}".format(PvSort))

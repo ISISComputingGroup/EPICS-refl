@@ -39,6 +39,14 @@ class BeamPathUpdateOnInit:
     source: 'TrackingBeamPathCalc'  # The source of the beam path change. (the beam path calc itself)
 
 
+@dataclass
+class ComponentInBeamUpdate:
+    """
+    Event that is triggered when the in beam status of a component has changed.
+    """
+    value: bool
+
+
 @observable(InitUpdate, AxisChangingUpdate, AxisChangedUpdate, PhysicalMoveUpdate, ParkingSequenceUpdate)
 class InBeamManager:
     """
@@ -218,7 +226,7 @@ class InBeamManager:
             self.trigger_listeners(ParkingSequenceUpdate(all_axis_parking_indexes.pop()))
 
 
-@observable(BeamPathUpdate, BeamPathUpdateOnInit)
+@observable(BeamPathUpdate, BeamPathUpdateOnInit, ComponentInBeamUpdate)
 class TrackingBeamPathCalc:
     """
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
@@ -448,6 +456,7 @@ class TrackingBeamPathCalc:
         """
         self.in_beam_manager.set_is_in_beam(is_in_beam)
         self.trigger_listeners(BeamPathUpdate(self))
+        self.trigger_listeners(ComponentInBeamUpdate(is_in_beam))
         for axis in self.axis.values():
             axis.trigger_listeners(PhysicalMoveUpdate(axis))
 

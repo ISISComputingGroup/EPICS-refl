@@ -83,6 +83,7 @@ SET_AND_NO_ACTION_SUFFIX = ":SP_NO_ACTION"
 RBV_AT_SP = ":RBV:AT_SP"
 CHANGING = ":CHANGING"
 CHANGED_SUFFIX = ":CHANGED"
+ACTIVE_SUFFIX = ":ACTIVE"
 DEFINE_POSITION_AS = ":DEFINE_POSITION_AS"
 
 VAL_FIELD = ".VAL"
@@ -91,7 +92,7 @@ SEVR_FIELD = ".SEVR"
 DESC_FIELD = ".DESC"
 
 ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX, SET_AND_NO_ACTION_SUFFIX,
-                      CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP]
+                      CHANGED_SUFFIX, ACTIVE_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP]
 
 CONST_PREFIX = "CONST"
 
@@ -298,6 +299,10 @@ class PVManager:
         # RBV to SP:RBV tolerance
         self._add_pv_with_fields(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
                                  PvSort.RBV_AT_SP)
+
+        # RBV to SP:RBV tolerance
+        self._add_pv_with_fields(prepended_alias + ACTIVE_SUFFIX, param_name, PARAM_FIELDS_BINARY, description,
+                                 PvSort.ACTIVE)
 
         # define position at
         if parameter.define_current_value_as is not None:

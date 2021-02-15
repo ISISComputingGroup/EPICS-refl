@@ -13,7 +13,8 @@ if TYPE_CHECKING:
     from ReflectometryServer.ioc_driver import IocDriver
     from ReflectometryServer.components import Component
 
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate, \
+    ComponentInBeamUpdate
 from ReflectometryServer.exceptions import ParameterNotInitializedException
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave, param_string_autosave
 import logging
@@ -80,6 +81,14 @@ class ParameterAtSetpointUpdate:
 class ParameterChangingUpdate:
     """
     An update of the parameter is-changing state
+    """
+    value: bool  # The new state
+
+
+@dataclass
+class ParameterActiveUpdate:
+    """
+    An update of the parameters is-active state
     """
     value: bool  # The new state
 
@@ -184,7 +193,7 @@ class BeamlineParameterGroup(Enum):
 
 
 @observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate,
-            ParameterChangingUpdate, ParameterInitUpdate, RequestMoveEvent)
+            ParameterChangingUpdate, ParameterActiveUpdate, ParameterInitUpdate, RequestMoveEvent)
 @six.add_metaclass(abc.ABCMeta)
 class BeamlineParameter:
     """
@@ -197,7 +206,7 @@ class BeamlineParameter:
         """
         Initializer.
         Args:
-            name: Name of the enabled parameter
+            name: Name of the parameter
             description: description
             autosave: True if the parameter should be autosaved on change and read on start; False otherwise
             rbv_to_sp_tolerance: tolerance between the sp and rbv over which a warning should be indicated
@@ -210,6 +219,7 @@ class BeamlineParameter:
 
         self._sp_is_changed = False
         self._name = name
+        self._is_active = True
         self.alarm_status = None
         self.alarm_severity = None
         self.parameter_type = BeamlineParameterType.FLOAT
@@ -297,8 +307,9 @@ class BeamlineParameter:
         self._sp_no_move(set_point)
 
     def _sp_no_move(self, set_point):
-        self._set_point = set_point
-        self._sp_is_changed = True
+        if self._is_active:
+            self._set_point = set_point
+            self._sp_is_changed = True
 
     @property
     def sp(self):
@@ -511,6 +522,22 @@ class BeamlineParameter:
         STATUS_MANAGER.update_active_problems(ProblemInfo("Parameter autosave value has unexpected type", self.name,
                                               Severity.MINOR_ALARM))
 
+    @property
+    def is_active(self):
+        """
+        Returns: Whether this parameter is currently active (i.e. settable)
+        """
+        return self._is_active
+
+    @is_active.setter
+    def is_active(self, value: bool):
+        """
+        Args:
+             value: Whether this parameter is currently active (i.e. settable)
+        """
+        self._is_active = value
+        self.trigger_listeners(ParameterActiveUpdate(value))
+
 
 class AxisParameter(BeamlineParameter):
     """
@@ -559,6 +586,17 @@ class AxisParameter(BeamlineParameter):
         if rbv_axis.can_define_axis_position_as:
             self.define_current_value_as = DefineCurrentValueAsParameter(rbv_axis.define_axis_position_as,
                                                                          self._set_sp_perform_no_move, self)
+        self.component.beam_path_set_point.add_listener(ComponentInBeamUpdate, self._on_update_in_beam_state)
+
+    def _on_update_in_beam_state(self, update: ComponentInBeamUpdate):
+        """
+        Trigger an update on this parameters is-active state after a change in the component's in-beam status.
+
+        Args:
+            update: The update event
+        """
+        self.is_active = update.value
+        self.trigger_listeners(ParameterActiveUpdate(self.is_active))
 
     def _initialise_sp_from_file(self):
         """
@@ -640,8 +678,8 @@ class InBeamParameter(BeamlineParameter):
         """
         Initializer.
         Args:
-            name: Name of the enabled parameter
-            component: the component to be enabled or disabled
+            name: Name of the in-beam parameter
+            component: the component to be moved in or out of the beam
             autosave: True if the parameter should be autosaved on change and read on start; False otherwise
             description: description
             custom_function: custom function to run on move
