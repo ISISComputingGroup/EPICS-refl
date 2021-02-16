@@ -8,7 +8,6 @@ import time
 from functools import partial
 
 import six
-from contextlib2 import contextmanager
 from pcaspy import Severity
 
 from ReflectometryServer.server_status_manager import ProblemInfo, STATUS_MANAGER
@@ -17,6 +16,7 @@ from ReflectometryServer.file_io import velocity_float_autosave, velocity_bool_a
 import logging
 
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
+from server_common.helpers import motor_in_set_mode
 from server_common.observable import observable
 
 # Time between monitor update processing to allow for multiple monitors to be collected together providing a single
@@ -567,36 +567,6 @@ class PVWrapper:
             new_position: position to move to
         """
 
-    @contextmanager
-    def _motor_in_set_mode(self, motor_pv):
-        """
-        Uses a context to place motor into set mode and ensure that it leaves set mode after context has ended. If it
-        can not set the mode correctly will not run the yield.
-        Args:
-            motor_pv: motor pv on which to set the mode
-
-        Returns:
-        """
-
-        calibration_set_pv = "{}.SET".format(motor_pv)
-        offset_freeze_switch_pv = "{}.FOFF".format(motor_pv)
-
-        try:
-            self._write_pv_with_retry(calibration_set_pv, "Set")
-            offset_freeze_switch = self._read_pv(offset_freeze_switch_pv)
-            self._write_pv_with_retry(offset_freeze_switch_pv, "Frozen")
-        except IOError as ex:
-            raise ValueError("Can not set motor set and frozen offset mode: {}".format(ex))
-
-        try:
-            yield
-        finally:
-            try:
-                self._write_pv_with_retry(calibration_set_pv, "Use")
-                self._write_pv_with_retry(offset_freeze_switch_pv, offset_freeze_switch)
-            except IOError as ex:
-                raise ValueError("Can not reset motor set and frozen offset mode: {}".format(ex))
-
 
 class MotorPVWrapper(PVWrapper):
     """
@@ -640,7 +610,7 @@ class MotorPVWrapper(PVWrapper):
             new_position: position to move to
         """
         try:
-            with self._motor_in_set_mode(self._prefixed_pv):
+            with motor_in_set_mode(self._prefixed_pv):
                 self._write_pv_with_retry(self._sp_pv, new_position)
         except ValueError as ex:
             STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex), ex)
@@ -805,7 +775,7 @@ class JawsAxisPVWrapper(PVWrapper):
                 sp = self._read_pv("{}".format(motor))
                 logger.info("    Motor {name} initially at rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
 
-            with self._motor_in_set_mode(mtr1), self._motor_in_set_mode(mtr2):
+            with motor_in_set_mode(mtr1), motor_in_set_mode(mtr2):
                 # Ensure the position has been redefined before leaving the "Set" context, otherwise the motor moves
                 self._write_pv_with_retry(self._sp_pv, new_position)
 
