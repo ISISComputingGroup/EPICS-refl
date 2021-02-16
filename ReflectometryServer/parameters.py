@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate, \
     ComponentInBeamUpdate
-from ReflectometryServer.exceptions import ParameterNotInitializedException
+from ReflectometryServer.exceptions import ParameterNotInitializedException, ParameterInactiveException
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave, param_string_autosave
 import logging
 
@@ -304,12 +304,14 @@ class BeamlineParameter:
         Args:
             set_point: the set point
         """
-        self._sp_no_move(set_point)
+        if self._is_active:
+            self._sp_no_move(set_point)
+        else:
+            raise ParameterInactiveException("Parameter is inactive (component is out of beam)")
 
     def _sp_no_move(self, set_point):
-        if self._is_active:
-            self._set_point = set_point
-            self._sp_is_changed = True
+        self._set_point = set_point
+        self._sp_is_changed = True
 
     @property
     def sp(self):
@@ -320,13 +322,16 @@ class BeamlineParameter:
         return self._set_point
 
     @sp.setter
-    def sp(self, value):
+    def sp(self, set_point):
         """
         Set the set point and move to it.
         Args:
-            value: new set point
+            set_point: new set point
         """
-        self._set_sp(value)
+        if self._is_active:
+            self._set_sp(set_point)
+        else:
+            raise ParameterInactiveException("Parameter is inactive (component is out of beam)")
 
     def _set_sp_perform_no_move(self, value):
         """
@@ -572,12 +577,30 @@ class AxisParameter(BeamlineParameter):
         else:
             self.group_names.append(BeamlineParameterGroup.MISC)
 
+        self._initialise_setpoint()
+        self._initialise_beam_path_sp_listeners()
+        self._initialise_beam_path_rbv_listeners()
+
+    def _initialise_setpoint(self):
+        """
+        Initialise the setpoint value for this parameter.
+        """
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
-            self.component.beam_path_set_point.axis[self.axis].add_listener(InitUpdate,
-                                                                            self._initialise_sp_from_motor)
+            self.component.beam_path_set_point.axis[self.axis].add_listener(InitUpdate, self._initialise_sp_from_motor)
 
+    def _initialise_beam_path_sp_listeners(self):
+        """
+        Add listeners to the setpoint beam path calc.
+        """
+        self.component.beam_path_set_point.add_listener(ComponentInBeamUpdate, self._on_update_in_beam_state)
+        self.is_active = self.component.beam_path_set_point.is_in_beam
+
+    def _initialise_beam_path_rbv_listeners(self):
+        """
+        Add listeners to the readback beam path calc.
+        """
         self.component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         rbv_axis = self.component.beam_path_rbv.axis[self.axis]
         rbv_axis.add_listener(AxisChangingUpdate, self._on_update_changing_state)
@@ -586,7 +609,6 @@ class AxisParameter(BeamlineParameter):
         if rbv_axis.can_define_axis_position_as:
             self.define_current_value_as = DefineCurrentValueAsParameter(rbv_axis.define_axis_position_as,
                                                                          self._set_sp_perform_no_move, self)
-        self.component.beam_path_set_point.add_listener(ComponentInBeamUpdate, self._on_update_in_beam_state)
 
     def _on_update_in_beam_state(self, update: ComponentInBeamUpdate):
         """
@@ -596,7 +618,6 @@ class AxisParameter(BeamlineParameter):
             update: The update event
         """
         self.is_active = update.value
-        self.trigger_listeners(ParameterActiveUpdate(self.is_active))
 
     def _initialise_sp_from_file(self):
         """

@@ -301,7 +301,7 @@ class TestBeamlineValidation(unittest.TestCase):
         except BeamlineConfigurationInvalidException:
             assert_that(True, is_(False), "Beamline construction raised unexpected error")
 
-    def test_GIVEN_beamline_with_POSITION_parameter_before_LONG_AXIS_WHEN_construct_THEN_error(self):
+    def test_GIVEN_beamline_with_POSITION_driver_before_LONG_AXIS_WHEN_construct_THEN_error(self):
         mode = BeamlineMode("mode", [])
         component = TiltingComponent("comp", PositionAndAngle(0, 0, 90))
         motor_axis = [create_mock_axis("axis_1", 0, 0),

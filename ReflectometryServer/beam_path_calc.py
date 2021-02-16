@@ -320,6 +320,7 @@ class TrackingBeamPathCalc:
 
     def _on_in_beam_status_update(self, _):
         self.trigger_listeners(BeamPathUpdate(self))
+        self.trigger_listeners(ComponentInBeamUpdate(self.is_in_beam))
 
     def _on_long_axis_change(self, displacement):
         """

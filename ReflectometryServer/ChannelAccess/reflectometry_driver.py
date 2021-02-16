@@ -170,7 +170,7 @@ class ReflectometryDriver(Driver):
                 self._update_param_both_pv_and_pv_val(reason, value)
                 self.update_monitors()
         except Exception as e:
-            STATUS_MANAGER.update_error_log("PV Value {} rejected by server for {}.".format(value, reason), e)
+            STATUS_MANAGER.update_error_log("PV Value {} for PV {} rejected by server: {}".format(value, reason, e), e)
             STATUS_MANAGER.update_active_problems(ProblemInfo("PV Value rejected by server.", reason,
                                                               Severity.MINOR_ALARM))
             value_accepted = False
