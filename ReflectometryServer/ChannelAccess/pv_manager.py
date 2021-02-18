@@ -90,8 +90,9 @@ STAT_FIELD = ".STAT"
 SEVR_FIELD = ".SEVR"
 DESC_FIELD = ".DESC"
 DISP_FIELD = ".DISP"
+EGU_FIELD = ".EGU"
 
-ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DISP_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX, SET_AND_NO_ACTION_SUFFIX,
+ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DISP_FIELD, EGU_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX, SET_AND_NO_ACTION_SUFFIX,
                       CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP]
 
 CONST_PREFIX = "CONST"
@@ -258,6 +259,7 @@ class PVManager:
         """
         param_name = parameter.name
         description = parameter.description
+        engineering_unit = parameter.engineering_unit
         param_alias = create_pv_name(param_name, list(self.PVDB.keys()), PARAM_PREFIX, limit=10)
         prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
 
@@ -307,6 +309,11 @@ class PVManager:
             align_fields["asg"] = "MANAGER"
             self._add_pv_with_fields(prepended_alias + DEFINE_POSITION_AS, param_name, align_fields, description,
                                      PvSort.DEFINE_POS_AS)
+
+        # Engineering Unit
+        egu_fields = STANDARD_2048_CHAR_WF_FIELDS.copy()
+        egu_fields["value"] = parameter.engineering_unit
+        self.PVDB[prepended_alias + EGU_FIELD] = egu_fields
 
         return {"name": param_name,
                 "prepended_alias": prepended_alias,

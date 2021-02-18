@@ -220,6 +220,7 @@ class BeamlineParameter:
         self._sp_is_changed = False
         self._name = name
         self._is_disabled = False
+        self.engineering_unit = ""
         self.alarm_status = None
         self.alarm_severity = None
         self.parameter_type = BeamlineParameterType.FLOAT
@@ -577,6 +578,11 @@ class AxisParameter(BeamlineParameter):
         else:
             self.group_names.append(BeamlineParameterGroup.MISC)
 
+        if axis in [ChangeAxis.ANGLE, ChangeAxis.PHI, ChangeAxis.PSI, ChangeAxis.CHI]:
+            self.engineering_unit = "deg"
+        else:
+            self.engineering_unit = "mm"
+
         self._initialise_setpoint()
         self._initialise_beam_path_sp_listeners()
         self._initialise_beam_path_rbv_listeners()
@@ -913,6 +919,7 @@ class SlitGapParameter(DirectParameter):
         """
         super(SlitGapParameter, self).__init__(name, pv_wrapper, description, autosave,
                                                rbv_to_sp_tolerance=rbv_to_sp_tolerance, custom_function=custom_function)
+        self.engineering_unit = "mm"
 
         if pv_wrapper.is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
