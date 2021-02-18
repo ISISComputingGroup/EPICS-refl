@@ -163,6 +163,10 @@ class _ServerStatusManager:
         Updates the active problems known to the status manager. If the problem is already known, it just appends the
         new source.
 
+        If problems are the same they should have the same description where possible but different sources
+        in the front end the status box can read XXX problem (X times). Instead of listing the same problem X times and
+        hiding other issues. Full error is found in the log tab.
+
         Params:
             problem(ProblemInfo): The problem to add
         """
