@@ -83,16 +83,16 @@ SET_AND_NO_ACTION_SUFFIX = ":SP_NO_ACTION"
 RBV_AT_SP = ":RBV:AT_SP"
 CHANGING = ":CHANGING"
 CHANGED_SUFFIX = ":CHANGED"
-ACTIVE_SUFFIX = ":ACTIVE"
 DEFINE_POSITION_AS = ":DEFINE_POSITION_AS"
 
 VAL_FIELD = ".VAL"
 STAT_FIELD = ".STAT"
 SEVR_FIELD = ".SEVR"
 DESC_FIELD = ".DESC"
+DISP_FIELD = ".DISP"
 
-ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX, SET_AND_NO_ACTION_SUFFIX,
-                      CHANGED_SUFFIX, ACTIVE_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP]
+ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DISP_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX, SET_AND_NO_ACTION_SUFFIX,
+                      CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP]
 
 CONST_PREFIX = "CONST"
 
@@ -108,6 +108,7 @@ PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_FIELDS_ACTION = {'type': 'int', 'count': 1, 'value': 0}
 STANDARD_2048_CHAR_WF_FIELDS = {'type': 'char', 'count': 2048, 'value': ""}
+STANDARD_DISP_FIELDS = {'type': 'enum', 'enums': ["NO", "YES"], 'value': 0}
 ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStringsTruncated}
 ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
 
@@ -300,10 +301,6 @@ class PVManager:
         self._add_pv_with_fields(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
                                  PvSort.RBV_AT_SP)
 
-        # RBV to SP:RBV tolerance
-        self._add_pv_with_fields(prepended_alias + ACTIVE_SUFFIX, param_name, PARAM_FIELDS_BINARY, description,
-                                 PvSort.ACTIVE)
-
         # define position at
         if parameter.define_current_value_as is not None:
             align_fields = STANDARD_FLOAT_PV_FIELDS.copy()
@@ -330,6 +327,7 @@ class PVManager:
             archive: True if it should be archived
             interest: level of interest; None is not interesting
             alarm: True if this pv represents the alarm state of the IOC; false otherwise
+            on_init: True if this PV is added at the start of server initialisation
 
         Returns:
 
@@ -357,6 +355,7 @@ class PVManager:
         self.PVDB[pv_name + DESC_FIELD] = {'type': 'string', 'value': pv_fields[PV_DESCRIPTION_NAME]}
         self.PVDB[pv_name + STAT_FIELD] = ALARM_STAT_PV_FIELDS.copy()
         self.PVDB[pv_name + SEVR_FIELD] = ALARM_SEVR_PV_FIELDS.copy()
+        self.PVDB[pv_name + DISP_FIELD] = STANDARD_DISP_FIELDS.copy()
 
         if param_name is not None:
             self._params_pv_lookup[pv_name] = (param_name, sort)
@@ -366,6 +365,7 @@ class PVManager:
             self.initial_PVs.append(pv_name + VAL_FIELD)
             self.initial_PVs.append(pv_name + STAT_FIELD)
             self.initial_PVs.append(pv_name + SEVR_FIELD)
+            self.initial_PVs.append(pv_name + DISP_FIELD)
 
     def get_init_filtered_pvdb(self):
         """
@@ -503,7 +503,7 @@ class PVManager:
 
         Returns: The PV name with any of the known field suffixes stripped off the end.
         """
-        for field in [VAL_FIELD, STAT_FIELD, SEVR_FIELD]:
+        for field in [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DISP_FIELD]:
             pv_name = remove_from_end(pv_name, field)
         return pv_name
 
@@ -537,3 +537,13 @@ class PVManager:
         Returns: True if this is an alarm severity pv
         """
         return pv_name.endswith(SEVR_FIELD)
+
+    @staticmethod
+    def is_disable_field(pv_name):
+        """
+        Args:
+            pv_name: name of the pv
+
+        Returns: True if this is an alarm severity pv
+        """
+        return pv_name.endswith(DISP_FIELD)

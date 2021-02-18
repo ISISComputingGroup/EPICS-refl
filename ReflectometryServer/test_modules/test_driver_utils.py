@@ -46,8 +46,7 @@ class TestDriverUtils(unittest.TestCase):
                                                 ("{}:SP_NO_ACTION".format(pvname), index_of_opt1, AlarmSeverity.No, AlarmSeverity.No),
                                                 ("{}:CHANGED".format(pvname), False, AlarmSeverity.No, AlarmSeverity.No),
                                                 ("{}:ACTION".format(pvname), 0, AlarmSeverity.No, AlarmSeverity.No),
-                                                ("{}:RBV:AT_SP".format(pvname), True, AlarmSeverity.No, AlarmSeverity.No),
-                                                ("{}:ACTIVE".format(pvname), True, AlarmSeverity.No, AlarmSeverity.No)
+                                                ("{}:RBV:AT_SP".format(pvname), True, AlarmSeverity.No, AlarmSeverity.No)
                                                 ))
 
     def test_GIVEN_enum_param_WHEN_update_event_processed_using_get_param_update_from_event_THEN_fields_(self):

@@ -13,14 +13,14 @@ from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, RE
 from ReflectometryServer.ChannelAccess.driver_utils import DriverParamHelper
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, is_pv_name_this_field, BEAMLINE_MODE, VAL_FIELD, \
     SERVER_STATUS, SERVER_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
-    IN_MODE_SUFFIX, SERVER_ERROR_LOG, SAMPLE_LENGTH, REAPPLY_MODE_INITS, BEAMLINE_MOVE
+    IN_MODE_SUFFIX, SERVER_ERROR_LOG, SAMPLE_LENGTH, REAPPLY_MODE_INITS, BEAMLINE_MOVE, DISP_FIELD
 from ReflectometryServer.beamline import ActiveModeUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, StatusUpdate, ProblemInfo, ErrorLogUpdate
 from ReflectometryServer.footprint_manager import FootprintSort
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
 from ReflectometryServer.parameters import BeamlineParameterGroup, ParameterReadbackUpdate, \
     ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate, ParameterChangingUpdate, ParameterInitUpdate, \
-    ParameterUpdateBase, BeamlineParameterType, ParameterActiveUpdate
+    ParameterUpdateBase, BeamlineParameterType, ParameterDisabledUpdate
 from server_common.loggers.isis_logger import IsisPutLog
 
 logger = logging.getLogger(__name__)
@@ -249,6 +249,10 @@ class ReflectometryDriver(Driver):
             if param_sort == PvSort.RBV:
                 parameter.add_listener(ParameterReadbackUpdate, partial(self._update_param_listener,
                                                                         pv_name, parameter.parameter_type))
+                # DISP field is only on base pv
+                parameter.add_listener(ParameterDisabledUpdate,
+                                       partial(self._update_param_disabled, pv_name + DISP_FIELD))
+
             if param_sort == PvSort.SP_RBV:
                 parameter.add_listener(ParameterSetpointReadbackUpdate, partial(self._update_param_listener,
                                                                                 pv_name, parameter.parameter_type))
@@ -256,13 +260,15 @@ class ReflectometryDriver(Driver):
                 parameter.add_listener(ParameterChangingUpdate, partial(self._update_binary_listener, pv_name))
             if param_sort == PvSort.RBV_AT_SP:
                 parameter.add_listener(ParameterAtSetpointUpdate, partial(self._update_binary_listener, pv_name))
-            if param_sort == PvSort.ACTIVE:
-                parameter.add_listener(ParameterActiveUpdate, partial(self._update_binary_listener, pv_name))
 
     def _update_binary_listener(self, pv_name, update):
         self.setParam(pv_name, update.value)
         for pv in self._pv_manager.get_all_pvs_for_param(pv_name):
             self.updatePV(pv)
+
+    def _update_param_disabled(self, pv_name, update):
+        self.setParam(pv_name, update.value)
+        self.updatePV(pv_name)
 
     def _on_bl_mode_change(self, mode_update):
         """

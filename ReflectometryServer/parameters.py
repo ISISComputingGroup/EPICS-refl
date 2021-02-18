@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate, \
     ComponentInBeamUpdate
-from ReflectometryServer.exceptions import ParameterNotInitializedException, ParameterInactiveException
+from ReflectometryServer.exceptions import ParameterNotInitializedException, ParameterDisabledException
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave, param_string_autosave
 import logging
 
@@ -86,9 +86,9 @@ class ParameterChangingUpdate:
 
 
 @dataclass
-class ParameterActiveUpdate:
+class ParameterDisabledUpdate:
     """
-    An update of the parameters is-active state
+    An update of the parameters is-disabled state
     """
     value: bool  # The new state
 
@@ -193,7 +193,7 @@ class BeamlineParameterGroup(Enum):
 
 
 @observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate,
-            ParameterChangingUpdate, ParameterActiveUpdate, ParameterInitUpdate, RequestMoveEvent)
+            ParameterChangingUpdate, ParameterDisabledUpdate, ParameterInitUpdate, RequestMoveEvent)
 @six.add_metaclass(abc.ABCMeta)
 class BeamlineParameter:
     """
@@ -219,7 +219,7 @@ class BeamlineParameter:
 
         self._sp_is_changed = False
         self._name = name
-        self._is_active = True
+        self._is_disabled = False
         self.alarm_status = None
         self.alarm_severity = None
         self.parameter_type = BeamlineParameterType.FLOAT
@@ -304,10 +304,10 @@ class BeamlineParameter:
         Args:
             set_point: the set point
         """
-        if self._is_active:
+        if not self._is_disabled:
             self._sp_no_move(set_point)
         else:
-            raise ParameterInactiveException("Parameter is inactive (component is out of beam)")
+            raise ParameterDisabledException("Parameter is disabled (component is out of beam)")
 
     def _sp_no_move(self, set_point):
         self._set_point = set_point
@@ -328,10 +328,10 @@ class BeamlineParameter:
         Args:
             set_point: new set point
         """
-        if self._is_active:
+        if not self._is_disabled:
             self._set_sp(set_point)
         else:
-            raise ParameterInactiveException("Parameter is inactive (component is out of beam)")
+            raise ParameterDisabledException("Parameter is disabled (component is out of beam)")
 
     def _set_sp_perform_no_move(self, value):
         """
@@ -528,20 +528,20 @@ class BeamlineParameter:
                                               Severity.MINOR_ALARM))
 
     @property
-    def is_active(self):
+    def is_disabled(self):
         """
         Returns: Whether this parameter is currently active (i.e. settable)
         """
-        return self._is_active
+        return self._is_disabled
 
-    @is_active.setter
-    def is_active(self, value: bool):
+    @is_disabled.setter
+    def is_disabled(self, value: bool):
         """
         Args:
              value: Whether this parameter is currently active (i.e. settable)
         """
-        self._is_active = value
-        self.trigger_listeners(ParameterActiveUpdate(value))
+        self._is_disabled = value
+        self.trigger_listeners(ParameterDisabledUpdate(value))
 
 
 class AxisParameter(BeamlineParameter):
@@ -595,7 +595,7 @@ class AxisParameter(BeamlineParameter):
         Add listeners to the setpoint beam path calc.
         """
         self.component.beam_path_set_point.add_listener(ComponentInBeamUpdate, self._on_update_in_beam_state)
-        self.is_active = self.component.beam_path_set_point.is_in_beam
+        self.is_disabled = not self.component.beam_path_set_point.is_in_beam
 
     def _initialise_beam_path_rbv_listeners(self):
         """
@@ -612,12 +612,12 @@ class AxisParameter(BeamlineParameter):
 
     def _on_update_in_beam_state(self, update: ComponentInBeamUpdate):
         """
-        Trigger an update on this parameters is-active state after a change in the component's in-beam status.
+        Trigger an update on this parameters is-disabled state after a change in the component's in-beam status.
 
         Args:
             update: The update event
         """
-        self.is_active = update.value
+        self.is_disabled = not update.value
 
     def _initialise_sp_from_file(self):
         """

@@ -25,7 +25,7 @@ class ParameterNotInitializedException(Exception):
         return self.message
 
 
-class ParameterInactiveException(Exception):
+class ParameterDisabledException(Exception):
     """
     Exception for when a parameter is not active.
     """

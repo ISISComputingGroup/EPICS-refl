@@ -417,25 +417,25 @@ class TestBeamlineModes(unittest.TestCase):
 
         assert_that(s4.beam_path_set_point.position_in_mantid_coordinates().y, is_(s4_height_initial))
 
-    def test_GIVEN_component_in_beam_sp_rbv_is_out_for_setpoint_beam_path_THEN_axis_param_is_inactive(self):
+    def test_GIVEN_component_in_beam_sp_rbv_is_out_for_setpoint_beam_path_THEN_axis_param_is_disabled(self):
         in_beam = False
-        expected = False
-        component = Component("test_comp", setup=PositionAndAngle(0, 0, 90))
-        param = AxisParameter("param", component, ChangeAxis.POSITION)
-
-        component.beam_path_set_point.is_in_beam = in_beam
-        actual = param.is_active
-
-        assert_that(actual, is_(expected))
-
-    def test_GIVEN_component_in_beam_sp_rbv_is_in_for_setpoint_beam_path_THEN_axis_param_is_active(self):
-        in_beam = True
         expected = True
         component = Component("test_comp", setup=PositionAndAngle(0, 0, 90))
         param = AxisParameter("param", component, ChangeAxis.POSITION)
 
         component.beam_path_set_point.is_in_beam = in_beam
-        actual = param.is_active
+        actual = param.is_disabled
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_in_beam_sp_rbv_is_in_for_setpoint_beam_path_THEN_axis_param_is_not_disabled(self):
+        in_beam = True
+        expected = False
+        component = Component("test_comp", setup=PositionAndAngle(0, 0, 90))
+        param = AxisParameter("param", component, ChangeAxis.POSITION)
+
+        component.beam_path_set_point.is_in_beam = in_beam
+        actual = param.is_disabled
 
         assert_that(actual, is_(expected))
 
@@ -444,10 +444,10 @@ class TestBeamlineModes(unittest.TestCase):
         expected = True
         component = Component("test_comp", setup=PositionAndAngle(0, 0, 90))
         param = AxisParameter("param", component, ChangeAxis.POSITION)
-        param.is_active = expected
+        param.is_disabled = expected
 
         component.beam_path_rbv.is_in_beam = in_beam
-        actual = param.is_active
+        actual = param.is_disabled
 
         assert_that(actual, is_(expected))
 
@@ -456,10 +456,10 @@ class TestBeamlineModes(unittest.TestCase):
         expected = False
         component = Component("test_comp", setup=PositionAndAngle(0, 0, 90))
         param = AxisParameter("param", component, ChangeAxis.POSITION)
-        param.is_active = expected
+        param.is_disabled = expected
 
         component.beam_path_rbv.is_in_beam = in_beam
-        actual = param.is_active
+        actual = param.is_disabled
 
         assert_that(actual, is_(expected))
 
