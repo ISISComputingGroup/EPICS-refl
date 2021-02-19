@@ -313,10 +313,7 @@ class BeamlineParameter:
         Args:
             set_point: the set point
         """
-        if not self._is_disabled:
-            self._sp_no_move(set_point)
-        else:
-            raise ParameterDisabledException("Parameter is disabled (component is out of beam)")
+        self._sp_no_move(set_point)
 
     def _sp_no_move(self, set_point):
         self._set_point = set_point
@@ -337,10 +334,7 @@ class BeamlineParameter:
         Args:
             set_point: new set point
         """
-        if not self._is_disabled:
-            self._set_sp(set_point)
-        else:
-            raise ParameterDisabledException("Parameter is disabled (component is out of beam)")
+        self._set_sp(set_point)
 
     def _set_sp_perform_no_move(self, value):
         """

@@ -109,7 +109,7 @@ PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_FIELDS_ACTION = {'type': 'int', 'count': 1, 'value': 0}
 STANDARD_2048_CHAR_WF_FIELDS = {'type': 'char', 'count': 2048, 'value': ""}
-STANDARD_DISP_FIELDS = {'type': 'enum', 'enums': ["NO", "YES"], 'value': 0}
+STANDARD_DISP_FIELDS = {'type': 'enum', 'enums': ["0", "1"], 'value': 0}
 ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStringsTruncated}
 ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
 
