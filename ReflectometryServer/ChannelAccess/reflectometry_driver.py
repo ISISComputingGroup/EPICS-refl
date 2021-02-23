@@ -246,12 +246,14 @@ class ReflectometryDriver(Driver):
             parameter = self._beamline.parameter(param_name)
             parameter.add_listener(ParameterInitUpdate, partial(self._update_param_listener,
                                                                 pv_name, parameter.parameter_type))
+
+            if param_sort in [PvSort.ACTION, PvSort.SP, PvSort.SET_AND_NO_ACTION]:
+                parameter.add_listener(ParameterDisabledUpdate,
+                                       partial(self._update_param_disabled, pv_name + DISP_FIELD), run_listener=True)
+
             if param_sort == PvSort.RBV:
                 parameter.add_listener(ParameterReadbackUpdate, partial(self._update_param_listener,
                                                                         pv_name, parameter.parameter_type))
-                # DISP field is only on base pv
-                parameter.add_listener(ParameterDisabledUpdate,
-                                       partial(self._update_param_disabled, pv_name + DISP_FIELD))
 
             if param_sort == PvSort.SP_RBV:
                 parameter.add_listener(ParameterSetpointReadbackUpdate, partial(self._update_param_listener,

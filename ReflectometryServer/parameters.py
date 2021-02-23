@@ -604,8 +604,8 @@ class AxisParameter(BeamlineParameter):
         """
         Add listeners to the setpoint beam path calc.
         """
-        self.component.beam_path_set_point.add_listener(ComponentInBeamUpdate, self._on_update_in_beam_state)
-        self.is_disabled = not self.component.beam_path_set_point.is_in_beam
+        self.component.beam_path_set_point.add_listener(ComponentInBeamUpdate, self._on_update_in_beam_state,
+                                                        run_listener=True)
 
     def _initialise_beam_path_rbv_listeners(self):
         """
