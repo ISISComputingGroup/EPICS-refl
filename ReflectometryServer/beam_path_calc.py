@@ -50,7 +50,7 @@ class ComponentInBeamUpdate:
     value: bool
 
 
-@observable(InitUpdate, AxisChangingUpdate, AxisChangedUpdate, PhysicalMoveUpdate, ParkingSequenceUpdate)
+@observable(InitUpdate, AxisChangingUpdate, AxisChangedUpdate, PhysicalMoveUpdate, ParkingSequenceUpdate, ComponentInBeamUpdate)
 class InBeamManager:
     """
     Manages the in-beam status of a component as a whole by combining information from all axes on the component that
@@ -129,6 +129,7 @@ class InBeamManager:
         for axis in self._parking_axes:
             axis.init_parking_index(self.parking_index)
         self.trigger_listeners(event)
+        self.trigger_listeners(ComponentInBeamUpdate(self.get_is_in_beam()))
 
     def _propagate_axis_event(self, event):
         """
@@ -152,6 +153,7 @@ class InBeamManager:
         self.autosave = is_in_beam
         for axis in self._parking_axes:
             axis.is_in_beam = is_in_beam
+        self.trigger_listeners(ComponentInBeamUpdate(is_in_beam))
 
     def set_is_in_beam(self, is_in_beam):
         """
@@ -183,6 +185,7 @@ class InBeamManager:
                 logger.info(f"Set out of beam; not set parking sequence is at {self.parking_index} "
                             f"(vals None, 0-{self._maximum_sequence_count+1})")
         self._parking_sequence_started = True
+        self.trigger_listeners(ComponentInBeamUpdate(is_in_beam))
 
     @property
     def is_changing(self):
@@ -264,7 +267,7 @@ class InBeamManager:
             self.trigger_listeners(ParkingSequenceUpdate(all_axis_parking_indexes.pop()))
 
 
-@observable(BeamPathUpdate, BeamPathUpdateOnInit, ComponentInBeamUpdate)
+@observable(BeamPathUpdate, BeamPathUpdateOnInit)
 class TrackingBeamPathCalc:
     """
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
@@ -359,7 +362,6 @@ class TrackingBeamPathCalc:
 
     def _on_in_beam_status_update(self, _):
         self.trigger_listeners(BeamPathUpdate(self))
-        self.trigger_listeners(ComponentInBeamUpdate(self.is_in_beam))
 
     def _on_long_axis_change(self, displacement):
         """
@@ -497,7 +499,6 @@ class TrackingBeamPathCalc:
         """
         self.in_beam_manager.set_is_in_beam(is_in_beam)
         self.trigger_listeners(BeamPathUpdate(self))
-        self.trigger_listeners(ComponentInBeamUpdate(is_in_beam))
         for axis in self.axis.values():
             axis.trigger_listeners(PhysicalMoveUpdate(axis))
 
