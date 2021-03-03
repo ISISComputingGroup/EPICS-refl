@@ -109,6 +109,7 @@ PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_FIELDS_ACTION = {'type': 'int', 'count': 1, 'value': 0}
 STANDARD_2048_CHAR_WF_FIELDS = {'type': 'char', 'count': 2048, 'value': ""}
+STANDARD_STRING_FIELDS = {'type': 'string', 'value': ""}
 STANDARD_DISP_FIELDS = {'type': 'enum', 'enums': ["0", "1"], 'value': 0}
 ALARM_STAT_PV_FIELDS = {'type': 'enum', 'enums': AlarmStringsTruncated}
 ALARM_SEVR_PV_FIELDS = {'type': 'enum', 'enums': SeverityStrings}
@@ -259,12 +260,12 @@ class PVManager:
         """
         param_name = parameter.name
         description = parameter.description
-        engineering_unit = parameter.engineering_unit
         param_alias = create_pv_name(param_name, list(self.PVDB.keys()), PARAM_PREFIX, limit=10)
         prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
 
         parameter_type = parameter.parameter_type
         fields = PARAMS_FIELDS_BEAMLINE_TYPES[parameter_type]
+        fields["unit"] = parameter.engineering_unit
         if parameter_type == BeamlineParameterType.ENUM:
             fields["enums"] = parameter.options
 
@@ -311,7 +312,7 @@ class PVManager:
                                      PvSort.DEFINE_POS_AS)
 
         # Engineering Unit
-        egu_fields = STANDARD_2048_CHAR_WF_FIELDS.copy()
+        egu_fields = STANDARD_STRING_FIELDS.copy()
         egu_fields["value"] = parameter.engineering_unit
         self.PVDB[prepended_alias + EGU_FIELD] = egu_fields
 

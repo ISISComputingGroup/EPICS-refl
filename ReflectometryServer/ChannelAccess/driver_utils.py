@@ -199,9 +199,9 @@ class DriverParamHelper:
         value_accepted = True
         param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(pv_name)
         param = self._beamline.parameter(param_name)
-        if param_sort == PvSort.ACTION:
+        if param_sort == PvSort.ACTION and not param.is_disabled:
             param.move = 1
-        elif param_sort == PvSort.SP:
+        elif param_sort == PvSort.SP and not param.is_disabled:
             param.sp = convert_from_epics_pv_value(param.parameter_type, value, self._pv_manager.PVDB[pv_name])
         elif param_sort == PvSort.SET_AND_NO_ACTION:
             param.sp_no_move = convert_from_epics_pv_value(param.parameter_type, value, self._pv_manager.PVDB[pv_name])

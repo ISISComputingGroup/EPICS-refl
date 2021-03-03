@@ -25,17 +25,6 @@ class ParameterNotInitializedException(Exception):
         return self.message
 
 
-class ParameterDisabledException(Exception):
-    """
-    Exception for when a parameter is not active.
-    """
-    def __init__(self, err):
-        self.message = str(err)
-
-    def __str__(self):
-        return self.message
-
-
 class BeamlineConfigurationParkAutosaveInvalidException(Exception):
     """
     Raised when a  parks sequence autosave is not unparked or at the end of its sequence

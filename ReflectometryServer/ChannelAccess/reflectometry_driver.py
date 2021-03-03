@@ -247,7 +247,7 @@ class ReflectometryDriver(Driver):
             parameter.add_listener(ParameterInitUpdate, partial(self._update_param_listener,
                                                                 pv_name, parameter.parameter_type))
 
-            if param_sort in [PvSort.ACTION, PvSort.SP, PvSort.SET_AND_NO_ACTION]:
+            if param_sort in [PvSort.ACTION, PvSort.SP]:
                 parameter.add_listener(ParameterDisabledUpdate,
                                        partial(self._update_param_disabled, pv_name + DISP_FIELD), run_listener=True)
 

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate, \
     ComponentInBeamUpdate
-from ReflectometryServer.exceptions import ParameterNotInitializedException, ParameterDisabledException
+from ReflectometryServer.exceptions import ParameterNotInitializedException
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave, param_string_autosave
 import logging
 
