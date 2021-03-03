@@ -264,7 +264,7 @@ class PVManager:
         prepended_alias = "{}:{}".format(PARAM_PREFIX, param_alias)
 
         parameter_type = parameter.parameter_type
-        fields = PARAMS_FIELDS_BEAMLINE_TYPES[parameter_type]
+        fields = PARAMS_FIELDS_BEAMLINE_TYPES[parameter_type].copy()
         fields["unit"] = parameter.engineering_unit
         if parameter_type == BeamlineParameterType.ENUM:
             fields["enums"] = parameter.options
