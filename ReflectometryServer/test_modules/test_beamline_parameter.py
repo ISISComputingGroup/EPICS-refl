@@ -417,6 +417,51 @@ class TestBeamlineModes(unittest.TestCase):
 
         assert_that(s4.beam_path_set_point.position_in_mantid_coordinates().y, is_(s4_height_initial))
 
+    def test_GIVEN_component_in_beam_sp_rbv_is_out_for_setpoint_beam_path_THEN_axis_param_is_disabled(self):
+        in_beam = False
+        expected = True
+        component = Component("test_comp", setup=PositionAndAngle(0, 0, 90))
+        param = AxisParameter("param", component, ChangeAxis.POSITION)
+
+        component.beam_path_set_point.is_in_beam = in_beam
+        actual = param.is_disabled
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_in_beam_sp_rbv_is_in_for_setpoint_beam_path_THEN_axis_param_is_not_disabled(self):
+        in_beam = True
+        expected = False
+        component = Component("test_comp", setup=PositionAndAngle(0, 0, 90))
+        param = AxisParameter("param", component, ChangeAxis.POSITION)
+
+        component.beam_path_set_point.is_in_beam = in_beam
+        actual = param.is_disabled
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_in_beam_sp_rbv_is_out_for_readback_beam_path_THEN_axis_param_is_unaffected(self):
+        in_beam = False
+        expected = True
+        component = Component("test_comp", setup=PositionAndAngle(0, 0, 90))
+        param = AxisParameter("param", component, ChangeAxis.POSITION)
+        param.is_disabled = expected
+
+        component.beam_path_rbv.is_in_beam = in_beam
+        actual = param.is_disabled
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_component_in_beam_sp_rbv_is_in_for_readback_beam_path_THEN_axis_param_is_unaffected(self):
+        in_beam = True
+        expected = False
+        component = Component("test_comp", setup=PositionAndAngle(0, 0, 90))
+        param = AxisParameter("param", component, ChangeAxis.POSITION)
+        param.is_disabled = expected
+
+        component.beam_path_rbv.is_in_beam = in_beam
+        actual = param.is_disabled
+
+        assert_that(actual, is_(expected))
 
 class TestBeamlineOnMove(unittest.TestCase):
     def test_GIVEN_three_beamline_parameters_WHEN_move_1st_THEN_all_move(self):

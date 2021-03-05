@@ -13,7 +13,8 @@ if TYPE_CHECKING:
     from ReflectometryServer.ioc_driver import IocDriver
     from ReflectometryServer.components import Component
 
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate, \
+    ComponentInBeamUpdate
 from ReflectometryServer.exceptions import ParameterNotInitializedException
 from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave, param_string_autosave
 import logging
@@ -80,6 +81,14 @@ class ParameterAtSetpointUpdate:
 class ParameterChangingUpdate:
     """
     An update of the parameter is-changing state
+    """
+    value: bool  # The new state
+
+
+@dataclass
+class ParameterDisabledUpdate:
+    """
+    An update of the parameters is-disabled state
     """
     value: bool  # The new state
 
@@ -192,7 +201,7 @@ class BeamlineParameterGroup(Enum):
 
 
 @observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate,
-            ParameterChangingUpdate, ParameterInitUpdate, RequestMoveEvent)
+            ParameterChangingUpdate, ParameterDisabledUpdate, ParameterInitUpdate, RequestMoveEvent)
 @six.add_metaclass(abc.ABCMeta)
 class BeamlineParameter:
     """
@@ -205,7 +214,7 @@ class BeamlineParameter:
         """
         Initializer.
         Args:
-            name: Name of the enabled parameter
+            name: Name of the parameter
             description: description
             autosave: True if the parameter should be autosaved on change and read on start; False otherwise
             rbv_to_sp_tolerance: tolerance between the sp and rbv over which a warning should be indicated
@@ -218,6 +227,8 @@ class BeamlineParameter:
 
         self._sp_is_changed = False
         self._name = name
+        self._is_disabled = False
+        self.engineering_unit = ""
         self.alarm_status = None
         self.alarm_severity = None
         self.parameter_type = BeamlineParameterType.FLOAT
@@ -317,13 +328,13 @@ class BeamlineParameter:
         return self._set_point
 
     @sp.setter
-    def sp(self, value):
+    def sp(self, set_point):
         """
         Set the set point and move to it.
         Args:
-            value: new set point
+            set_point: new set point
         """
-        self._set_sp(value)
+        self._set_sp(set_point)
 
     def _set_sp_perform_no_move(self, value):
         """
@@ -519,6 +530,22 @@ class BeamlineParameter:
         STATUS_MANAGER.update_active_problems(ProblemInfo("Parameter autosave value has unexpected type", self.name,
                                               Severity.MINOR_ALARM))
 
+    @property
+    def is_disabled(self):
+        """
+        Returns: Whether this parameter is currently active (i.e. settable)
+        """
+        return self._is_disabled
+
+    @is_disabled.setter
+    def is_disabled(self, value: bool):
+        """
+        Args:
+             value: Whether this parameter is currently active (i.e. settable)
+        """
+        self._is_disabled = value
+        self.trigger_listeners(ParameterDisabledUpdate(value))
+
 
 class AxisParameter(BeamlineParameter):
     """
@@ -553,14 +580,38 @@ class AxisParameter(BeamlineParameter):
         else:
             self.group_names.append(BeamlineParameterGroup.MISC)
 
+        if axis in [ChangeAxis.ANGLE, ChangeAxis.PHI, ChangeAxis.PSI, ChangeAxis.CHI]:
+            self.engineering_unit = "deg"
+        else:
+            self.engineering_unit = "mm"
+
+        self._initialise_setpoint()
+        self._initialise_beam_path_sp_listeners()
+        self._initialise_beam_path_rbv_listeners()
+
+    def _initialise_setpoint(self):
+        """
+        Initialise the setpoint value for this parameter.
+        """
         if self._autosave:
             self._initialise_sp_from_file()
         if self._set_point_rbv is None:
-            self.component.beam_path_set_point.axis[self.axis].add_listener(InitUpdate,
-                                                                            self._initialise_sp_from_motor)
+            self.component.beam_path_set_point.axis[self.axis].add_listener(InitUpdate, self._initialise_sp_from_motor)
             self.component.beam_path_set_point.in_beam_manager.add_listener(InitUpdate,
                                                                             self._initialise_sp_from_motor)
 
+    def _initialise_beam_path_sp_listeners(self):
+        """
+        Add listeners to the setpoint beam path calc.
+        """
+        self.component.beam_path_set_point.in_beam_manager.add_listener(ComponentInBeamUpdate,
+                                                                        self._on_update_in_beam_state,
+                                                                        run_listener=True)
+
+    def _initialise_beam_path_rbv_listeners(self):
+        """
+        Add listeners to the readback beam path calc.
+        """
         self.component.beam_path_rbv.add_listener(BeamPathUpdate, self._on_update_rbv)
         rbv_axis = self.component.beam_path_rbv.axis[self.axis]
         rbv_axis.add_listener(AxisChangingUpdate, self._on_update_changing_state)
@@ -569,6 +620,15 @@ class AxisParameter(BeamlineParameter):
         if rbv_axis.can_define_axis_position_as:
             self.define_current_value_as = DefineCurrentValueAsParameter(rbv_axis.define_axis_position_as,
                                                                          self._set_sp_perform_no_move, self)
+
+    def _on_update_in_beam_state(self, update: ComponentInBeamUpdate):
+        """
+        Trigger an update on this parameters is-disabled state after a change in the component's in-beam status.
+
+        Args:
+            update: The update event
+        """
+        self.is_disabled = not update.value
 
     def _initialise_sp_from_file(self):
         """
@@ -620,7 +680,7 @@ class AxisParameter(BeamlineParameter):
             return False
 
         return not self.component.beam_path_set_point.axis[self.axis].is_in_beam or \
-            abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
+               abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
 
     def _get_alarm_info(self):
         """
@@ -659,8 +719,8 @@ class InBeamParameter(BeamlineParameter):
         """
         Initializer.
         Args:
-            name: Name of the enabled parameter
-            component: the component to be enabled or disabled
+            name: Name of the in-beam parameter
+            component: the component to be moved in or out of the beam
             autosave: True if the parameter should be autosaved on change and read on start; False otherwise
             description: description
             custom_function: custom function to run on move
@@ -873,6 +933,7 @@ class SlitGapParameter(DirectParameter):
         """
         super(SlitGapParameter, self).__init__(name, pv_wrapper, description, autosave,
                                                rbv_to_sp_tolerance=rbv_to_sp_tolerance, custom_function=custom_function)
+        self.engineering_unit = "mm"
 
         if pv_wrapper.is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)

@@ -42,7 +42,15 @@ class BeamPathUpdateOnInit:
     source: 'TrackingBeamPathCalc'  # The source of the beam path change. (the beam path calc itself)
 
 
-@observable(InitUpdate, AxisChangingUpdate, AxisChangedUpdate, PhysicalMoveUpdate, ParkingSequenceUpdate)
+@dataclass
+class ComponentInBeamUpdate:
+    """
+    Event that is triggered when the in beam status of a component has changed.
+    """
+    value: bool
+
+
+@observable(InitUpdate, AxisChangingUpdate, AxisChangedUpdate, PhysicalMoveUpdate, ParkingSequenceUpdate, ComponentInBeamUpdate)
 class InBeamManager:
     """
     Manages the in-beam status of a component as a whole by combining information from all axes on the component that
@@ -121,6 +129,7 @@ class InBeamManager:
         for axis in self._parking_axes:
             axis.init_parking_index(self.parking_index)
         self.trigger_listeners(event)
+        self.trigger_listeners(ComponentInBeamUpdate(self.get_is_in_beam()))
 
     def _propagate_axis_event(self, event):
         """
@@ -144,6 +153,7 @@ class InBeamManager:
         self.autosave = is_in_beam
         for axis in self._parking_axes:
             axis.is_in_beam = is_in_beam
+        self.trigger_listeners(ComponentInBeamUpdate(is_in_beam))
 
     def set_is_in_beam(self, is_in_beam):
         """
@@ -175,6 +185,7 @@ class InBeamManager:
                 logger.info(f"Set out of beam; not set parking sequence is at {self.parking_index} "
                             f"(vals None, 0-{self._maximum_sequence_count+1})")
         self._parking_sequence_started = True
+        self.trigger_listeners(ComponentInBeamUpdate(is_in_beam))
 
     @property
     def is_changing(self):
