@@ -210,7 +210,8 @@ class BeamlineParameter:
     """
 
     def __init__(self, name, description=None, autosave=False, rbv_to_sp_tolerance=0.01,
-                 custom_function: Optional[Callable[[Any, Any], str]] = None, characteristic_value=""):
+                 custom_function: Optional[Callable[[Any, Any], str]] = None, characteristic_value="",
+                 sp_mirrors_rbv=False):
         """
         Initializer.
         Args:
@@ -221,6 +222,8 @@ class BeamlineParameter:
             custom_function: custom function to run on move
             characteristic_value: PV which the user wants to group with this parameter; leave out for no value.
                 This should not include the instrument prefix, e.g. MOT:MTR0101
+            sp_mirrors_rbv: if True the sp gets set to the readback value when this parameter is asked to perform a
+                move; False this doesn't happen
         """
         self._set_point = None
         self._set_point_rbv = None
@@ -243,6 +246,7 @@ class BeamlineParameter:
         self.define_current_value_as = None
         self._custom_function = custom_function
         self.characteristic_value = characteristic_value
+        self.sp_mirrors_rbv = sp_mirrors_rbv
 
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
@@ -376,6 +380,8 @@ class BeamlineParameter:
         """
         Move the component but don't call a callback indicating a move has been performed.
         """
+        if self.sp_mirrors_rbv:
+            self.sp_no_move = self._rbv()
         original_set_point_rbv = self._set_point_rbv
         self._set_point_rbv = self._set_point
         if self._sp_is_changed:
@@ -454,12 +460,12 @@ class BeamlineParameter:
         """
         raise NotImplemented()
 
-    def _on_update_changing_state(self, _):
+    def _on_update_changing_state(self, _: Optional[AxisChangingUpdate]):
         """
         Runs all the current listeners on the changing state because something has changed.
 
         Args:
-            _ (ReflectometryServer.beam_path_calc.AxisChangingUpdate): The update event
+            _: The update event
         """
         self.trigger_listeners(ParameterChangingUpdate(self.is_changing))
 
@@ -554,7 +560,8 @@ class AxisParameter(BeamlineParameter):
 
     def __init__(self, name: str, component: 'Component', axis: ChangeAxis, description: str = None,
                  autosave: bool = False, rbv_to_sp_tolerance: float = 0.002,
-                 custom_function: Optional[Callable[[Any, Any], str]] = None, characteristic_value=""):
+                 custom_function: Optional[Callable[[Any, Any], str]] = None, characteristic_value="",
+                 sp_mirrors_rbv=False):
         """
         Initialiser.
         Args:
@@ -568,11 +575,14 @@ class AxisParameter(BeamlineParameter):
             custom_function: custom function to run on move
             characteristic_value: PV which the user wants to group with this parameter; leave out for no value.
                 This should not include the instrument prefix, e.g. MOT:MTR0101
+            sp_mirrors_rbv: if True the sp gets set to the readback value when this parameter is asked to perform a
+                move; False this doesn't happen
         """
         if description is None:
             description = name
         super(AxisParameter, self).__init__(name, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance,
-                                            custom_function=custom_function, characteristic_value=characteristic_value)
+                                            custom_function=custom_function, characteristic_value=characteristic_value,
+                                            sp_mirrors_rbv=sp_mirrors_rbv)
         self.component = component
         self.axis = axis
         if axis in [ChangeAxis.POSITION, ChangeAxis.ANGLE]:
@@ -628,7 +638,7 @@ class AxisParameter(BeamlineParameter):
         Args:
             update: The update event
         """
-        self.is_disabled = not update.value
+        self.is_disabled = self.sp_mirrors_rbv or not update.value
 
     def _initialise_sp_from_file(self):
         """
@@ -680,7 +690,7 @@ class AxisParameter(BeamlineParameter):
             return False
 
         return not self.component.beam_path_set_point.axis[self.axis].is_in_beam or \
-               abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
+            abs(self.rbv - self._set_point_rbv) < self._rbv_to_sp_tolerance
 
     def _get_alarm_info(self):
         """

@@ -53,6 +53,17 @@ class TestDriverUtils(unittest.TestCase):
 
         assert_that(pv_value[0], has_entry("description", expected_description))
 
+    def test_GIVEN_axis_param_with_sp_mirrors_rbv_WHEN_create_beamline_THEN_sp_no_action_disp_is_1(self):
+        expected_value = 1
+        param_name = "MYVALUE"
+        param = AxisParameter(param_name, self.comp, ChangeAxis.POSITION, sp_mirrors_rbv=True)
+        pvmanager = self.create_beamline(param)
+
+        pv_definition = pvmanager.PVDB[f"PARAM:{param_name}:SP_NO_ACTION.DISP"]
+        pv_value = pv_definition["value"]
+
+        assert_that(pv_value, is_(expected_value))
+
 
 if __name__ == '__main__':
     unittest.main()

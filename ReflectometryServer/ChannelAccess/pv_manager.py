@@ -2,12 +2,12 @@
 Reflectometry pv manager
 """
 import logging
+from typing import Optional
 
-from enum import Enum
 from pcaspy import Severity
 
 import ReflectometryServer
-from ReflectometryServer.ChannelAccess.constants import REFL_IOC_NAME, STANDARD_FLOAT_PV_FIELDS
+from ReflectometryServer.ChannelAccess.constants import STANDARD_FLOAT_PV_FIELDS
 from ReflectometryServer.ChannelAccess.driver_utils import PvSort, \
     PARAMS_FIELDS_BEAMLINE_TYPES
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER, ProblemInfo
@@ -15,7 +15,7 @@ from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_R
 from pcaspy.alarm import SeverityStrings
 from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
 from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME, DESCRIPTION_LENGTH
-from server_common.utilities import create_pv_name, remove_from_end, print_and_log, SEVERITY, compress_and_hex
+from server_common.utilities import create_pv_name, remove_from_end, compress_and_hex
 import json
 from collections import OrderedDict
 
@@ -92,8 +92,8 @@ DESC_FIELD = ".DESC"
 DISP_FIELD = ".DISP"
 EGU_FIELD = ".EGU"
 
-ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DISP_FIELD, EGU_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX, SET_AND_NO_ACTION_SUFFIX,
-                      CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP]
+ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DISP_FIELD, EGU_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX,
+                      SET_AND_NO_ACTION_SUFFIX, CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP]
 
 CONST_PREFIX = "CONST"
 
@@ -136,7 +136,7 @@ class PVManager:
         """
         The constructor.
         """
-        self._beamline = None  # type: ReflectometryServer.beamline.Beamline
+        self._beamline = None  # type: Optional[ReflectometryServer.beamline.Beamline]
         self.PVDB = {}
         self.initial_PVs = []
         self._params_pv_lookup = OrderedDict()
@@ -193,8 +193,8 @@ class PVManager:
                                  interest="HIGH")
         self._add_pv_with_fields(BEAMLINE_MODE + SP_SUFFIX, None, mode_fields, "Beamline mode", PvSort.SP)
 
-        self._add_pv_with_fields(REAPPLY_MODE_INITS, None, PARAM_FIELDS_BINARY, "Apply mode inits on move all", PvSort.RBV,
-                                 archive=True, interest="MEDIUM")
+        self._add_pv_with_fields(REAPPLY_MODE_INITS, None, PARAM_FIELDS_BINARY, "Apply mode inits on move all",
+                                 PvSort.RBV, archive=True, interest="MEDIUM")
 
     def _add_footprint_calculator_pvs(self):
         """
@@ -282,7 +282,7 @@ class PVManager:
 
         # Set value and do not action PV
         self._add_pv_with_fields(prepended_alias + SET_AND_NO_ACTION_SUFFIX, param_name, fields, description,
-                                 PvSort.SET_AND_NO_ACTION)
+                                 PvSort.SET_AND_NO_ACTION, is_disabled_on_init=parameter.sp_mirrors_rbv)
 
         # Changed PV
         self._add_pv_with_fields(prepended_alias + CHANGED_SUFFIX, param_name, PARAM_FIELDS_BINARY, description,
@@ -323,7 +323,7 @@ class PVManager:
                 "description": parameter.description}
 
     def _add_pv_with_fields(self, pv_name, param_name, pv_fields, description, sort, archive=False, interest=None,
-                            alarm=False, value=None, on_init=False):
+                            alarm=False, value=None, on_init=False, is_disabled_on_init=False):
         """
         Add param to pv list with .val and correct fields and to parm look up
         Args:
@@ -336,6 +336,8 @@ class PVManager:
             interest: level of interest; None is not interesting
             alarm: True if this pv represents the alarm state of the IOC; false otherwise
             on_init: True if this PV is added at the start of server initialisation
+            is_disabled_on_init: True to disable on init; False otherwise. This is used when the disabled value is
+                static for the lifetime of the PV otherwise a listener should be userd, e.g. when sp mirrors rbv
 
         Returns:
 
@@ -364,6 +366,8 @@ class PVManager:
         self.PVDB[pv_name + STAT_FIELD] = ALARM_STAT_PV_FIELDS.copy()
         self.PVDB[pv_name + SEVR_FIELD] = ALARM_SEVR_PV_FIELDS.copy()
         self.PVDB[pv_name + DISP_FIELD] = STANDARD_DISP_FIELDS.copy()
+        if is_disabled_on_init:
+            self.PVDB[pv_name + DISP_FIELD]["value"] = 1
 
         if param_name is not None:
             self._params_pv_lookup[pv_name] = (param_name, sort)
@@ -392,7 +396,8 @@ class PVManager:
         driver_info = []
         for driver in self._beamline.drivers:
             if driver.has_engineering_correction:
-                correction_alias = create_pv_name(driver.name, list(self.PVDB.keys()), "COR", limit=12, allow_colon=True)
+                correction_alias = create_pv_name(driver.name, list(self.PVDB.keys()), "COR", limit=12,
+                                                  allow_colon=True)
                 prepended_alias = "{}:{}".format("COR", correction_alias)
 
                 self._add_pv_with_fields(prepended_alias, None, STANDARD_FLOAT_PV_FIELDS, "Engineering Correction",
