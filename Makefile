@@ -9,5 +9,5 @@ clean:
 
 .PHONY: test
 
-test:
+runtests:
 	$(PYTHON3) run_all_tests.py
