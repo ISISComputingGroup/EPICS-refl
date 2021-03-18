@@ -151,6 +151,34 @@ class TestBeamlineParameter(unittest.TestCase):
         assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(in_beam_sp))
 
 
+class TestBeamlineParametersThoseRBVMirrosSP(unittest.TestCase):
+
+    def test_GIVEN_axis_parameter_has_sp_mirros_rbv_WHEN_move_THEN_sp_is_moved_to_rbv(self):
+        expected_sp = 1.0
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        comp.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        param = AxisParameter("param", comp, axis=ChangeAxis.POSITION, sp_mirrors_rbv=True)
+        param.sp = 0
+
+        comp.beam_path_rbv.axis[ChangeAxis.POSITION].set_displacement(CorrectedReadbackUpdate(expected_sp, None, None))
+        param.move_to_sp_no_callback()  # as beamline does
+
+        assert_that(param.sp, is_(expected_sp))
+
+    def test_GIVEN_parameter_has_sp_mirros_rbv_WHEN_in_beam_THEN_parameter_is_disabled(self):
+        expected_is_disabled = True
+        comp = Component("comp", PositionAndAngle(0, 0, 90))
+        comp.beam_path_rbv.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        comp.beam_path_set_point.set_incoming_beam(PositionAndAngle(0, 0, 0))
+        param = AxisParameter("param", comp, axis=ChangeAxis.POSITION, sp_mirrors_rbv=True)
+        param_in = InBeamParameter("inbeam", comp)
+        param_in.sp = True
+        param.sp = 0
+
+        assert_that(param.is_disabled, is_(expected_is_disabled))
+
+
 class TestBeamlineModes(unittest.TestCase):
 
     def test_GIVEN_unpolarised_mode_and_beamline_parameters_are_set_WHEN_move_THEN_components_move_onto_beam_line(self):
