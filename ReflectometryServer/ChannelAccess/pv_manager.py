@@ -337,7 +337,7 @@ class PVManager:
             alarm: True if this pv represents the alarm state of the IOC; false otherwise
             on_init: True if this PV is added at the start of server initialisation
             is_disabled_on_init: True to disable on init; False otherwise. This is used when the disabled value is
-                static for the lifetime of the PV otherwise a listener should be userd, e.g. when sp mirrors rbv
+                static for the lifetime of the PV (e.g. when sp mirrors rbv) otherwise a listener should be used
 
         Returns:
 
