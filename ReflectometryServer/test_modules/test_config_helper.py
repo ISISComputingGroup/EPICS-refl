@@ -3,7 +3,9 @@ import unittest
 from hamcrest import *
 from mock import patch
 from ReflectometryServer import *
+from ReflectometryServer.beamline import ActiveModeUpdate
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
+from ReflectometryServer.test_modules.test_engineering_corrections import MockBeamline
 
 
 class TestConfigHelper(unittest.TestCase):
@@ -399,6 +401,35 @@ class TestConfigHelper(unittest.TestCase):
         actual = optional_is_set(optional_id, macros)
 
         assert_that(actual, is_(expected))
+
+    def test_WHEN_creating_mode_correction_with_helper_method_THEN_mode_select_correction_returned(self):
+        correction = 1
+        mode_name = "nr"
+
+        result = as_mode_correction(correction, [mode_name])
+
+        assert_that(result, instance_of(ModeSelectCorrection))
+
+    def test_GIVEN_value_and_mode_WHEN_creating_mode_correction_with_helper_method_THEN_default_correction_is_0(self):
+        correction = 1
+        mode_name = "nr"
+        mode_correction = as_mode_correction(correction, [mode_name])
+
+        result = mode_correction.init_from_axis(0)
+
+        assert_that(result, is_(0))
+
+    def test_GIVEN_value_and_mode_WHEN_creating_mode_correction_with_helper_method_THEN_correction_in_mode_behaves_correctly(self):
+        correction = 1
+        mode_name = "nr"
+        mock_beamline = MockBeamline()
+        mode_correction = as_mode_correction(correction, [mode_name])
+        mode_correction.set_observe_mode_change_on(mock_beamline)
+
+        mock_beamline.trigger_listeners(ActiveModeUpdate(BeamlineMode(mode_name, [])))
+        result = mode_correction.init_from_axis(0)
+
+        assert_that(result, is_(correction * (-1)))  # correction is subtracted
 
 
 if __name__ == '__main__':

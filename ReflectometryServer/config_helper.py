@@ -4,7 +4,7 @@ Objects to help configure the beamline
 from typing import Dict, Optional, List, Any, Union
 
 from ReflectometryServer import Beamline, BeamlineMode, SlitGapParameter, JawsGapPVWrapper, JawsCentrePVWrapper, \
-    PVWrapper, MotorPVWrapper
+    PVWrapper, MotorPVWrapper, ConstantCorrection, ModeSelectCorrection
 from ReflectometryServer.geometry import PositionAndAngle
 import logging
 import six
@@ -379,3 +379,18 @@ def optional_is_set(optional_id, macros):
         return macros[macro_name]
     except KeyError:
         return False
+
+
+def as_mode_correction(correction: float, modes: List[str], default: float = 0.0):
+    """
+    Helper method for creating a fixed offset engineering correction that gets applied for each mode in a given list.
+
+    Args:
+        correction: The value of the constant correction
+        modes: The modes for which to apply the correction
+        default: The value of the constant correction for all other modes
+
+    Returns: True if macro with given ID is set to True, otherwise False
+    """
+    return ModeSelectCorrection(default_correction=ConstantCorrection(default),
+                                corrections_for_mode={mode: ConstantCorrection(correction) for mode in modes})
