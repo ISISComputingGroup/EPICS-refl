@@ -376,7 +376,17 @@ def optional_is_set(optional_id, macros):
     """
     try:
         macro_name = "OPTIONAL_{}".format(optional_id)
-        return macros[macro_name]
+        macro_value = macros[macro_name]
+        if macro_value.lower() == "true":
+            return True
+        elif macro_value.lower() == "false":
+            return False
+        else:
+            STATUS_MANAGER.update_error_log(
+                ("Invalid value for IOC macro {}: {} (Expected: True/False)".format(macro_name, macro_value)))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Invalid IOC macro value", macro_name, Severity.MINOR_ALARM))
+            return False
     except KeyError:
         return False
 
