@@ -385,7 +385,7 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(actual, is_(expected))
 
     def test_GIVEN_optional_is_set_to_true_WHEN_checking_optional_is_set_THEN_return_true(self):
-        macros = {"OPTIONAL_1": True}
+        macros = {"OPTIONAL_1": "True"}
         optional_id = 1
         expected = True
 
@@ -394,7 +394,16 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(actual, is_(expected))
 
     def test_GIVEN_optional_is_set_to_false_WHEN_checking_optional_is_set_THEN_return_false(self):
-        macros = {"OPTIONAL_1": False}
+        macros = {"OPTIONAL_1": "False"}
+        optional_id = 1
+        expected = False
+
+        actual = optional_is_set(optional_id, macros)
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_optional_is_set_to_nonsense_WHEN_checking_optional_is_set_THEN_return_false(self):
+        macros = {"OPTIONAL_1": "Nonsense"}
         optional_id = 1
         expected = False
 

@@ -3,6 +3,8 @@ Objects to help configure the beamline
 """
 from typing import Dict, Optional, List, Any, Union
 
+from pcaspy import Severity
+
 from ReflectometryServer import Beamline, BeamlineMode, SlitGapParameter, JawsGapPVWrapper, JawsCentrePVWrapper, \
     PVWrapper, MotorPVWrapper, ConstantCorrection, ModeSelectCorrection
 from ReflectometryServer.geometry import PositionAndAngle
@@ -11,6 +13,7 @@ import six
 
 from ReflectometryServer.parameters import DEFAULT_RBV_TO_SP_TOLERANCE, EnumParameter, DirectParameter, \
     BeamlineParameter
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 logger = logging.getLogger(__name__)
 
