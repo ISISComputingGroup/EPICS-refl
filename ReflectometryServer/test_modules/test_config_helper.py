@@ -2,6 +2,8 @@ import unittest
 
 from hamcrest import *
 from mock import patch
+from parameterized import parameterized
+
 from ReflectometryServer import *
 from ReflectometryServer.beamline import ActiveModeUpdate
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
@@ -384,19 +386,10 @@ class TestConfigHelper(unittest.TestCase):
 
         assert_that(actual, is_(expected))
 
-    def test_GIVEN_optional_is_set_to_true_WHEN_checking_optional_is_set_THEN_return_true(self):
-        macros = {"OPTIONAL_1": True}
+    @parameterized.expand([("True", True), ("false", False), ("Nonesense", False)])
+    def test_GIVEN_optional_is_set_to_string_WHEN_checking_optional_is_set_THEN_return_expected_bool(self, string, expected):
+        macros = {"OPTIONAL_1": string}
         optional_id = 1
-        expected = True
-
-        actual = optional_is_set(optional_id, macros)
-
-        assert_that(actual, is_(expected))
-
-    def test_GIVEN_optional_is_set_to_false_WHEN_checking_optional_is_set_THEN_return_false(self):
-        macros = {"OPTIONAL_1": False}
-        optional_id = 1
-        expected = False
 
         actual = optional_is_set(optional_id, macros)
 

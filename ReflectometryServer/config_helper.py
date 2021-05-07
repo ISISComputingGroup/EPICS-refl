@@ -3,6 +3,8 @@ Objects to help configure the beamline
 """
 from typing import Dict, Optional, List, Any, Union
 
+from pcaspy import Severity
+
 from ReflectometryServer import Beamline, BeamlineMode, SlitGapParameter, JawsGapPVWrapper, JawsCentrePVWrapper, \
     PVWrapper, MotorPVWrapper, ConstantCorrection, ModeSelectCorrection
 from ReflectometryServer.geometry import PositionAndAngle
@@ -11,6 +13,7 @@ import six
 
 from ReflectometryServer.parameters import DEFAULT_RBV_TO_SP_TOLERANCE, EnumParameter, DirectParameter, \
     BeamlineParameter
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 logger = logging.getLogger(__name__)
 
@@ -376,7 +379,17 @@ def optional_is_set(optional_id, macros):
     """
     try:
         macro_name = "OPTIONAL_{}".format(optional_id)
-        return macros[macro_name]
+        macro_value = macros[macro_name]
+        if macro_value.lower() == "true":
+            return True
+        elif macro_value.lower() == "false":
+            return False
+        else:
+            STATUS_MANAGER.update_error_log(
+                ("Invalid value for IOC macro {}: {} (Expected: True/False)".format(macro_name, macro_value)))
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("Invalid IOC macro value", macro_name, Severity.MINOR_ALARM))
+            return False
     except KeyError:
         return False
 
