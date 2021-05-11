@@ -44,14 +44,14 @@ class TestConfiguration(unittest.TestCase):
 
     def test_GIVEN_optional_macro_set_WHEN_loading_config_THEN_optional_items_part_of_config(self):
         beamline_configuration.REFL_CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "refl"))
-        beamline = beamline_configuration.create_beamline_from_configuration({"OPTIONAL_1": True})
+        beamline = beamline_configuration.create_beamline_from_configuration({"OPTIONAL_1": "True"})
         #  Check Status PV
         self.assertEqual(STATUS.OKAY, ReflectometryServer.server_status_manager.STATUS_MANAGER.status)
         self.assertTrue(OPTIONAL_PARAM_1 in beamline.parameters.keys())
 
     def test_GIVEN_optional_macro_not_set_WHEN_loading_config_THEN_optional_items_not_part_of_config(self):
         beamline_configuration.REFL_CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_config", "refl"))
-        beamline = beamline_configuration.create_beamline_from_configuration({"OPTIONAL_1": False})
+        beamline = beamline_configuration.create_beamline_from_configuration({"OPTIONAL_1": "False"})
         #  Check Status PV
         self.assertEqual(STATUS.OKAY, ReflectometryServer.server_status_manager.STATUS_MANAGER.status)
         self.assertTrue(OPTIONAL_PARAM_1 not in beamline.parameters.keys())
