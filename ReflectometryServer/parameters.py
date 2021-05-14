@@ -552,6 +552,42 @@ class BeamlineParameter:
         self._is_disabled = value
         self.trigger_listeners(ParameterDisabledUpdate(value))
 
+class VirtualParameter(BeamlineParameter):
+    def __init__(self, name: str, axis: ChangeAxis, description: str = None):
+        super(VirtualParameter, self).__init__(name, description=description)
+        if axis in [ChangeAxis.ANGLE, ChangeAxis.PHI, ChangeAxis.PSI, ChangeAxis.CHI]:
+            self.engineering_unit = "deg"
+        else:
+            self.engineering_unit = "mm"
+
+        self.group_names.append(BeamlineParameterGroup.MISC)
+        self._initialise_sp_from_file()
+
+    def _initialise_sp_from_file(self):
+        """
+        Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
+        """
+        sp_init = param_bool_autosave.read_parameter(self._name, None)
+        if sp_init is not None:
+            self._set_initial_sp(sp_init)
+        else:
+            self._set_initial_sp(0)
+
+    def _initialise_sp_from_motor(self, _):
+        """
+        This parameter is not tied to a real motor
+        """
+        pass
+
+    def _move_component(self):
+        pass
+
+    def _rbv(self):
+        return self._set_point_rbv
+
+    def validate(self, drivers):
+        return []
+
 
 class AxisParameter(BeamlineParameter):
     """
