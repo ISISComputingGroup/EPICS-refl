@@ -580,6 +580,9 @@ class VirtualParameter(BeamlineParameter):
         pass
 
     def _move_component(self):
+        """
+        Does not have any component so do not move
+        """
         pass
 
     def _rbv(self):
