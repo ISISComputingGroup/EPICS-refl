@@ -46,8 +46,6 @@ class LinearMovementCalc:
         z_b = beam.z
         angle_b = beam.angle
 
-        if z_b > z_m:
-            raise ValueError("Component ordered incorrectly, has LONG_AXIS moved too far?")
         if fabs(angle_b % 180.0 - angle_m % 180.0) <= ANGULAR_TOLERANCE:
             raise ValueError("No interception between beam and movement")
         elif fabs(angle_b % 180.0) <= ANGULAR_TOLERANCE:
