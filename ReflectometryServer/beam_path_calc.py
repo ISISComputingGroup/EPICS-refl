@@ -785,7 +785,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
 
         If only some axes are undefined ignore them as we don't need them all to be defined e.g. for LONG_AXIS and POSITION.
         If all are undefined set Theta to undefined.
-        Otherwise set Theta's alarm to the most major of defined the axes.
+        Otherwise set Theta's alarm to the most major of the defined axes.
         Args:
         """
         max_severity, max_status = AlarmSeverity.No, AlarmStatus.No
