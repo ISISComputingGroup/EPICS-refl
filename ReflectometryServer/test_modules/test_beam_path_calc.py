@@ -2,11 +2,13 @@ import unittest
 
 from hamcrest import *
 
-from ReflectometryServer.beam_path_calc import BeamPathCalcThetaSP, BeamPathCalcThetaRBV
-from ReflectometryServer.axis import BeamPathCalcAxis
+from ReflectometryServer.beam_path_calc import BeamPathCalcThetaSP, BeamPathCalcThetaRBV, TrackingBeamPathCalc
+from ReflectometryServer.axis import BeamPathCalcAxis, ComponentAxis
 from ReflectometryServer.components import Component
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
+from mock import MagicMock
+from server_common.channel_access import AlarmStatus, AlarmSeverity
 
 
 class TestBeamPathCalc(unittest.TestCase):
@@ -64,6 +66,55 @@ class TestBeamPathCalc(unittest.TestCase):
 
         assert_that(calling(comp.beam_path_rbv.axis[ChangeAxis.CHI].set_displacement).with_args(
             CorrectedReadbackUpdate(10, None, None)), raises(RuntimeError))
+
+
+class TestBeamPathCalcThetaRBVAlarmCalc(unittest.TestCase):
+    axes = [ChangeAxis.POSITION, ChangeAxis.LONG_AXIS]
+
+    def set_up_alarms(self, first_alarm, second_alarm):
+        position_axis = MagicMock(ComponentAxis)
+        position_axis.alarm = first_alarm
+        long_axis = MagicMock(ComponentAxis)
+        long_axis.alarm = second_alarm
+        rbv_beam_path_calc = MagicMock(TrackingBeamPathCalc)
+        rbv_beam_path_calc.axis = {ChangeAxis.POSITION: position_axis, ChangeAxis.LONG_AXIS: long_axis}
+        return rbv_beam_path_calc
+
+    def test_GIVEN_all_axis_ok_WHEN_alarm_calced_THEN_no_alarm(self):
+        rbv_beam_path = self.set_up_alarms((AlarmSeverity.No, AlarmStatus.No), (AlarmSeverity.No, AlarmStatus.No))
+        severity, status = BeamPathCalcThetaRBV.calculate_alarm_based_on_axes(self.axes, rbv_beam_path)
+        self.assertEqual(severity, AlarmSeverity.No)
+        self.assertEqual(status, AlarmStatus.No)
+
+    def test_GIVEN_one_axis_undefined_WHEN_alarm_calced_THEN_no_alarm(self):
+        rbv_beam_path = self.set_up_alarms((AlarmSeverity.Invalid, AlarmStatus.UDF), (AlarmSeverity.No, AlarmStatus.No))
+        severity, status = BeamPathCalcThetaRBV.calculate_alarm_based_on_axes(self.axes, rbv_beam_path)
+        self.assertEqual(severity, AlarmSeverity.No)
+        self.assertEqual(status, AlarmStatus.No)
+
+    def test_GIVEN_both_axes_undefined_WHEN_alarm_calced_THEN_undefined_alarm(self):
+        rbv_beam_path = self.set_up_alarms((AlarmSeverity.Invalid, AlarmStatus.UDF), (AlarmSeverity.Invalid, AlarmStatus.UDF))
+        severity, status = BeamPathCalcThetaRBV.calculate_alarm_based_on_axes(self.axes, rbv_beam_path)
+        self.assertEqual(severity, AlarmSeverity.Invalid)
+        self.assertEqual(status, AlarmStatus.UDF)
+
+    def test_GIVEN_one_axis_major_other_undefined_WHEN_alarm_calced_THEN_major_alarm(self):
+        rbv_beam_path = self.set_up_alarms((AlarmSeverity.Invalid, AlarmStatus.UDF), (AlarmSeverity.Major, AlarmStatus.HiHi))
+        severity, status = BeamPathCalcThetaRBV.calculate_alarm_based_on_axes(self.axes, rbv_beam_path)
+        self.assertEqual(severity, AlarmSeverity.Major)
+        self.assertEqual(status, AlarmStatus.HiHi)
+
+    def test_GIVEN_one_axis_major_other_no_alarm_WHEN_alarm_calced_THEN_major_alarm(self):
+        rbv_beam_path = self.set_up_alarms((AlarmSeverity.No, AlarmStatus.No), (AlarmSeverity.Major, AlarmStatus.HiHi))
+        severity, status = BeamPathCalcThetaRBV.calculate_alarm_based_on_axes(self.axes, rbv_beam_path)
+        self.assertEqual(severity, AlarmSeverity.Major)
+        self.assertEqual(status, AlarmStatus.HiHi)
+
+    def test_GIVEN_one_axis_major_other_minor_WHEN_alarm_calced_THEN_major_alarm(self):
+        rbv_beam_path = self.set_up_alarms((AlarmSeverity.Minor, AlarmStatus.High), (AlarmSeverity.Major, AlarmStatus.HiHi))
+        severity, status = BeamPathCalcThetaRBV.calculate_alarm_based_on_axes(self.axes, rbv_beam_path)
+        self.assertEqual(severity, AlarmSeverity.Major)
+        self.assertEqual(status, AlarmStatus.HiHi)
 
 
 if __name__ == '__main__':

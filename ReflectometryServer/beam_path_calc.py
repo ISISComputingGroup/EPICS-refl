@@ -769,20 +769,36 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
                 readback_beam_path_calc.substitute_incoming_beam_for_displacement = \
                     self.theta_setpoint_beam_path_calc.get_outgoing_beam()
 
-                # set the most major alarm from component setting the angle
-                severity, status = AlarmSeverity.No, AlarmStatus.No
-                for axis in axes:
-                    axis_severity, axis_status = readback_beam_path_calc.axis[axis].alarm
-                    if axis_severity > severity:
-                        severity, status = axis_severity, axis_status
+                severity, status = self.calculate_alarm_based_on_axes(axes, readback_beam_path_calc)
                 self.axis[ChangeAxis.ANGLE].set_alarm(severity, status)
-
                 break
         else:
             angle = float("NaN")
             # noinspection PyTypeChecker
             self.axis[ChangeAxis.ANGLE].set_alarm(AlarmSeverity.Major, AlarmStatus.Link)
         return angle
+
+    @staticmethod
+    def calculate_alarm_based_on_axes(axes, readback_beam_path_calc):
+        """
+        Set the alarm based on the state of the axes we're pointing to.
+
+        If only some axes are undefined ignore them as we don't need them all to be defined e.g. for LONG_AXIS and POSITION.
+        If all are undefined set Theta to undefined.
+        Otherwise set Theta's alarm to the most major of the defined axes.
+        Args:
+        """
+        max_severity, max_status = AlarmSeverity.No, AlarmStatus.No
+        all_undefined = True
+        for axis in axes:
+            axis_severity, axis_status = readback_beam_path_calc.axis[axis].alarm
+            undefined = (axis_severity == AlarmSeverity.Invalid) and (axis_status == AlarmStatus.UDF)
+            all_undefined &= undefined
+            if not undefined and axis_severity > max_severity:
+                max_severity, max_status = axis_severity, axis_status
+        if all_undefined:
+            max_severity, max_status = AlarmSeverity.Invalid, AlarmStatus.UDF
+        return max_severity, max_status
 
     def _on_set_incoming_beam(self, incoming_beam, on_init):
         """
