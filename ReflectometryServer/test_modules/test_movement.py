@@ -11,12 +11,6 @@ from ReflectometryServer.test_modules.utils import position
 
 class TestMovementIntercept(unittest.TestCase):
 
-    def test_GIVEN_incoming_beam_after_component_WHEN_get_intercept_THEN_raises_value_error(self):
-        movement = LinearMovementCalc(PositionAndAngle(1, 1, 90))
-        beam = PositionAndAngle(0, 2, 0)
-
-        assert_that(calling(movement.calculate_interception).with_args(beam), raises(ValueError))
-
     def test_GIVEN_movement_and_beam_at_the_same_angle_WHEN_get_intercept_THEN_raises_calc_error(self):
         angle = 12.3
         movement = LinearMovementCalc(PositionAndAngle(1, 1, angle))

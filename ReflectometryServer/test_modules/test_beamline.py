@@ -240,6 +240,17 @@ class TestRealistic(unittest.TestCase):
                         is_(position_and_angle(component.beam_path_rbv._incoming_beam)),
                         "call autosaving {}".format(save_name))
 
+    def test_GIVEN_negative_sm_angle_WHEN_calculating_bench_intercept_THEN_value_accepted_and_no_error_thrown(self):
+        expected_theta = 0.2
+        driver_bench_offset = 0
+        sm_angle_to_set = -0.1
+
+        bl, drives = DataMother.beamline_sm_theta_bench(0.0, expected_theta, driver_bench_offset,
+                                                        natural_angle=2.3)
+        bl.parameter("sm_angle").sp = sm_angle_to_set
+
+        assert_that(bl.parameter("sm_angle").sp_rbv, is_(sm_angle_to_set))
+
 
 class TestBeamlineValidation(unittest.TestCase):
 

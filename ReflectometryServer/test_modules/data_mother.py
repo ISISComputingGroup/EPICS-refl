@@ -284,24 +284,28 @@ class DataMother:
         return total_offset
 
     @staticmethod
-    def beamline_sm_theta_bench(sm_angle, theta_angle, driver_bench_offset, autosave_bench_not_theta=False):
+    def beamline_sm_theta_bench(sm_angle, theta_angle, driver_bench_offset, autosave_bench_not_theta=False,
+                                natural_angle=0.0):
 
         ConfigHelper.reset()
         test = add_mode("TEST")
 
         add_beam_start(PositionAndAngle(0, 0, 0))
+        perp_to_floor_angle = 90.0 + natural_angle
 
-        sm = add_component(ReflectingComponent("SM", PositionAndAngle(0, 0, 90)))
+        sm = add_component(ReflectingComponent("SM", PositionAndAngle(0, 0, perp_to_floor_angle)))
         add_parameter(AxisParameter("sm_angle", sm, ChangeAxis.ANGLE))
         sm_axis = create_mock_axis("MOT:MTR0101", sm_angle, sm_angle)
         add_driver(IocDriver(sm, ChangeAxis.ANGLE, sm_axis))
         sm_axis.trigger_rbv_change()
 
-        theta = add_component(ThetaComponent("THETA", PositionAndAngle(0, 10, 90)))
+        theta = add_component(ThetaComponent("THETA", PositionAndAngle(0, 10, perp_to_floor_angle)))
         add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE, autosave=not autosave_bench_not_theta))
 
-        bench = add_component(get_standard_bench(with_z_position=10, with_angle=0))
+        bench = add_component(
+            get_standard_bench(with_z_position=10, with_angle=0, perp_to_floor_angle=perp_to_floor_angle))
         add_parameter(AxisParameter("bench_angle", bench, ChangeAxis.ANGLE, autosave=autosave_bench_not_theta))
+        add_parameter(AxisParameter("bench_offset", bench, ChangeAxis.POSITION))
         bench_angle = radians(driver_bench_offset + theta_angle * 2 + sm_angle * 2)
         bench_jack_front = create_mock_axis("MOT:MTR0102", tan(bench_angle) * PIVOT_TO_J1 - PIVOT_TO_BEAM * (1 - cos(bench_angle)), 1)
         bench_jack_rear = create_mock_axis("MOT:MTR0103", tan(bench_angle) * PIVOT_TO_J2 - PIVOT_TO_BEAM * (1 - cos(bench_angle)), 1)
@@ -502,7 +506,7 @@ PIVOT_TO_BEAM = 628
 BENCH_MIN_ANGLE = 0
 BENCH_MAX_ANGLE = 4.8
 
-def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH, vertical_mode=False):
+def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH, vertical_mode=False, perp_to_floor_angle=90.0):
     """
     Get the standard bench setup as per POLREF
     Args:
@@ -511,5 +515,5 @@ def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH, vertical_mo
     Returns:
         Bench setup correctly
     """
-    return BenchComponent("rear_bench", BenchSetup(0, with_z_position, 90, PIVOT_TO_J1, PIVOT_TO_J2, with_angle,
+    return BenchComponent("rear_bench", BenchSetup(0, with_z_position, perp_to_floor_angle, PIVOT_TO_J1, PIVOT_TO_J2, with_angle,
                                                    PIVOT_TO_BEAM, BENCH_MIN_ANGLE, BENCH_MAX_ANGLE, vertical_mode))
