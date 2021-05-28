@@ -554,7 +554,7 @@ class BeamlineParameter:
 
 class VirtualParameter(BeamlineParameter):
     def __init__(self, name: str, axis: ChangeAxis, description: str = None):
-        super(VirtualParameter, self).__init__(name, description=description)
+        super(VirtualParameter, self).__init__(name, description=description, autosave=True)
         if axis in [ChangeAxis.ANGLE, ChangeAxis.PHI, ChangeAxis.PSI, ChangeAxis.CHI]:
             self.engineering_unit = "deg"
         else:
