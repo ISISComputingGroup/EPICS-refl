@@ -567,7 +567,7 @@ class VirtualParameter(BeamlineParameter):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
         """
-        sp_init = param_bool_autosave.read_parameter(self._name, None)
+        sp_init = param_float_autosave.read_parameter(self._name, None)
         if sp_init is not None:
             self._set_initial_sp(sp_init)
         else:
