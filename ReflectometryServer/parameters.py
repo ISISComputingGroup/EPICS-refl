@@ -553,12 +553,9 @@ class BeamlineParameter:
         self.trigger_listeners(ParameterDisabledUpdate(value))
 
 class VirtualParameter(BeamlineParameter):
-    def __init__(self, name: str, axis: ChangeAxis, description: str = None):
+    def __init__(self, name: str, engineering_unit: str, description: str = None):
         super(VirtualParameter, self).__init__(name, description=description, autosave=True)
-        if axis in [ChangeAxis.ANGLE, ChangeAxis.PHI, ChangeAxis.PSI, ChangeAxis.CHI]:
-            self.engineering_unit = "deg"
-        else:
-            self.engineering_unit = "mm"
+        self.engineering_unit = engineering_unit
 
         self.group_names.append(BeamlineParameterGroup.MISC)
         self._initialise_sp_from_file()
