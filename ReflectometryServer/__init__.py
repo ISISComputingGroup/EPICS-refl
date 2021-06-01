@@ -26,7 +26,7 @@ else:
     from ReflectometryServer.ioc_driver import IocDriver, PVWrapperForParameter
     from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamSequence
     from ReflectometryServer.parameters import InBeamParameter, AxisParameter, DirectParameter, \
-        SlitGapParameter, EnumParameter
+        SlitGapParameter, EnumParameter, VirtualParameter
     from ReflectometryServer.pv_wrapper import MotorPVWrapper, JawsCentrePVWrapper, JawsGapPVWrapper, PVWrapper
     from ReflectometryServer.config_helper import ConfigHelper, get_configured_beamline, add_constant, add_component, \
         add_parameter, add_mode, add_driver, add_slit_parameters, add_beam_start, add_footprint_setup, \

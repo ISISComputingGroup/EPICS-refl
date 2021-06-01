@@ -45,7 +45,6 @@ class TestBeamlineParameter(unittest.TestCase):
         theta.sp_no_move = theta_set
         theta.move = 1
         result = theta.sp_rbv
-
         assert_that(result, is_(theta_set))
         assert_that(sample.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement(), is_(expected_sample_angle))
 
@@ -220,7 +219,6 @@ class TestBeamlineModes(unittest.TestCase):
 
         assert_that(ideal_sample_point.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement(), is_(angle_to_set))
 
-
     def test_GIVEN_a_mode_with_a_two_beamline_parameter_in_WHEN_move_first_THEN_second_beamline_parameter_is_calculated_and_moved_to(self):
         angle_to_set = 45.0
         ideal_sample_point = ReflectingComponent("ideal_sample_point", PositionAndAngle(y=0, z=20, angle=90))
@@ -239,6 +237,21 @@ class TestBeamlineModes(unittest.TestCase):
         smangle.sp = smangle_to_set
 
         assert_that(ideal_sample_point.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement(), is_(smangle_to_set * 2 + angle_to_set))
+
+    def test_GIVEN_virtual_parmeter_without_component_WHEN_moved_THEN_sp_updated_and_rbv_updated(self):
+        setpoint = 10
+        parameter = VirtualParameter("virtual", ChangeAxis.HEIGHT)
+
+        super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
+        beamline_mode = BeamlineMode("mode name", [parameter.name])
+        beamline = Beamline([super_mirror], [parameter],[],[beamline_mode])
+        parameter.sp_no_move = setpoint
+        beamline.active_mode = beamline_mode.name
+        beamline.move = 1
+
+        self.assertEqual(parameter.sp_no_move, parameter.sp)
+        self.assertEqual(parameter.sp_no_move, parameter.sp_rbv)
+
 
     def test_GIVEN_mode_has_initial_parameter_value_WHEN_setting_mode_THEN_component_sp_updated_but_rbv_unchanged(self):
         sm_angle = 0.0
