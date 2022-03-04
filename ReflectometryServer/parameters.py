@@ -698,9 +698,9 @@ class AxisParameter(BeamlineParameter):
                 # If the axis is out of the beam and there is not autosave the displacement should be set to 0
                 init_sp = 0.0
                 STATUS_MANAGER.update_error_log("Parameter {} is parkable so should have an autosave value but "
-                                                "doesn't. Has been set to 0 check its value".format(self.name))
+                                                "doesn't. {} setpoint set to 0, check this is correct.".format(self.name))
                 STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("Parameter has no autosave value", self.name, Severity.MAJOR_ALARM))
+                    ProblemInfo("Parameter has no autosave value", self.name, Severity.MINOR_ALARM))
             self.component.beam_path_set_point.axis[self.axis].set_relative_to_beam(init_sp)
         else:
             init_sp = self.component.beam_path_set_point.axis[self.axis].get_relative_to_beam()
