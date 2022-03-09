@@ -518,7 +518,8 @@ class PVWrapper:
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         self._velocity_cache = value
-        if self._velocity_restored or (self._velocity_restored is None and not self.is_moving):
+        velocity_autosave_not_read_and_not_moving = (self._velocity_restored is None and not self.is_moving)
+        if self._velocity_restored or velocity_autosave_not_read_and_not_moving:
             self._velocity_to_restore = value
             logger.info(f"{self._name}: Changed velocity to restore. New value: {value} ")
 
