@@ -207,7 +207,7 @@ class PVWrapper:
         self._moving_direction_cache = self._read_pv(self._dir_pv)
         self._max_velocity_cache = self._read_pv(self._vmax_pv)
         self._base_velocity_cache = self._read_pv(self._vbas_pv)
-        self._init_velocity_cache()
+        self._init_velocity_to_restore()
         self._add_monitors()
 
     def _add_monitors(self):
@@ -376,7 +376,7 @@ class PVWrapper:
         """
         return self._moving_direction_cache
 
-    def _init_velocity_cache(self):
+    def _init_velocity_to_restore(self):
         """
         Initialise the velocity cache for the current axis.
 
@@ -518,6 +518,10 @@ class PVWrapper:
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         self._velocity_cache = value
+        velocity_autosave_not_read_and_not_moving = (self._velocity_restored is None and not self.is_moving)
+        if self._velocity_restored or velocity_autosave_not_read_and_not_moving:
+            self._velocity_to_restore = value
+            logger.info(f"{self._name}: Changed velocity to restore. New value: {value} ")
 
     @property
     def is_moving(self):
