@@ -520,7 +520,7 @@ class PVWrapper:
         self._velocity_cache = value
         if self._velocity_restored or (self._velocity_restored is None and not self.is_moving):
             self._velocity_to_restore = value
-            logger.info("{}: Changed velocity to restore. New value: {} ".format(self._name, value))
+            logger.info(f"{self._name}: Changed velocity to restore. New value: {value} ")
 
     @property
     def is_moving(self):
