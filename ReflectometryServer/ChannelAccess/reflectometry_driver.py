@@ -53,7 +53,7 @@ class ReflectometryDriver(Driver):
         self.add_trigger_log_update_listener()
         self.put_log = IsisPutLog(REFL_IOC_NAME)
         self._driver_help = None
-        print("do X")
+        print("do X, but with more information")
 
     def set_beamline(self, beamline):
         """
