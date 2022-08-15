@@ -82,6 +82,7 @@ class _ServerStatusManager:
         self._status = STATUS.OKAY
         self._message = ""
         self._error_log = []
+        self._error_log_character_size = 0
         self._initialising = True
 
         self.active_errors = {}
@@ -193,6 +194,15 @@ class _ServerStatusManager:
             logger.exception(message, exc_info=exception)
         else:
             logger.error(message)
+
+        # If adding the new message exceeds the maximum character size of the error log,
+        # the oldest message is removed until the log size is under the maximum.
+        # One is added or removed from the size to compensate for the new line (check "_error_log_as_string").
+        MAX_ERROR_LOG_SIZE = 10_000
+        self._error_log_character_size += (len(message) + 1)
+        while self._error_log_character_size > MAX_ERROR_LOG_SIZE:
+            self._error_log_character_size -= (len(self._error_log.pop(0)) + 1)
+
         self._error_log.append(message)
         self._trigger_error_log_update()
 
