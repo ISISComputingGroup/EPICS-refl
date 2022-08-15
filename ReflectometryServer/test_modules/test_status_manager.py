@@ -1,4 +1,6 @@
 import unittest
+import contextlib
+import os
 
 from mock import Mock
 from parameterized import parameterized
@@ -173,3 +175,12 @@ class TestStatusManager(unittest.TestCase):
         actual = self.status_manager._error_log
 
         self.assertEqual(expected, actual)
+
+    def test_GIVEN_error_log_exceeding_max_size_WHEN__error_log_as_string_called_THEN_correct_string_size(self):
+        with contextlib.redirect_stderr(None):
+            for _ in range(500):
+                self.status_manager.update_error_log("I am an error message.")
+        
+        log_string = self.status_manager._error_log_as_string()
+        self.assertTrue(len(log_string) != 0)
+        self.assertTrue(len(log_string) <= 10000)
