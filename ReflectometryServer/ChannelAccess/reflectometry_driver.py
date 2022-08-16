@@ -116,7 +116,10 @@ class ReflectometryDriver(Driver):
                 elif is_pv_name_this_field(SERVER_MESSAGE, reason):
                     return STATUS_MANAGER.message
                 elif is_pv_name_this_field(SERVER_ERROR_LOG, reason):
-                    return STATUS_MANAGER.error_log
+                    # The server status manager class appends new messages to the end of the log string,
+                    # so the last "count" characters are returned.
+                    error_log_max_character_size = self._pv_manager.PVDB[SERVER_ERROR_LOG]["count"]
+                    return STATUS_MANAGER.error_log[-error_log_max_character_size:]
                 elif is_pv_name_this_field(SAMPLE_LENGTH, reason):
                     return self._footprint_manager.get_sample_length()
                 elif self._pv_manager.is_alarm_status(reason):
