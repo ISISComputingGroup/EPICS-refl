@@ -193,7 +193,6 @@ class _ServerStatusManager:
             logger.exception(message, exc_info=exception)
         else:
             logger.error(message)
-
         self._error_log.append(message)
         self._trigger_error_log_update()
 

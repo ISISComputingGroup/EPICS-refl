@@ -1,6 +1,4 @@
 import unittest
-import contextlib
-import os
 
 from mock import Mock
 from parameterized import parameterized
