@@ -127,6 +127,20 @@ def is_pv_name_this_field(field_name, pv_name):
     pv_name_no_val = remove_from_end(pv_name, VAL_FIELD)
     return pv_name_no_val == field_name
 
+def _check_if_pv_value_exceeds_max_size(value, max_size, pv):
+    """
+    Args:
+        value: the pv value to set
+        max_size: the maximum size of the pv
+        pv: the pv
+
+    Returns: The truncated value if maximum size is exceeded
+
+    """
+    if len(value) > max_size:
+        STATUS_MANAGER.update_error_log(f"Size of {pv} exceeded limit of {max_size} and was truncated.")
+        value = value[max_size:]
+    return value
 
 class PVManager:
     """
@@ -241,12 +255,16 @@ class PVManager:
                     ProblemInfo("Error adding parameter PV", parameter.name, Severity.MAJOR_ALARM))
 
         for param_group in BeamlineParameterGroup:
-            self._add_pv_with_fields(PARAM_INFO_LOOKUP[param_group], None, STANDARD_2048_CHAR_WF_FIELDS,
-                                     BeamlineParameterGroup.description(param_group), None,
-                                     value=compress_and_hex(json.dumps(param_info[param_group])))
+            value = compress_and_hex(json.dumps(param_info[param_group]))
+            value = _check_if_pv_value_exceeds_max_size(value, STANDARD_2048_CHAR_WF_FIELDS["count"], param_group)
 
+            self._add_pv_with_fields(PARAM_INFO_LOOKUP[param_group], None, STANDARD_2048_CHAR_WF_FIELDS,
+                                     BeamlineParameterGroup.description(param_group), None, value=value)
+
+        value = compress_and_hex(json.dumps(align_info))
+        value = _check_if_pv_value_exceeds_max_size(value, STANDARD_2048_CHAR_WF_FIELDS["count"], ALIGN_INFO)
         self._add_pv_with_fields(ALIGN_INFO, None, STANDARD_2048_CHAR_WF_FIELDS, "All alignment pvs information",
-                                 None, value=compress_and_hex(json.dumps(align_info)))
+                                 None, value=value)
 
     def _add_parameter_pvs(self, parameter):
         """
@@ -409,8 +427,10 @@ class PVManager:
 
                 driver_info.append({"name": driver.name, "prepended_alias": prepended_alias})
 
+        value = compress_and_hex(json.dumps(driver_info))
+        value = _check_if_pv_value_exceeds_max_size(value, STANDARD_2048_CHAR_WF_FIELDS["count"], DRIVER_INFO)
         self._add_pv_with_fields(DRIVER_INFO, None, STANDARD_2048_CHAR_WF_FIELDS, "All corrections information",
-                                 None, value=compress_and_hex(json.dumps(driver_info)))
+                                 None, value=value)
 
     def _add_constants_pvs(self):
         """
@@ -448,8 +468,10 @@ class PVManager:
                 STATUS_MANAGER.update_active_problems(
                     ProblemInfo("Error adding PV for beamline constant", beamline_constant.name, Severity.MAJOR_ALARM))
 
+        value = compress_and_hex(json.dumps(beamline_constant_info))
+        value = _check_if_pv_value_exceeds_max_size(value, STANDARD_2048_CHAR_WF_FIELDS["count"], BEAMLINE_CONSTANT_INFO)
         self._add_pv_with_fields(BEAMLINE_CONSTANT_INFO, None, STANDARD_2048_CHAR_WF_FIELDS, "All value parameters",
-                                 None, value=compress_and_hex(json.dumps(beamline_constant_info)))
+                                 None, value=value)
 
     def param_names_pv_names_and_sort(self):
         """
