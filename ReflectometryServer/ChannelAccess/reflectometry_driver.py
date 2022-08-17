@@ -3,6 +3,7 @@ Driver for the reflectometry server.
 """
 import logging
 from functools import partial
+from os import truncate
 from typing import Optional
 
 from pcaspy import Driver, Alarm, Severity
@@ -114,7 +115,14 @@ class ReflectometryDriver(Driver):
                     return new_value
 
                 elif is_pv_name_this_field(SERVER_MESSAGE, reason):
-                    return STATUS_MANAGER.message
+                    # The server message has the active errors in the beginning so truncation happens at the end.
+                    truncated_string = "<truncated>"
+                    server_message_max_character_size = self._pv_manager.PVDB[SERVER_MESSAGE]["count"]
+                    message = STATUS_MANAGER.message
+                    if len(message) > server_message_max_character_size:
+                        return message[:server_message_max_character_size - len(truncated_string)] + truncated_string
+                    else:
+                        return message
                 elif is_pv_name_this_field(SERVER_ERROR_LOG, reason):
                     # The server status manager class appends new messages to the end of the log string,
                     # so the last "count" characters are returned.
