@@ -374,7 +374,14 @@ class ReflectometryDriver(Driver):
             """
             self._update_param_both_pv_and_pv_val(name,
                                                   correction_update.correction)
-            self.setParam("{}:DESC".format(name), correction_update.description)
+
+            value = correction_update.description
+            size = self._pv_manager.PVDB[f"{name}:DESC"]["count"]
+            if len(value) > size:
+                STATUS_MANAGER.update_error_log(f"Size of {name}:DESC exceeded limit of {size} and was truncated.")
+                value = value[size:]
+            
+            self.setParam("{}:DESC".format(name), value)
             self.updatePVs()
 
         for driver, pv_name in list(self._pv_manager.drivers_pv.items()):
