@@ -138,7 +138,8 @@ def check_if_pv_value_exceeds_max_size(value, max_size, pv):
 
     """
     if len(value) > max_size:
-        STATUS_MANAGER.update_error_log(f"Size of {pv} exceeded limit of {max_size} and was truncated.")
+        STATUS_MANAGER.update_error_log(f"Size of {pv} exceeded limit of {max_size} and was truncated. "
+                                         "Can you reduce the contents of the PV, if not increase the size of PV.")
         value = value[:max_size]
     return value
 
