@@ -372,13 +372,8 @@ class ReflectometryDriver(Driver):
                 correction_update (CorrectionUpdate): the updated values
             Returns:
             """
-            self._update_param_both_pv_and_pv_val(name,
-                                                  correction_update.correction)
-
-            value = check_if_pv_value_exceeds_max_size(correction_update.description,
-                                                       self._pv_manager.PVDB[f"{name}:DESC"]["count"],
-                                                       name)
-            self.setParam("{}:DESC".format(name), value)
+            self._update_param_both_pv_and_pv_val(name, correction_update.correction)
+            self.setParam("{}:DESC".format(name), correction_update.description)
             self.updatePVs()
 
         for driver, pv_name in list(self._pv_manager.drivers_pv.items()):
