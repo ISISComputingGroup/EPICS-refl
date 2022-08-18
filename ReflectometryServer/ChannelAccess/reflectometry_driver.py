@@ -3,7 +3,6 @@ Driver for the reflectometry server.
 """
 import logging
 from functools import partial
-from os import truncate
 from typing import Optional
 
 from pcaspy import Driver, Alarm, Severity
@@ -14,7 +13,8 @@ from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, RE
 from ReflectometryServer.ChannelAccess.driver_utils import DriverParamHelper
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, is_pv_name_this_field, BEAMLINE_MODE, VAL_FIELD, \
     SERVER_STATUS, SERVER_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
-    IN_MODE_SUFFIX, SERVER_ERROR_LOG, SAMPLE_LENGTH, REAPPLY_MODE_INITS, BEAMLINE_MOVE, DISP_FIELD
+    IN_MODE_SUFFIX, SERVER_ERROR_LOG, SAMPLE_LENGTH, REAPPLY_MODE_INITS, BEAMLINE_MOVE, DISP_FIELD, \
+    check_if_pv_value_exceeds_max_size
 from ReflectometryServer.beamline import ActiveModeUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, StatusUpdate, ProblemInfo, ErrorLogUpdate
 from ReflectometryServer.footprint_manager import FootprintSort
@@ -375,12 +375,9 @@ class ReflectometryDriver(Driver):
             self._update_param_both_pv_and_pv_val(name,
                                                   correction_update.correction)
 
-            value = correction_update.description
-            size = self._pv_manager.PVDB[f"{name}:DESC"]["count"]
-            if len(value) > size:
-                STATUS_MANAGER.update_error_log(f"Size of {name}:DESC exceeded limit of {size} and was truncated.")
-                value = value[size:]
-            
+            value = check_if_pv_value_exceeds_max_size(correction_update.description,
+                                                       self._pv_manager.PVDB[f"{name}:DESC"]["count"],
+                                                       name)
             self.setParam("{}:DESC".format(name), value)
             self.updatePVs()
 
