@@ -172,7 +172,7 @@ class ReflectometryDriver(Driver):
             elif is_pv_name_this_field(SAMPLE_LENGTH, reason):
                 self._footprint_manager.set_sample_length(value)
             else:
-                STATUS_MANAGER.update_error_log("Error: PV is read only")
+                STATUS_MANAGER.update_error_log(f"Error: PV {reason} is read only")
                 value_accepted = False
 
             if value_accepted:
