@@ -13,7 +13,8 @@ from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, RE
 from ReflectometryServer.ChannelAccess.driver_utils import DriverParamHelper
 from ReflectometryServer.ChannelAccess.pv_manager import PvSort, is_pv_name_this_field, BEAMLINE_MODE, VAL_FIELD, \
     SERVER_STATUS, SERVER_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
-    IN_MODE_SUFFIX, SERVER_ERROR_LOG, SAMPLE_LENGTH, REAPPLY_MODE_INITS, BEAMLINE_MOVE, DISP_FIELD
+    IN_MODE_SUFFIX, SERVER_ERROR_LOG, SAMPLE_LENGTH, REAPPLY_MODE_INITS, BEAMLINE_MOVE, DISP_FIELD, \
+    check_if_pv_value_exceeds_max_size
 from ReflectometryServer.beamline import ActiveModeUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, StatusUpdate, ProblemInfo, ErrorLogUpdate
 from ReflectometryServer.footprint_manager import FootprintSort
@@ -114,9 +115,19 @@ class ReflectometryDriver(Driver):
                     return new_value
 
                 elif is_pv_name_this_field(SERVER_MESSAGE, reason):
-                    return STATUS_MANAGER.message
+                    # The server message has the active errors in the beginning so truncation happens at the end.
+                    truncated_string = "<truncated>"
+                    server_message_max_character_size = self._pv_manager.PVDB[SERVER_MESSAGE]["count"]
+                    message = STATUS_MANAGER.message
+                    if len(message) > server_message_max_character_size:
+                        return message[:server_message_max_character_size - len(truncated_string)] + truncated_string
+                    else:
+                        return message
                 elif is_pv_name_this_field(SERVER_ERROR_LOG, reason):
-                    return STATUS_MANAGER.error_log
+                    # The server status manager class appends new messages to the end of the log string,
+                    # so the last "count" characters are returned.
+                    error_log_max_character_size = self._pv_manager.PVDB[SERVER_ERROR_LOG]["count"]
+                    return STATUS_MANAGER.error_log[-error_log_max_character_size:]
                 elif is_pv_name_this_field(SAMPLE_LENGTH, reason):
                     return self._footprint_manager.get_sample_length()
                 elif self._pv_manager.is_alarm_status(reason):
@@ -161,7 +172,7 @@ class ReflectometryDriver(Driver):
             elif is_pv_name_this_field(SAMPLE_LENGTH, reason):
                 self._footprint_manager.set_sample_length(value)
             else:
-                STATUS_MANAGER.update_error_log("Error: PV is read only")
+                STATUS_MANAGER.update_error_log(f"Error: PV {reason} is read only")
                 value_accepted = False
 
             if value_accepted:
@@ -361,8 +372,7 @@ class ReflectometryDriver(Driver):
                 correction_update (CorrectionUpdate): the updated values
             Returns:
             """
-            self._update_param_both_pv_and_pv_val(name,
-                                                  correction_update.correction)
+            self._update_param_both_pv_and_pv_val(name, correction_update.correction)
             self.setParam("{}:DESC".format(name), correction_update.description)
             self.updatePVs()
 
