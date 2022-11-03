@@ -108,6 +108,8 @@ class DefineCurrentValueAsParameter:
     """
     def __init__(self, define_current_value_as_fn, set_point_change_fn, parameter):
         self._new_value = 0.0
+        self._prepared_value = 0.0
+        self._changed = False
         self._define_current_value_as_fn = define_current_value_as_fn
         self._set_point_change_fn = set_point_change_fn
         self._parameter = parameter
@@ -138,6 +140,22 @@ class DefineCurrentValueAsParameter:
         self._define_current_value_as_fn(value)
         self._set_point_change_fn(value)
 
+    @property
+    def prepared_value(self):
+        return self._prepared_value
+
+    @prepared_value.setter
+    def prepared_value(self, value):
+        self._prepared_value = value
+        self._changed = True
+
+    def set_prepared_value(self):
+        self.new_value = self.prepared_value
+        self._changed = False
+
+    @property
+    def changed(self):
+        return self._changed
 
 class BeamlineParameterType(Enum):
     """

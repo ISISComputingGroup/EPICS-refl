@@ -93,6 +93,9 @@ class PvSort(Enum):
     CHANGING = 8
     RBV_AT_SP = 9
     DEFINE_POS_AS = 10
+    PREPARE_DEFINE_POS_AS = 11
+    EXECUTE_DEFINE_POS_AS = 12
+    DEFINE_CHANGED = 13
 
     @staticmethod
     def what(pv_sort):
@@ -122,6 +125,12 @@ class PvSort(Enum):
             return "(Tolerance between RBV and target set point)"
         elif pv_sort == PvSort.DEFINE_POS_AS:
             return "(Define the value of current position)"
+        elif pv_sort == PvSort.PREPARE_DEFINE_POS_AS:
+            return "(Prepare the current position definition)"
+        elif pv_sort == PvSort.EXECUTE_DEFINE_POS_AS:
+            return "(Set the current position definition to the prepared value)"
+        elif pv_sort == PvSort.DEFINE_CHANGED:
+            return "(The current position definition changed)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -163,6 +172,15 @@ class PvSort(Enum):
                 value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
             else:
                 value = parameter.define_current_value_as.new_value
+        elif self == PvSort.PREPARE_DEFINE_POS_AS:
+            if parameter.define_current_value_as is None:
+                value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
+            else:
+                value = parameter.define_current_value_as.prepared_value
+        elif self == PvSort.EXECUTE_DEFINE_POS_AS:
+            value = 0
+        elif self == PvSort.DEFINE_CHANGED:
+            value = parameter.define_current_value_as.changed
         else:
             value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
             STATUS_MANAGER.update_error_log("PVSort not understood {}".format(PvSort))
@@ -208,6 +226,11 @@ class DriverParamHelper:
         elif param_sort == PvSort.DEFINE_POS_AS:
             param.define_current_value_as.new_value = convert_from_epics_pv_value(param.parameter_type, value,
                                                                                   self._pv_manager.PVDB[pv_name])
+        elif param_sort == PvSort.PREPARE_DEFINE_POS_AS:
+            param.define_current_value_as.prepared_value = convert_from_epics_pv_value(param.parameter_type, value,
+                                                                                       self._pv_manager.PVDB[pv_name])
+        elif param_sort == PvSort.EXECUTE_DEFINE_POS_AS:
+            param.define_current_value_as.set_prepared_value()
         else:
             STATUS_MANAGER.update_error_log("Error: PV {} is read only".format(pv_name))
             value_accepted = False

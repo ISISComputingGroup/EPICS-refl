@@ -84,6 +84,9 @@ RBV_AT_SP = ":RBV:AT_SP"
 CHANGING = ":CHANGING"
 CHANGED_SUFFIX = ":CHANGED"
 DEFINE_POSITION_AS = ":DEFINE_POSITION_AS"
+PREPARE_DEFINE_POS_AS = ":PREPARE_DEFINE_POS_AS"
+EXECUTE_DEFINE_POS_AS = ":EXECUTE_DEFINE_POS_AS"
+DEFINE_CHANGED = ":DEFINE_CHANGED"
 
 VAL_FIELD = ".VAL"
 STAT_FIELD = ".STAT"
@@ -329,6 +332,15 @@ class PVManager:
             align_fields["asg"] = "MANAGER"
             self._add_pv_with_fields(prepended_alias + DEFINE_POSITION_AS, param_name, align_fields, description,
                                      PvSort.DEFINE_POS_AS)
+
+            self._add_pv_with_fields(prepended_alias + PREPARE_DEFINE_POS_AS, param_name, align_fields, description,
+                                     PvSort.PREPARE_DEFINE_POS_AS)
+
+            self._add_pv_with_fields(prepended_alias + EXECUTE_DEFINE_POS_AS, param_name, PARAM_FIELDS_ACTION, description,
+                                     PvSort.EXECUTE_DEFINE_POS_AS)
+
+            self._add_pv_with_fields(prepended_alias + DEFINE_CHANGED, param_name, PARAM_FIELDS_BINARY, description,
+                                     PvSort.DEFINE_CHANGED)
 
         # Engineering Unit
         egu_fields = STANDARD_STRING_FIELDS.copy()
