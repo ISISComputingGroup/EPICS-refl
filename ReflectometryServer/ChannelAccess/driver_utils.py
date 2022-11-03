@@ -171,12 +171,12 @@ class PvSort(Enum):
             if parameter.define_current_value_as is None:
                 value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
             else:
-                value = parameter.define_current_value_as.new_value
+                value = parameter.define_current_value_as.new_value_sp_rbv
         elif self == PvSort.DEFINE_POS_SET_AND_NO_ACTION:
             if parameter.define_current_value_as is None:
                 value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
             else:
-                value = parameter.define_current_value_as.prepared_value
+                value = parameter.define_current_value_as.new_value_sp
         elif self == PvSort.DEFINE_POS_ACTION:
             value = 0
         elif self == PvSort.DEFINE_POS_CHANGED:
@@ -224,13 +224,13 @@ class DriverParamHelper:
         elif param_sort == PvSort.SET_AND_NO_ACTION:
             param.sp_no_move = convert_from_epics_pv_value(param.parameter_type, value, self._pv_manager.PVDB[pv_name])
         elif param_sort == PvSort.DEFINE_POS_SP:
-            param.define_current_value_as.new_value = convert_from_epics_pv_value(param.parameter_type, value,
+            param.define_current_value_as.new_value_sp_rbv = convert_from_epics_pv_value(param.parameter_type, value,
                                                                                   self._pv_manager.PVDB[pv_name])
         elif param_sort == PvSort.DEFINE_POS_SET_AND_NO_ACTION:
-            param.define_current_value_as.prepared_value = convert_from_epics_pv_value(param.parameter_type, value,
+            param.define_current_value_as.new_value_sp = convert_from_epics_pv_value(param.parameter_type, value,
                                                                                        self._pv_manager.PVDB[pv_name])
         elif param_sort == PvSort.DEFINE_POS_ACTION:
-            param.define_current_value_as.set_prepared_value()
+            param.define_current_value_as.do_action()
         else:
             STATUS_MANAGER.update_error_log("Error: PV {} is read only".format(pv_name))
             value_accepted = False

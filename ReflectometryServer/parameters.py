@@ -141,16 +141,16 @@ class DefineCurrentValueAsParameter:
         self._set_point_change_fn(value)
 
     @property
-    def prepared_value(self):
+    def new_value_sp(self):
         return self._new_value_sp
 
-    @prepared_value.setter
-    def prepared_value(self, value):
+    @new_value_sp.setter
+    def new_value_sp(self, value):
         self._new_value_sp = value
         self._changed = True
 
-    def set_prepared_value(self):
-        self.new_value_sp_rbv = self.prepared_value
+    def do_action(self):
+        self.new_value_sp_rbv = self.new_value_sp
         self._changed = False
 
     @property
