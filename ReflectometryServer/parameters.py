@@ -107,22 +107,22 @@ class DefineCurrentValueAsParameter:
     lower levels.
     """
     def __init__(self, define_current_value_as_fn, set_point_change_fn, parameter):
-        self._new_value = 0.0
-        self._prepared_value = 0.0
+        self._new_value_sp_rbv = 0.0
+        self._new_value_sp = 0.0
         self._changed = False
         self._define_current_value_as_fn = define_current_value_as_fn
         self._set_point_change_fn = set_point_change_fn
         self._parameter = parameter
 
     @property
-    def new_value(self):
+    def new_value_sp_rbv(self):
         """
         Returns: The last value set
         """
-        return self._new_value
+        return self._new_value_sp_rbv
 
-    @new_value.setter
-    def new_value(self, value):
+    @new_value_sp_rbv.setter
+    def new_value_sp_rbv(self, value):
         """
         Set the new value and pass it down to the next layer
         Args:
@@ -136,21 +136,21 @@ class DefineCurrentValueAsParameter:
                             sp_rbv=self._parameter.sp_rbv,
                             rbv=self._parameter.rbv))
 
-        self._new_value = value
+        self._new_value_sp_rbv = value
         self._define_current_value_as_fn(value)
         self._set_point_change_fn(value)
 
     @property
     def prepared_value(self):
-        return self._prepared_value
+        return self._new_value_sp
 
     @prepared_value.setter
     def prepared_value(self, value):
-        self._prepared_value = value
+        self._new_value_sp = value
         self._changed = True
 
     def set_prepared_value(self):
-        self.new_value = self.prepared_value
+        self.new_value_sp_rbv = self.prepared_value
         self._changed = False
 
     @property
