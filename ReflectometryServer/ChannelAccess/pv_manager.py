@@ -87,6 +87,8 @@ DEFINE_POS_SP = ":DEFINE_POS_SP"
 DEFINE_POS_SET_AND_NO_ACTION = ":DEFINE_POS_SET_AND_NO_ACTION"
 DEFINE_POS_ACTION = ":DEFINE_POS_ACTION"
 DEFINE_POS_CHANGED = ":DEFINE_POS_CHANGED"
+LOCKED = ":LOCKED"
+LOCKED_SP = ":LOCKED_SP"
 
 VAL_FIELD = ".VAL"
 STAT_FIELD = ".STAT"
@@ -96,7 +98,7 @@ DISP_FIELD = ".DISP"
 EGU_FIELD = ".EGU"
 
 ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DISP_FIELD, EGU_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX,
-                      SET_AND_NO_ACTION_SUFFIX, CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP]
+                      SET_AND_NO_ACTION_SUFFIX, CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP, LOCKED, LOCKED_SP]
 
 CONST_PREFIX = "CONST"
 
@@ -325,6 +327,14 @@ class PVManager:
         # RBV to SP:RBV tolerance
         self._add_pv_with_fields(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
                                  PvSort.RBV_AT_SP)
+
+        # Locked PV
+        self._add_pv_with_fields(prepended_alias + LOCKED, param_name, PARAM_FIELDS_BINARY, description,
+                                 PvSort.LOCKED)
+
+        # Locked setpoint PV
+        self._add_pv_with_fields(prepended_alias + LOCKED_SP, param_name, PARAM_FIELDS_BINARY, description,
+                                 PvSort.LOCKED_SP)
 
         # define position at
         if parameter.define_current_value_as is not None:

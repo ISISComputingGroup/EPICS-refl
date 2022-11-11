@@ -96,6 +96,8 @@ class PvSort(Enum):
     DEFINE_POS_SET_AND_NO_ACTION = 11
     DEFINE_POS_ACTION = 12
     DEFINE_POS_CHANGED = 13
+    LOCKED = 14
+    LOCKED_SP = 15
 
     @staticmethod
     def what(pv_sort):
@@ -131,6 +133,10 @@ class PvSort(Enum):
             return "(Do the define position action)"
         elif pv_sort == PvSort.DEFINE_POS_CHANGED:
             return "(The current position definition is changed)"
+        elif pv_sort == PvSort.LOCKED:
+            return "(Is locked)"
+        elif pv_sort == PvSort.LOCKED_SP:
+            return "(Locked set point)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -181,6 +187,10 @@ class PvSort(Enum):
             value = 0
         elif self == PvSort.DEFINE_POS_CHANGED:
             value = parameter.define_current_value_as.changed
+        elif self == PvSort.LOCKED:
+            value = parameter.is_locked
+        elif self == PvSort.LOCKED_SP:
+            value = parameter.is_locked
         else:
             value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
             STATUS_MANAGER.update_error_log("PVSort not understood {}".format(PvSort))
@@ -217,11 +227,11 @@ class DriverParamHelper:
         value_accepted = True
         param_name, param_sort = self._pv_manager.get_param_name_and_sort_from_pv(pv_name)
         param = self._beamline.parameter(param_name)
-        if param_sort == PvSort.ACTION and not param.is_disabled:
+        if param_sort == PvSort.ACTION and not param.is_disabled and not param.is_locked:
             param.move = 1
-        elif param_sort == PvSort.SP and not param.is_disabled:
+        elif param_sort == PvSort.SP and not param.is_disabled and not param.is_locked:
             param.sp = convert_from_epics_pv_value(param.parameter_type, value, self._pv_manager.PVDB[pv_name])
-        elif param_sort == PvSort.SET_AND_NO_ACTION:
+        elif param_sort == PvSort.SET_AND_NO_ACTION and not param.is_locked:
             param.sp_no_move = convert_from_epics_pv_value(param.parameter_type, value, self._pv_manager.PVDB[pv_name])
         elif param_sort == PvSort.DEFINE_POS_SP:
             param.define_current_value_as.new_value_sp_rbv = convert_from_epics_pv_value(param.parameter_type, value,
@@ -231,6 +241,8 @@ class DriverParamHelper:
                                                                                        self._pv_manager.PVDB[pv_name])
         elif param_sort == PvSort.DEFINE_POS_ACTION:
             param.define_current_value_as.do_action()
+        elif param_sort == PvSort.LOCKED_SP:
+            param.is_locked = convert_from_epics_pv_value(param.parameter_type, value, self._pv_manager.PVDB[pv_name])
         else:
             STATUS_MANAGER.update_error_log("Error: PV {} is read only".format(pv_name))
             value_accepted = False
