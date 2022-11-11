@@ -83,7 +83,10 @@ SET_AND_NO_ACTION_SUFFIX = ":SP_NO_ACTION"
 RBV_AT_SP = ":RBV:AT_SP"
 CHANGING = ":CHANGING"
 CHANGED_SUFFIX = ":CHANGED"
-DEFINE_POSITION_AS = ":DEFINE_POSITION_AS"
+DEFINE_POS_SP = ":DEFINE_POS_SP"
+DEFINE_POS_SET_AND_NO_ACTION = ":DEFINE_POS_SET_AND_NO_ACTION"
+DEFINE_POS_ACTION = ":DEFINE_POS_ACTION"
+DEFINE_POS_CHANGED = ":DEFINE_POS_CHANGED"
 
 VAL_FIELD = ".VAL"
 STAT_FIELD = ".STAT"
@@ -327,8 +330,21 @@ class PVManager:
         if parameter.define_current_value_as is not None:
             align_fields = STANDARD_FLOAT_PV_FIELDS.copy()
             align_fields["asg"] = "MANAGER"
-            self._add_pv_with_fields(prepended_alias + DEFINE_POSITION_AS, param_name, align_fields, description,
-                                     PvSort.DEFINE_POS_AS)
+            action_fields = PARAM_FIELDS_ACTION.copy()
+            action_fields["asg"] = "MANAGER"
+            binary_fields = PARAM_FIELDS_BINARY.copy()
+            binary_fields["asg"] = "MANAGER"
+            self._add_pv_with_fields(prepended_alias + DEFINE_POS_SP, param_name, align_fields, description,
+                                     PvSort.DEFINE_POS_SP)
+
+            self._add_pv_with_fields(prepended_alias + DEFINE_POS_SET_AND_NO_ACTION, param_name, align_fields, description,
+                                     PvSort.DEFINE_POS_SET_AND_NO_ACTION)
+
+            self._add_pv_with_fields(prepended_alias + DEFINE_POS_ACTION, param_name, action_fields, description,
+                                     PvSort.DEFINE_POS_ACTION)
+
+            self._add_pv_with_fields(prepended_alias + DEFINE_POS_CHANGED, param_name, binary_fields, description,
+                                     PvSort.DEFINE_POS_CHANGED)
 
         # Engineering Unit
         egu_fields = STANDARD_STRING_FIELDS.copy()

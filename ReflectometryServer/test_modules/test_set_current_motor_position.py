@@ -44,7 +44,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         theta = AxisParameter("theta", theta_component, ChangeAxis.ANGLE)
         component.beam_path_rbv.axis[ChangeAxis.POSITION].add_listener(DefineValueAsEvent, _listener)
 
-        parameter.define_current_value_as.new_value = position_to_set
+        parameter.define_current_value_as.new_value_sp_rbv = position_to_set
 
         assert_that(self.set_position_to.new_position, is_(expected_position))
         assert_that(self.set_position_to.change_axis, is_(ChangeAxis.POSITION))
@@ -64,7 +64,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
         component.beam_path_rbv.axis[ChangeAxis.ANGLE].add_listener(DefineValueAsEvent, _listener)
 
-        parameter.define_current_value_as.new_value = position_to_set
+        parameter.define_current_value_as.new_value_sp_rbv = position_to_set
 
         assert_that(self.set_position_to.new_position, is_(expected_position))
         assert_that(self.set_position_to.change_axis, is_(ChangeAxis.ANGLE))
@@ -84,7 +84,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         parameter = AxisParameter("param", component, ChangeAxis.ANGLE)
         component.beam_path_rbv.axis[ChangeAxis.ANGLE].add_listener(DefineValueAsEvent, _listener)
 
-        parameter.define_current_value_as.new_value = position_to_set
+        parameter.define_current_value_as.new_value_sp_rbv = position_to_set
 
         assert_that(self.set_position_to.new_position, is_(expected_position))
         assert_that(self.set_position_to.change_axis, is_(ChangeAxis.ANGLE))
@@ -107,7 +107,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         parameter = create_parameter_with_initial_value(0, DirectParameter, "param", mock_jaws_wrapper)
         mock_jaws_wrapper.sp = 0
 
-        parameter.define_current_value_as.new_value = expected_position
+        parameter.define_current_value_as.new_value_sp_rbv = expected_position
 
         mock_jaws_wrapper.define_position_as.assert_called_once_with(expected_position)
 
@@ -128,7 +128,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         move_listener = Mock()
         parameter.add_listener(RequestMoveEvent, move_listener)
 
-        parameter.define_current_value_as.new_value = expected_position
+        parameter.define_current_value_as.new_value_sp_rbv = expected_position
 
         assert_that(component.beam_path_set_point.axis[ChangeAxis.POSITION].get_relative_to_beam(), is_(expected_position),
                     "component setpoint")
@@ -145,7 +145,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         parameter.sp = 0
         parameter.move = 0
 
-        parameter.define_current_value_as.new_value = expected_position
+        parameter.define_current_value_as.new_value_sp_rbv = expected_position
 
         assert_that(component.beam_path_set_point.axis[ChangeAxis.ANGLE].get_relative_to_beam(), is_(expected_position),
                     "component setpoint")
@@ -162,7 +162,7 @@ class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):
         mock_jaws_wrapper.sp = 0
         parameter.sp = expected_mock_jaws_wrapper_value
 
-        parameter.define_current_value_as.new_value = expected_position
+        parameter.define_current_value_as.new_value_sp_rbv = expected_position
 
         assert_that(parameter.sp, is_(expected_position))
         assert_that(parameter.sp_rbv, is_(expected_position))

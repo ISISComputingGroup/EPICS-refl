@@ -980,7 +980,7 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
         bench.beam_path_rbv.axis[self.axis].add_listener(DefineValueAsEvent, mylistener)
         param = AxisParameter("PARAM", bench, self.axis)
 
-        param.define_current_value_as.new_value = expected_result
+        param.define_current_value_as.new_value_sp_rbv = expected_result
         result_pos = self.define_event.new_position
         result_axis = self.define_event.change_axis
 
@@ -1206,7 +1206,7 @@ class TestBenchComponent(unittest.TestCase):
         expected_jack_front_height, expected_jack_rear_height, expected_slide_position = expected_positions
         position, angle, seesaw, j1_axis, j2_axis, slide_axis = self._setup_bench(initial_position)
 
-        position.define_current_value_as.new_value = define_height_as
+        position.define_current_value_as.new_value_sp_rbv = define_height_as
 
         assert_that(j1_axis.set_position_as_value, is_(close_to(expected_jack_front_height, 1e-6)))
         assert_that(j2_axis.set_position_as_value, is_(close_to(expected_jack_rear_height, 1e-6)))
@@ -1220,7 +1220,7 @@ class TestBenchComponent(unittest.TestCase):
         expected_jack_front_height, expected_jack_rear_height, expected_slide_position = expected_positions
         position, angle, seesaw, j1_axis, j2_axis, slide_axis = self._setup_bench(initial_position)
 
-        angle.define_current_value_as.new_value = define_height_as
+        angle.define_current_value_as.new_value_sp_rbv = define_height_as
 
         assert_that(j1_axis.set_position_as_value, is_(close_to(expected_jack_front_height, 1e-6)))
         assert_that(j2_axis.set_position_as_value, is_(close_to(expected_jack_rear_height, 1e-6)))
@@ -1234,7 +1234,7 @@ class TestBenchComponent(unittest.TestCase):
         expected_jack_front_height, expected_jack_rear_height, expected_slide_position = expected_positions
         position, angle, seesaw, j1_axis, j2_axis, slide_axis = self._setup_bench(initial_position)
 
-        seesaw.define_current_value_as.new_value = define_height_as
+        seesaw.define_current_value_as.new_value_sp_rbv = define_height_as
 
         assert_that(j1_axis.set_position_as_value, is_(close_to(expected_jack_front_height, 1e-6)))
         assert_that(j2_axis.set_position_as_value, is_(close_to(expected_jack_rear_height, 1e-6)))
