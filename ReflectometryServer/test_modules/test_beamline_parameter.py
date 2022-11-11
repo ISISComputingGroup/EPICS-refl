@@ -1,4 +1,3 @@
-from imp import init_builtin
 import unittest
 from math import isnan
 from time import sleep
@@ -149,16 +148,6 @@ class TestBeamlineParameter(unittest.TestCase):
         assert_that(sm_in_beam.sp_rbv, is_(in_beam_sp))
         assert_that(super_mirror.beam_path_set_point.is_in_beam, is_(in_beam_sp))
 
-    def test_GIVEN_parameter_WHEN_setting_define_position_sp_THEN_define_as_sp_rbv_is_updated(self):
-        parameter = 6.0
-        sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
-        theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
-
-        theta.define_current_value_as.new_value_sp_rbv = parameter
-        result = theta.define_current_value_as.new_value_sp_rbv
-
-        assert_that(result, is_(parameter))
-
     def test_GIVEN_parameter_WHEN_setting_define_position_sp_THEN_define_as_changed_flag_is_false(self):
         parameter = 6.0
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
@@ -168,16 +157,6 @@ class TestBeamlineParameter(unittest.TestCase):
         result = theta.define_current_value_as.changed
 
         assert_that(result, is_(False))
-
-    def test_GIVEN_parameter_WHEN_setting_define_position_sp_no_action_THEN_define_as_sp_is_updated(self):
-        parameter = 6.0
-        sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
-        theta = AxisParameter("theta", sample, ChangeAxis.ANGLE)
-
-        theta.define_current_value_as.new_value_sp = parameter
-        result = theta.define_current_value_as.new_value_sp
-
-        assert_that(result, is_(parameter))
 
     def test_GIVEN_parameter_WHEN_setting_define_position_sp_no_action_THEN_define_as_sp_rbv_is_unchanged(self):
         parameter = 6.0
