@@ -333,7 +333,7 @@ class PVManager:
                                  PvSort.RBV_AT_SP)
 
         # Locked PV
-        self._add_pv_with_fields(prepended_alias + LOCKED, param_name, PARAM_FIELDS_BINARY_WITH_MANAGER, description,
+        self._add_pv_with_fields(prepended_alias + LOCKED, param_name, PARAM_FIELDS_BINARY, description,
                                  PvSort.LOCKED)
 
         # Locked setpoint PV
