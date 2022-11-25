@@ -189,8 +189,6 @@ class PvSort(Enum):
             value = parameter.define_current_value_as.changed
         elif self == PvSort.LOCKED:
             value = parameter.is_locked
-        elif self == PvSort.LOCKED_SP:
-            value = parameter.is_locked
         else:
             value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
             STATUS_MANAGER.update_error_log("PVSort not understood {}".format(PvSort))
