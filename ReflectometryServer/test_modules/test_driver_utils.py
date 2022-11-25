@@ -48,7 +48,6 @@ class TestDriverUtils(unittest.TestCase):
                                                 ("{}:ACTION".format(pvname), 0, AlarmSeverity.No, AlarmSeverity.No),
                                                 ("{}:RBV:AT_SP".format(pvname), True, AlarmSeverity.No, AlarmSeverity.No),
                                                 ("{}:LOCKED".format(pvname), False, AlarmSeverity.No, AlarmSeverity.No),
-                                                ("{}:LOCKED_SP".format(pvname), False, AlarmSeverity.No, AlarmSeverity.No)
                                                 ))
 
     def test_GIVEN_enum_param_WHEN_update_event_processed_using_get_param_update_from_event_THEN_fields_(self):

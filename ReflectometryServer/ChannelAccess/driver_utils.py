@@ -97,7 +97,6 @@ class PvSort(Enum):
     DEFINE_POS_ACTION = 12
     DEFINE_POS_CHANGED = 13
     LOCKED = 14
-    LOCKED_SP = 15
 
     @staticmethod
     def what(pv_sort):
@@ -134,9 +133,7 @@ class PvSort(Enum):
         elif pv_sort == PvSort.DEFINE_POS_CHANGED:
             return "(The current position definition is changed)"
         elif pv_sort == PvSort.LOCKED:
-            return "(Is locked)"
-        elif pv_sort == PvSort.LOCKED_SP:
-            return "(Locked set point)"
+            return "(Locked)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -239,7 +236,7 @@ class DriverParamHelper:
                                                                                        self._pv_manager.PVDB[pv_name])
         elif param_sort == PvSort.DEFINE_POS_ACTION:
             param.define_current_value_as.do_action()
-        elif param_sort == PvSort.LOCKED_SP:
+        elif param_sort == PvSort.LOCKED:
             param.is_locked = convert_from_epics_pv_value(param.parameter_type, value, self._pv_manager.PVDB[pv_name])
         else:
             STATUS_MANAGER.update_error_log("Error: PV {} is read only".format(pv_name))
