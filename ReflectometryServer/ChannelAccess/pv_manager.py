@@ -87,6 +87,7 @@ DEFINE_POS_SP = ":DEFINE_POS_SP"
 DEFINE_POS_SET_AND_NO_ACTION = ":DEFINE_POS_SET_AND_NO_ACTION"
 DEFINE_POS_ACTION = ":DEFINE_POS_ACTION"
 DEFINE_POS_CHANGED = ":DEFINE_POS_CHANGED"
+LOCKED = ":LOCKED"
 
 VAL_FIELD = ".VAL"
 STAT_FIELD = ".STAT"
@@ -96,7 +97,7 @@ DISP_FIELD = ".DISP"
 EGU_FIELD = ".EGU"
 
 ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DISP_FIELD, EGU_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX,
-                      SET_AND_NO_ACTION_SUFFIX, CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP]
+                      SET_AND_NO_ACTION_SUFFIX, CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP, LOCKED]
 
 CONST_PREFIX = "CONST"
 
@@ -108,9 +109,13 @@ QMIN_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "QMIN")
 QMAX_TEMPLATE = "{}:{{}}:{}".format(FOOTPRINT_PREFIX, "QMAX")
 FOOTPRINT_PREFIXES = [FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY]
 
+MANAGER_FIELD = {"asg": "MANAGER"}
+STANDARD_FLOAT_PV_FIELDS_WITH_MANAGER = STANDARD_FLOAT_PV_FIELDS | MANAGER_FIELD
 PARAM_FIELDS_BINARY = {'type': 'enum', 'enums': ["NO", "YES"]}
+PARAM_FIELDS_BINARY_WITH_MANAGER = PARAM_FIELDS_BINARY | MANAGER_FIELD
 PARAM_IN_MODE = {'type': 'enum', 'enums': ["NO", "YES"]}
 PARAM_FIELDS_ACTION = {'type': 'int', 'count': 1, 'value': 0}
+PARAM_FIELDS_ACTION_WITH_MANAGER = PARAM_FIELDS_ACTION | MANAGER_FIELD
 STANDARD_2048_CHAR_WF_FIELDS = {'type': 'char', 'count': 2048, 'value': ""}
 STANDARD_STRING_FIELDS = {'type': 'string', 'value': ""}
 STANDARD_DISP_FIELDS = {'type': 'enum', 'enums': ["0", "1"], 'value': 0}
@@ -326,24 +331,22 @@ class PVManager:
         self._add_pv_with_fields(prepended_alias + RBV_AT_SP, param_name, PARAM_FIELDS_BINARY, description,
                                  PvSort.RBV_AT_SP)
 
+        # Locked PV
+        self._add_pv_with_fields(prepended_alias + LOCKED, param_name, PARAM_FIELDS_BINARY_WITH_MANAGER, description,
+                                 PvSort.LOCKED)
+
         # define position at
         if parameter.define_current_value_as is not None:
-            align_fields = STANDARD_FLOAT_PV_FIELDS.copy()
-            align_fields["asg"] = "MANAGER"
-            action_fields = PARAM_FIELDS_ACTION.copy()
-            action_fields["asg"] = "MANAGER"
-            binary_fields = PARAM_FIELDS_BINARY.copy()
-            binary_fields["asg"] = "MANAGER"
-            self._add_pv_with_fields(prepended_alias + DEFINE_POS_SP, param_name, align_fields, description,
+            self._add_pv_with_fields(prepended_alias + DEFINE_POS_SP, param_name, STANDARD_FLOAT_PV_FIELDS_WITH_MANAGER, description,
                                      PvSort.DEFINE_POS_SP)
 
-            self._add_pv_with_fields(prepended_alias + DEFINE_POS_SET_AND_NO_ACTION, param_name, align_fields, description,
+            self._add_pv_with_fields(prepended_alias + DEFINE_POS_SET_AND_NO_ACTION, param_name, STANDARD_FLOAT_PV_FIELDS_WITH_MANAGER, description,
                                      PvSort.DEFINE_POS_SET_AND_NO_ACTION)
 
-            self._add_pv_with_fields(prepended_alias + DEFINE_POS_ACTION, param_name, action_fields, description,
+            self._add_pv_with_fields(prepended_alias + DEFINE_POS_ACTION, param_name, PARAM_FIELDS_ACTION_WITH_MANAGER, description,
                                      PvSort.DEFINE_POS_ACTION)
 
-            self._add_pv_with_fields(prepended_alias + DEFINE_POS_CHANGED, param_name, binary_fields, description,
+            self._add_pv_with_fields(prepended_alias + DEFINE_POS_CHANGED, param_name, PARAM_FIELDS_BINARY_WITH_MANAGER, description,
                                      PvSort.DEFINE_POS_CHANGED)
 
         # Engineering Unit
