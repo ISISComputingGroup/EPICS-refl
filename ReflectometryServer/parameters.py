@@ -555,6 +555,10 @@ class BeamlineParameter:
         STATUS_MANAGER.update_active_problems(ProblemInfo("Parameter autosave value has unexpected type", self.name,
                                               Severity.MINOR_ALARM))
 
+    def _trigger_listeners_disabled(self):
+        value = self.is_disabled or self.is_locked
+        self.trigger_listeners(ParameterDisabledUpdate(value))
+
     @property
     def is_disabled(self):
         """
@@ -569,7 +573,7 @@ class BeamlineParameter:
              value: Whether this parameter is currently active (i.e. settable)
         """
         self._is_disabled = value
-        self.trigger_listeners(ParameterDisabledUpdate(value))
+        self._trigger_listeners_disabled()
 
     @property
     def is_locked(self):
@@ -585,6 +589,7 @@ class BeamlineParameter:
              value: Whether this parameter is currently locked (i.e. settable)
         """
         self._is_locked = value
+        self._trigger_listeners_disabled()
 
 class VirtualParameter(BeamlineParameter):
     def __init__(self, name: str, engineering_unit: str, description: str = None):
