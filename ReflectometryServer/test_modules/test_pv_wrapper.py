@@ -77,6 +77,26 @@ class TestMotorPVWrapper(unittest.TestCase):
 
         self.assertEqual(expected_velocity, actual_velocity)
 
+    def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_cached_velocity_is_restored(self):
+        expected_velocity = self.velo
+
+        self.wrapper.initialise()
+        self.assertEqual(self.wrapper.is_moving, False)
+
+        self.wrapper.cache_velocity()
+
+        self.velo = self.vmax
+        self.wrapper.velocity = self.vmax
+        set_velocity = self.wrapper.velocity
+        self.assertEqual(set_velocity, expected_velocity)
+
+        self.wrapper.restore_pre_move_velocity()
+
+        self.velo = self.wrapper.velocity
+
+        self.assertEqual(expected_velocity, self.velo)
+
+
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_max_velocity_is_initialised_correctly(self):
         expected_max_velocity = self.vmax
 
@@ -362,7 +382,7 @@ class TestAggregateMonitorEvents(unittest.TestCase):
 
     def test_GIVEN_one_event_WHEN_processed_THEN_loop_is_terminated(self):
         expected_value = "HI"
-        self.pme.add_trigger(self.event, expected_value)
+        self.pme.add_trigger(self.event, expected_value, start_processing=False)
 
         self.pme.process_triggers_loop()
 
@@ -370,9 +390,9 @@ class TestAggregateMonitorEvents(unittest.TestCase):
 
     def test_GIVEN_one_event_WHEN_added_THEN_event_is_processed(self):
         expected_value = "HI"
-        self.pme.add_trigger(self.event, expected_value)
+        self.pme.add_trigger(self.event, expected_value, start_processing=False)
 
-        time.sleep(0.1)
+        self.pme.process_triggers_loop()
 
         assert_that(self.event_arg, is_([expected_value]))
 
@@ -380,9 +400,9 @@ class TestAggregateMonitorEvents(unittest.TestCase):
         # check that the thread can be restarted
 
         for expected_value in ["HI", "THERE", "WORKS"]:
-            self.pme.add_trigger(self.event, expected_value)
+            self.pme.add_trigger(self.event, expected_value, start_processing=False)
 
-            time.sleep(0.1)
+            self.pme.process_triggers_loop()
 
             assert_that(self.event_arg, is_([expected_value]))
             self.event_arg = []
@@ -390,7 +410,7 @@ class TestAggregateMonitorEvents(unittest.TestCase):
     @patch('ReflectometryServer.pv_wrapper.ChannelAccess')
     def test_GIVEN_nothing_WHEN_event_THEN_in_motion_flag_is_set(self, channel_access):
         expected_value = "HI"
-        self.pme.add_trigger(self.event, expected_value)
+        self.pme.add_trigger(self.event, expected_value, start_processing=False)
 
         self.pme.process_triggers_loop()
 
@@ -400,18 +420,16 @@ class TestAggregateMonitorEvents(unittest.TestCase):
     def test_GIVEN_nothing_WHEN_no_more_events_THEN_in_motion_flag_is_cleared(self, channel_access):
 
         expected_value = "HI"
-        self.pme.add_trigger(self.event, expected_value)
+        self.pme.add_trigger(self.event, expected_value, start_processing=False)
 
         self.pme.process_triggers_loop()
-        time.sleep(0.1)
         channel_access.caput.assert_called_with(MOTOR_MOVING_PV, 0, safe_not_quick=False)
 
     @patch('ReflectometryServer.pv_wrapper.ChannelAccess')
     def test_GIVEN_moving_pv_does_not_exist_WHEN_event_THEN_event_is_processed(self, channel_access):
         channel_access.caput.side_effect = UnableToConnectToPVException("pvname", "error")
         expected_value = "HI"
-        self.pme.add_trigger(self.event, expected_value)
+        self.pme.add_trigger(self.event, expected_value, start_processing=False)
 
         self.pme.process_triggers_loop()
-
         assert_that(self.event_arg, is_([expected_value]))

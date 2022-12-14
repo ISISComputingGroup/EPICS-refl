@@ -482,7 +482,7 @@ class MockChannelAccess:
         except KeyError:
             return None
 
-    def caput(self, pv, value):
+    def caput(self, pv, value, wait=False, safe_not_quick=False):
         self._pvs[pv] = value
 
 

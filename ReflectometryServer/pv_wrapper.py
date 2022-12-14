@@ -205,6 +205,7 @@ class PVWrapper:
         self._backlash_distance_cache = self._read_pv(self._bdst_pv)
         self._backlash_velocity_cache = self._read_pv(self._bvel_pv)
         self._moving_direction_cache = self._read_pv(self._dir_pv)
+        self._moving_state_cache = self._read_pv(self._dmov_pv)
         self._max_velocity_cache = self._read_pv(self._vmax_pv)
         self._base_velocity_cache = self._read_pv(self._vbas_pv)
         self._init_velocity_to_restore()
@@ -492,12 +493,12 @@ class PVWrapper:
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        if self._moving_state_cache is not None and new_value == MTR_STOPPED \
+        if self._moving_state_cache == MTR_MOVING and new_value == MTR_STOPPED \
                 and not self._moving_without_changing_velocity:
             self.restore_pre_move_velocity()
-        self._moving_state_cache = new_value
+        self._moving_state_cache = round(new_value)
 
-        changing_update = IsChangingUpdate(self._dmov_to_bool(new_value), alarm_severity, alarm_status)
+        changing_update = IsChangingUpdate(self.is_moving, alarm_severity, alarm_status)
         PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners, changing_update)
 
     # noinspection PyMethodMayBeStatic
@@ -665,7 +666,7 @@ class JawsAxisPVWrapper(PVWrapper):
 
     def initialise(self):
         """
-        Initialise PVWrapper values once the beamline is ready.
+        Initialise JawsAxisPVWrapper values once the beamline is ready.
         """
         self._set_resolution()
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
@@ -744,8 +745,8 @@ class JawsAxisPVWrapper(PVWrapper):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        self._moving_state_cache = new_value
-        changing_update = IsChangingUpdate(self._dmov_to_bool(new_value), alarm_severity, alarm_status)
+        self._moving_state_cache = round(new_value)
+        changing_update = IsChangingUpdate(self.is_moving, alarm_severity, alarm_status)
         PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners, changing_update)
 
     def _strip_source_pv(self, pv):
