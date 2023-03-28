@@ -223,8 +223,8 @@ class ArcMovementCalc:
         Returns (Position): position of the interception
 
         """
-        y = self._initial_position_at_zero.y + (math.cos(radians(beam.angle)) * self._radius)
-        z = self._initial_position_at_zero.z - (math.sin(radians(beam.angle)) * self._radius)
+        y = self._radius * math.sin(radians(beam.angle))
+        z = self._radius * math.cos(radians(beam.angle))
         return Position(y, z)
 
     def _zero_angle(self, y_zero, position, angle):
