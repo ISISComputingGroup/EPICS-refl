@@ -9,7 +9,7 @@ from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBea
 from ReflectometryServer.axis import DirectCalcAxis, AxisChangedUpdate, \
     AxisChangingUpdate, PhysicalMoveUpdate, SetRelativeToBeamUpdate, DefineValueAsEvent, InitUpdate
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
-from ReflectometryServer.movement_strategy import LinearMovementCalc
+from ReflectometryServer.movement_strategy import LinearMovementCalc, ArcMovementCalc
 from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo, Severity
 from server_common.channel_access import maximum_severity
@@ -134,6 +134,18 @@ class ReflectingComponent(Component):
         self._beam_path_rbv = SettableBeamPathCalcWithAngle("{}_rbv".format(self.name), LinearMovementCalc(setup),
                                                             is_reflecting=True)
 
+class ArcSetup(PositionAndAngle):
+    def __init__(self, y, z, angle, radius):
+        super().__init__(y, z, angle)
+        self.radius = radius
+
+class ArcTrackingComponent(Component):
+    def __init__(self, name, setup):
+        super().__init__(name, setup)
+    
+    def _init_beam_path_calcs(self, setup: ArcSetup):
+        self._beam_path_set_point = TrackingBeamPathCalc("{}_sp".format(self.name), ArcMovementCalc(setup, setup.radius))
+        self._beam_path_rbv = TrackingBeamPathCalc("{}_rbv".format(self.name), ArcMovementCalc(setup, setup.radius))
 
 class ThetaComponent(ReflectingComponent):
     """
@@ -179,6 +191,7 @@ class ThetaComponent(ReflectingComponent):
         self._beam_path_set_point = BeamPathCalcThetaSP("{}_sp".format(self.name), linear_movement_calc)
         self._beam_path_rbv = BeamPathCalcThetaRBV("{}_rbv".format(self.name), linear_movement_calc,
                                                    self._beam_path_set_point)
+
 
 
 class BenchSetup(PositionAndAngle):

@@ -15,7 +15,7 @@ from .utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent, \
-    BenchComponent, BenchSetup
+    BenchComponent, BenchSetup, ArcSetup, ArcTrackingComponent
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, \
@@ -377,6 +377,10 @@ class DataMother:
         beamline.active_mode = beamline_mode.name
         smangle.sp = off_init
         return Beamline([super_mirror], [smangle], [], [beamline_mode])
+    
+    @staticmethod
+    def beamline_with_arc_tracking_detector(theta_angle, position_of_comp:PositionAndAngle, arc_radius):
+        pass
 
 
 def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):
@@ -517,3 +521,6 @@ def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH, vertical_mo
     """
     return BenchComponent("rear_bench", BenchSetup(0, with_z_position, perp_to_floor_angle, PIVOT_TO_J1, PIVOT_TO_J2, with_angle,
                                                    PIVOT_TO_BEAM, BENCH_MIN_ANGLE, BENCH_MAX_ANGLE, vertical_mode))
+
+def get_arc_detector(with_z_position=0, with_angle=ANGLE_OF_BENCH, radius=22.5):
+    pass
