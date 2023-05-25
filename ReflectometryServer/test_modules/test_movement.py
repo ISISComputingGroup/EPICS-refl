@@ -338,12 +338,10 @@ class TestArcMovementIntercept(unittest.TestCase):
         beam = PositionAndAngle(0, 0, beam_angle)
 
         intercept = movement.calculate_interception(beam)
-        print(intercept)
-        actual = (intercept.y ** 2) + (intercept.z ** 2)
-        print(actual)
-        print(expected)
 
-        assert_that(expected, is_(close_to(actual, DEFAULT_TEST_TOLERANCE)))
+        actual = (intercept.y ** 2) + (intercept.z ** 2)
+
+        assert_that(float(expected), is_(close_to(actual, DEFAULT_TEST_TOLERANCE)))
 
     @parameterized.expand([(22.5,), (45.0,)])
     def test_GIVEN_beam_angle_WHEN_get_intercept_THEN_y_and_z_position_are_correct(self, theta):
@@ -351,8 +349,8 @@ class TestArcMovementIntercept(unittest.TestCase):
         z = 10
         beam_angle = 2 * theta
         radius = 10
-        expected_y = math.cos(radians(beam_angle)) * radius
-        expected_z = math.sin(radians(beam_angle)) * radius
+        expected_y = math.sin(radians(beam_angle)) * radius
+        expected_z = math.cos(radians(beam_angle)) * radius
 
         movement = ArcMovementCalc(PositionAndAngle(y, z, 90), radius)
         beam = PositionAndAngle(0, 0, beam_angle)
