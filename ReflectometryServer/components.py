@@ -115,6 +115,48 @@ class TiltingComponent(Component):
                                                             is_reflecting=False)
 
 
+class ArcComponent(TiltingComponent):
+    def __init__(self, name, setup):
+        super().__init__(name, setup)
+        
+
+    def _init_beam_path_calcs(self, setup):
+        self.min_pivot_angle = setup.min_pivot_angle
+        self.max_pivot_angle = setup.max_pivot_angle
+        self._initial_table_angle = setup.initial_table_angle
+
+    def on_motor_axis_changed(self, update: AxisChangedUpdate):
+        """
+        If all motor axes have no unapplied changes then set control axes to no-unapplied changes
+
+        """
+        if not update.is_changed_update:
+            set_point_axes = self.beam_path_set_point.axis
+            any_have_unapplied_update = any([set_point_axes[axis].is_changed for axis in self._motor_axes])
+            if not any_have_unapplied_update:
+                for axis in self._control_axes:
+                    set_point_axes[axis].is_changed = False
+    
+    def _set_motor_axes(self):
+        pass
+
+    def add_axis_listeners(self):
+            self._set_motor_axes()
+            set_point_axis = self.beam_path_set_point.axis
+            rbv_axis = self.beam_path_rbv.axis
+
+            for axis in self._motor_axes:
+                set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_motor_axis_changed)
+                rbv_axis[axis].add_listener(AxisChangingUpdate, self._is_changing_update)
+                rbv_axis[axis].add_listener(PhysicalMoveUpdate, self._on_physical_move)
+
+            for axis in self._control_axes:
+                set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_control_axis_changed)
+                set_point_axis[axis].add_listener(SetRelativeToBeamUpdate, self.on_set_relative_to_beam)
+                rbv_axis[axis].add_listener(DefineValueAsEvent, self.on_define_position)
+    
+
+
 class ReflectingComponent(Component):
     """
     Components which reflects the beam from an reflecting surface at an angle.
@@ -181,7 +223,6 @@ class ThetaComponent(ReflectingComponent):
                                                    self._beam_path_set_point)
 
 
-
 class BenchSetup(PositionAndAngle):
     """
     Setup parameters for the bench component
@@ -243,6 +284,8 @@ class BenchComponent(TiltingComponent):
         self._add_axis_listeners()
 
     def _init_beam_path_calcs(self, setup):
+
+    
         """
         Initialise the beam path calcs for the bench.
         Args:
@@ -265,22 +308,14 @@ class BenchComponent(TiltingComponent):
         set_point_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
         rbv_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
 
-    def _add_axis_listeners(self):
+    def _set_motor_axes(self):
         self._motor_axes = [ChangeAxis.JACK_FRONT, ChangeAxis.JACK_REAR, ChangeAxis.SLIDE]
         self._control_axes = [self._angle_axis, self._position_axis, ChangeAxis.SEESAW]
+
+    
+    def add_axis_listeners(self):
+        super().add_axis_listeners()
         set_point_axis = self.beam_path_set_point.axis
-        rbv_axis = self.beam_path_rbv.axis
-
-        for axis in self._motor_axes:
-            set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_motor_axis_changed)
-            rbv_axis[axis].add_listener(AxisChangingUpdate, self._is_changing_update)
-            rbv_axis[axis].add_listener(PhysicalMoveUpdate, self._on_physical_move)
-
-        for axis in self._control_axes:
-            set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_control_axis_changed)
-            set_point_axis[axis].add_listener(SetRelativeToBeamUpdate, self.on_set_relative_to_beam)
-            rbv_axis[axis].add_listener(DefineValueAsEvent, self.on_define_position)
-
         set_point_axis[ChangeAxis.JACK_FRONT].add_listener(InitUpdate, self.on_init_update)
         set_point_axis[ChangeAxis.JACK_REAR].add_listener(InitUpdate, self.on_init_update)
         # Slide does not set angles or height so doesn't need an init update listener
@@ -518,6 +553,7 @@ class ArcBenchSetup(PositionAndAngle):
         self.radius = radius
         self.min_pivot_angle = min_pivot_angle
         self.max_pivot_angle = max_pivot_angle
+        self._initial_table_angle = initial_table_angle
 
 class ArcBenchComponent(TiltingComponent):
     def __init__(self, name, setup: ArcBenchSetup):
@@ -527,6 +563,7 @@ class ArcBenchComponent(TiltingComponent):
         self.radius = setup.radius
         self.min_pivot_angle = setup.min_pivot_angle
         self.max_pivot_angle = setup.max_pivot_angle
+        self._initial_table_angle = setup.initial_table_angle
 
         self._angle_axis = ChangeAxis.ANGLE
         self._position_axis = ChangeAxis.POSITION
@@ -542,49 +579,41 @@ class ArcBenchComponent(TiltingComponent):
         self._beam_path_set_point = TrackingBeamPathCalc("{}_sp".format(self.name), ArcMovementCalc(setup, setup.radius))
         self._beam_path_rbv = TrackingBeamPathCalc("{}_rbv".format(self.name), ArcMovementCalc(setup, setup.radius))
 
-    def _calculate_motor_positions(radius):
+    def _calculate_motor_positions(self, ):
         pass
 
 
-    # def _init_beam_path_calcs(self, setup):
-    #     """
-    #     Initialise the beam path calcs for the bench.
-    #     Args:
-    #         setup: for bench pivot
+    def _init_beam_path_calcs(self, setup):
+        """
+        Initialise the beam path calcs for the bench.
+        Args:
+            setup: for bench pivot
 
-    #     """
-    #     super(BenchComponent, self)._init_beam_path_calcs(setup)
+        """
+        super(BenchComponent, self)._init_beam_path_calcs(setup)
 
-    #     set_point_axis = self.beam_path_set_point.axis
-    #     set_point_axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
-    #     rbv_axis = self.beam_path_rbv.axis
-    #     rbv_axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
+        # set_point_axis = self.beam_path_set_point.axis
+        # set_point_axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
+        # rbv_axis = self.beam_path_rbv.axis
+        # rbv_axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
 
-    #     set_point_axis[ChangeAxis.JACK_FRONT] = DirectCalcAxis(ChangeAxis.JACK_FRONT)
-    #     rbv_axis[ChangeAxis.JACK_FRONT] = DirectCalcAxis(ChangeAxis.JACK_FRONT)
+        # set_point_axis[ChangeAxis.JACK_FRONT] = DirectCalcAxis(ChangeAxis.JACK_FRONT)
+        # rbv_axis[ChangeAxis.JACK_FRONT] = DirectCalcAxis(ChangeAxis.JACK_FRONT)
 
-    #     set_point_axis[ChangeAxis.JACK_REAR] = DirectCalcAxis(ChangeAxis.JACK_REAR)
-    #     rbv_axis[ChangeAxis.JACK_REAR] = DirectCalcAxis(ChangeAxis.JACK_REAR)
+        # set_point_axis[ChangeAxis.JACK_REAR] = DirectCalcAxis(ChangeAxis.JACK_REAR)
+        # rbv_axis[ChangeAxis.JACK_REAR] = DirectCalcAxis(ChangeAxis.JACK_REAR)
 
-    #     set_point_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
-    #     rbv_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
+        # set_point_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
+        # rbv_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
 
-    # def _add_axis_listeners(self):
-    #     self._motor_axes = [ChangeAxis.JACK_FRONT, ChangeAxis.JACK_REAR, ChangeAxis.SLIDE]
-    #     self._control_axes = [self._angle_axis, self._position_axis, ChangeAxis.SEESAW]
-    #     set_point_axis = self.beam_path_set_point.axis
-    #     rbv_axis = self.beam_path_rbv.axis
+    def _set_motor_axes(self):
+        self._motor_axes = [ChangeAxis.SLIDE]
+        self._control_axes = []
 
-    #     for axis in self._motor_axes:
-    #         set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_motor_axis_changed)
-    #         rbv_axis[axis].add_listener(AxisChangingUpdate, self._is_changing_update)
-    #         rbv_axis[axis].add_listener(PhysicalMoveUpdate, self._on_physical_move)
+    def add_axis_listeners(self):
+        super().add_axis_listeners()
+        set_point_axis = self.beam_path_set_point.axis
 
-    #     for axis in self._control_axes:
-    #         set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_control_axis_changed)
-    #         set_point_axis[axis].add_listener(SetRelativeToBeamUpdate, self.on_set_relative_to_beam)
-    #         rbv_axis[axis].add_listener(DefineValueAsEvent, self.on_define_position)
-
-    #     set_point_axis[ChangeAxis.JACK_FRONT].add_listener(InitUpdate, self.on_init_update)
-    #     set_point_axis[ChangeAxis.JACK_REAR].add_listener(InitUpdate, self.on_init_update)
-    #     # Slide does not set angles or height so doesn't need an init update listener
+        set_point_axis[ChangeAxis.JACK_FRONT].add_listener(InitUpdate, self.on_init_update)
+        set_point_axis[ChangeAxis.JACK_REAR].add_listener(InitUpdate, self.on_init_update)
+        # Slide does not set angles or height so doesn't need an init update listener
