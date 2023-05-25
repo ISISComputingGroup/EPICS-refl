@@ -607,13 +607,5 @@ class ArcBenchComponent(TiltingComponent):
         # rbv_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
 
     def _set_motor_axes(self):
-        self._motor_axes = [ChangeAxis.SLIDE]
-        self._control_axes = []
-
-    def add_axis_listeners(self):
-        super().add_axis_listeners()
-        set_point_axis = self.beam_path_set_point.axis
-
-        set_point_axis[ChangeAxis.JACK_FRONT].add_listener(InitUpdate, self.on_init_update)
-        set_point_axis[ChangeAxis.JACK_REAR].add_listener(InitUpdate, self.on_init_update)
-        # Slide does not set angles or height so doesn't need an init update listener
+        self._motor_axes = [ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.LONG_AXIS]
+        self._control_axes = [ChangeAxis.POSITION, ChangeAxis.ANGLE, ChangeAxis.LONG_AXIS]
