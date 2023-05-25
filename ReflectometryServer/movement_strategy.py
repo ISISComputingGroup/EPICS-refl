@@ -107,6 +107,7 @@ class LinearMovementCalc:
         beam_intercept = self.calculate_interception(beam)
         y_diff = self._current_position_at_zero.y - beam_intercept.y
         z_diff = self._current_position_at_zero.z - beam_intercept.z
+        # this is the a^2 + b^2 = c^2 rule which works out the length of the missing hypotenuse
         dist_to_beam = sqrt(pow(y_diff, 2) + pow(z_diff, 2))
         if y_diff > 0:
             direction = -1.0
@@ -114,6 +115,7 @@ class LinearMovementCalc:
             direction = 1.0
         if (self._angle % 360.0) >= 180.0:
             direction *= -1
+        # *-1 if direction is negative
         dist_along_axis_from_zero_to_beam_intercept = dist_to_beam * direction
         return dist_along_axis_from_zero_to_beam_intercept
 
@@ -291,7 +293,7 @@ class ArcMovementCalc:
 
     def set_displacement(self, displacement):
         """
-        Set the read back value for the movement. The is the displacement along the axis from the zero point to the
+        Set the read back value for the movement. This is the displacement along the axis from the zero point to the
         actual position of the component, in the direction of the axis.
         Args:
             displacement: value along the axis, -ve for before the zero point
@@ -336,7 +338,7 @@ class ArcMovementCalc:
 
     def get_displacement_relative_to_beam_for(self, beam, position):
         """
-        For a given position this will return the
+        For a given position this will return the sum of the position and distance from 0 to beam intercept
 
         Args:
             beam (PositionAndAngle) : the beam ray
@@ -349,8 +351,9 @@ class ArcMovementCalc:
 
     def offset_position_at_zero(self, position_offset: Position):
         """
+        TODO: does nothing yet, we need to determine how an offset is used and then how it should affect the radius and y/z of the beam interception
         Offset the position at zero by the amount specified. Used to change where the movement axis is.
         Args:
             position_offset: The amount to change the zero position by.
         """
-        self._current_position_at_zero = self._initial_position_at_zero + position_offset
+        pass
