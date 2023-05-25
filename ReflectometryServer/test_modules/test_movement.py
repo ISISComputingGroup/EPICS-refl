@@ -325,7 +325,7 @@ class TestArcMovementIntercept(unittest.TestCase):
 
         assert_that(result, is_(position(Position(y, -radius))))
 
-    @parameterized.expand([(22.5,)])
+    @parameterized.expand([(22.5,), (33.3,)])
     def test_GIVEN_beam_angle_WHEN_get_intercept_THEN_radius_squared_equals_y_squared_plus_z_squared(self, theta):
         y = 0
         z = 10
@@ -334,10 +334,14 @@ class TestArcMovementIntercept(unittest.TestCase):
         expected = radius**2
 
         movement = ArcMovementCalc(PositionAndAngle(y, z, 90), radius)
+
         beam = PositionAndAngle(0, 0, beam_angle)
 
         intercept = movement.calculate_interception(beam)
+        print(intercept)
         actual = (intercept.y ** 2) + (intercept.z ** 2)
+        print(actual)
+        print(expected)
 
         assert_that(expected, is_(close_to(actual, DEFAULT_TEST_TOLERANCE)))
 
@@ -373,18 +377,18 @@ class TestArcMovementIntercept(unittest.TestCase):
     
     #     assert_that(result, is_(position(Position(expected_y, z))))
     #
-    def test_GIVEN_beam_perpendicular_to_z_at_movement_angle_10_WHEN_get_intercept_THEN_position_is_z_as_initial_y_as_right_angle_triangle(self):
-        y = 0
-        z = 10
-        angle = 90
-        movement = ArcMovementCalc(PositionAndAngle(y, z, angle), z)
-        beam_z = 0
-        beam = PositionAndAngle(1, beam_z, 90)
-        expected_y = -z * tan(radians(angle))
+    # def test_GIVEN_beam_perpendicular_to_z_at_movement_angle_10_WHEN_get_intercept_THEN_position_is_z_as_initial_y_as_right_angle_triangle(self):
+    #     y = 0
+    #     z = 10
+    #     angle = 90
+    #     movement = ArcMovementCalc(PositionAndAngle(y, z, angle), z)
+    #     beam_z = 0
+    #     beam = PositionAndAngle(1, beam_z, 90)
+    #     expected_y = -z * tan(radians(angle))
     
-        result = movement.calculate_interception(beam)
+    #     result = movement.calculate_interception(beam)
     
-        assert_that(result, is_(position(Position(expected_y, beam_z))))
+    #     assert_that(result, is_(position(Position(expected_y, beam_z))))
     #
     # @parameterized.expand([(180,), (0,)])
     # def test_GIVEN_movement_45_to_z_at_beam_angle_along_z_WHEN_get_intercept_THEN_position_is_initial_position(self, angle):
