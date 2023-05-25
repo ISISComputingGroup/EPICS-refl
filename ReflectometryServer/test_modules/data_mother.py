@@ -15,7 +15,7 @@ from .utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
 from ReflectometryServer.beamline import BeamlineMode, Beamline
 from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent, \
-    BenchComponent, BenchSetup, ArcSetup, ArcTrackingComponent
+    BenchComponent, BenchSetup, ArcBenchSetup, ArcTrackingComponent
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, \
@@ -380,7 +380,11 @@ class DataMother:
     
     @staticmethod
     def beamline_with_arc_tracking_detector(theta_angle, position_of_comp:PositionAndAngle, arc_radius):
-        pass
+        ConfigHelper.reset()
+        theta_comp = add_component(ThetaComponent("theta", PositionAndAngle(0, 0, 90)))
+        theta = add_parameter(AxisParameter("theta", theta_comp, ChangeAxis.ANGLE))
+        arc_bench_comp = ArcTrackingComponent("arcbench", PositionAndAngle(0, 1, 90))
+
 
 
 def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):

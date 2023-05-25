@@ -134,18 +134,6 @@ class ReflectingComponent(Component):
         self._beam_path_rbv = SettableBeamPathCalcWithAngle("{}_rbv".format(self.name), LinearMovementCalc(setup),
                                                             is_reflecting=True)
 
-class ArcSetup(PositionAndAngle):
-    def __init__(self, y, z, angle, radius):
-        super().__init__(y, z, angle)
-        self.radius = radius
-
-class ArcTrackingComponent(Component):
-    def __init__(self, name, setup):
-        super().__init__(name, setup)
-    
-    def _init_beam_path_calcs(self, setup: ArcSetup):
-        self._beam_path_set_point = TrackingBeamPathCalc("{}_sp".format(self.name), ArcMovementCalc(setup, setup.radius))
-        self._beam_path_rbv = TrackingBeamPathCalc("{}_rbv".format(self.name), ArcMovementCalc(setup, setup.radius))
 
 class ThetaComponent(ReflectingComponent):
     """
@@ -504,3 +492,99 @@ class BenchComponent(TiltingComponent):
 
         sp_axis[self._position_axis].init_displacement_from_motor(pivot_height)
         sp_axis[self._angle_axis].init_displacement_from_motor(pivot_angle)
+
+
+class ArcBenchSetup(PositionAndAngle):
+    """
+    Setup parameters for the bench component
+    """
+    def __init__(self, y, z, height, dist, angle, radius,
+                 min_pivot_angle, max_pivot_angle,):
+        """
+        Initialise.
+        Args:
+            y: y position of pivot at 0
+            z: z position of pivot at 0
+            height: initial height perpendicular to the floor
+            dist: initial distance parallel to the floor
+            angle: initial pivot angle
+            radius: distance from the pivot of the bench to the beam
+            min_pivot_angle: minimum angle for moving the horizontal slide; clamp to this angle below
+            max_pivot_angle: maximum angle for moving the horizontal slide; clamp to this angle above
+        """
+        super(BenchSetup, self).__init__(y, z, angle)
+        self.height = height
+        self.dist = dist
+        self.radius = radius
+        self.min_pivot_angle = min_pivot_angle
+        self.max_pivot_angle = max_pivot_angle
+
+class ArcBenchComponent(TiltingComponent):
+    def __init__(self, name, setup: ArcBenchSetup):
+        self.height = setup.height
+        self.pivot_angle = setup.angle
+        self.dist = setup.dist
+        self.radius = setup.radius
+        self.min_pivot_angle = setup.min_pivot_angle
+        self.max_pivot_angle = setup.max_pivot_angle
+
+        self._angle_axis = ChangeAxis.ANGLE
+        self._position_axis = ChangeAxis.POSITION
+        self._height_axis = ChangeAxis.HEIGHT
+        self._dist_axis = ChangeAxis.LONG_AXIS
+
+
+        super(TiltingComponent, self).__init__(name, setup)
+        self._add_axis_listeners()
+    
+    def _init_beam_path_calcs(self, setup: ArcBenchSetup):
+        super(ArcBenchComponent, self)._init_beam_path_calcs(setup)
+        self._beam_path_set_point = TrackingBeamPathCalc("{}_sp".format(self.name), ArcMovementCalc(setup, setup.radius))
+        self._beam_path_rbv = TrackingBeamPathCalc("{}_rbv".format(self.name), ArcMovementCalc(setup, setup.radius))
+
+    def _calculate_motor_positions(radius):
+        pass
+
+
+    # def _init_beam_path_calcs(self, setup):
+    #     """
+    #     Initialise the beam path calcs for the bench.
+    #     Args:
+    #         setup: for bench pivot
+
+    #     """
+    #     super(BenchComponent, self)._init_beam_path_calcs(setup)
+
+    #     set_point_axis = self.beam_path_set_point.axis
+    #     set_point_axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
+    #     rbv_axis = self.beam_path_rbv.axis
+    #     rbv_axis[ChangeAxis.SEESAW] = DirectCalcAxis(ChangeAxis.SEESAW)
+
+    #     set_point_axis[ChangeAxis.JACK_FRONT] = DirectCalcAxis(ChangeAxis.JACK_FRONT)
+    #     rbv_axis[ChangeAxis.JACK_FRONT] = DirectCalcAxis(ChangeAxis.JACK_FRONT)
+
+    #     set_point_axis[ChangeAxis.JACK_REAR] = DirectCalcAxis(ChangeAxis.JACK_REAR)
+    #     rbv_axis[ChangeAxis.JACK_REAR] = DirectCalcAxis(ChangeAxis.JACK_REAR)
+
+    #     set_point_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
+    #     rbv_axis[ChangeAxis.SLIDE] = DirectCalcAxis(ChangeAxis.SLIDE)
+
+    # def _add_axis_listeners(self):
+    #     self._motor_axes = [ChangeAxis.JACK_FRONT, ChangeAxis.JACK_REAR, ChangeAxis.SLIDE]
+    #     self._control_axes = [self._angle_axis, self._position_axis, ChangeAxis.SEESAW]
+    #     set_point_axis = self.beam_path_set_point.axis
+    #     rbv_axis = self.beam_path_rbv.axis
+
+    #     for axis in self._motor_axes:
+    #         set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_motor_axis_changed)
+    #         rbv_axis[axis].add_listener(AxisChangingUpdate, self._is_changing_update)
+    #         rbv_axis[axis].add_listener(PhysicalMoveUpdate, self._on_physical_move)
+
+    #     for axis in self._control_axes:
+    #         set_point_axis[axis].add_listener(AxisChangedUpdate, self.on_control_axis_changed)
+    #         set_point_axis[axis].add_listener(SetRelativeToBeamUpdate, self.on_set_relative_to_beam)
+    #         rbv_axis[axis].add_listener(DefineValueAsEvent, self.on_define_position)
+
+    #     set_point_axis[ChangeAxis.JACK_FRONT].add_listener(InitUpdate, self.on_init_update)
+    #     set_point_axis[ChangeAxis.JACK_REAR].add_listener(InitUpdate, self.on_init_update)
+    #     # Slide does not set angles or height so doesn't need an init update listener

@@ -341,7 +341,7 @@ class TestArcMovementIntercept(unittest.TestCase):
 
         assert_that(expected, is_(close_to(actual, DEFAULT_TEST_TOLERANCE)))
 
-    @parameterized.expand([(22.5,)])
+    @parameterized.expand([(22.5,), (45.0,)])
     def test_GIVEN_beam_angle_WHEN_get_intercept_THEN_y_and_z_position_are_correct(self, theta):
         y = 0
         z = 10
