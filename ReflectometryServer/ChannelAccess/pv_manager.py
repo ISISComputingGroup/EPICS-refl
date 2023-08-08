@@ -88,6 +88,7 @@ DEFINE_POS_SET_AND_NO_ACTION = ":DEFINE_POS_SET_AND_NO_ACTION"
 DEFINE_POS_ACTION = ":DEFINE_POS_ACTION"
 DEFINE_POS_CHANGED = ":DEFINE_POS_CHANGED"
 LOCKED = ":LOCKED"
+READ_ONLY = ":READ_ONLY"
 
 VAL_FIELD = ".VAL"
 STAT_FIELD = ".STAT"
@@ -97,7 +98,8 @@ DISP_FIELD = ".DISP"
 EGU_FIELD = ".EGU"
 
 ALL_PARAM_SUFFIXES = [VAL_FIELD, STAT_FIELD, SEVR_FIELD, DISP_FIELD, EGU_FIELD, DESC_FIELD, SP_SUFFIX, SP_RBV_SUFFIX,
-                      SET_AND_NO_ACTION_SUFFIX, CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP, LOCKED]
+                      SET_AND_NO_ACTION_SUFFIX, CHANGED_SUFFIX, ACTION_SUFFIX, CHANGING, IN_MODE_SUFFIX, RBV_AT_SP,
+                      LOCKED, READ_ONLY]
 
 CONST_PREFIX = "CONST"
 
@@ -335,6 +337,9 @@ class PVManager:
         self._add_pv_with_fields(prepended_alias + LOCKED, param_name, PARAM_FIELDS_BINARY_WITH_MANAGER, description,
                                  PvSort.LOCKED)
 
+        # Read Only PV
+        self._add_pv_with_fields(prepended_alias + READ_ONLY, param_name, PARAM_FIELDS_BINARY_WITH_MANAGER, description,
+                                 PvSort.READ_ONLY)
         # define position at
         if parameter.define_current_value_as is not None:
             self._add_pv_with_fields(prepended_alias + DEFINE_POS_SP, param_name, STANDARD_FLOAT_PV_FIELDS_WITH_MANAGER, description,

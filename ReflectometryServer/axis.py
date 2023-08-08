@@ -514,3 +514,23 @@ class BeamPathCalcAxis(ComponentAxis):
         if self._init_displacement_from_motor is not None:
             return self._init_displacement_from_motor(value)
         raise TypeError("Axis does not support init_displacement_from_motor")
+
+
+class ReadOnlyBeamPathCalcAxis(BeamPathCalcAxis):
+
+    def __init__(self, axis, get_relative_to_beam):
+        super(ReadOnlyBeamPathCalcAxis, self).__init__(axis, get_relative_to_beam, self._do_nothing_function)
+        self.set_alarm(AlarmSeverity.No, AlarmStatus.No)
+
+    def get_displacement(self):
+        return self.get_relative_to_beam()
+
+    def set_displacement(self, _):
+        pass
+
+    def init_displacement_from_motor(self, _):
+        pass
+
+    def _do_nothing_function(self, _):
+        pass
+

@@ -8,7 +8,8 @@ from math import degrees, atan2, isnan
 from typing import Dict, List, Tuple, Optional
 
 from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
-    BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate, BeamPathCalcModificationAxis, ParkingSequenceUpdate
+    BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate, BeamPathCalcModificationAxis, ParkingSequenceUpdate, \
+    ReadOnlyBeamPathCalcAxis
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis, Position
 from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException, \
     BeamlineConfigurationInvalidException
@@ -308,7 +309,10 @@ class TrackingBeamPathCalc:
                                                   self._init_displacement_from_motor),
 
             ChangeAxis.LONG_AXIS: BeamPathCalcModificationAxis(ChangeAxis.LONG_AXIS,
-                                                               self._on_long_axis_change)
+                                                               self._on_long_axis_change),
+            ChangeAxis.OUT_BEAM_Y: ReadOnlyBeamPathCalcAxis(ChangeAxis.OUT_BEAM_Y, self.get_outgoing_beam_y),
+            ChangeAxis.OUT_BEAM_Z: ReadOnlyBeamPathCalcAxis(ChangeAxis.OUT_BEAM_Z, self.get_outgoing_beam_z),
+            ChangeAxis.OUT_BEAM_ANGLE: ReadOnlyBeamPathCalcAxis(ChangeAxis.OUT_BEAM_ANGLE, self.get_outgoing_beam_angle)
         }
 
     def _init_displacement_from_motor(self, value):
@@ -338,6 +342,7 @@ class TrackingBeamPathCalc:
             if not self.incoming_beam_can_change:
                 self.incoming_beam_auto_save()
             self._on_set_incoming_beam(incoming_beam, on_init=on_init)
+            self._update_beam_path_axes()
         if on_init:
             # Beam has changed position so reapply autosave which is relative to beam, trigger beampath update init not
             # beam path update
@@ -347,6 +352,11 @@ class TrackingBeamPathCalc:
             self.trigger_listeners(BeamPathUpdateOnInit(self))
         else:
             self.trigger_listeners(BeamPathUpdate(self))
+
+    def _update_beam_path_axes(self):
+        self.axis[ChangeAxis.OUT_BEAM_Y].set_relative_to_beam(self.get_outgoing_beam().y)
+        self.axis[ChangeAxis.OUT_BEAM_Z].set_relative_to_beam(self.get_outgoing_beam().z)
+        self.axis[ChangeAxis.OUT_BEAM_ANGLE].set_relative_to_beam(self.get_outgoing_beam().angle)
 
     def _on_set_incoming_beam(self, incoming_beam, on_init):
         """
@@ -380,6 +390,27 @@ class TrackingBeamPathCalc:
         Returns (PositionAndAngle): the outgoing beam based on the incoming beam and any interaction with the component
         """
         return self._incoming_beam
+
+    def get_outgoing_beam_y(self):
+        """
+        Returns the outgoing beam. This class is overridden by components which affect the beam angle.
+        Returns (PositionAndAngle): the outgoing beam based on the incoming beam and any interaction with the component
+        """
+        return self.get_outgoing_beam().y
+
+    def get_outgoing_beam_z(self):
+        """
+        Returns the outgoing beam. This class is overridden by components which affect the beam angle.
+        Returns (PositionAndAngle): the outgoing beam based on the incoming beam and any interaction with the component
+        """
+        return self.get_outgoing_beam().z
+
+    def get_outgoing_beam_angle(self):
+        """
+        Returns the outgoing beam. This class is overridden by components which affect the beam angle.
+        Returns (PositionAndAngle): the outgoing beam based on the incoming beam and any interaction with the component
+        """
+        return self.get_outgoing_beam().angle
 
     def calculate_beam_interception(self):
         """

@@ -7,6 +7,7 @@ from typing import List, Optional, Union, TYPE_CHECKING, Callable, Any
 
 from pcaspy import Severity
 
+from ReflectometryServer.axis import SetRelativeToBeamUpdate
 from server_common.utilities import SEVERITY
 
 if TYPE_CHECKING:
@@ -245,6 +246,11 @@ class BeamlineParameter:
         """
         self._set_point = None
         self._set_point_rbv = None
+        self.read_only = False
+        # TODO
+        # init from file: error
+        # init from motor: equal to rbv
+        # refactor into subclass?
 
         self._sp_is_changed = False
         self._name = name
@@ -291,9 +297,12 @@ class BeamlineParameter:
         Args:
             sp_init: The setpoint value to set
         """
-        self._set_point = sp_init
-        self._set_point_rbv = sp_init
-        self.trigger_listeners(ParameterInitUpdate(self._set_point, AlarmSeverity.No, AlarmStatus.No))
+        if self.read_only:
+            self._set_point = self._rbv()
+        else:
+            self._set_point = sp_init
+            self._set_point_rbv = sp_init
+            self.trigger_listeners(ParameterInitUpdate(self._set_point, AlarmSeverity.No, AlarmStatus.No))
 
     @property
     def rbv(self):
@@ -336,7 +345,8 @@ class BeamlineParameter:
         Args:
             set_point: the set point
         """
-        self._sp_no_move(set_point)
+        if not self.read_only:
+            self._sp_no_move(set_point)
 
     def _sp_no_move(self, set_point):
         self._set_point = set_point
@@ -357,7 +367,8 @@ class BeamlineParameter:
         Args:
             set_point: new set point
         """
-        self._set_sp(set_point)
+        if not self.read_only:
+            self._set_sp(set_point)
 
     def _set_sp_perform_no_move(self, value):
         """
@@ -508,7 +519,7 @@ class BeamlineParameter:
         """
         Returns: Has set point been changed since the last move
         """
-        return self._sp_is_changed
+        return self._sp_is_changed if not self.read_only else False
 
     def _check_and_move_component(self):
         """
@@ -556,7 +567,7 @@ class BeamlineParameter:
                                               Severity.MINOR_ALARM))
 
     def _trigger_listeners_disabled(self):
-        value = self.is_disabled or self.is_locked
+        value = self.is_disabled or self.is_locked or self.read_only
         self.trigger_listeners(ParameterDisabledUpdate(value))
 
     @property
@@ -590,6 +601,7 @@ class BeamlineParameter:
         """
         self._is_locked = value
         self._trigger_listeners_disabled()
+
 
 class VirtualParameter(BeamlineParameter):
     def __init__(self, name: str, engineering_unit: str, description: str = None):
@@ -665,14 +677,24 @@ class AxisParameter(BeamlineParameter):
         else:
             self.group_names.append(BeamlineParameterGroup.MISC)
 
-        if axis in [ChangeAxis.ANGLE, ChangeAxis.PHI, ChangeAxis.PSI, ChangeAxis.CHI]:
+        if axis in [ChangeAxis.ANGLE, ChangeAxis.PHI, ChangeAxis.PSI, ChangeAxis.CHI, ChangeAxis.OUT_BEAM_ANGLE]:
             self.engineering_unit = "deg"
         else:
             self.engineering_unit = "mm"
 
+        if axis in [ChangeAxis.OUT_BEAM_Y, ChangeAxis.OUT_BEAM_Z, ChangeAxis.OUT_BEAM_ANGLE]:
+            self.read_only = True
+            self._trigger_listeners_disabled()
+            self.component.beam_path_set_point.axis[self.axis].add_listener(SetRelativeToBeamUpdate, self._update_sp_from_component)
+
         self._initialise_setpoint()
         self._initialise_beam_path_sp_listeners()
         self._initialise_beam_path_rbv_listeners()
+
+    def _update_sp_from_component(self, update: SetRelativeToBeamUpdate):
+        new_sp = update.relative_to_beam
+        self._sp_no_move(new_sp)
+        self._set_point_rbv = new_sp  # can not be applied by move
 
     def _initialise_setpoint(self):
         """
