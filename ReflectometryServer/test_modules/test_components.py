@@ -882,7 +882,7 @@ class TestComponentDisablingAndAutosaveInit(unittest.TestCase):
     def test_GIVEN_component_WHEN_init_disabled_with_invalid_beam_THEN_incoming_beam_is_0_0_0(self, mock_auto_save):
         expected_incoming_beam = PositionAndAngle(0, 0, 0)
         mock_auto_save.read_parameter.return_value = None
-        component = Component("comp", PositionAndAngle(0, 0, 0))
+        component = Component("comp", PositionAndAngle(0, 10, 90))
 
         component.set_incoming_beam_can_change(False, on_init=True)
 
@@ -903,7 +903,7 @@ class TestComponentDisablingAndAutosaveInit(unittest.TestCase):
         expected_incoming_beam_sp = PositionAndAngle(1, 2, 3)
         expected_incoming_beam_rbv = PositionAndAngle(1, 2, 3)
         expected_name = "comp"
-        component = Component(expected_name, PositionAndAngle(0, 0, 0))
+        component = Component(expected_name, PositionAndAngle(0, 10, 90))
         component.beam_path_set_point.set_incoming_beam(PositionAndAngle(0,0,0))
         component.beam_path_rbv.set_incoming_beam(PositionAndAngle(0,0,0))
         component.set_incoming_beam_can_change(False)
