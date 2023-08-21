@@ -519,14 +519,13 @@ class BeamPathCalcAxis(ComponentAxis):
 class ReadOnlyBeamPathCalcAxis(BeamPathCalcAxis):
 
     def __init__(self, axis, get_relative_to_beam):
-        super(ReadOnlyBeamPathCalcAxis, self).__init__(axis, get_relative_to_beam, self._do_nothing_function)
+        super(ReadOnlyBeamPathCalcAxis, self).__init__(axis, get_relative_to_beam, self._do_nothing_function,
+                                                       get_displacement=get_relative_to_beam,
+                                                       set_displacement=self._do_nothing_function)
         self.set_alarm(AlarmSeverity.No, AlarmStatus.No)
 
     def get_displacement(self):
         return self.get_relative_to_beam()
-
-    def set_displacement(self, _):
-        pass
 
     def init_displacement_from_motor(self, _):
         pass

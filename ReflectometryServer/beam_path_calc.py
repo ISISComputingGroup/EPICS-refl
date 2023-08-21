@@ -310,9 +310,8 @@ class TrackingBeamPathCalc:
 
             ChangeAxis.LONG_AXIS: BeamPathCalcModificationAxis(ChangeAxis.LONG_AXIS,
                                                                self._on_long_axis_change),
-            ChangeAxis.OUT_BEAM_Y: ReadOnlyBeamPathCalcAxis(ChangeAxis.OUT_BEAM_Y, self.get_outgoing_beam_y),
-            ChangeAxis.OUT_BEAM_Z: ReadOnlyBeamPathCalcAxis(ChangeAxis.OUT_BEAM_Z, self.get_outgoing_beam_z),
-            ChangeAxis.OUT_BEAM_ANGLE: ReadOnlyBeamPathCalcAxis(ChangeAxis.OUT_BEAM_ANGLE, self.get_outgoing_beam_angle)
+            ChangeAxis.DISPLACEMENT_POSITION: ReadOnlyBeamPathCalcAxis(ChangeAxis.DISPLACEMENT_POSITION,
+                                                                       self._get_displacement_at_intersect),
         }
 
     def _init_displacement_from_motor(self, value):
@@ -354,9 +353,7 @@ class TrackingBeamPathCalc:
             self.trigger_listeners(BeamPathUpdate(self))
 
     def _update_beam_path_axes(self):
-        self.axis[ChangeAxis.OUT_BEAM_Y].set_relative_to_beam(self.get_outgoing_beam().y)
-        self.axis[ChangeAxis.OUT_BEAM_Z].set_relative_to_beam(self.get_outgoing_beam().z)
-        self.axis[ChangeAxis.OUT_BEAM_ANGLE].set_relative_to_beam(self.get_outgoing_beam().angle)
+        self.axis[ChangeAxis.DISPLACEMENT_POSITION].set_relative_to_beam(self._get_displacement_at_intersect())
 
     def _on_set_incoming_beam(self, incoming_beam, on_init):
         """
@@ -482,6 +479,9 @@ class TrackingBeamPathCalc:
         return self._movement_strategy.get_displacement_relative_to_beam_for(self._incoming_beam,
                                                                              position_relative_to_beam)
 
+    def _get_displacement_at_intersect(self):
+        return self._get_displacement_for(0)
+
     def position_in_mantid_coordinates(self):
         """
         Returns (ReflectometryServer.geometry.Position): The set point position of this component in mantid coordinates.
@@ -587,13 +587,12 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         super(_BeamPathCalcWithAngle, self).__init__(name, movement_strategy)
         self._angular_displacement = 0.0
         self._is_reflecting = is_reflecting
+        self.axis[ChangeAxis.DISPLACEMENT_ANGLE] = ReadOnlyBeamPathCalcAxis(ChangeAxis.DISPLACEMENT_ANGLE,
+                                                                            self._get_angular_displacement_at_intersect)
 
-    def _get_angular_displacement(self):
-        """
-        Returns: the angle of the component relative to the natural (straight through) beam measured clockwise from the
-            horizon in the incoming beam direction.
-        """
-        return self._angular_displacement
+    def _update_beam_path_axes(self):
+        super()._update_beam_path_axes()
+        self.axis[ChangeAxis.DISPLACEMENT_ANGLE].set_relative_to_beam(self._get_angular_displacement_at_intersect())
 
     def _set_angular_displacement(self, angle):
         """
@@ -604,6 +603,26 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         self._angular_displacement = angle
         if self._is_reflecting:
             self.trigger_listeners(BeamPathUpdate(self))
+
+    def _get_angular_displacement(self):
+        """
+        Returns: the angle of the component relative to the natural (straight through) beam measured clockwise from the
+            horizon in the incoming beam direction.
+        """
+        return self._angular_displacement
+
+    def _get_angle_for(self, position_relative_to_beam):
+        """
+        Get the displacement for a given angle relative to the beam
+        Args:
+            position_relative_to_beam (float): position to get the displacement for
+
+        Returns (float): displacement in mantid coordinates
+        """
+        return position_relative_to_beam + self._incoming_beam.angle
+
+    def _get_angular_displacement_at_intersect(self):
+        return self._get_angle_for(0)
 
     def _set_angle_relative_to_beam(self, angle):
         """
@@ -618,16 +637,6 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         Returns (float): the angle of the component relative to the incoming beam
         """
         return self._angular_displacement - self._incoming_beam.angle
-
-    def _get_angle_for(self, position_relative_to_beam):
-        """
-        Get the displacement for a given angle relative to the beam
-        Args:
-            position_relative_to_beam (float): position to get the displacement for
-
-        Returns (float): displacement in mantid coordinates
-        """
-        return position_relative_to_beam + self._incoming_beam.angle
 
     def get_outgoing_beam(self):
         """

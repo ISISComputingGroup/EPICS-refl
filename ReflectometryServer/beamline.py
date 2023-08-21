@@ -44,6 +44,15 @@ class BeamlineMode:
     Beamline mode definition; which components and parameters are calculated on move.
     """
 
+    def has_beamline_parameter(self, beamline_parameter):
+        """
+        Args:
+            beamline_parameter(ReflectometryServer.parameters.BeamlineParameter): the beamline parameter
+
+        Returns: True if beamline_parameter is in this mode.
+        """
+        return beamline_parameter.name in self._beamline_parameters_to_calculate
+
     def __init__(self, name, beamline_parameters_to_calculate, sp_inits=None, is_disabled=False):
         """
         Initialize.
@@ -62,15 +71,6 @@ class BeamlineMode:
         else:
             self._sp_inits = sp_inits
         self.is_disabled = is_disabled
-
-    def has_beamline_parameter(self, beamline_parameter):
-        """
-        Args:
-            beamline_parameter(ReflectometryServer.parameters.BeamlineParameter): the beamline parameter
-
-        Returns: True if beamline_parameter is in this mode.
-        """
-        return beamline_parameter.name in self._beamline_parameters_to_calculate
 
     def names_of_parameters_in_mode(self):
         return self._beamline_parameters_to_calculate
@@ -443,8 +443,16 @@ class Beamline:
         Applies the initial values set in the current beamline mode to the relevant beamline parameter setpoints.
         """
         for key, value in self._active_mode.initial_setpoints.items():
-            self._beamline_parameters[key].sp_no_move = value
-            logger.info("Default value applied for param {}: {}".format(key, value))
+            current_parameter = self._beamline_parameters[key]
+            if current_parameter.read_only:
+                STATUS_MANAGER.update_error_log(
+                    f"Could not apply mode init for: {current_parameter.name} (parameter is read only)")
+                STATUS_MANAGER.update_active_problems(
+                    ProblemInfo("Could not apply mode init (parameter is read only)", current_parameter.name,
+                                Severity.MINOR_ALARM))
+            else:
+                self._beamline_parameters[key].sp_no_move = value
+                logger.info("Default value applied for param {}: {}".format(key, value))
 
     def _move_drivers(self):
         """

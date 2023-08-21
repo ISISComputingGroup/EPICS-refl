@@ -202,7 +202,7 @@ class TestBeamlineParameter(unittest.TestCase):
 
         assert_that(result, is_(False))
 
-    @parameterized.expand([ChangeAxis.OUT_BEAM_Y, ChangeAxis.OUT_BEAM_Z, ChangeAxis.OUT_BEAM_ANGLE])
+    @parameterized.expand([ChangeAxis.DISPLACEMENT_POSITION, ChangeAxis.DISPLACEMENT_ANGLE])
     def test_GIVEN_beam_out_parameter_WHEN_setting_sp_THEN_sp_ignored(self, change_axis):
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
         beam_out_y = AxisParameter("beam_out_y", sample, change_axis)
@@ -213,7 +213,7 @@ class TestBeamlineParameter(unittest.TestCase):
 
         assert_that(actual, is_(expected))
 
-    @parameterized.expand([ChangeAxis.OUT_BEAM_Y, ChangeAxis.OUT_BEAM_Z, ChangeAxis.OUT_BEAM_ANGLE])
+    @parameterized.expand([ChangeAxis.DISPLACEMENT_POSITION, ChangeAxis.DISPLACEMENT_ANGLE])
     def test_GIVEN_read_only_parameter_WHEN_setting_sp_no_action_THEN_sp_not_set(self, change_axis):
         sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
         beam_out_y = AxisParameter("beam_out_y", sample, change_axis)
@@ -224,23 +224,21 @@ class TestBeamlineParameter(unittest.TestCase):
 
         assert_that(actual, is_(expected))
 
-    # def test_GIVEN_read_only_parameter_WHEN_param_has_mode_inits_THEN_inits_ignored(self):
-    #     expected = None
-    #     param_init = 5.0
-    #     sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
-    #
-    #     out_y = AxisParameter("out_y", sample, ChangeAxis.OUT_BEAM_Y)
-    #     out_z = AxisParameter("out_z", sample, ChangeAxis.OUT_BEAM_Z)
-    #     out_ang = AxisParameter("out_ang", sample, ChangeAxis.OUT_BEAM_ANG)
-    #     sp_inits = {sample_param.name: param_init}
-    #     beamline_mode = BeamlineMode("mode name", [sample_param.name], sp_inits)
-    #     beamline = Beamline([sample_comp], [sample_param], [], [beamline_mode])
-    #
-    #     beamline.active_mode = beamline_mode.name
-    #
-    #     assert_that(smangle.sp, is_(sm_angle_to_set))
-    #     assert_that(smangle.sp_changed, is_(True))
-    #     assert_that(sample_comp.beam_path_set_point.axis[ChangeAxis.ANGLE].get_displacement(), is_(sm_angle))
+    def test_GIVEN_read_only_parameter_WHEN_param_has_mode_inits_THEN_inits_ignored(self):
+        expected = 0.0
+        param_init_to_ignore = 5.0
+        sample_comp = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
+
+        disp_angle = AxisParameter("disp_height", sample_comp, ChangeAxis.DISPLACEMENT_ANGLE)
+        sp_inits = {disp_angle.name: param_init_to_ignore}
+        beamline_mode = BeamlineMode("mode name", [disp_angle.name], sp_inits)
+        beamline = Beamline([sample_comp], [disp_angle], [], [beamline_mode])
+
+        beamline.active_mode = beamline_mode.name
+
+        assert_that(disp_angle.sp, is_(expected))
+        assert_that(disp_angle.sp_changed, is_(False))
+        assert_that(sample_comp.beam_path_set_point.axis[ChangeAxis.DISPLACEMENT_ANGLE].get_displacement(), is_(expected))
 
 
 class TestBeamlineParametersThoseRBVMirrosSP(unittest.TestCase):
@@ -1368,39 +1366,57 @@ class TestCustomFunctionCall(unittest.TestCase):
 class TestReadonlyParameters(unittest.TestCase):
 
     def setUp(self):
-        super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
+        # define expected values
+        self.sm_z = 10
+        self.sm_to_sa_distance = 10
+        self.sm_angle_to_set = 22.5
+        self.updated_angle = 2 * self.sm_angle_to_set
+        self.updated_y = self.sm_to_sa_distance  # height equal to dist as reflected angle at sm is 45 deg
+
+        # Set up beamline
+        super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=self.sm_z, y=0, angle=90))
         self.sm_angle = AxisParameter("sm_angle", super_mirror, ChangeAxis.ANGLE)
-        sample = TiltingComponent("sample", PositionAndAngle(z=20, y=0, angle=90))
-        self.out_beam_y = AxisParameter("out_beam_y", sample, ChangeAxis.OUT_BEAM_Y)
-        self.out_beam_z = AxisParameter("out_beam_z", sample, ChangeAxis.OUT_BEAM_Z)
-        self.out_beam_angle = AxisParameter("out_beam_angle", sample, ChangeAxis.OUT_BEAM_ANGLE)
-        params = [self.sm_angle, self.out_beam_y, self.out_beam_z, self.out_beam_angle]
+        sample = ReflectingComponent("sample", PositionAndAngle(z=self.sm_z + self.sm_to_sa_distance, y=0, angle=90))
+        self.out_beam_y = AxisParameter("out_beam_y", sample, ChangeAxis.DISPLACEMENT_POSITION)
+        self.out_beam_angle = AxisParameter("out_beam_angle", sample, ChangeAxis.DISPLACEMENT_ANGLE)
+        params = [self.sm_angle, self.out_beam_y, self.out_beam_angle]
         mode = BeamlineMode("mode name", [param.name for param in params])
         self.beamline = Beamline([super_mirror, sample], params, [], [mode])
 
-        # parameter.sp_no_move = setpoint
-        # beamline.active_mode = mode.name
-        # beamline.move = 1
+    def test_GIVEN_incoming_beam_has_changed_but_not_moved_THEN_outgoing_beam_param_sp_rbv_is_not_updated(self):
+        assert_that(self.out_beam_angle.sp, is_(0))
+        assert_that(self.out_beam_y.sp, is_(0))
+        expected_angle = 0
+        expected_y = 0
 
-    def test_GIVEN_incoming_beam_has_changed_THEN_outgoing_beam_param_sp_is_updated(self):
-        initial_angle = self.out_beam_angle.sp
-        assert_that(initial_angle, is_(0))
-        sm_angle_to_set = 22.5
-        expected_angle = 2*sm_angle_to_set
+        self.sm_angle.sp_no_move = self.sm_angle_to_set
+        actual_y = self.out_beam_y.sp_rbv
+        actual_angle = self.out_beam_angle.sp_rbv
 
-        self.sm_angle.sp = sm_angle_to_set
-
-        actual_angle = self.out_beam_angle.sp
-
+        assert_that(actual_y, is_(close_to(expected_y, DEFAULT_TEST_TOLERANCE)))
         assert_that(actual_angle, is_(expected_angle))
 
-    def test_GIVEN_incoming_beam_has_changed_THEN_outgoing_beam_param_sp_rbv_is_updated(self):
-        # SPRBV need to update automatically because they cannot be applied by move
-        sm_angle_to_set = 22.5
-        expected_y = 0  # equal to distance between mirror and sample because of 45 deg reflection angle
-        expected_angle = 2*sm_angle_to_set
-        self.sm_angle.sp = sm_angle_to_set
+    def test_GIVEN_incoming_beam_has_changed_WHEN_moving_THEN_outgoing_beam_param_sp_is_updated(self):
+        assert_that(self.out_beam_angle.sp, is_(0))
+        assert_that(self.out_beam_y.sp, is_(0))
+        expected_angle = self.updated_angle
+        expected_y = self.updated_y
 
+        self.sm_angle.sp = self.sm_angle_to_set
+        actual_y = self.out_beam_y.sp
+        actual_angle = self.out_beam_angle.sp
+
+        assert_that(actual_y, is_(close_to(expected_y, DEFAULT_TEST_TOLERANCE)))
+        assert_that(actual_angle, is_(expected_angle))
+
+    def test_GIVEN_incoming_beam_has_changed_WHEN_moving_THEN_outgoing_beam_param_sp_rbv_is_updated(self):
+        initial_value = 0
+        assert_that(self.out_beam_angle.sp, is_(initial_value))
+        assert_that(self.out_beam_y.sp, is_(initial_value))
+        expected_angle = self.updated_angle
+        expected_y = self.updated_y
+
+        self.sm_angle.sp = self.sm_angle_to_set
         actual_y = self.out_beam_y.sp_rbv
         actual_angle = self.out_beam_angle.sp_rbv
 
