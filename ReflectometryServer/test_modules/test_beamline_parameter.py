@@ -1,3 +1,4 @@
+import math
 import unittest
 from math import isnan
 from time import sleep
@@ -1377,48 +1378,48 @@ class TestReadonlyParameters(unittest.TestCase):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=self.sm_z, y=0, angle=90))
         self.sm_angle = AxisParameter("sm_angle", super_mirror, ChangeAxis.ANGLE)
         sample = ReflectingComponent("sample", PositionAndAngle(z=self.sm_z + self.sm_to_sa_distance, y=0, angle=90))
-        self.out_beam_y = AxisParameter("out_beam_y", sample, ChangeAxis.DISPLACEMENT_POSITION)
-        self.out_beam_angle = AxisParameter("out_beam_angle", sample, ChangeAxis.DISPLACEMENT_ANGLE)
-        params = [self.sm_angle, self.out_beam_y, self.out_beam_angle]
+        self.displacement_height = AxisParameter("displacement_height", sample, ChangeAxis.DISPLACEMENT_POSITION)
+        self.displacement_angle = AxisParameter("displacement_angle", sample, ChangeAxis.DISPLACEMENT_ANGLE)
+        params = [self.sm_angle, self.displacement_height, self.displacement_angle]
         mode = BeamlineMode("mode name", [param.name for param in params])
         self.beamline = Beamline([super_mirror, sample], params, [], [mode])
 
     def test_GIVEN_incoming_beam_has_changed_but_not_moved_THEN_outgoing_beam_param_sp_rbv_is_not_updated(self):
-        assert_that(self.out_beam_angle.sp, is_(0))
-        assert_that(self.out_beam_y.sp, is_(0))
+        assert_that(self.displacement_angle.sp, is_(0))
+        assert_that(self.displacement_height.sp, is_(0))
         expected_angle = 0
         expected_y = 0
 
         self.sm_angle.sp_no_move = self.sm_angle_to_set
-        actual_y = self.out_beam_y.sp_rbv
-        actual_angle = self.out_beam_angle.sp_rbv
+        actual_y = self.displacement_height.sp_rbv
+        actual_angle = self.displacement_angle.sp_rbv
 
         assert_that(actual_y, is_(close_to(expected_y, DEFAULT_TEST_TOLERANCE)))
         assert_that(actual_angle, is_(expected_angle))
 
     def test_GIVEN_incoming_beam_has_changed_WHEN_moving_THEN_outgoing_beam_param_sp_is_updated(self):
-        assert_that(self.out_beam_angle.sp, is_(0))
-        assert_that(self.out_beam_y.sp, is_(0))
+        assert_that(self.displacement_angle.sp, is_(0))
+        assert_that(self.displacement_height.sp, is_(0))
         expected_angle = self.updated_angle
         expected_y = self.updated_y
 
         self.sm_angle.sp = self.sm_angle_to_set
-        actual_y = self.out_beam_y.sp
-        actual_angle = self.out_beam_angle.sp
+        actual_y = self.displacement_height.sp
+        actual_angle = self.displacement_angle.sp
 
         assert_that(actual_y, is_(close_to(expected_y, DEFAULT_TEST_TOLERANCE)))
         assert_that(actual_angle, is_(expected_angle))
 
     def test_GIVEN_incoming_beam_has_changed_WHEN_moving_THEN_outgoing_beam_param_sp_rbv_is_updated(self):
         initial_value = 0
-        assert_that(self.out_beam_angle.sp, is_(initial_value))
-        assert_that(self.out_beam_y.sp, is_(initial_value))
+        assert_that(self.displacement_angle.sp, is_(initial_value))
+        assert_that(self.displacement_height.sp, is_(initial_value))
         expected_angle = self.updated_angle
         expected_y = self.updated_y
 
         self.sm_angle.sp = self.sm_angle_to_set
-        actual_y = self.out_beam_y.sp_rbv
-        actual_angle = self.out_beam_angle.sp_rbv
+        actual_y = self.displacement_height.sp_rbv
+        actual_angle = self.displacement_angle.sp_rbv
 
         assert_that(actual_y, is_(close_to(expected_y, DEFAULT_TEST_TOLERANCE)))
         assert_that(actual_angle, is_(expected_angle))
