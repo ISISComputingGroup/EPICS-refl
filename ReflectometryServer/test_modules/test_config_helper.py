@@ -41,9 +41,9 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(result.beamline_constants, only_contains(expected_constant1, expected_constant2, expected_constant3))
 
     def test_GIVEN_beam_line_components_added_WHEN_get_beamline_THEN_beam_line_has_components(self):
-        expected1 = Component("1", PositionAndAngle(0, 0, 0))
-        expected2 = Component("2", PositionAndAngle(0, 0, 0))
-        expected3 = Component("3", PositionAndAngle(0, 0, 0))
+        expected1 = Component("1", PositionAndAngle(0, 10, 90))
+        expected2 = Component("2", PositionAndAngle(0, 20, 90))
+        expected3 = Component("3", PositionAndAngle(0, 30, 90))
 
         add_component(expected1)
         add_component(expected2)
@@ -319,7 +319,7 @@ class TestConfigHelper(unittest.TestCase):
     def test_GVIEN_add_beam_start_WHEN_get_beamline_THEN_beam_start_is_correct(self):
         add_mode("NR")
         expected_beam_start = PositionAndAngle(0.0, -10.0, 0.0)
-        comp = add_component(Component("name", PositionAndAngle(0, 0, 0)))
+        comp = add_component(Component("name", PositionAndAngle(0, 0, 90)))
         add_beam_start(expected_beam_start)
 
         result = get_configured_beamline()

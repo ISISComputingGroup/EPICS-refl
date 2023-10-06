@@ -55,7 +55,7 @@ class TestComponentBeamline(unittest.TestCase):
     def test_GIVEN_beam_line_contains_multiple_component_WHEN_beam_set_THEN_each_component_has_beam_out_which_is_effected_by_each_component_in_turn(self):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         mirror_position = 10
-        initial_mirror_angle = 45
+        initial_mirror_angle = 22.5
         beamline, mirror = self.setup_beamline(initial_mirror_angle, mirror_position, beam_start)
         bounced_beam = PositionAndAngle(y=0, z=mirror_position, angle=initial_mirror_angle * 2)
         expected_beams = [beam_start, bounced_beam, bounced_beam]
@@ -73,7 +73,7 @@ class TestComponentBeamline(unittest.TestCase):
 
         beamline, mirror = self.setup_beamline(initial_mirror_angle, mirror_position, beam_start)
 
-        mirror_final_angle = 45
+        mirror_final_angle = 22.5
         bounced_beam = PositionAndAngle(y=0, z=mirror_position, angle=mirror_final_angle * 2)
         expected_beams = [beam_start, bounced_beam, bounced_beam]
 
@@ -86,7 +86,7 @@ class TestComponentBeamline(unittest.TestCase):
     def test_GIVEN_beam_line_contains_multiple_component_WHEN_mirror_disabled_THEN_beam_positions_are_all_recalculated(self):
         beam_start = PositionAndAngle(y=0, z=0, angle=0)
         mirror_position = 10
-        initial_mirror_angle = 45
+        initial_mirror_angle = 22.5
 
         beamline, mirror = self.setup_beamline(initial_mirror_angle, mirror_position, beam_start)
         expected_beams = [beam_start, beam_start, beam_start]

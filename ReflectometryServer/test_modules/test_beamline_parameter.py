@@ -1,3 +1,4 @@
+import math
 import unittest
 from math import isnan
 from time import sleep
@@ -201,6 +202,44 @@ class TestBeamlineParameter(unittest.TestCase):
         result = theta.define_current_value_as.changed
 
         assert_that(result, is_(False))
+
+    @parameterized.expand([ChangeAxis.DISPLACEMENT_POSITION, ChangeAxis.DISPLACEMENT_ANGLE])
+    def test_GIVEN_beam_out_parameter_WHEN_setting_sp_THEN_sp_ignored(self, change_axis):
+        sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
+        beam_out_y = AxisParameter("beam_out_y", sample, change_axis)
+        expected = None
+
+        beam_out_y.sp = 5
+        actual = beam_out_y.sp
+
+        assert_that(actual, is_(expected))
+
+    @parameterized.expand([ChangeAxis.DISPLACEMENT_POSITION, ChangeAxis.DISPLACEMENT_ANGLE])
+    def test_GIVEN_read_only_parameter_WHEN_setting_sp_no_action_THEN_sp_not_set(self, change_axis):
+        sample = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
+        beam_out_y = AxisParameter("beam_out_y", sample, change_axis)
+        expected = None
+
+        beam_out_y.sp_no_move = 5
+        actual = beam_out_y.sp
+
+        assert_that(actual, is_(expected))
+
+    def test_GIVEN_read_only_parameter_WHEN_param_has_mode_inits_THEN_inits_ignored(self):
+        expected = 0.0
+        param_init_to_ignore = 5.0
+        sample_comp = ReflectingComponent("sample", setup=PositionAndAngle(0, 0, 90))
+
+        disp_angle = AxisParameter("disp_height", sample_comp, ChangeAxis.DISPLACEMENT_ANGLE)
+        sp_inits = {disp_angle.name: param_init_to_ignore}
+        beamline_mode = BeamlineMode("mode name", [disp_angle.name], sp_inits)
+        beamline = Beamline([sample_comp], [disp_angle], [], [beamline_mode])
+
+        beamline.active_mode = beamline_mode.name
+
+        assert_that(disp_angle.sp, is_(expected))
+        assert_that(disp_angle.sp_changed, is_(False))
+        assert_that(sample_comp.beam_path_set_point.axis[ChangeAxis.DISPLACEMENT_ANGLE].get_displacement(), is_(expected))
 
 
 class TestBeamlineParametersThoseRBVMirrosSP(unittest.TestCase):
@@ -1323,6 +1362,67 @@ class TestCustomFunctionCall(unittest.TestCase):
         sleep(0.1)  # wait for thread to run
 
         mock_func.assert_called_with(expected_sp, expected_original_sp)
+
+
+class TestReadonlyParameters(unittest.TestCase):
+
+    def setUp(self):
+        # define expected values
+        self.sm_z = 10
+        self.sm_to_sa_distance = 10
+        self.sm_angle_to_set = 22.5
+        self.updated_angle = 2 * self.sm_angle_to_set
+        self.updated_y = self.sm_to_sa_distance  # height equal to dist as reflected angle at sm is 45 deg
+
+        # Set up beamline
+        super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=self.sm_z, y=0, angle=90))
+        self.sm_angle = AxisParameter("sm_angle", super_mirror, ChangeAxis.ANGLE)
+        sample = ReflectingComponent("sample", PositionAndAngle(z=self.sm_z + self.sm_to_sa_distance, y=0, angle=90))
+        self.displacement_height = AxisParameter("displacement_height", sample, ChangeAxis.DISPLACEMENT_POSITION)
+        self.displacement_angle = AxisParameter("displacement_angle", sample, ChangeAxis.DISPLACEMENT_ANGLE)
+        params = [self.sm_angle, self.displacement_height, self.displacement_angle]
+        mode = BeamlineMode("mode name", [param.name for param in params])
+        self.beamline = Beamline([super_mirror, sample], params, [], [mode])
+
+    def test_GIVEN_incoming_beam_has_changed_but_not_moved_THEN_outgoing_beam_param_sp_rbv_is_not_updated(self):
+        assert_that(self.displacement_angle.sp, is_(0))
+        assert_that(self.displacement_height.sp, is_(0))
+        expected_angle = 0
+        expected_y = 0
+
+        self.sm_angle.sp_no_move = self.sm_angle_to_set
+        actual_y = self.displacement_height.sp_rbv
+        actual_angle = self.displacement_angle.sp_rbv
+
+        assert_that(actual_y, is_(close_to(expected_y, DEFAULT_TEST_TOLERANCE)))
+        assert_that(actual_angle, is_(expected_angle))
+
+    def test_GIVEN_incoming_beam_has_changed_WHEN_moving_THEN_outgoing_beam_param_sp_is_updated(self):
+        assert_that(self.displacement_angle.sp, is_(0))
+        assert_that(self.displacement_height.sp, is_(0))
+        expected_angle = self.updated_angle
+        expected_y = self.updated_y
+
+        self.sm_angle.sp = self.sm_angle_to_set
+        actual_y = self.displacement_height.sp
+        actual_angle = self.displacement_angle.sp
+
+        assert_that(actual_y, is_(close_to(expected_y, DEFAULT_TEST_TOLERANCE)))
+        assert_that(actual_angle, is_(expected_angle))
+
+    def test_GIVEN_incoming_beam_has_changed_WHEN_moving_THEN_outgoing_beam_param_sp_rbv_is_updated(self):
+        initial_value = 0
+        assert_that(self.displacement_angle.sp, is_(initial_value))
+        assert_that(self.displacement_height.sp, is_(initial_value))
+        expected_angle = self.updated_angle
+        expected_y = self.updated_y
+
+        self.sm_angle.sp = self.sm_angle_to_set
+        actual_y = self.displacement_height.sp_rbv
+        actual_angle = self.displacement_angle.sp_rbv
+
+        assert_that(actual_y, is_(close_to(expected_y, DEFAULT_TEST_TOLERANCE)))
+        assert_that(actual_angle, is_(expected_angle))
 
 
 if __name__ == '__main__':

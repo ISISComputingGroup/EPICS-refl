@@ -107,3 +107,5 @@ class ChangeAxis(Enum):
     JACK_FRONT = 9  # on the bench the jack at the front of the table
     JACK_REAR = 10  # on the bench the jack at the rear of the table
     SLIDE = 11      # on the bench the horizontal slide
+    DISPLACEMENT_POSITION = 12
+    DISPLACEMENT_ANGLE = 13

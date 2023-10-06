@@ -97,6 +97,7 @@ class PvSort(Enum):
     DEFINE_POS_ACTION = 12
     DEFINE_POS_CHANGED = 13
     LOCKED = 14
+    READ_ONLY = 15
 
     @staticmethod
     def what(pv_sort):
@@ -134,6 +135,8 @@ class PvSort(Enum):
             return "(The current position definition is changed)"
         elif pv_sort == PvSort.LOCKED:
             return "(Locked)"
+        elif pv_sort == PvSort.READ_ONLY:
+            return "(Is not settable by user)"
         else:
             print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
             return "(unknown)"
@@ -186,6 +189,8 @@ class PvSort(Enum):
             value = parameter.define_current_value_as.changed
         elif self == PvSort.LOCKED:
             value = parameter.is_locked
+        elif self == PvSort.READ_ONLY:
+            value = parameter.read_only
         else:
             value, severity, status = float("NaN"), AlarmSeverity.Invalid, AlarmStatus.UDF
             STATUS_MANAGER.update_error_log("PVSort not understood {}".format(PvSort))

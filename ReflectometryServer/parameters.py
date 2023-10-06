@@ -7,6 +7,7 @@ from typing import List, Optional, Union, TYPE_CHECKING, Callable, Any
 
 from pcaspy import Severity
 
+from ReflectometryServer.axis import SetRelativeToBeamUpdate
 from server_common.utilities import SEVERITY
 
 if TYPE_CHECKING:
@@ -245,6 +246,7 @@ class BeamlineParameter:
         """
         self._set_point = None
         self._set_point_rbv = None
+        self.read_only = False
 
         self._sp_is_changed = False
         self._name = name
@@ -254,12 +256,12 @@ class BeamlineParameter:
         self.alarm_status = None
         self.alarm_severity = None
         self.parameter_type = BeamlineParameterType.FLOAT
+        self._add_to_parameter_groups()
         if description is None:
             self.description = name
         else:
             self.description = description
         self._autosave = autosave
-        self.group_names = [BeamlineParameterGroup.ALL]
         self._rbv_to_sp_tolerance = rbv_to_sp_tolerance
 
         self.define_current_value_as = None
@@ -270,6 +272,12 @@ class BeamlineParameter:
     def __repr__(self):
         return "{} '{}': sp={}, sp_rbv={}, rbv={}, changed={}".format(__name__, self.name, self._set_point,
                                                                       self._set_point_rbv, self.rbv, self.sp_changed)
+
+    def _add_to_parameter_groups(self):
+        """
+        Add this parameter to relevant parameter groups (for display purposes).
+        """
+        self.group_names = [BeamlineParameterGroup.ALL]
 
     @abc.abstractmethod
     def _initialise_sp_from_file(self):
@@ -291,9 +299,12 @@ class BeamlineParameter:
         Args:
             sp_init: The setpoint value to set
         """
-        self._set_point = sp_init
-        self._set_point_rbv = sp_init
-        self.trigger_listeners(ParameterInitUpdate(self._set_point, AlarmSeverity.No, AlarmStatus.No))
+        if self.read_only:
+            self._set_point = self._rbv()
+        else:
+            self._set_point = sp_init
+            self._set_point_rbv = sp_init
+            self.trigger_listeners(ParameterInitUpdate(self._set_point, AlarmSeverity.No, AlarmStatus.No))
 
     @property
     def rbv(self):
@@ -336,7 +347,8 @@ class BeamlineParameter:
         Args:
             set_point: the set point
         """
-        self._sp_no_move(set_point)
+        if not self.read_only:
+            self._sp_no_move(set_point)
 
     def _sp_no_move(self, set_point):
         self._set_point = set_point
@@ -357,7 +369,8 @@ class BeamlineParameter:
         Args:
             set_point: new set point
         """
-        self._set_sp(set_point)
+        if not self.read_only:
+            self._set_sp(set_point)
 
     def _set_sp_perform_no_move(self, value):
         """
@@ -508,7 +521,7 @@ class BeamlineParameter:
         """
         Returns: Has set point been changed since the last move
         """
-        return self._sp_is_changed
+        return self._sp_is_changed if not self.read_only else False
 
     def _check_and_move_component(self):
         """
@@ -556,7 +569,7 @@ class BeamlineParameter:
                                               Severity.MINOR_ALARM))
 
     def _trigger_listeners_disabled(self):
-        value = self.is_disabled or self.is_locked
+        value = self.is_disabled or self.is_locked or self.read_only
         self.trigger_listeners(ParameterDisabledUpdate(value))
 
     @property
@@ -591,13 +604,17 @@ class BeamlineParameter:
         self._is_locked = value
         self._trigger_listeners_disabled()
 
+
 class VirtualParameter(BeamlineParameter):
     def __init__(self, name: str, engineering_unit: str, description: str = None):
         super(VirtualParameter, self).__init__(name, description=description, autosave=True)
         self.engineering_unit = engineering_unit
 
-        self.group_names.append(BeamlineParameterGroup.MISC)
         self._initialise_sp_from_file()
+
+    def _add_to_parameter_groups(self):
+        super()._add_to_parameter_groups()
+        self.group_names.append(BeamlineParameterGroup.MISC)
 
     def _initialise_sp_from_file(self):
         """
@@ -653,26 +670,39 @@ class AxisParameter(BeamlineParameter):
             sp_mirrors_rbv: if True the sp gets set to the readback value when this parameter is asked to perform a
                 move; False this doesn't happen
         """
+        self.component = component
+        self.axis = axis
         if description is None:
             description = name
         super(AxisParameter, self).__init__(name, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance,
                                             custom_function=custom_function, characteristic_value=characteristic_value,
                                             sp_mirrors_rbv=sp_mirrors_rbv)
-        self.component = component
-        self.axis = axis
-        if axis in [ChangeAxis.POSITION, ChangeAxis.ANGLE]:
-            self.group_names.append(BeamlineParameterGroup.COLLIMATION_PLANE)
-        else:
-            self.group_names.append(BeamlineParameterGroup.MISC)
 
-        if axis in [ChangeAxis.ANGLE, ChangeAxis.PHI, ChangeAxis.PSI, ChangeAxis.CHI]:
+        if axis in [ChangeAxis.ANGLE, ChangeAxis.PHI, ChangeAxis.PSI, ChangeAxis.CHI, ChangeAxis.DISPLACEMENT_ANGLE]:
             self.engineering_unit = "deg"
         else:
             self.engineering_unit = "mm"
 
+        if axis in [ChangeAxis.DISPLACEMENT_POSITION, ChangeAxis.DISPLACEMENT_ANGLE]:
+            self.read_only = True
+            self._trigger_listeners_disabled()
+            self.component.beam_path_set_point.axis[self.axis].add_listener(SetRelativeToBeamUpdate, self._update_sp_from_component)
+
         self._initialise_setpoint()
         self._initialise_beam_path_sp_listeners()
         self._initialise_beam_path_rbv_listeners()
+
+    def _add_to_parameter_groups(self):
+        super()._add_to_parameter_groups()
+        if self.axis in [ChangeAxis.POSITION, ChangeAxis.ANGLE]:
+            self.group_names.append(BeamlineParameterGroup.COLLIMATION_PLANE)
+        else:
+            self.group_names.append(BeamlineParameterGroup.MISC)
+
+    def _update_sp_from_component(self, update: SetRelativeToBeamUpdate):
+        new_sp = update.relative_to_beam
+        self._sp_no_move(new_sp)
+        self._set_point_rbv = new_sp  # can not be applied by move
 
     def _initialise_setpoint(self):
         """
@@ -826,6 +856,10 @@ class InBeamParameter(BeamlineParameter):
         self.parameter_type = BeamlineParameterType.IN_OUT
         self.group_names.append(BeamlineParameterGroup.TOGGLE)
 
+    def _add_to_parameter_groups(self):
+        super()._add_to_parameter_groups()
+        self.group_names.append(BeamlineParameterGroup.TOGGLE)
+
     def _initialise_sp_from_file(self):
         """
         Read an autosaved setpoint for this parameter from the autosave file. Remains None if unsuccessful.
@@ -901,15 +935,14 @@ class DirectParameter(BeamlineParameter):
                 parameter to be "at readback value"
             custom_function: custom function to run on move
         """
+        self._pv_wrapper = pv_wrapper
         super(DirectParameter, self).__init__(name, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance,
                                               custom_function=custom_function)
         self._last_update = None
 
-        self._pv_wrapper = pv_wrapper
         self._pv_wrapper.add_listener(ReadbackUpdate, self._cache_and_update_rbv)
         self._pv_wrapper.add_listener(IsChangingUpdate, self._on_is_changing_change)
         self._pv_wrapper.initialise()
-        self.group_names.append(BeamlineParameterGroup.SLIT)
 
         if self._autosave:
             self._initialise_sp_from_file()
@@ -919,6 +952,10 @@ class DirectParameter(BeamlineParameter):
         self._no_move_because_is_define = False
         self.define_current_value_as = DefineCurrentValueAsParameter(self._pv_wrapper.define_position_as,
                                                                      self._set_sp_perform_no_move, self)
+
+    def _add_to_parameter_groups(self):
+        super()._add_to_parameter_groups()
+        self.group_names.append(BeamlineParameterGroup.SLIT)
 
     def _initialise_sp_from_file(self):
         """
@@ -1020,7 +1057,9 @@ class SlitGapParameter(DirectParameter):
                                                rbv_to_sp_tolerance=rbv_to_sp_tolerance, custom_function=custom_function)
         self.engineering_unit = "mm"
 
-        if pv_wrapper.is_vertical:
+    def _add_to_parameter_groups(self):
+        super()._add_to_parameter_groups()
+        if self._pv_wrapper.is_vertical:
             self.group_names.append(BeamlineParameterGroup.FOOTPRINT_PARAMETER)
 
 
@@ -1047,6 +1086,9 @@ class EnumParameter(BeamlineParameter):
         self.options = options
         if self._autosave:
             self._initialise_sp_from_file()
+
+    def _add_to_parameter_groups(self):
+        super()._add_to_parameter_groups()
         self.group_names.append(BeamlineParameterGroup.TOGGLE)
 
     def validate(self, drivers: List['IocDriver']) -> List[str]:
