@@ -9,7 +9,6 @@ epics_path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.par
 server_common_path = os.path.abspath(os.path.join(epics_path, "ISIS", "inst_servers", "master"))
 sys.path.insert(2, server_common_path)
 
-
 if six.PY2:
     print("Reflectometry IOC can not be run in python 2!!")
 else:
@@ -30,4 +29,5 @@ else:
     from ReflectometryServer.pv_wrapper import MotorPVWrapper, JawsCentrePVWrapper, JawsGapPVWrapper, PVWrapper
     from ReflectometryServer.config_helper import ConfigHelper, get_configured_beamline, add_constant, add_component, \
         add_parameter, add_mode, add_driver, add_slit_parameters, add_beam_start, add_footprint_setup, \
-        add_component_marker, add_driver_marker, add_parameter_marker, optional_is_set, as_mode_correction
+        add_component_marker, add_driver_marker, add_parameter_marker, optional_is_set, as_mode_correction, \
+        SlitAxes

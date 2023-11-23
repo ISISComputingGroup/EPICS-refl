@@ -248,6 +248,39 @@ def create_blade_pv_driver(jaws_pv_prefix: str, blade: str) -> PVWrapper:
     """
     return MotorPVWrapper("{}:J{}:MTR".format(jaws_pv_prefix, blade))
 
+class SlitAxes:
+    """
+    Parameters relevant to slits. This is to avoid potential typos in the configuration file.
+    """
+    VertGap = "VG"
+    VertCent = "VC"
+    HorGap = "HG"
+    HorCent = "HC"
+
+    @staticmethod
+    def all():
+        """
+        Gets all slit parameters: gaps and centres.
+        :return: A list containing the gap and centre strings for templating PVs
+        """
+        return [SlitAxes.VertGap, SlitAxes.VertCent, SlitAxes.HorGap, SlitAxes.HorCent]
+
+    @staticmethod
+    def gaps():
+        """
+        Gets the gap PVs
+        :return: A list containing the gap strings for templating PVs
+        """
+        return [SlitAxes.VertGap, SlitAxes.HorGap]
+
+    @staticmethod
+    def centres():
+        """
+        Gets the centre PVs
+        :return: A list containing the centre strings for templating PVs
+        """
+        return [SlitAxes.VertCent, SlitAxes.HorCent]
+
 
 def add_slit_parameters(slit_number: Union[str, int], rbv_to_sp_tolerance: float = DEFAULT_RBV_TO_SP_TOLERANCE,
                         modes: Optional[List[str]] = None, mode_inits: Optional[Dict[str, Any]] = None,
@@ -271,9 +304,9 @@ def add_slit_parameters(slit_number: Union[str, int], rbv_to_sp_tolerance: float
     """
 
     if include_centres:
-        names = ["VG", "VC", "HG", "HC"]
+        names = SlitAxes.all()
     else:
-        names = ["VG", "HG"]
+        names = SlitAxes.gaps()
     if exclude is not None:
         names = [name for name in names if name not in exclude]
 
