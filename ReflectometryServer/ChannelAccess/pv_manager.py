@@ -169,7 +169,7 @@ class PVManager:
         self._add_status_pvs()
 
         for pv_name in self.PVDB.keys():
-            logger.info("Creating pv: {}".format(pv_name))
+            logger.debug("Creating pv: {}".format(pv_name))
 
     def _add_status_pvs(self):
         """
@@ -203,7 +203,7 @@ class PVManager:
         self._add_constants_pvs()
 
         for pv_name in [pv for pv in self.PVDB.keys() if pv not in self.initial_PVs]:
-            logger.info("Creating pv: {}".format(pv_name))
+            logger.debug("Creating pv: {}".format(pv_name))
 
     def _add_global_pvs(self):
         """

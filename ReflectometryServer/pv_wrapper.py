@@ -633,7 +633,7 @@ class JawsAxisPVWrapper(PVWrapper):
         Creates a wrapper around a jaws axis.
 
         Params:
-            base_pv (String): The name of the PV
+            base_pv (String): The name of the PV e.g. "MOT:JAWS1"
             is_vertical (Boolean): False for horizontal jaws, true for vertical jaws
             ca: The Channel Access server to use
         """
@@ -802,7 +802,7 @@ class JawsGapPVWrapper(JawsAxisPVWrapper):
         """
         Creates a wrapper around a motor PV for accessing its fields.
         Args:
-            base_pv (String): The name of the base PV
+            base_pv (String): The name of the base PV e.g. "MOT:JAWS1"
             is_vertical (Boolean): False for horizontal jaws, true for vertical jaws
             ca: The Channel Access server to use
         """
@@ -829,7 +829,7 @@ class JawsCentrePVWrapper(JawsAxisPVWrapper):
         Creates a wrapper around a motor PV for accessing its fields.
 
         Params:
-            pv_name (String): The name of the PV
+            pv_name (String): The name of the PV e.g. "MOT:JAWS1"
             is_vertical (Boolean): False for horizontal jaws, true for vertical jaws
             ca: The Channel Access server to use
         """

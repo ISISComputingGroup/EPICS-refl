@@ -769,7 +769,7 @@ class AxisParameter(BeamlineParameter):
                 STATUS_MANAGER.update_error_log("Parameter {} is parkable so should have an autosave value but "
                                                 "doesn't. Has been set to 0 check its value".format(self.name))
                 STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("Parameter has no autosave value", self.name, Severity.MAJOR_ALARM))
+                    ProblemInfo("Parameter has no autosave value", self.name, Severity.MINOR_ALARM))
             self.component.beam_path_set_point.axis[self.axis].set_relative_to_beam(init_sp)
         else:
             init_sp = self.component.beam_path_set_point.axis[self.axis].get_relative_to_beam()
@@ -854,7 +854,6 @@ class InBeamParameter(BeamlineParameter):
         self._component.beam_path_rbv.in_beam_manager.add_listener(AxisChangingUpdate, self._on_update_changing_state)
 
         self.parameter_type = BeamlineParameterType.IN_OUT
-        self.group_names.append(BeamlineParameterGroup.TOGGLE)
 
     def _add_to_parameter_groups(self):
         super()._add_to_parameter_groups()
