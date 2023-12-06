@@ -8,12 +8,12 @@ from typing import List, Optional, Union, TYPE_CHECKING, Callable, Any
 from pcaspy import Severity
 
 from ReflectometryServer.axis import SetRelativeToBeamUpdate
-from ReflectometryServer.engineering_corrections import EngineeringCorrection, NoCorrection
 from server_common.utilities import SEVERITY
 
 if TYPE_CHECKING:
     from ReflectometryServer.ioc_driver import IocDriver
     from ReflectometryServer.components import Component
+    from ReflectometryServer.engineering_corrections import EngineeringCorrection
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate, \
     ComponentInBeamUpdate
@@ -925,7 +925,7 @@ class DirectParameter(BeamlineParameter):
 
     def __init__(self, name: str, pv_wrapper: PVWrapper, description: str = None, autosave: bool = False,
                  rbv_to_sp_tolerance: float = DEFAULT_RBV_TO_SP_TOLERANCE,
-                 custom_function: Optional[Callable[[Any, Any], str]] = None, engineering_correction: EngineeringCorrection = None):
+                 custom_function: Optional[Callable[[Any, Any], str]] = None, engineering_correction: 'EngineeringCorrection' = None):
         """
         Args:
             name: The name of the parameter
@@ -936,6 +936,9 @@ class DirectParameter(BeamlineParameter):
                 parameter to be "at readback value"
             custom_function: custom function to run on move
         """
+        # This is to avoid circular imports when instantiating NoCorrection()
+        from ReflectometryServer.engineering_corrections import NoCorrection
+        self.engineering_correction = engineering_correction if engineering_correction is not None else NoCorrection()
         self._pv_wrapper = pv_wrapper
         super(DirectParameter, self).__init__(name, description, autosave, rbv_to_sp_tolerance=rbv_to_sp_tolerance,
                                               custom_function=custom_function)
@@ -950,7 +953,7 @@ class DirectParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._initialise_sp_from_motor(None)
 
-        self.engineering_correction = engineering_correction if engineering_correction is not None else NoCorrection()
+
 
         self._no_move_because_is_define = False
         self.define_current_value_as = DefineCurrentValueAsParameter(self._pv_wrapper.define_position_as,
@@ -966,7 +969,7 @@ class DirectParameter(BeamlineParameter):
         """
         sp_init = param_float_autosave.read_parameter(self._name, None)
         if sp_init is not None:
-            self._set_initial_sp(sp_init)
+            self._set_initial_sp(self.engineering_correction.to_axis(sp_init))
 
     def _initialise_sp_from_motor(self, _):
         """
@@ -1002,7 +1005,7 @@ class DirectParameter(BeamlineParameter):
             self._no_move_because_is_define = False
 
     def _rbv(self):
-        return self.engineering_correction.from_axis(self._last_update.value)
+        return self.engineering_correction.from_axis(self._last_update.value, None)
 
     def _get_alarm_info(self):
         """
