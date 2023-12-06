@@ -8,6 +8,7 @@ from typing import List, Optional, Union, TYPE_CHECKING, Callable, Any
 from pcaspy import Severity
 
 from ReflectometryServer.axis import SetRelativeToBeamUpdate
+from ReflectometryServer.engineering_corrections import EngineeringCorrection, NoCorrection
 from server_common.utilities import SEVERITY
 
 if TYPE_CHECKING:
@@ -924,7 +925,7 @@ class DirectParameter(BeamlineParameter):
 
     def __init__(self, name: str, pv_wrapper: PVWrapper, description: str = None, autosave: bool = False,
                  rbv_to_sp_tolerance: float = DEFAULT_RBV_TO_SP_TOLERANCE,
-                 custom_function: Optional[Callable[[Any, Any], str]] = None):
+                 custom_function: Optional[Callable[[Any, Any], str]] = None, engineering_correction: EngineeringCorrection = None):
         """
         Args:
             name: The name of the parameter
@@ -949,6 +950,8 @@ class DirectParameter(BeamlineParameter):
         if self._set_point_rbv is None:
             self._initialise_sp_from_motor(None)
 
+        self.engineering_correction = engineering_correction if engineering_correction is not None else NoCorrection()
+
         self._no_move_because_is_define = False
         self.define_current_value_as = DefineCurrentValueAsParameter(self._pv_wrapper.define_position_as,
                                                                      self._set_sp_perform_no_move, self)
@@ -969,7 +972,7 @@ class DirectParameter(BeamlineParameter):
         """
         Get the setpoint value for this parameter based on the motor setpoint position.
         """
-        self._set_initial_sp(self._pv_wrapper.sp)
+        self._set_initial_sp(self.engineering_correction.to_axis(self._pv_wrapper.sp))
 
     def _cache_and_update_rbv(self, update):
         """
@@ -983,7 +986,7 @@ class DirectParameter(BeamlineParameter):
 
     def _move_component(self):
         if not self._no_move_because_is_define and not self.rbv_at_sp:
-            self._pv_wrapper.sp = self._set_point_rbv
+            self._pv_wrapper.sp = self.engineering_correction.to_axis(self._set_point_rbv)
 
     def _set_sp_perform_no_move(self, new_value):
         """
@@ -994,12 +997,12 @@ class DirectParameter(BeamlineParameter):
         """
         try:
             self._no_move_because_is_define = True
-            self._set_sp(new_value)
+            self._set_sp(self.engineering_correction.to_axis(new_value))
         finally:
             self._no_move_because_is_define = False
 
     def _rbv(self):
-        return self._last_update.value
+        return self.engineering_correction.from_axis(self._last_update.value)
 
     def _get_alarm_info(self):
         """
