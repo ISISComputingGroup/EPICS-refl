@@ -191,25 +191,6 @@ class ConstantCorrection(SymmetricEngineeringCorrection):
             the corrected value; EngineeringCorrectionNotPossible if this is not possible
         """
         return self.from_axis(setpoint, None)
-    
-class ScaledCorrection(SymmetricEngineeringCorrection):
-    """
-    A correction which multiplies or divides the set points and readbacks respectively according to a scaling factor.
-    """
-
-    def __init__(self, factor):
-        super().__init__("scaled correction")
-        self.factor = factor
-
-    def correction(self, setpoint):
-        """
-        Returns: the setpoint itself to be added or subtracted
-        """
-        return setpoint * (self.factor - 1)
-
-    def init_from_axis(self, setpoint):
-        return 0
-
 
 
 class UserFunctionCorrection(SymmetricEngineeringCorrection):
