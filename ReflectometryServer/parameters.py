@@ -1005,7 +1005,7 @@ class DirectParameter(BeamlineParameter):
             self._no_move_because_is_define = False
 
     def _rbv(self):
-        return self.engineering_correction.from_axis(self._last_update.value, None)
+        return self.engineering_correction.from_axis(self._last_update.value, self.sp)
 
     def _get_alarm_info(self):
         """

@@ -1331,6 +1331,33 @@ class TestCustomFunctionCall(unittest.TestCase):
 
         mock_func.assert_called_with(expected_sp, expected_original_sp)
 
+    def test_GIVEN_Direct_Parameter_WHEN_move_THEN_engineering_correction_is_applied_to_axis_sp(self):
+        offset = 2
+        correction = ConstantCorrection(2)
+        expected_original_sp = 0.1
+        mock_axis = create_mock_axis("axis", expected_original_sp, 1)
+        with patch('ReflectometryServer.parameters.param_float_autosave.read_parameter',
+                   new=Mock(return_value=expected_original_sp)):
+            param = DirectParameter("myname", mock_axis, engineering_correction=correction, autosave=True)
+        mock_axis.sp = expected_original_sp
+
+        expected_sp = 0.3
+
+        param.sp = expected_sp
+        sleep(0.1)  # wait for thread to run
+        assert_that(mock_axis.sp, is_(close_to(expected_sp + offset, DEFAULT_TEST_TOLERANCE)))
+
+    def test_GIVEN_Direct_Parameter_WHEN_constant_correction_applied_THEN_engineering_correction_is_applied_to_init_sp(self):
+        offset = 2
+        correction = ConstantCorrection(2)
+        initial_pos = 0.1
+        mock_axis = create_mock_axis("axis", initial_pos, 1)
+        with patch('ReflectometryServer.parameters.param_float_autosave.read_parameter',
+                   new=Mock(return_value=initial_pos)):
+            param = DirectParameter("myname", mock_axis, engineering_correction=correction, autosave=True)
+
+        assert_that(mock_axis.rbv, is_(close_to(param.sp - offset, DEFAULT_TEST_TOLERANCE)))
+
     def test_GIVEN_Slit_Gap_Parameter_WHEN_move_THEN_custom_function_is_called_with_move_to_and_move_from_values(self):
         mock_func = Mock()
         expected_original_sp = 0.1
