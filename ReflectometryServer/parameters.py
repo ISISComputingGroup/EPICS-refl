@@ -228,7 +228,7 @@ class BeamlineParameter:
     value that is set.
     """
 
-    def __init__(self, name, description=None, autosave=False, rbv_to_sp_tolerance=0.01,
+    def __init__(self, name, description=None, autosave=True, rbv_to_sp_tolerance=0.01,
                  custom_function: Optional[Callable[[Any, Any], str]] = None, characteristic_value="",
                  sp_mirrors_rbv=False):
         """
