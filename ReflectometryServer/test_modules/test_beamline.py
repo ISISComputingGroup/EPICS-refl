@@ -791,6 +791,28 @@ class TestComponentOutOfBeam(unittest.TestCase):
 
         assert_that(actual, is_(expected))
 
+    @parameterized.expand([(ChangeAxis.PHI,), (ChangeAxis.CHI,), (ChangeAxis.PSI,), (ChangeAxis.TRANS,), (ChangeAxis.HEIGHT,), (ChangeAxis.POSITION,)])
+    def test_GIVEN_component_with_driver_with_out_of_beam_position_literal_WHEN_motor_is_out_of_beam_THEN_component_axis_reports_out_of_beam(self, change_axis_to_set):
+        motor_axis = create_mock_axis("axis", self.OUT_OF_BEAM_VALUE, 1)
+        IocDriver(self.comp, change_axis_to_set, motor_axis, out_of_beam_positions=self.OUT_OF_BEAM_VALUE)
+        expected = False
+
+        motor_axis.trigger_rbv_change()
+        actual = self.comp.beam_path_rbv.axis[change_axis_to_set].is_in_beam
+
+        assert_that(actual, is_(expected))
+
+    @parameterized.expand([(ChangeAxis.PHI,), (ChangeAxis.CHI,), (ChangeAxis.PSI,), (ChangeAxis.TRANS,), (ChangeAxis.HEIGHT,), (ChangeAxis.POSITION,)])
+    def test_GIVEN_component_with_driver_with_out_of_beam_position_literal_WHEN_motor_is_in_beam_THEN_component_axis_reports_in_beam(self, change_axis_to_set):
+        motor_axis = create_mock_axis("axis", self.IN_BEAM_VALUE, 1)
+        IocDriver(self.comp, change_axis_to_set, motor_axis, out_of_beam_positions=self.OUT_OF_BEAM_VALUE)
+        expected = True
+
+        motor_axis.trigger_rbv_change()
+        actual = self.comp.beam_path_rbv.axis[change_axis_to_set].is_in_beam
+
+        assert_that(actual, is_(expected))
+
     def test_GIVEN_component_with_one_driver_with_out_of_beam_position_WHEN_axis_is_not_in_beam_THEN_in_beam_rbv_is_false(self):
         out_of_beam_position = OutOfBeamPosition(self.OUT_OF_BEAM_VALUE)
         chi_axis = create_mock_axis("chi", self.OUT_OF_BEAM_VALUE, 1)

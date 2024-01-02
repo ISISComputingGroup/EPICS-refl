@@ -49,7 +49,7 @@ class IocDriver:
     _motor_axis: Optional[PVWrapper]
 
     def __init__(self, component: 'Component', component_axis: ChangeAxis, motor_axis: PVWrapper,
-                 out_of_beam_positions: Optional[List[OutOfBeamPosition]] = None, synchronised: bool = True,
+                 out_of_beam_positions: Optional[List[OutOfBeamPosition]|float|int] = None, synchronised: bool = True,
                  engineering_correction: Optional[EngineeringCorrection] = None,
                  pv_wrapper_for_parameter: Optional[PVWrapperForParameter] = None):
         """
@@ -77,6 +77,10 @@ class IocDriver:
             self._out_of_beam_lookup = None
         else:
             try:
+                # Check type here - this can be a list of OutOfBeamPositions or just an int/float to make things neater.
+                if isinstance(out_of_beam_positions, (int, float)):
+                    out_of_beam_positions = [OutOfBeamPosition(out_of_beam_positions)]
+
                 self._out_of_beam_lookup = OutOfBeamLookup(out_of_beam_positions)
                 self.component.beam_path_rbv.axis[component_axis].park_sequence_count = \
                     self._out_of_beam_lookup.get_max_sequence_count()
