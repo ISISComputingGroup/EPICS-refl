@@ -22,14 +22,13 @@ from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsCha
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.observable import observable
 
-
 logger = logging.getLogger(__name__)
 
 # Event that is triggered when a new readback value is read from the axis (with corrections applied)
 CorrectedReadbackUpdate = namedtuple("CorrectedReadbackUpdate", [
-    "value",            # The new (corrected) readback value of the axis (float)
-    "alarm_severity",   # The alarm severity of the axis, represented as an integer (see Channel Access doc)
-    "alarm_status"])    # The alarm status of the axis, represented as an integer (see Channel Access doc)
+    "value",  # The new (corrected) readback value of the axis (float)
+    "alarm_severity",  # The alarm severity of the axis, represented as an integer (see Channel Access doc)
+    "alarm_status"])  # The alarm status of the axis, represented as an integer (see Channel Access doc)
 
 
 @dataclass
@@ -104,7 +103,7 @@ class IocDriver:
             self._engineering_correction.add_listener(CorrectionRecalculate, self._retrigger_motor_axis_updates)
 
         self._sp_cache = None
-        self._rbv_cache = self._engineering_correction.from_axis(self._motor_axis.rbv,  self._get_component_sp(True))
+        self._rbv_cache = self._engineering_correction.from_axis(self._motor_axis.rbv, self._get_component_sp(True))
 
         self.component.beam_path_rbv.axis[component_axis].add_listener(DefineValueAsEvent, self._on_define_value_as)
 
@@ -295,7 +294,7 @@ class IocDriver:
                          .format(self.name, duration, base_move_duration, backlash_duration))
         return duration
 
-    def perform_move(self, move_duration, force=False):
+    def perform_move(self, move_duration, force=False, skip_velo=False, skip_immediate_move=False):
         """
         Tells the driver to perform a move to the component set points within a given duration.
         The axis will update the set point cache when it is changed so don't need to do it here
@@ -303,24 +302,28 @@ class IocDriver:
         Args:
             move_duration (float): The duration in which to perform this move
             force (bool): move even if component does not report changed
+            skip_velo (bool): skip velocity caching and setting
+            skip_immediate_move (bool): skip the move itself - used for moves to be commanded in a separate step so they move as quickly as possible
         """
         component_sp, is_to_from_park = self._get_component_sp_and_is_to_from_parking()
         if component_sp is not None and (self._axis_will_move() or force):
-            move_duration -= self._backlash_duration()
-            if move_duration > 1e-6 and self._synchronised and not is_to_from_park:
-                self._motor_axis.cache_velocity()
-                self._motor_axis.velocity = max(self._motor_axis.min_velocity, self._get_distance() / move_duration)
-            else:
-                self._motor_axis.record_no_cache_velocity()
+            if not skip_velo:
+                move_duration -= self._backlash_duration()
+                if move_duration > 1e-6 and self._synchronised and not is_to_from_park:
+                    self._motor_axis.cache_velocity()
+                    self._motor_axis.velocity = max(self._motor_axis.min_velocity, self._get_distance() / move_duration)
+                else:
+                    self._motor_axis.record_no_cache_velocity()
 
-            self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
+            if not skip_immediate_move:
+                self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
         elif self.at_target_setpoint():
             logger.debug(f"{self.name}: Not moving already at set point : {component_sp}")
 
-        # re update in case the new position is at the end of a sequence
-        self._retrigger_motor_axis_updates(None)
-
-        self.component.beam_path_set_point.axis[self.component_axis].is_changed = False
+        if not skip_immediate_move:
+            # re update in case the new position is at the end of a sequence
+            self._retrigger_motor_axis_updates(None)
+            self.component.beam_path_set_point.axis[self.component_axis].is_changed = False
 
     def rbv_cache(self):
         """
@@ -387,7 +390,7 @@ class IocDriver:
             out_of_beam_position = self._out_of_beam_lookup.get_position_for_intercept(beam_interception)
 
             if out_of_beam_position.is_offset:
-                displacement = self.component.beam_path_set_point.axis[self.component_axis].\
+                displacement = self.component.beam_path_set_point.axis[self.component_axis]. \
                     get_displacement_for(out_of_beam_position.get_sequence_position(parking_index))
             else:
                 displacement = out_of_beam_position.get_sequence_position(parking_index)
@@ -489,7 +492,7 @@ class IocDriver:
         """
         return self._out_of_beam_lookup is not None
 
-    def _on_parameter_update(self, update:  ParameterSetpointReadbackUpdate) -> None:
+    def _on_parameter_update(self, update: ParameterSetpointReadbackUpdate) -> None:
         """
         When the parameter that the change axis updates see if we need to change axis
 
