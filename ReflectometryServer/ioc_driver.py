@@ -322,6 +322,17 @@ class IocDriver:
 
         self.component.beam_path_set_point.axis[self.component_axis].is_changed = False
 
+    def check_limits_against_sps(self):
+        """
+
+        :return:
+        """
+
+        # check here for component_sp, _ = self._get_component_sp_and_is_to_from_parking() against _motor_axis soft limits?
+
+
+        pass
+
     def rbv_cache(self):
         """
         Return the last cached readback value of the underlying motor if one exists; throws an exception otherwise.

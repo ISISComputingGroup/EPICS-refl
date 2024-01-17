@@ -459,6 +459,7 @@ class Beamline:
         Issue move for all drivers at the speed of the slowest axis and set appropriate status for failure/success.
         """
         try:
+            self._check_limits_for_all_drivers()
             self._perform_move_for_all_drivers(self._get_max_move_duration())
         except ZeroDivisionError as e:
             STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e), e)
@@ -474,6 +475,11 @@ class Beamline:
     def _perform_move_for_all_drivers(self, move_duration):
         for driver in self._drivers:
             driver.perform_move(move_duration)
+
+
+    def _check_limits_for_all_drivers(self): # check SP against high and low soft lims for all drivers and raise exception if violated.
+        for driver in self._drivers:
+            driver.check_limits_against_sps()
 
     def _get_max_move_duration(self):
         """
