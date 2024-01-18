@@ -47,7 +47,7 @@ class BeamlineConfigurationParkAutosaveInvalidException(Exception):
 
 class AxisNotWithinSoftLimitsException(Exception):
     """
-    TODO
+    Raised when a component's proposed setpoint is outside its soft limits.
     """
     def __init__(self, err):
         self.message = str(err)
