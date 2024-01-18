@@ -477,7 +477,11 @@ class Beamline:
         for driver in self._drivers:
             driver.perform_move(move_duration)
 
-    def _check_limits_for_all_drivers(self):  # check SP against high and low soft lims for all drivers and raise exception if violated.
+    def _check_limits_for_all_drivers(self):
+        """
+        Check SP against high and low soft limits for all drivers and raise exception if violated.
+        Raises: AxisNotWithinSoftLimitsException if soft limits are violated.
+        """
         drivers_and_limit_violations = dict()
         for driver in self._drivers:
             drivers_and_limit_violations[driver] = driver.check_limits_against_sps()
