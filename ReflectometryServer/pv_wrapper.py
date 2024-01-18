@@ -210,8 +210,8 @@ class PVWrapper:
         self._moving_state_cache = self._read_pv(self._dmov_pv)
         self._max_velocity_cache = self._read_pv(self._vmax_pv)
         self._base_velocity_cache = self._read_pv(self._vbas_pv)
-        self._high_limit_cache = self._read_pv(self._highlim_pv) if self._highlim_pv is not None else float('inf')
-        self._low_limit_cache = self._read_pv(self._lowlim_pv) if self._lowlim_pv is not None else float('-inf')
+        self._high_limit_cache = self._read_pv(self._highlim_pv)
+        self._low_limit_cache = self._read_pv(self._lowlim_pv)
 
         self._init_velocity_to_restore()
         self._add_monitors()
@@ -227,10 +227,8 @@ class PVWrapper:
         self._monitor_pv(self._bdst_pv, self._on_update_backlash_distance)
         self._monitor_pv(self._bvel_pv, self._on_update_backlash_velocity)
         self._monitor_pv(self._dir_pv, self._on_update_direction)
-        if self._highlim_pv is not None:
-            self._monitor_pv(self._highlim_pv, self._on_update_highlim)
-        if self._lowlim_pv is not None:
-            self._monitor_pv(self._lowlim_pv, self._on_update_lowlim)
+        self._monitor_pv(self._highlim_pv, self._on_update_highlim)
+        self._monitor_pv(self._lowlim_pv, self._on_update_lowlim)
 
     def _monitor_pv(self, pv, call_back_function):
         """
@@ -719,6 +717,11 @@ class JawsAxisPVWrapper(PVWrapper):
         motor_base_velocities = self._pv_names_for_directions("MTR.VBAS")
         self._base_velocity_cache = max([self._read_pv(pv) for pv in motor_base_velocities])
 
+        # For jaws axes, soft limits don't apply as putting a huge number in will just open jaws up instead
+        # of preventing a SP being taken
+        self._high_limit_cache = float('inf')
+        self._low_limit_cache = float('-inf')
+
         self._backlash_distance_cache = 0  # No backlash used as source of clash conditions on jaws sets
         self._add_monitors()
 
@@ -857,9 +860,6 @@ class JawsGapPVWrapper(JawsAxisPVWrapper):
         self._sp_pv = "{}:{}GAP:SP".format(self._prefixed_pv, self._direction_symbol)
         self._rbv_pv = "{}:{}GAP".format(self._prefixed_pv, self._direction_symbol)
         self._dmov_pv = "{}:{}GAP:DMOV".format(self._prefixed_pv, self._direction_symbol)
-        # TODO add comment here for why we aren't bothering getting the limits for jaws
-        self._highlim_pv = None
-        self._lowlim_pv = None
 
 
 class JawsCentrePVWrapper(JawsAxisPVWrapper):
@@ -887,6 +887,4 @@ class JawsCentrePVWrapper(JawsAxisPVWrapper):
         self._sp_pv = "{}:{}CENT:SP".format(self._prefixed_pv, self._direction_symbol)
         self._rbv_pv = "{}:{}CENT".format(self._prefixed_pv, self._direction_symbol)
         self._dmov_pv = "{}:{}CENT:DMOV".format(self._prefixed_pv, self._direction_symbol)
-        # TODO add comment here for why we aren't bothering getting the limits for jaws
-        self._highlim_pv = None
-        self._lowlim_pv = None
+
