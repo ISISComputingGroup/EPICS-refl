@@ -501,7 +501,7 @@ class IocDriver:
         if component_sp is None:
             return True, component_sp, hlm, llm
 
-        inside_limits = (llm <= component_sp >= hlm)
+        inside_limits = (llm <= component_sp <= hlm)
 
         return inside_limits, component_sp, hlm, llm
 
