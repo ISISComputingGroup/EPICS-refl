@@ -398,7 +398,7 @@ def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, bac
 
 @observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)
 class MockMotorPVWrapper:
-    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True, backlash_distance=0, backlash_velocity=1, direction="Neg"):
+    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True, backlash_distance=0, backlash_velocity=1, direction="Neg", llm=float('-inf'), hlm=float('inf')):
         self.name = pv_name
         self._value = init_position
         self.max_velocity = max_velocity
@@ -418,6 +418,8 @@ class MockMotorPVWrapper:
         self.is_initialised = False
         self.all_setpoints = []
         self.moving_without_changing_velocity = None
+        self.hlm = hlm
+        self.llm = llm
 
     def initialise(self):
         self.is_initialised = True

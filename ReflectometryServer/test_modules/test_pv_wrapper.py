@@ -339,6 +339,20 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
 
         assert_that(result, is_(expected))
 
+    def test_GIVEN_soft_limits_not_set_and_jaw_gap_initialised_WHEN_get_limits_THEN_limits_are_infinity(self):
+        wrapper = JawsGapPVWrapper(self.jaws_name, is_vertical=False, ca=self.mock_ca)
+        wrapper.initialise()
+
+        assert_that(wrapper.llm, is_(float('-inf')))
+        assert_that(wrapper.hlm, is_(float('inf')))
+
+    def test_GIVEN_soft_limits_not_set_and_jaw_centre_initialised_WHEN_get_limits_THEN_limits_are_infinity(self):
+        wrapper = JawsCentrePVWrapper(self.jaws_name, is_vertical=False, ca=self.mock_ca)
+        wrapper.initialise()
+
+        assert_that(wrapper.llm, is_(float('-inf')))
+        assert_that(wrapper.hlm, is_(float('inf')))
+
     def test_GIVEN_vbas_set_and_jaw_gap_initialised_WHEN_get_minimum_velocity_THEN_minimum_velocity_is_default(self):
         expected = 0.123
         for direction in ["JN", "JE", "JS", "JW"]:

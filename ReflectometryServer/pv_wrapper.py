@@ -168,6 +168,8 @@ class PVWrapper:
         self._max_velocity_cache = None
         self._base_velocity_cache = None
         self._resolution = None
+        self._high_limit_cache = None
+        self._low_limit_cache = None
 
         self._set_pvs()
 
@@ -208,8 +210,8 @@ class PVWrapper:
         self._moving_state_cache = self._read_pv(self._dmov_pv)
         self._max_velocity_cache = self._read_pv(self._vmax_pv)
         self._base_velocity_cache = self._read_pv(self._vbas_pv)
-        self._high_limit_cache = self.read_pv(self._highlim_pv) if self._highlim_pv is not None else None
-        self._low_limit_cache = self.read_pv(self._lowlim_pv) if self._lowlim_pv is not None else None
+        self._high_limit_cache = self._read_pv(self._highlim_pv) if self._highlim_pv is not None else float('inf')
+        self._low_limit_cache = self._read_pv(self._lowlim_pv) if self._lowlim_pv is not None else float('-inf')
 
         self._init_velocity_to_restore()
         self._add_monitors()

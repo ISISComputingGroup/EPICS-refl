@@ -9,7 +9,7 @@ from functools import partial
 from pcaspy import Severity
 
 from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
-from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException, ParameterNotInitializedException
+from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException, ParameterNotInitializedException, AxisNotWithinSoftLimitsException
 from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 from ReflectometryServer.file_io import mode_autosave, MODE_KEY
 from ReflectometryServer.footprint_calc import BaseFootprintSetup
@@ -460,8 +460,9 @@ class Beamline:
         """
         try:
             self._check_limits_for_all_drivers()
+
             self._perform_move_for_all_drivers(self._get_max_move_duration())
-        except ZeroDivisionError as e:
+        except (ZeroDivisionError, AxisNotWithinSoftLimitsException) as e:
             STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e), e)
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM))
@@ -476,10 +477,19 @@ class Beamline:
         for driver in self._drivers:
             driver.perform_move(move_duration)
 
-
-    def _check_limits_for_all_drivers(self): # check SP against high and low soft lims for all drivers and raise exception if violated.
+    def _check_limits_for_all_drivers(self):  # check SP against high and low soft lims for all drivers and raise exception if violated.
+        drivers_and_limit_violations = dict()
         for driver in self._drivers:
-            driver.check_limits_against_sps()
+            drivers_and_limit_violations[driver] = driver.check_limits_against_sps()
+
+        drivers_outside_of_limits = []
+        for driver, values in drivers_and_limit_violations.items():
+            within_limits = values[0]
+
+            if not within_limits:
+                drivers_outside_of_limits.append(f"{driver.name} setpoint {values[1]} outside of limits ({values[2]},{values[3]}), not moving")
+        if len(drivers_outside_of_limits) > 0:
+            raise AxisNotWithinSoftLimitsException(str(drivers_outside_of_limits))
 
     def _get_max_move_duration(self):
         """
