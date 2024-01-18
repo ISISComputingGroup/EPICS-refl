@@ -14,6 +14,7 @@ from ReflectometryServer.pv_wrapper import IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
 from ReflectometryServer.test_modules.utils import no_autosave
 from server_common.channel_access import UnableToConnectToPVException
+from ReflectometryServer.exceptions import AxisNotWithinSoftLimitsException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
 FLOAT_TOLERANCE = 1e-9
@@ -497,6 +498,16 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         self.smangle.sp_no_move = sm_angle_to_set
         self.slit_3_pos.sp_no_move = -10
         self.slit_3_driver.perform_move = MagicMock(side_effect=UnableToConnectToPVException("A_PV", "ERROR"))
+
+        self.beamline.move = 1
+        assert_that(STATUS_MANAGER.status, is_(STATUS.ERROR))
+
+    def test_GIVEN_driver_not_within_soft_limits_WHEN_beamline_moves_THEN_status_set(self):
+        sm_angle_to_set = 22.5
+
+        self.smangle.sp_no_move = sm_angle_to_set
+        self.slit_3_pos.sp_no_move = -10
+        self.slit_3_driver.check_limits_against_sps = MagicMock(return_value=(False, 0, 0, 0))
 
         self.beamline.move = 1
         assert_that(STATUS_MANAGER.status, is_(STATUS.ERROR))
