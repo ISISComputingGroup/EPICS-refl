@@ -444,6 +444,7 @@ class BeamlineMoveDurationTest(unittest.TestCase):
         slit_2 = Component("slit_2", setup=PositionAndAngle(y=0.0, z=20.0, angle=90.0))
         slit_2_height_axis = create_mock_axis("SLIT2:HEIGHT", 0.0, 10.0)
         self.slit_2_driver = MagicMock(IocDriver)
+        self.slit_2_driver.check_limits_against_sps = MagicMock(return_value=(True, 0,0,0))
         self.slit_2_driver.get_max_move_duration = MagicMock(return_value=0)
         self.slit_2_driver.component = slit_2
         self.slit_2_driver.component_axis = ChangeAxis.POSITION

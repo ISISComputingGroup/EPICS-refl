@@ -494,15 +494,11 @@ class IocDriver:
         llm = self._motor_axis.llm
         hlm = self._motor_axis.hlm
 
-        if self._sp_cache is None:
+        component_sp = self._get_component_sp()
+        if self._sp_cache is None or component_sp is None:
             return True, self._sp_cache, hlm, llm
 
-        component_sp = self._get_component_sp()
-        if component_sp is None:
-            return True, component_sp, hlm, llm
-
         inside_limits = (llm <= component_sp <= hlm)
-
         return inside_limits, component_sp, hlm, llm
 
     def has_out_of_beam_position(self):

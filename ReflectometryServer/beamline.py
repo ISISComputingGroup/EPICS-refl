@@ -482,16 +482,12 @@ class Beamline:
         Check SP against high and low soft limits for all drivers and raise exception if violated.
         Raises: AxisNotWithinSoftLimitsException if soft limits are violated.
         """
-        drivers_and_limit_violations = dict()
-        for driver in self._drivers:
-            drivers_and_limit_violations[driver] = driver.check_limits_against_sps()
-
         drivers_outside_of_limits = []
-        for driver, values in drivers_and_limit_violations.items():
-            within_limits = values[0]
-
-            if not within_limits:
-                drivers_outside_of_limits.append(f"{driver.name} setpoint {values[1]} outside of limits ({values[2]},{values[3]}), not moving")
+        for driver in self._drivers:
+            (inside_limits, component_sp, hlm, llm) = driver.check_limits_against_sps()
+            if not inside_limits:
+                drivers_outside_of_limits.append(
+                    f"{driver.name} setpoint {component_sp} outside of limits ({llm},{hlm}), not moving")
         if len(drivers_outside_of_limits) > 0:
             raise AxisNotWithinSoftLimitsException(str(drivers_outside_of_limits))
 
