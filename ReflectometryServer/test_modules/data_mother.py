@@ -379,7 +379,7 @@ class DataMother:
         return Beamline([super_mirror], [smangle], [], [beamline_mode])
 
 
-def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):
+def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos", llm=float('-inf'), hlm=float('inf')):
     """
     Create a mock axis
     Args:
@@ -389,16 +389,18 @@ def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, bac
         backlash_distance: distance that the axis will backlash
         backlash_velocity: velocity that the backlash is performed
         direction: calibration direction of the axis, Pos or Neg
+        llm: low soft limit value
+        hlm: high soft limit value
     Returns:
             mocked axis
     """
 
-    return MockMotorPVWrapper(name, init_position, max_velocity, True, backlash_distance, backlash_velocity, direction)
+    return MockMotorPVWrapper(name, init_position, max_velocity, True, backlash_distance, backlash_velocity, direction, llm, hlm)
 
 
 @observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)
 class MockMotorPVWrapper:
-    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True, backlash_distance=0, backlash_velocity=1, direction="Neg"):
+    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True, backlash_distance=0, backlash_velocity=1, direction="Neg", llm=float('-inf'), hlm=float('inf')):
         self.name = pv_name
         self._value = init_position
         self.max_velocity = max_velocity
@@ -418,6 +420,8 @@ class MockMotorPVWrapper:
         self.is_initialised = False
         self.all_setpoints = []
         self.moving_without_changing_velocity = None
+        self.hlm = hlm
+        self.llm = llm
 
     def initialise(self):
         self.is_initialised = True

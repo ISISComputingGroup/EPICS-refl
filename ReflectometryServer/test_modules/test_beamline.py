@@ -195,6 +195,27 @@ class TestRealistic(unittest.TestCase):
 
         assert_that(drives["det_angle_axis"].sp, is_(2*theta_angle))
 
+    def test_GIVEN_beam_line_where_all_items_track_but_one_axis_has_soft_limits_outside_of_range_WHEN_set_theta_no_move_and_move_beamline_THEN_motors_do_not_move(self):
+        spacing = 2.0
+        bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)
+
+        drives["s3_axis"].hlm = 0
+        drives["s3_axis"].llm = 0
+
+        bl.parameter("s1").sp = 0
+        bl.parameter("s3").sp = 0
+        bl.parameter("det").sp = 0
+        bl.parameter("det_angle").sp = 0
+
+        theta_angle = 2
+        bl.parameter("theta").sp_no_move = theta_angle
+        bl.move = 1
+
+        assert_that(drives["s1_axis"].sp, is_(0))
+        assert_that(drives["s3_axis"].sp, is_(0))
+        assert_that(drives["det_axis"].sp, is_(0))
+        assert_that(drives["det_angle_axis"].sp, is_(0))
+
     def test_GIVEN_beam_line_which_is_in_disabled_mode_WHEN_set_theta_THEN_nothing_else_moves(self):
         spacing = 2.0
         bl, drives = DataMother.beamline_s1_s3_theta_detector(spacing)

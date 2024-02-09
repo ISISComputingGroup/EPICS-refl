@@ -486,6 +486,24 @@ class IocDriver:
         difference = abs(component_sp - self._sp_cache)
         return difference < self._motor_axis.resolution
 
+    def check_limits_against_sps(self):
+        """
+        Returns: Tuple of:
+           True if component SPs are within soft limits, False if not
+           The SP
+           The HLM
+           The LLM
+        """
+        llm = self._motor_axis.llm
+        hlm = self._motor_axis.hlm
+
+        component_sp = self._get_component_sp()
+        if self._sp_cache is None or component_sp is None:
+            return True, self._sp_cache, hlm, llm
+
+        inside_limits = (llm <= component_sp <= hlm)
+        return inside_limits, component_sp, hlm, llm
+
     def has_out_of_beam_position(self):
         """
         Returns: True if this river has out of beam position set; False otherwise.

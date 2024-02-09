@@ -168,6 +168,8 @@ class PVWrapper:
         self._max_velocity_cache = None
         self._base_velocity_cache = None
         self._resolution = None
+        self._high_limit_cache = None
+        self._low_limit_cache = None
 
         self._set_pvs()
 
@@ -208,6 +210,9 @@ class PVWrapper:
         self._moving_state_cache = self._read_pv(self._dmov_pv)
         self._max_velocity_cache = self._read_pv(self._vmax_pv)
         self._base_velocity_cache = self._read_pv(self._vbas_pv)
+        self._high_limit_cache = self._read_pv(self._highlim_pv)
+        self._low_limit_cache = self._read_pv(self._lowlim_pv)
+
         self._init_velocity_to_restore()
         self._add_monitors()
 
@@ -222,6 +227,8 @@ class PVWrapper:
         self._monitor_pv(self._bdst_pv, self._on_update_backlash_distance)
         self._monitor_pv(self._bvel_pv, self._on_update_backlash_velocity)
         self._monitor_pv(self._dir_pv, self._on_update_direction)
+        self._monitor_pv(self._highlim_pv, self._on_update_highlim)
+        self._monitor_pv(self._lowlim_pv, self._on_update_lowlim)
 
     def _monitor_pv(self, pv, call_back_function):
         """
@@ -376,6 +383,14 @@ class PVWrapper:
         Returns: the value of the underlying direction PV
         """
         return self._moving_direction_cache
+
+    @property
+    def hlm(self):
+        return self._high_limit_cache
+
+    @property
+    def llm(self):
+        return self._low_limit_cache
 
     def _init_velocity_to_restore(self):
         """
@@ -553,6 +568,28 @@ class PVWrapper:
         """
         self._backlash_velocity_cache = value
 
+    def _on_update_highlim(self, value, _alarm_severity, _alarm_status):
+        """
+        React to an update in the high soft limit of the underlying motor axis.
+
+        Params:
+            value (float): The new high soft limit
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._high_limit_cache = value
+
+    def _on_update_lowlim(self, value, _alarm_severity, _alarm_status):
+        """
+        React to an update in the low soft limit of the underlying motor axis.
+
+        Params:
+            value (float): The new low soft limit
+            alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
+            alarm_status (server_common.channel_access.AlarmCondition): the alarm status
+        """
+        self._low_limit_cache = value
+
     def _on_update_direction(self, value, _alarm_severity, _alarm_status):
         """
         React to an update in the direction of the underlying motor axis.
@@ -601,6 +638,8 @@ class MotorPVWrapper(PVWrapper):
         self._bdst_pv = "{}.BDST".format(self._prefixed_pv)
         self._bvel_pv = "{}.BVEL".format(self._prefixed_pv)
         self._dir_pv = "{}.DIR".format(self._prefixed_pv)
+        self._highlim_pv = "{}.HLM".format(self._prefixed_pv)
+        self._lowlim_pv = "{}.LLM".format(self._prefixed_pv)
 
     def _set_resolution(self):
         """
@@ -677,6 +716,11 @@ class JawsAxisPVWrapper(PVWrapper):
 
         motor_base_velocities = self._pv_names_for_directions("MTR.VBAS")
         self._base_velocity_cache = max([self._read_pv(pv) for pv in motor_base_velocities])
+
+        # For jaws axes, soft limits don't apply as putting a huge number in will just open jaws up instead
+        # of preventing a SP being taken
+        self._high_limit_cache = float('inf')
+        self._low_limit_cache = float('-inf')
 
         self._backlash_distance_cache = 0  # No backlash used as source of clash conditions on jaws sets
         self._add_monitors()
@@ -843,3 +887,4 @@ class JawsCentrePVWrapper(JawsAxisPVWrapper):
         self._sp_pv = "{}:{}CENT:SP".format(self._prefixed_pv, self._direction_symbol)
         self._rbv_pv = "{}:{}CENT".format(self._prefixed_pv, self._direction_symbol)
         self._dmov_pv = "{}:{}CENT:DMOV".format(self._prefixed_pv, self._direction_symbol)
+

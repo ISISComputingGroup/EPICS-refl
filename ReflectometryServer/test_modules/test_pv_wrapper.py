@@ -37,6 +37,8 @@ class TestMotorPVWrapper(unittest.TestCase):
         self.bvel_pv = _create_pv(self.motor_name, ".BVEL")
         self.dir_pv = _create_pv(self.motor_name, ".DIR")
         self.dmov_pv = _create_pv(self.motor_name, ".DMOV")
+        self.hlm_pv = _create_pv(self.motor_name, ".HLM")
+        self.llm_pv = _create_pv(self.motor_name, ".LLM")
         self.sp = 1.0
         self.rbv = 1.1
         self.mres = 0.1
@@ -47,6 +49,8 @@ class TestMotorPVWrapper(unittest.TestCase):
         self.bvel = 0.1
         self.dir = "Pos"
         self.dmov = 1
+        self.hlm = 10
+        self.llm = -10
         self.mock_motor_pvs = {self.sp_pv: self.sp,
                                self.rbv_pv: self.rbv,
                                self.mres_pv: self.mres,
@@ -56,7 +60,9 @@ class TestMotorPVWrapper(unittest.TestCase):
                                self.bdst_pv: self.bdst,
                                self.bvel_pv: self.bvel,
                                self.dir_pv: self.dir,
-                               self.dmov_pv: self.dmov
+                               self.dmov_pv: self.dmov,
+                               self.hlm_pv: self.hlm,
+                               self.llm_pv: self.llm
                                }
         self.mock_ca = MockChannelAccess(self.mock_motor_pvs)
         self.wrapper = MotorPVWrapper(self.motor_name, ca=self.mock_ca)
@@ -95,7 +101,6 @@ class TestMotorPVWrapper(unittest.TestCase):
         self.velo = self.wrapper.velocity
 
         self.assertEqual(expected_velocity, self.velo)
-
 
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_max_velocity_is_initialised_correctly(self):
         expected_max_velocity = self.vmax
@@ -144,6 +149,22 @@ class TestMotorPVWrapper(unittest.TestCase):
         actual_bvel = self.wrapper.backlash_velocity
 
         self.assertEqual(expected_bvel, actual_bvel)
+
+    def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_high_soft_limit_is_initialised_correctly(self):
+        expected_hlm = self.hlm
+
+        self.wrapper.initialise()
+        actual_hlm = self.wrapper.hlm
+
+        self.assertEqual(expected_hlm, actual_hlm)
+
+    def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_low_soft_limit_is_initialised_correctly(self):
+        expected_llm = self.llm
+
+        self.wrapper.initialise()
+        actual_llm = self.wrapper.llm
+
+        self.assertEqual(expected_llm, actual_llm)
 
     def test_GIVEN_base_pv_WHEN_creating_motor_pv_wrapper_THEN_direction_is_initialised_correctly(self):
         expected_dir = self.dir
@@ -317,6 +338,20 @@ class TestJawsAxisPVWrapper(unittest.TestCase):
         result = wrapper.min_velocity
 
         assert_that(result, is_(expected))
+
+    def test_GIVEN_soft_limits_not_set_and_jaw_gap_initialised_WHEN_get_limits_THEN_limits_are_infinity(self):
+        wrapper = JawsGapPVWrapper(self.jaws_name, is_vertical=False, ca=self.mock_ca)
+        wrapper.initialise()
+
+        assert_that(wrapper.llm, is_(float('-inf')))
+        assert_that(wrapper.hlm, is_(float('inf')))
+
+    def test_GIVEN_soft_limits_not_set_and_jaw_centre_initialised_WHEN_get_limits_THEN_limits_are_infinity(self):
+        wrapper = JawsCentrePVWrapper(self.jaws_name, is_vertical=False, ca=self.mock_ca)
+        wrapper.initialise()
+
+        assert_that(wrapper.llm, is_(float('-inf')))
+        assert_that(wrapper.hlm, is_(float('inf')))
 
     def test_GIVEN_vbas_set_and_jaw_gap_initialised_WHEN_get_minimum_velocity_THEN_minimum_velocity_is_default(self):
         expected = 0.123
