@@ -475,12 +475,7 @@ class Beamline:
 
     def _perform_move_for_all_drivers(self, move_duration):
         for driver in self._drivers:
-            # Cache and set the velocities first before a move
-            driver.perform_move(move_duration, skip_immediate_move=True)
-
-        for driver in self._drivers:
-            # Start a move - this should be more synchronised as we skip velocity caching
-            driver.perform_move(move_duration, skip_velo=True)
+            driver.perform_move(move_duration)
 
     def _check_limits_for_all_drivers(self):
         """
