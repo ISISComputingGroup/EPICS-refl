@@ -470,12 +470,15 @@ class PVManager:
                                              limit=20, allow_colon=True)
                 prepended_alias = "{}:{}".format(CONST_PREFIX, const_alias)
 
+                # float_value works for cs studio's default display format, but not for strings.
+                const_type = "float_value"
                 if isinstance(beamline_constant.value, bool):
                     value = 1 if bool(beamline_constant.value) else 0
                     fields = PARAM_FIELDS_BINARY
                 elif isinstance(beamline_constant.value, str):
                     value = beamline_constant.value
                     fields = STANDARD_2048_CHAR_WF_FIELDS
+                    const_type = "string_value"
                 else:
                     value = float(beamline_constant.value)
                     fields = STANDARD_FLOAT_PV_FIELDS
@@ -486,7 +489,7 @@ class PVManager:
                 beamline_constant_info.append(
                     {"name": beamline_constant.name,
                      "prepended_alias": prepended_alias,
-                     "type": "float_value",
+                     "type": const_type,
                      "description": beamline_constant.description})
             except Exception as err:
                 STATUS_MANAGER.update_error_log("Error adding constant {}: {}".format(beamline_constant.name, err), err)
