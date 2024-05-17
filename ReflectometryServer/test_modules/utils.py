@@ -4,7 +4,6 @@ Utils for testing
 from math import fabs
 from unittest import skipIf
 
-import six
 from hamcrest.core.base_matcher import BaseMatcher
 from mock import patch, Mock
 

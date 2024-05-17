@@ -24,7 +24,6 @@ import logging
 from enum import Enum
 from ReflectometryServer.geometry import ChangeAxis
 import abc
-import six
 
 from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate, PVWrapper, JawsAxisPVWrapper
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
@@ -222,8 +221,7 @@ class BeamlineParameterGroup(Enum):
 
 @observable(ParameterReadbackUpdate, ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate,
             ParameterChangingUpdate, ParameterDisabledUpdate, ParameterInitUpdate, RequestMoveEvent)
-@six.add_metaclass(abc.ABCMeta)
-class BeamlineParameter:
+class BeamlineParameter(metaclass=abc.ABCMeta):
     """
     General beamline parameter that can be set. Subclass must implement _move_component to decide what to do with the
     value that is set.

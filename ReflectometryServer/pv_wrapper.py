@@ -7,7 +7,6 @@ from collections import namedtuple
 import time
 from functools import partial
 
-import six
 from pcaspy import Severity
 
 from ReflectometryServer.server_status_manager import ProblemInfo, STATUS_MANAGER
@@ -128,9 +127,8 @@ class ProcessMonitorEvents:
 PROCESS_MONITOR_EVENTS = ProcessMonitorEvents()
 
 
-@six.add_metaclass(abc.ABCMeta)
 @observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)
-class PVWrapper:
+class PVWrapper(metaclass=abc.ABCMeta):
     """
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
     """
@@ -662,8 +660,7 @@ class MotorPVWrapper(PVWrapper):
                 ProblemInfo("Failed to redefine position", self.name, Severity.MINOR_ALARM))
 
 
-@six.add_metaclass(abc.ABCMeta)
-class JawsAxisPVWrapper(PVWrapper):
+class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
     """
     Creates a wrapper around a jaws axis.
     """

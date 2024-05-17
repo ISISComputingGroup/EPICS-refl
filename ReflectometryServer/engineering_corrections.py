@@ -9,7 +9,6 @@ from contextlib import contextmanager
 from typing import Dict, Optional
 
 import numpy as np
-import six
 from attr import dataclass
 from pcaspy import Severity
 from scipy.interpolate import griddata
@@ -44,9 +43,8 @@ class CorrectionRecalculate:
     reason_for_recalculate: str  # reason that we need to recalculate
 
 
-@six.add_metaclass(abc.ABCMeta)
 @observable(CorrectionUpdate, CorrectionRecalculate)
-class EngineeringCorrection:
+class EngineeringCorrection(metaclass=abc.ABCMeta):
     """
     Base class for all engineering correction
     """
@@ -102,8 +100,7 @@ class EngineeringCorrection:
         pass
 
 
-@six.add_metaclass(abc.ABCMeta)
-class SymmetricEngineeringCorrection(EngineeringCorrection):
+class SymmetricEngineeringCorrection(EngineeringCorrection, metaclass=abc.ABCMeta):
     """
     Base class for engineering corrections which are symmetric for both to axis and from axis directions. Correction is
     added to the value when sent to an axis.
