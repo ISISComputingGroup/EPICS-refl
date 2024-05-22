@@ -9,7 +9,6 @@ from ReflectometryServer import Beamline, BeamlineMode, SlitGapParameter, JawsGa
     PVWrapper, MotorPVWrapper, ConstantCorrection, ModeSelectCorrection
 from ReflectometryServer.geometry import PositionAndAngle
 import logging
-import six
 
 from ReflectometryServer.parameters import DEFAULT_RBV_TO_SP_TOLERANCE, EnumParameter, DirectParameter, \
     BeamlineParameter
@@ -148,7 +147,7 @@ def add_parameter(parameter, modes=None, mode_inits=None, marker=None):
         ConfigHelper.parameters[marker] = parameter
     if modes is None:
         modes = []
-    if isinstance(modes, six.string_types):
+    if isinstance(modes, str):
         modes = [modes]
     if mode_inits is None:
         mode_inits = []
