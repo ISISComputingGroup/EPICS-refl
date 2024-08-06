@@ -1,11 +1,9 @@
 import logging
 from collections import namedtuple
-
 from enum import Enum
 from typing import Optional
 
 from pcaspy import Severity
-
 from server_common.observable import observable
 
 StatusDescription = namedtuple("StatusDescription", [

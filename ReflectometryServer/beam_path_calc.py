@@ -2,23 +2,33 @@
 Objects to help with calculating the beam path when interacting with a component. This is used for instance for the
 set points or readbacks etc.
 """
-from dataclasses import dataclass
-
-from math import degrees, atan2, isnan
-from typing import Dict, List, Tuple, Optional
-
-from ReflectometryServer.axis import PhysicalMoveUpdate, AxisChangingUpdate, InitUpdate, ComponentAxis, \
-    BeamPathCalcAxis, AddOutOfBeamPositionEvent, AxisChangedUpdate, BeamPathCalcModificationAxis, ParkingSequenceUpdate, \
-    ReadOnlyBeamPathCalcAxis
-from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis, Position
-from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException, \
-    BeamlineConfigurationInvalidException
 import logging
+from dataclasses import dataclass
+from math import atan2, degrees, isnan
+from typing import Dict, List, Optional, Tuple
 
-from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
-from server_common.channel_access import maximum_severity, AlarmStatus, AlarmSeverity
+from server_common.channel_access import AlarmSeverity, AlarmStatus, maximum_severity
 from server_common.observable import observable
+
+from ReflectometryServer.axis import (
+    AddOutOfBeamPositionEvent,
+    AxisChangedUpdate,
+    AxisChangingUpdate,
+    BeamPathCalcAxis,
+    BeamPathCalcModificationAxis,
+    ComponentAxis,
+    InitUpdate,
+    ParkingSequenceUpdate,
+    PhysicalMoveUpdate,
+    ReadOnlyBeamPathCalcAxis,
+)
+from ReflectometryServer.exceptions import (
+    BeamlineConfigurationInvalidException,
+    BeamlineConfigurationParkAutosaveInvalidException,
+)
 from ReflectometryServer.file_io import disable_mode_autosave, parking_index_autosave
+from ReflectometryServer.geometry import ChangeAxis, Position, PositionAndAngle
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 logger = logging.getLogger(__name__)
 

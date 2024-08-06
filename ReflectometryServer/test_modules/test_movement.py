@@ -1,11 +1,11 @@
 import unittest
+from math import radians, sqrt, tan
 
-from math import tan, radians, sqrt
 from hamcrest import *
 from parameterized import parameterized
 
-from ReflectometryServer.movement_strategy import ANGULAR_TOLERANCE, LinearMovementCalc
 from ReflectometryServer.geometry import Position, PositionAndAngle
+from ReflectometryServer.movement_strategy import ANGULAR_TOLERANCE, LinearMovementCalc
 from ReflectometryServer.test_modules.utils import position
 
 

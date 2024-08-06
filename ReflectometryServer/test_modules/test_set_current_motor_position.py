@@ -1,22 +1,19 @@
-from math import tan
 
+import unittest
+
+from hamcrest import *
 from mock import Mock
 from parameterized import parameterized
 
-import ReflectometryServer
-import unittest
-
 from ReflectometryServer import *
-from ReflectometryServer.axis import DefineValueAsEvent
 from ReflectometryServer import ChangeAxis
+from ReflectometryServer.axis import DefineValueAsEvent
 from ReflectometryServer.parameters import RequestMoveEvent
-from ReflectometryServer.pv_wrapper import JawsAxisPVWrapper
-from ReflectometryServer.test_modules.data_mother import MockChannelAccess, create_mock_JawsCentrePVWrapper, \
-    create_mock_axis
+from ReflectometryServer.test_modules.data_mother import (
+    create_mock_axis,
+    create_mock_JawsCentrePVWrapper,
+)
 from ReflectometryServer.test_modules.utils import create_parameter_with_initial_value
-
-from server_common.channel_access import UnableToConnectToPVException
-from hamcrest import *
 
 
 class TestCurrentMotorPositionParametersToEven_inDriver(unittest.TestCase):

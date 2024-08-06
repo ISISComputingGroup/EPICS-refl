@@ -1,19 +1,21 @@
 """
 Objects to Create a beamline from the configuration.
 """
-import logging
-import os
 import sys
 import traceback
 from importlib import import_module
 
 from pcaspy import Severity
+from server_common.utilities import SEVERITY, print_and_log
 
+from ReflectometryServer.beamline import (
+    Beamline,
+    BeamlineConfigurationInvalidException,
+    BeamlineMode,
+)
 from ReflectometryServer.ChannelAccess.constants import REFL_CONFIG_PATH, REFL_IOC_NAME
-from ReflectometryServer.beamline import Beamline, BeamlineMode, BeamlineConfigurationInvalidException
 from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
-from server_common.utilities import print_and_log, SEVERITY
 
 DEFAULT_CONFIG_FILE = "config.py"
 

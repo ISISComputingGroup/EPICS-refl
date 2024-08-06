@@ -7,9 +7,10 @@ from collections import namedtuple
 from dataclasses import dataclass
 from typing import Optional
 
-from ReflectometryServer.geometry import ChangeAxis
-from server_common.channel_access import AlarmStatus, AlarmSeverity
+from server_common.channel_access import AlarmSeverity, AlarmStatus
 from server_common.observable import observable
+
+from ReflectometryServer.geometry import ChangeAxis
 
 logger = logging.getLogger(__name__)
 

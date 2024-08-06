@@ -1,13 +1,13 @@
 from enum import Enum
-from typing import Tuple, Union, Dict
+from typing import Dict, Tuple, Union
+
+from server_common.channel_access import AlarmSeverity, AlarmStatus
+from server_common.utilities import SEVERITY, print_and_log
 
 from ReflectometryServer import Beamline
-from ReflectometryServer.ChannelAccess.constants import STANDARD_FLOAT_PV_FIELDS, MAX_ALARM_ID
-
+from ReflectometryServer.ChannelAccess.constants import MAX_ALARM_ID, STANDARD_FLOAT_PV_FIELDS
 from ReflectometryServer.parameters import BeamlineParameterType, ParameterUpdateBase
 from ReflectometryServer.server_status_manager import STATUS_MANAGER
-from server_common.utilities import print_and_log, SEVERITY
-from server_common.channel_access import AlarmSeverity, AlarmStatus
 
 # field for in beam parameter
 OUT_IN_ENUM_TEXT = ["OUT", "IN"]

@@ -2,11 +2,11 @@
 Reflectometry Server
 """
 import logging.config
-import sys
 import os
+import sys
+from threading import Thread
 
 from pcaspy import SimpleServer
-from threading import Thread
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -46,12 +46,17 @@ except ImportError:
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
     from ReflectometryServer.ChannelAccess.reflectometry_driver import ReflectometryDriver
 
-from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
-from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, MYPVPREFIX, DEFAULT_ASG_RULES, \
-    REFL_IOC_NAME
-from ReflectometryServer.ChannelAccess.pv_manager import PVManager
-from server_common.helpers import register_ioc_start, get_macro_values
 from server_common.channel_access import ChannelAccess
+from server_common.helpers import get_macro_values, register_ioc_start
+
+from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
+from ReflectometryServer.ChannelAccess.constants import (
+    DEFAULT_ASG_RULES,
+    MYPVPREFIX,
+    REFL_IOC_NAME,
+    REFLECTOMETRY_PREFIX,
+)
+from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 
 
 def process_ca_loop():
@@ -60,7 +65,7 @@ def process_ca_loop():
         try:
             SERVER.process(0.1)
             ChannelAccess.poll()
-        except Exception as err:
+        except Exception:
             break
 
 logger.info("Initialising...")

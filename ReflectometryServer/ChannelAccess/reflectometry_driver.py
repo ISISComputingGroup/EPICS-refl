@@ -5,24 +5,52 @@ import logging
 from functools import partial
 from typing import Optional
 
-from pcaspy import Driver, Alarm, Severity
-from pcaspy.driver import manager, Data
+from pcaspy import Alarm, Driver, Severity
+from pcaspy.driver import Data, manager
+from server_common.loggers.isis_logger import IsisPutLog
 
 from ReflectometryServer import Beamline
-from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, REFL_IOC_NAME
-from ReflectometryServer.ChannelAccess.driver_utils import DriverParamHelper
-from ReflectometryServer.ChannelAccess.pv_manager import PvSort, is_pv_name_this_field, BEAMLINE_MODE, VAL_FIELD, \
-    SERVER_STATUS, SERVER_MESSAGE, SP_SUFFIX, FP_TEMPLATE, DQQ_TEMPLATE, QMIN_TEMPLATE, QMAX_TEMPLATE, \
-    IN_MODE_SUFFIX, SERVER_ERROR_LOG, SAMPLE_LENGTH, REAPPLY_MODE_INITS, BEAMLINE_MOVE, DISP_FIELD, \
-    check_if_pv_value_exceeds_max_size
 from ReflectometryServer.beamline import ActiveModeUpdate
-from ReflectometryServer.server_status_manager import STATUS_MANAGER, StatusUpdate, ProblemInfo, ErrorLogUpdate
-from ReflectometryServer.footprint_manager import FootprintSort
+from ReflectometryServer.ChannelAccess.constants import REFL_IOC_NAME, REFLECTOMETRY_PREFIX
+from ReflectometryServer.ChannelAccess.driver_utils import DriverParamHelper
+from ReflectometryServer.ChannelAccess.pv_manager import (
+    BEAMLINE_MODE,
+    BEAMLINE_MOVE,
+    DISP_FIELD,
+    DQQ_TEMPLATE,
+    FP_TEMPLATE,
+    IN_MODE_SUFFIX,
+    QMAX_TEMPLATE,
+    QMIN_TEMPLATE,
+    REAPPLY_MODE_INITS,
+    SAMPLE_LENGTH,
+    SERVER_ERROR_LOG,
+    SERVER_MESSAGE,
+    SERVER_STATUS,
+    SP_SUFFIX,
+    VAL_FIELD,
+    PvSort,
+    is_pv_name_this_field,
+)
 from ReflectometryServer.engineering_corrections import CorrectionUpdate
-from ReflectometryServer.parameters import BeamlineParameterGroup, ParameterReadbackUpdate, \
-    ParameterSetpointReadbackUpdate, ParameterAtSetpointUpdate, ParameterChangingUpdate, ParameterInitUpdate, \
-    ParameterUpdateBase, BeamlineParameterType, ParameterDisabledUpdate
-from server_common.loggers.isis_logger import IsisPutLog
+from ReflectometryServer.footprint_manager import FootprintSort
+from ReflectometryServer.parameters import (
+    BeamlineParameterGroup,
+    BeamlineParameterType,
+    ParameterAtSetpointUpdate,
+    ParameterChangingUpdate,
+    ParameterDisabledUpdate,
+    ParameterInitUpdate,
+    ParameterReadbackUpdate,
+    ParameterSetpointReadbackUpdate,
+    ParameterUpdateBase,
+)
+from ReflectometryServer.server_status_manager import (
+    STATUS_MANAGER,
+    ErrorLogUpdate,
+    ProblemInfo,
+    StatusUpdate,
+)
 
 logger = logging.getLogger(__name__)
 

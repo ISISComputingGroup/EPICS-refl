@@ -1,6 +1,6 @@
 from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.components import Component, ReflectingComponent
-from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle, ChangeAxis
+from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
 from ReflectometryServer.parameters import AxisParameter
 
 

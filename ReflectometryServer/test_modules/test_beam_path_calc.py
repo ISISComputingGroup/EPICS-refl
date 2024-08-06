@@ -1,14 +1,18 @@
 import unittest
 
 from hamcrest import *
-
-from ReflectometryServer.beam_path_calc import BeamPathCalcThetaSP, BeamPathCalcThetaRBV, TrackingBeamPathCalc
-from ReflectometryServer.axis import BeamPathCalcAxis, ComponentAxis
-from ReflectometryServer.components import Component
-from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
-from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from mock import MagicMock
-from server_common.channel_access import AlarmStatus, AlarmSeverity
+from server_common.channel_access import AlarmSeverity, AlarmStatus
+
+from ReflectometryServer.axis import BeamPathCalcAxis, ComponentAxis
+from ReflectometryServer.beam_path_calc import (
+    BeamPathCalcThetaRBV,
+    BeamPathCalcThetaSP,
+    TrackingBeamPathCalc,
+)
+from ReflectometryServer.components import Component
+from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
+from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 
 
 class TestBeamPathCalc(unittest.TestCase):

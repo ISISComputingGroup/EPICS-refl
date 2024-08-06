@@ -6,7 +6,7 @@ from hamcrest.core.core import is_
 from parameterized import parameterized
 
 from ReflectometryServer import Position
-from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup, OutOfBeamSequence
+from ReflectometryServer.out_of_beam import OutOfBeamLookup, OutOfBeamPosition, OutOfBeamSequence
 
 PARK_HIGH_POS = 10
 PARK_HIHI_POS = 20

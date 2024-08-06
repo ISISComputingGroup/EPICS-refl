@@ -12,11 +12,11 @@ import numpy as np
 from attr import dataclass
 from pcaspy import Severity
 from scipy.interpolate import griddata
+from server_common.observable import observable
 
-from ReflectometryServer import beamline_configuration, BeamlineMode
+from ReflectometryServer import beamline_configuration
 from ReflectometryServer.beamline import ActiveModeUpdate
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
-from server_common.observable import observable
 
 logger = logging.getLogger(__name__)
 

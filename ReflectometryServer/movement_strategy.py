@@ -3,9 +3,9 @@ Classes and objects describing the movement of items
 """
 from __future__ import division
 
-from math import fabs, tan, radians, sqrt
+from math import fabs, radians, sqrt, tan
 
-from ReflectometryServer.geometry import PositionAndAngle, Position, position_from_radial_coords
+from ReflectometryServer.geometry import Position, position_from_radial_coords
 
 # Tolerance to use when comparing an angle with another angle
 ANGULAR_TOLERANCE = 1e-12

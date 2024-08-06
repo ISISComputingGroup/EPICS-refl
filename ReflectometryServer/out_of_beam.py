@@ -1,7 +1,8 @@
 """
 Module to define Out of beam position.
 """
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
+
 from ReflectometryServer.geometry import Position
 
 

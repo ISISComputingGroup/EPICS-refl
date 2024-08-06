@@ -1,22 +1,35 @@
 import unittest
-
-from math import tan, radians, isnan
+from math import isnan, radians, tan
 
 from CaChannel._ca import AlarmSeverity
 from hamcrest import *
-from mock import Mock, patch, call
+from mock import Mock, call, patch
 from parameterized import parameterized, parameterized_class
+from server_common.channel_access import AlarmStatus
 
 from ReflectometryServer import AxisParameter
+from ReflectometryServer.axis import DefineValueAsEvent, PhysicalMoveUpdate
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
-from ReflectometryServer.axis import PhysicalMoveUpdate, DefineValueAsEvent
-from ReflectometryServer.components import Component, ReflectingComponent, TiltingComponent, ThetaComponent
-from ReflectometryServer.geometry import Position, PositionAndAngle, ChangeAxis
+from ReflectometryServer.components import (
+    Component,
+    ReflectingComponent,
+    ThetaComponent,
+    TiltingComponent,
+)
+from ReflectometryServer.geometry import ChangeAxis, Position, PositionAndAngle
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, IocDriver
-from ReflectometryServer.test_modules.data_mother import create_mock_axis, get_standard_bench, ANGLE_OF_BENCH, \
-    BENCH_MIN_ANGLE, BENCH_MAX_ANGLE
-from ReflectometryServer.test_modules.utils import position_and_angle, position, DEFAULT_TEST_TOLERANCE
-from server_common.channel_access import AlarmStatus
+from ReflectometryServer.test_modules.data_mother import (
+    ANGLE_OF_BENCH,
+    BENCH_MAX_ANGLE,
+    BENCH_MIN_ANGLE,
+    create_mock_axis,
+    get_standard_bench,
+)
+from ReflectometryServer.test_modules.utils import (
+    DEFAULT_TEST_TOLERANCE,
+    position,
+    position_and_angle,
+)
 
 
 class TestComponent(unittest.TestCase):

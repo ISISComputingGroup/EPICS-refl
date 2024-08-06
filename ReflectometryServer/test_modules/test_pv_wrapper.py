@@ -1,17 +1,16 @@
-import time
+
+import unittest
 
 from hamcrest import *
 from mock import Mock, patch
 from parameterized import parameterized
+from server_common.channel_access import UnableToConnectToPVException
 
 import ReflectometryServer
-import unittest
-
 from ReflectometryServer import *
 from ReflectometryServer.ChannelAccess.constants import MOTOR_MOVING_PV
 from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR, ProcessMonitorEvents
 from ReflectometryServer.test_modules.data_mother import MockChannelAccess
-from server_common.channel_access import UnableToConnectToPVException
 
 FLOAT_TOLERANCE = 1e-9
 

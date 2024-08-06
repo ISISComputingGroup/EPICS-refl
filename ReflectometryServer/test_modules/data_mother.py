@@ -1,26 +1,51 @@
 """
 SimpleObservable data and classes.
 """
-from math import tan, radians, sin, cos
+from math import cos, radians, sin, tan
 
+import numpy as np
 from mock import Mock
-
-from ReflectometryServer import GridDataFileReader, InterpolateGridDataCorrectionFromProvider, ChangeAxis, add_mode, \
-    add_component, add_parameter, ConfigHelper, add_driver, add_beam_start, get_configured_beamline, OutOfBeamPosition
-from ReflectometryServer.pv_wrapper import DEFAULT_SCALE_FACTOR
-from ReflectometryServer.pv_wrapper import SetpointUpdate, ReadbackUpdate, IsChangingUpdate
-from server_common.channel_access import AlarmStatus, AlarmSeverity
+from server_common.channel_access import AlarmSeverity, AlarmStatus
 from server_common.observable import observable
-from .utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
-from ReflectometryServer.beamline import BeamlineMode, Beamline
-from ReflectometryServer.components import Component, TiltingComponent, ThetaComponent, ReflectingComponent, \
-    BenchComponent, BenchSetup
+from ReflectometryServer import (
+    ChangeAxis,
+    ConfigHelper,
+    GridDataFileReader,
+    InterpolateGridDataCorrectionFromProvider,
+    OutOfBeamPosition,
+    add_beam_start,
+    add_component,
+    add_driver,
+    add_mode,
+    add_parameter,
+    get_configured_beamline,
+)
+from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.components import (
+    BenchComponent,
+    BenchSetup,
+    Component,
+    ReflectingComponent,
+    ThetaComponent,
+    TiltingComponent,
+)
 from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ioc_driver import IocDriver
-from ReflectometryServer.parameters import BeamlineParameter, AxisParameter, \
-    SlitGapParameter, InBeamParameter
-import numpy as np
+from ReflectometryServer.parameters import (
+    AxisParameter,
+    BeamlineParameter,
+    InBeamParameter,
+    SlitGapParameter,
+)
+from ReflectometryServer.pv_wrapper import (
+    DEFAULT_SCALE_FACTOR,
+    IsChangingUpdate,
+    ReadbackUpdate,
+    SetpointUpdate,
+)
+
+from .utils import DEFAULT_TEST_TOLERANCE, create_parameter_with_initial_value
 
 
 class EmptyBeamlineParameter(BeamlineParameter):

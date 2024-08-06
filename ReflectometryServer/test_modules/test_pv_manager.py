@@ -1,13 +1,13 @@
 import unittest
 
 from hamcrest import *
+from server_common.utilities import convert_from_json, dehex_and_decompress
 
-from ReflectometryServer.ChannelAccess.pv_manager import PVManager, PARAM_INFO_LOOKUP
-from ReflectometryServer.components import Component
-from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
 from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.ChannelAccess.pv_manager import PARAM_INFO_LOOKUP, PVManager
+from ReflectometryServer.components import Component
+from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
 from ReflectometryServer.parameters import AxisParameter, BeamlineParameterGroup
-from server_common.utilities import dehex_and_decompress, convert_from_json
 
 
 class TestDriverUtils(unittest.TestCase):

@@ -7,18 +7,21 @@ from dataclasses import dataclass
 from functools import partial
 
 from pcaspy import Severity
-
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
-from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException, ParameterNotInitializedException, AxisNotWithinSoftLimitsException
-from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
-from ReflectometryServer.file_io import mode_autosave, MODE_KEY
-from ReflectometryServer.footprint_calc import BaseFootprintSetup
-from ReflectometryServer.footprint_manager import FootprintManager
-from ReflectometryServer.parameters import RequestMoveEvent, AxisParameter
-from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
-
 from server_common.channel_access import UnableToConnectToPVException
 from server_common.observable import observable
+
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
+from ReflectometryServer.exceptions import (
+    AxisNotWithinSoftLimitsException,
+    BeamlineConfigurationInvalidException,
+    ParameterNotInitializedException,
+)
+from ReflectometryServer.file_io import MODE_KEY, mode_autosave
+from ReflectometryServer.footprint_calc import BaseFootprintSetup
+from ReflectometryServer.footprint_manager import FootprintManager
+from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
+from ReflectometryServer.parameters import AxisParameter, RequestMoveEvent
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 logger = logging.getLogger(__name__)
 

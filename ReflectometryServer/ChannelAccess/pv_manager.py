@@ -1,23 +1,24 @@
 """
 Reflectometry pv manager
 """
+import json
 import logging
-from typing import Optional
+from collections import OrderedDict
 
 from pcaspy import Severity
-
-import ReflectometryServer
-from ReflectometryServer.ChannelAccess.constants import STANDARD_FLOAT_PV_FIELDS
-from ReflectometryServer.ChannelAccess.driver_utils import PvSort, \
-    PARAMS_FIELDS_BEAMLINE_TYPES
-from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER, ProblemInfo
-from ReflectometryServer.footprint_manager import FP_SP_KEY, FP_SP_RBV_KEY, FP_RBV_KEY
 from pcaspy.alarm import SeverityStrings
-from ReflectometryServer.parameters import BeamlineParameterType, BeamlineParameterGroup
-from server_common.ioc_data_source import PV_INFO_FIELD_NAME, PV_DESCRIPTION_NAME, DESCRIPTION_LENGTH
-from server_common.utilities import create_pv_name, remove_from_end, compress_and_hex
-import json
-from collections import OrderedDict
+from server_common.ioc_data_source import (
+    DESCRIPTION_LENGTH,
+    PV_DESCRIPTION_NAME,
+    PV_INFO_FIELD_NAME,
+)
+from server_common.utilities import compress_and_hex, create_pv_name, remove_from_end
+
+from ReflectometryServer.ChannelAccess.constants import STANDARD_FLOAT_PV_FIELDS
+from ReflectometryServer.ChannelAccess.driver_utils import PARAMS_FIELDS_BEAMLINE_TYPES, PvSort
+from ReflectometryServer.footprint_manager import FP_RBV_KEY, FP_SP_KEY, FP_SP_RBV_KEY
+from ReflectometryServer.parameters import BeamlineParameterGroup, BeamlineParameterType
+from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER, ProblemInfo
 
 logger = logging.getLogger(__name__)
 

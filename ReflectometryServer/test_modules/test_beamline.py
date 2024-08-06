@@ -1,21 +1,22 @@
-import math
 import unittest
+from math import radians, tan
 
-from math import tan, radians
 from hamcrest import *
-from mock import Mock, patch,  call
+from mock import Mock, patch
 from parameterized import parameterized
 
 from ReflectometryServer import *
-
 from ReflectometryServer.beamline import BeamlineConfigurationInvalidException
+from ReflectometryServer.beamline_constant import BeamlineConstant
 from ReflectometryServer.exceptions import BeamlineConfigurationParkAutosaveInvalidException
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.out_of_beam import OutOfBeamSequence
-from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis, EmptyBeamlineParameter
-from ReflectometryServer.beamline_constant import BeamlineConstant
-
-from ReflectometryServer.test_modules.utils import position_and_angle, no_autosave
+from ReflectometryServer.test_modules.data_mother import (
+    DataMother,
+    EmptyBeamlineParameter,
+    create_mock_axis,
+)
+from ReflectometryServer.test_modules.utils import no_autosave, position_and_angle
 
 # Three axes under auto save, first tuple is out of beam positions,
 # second tuple if initial positions

@@ -2,7 +2,7 @@
 Footprint calculations.
 """
 from itertools import combinations
-from math import sin, tan, atan, degrees, radians, pi
+from math import atan, degrees, pi, radians, sin, tan
 
 S1_ID = "SLIT1"
 S2_ID = "SLIT2"
@@ -78,7 +78,7 @@ class FootprintCalculator:
         Returns: correct value of the parameter to use for calculation.
 
         """
-        raise NotImplemented("This must be implemented in the sub class")
+        raise NotImplementedError("This must be implemented in the sub class")
 
     def update_gaps(self):
         """

@@ -18,13 +18,14 @@ Run all inst server tests
 """
 
 # Standard imports
+import argparse
 import os
 import sys
 import unittest
 
 import xmlrunner
-import argparse
 from coverage import Coverage
+
 try:
     from contextlib import contextmanager, nullcontext
 except ImportError:

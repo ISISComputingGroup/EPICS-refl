@@ -1,18 +1,30 @@
 """
 Components on a beam
 """
-from math import atan, cos, tan, radians, degrees
 import logging
+from math import atan, cos, degrees, radians, tan
 
-from ReflectometryServer.beam_path_calc import TrackingBeamPathCalc, SettableBeamPathCalcWithAngle, \
-    BeamPathCalcThetaRBV, BeamPathCalcThetaSP
-from ReflectometryServer.axis import DirectCalcAxis, AxisChangedUpdate, \
-    AxisChangingUpdate, PhysicalMoveUpdate, SetRelativeToBeamUpdate, DefineValueAsEvent, InitUpdate
+from server_common.channel_access import maximum_severity
+
+from ReflectometryServer.axis import (
+    AxisChangedUpdate,
+    AxisChangingUpdate,
+    DefineValueAsEvent,
+    DirectCalcAxis,
+    InitUpdate,
+    PhysicalMoveUpdate,
+    SetRelativeToBeamUpdate,
+)
+from ReflectometryServer.beam_path_calc import (
+    BeamPathCalcThetaRBV,
+    BeamPathCalcThetaSP,
+    SettableBeamPathCalcWithAngle,
+    TrackingBeamPathCalc,
+)
+from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate
 from ReflectometryServer.movement_strategy import LinearMovementCalc
-from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo, Severity
-from server_common.channel_access import maximum_severity
 
 logger = logging.getLogger(__name__)
 

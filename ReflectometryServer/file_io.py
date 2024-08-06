@@ -4,11 +4,16 @@ file io for various autosave and other parts of the system
 
 import logging
 
+from server_common.autosave import (
+                                     AutosaveFile,
+                                     BoolConversion,
+                                     FloatConversion,
+                                     OptionalIntConversion,
+                                     StringConversion,
+)
 
-from ReflectometryServer.geometry import PositionAndAngle
 from ReflectometryServer.ChannelAccess.constants import REFL_AUTOSAVE_PATH
-from server_common.autosave import AutosaveFile, FloatConversion, BoolConversion, StringConversion, \
-    OptionalIntConversion
+from ReflectometryServer.geometry import PositionAndAngle
 
 logger = logging.getLogger(__name__)
 

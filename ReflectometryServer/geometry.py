@@ -1,9 +1,8 @@
 """
 Objects and classes that handle geometry
 """
-from math import radians, sin, cos
-
 from enum import Enum
+from math import cos, radians, sin
 
 
 class Position:

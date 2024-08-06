@@ -1,21 +1,19 @@
 import unittest
 from math import fabs
 
-from parameterized import parameterized
-
-from mock import MagicMock, patch, Mock
 from hamcrest import *
+from mock import MagicMock, Mock, patch
+from parameterized import parameterized
+from server_common.channel_access import UnableToConnectToPVException
 
 from ReflectometryServer import *
 from ReflectometryServer.beam_path_calc import BeamPathUpdate
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, PVWrapperForParameter
-from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamLookup, OutOfBeamSequence
+from ReflectometryServer.out_of_beam import OutOfBeamPosition, OutOfBeamSequence
 from ReflectometryServer.pv_wrapper import IsChangingUpdate
 from ReflectometryServer.server_status_manager import STATUS, STATUS_MANAGER
-from ReflectometryServer.test_modules.utils import no_autosave
-from server_common.channel_access import UnableToConnectToPVException
-from ReflectometryServer.exceptions import AxisNotWithinSoftLimitsException
 from ReflectometryServer.test_modules.data_mother import create_mock_axis
+from ReflectometryServer.test_modules.utils import no_autosave
 
 FLOAT_TOLERANCE = 1e-9
 

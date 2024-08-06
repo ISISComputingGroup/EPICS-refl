@@ -1,24 +1,28 @@
 import io
-import numpy as np
 import os
-
-from hamcrest import *
-from mock import patch, Mock
-from parameterized import parameterized
-
 import unittest
 
+import numpy as np
+from hamcrest import *
+from mock import Mock, patch
+from parameterized import parameterized
+from server_common.observable import observable
 
-from ReflectometryServer import beamline_configuration, Component, TiltingComponent, AxisParameter
-from ReflectometryServer.beamline import ActiveModeUpdate, BeamlineMode, Beamline
+from ReflectometryServer import AxisParameter, Component, TiltingComponent, beamline_configuration
+from ReflectometryServer.beamline import ActiveModeUpdate, Beamline, BeamlineMode
+from ReflectometryServer.engineering_corrections import (
+    ConstantCorrection,
+    CorrectionRecalculate,
+    CorrectionUpdate,
+    GridDataFileReader,
+    InterpolateGridDataCorrectionFromProvider,
+    ModeSelectCorrection,
+    UserFunctionCorrection,
+)
 from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
-from ReflectometryServer.engineering_corrections import InterpolateGridDataCorrectionFromProvider, CorrectionUpdate, \
-    ModeSelectCorrection, CorrectionRecalculate, ConstantCorrection, UserFunctionCorrection, GridDataFileReader
-
 from ReflectometryServer.ioc_driver import CorrectedReadbackUpdate, IocDriver
 from ReflectometryServer.out_of_beam import OutOfBeamPosition
-from server_common.observable import observable
-from ReflectometryServer.test_modules.data_mother import create_mock_axis, DataMother
+from ReflectometryServer.test_modules.data_mother import DataMother, create_mock_axis
 
 FLOAT_TOLERANCE = 1e-9
 OUT_OF_BEAM_POSITION = OutOfBeamPosition(10)
@@ -343,7 +347,7 @@ class Test1DInterpolationFileReader(unittest.TestCase):
     @patch("ReflectometryServer.engineering_corrections.GridDataFileReader._open_file")
     def test_GIVEN_1d_interp_with_a_header_missing_variable_WHEN_read_file_THEN_error(self, open_file_mock):
         expected_variable_name = "name"
-        _file_contents = [u"correction".format(expected_variable_name),
+        _file_contents = [u"correction".format(),
                           u"1, 2",
                           u"2, 3"]
         open_file_mock.configure_mock(return_value=io.StringIO("\n".join(_file_contents)))

@@ -2,21 +2,25 @@
 Wrapper for motor PVs
 """
 import abc
+import logging
 import threading
-from collections import namedtuple
 import time
+from collections import namedtuple
 from functools import partial
 
 from pcaspy import Severity
-
-from ReflectometryServer.server_status_manager import ProblemInfo, STATUS_MANAGER
-from ReflectometryServer.ChannelAccess.constants import MYPVPREFIX, MTR_MOVING, MTR_STOPPED, MOTOR_MOVING_PV
-from ReflectometryServer.file_io import velocity_float_autosave, velocity_bool_autosave
-import logging
-
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
 from server_common.helpers import motor_in_set_mode
 from server_common.observable import observable
+
+from ReflectometryServer.ChannelAccess.constants import (
+    MOTOR_MOVING_PV,
+    MTR_MOVING,
+    MTR_STOPPED,
+    MYPVPREFIX,
+)
+from ReflectometryServer.file_io import velocity_bool_autosave, velocity_float_autosave
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 # Time between monitor update processing to allow for multiple monitors to be collected together providing a single
 # update trigger

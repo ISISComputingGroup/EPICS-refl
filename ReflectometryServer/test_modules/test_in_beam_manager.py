@@ -1,12 +1,10 @@
 import unittest
-from collections import OrderedDict
 
-from math import tan, radians, sqrt
 from hamcrest import *
-from mock import patch, Mock
+from mock import Mock, patch
 from parameterized import parameterized
 
-from ReflectometryServer.axis import DirectCalcAxis, ParkingSequenceUpdate, InitUpdate
+from ReflectometryServer.axis import DirectCalcAxis, InitUpdate, ParkingSequenceUpdate
 from ReflectometryServer.beam_path_calc import InBeamManager
 from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException
 from ReflectometryServer.geometry import ChangeAxis

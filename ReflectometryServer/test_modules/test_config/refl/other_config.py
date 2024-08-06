@@ -2,7 +2,6 @@
 # Valid configuration script for a reflectometry beamline
 
 from ReflectometryServer import *
-from ReflectometryServer.test_modules.data_mother import create_mock_axis
 
 OTHER_CONFIG_PARAM = "other_config_param"
 

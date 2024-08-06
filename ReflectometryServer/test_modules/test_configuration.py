@@ -1,11 +1,10 @@
 import os
-import sys
 import unittest
 from unittest.mock import patch
 
-from ReflectometryServer import beamline_configuration, ConfigHelper
-from ReflectometryServer.server_status_manager import STATUS
 import ReflectometryServer.server_status_manager
+from ReflectometryServer import ConfigHelper, beamline_configuration
+from ReflectometryServer.server_status_manager import STATUS
 from ReflectometryServer.test_modules.test_config.refl.config import OPTIONAL_PARAM_1
 from ReflectometryServer.test_modules.test_config.refl.other_config import OTHER_CONFIG_PARAM
 

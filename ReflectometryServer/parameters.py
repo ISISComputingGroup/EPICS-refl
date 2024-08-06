@@ -3,32 +3,46 @@ Parameters that the user would interact with
 """
 from concurrent.futures.thread import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import List, Optional, Union, TYPE_CHECKING, Callable, Any
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 from pcaspy import Severity
-
-from ReflectometryServer.axis import SetRelativeToBeamUpdate
 from server_common.utilities import SEVERITY
 
+from ReflectometryServer.axis import SetRelativeToBeamUpdate
+
 if TYPE_CHECKING:
-    from ReflectometryServer.ioc_driver import IocDriver
     from ReflectometryServer.components import Component
     from ReflectometryServer.engineering_corrections import EngineeringCorrection
+    from ReflectometryServer.ioc_driver import IocDriver
 
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, AxisChangingUpdate, InitUpdate, PhysicalMoveUpdate, \
-    ComponentInBeamUpdate
-from ReflectometryServer.exceptions import ParameterNotInitializedException
-from ReflectometryServer.file_io import param_float_autosave, param_bool_autosave, param_string_autosave
-import logging
-
-from enum import Enum
-from ReflectometryServer.geometry import ChangeAxis
 import abc
+import logging
+from enum import Enum
 
-from ReflectometryServer.pv_wrapper import ReadbackUpdate, IsChangingUpdate, PVWrapper, JawsAxisPVWrapper
-from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 from server_common.channel_access import AlarmSeverity, AlarmStatus
 from server_common.observable import observable
+
+from ReflectometryServer.beam_path_calc import (
+    AxisChangingUpdate,
+    BeamPathUpdate,
+    ComponentInBeamUpdate,
+    InitUpdate,
+    PhysicalMoveUpdate,
+)
+from ReflectometryServer.exceptions import ParameterNotInitializedException
+from ReflectometryServer.file_io import (
+    param_bool_autosave,
+    param_float_autosave,
+    param_string_autosave,
+)
+from ReflectometryServer.geometry import ChangeAxis
+from ReflectometryServer.pv_wrapper import (
+    IsChangingUpdate,
+    JawsAxisPVWrapper,
+    PVWrapper,
+    ReadbackUpdate,
+)
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 DEFAULT_RBV_TO_SP_TOLERANCE = 0.002
 
@@ -482,14 +496,14 @@ class BeamlineParameter(metaclass=abc.ABCMeta):
         """
         To be implemented in subclass
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     @property
     def is_changing(self):
         """
         Returns: Is the parameter changing (rotating, displacing etc.)
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def _on_update_changing_state(self, _: Optional[AxisChangingUpdate]):
         """

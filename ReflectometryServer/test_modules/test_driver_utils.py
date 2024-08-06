@@ -1,15 +1,12 @@
 import unittest
 
 from hamcrest import *
+from server_common.channel_access import AlarmSeverity, AlarmStatus
 
+from ReflectometryServer.beamline import Beamline, BeamlineMode
 from ReflectometryServer.ChannelAccess.driver_utils import DriverParamHelper
 from ReflectometryServer.ChannelAccess.pv_manager import PVManager
-from ReflectometryServer.components import ReflectingComponent, Component
-from ReflectometryServer.geometry import PositionAndAngle, PositionAndAngle, ChangeAxis
-from ReflectometryServer.beamline import Beamline, BeamlineMode
-from ReflectometryServer.parameters import AxisParameter, EnumParameter, ParameterUpdateBase
-from ReflectometryServer.test_modules.utils import create_parameter_with_initial_value
-from server_common.channel_access import AlarmSeverity, AlarmStatus
+from ReflectometryServer.parameters import EnumParameter, ParameterUpdateBase
 
 
 class TestDriverUtils(unittest.TestCase):

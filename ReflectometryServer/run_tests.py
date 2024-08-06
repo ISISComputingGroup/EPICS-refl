@@ -17,13 +17,14 @@
 Run all the tests for refl server
 """
 # Standard imports
-import unittest
-import xmlrunner
 import argparse
 
 # Add root path for access to server_commons
 import os
 import sys
+import unittest
+
+import xmlrunner
 
 DEFAULT_DIRECTORY = os.path.join('..', '..', '..', '..', 'test-reports')
 

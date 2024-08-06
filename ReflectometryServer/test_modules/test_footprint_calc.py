@@ -1,7 +1,7 @@
 import unittest
 
 from hamcrest import *
-from mock import patch, Mock
+from mock import Mock, patch
 from parameterized import parameterized
 
 from ReflectometryServer.footprint_calc import *
