@@ -1,3 +1,4 @@
+# ruff: noqa
 # FOR TESTING
 # Configuration script for a refelctometry beamline which contains errors
 

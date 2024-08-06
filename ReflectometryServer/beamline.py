@@ -1,24 +1,28 @@
 """
 Resources at a beamline level
 """
+
 import logging
 from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
 from functools import partial
 
 from pcaspy import Severity
-
-from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
-from ReflectometryServer.exceptions import BeamlineConfigurationInvalidException, ParameterNotInitializedException, AxisNotWithinSoftLimitsException
-from ReflectometryServer.geometry import PositionAndAngle, ChangeAxis
-from ReflectometryServer.file_io import mode_autosave, MODE_KEY
-from ReflectometryServer.footprint_calc import BaseFootprintSetup
-from ReflectometryServer.footprint_manager import FootprintManager
-from ReflectometryServer.parameters import RequestMoveEvent, AxisParameter
-from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
-
 from server_common.channel_access import UnableToConnectToPVException
 from server_common.observable import observable
+
+from ReflectometryServer.beam_path_calc import BeamPathUpdate, BeamPathUpdateOnInit
+from ReflectometryServer.exceptions import (
+    AxisNotWithinSoftLimitsException,
+    BeamlineConfigurationInvalidException,
+    ParameterNotInitializedException,
+)
+from ReflectometryServer.file_io import MODE_KEY, mode_autosave
+from ReflectometryServer.footprint_calc import BaseFootprintSetup
+from ReflectometryServer.footprint_manager import FootprintManager
+from ReflectometryServer.geometry import ChangeAxis, PositionAndAngle
+from ReflectometryServer.parameters import AxisParameter, RequestMoveEvent
+from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +39,9 @@ def check_long_axis_before_position(axes_per_component, error_string):
     for component, axes in axes_per_component.items():
         if ChangeAxis.LONG_AXIS in axes and ChangeAxis.POSITION in axes:
             if axes.index(ChangeAxis.LONG_AXIS) > axes.index(ChangeAxis.POSITION):
-                errors.append(f"Long axis {error_string} must be added before position for '{component}'")
+                errors.append(
+                    f"Long axis {error_string} must be added before position for '{component}'"
+                )
     return errors
 
 
@@ -75,7 +81,7 @@ class BeamlineMode:
     def names_of_parameters_in_mode(self):
         return self._beamline_parameters_to_calculate
 
-    #TODO move this to use above!
+    # TODO move this to use above!
     def get_parameters_in_mode(self, beamline_parameters, first_parameter=None):
         """
         Returns, in order, all those parameters which are in this mode. Starting with the parameter after the first
@@ -118,19 +124,28 @@ class BeamlineMode:
         errors = []
         for beamline_parameter in self._beamline_parameters_to_calculate:
             if beamline_parameter not in beamline_parameters:
-                errors.append("Beamline parameter '{}' in mode '{}' not in beamline".format(
-                    beamline_parameters, self.name))
+                errors.append(
+                    "Beamline parameter '{}' in mode '{}' not in beamline".format(
+                        beamline_parameters, self.name
+                    )
+                )
 
         for sp_init in self._sp_inits.keys():
             if sp_init not in beamline_parameters:
-                errors.append("SP Init '{}' in mode '{}' not in beamline".format(sp_init, self.name))
+                errors.append(
+                    "SP Init '{}' in mode '{}' not in beamline".format(sp_init, self.name)
+                )
 
         return errors
 
     def __repr__(self):
         return "{}({}, disabled={}, beamline_parameters{!r}, sp_inits{!r})".format(
-            self.__class__.__name__, self.name, self.is_disabled, self._beamline_parameters_to_calculate,
-            self._sp_inits)
+            self.__class__.__name__,
+            self.name,
+            self.is_disabled,
+            self._beamline_parameters_to_calculate,
+            self._sp_inits,
+        )
 
 
 @dataclass
@@ -138,6 +153,7 @@ class ActiveModeUpdate:
     """
     Event that is triggered when the active mode is changed
     """
+
     mode: BeamlineMode  # mode that has been changed to
 
 
@@ -147,8 +163,16 @@ class Beamline:
     The collection of all beamline components.
     """
 
-    def __init__(self, components, beamline_parameters, drivers, modes, incoming_beam=None,
-                 footprint_setup=None, beamline_constants=None):
+    def __init__(
+        self,
+        components,
+        beamline_parameters,
+        drivers,
+        modes,
+        incoming_beam=None,
+        footprint_setup=None,
+        beamline_constants=None,
+    ):
         """
         The initializer.
         Args:
@@ -174,7 +198,9 @@ class Beamline:
         self.footprint_manager = FootprintManager(footprint_setup)
         for beamline_parameter in beamline_parameters:
             self._beamline_parameters[beamline_parameter.name] = beamline_parameter
-            beamline_parameter.add_listener(RequestMoveEvent, self._move_for_single_beamline_parameters)
+            beamline_parameter.add_listener(
+                RequestMoveEvent, self._move_for_single_beamline_parameters
+            )
 
         self._modes = OrderedDict()
         for mode in modes:
@@ -185,15 +211,26 @@ class Beamline:
         for component in components:
             self._beam_path_calcs_set_point.append(component.beam_path_set_point)
             self._beam_path_calcs_rbv.append(component.beam_path_rbv)
-            component.beam_path_set_point.add_listener(BeamPathUpdateOnInit, self.update_next_beam_component_on_init)
-            component.beam_path_set_point.add_listener(BeamPathUpdate, partial(
-                self.update_next_beam_component, calc_path_list=self._beam_path_calcs_set_point))
-            component.beam_path_rbv.add_listener(BeamPathUpdate, partial(
-                self.update_next_beam_component, calc_path_list=self._beam_path_calcs_rbv))
+            component.beam_path_set_point.add_listener(
+                BeamPathUpdateOnInit, self.update_next_beam_component_on_init
+            )
+            component.beam_path_set_point.add_listener(
+                BeamPathUpdate,
+                partial(
+                    self.update_next_beam_component, calc_path_list=self._beam_path_calcs_set_point
+                ),
+            )
+            component.beam_path_rbv.add_listener(
+                BeamPathUpdate,
+                partial(self.update_next_beam_component, calc_path_list=self._beam_path_calcs_rbv),
+            )
             component.beam_path_set_point.in_beam_manager.add_rbv_in_beam_manager(
-                component.beam_path_rbv.in_beam_manager)
+                component.beam_path_rbv.in_beam_manager
+            )
 
-        self._incoming_beam = incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
+        self._incoming_beam = (
+            incoming_beam if incoming_beam is not None else PositionAndAngle(0, 0, 0)
+        )
 
         self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_rbv)
         self.update_next_beam_component(BeamPathUpdate(None), self._beam_path_calcs_set_point)
@@ -228,10 +265,14 @@ class Beamline:
     def _validate(self, beamline_parameters, modes, drivers):
         errors = []
 
-        beamline_parameters_names = [beamline_parameter.name for beamline_parameter in beamline_parameters]
+        beamline_parameters_names = [
+            beamline_parameter.name for beamline_parameter in beamline_parameters
+        ]
         for name in beamline_parameters_names:
             if beamline_parameters_names.count(name) > 1:
-                errors.append("Beamline parameters must be uniquely named. Duplicate '{}'".format(name))
+                errors.append(
+                    "Beamline parameters must be uniquely named. Duplicate '{}'".format(name)
+                )
 
         mode_names = [mode.name for mode in modes]
         for mode in mode_names:
@@ -256,8 +297,11 @@ class Beamline:
 
         if len(errors) > 0:
             STATUS_MANAGER.update_error_log(
-                "Beamline configuration is invalid:\n    {}".format("\n    ".join(errors)))
-            raise BeamlineConfigurationInvalidException("Beamline configuration invalid: {}".format(";".join(errors)))
+                "Beamline configuration is invalid:\n    {}".format("\n    ".join(errors))
+            )
+            raise BeamlineConfigurationInvalidException(
+                "Beamline configuration invalid: {}".format(";".join(errors))
+            )
 
     @property
     def parameters(self):
@@ -335,8 +379,7 @@ class Beamline:
         return self._components[item]
 
     def get_param_names_in_mode(self):
-        """ Returns a list of the name of params in the current mode, in order.
-        """
+        """Returns a list of the name of params in the current mode, in order."""
 
         param_names_in_mode = []
         parameters = self._beamline_parameters.values()
@@ -403,8 +446,12 @@ class Beamline:
                     beamline_parameter.move_to_sp_no_callback()
                 except ParameterNotInitializedException:
                     STATUS_MANAGER.update_active_problems(
-                        ProblemInfo("Parameter not initialized. Is the configuration correct?", beamline_parameter.name,
-                                    Severity.MAJOR_ALARM))
+                        ProblemInfo(
+                            "Parameter not initialized. Is the configuration correct?",
+                            beamline_parameter.name,
+                            Severity.MAJOR_ALARM,
+                        )
+                    )
                     return
 
         self._move_drivers()
@@ -422,7 +469,9 @@ class Beamline:
         logger.info("PARAMETER MOVE TRIGGERED (source: {})".format(request.source.name))
         if self._active_mode.has_beamline_parameter(request.source):
             parameters = self._beamline_parameters.values()
-            parameters_in_mode = self._active_mode.get_parameters_in_mode(parameters, request.source)
+            parameters_in_mode = self._active_mode.get_parameters_in_mode(
+                parameters, request.source
+            )
 
             for beamline_parameter in parameters_in_mode:
                 beamline_parameter.move_to_sp_rbv_no_callback()
@@ -446,10 +495,15 @@ class Beamline:
             current_parameter = self._beamline_parameters[key]
             if current_parameter.read_only:
                 STATUS_MANAGER.update_error_log(
-                    f"Could not apply mode init for: {current_parameter.name} (parameter is read only)")
+                    f"Could not apply mode init for: {current_parameter.name} (parameter is read only)"
+                )
                 STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("Could not apply mode init (parameter is read only)", current_parameter.name,
-                                Severity.MINOR_ALARM))
+                    ProblemInfo(
+                        "Could not apply mode init (parameter is read only)",
+                        current_parameter.name,
+                        Severity.MINOR_ALARM,
+                    )
+                )
             else:
                 self._beamline_parameters[key].sp_no_move = value
                 logger.info("Default value applied for param {}: {}".format(key, value))
@@ -465,12 +519,14 @@ class Beamline:
         except (ZeroDivisionError, AxisNotWithinSoftLimitsException) as e:
             STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e), e)
             STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM))
+                ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM)
+            )
             return
         except (ValueError, UnableToConnectToPVException) as e:
             STATUS_MANAGER.update_error_log("Unable to connect to PV: {}".format(str(e)))
             STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Unable to connect to PV", "beamline", Severity.MAJOR_ALARM))
+                ProblemInfo("Unable to connect to PV", "beamline", Severity.MAJOR_ALARM)
+            )
             return
 
     def _perform_move_for_all_drivers(self, move_duration):
@@ -487,7 +543,8 @@ class Beamline:
             (inside_limits, component_sp, hlm, llm) = driver.check_limits_against_sps()
             if not inside_limits:
                 drivers_outside_of_limits.append(
-                    f"{driver.name} setpoint {component_sp} outside of limits ({llm},{hlm}), not moving")
+                    f"{driver.name} setpoint {component_sp} outside of limits ({llm},{hlm}), not moving"
+                )
         if len(drivers_outside_of_limits) > 0:
             raise AxisNotWithinSoftLimitsException(str(drivers_outside_of_limits))
 
@@ -517,7 +574,9 @@ class Beamline:
             initial_mode = self._modes[mode_name]
 
         except KeyError:
-            STATUS_MANAGER.update_error_log("Mode {} not found in configuration. Setting default.".format(mode_name))
+            STATUS_MANAGER.update_error_log(
+                "Mode {} not found in configuration. Setting default.".format(mode_name)
+            )
             if len(modes) > 0:
                 initial_mode = modes[0]
             else:

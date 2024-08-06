@@ -1,33 +1,48 @@
 import logging
 from collections import namedtuple
-
 from enum import Enum
 from typing import Optional
 
 from pcaspy import Severity
-
 from server_common.observable import observable
 
-StatusDescription = namedtuple("StatusDescription", [
-    'display_string',   # A string representation of the server state
-    'alarm_severity'])  # The alarm severity associated to this state, represented as an int (see Channel Access doc)
+StatusDescription = namedtuple(
+    "StatusDescription",
+    [
+        "display_string",  # A string representation of the server state
+        "alarm_severity",
+    ],
+)  # The alarm severity associated to this state, represented as an int (see Channel Access doc)
 
-StatusUpdate = namedtuple("StatusUpdate", [
-    'server_status',    # The server status
-    'server_message'])  # The server status display message
+StatusUpdate = namedtuple(
+    "StatusUpdate",
+    [
+        "server_status",  # The server status
+        "server_message",
+    ],
+)  # The server status display message
 
-ProblemInfo = namedtuple("ProblemInfo", [
-    'description',      # The problem description
-    'source',           # The problem source
-    'severity'])        # The severity of the problem
+ProblemInfo = namedtuple(
+    "ProblemInfo",
+    [
+        "description",  # The problem description
+        "source",  # The problem source
+        "severity",
+    ],
+)  # The severity of the problem
 
-ActiveProblemsUpdate = namedtuple("ActiveProblemsUpdate", [
-    'errors',           # Dictionary of errors (description:sources)
-    'warnings',         # Dictionary of warnings (description:sources)
-    'other'])           # Dictionary of other problems (description:sources)
+ActiveProblemsUpdate = namedtuple(
+    "ActiveProblemsUpdate",
+    [
+        "errors",  # Dictionary of errors (description:sources)
+        "warnings",  # Dictionary of warnings (description:sources)
+        "other",
+    ],
+)  # Dictionary of other problems (description:sources)
 
-ErrorLogUpdate = namedtuple("ErrorLogUpdate", [
-    'log_as_string'])          # The current error log as a list of strings
+ErrorLogUpdate = namedtuple(
+    "ErrorLogUpdate", ["log_as_string"]
+)  # The current error log as a list of strings
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +52,7 @@ class STATUS(Enum):
     """
     Beamline States.
     """
+
     INITIALISING = StatusDescription("INITIALISING", Severity.MINOR_ALARM)
     OKAY = StatusDescription("OKAY", Severity.NO_ALARM)
     WARNING = StatusDescription("WARNING", Severity.MINOR_ALARM)
@@ -72,8 +88,11 @@ class _ServerStatusManager:
     """
     Handler for setting the status of the reflectometry server.
     """
-    INITIALISING_MESSAGE = "Reflectometry Server is initialising. Check configurations is correct and all motor IOCs " \
-                           "are running if this is taking longer than expected."
+
+    INITIALISING_MESSAGE = (
+        "Reflectometry Server is initialising. Check configurations is correct and all motor IOCs "
+        "are running if this is taking longer than expected."
+    )
 
     def __init__(self):
         self._reset()
@@ -153,7 +172,10 @@ class _ServerStatusManager:
 
     def _trigger_active_problems_update(self):
         self.trigger_listeners(
-            ActiveProblemsUpdate(self.active_errors, self.active_warnings, self.active_other_problems))
+            ActiveProblemsUpdate(
+                self.active_errors, self.active_warnings, self.active_other_problems
+            )
+        )
 
     def _trigger_error_log_update(self):
         self.trigger_listeners(ErrorLogUpdate(self._error_log_as_string()))

@@ -1,31 +1,46 @@
 """
 Objects to help configure the beamline
 """
-from typing import Dict, Optional, List, Any, Union
+
+import logging
+from typing import Any, Dict, List, Optional, Union
 
 from pcaspy import Severity
 
-from ReflectometryServer import Beamline, BeamlineMode, SlitGapParameter, JawsGapPVWrapper, JawsCentrePVWrapper, \
-    PVWrapper, MotorPVWrapper, ConstantCorrection, ModeSelectCorrection
-from ReflectometryServer.geometry import PositionAndAngle
-import logging
-
-from ReflectometryServer.parameters import DEFAULT_RBV_TO_SP_TOLERANCE, EnumParameter, DirectParameter, \
-    BeamlineParameter
+from ReflectometryServer import (
+    Beamline,
+    BeamlineMode,
+    ConstantCorrection,
+    JawsCentrePVWrapper,
+    JawsGapPVWrapper,
+    ModeSelectCorrection,
+    MotorPVWrapper,
+    PVWrapper,
+    SlitGapParameter,
+)
+from ReflectometryServer.parameters import (
+    DEFAULT_RBV_TO_SP_TOLERANCE,
+    BeamlineParameter,
+    DirectParameter,
+    EnumParameter,
+)
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 logger = logging.getLogger(__name__)
 
-BLADE_DETAILS = {"N": {"name": "North", "pair": "S"},
-                 "S": {"name": "South", "pair": "N"},
-                 "E": {"name": "East", "pair": "W"},
-                 "W": {"name": "West", "pair": "E"}}
+BLADE_DETAILS = {
+    "N": {"name": "North", "pair": "S"},
+    "S": {"name": "South", "pair": "N"},
+    "E": {"name": "East", "pair": "W"},
+    "W": {"name": "West", "pair": "E"},
+}
 
 
 class ConfigHelper:
     """
     Class holding configuration as it is built up
     """
+
     parameters = []
     constants = []
     components = []
@@ -60,10 +75,14 @@ def get_configured_beamline():
     """
     modes = []
     for name in ConfigHelper.modes:
-        modes.append(BeamlineMode(name,
-                                  ConfigHelper.mode_params[name],
-                                  ConfigHelper.mode_initial_values[name],
-                                  ConfigHelper.mode_is_disabled[name]))
+        modes.append(
+            BeamlineMode(
+                name,
+                ConfigHelper.mode_params[name],
+                ConfigHelper.mode_initial_values[name],
+                ConfigHelper.mode_is_disabled[name],
+            )
+        )
 
     return Beamline(
         components=ConfigHelper.components,
@@ -72,7 +91,8 @@ def get_configured_beamline():
         modes=modes,
         incoming_beam=ConfigHelper.beam_start,
         footprint_setup=ConfigHelper.footprint_setup,
-        beamline_constants=ConfigHelper.constants)
+        beamline_constants=ConfigHelper.constants,
+    )
 
 
 def add_constant(constant):
@@ -133,12 +153,16 @@ def add_parameter(parameter, modes=None, mode_inits=None, marker=None):
         Add name to nr and polarised mode
         >>> nr = add_mode("NR")
         >>> polarised = add_mode("POLARISED")
-        >>> add_parameter(AxisParameter(ChangeAxis.POSITION,"name", component), modes=(nr, polarised))
+        >>> add_parameter(AxisParameter(ChangeAxis.POSITION, "name", component), modes=(nr, polarised))
 
         Add name to nr and polarised mode but with an initial value in nr of 0
         >>> nr = add_mode("NR")
         >>> polarised = add_mode("POLARISED")
-        >>> add_parameter(AxisParameter(ChangeAxis.POSITION,"name", component), modes=(nr, polarised), mode_inits=(nr, 0.0))
+        >>> add_parameter(
+        ...     AxisParameter(ChangeAxis.POSITION, "name", component),
+        ...     modes=(nr, polarised),
+        ...     mode_inits=(nr, 0.0),
+        ... )
 
     """
     if marker is None:
@@ -247,10 +271,12 @@ def create_blade_pv_driver(jaws_pv_prefix: str, blade: str) -> PVWrapper:
     """
     return MotorPVWrapper("{}:J{}:MTR".format(jaws_pv_prefix, blade))
 
+
 class SlitAxes:
     """
     Parameters relevant to slits. This is to avoid potential typos in the configuration file.
     """
+
     VertGap = "VG"
     VertCent = "VC"
     HorGap = "HG"
@@ -281,9 +307,15 @@ class SlitAxes:
         return [SlitAxes.VertCent, SlitAxes.HorCent]
 
 
-def add_slit_parameters(slit_number: Union[str, int], rbv_to_sp_tolerance: float = DEFAULT_RBV_TO_SP_TOLERANCE,
-                        modes: Optional[List[str]] = None, mode_inits: Optional[Dict[str, Any]] = None,
-                        exclude: List[str] = None, include_centres: bool = False, beam_blocker: Optional[str] = None):
+def add_slit_parameters(
+    slit_number: Union[str, int],
+    rbv_to_sp_tolerance: float = DEFAULT_RBV_TO_SP_TOLERANCE,
+    modes: Optional[List[str]] = None,
+    mode_inits: Optional[Dict[str, Any]] = None,
+    exclude: List[str] = None,
+    include_centres: bool = False,
+    beam_blocker: Optional[str] = None,
+):
     """
     Add parameters for a slit, this is horizontal and vertical gaps and centres. Also add modes, mode inits and
     tolerance if needed.
@@ -311,7 +343,9 @@ def add_slit_parameters(slit_number: Union[str, int], rbv_to_sp_tolerance: float
 
     jaws_pv_prefix = "MOT:JAWS{}".format(slit_number)
 
-    parameters = _add_beam_block(slit_number, modes, mode_inits, exclude, beam_blocker, jaws_pv_prefix)
+    parameters = _add_beam_block(
+        slit_number, modes, mode_inits, exclude, beam_blocker, jaws_pv_prefix
+    )
 
     for name in names:
         is_vertical = name[0] == "V"
@@ -326,8 +360,9 @@ def add_slit_parameters(slit_number: Union[str, int], rbv_to_sp_tolerance: float
     return parameters
 
 
-def _add_beam_block(slit_number, modes, mode_inits, exclude: List[str], beam_blocker: str, jaws_pv_prefix) \
-        -> Dict[str, BeamlineParameter]:
+def _add_beam_block(
+    slit_number, modes, mode_inits, exclude: List[str], beam_blocker: str, jaws_pv_prefix
+) -> Dict[str, BeamlineParameter]:
     """
     Add beam block parameters and drivers
     Args:
@@ -345,8 +380,11 @@ def _add_beam_block(slit_number, modes, mode_inits, exclude: List[str], beam_blo
     if beam_blocker is not None:
         options = ["No"]
         options.extend([BLADE_DETAILS[blade]["name"] for blade in beam_blocker])
-        parameter = EnumParameter("S{}BLOCK".format(slit_number), options,
-                                  description="Which blade is blocking the beam; No for none")
+        parameter = EnumParameter(
+            "S{}BLOCK".format(slit_number),
+            options,
+            description="Which blade is blocking the beam; No for none",
+        )
         add_parameter(parameter, modes, mode_inits)
         parameters["block"] = parameter
         blade_names = set()
@@ -359,7 +397,9 @@ def _add_beam_block(slit_number, modes, mode_inits, exclude: List[str], beam_blo
         for name in ["N", "S", "E", "W"]:
             if name in blade_names:
                 driver = create_blade_pv_driver(jaws_pv_prefix, name)
-                add_parameter(DirectParameter("S{}{}".format(slit_number, name), driver), modes, mode_inits)
+                add_parameter(
+                    DirectParameter("S{}{}".format(slit_number, name), driver), modes, mode_inits
+                )
                 parameters[name] = parameter
     return parameters
 
@@ -418,9 +458,15 @@ def optional_is_set(optional_id, macros):
             return False
         else:
             STATUS_MANAGER.update_error_log(
-                ("Invalid value for IOC macro {}: {} (Expected: True/False)".format(macro_name, macro_value)))
+                (
+                    "Invalid value for IOC macro {}: {} (Expected: True/False)".format(
+                        macro_name, macro_value
+                    )
+                )
+            )
             STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Invalid IOC macro value", macro_name, Severity.MINOR_ALARM))
+                ProblemInfo("Invalid IOC macro value", macro_name, Severity.MINOR_ALARM)
+            )
             return False
     except KeyError:
         return False
@@ -437,5 +483,7 @@ def as_mode_correction(correction: float, modes: List[str], default: float = 0.0
 
     Returns: True if macro with given ID is set to True, otherwise False
     """
-    return ModeSelectCorrection(default_correction=ConstantCorrection(default),
-                                corrections_for_mode={mode: ConstantCorrection(correction) for mode in modes})
+    return ModeSelectCorrection(
+        default_correction=ConstantCorrection(default),
+        corrections_for_mode={mode: ConstantCorrection(correction) for mode in modes},
+    )

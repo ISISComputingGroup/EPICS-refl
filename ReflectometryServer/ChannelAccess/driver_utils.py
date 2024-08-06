@@ -1,13 +1,13 @@
 from enum import Enum
-from typing import Tuple, Union, Dict
+from typing import Dict, Tuple, Union
+
+from server_common.channel_access import AlarmSeverity, AlarmStatus
+from server_common.utilities import SEVERITY, print_and_log
 
 from ReflectometryServer import Beamline
-from ReflectometryServer.ChannelAccess.constants import STANDARD_FLOAT_PV_FIELDS, MAX_ALARM_ID
-
+from ReflectometryServer.ChannelAccess.constants import MAX_ALARM_ID, STANDARD_FLOAT_PV_FIELDS
 from ReflectometryServer.parameters import BeamlineParameterType, ParameterUpdateBase
 from ReflectometryServer.server_status_manager import STATUS_MANAGER
-from server_common.utilities import print_and_log, SEVERITY
-from server_common.channel_access import AlarmSeverity, AlarmStatus
 
 # field for in beam parameter
 OUT_IN_ENUM_TEXT = ["OUT", "IN"]
@@ -15,9 +15,10 @@ OUT_IN_ENUM_TEXT = ["OUT", "IN"]
 
 # Field for the various type of beamline parameter
 PARAMS_FIELDS_BEAMLINE_TYPES = {
-    BeamlineParameterType.IN_OUT: {'type': 'enum', 'enums': OUT_IN_ENUM_TEXT},
+    BeamlineParameterType.IN_OUT: {"type": "enum", "enums": OUT_IN_ENUM_TEXT},
     BeamlineParameterType.FLOAT: STANDARD_FLOAT_PV_FIELDS,
-    BeamlineParameterType.ENUM: {'type': 'enum', 'enums': []}}
+    BeamlineParameterType.ENUM: {"type": "enum", "enums": []},
+}
 
 
 def convert_from_epics_pv_value(parameter_type, value, pv_fields):
@@ -39,8 +40,13 @@ def convert_from_epics_pv_value(parameter_type, value, pv_fields):
         return value
 
 
-def _convert_to_epics_pv_value(parameter_type: BeamlineParameterType, value: Union[float, int, str, bool],
-                               alarm_severity: AlarmSeverity, alarm_status: AlarmStatus, pv_fields: Dict):
+def _convert_to_epics_pv_value(
+    parameter_type: BeamlineParameterType,
+    value: Union[float, int, str, bool],
+    alarm_severity: AlarmSeverity,
+    alarm_status: AlarmStatus,
+    pv_fields: Dict,
+):
     """
     Convert from parameter value to the epic pv value
     Args:
@@ -70,7 +76,9 @@ def _convert_to_epics_pv_value(parameter_type: BeamlineParameterType, value: Uni
             pv_value = -1
             status = AlarmStatus.State
             severity = AlarmSeverity.Invalid
-            STATUS_MANAGER.update_error_log("Value set of parameter which is not in pv options {}".format(value))
+            STATUS_MANAGER.update_error_log(
+                "Value set of parameter which is not in pv options {}".format(value)
+            )
     else:
         if value is None:
             pv_value = float("NaN")
@@ -83,6 +91,7 @@ class PvSort(Enum):
     """
     Enum for the type of PV
     """
+
     RBV = 0
     ACTION = 1
     SP_RBV = 2
@@ -138,7 +147,9 @@ class PvSort(Enum):
         elif pv_sort == PvSort.READ_ONLY:
             return "(Is not settable by user)"
         else:
-            print_and_log("Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL")
+            print_and_log(
+                "Unknown pv sort!! {}".format(pv_sort), severity=SEVERITY.MAJOR, src="REFL"
+            )
             return "(unknown)"
 
     def get_from_parameter(self, parameter, pv_fields):
@@ -153,18 +164,33 @@ class PvSort(Enum):
         severity = AlarmSeverity.No
         status = AlarmStatus.No
         if self == PvSort.SP:
-            value, severity, status = _convert_to_epics_pv_value(parameter.parameter_type, parameter.sp,
-                                                                 AlarmSeverity.No, AlarmStatus.No, pv_fields)
+            value, severity, status = _convert_to_epics_pv_value(
+                parameter.parameter_type, parameter.sp, AlarmSeverity.No, AlarmStatus.No, pv_fields
+            )
         elif self == PvSort.SP_RBV:
-            value, severity, status = _convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_rbv,
-                                                                 AlarmSeverity.No, AlarmStatus.No, pv_fields)
+            value, severity, status = _convert_to_epics_pv_value(
+                parameter.parameter_type,
+                parameter.sp_rbv,
+                AlarmSeverity.No,
+                AlarmStatus.No,
+                pv_fields,
+            )
         elif self == PvSort.RBV:
-            value, severity, status = _convert_to_epics_pv_value(parameter.parameter_type, parameter.rbv,
-                                                                 parameter.alarm_severity, parameter.alarm_status,
-                                                                 pv_fields)
+            value, severity, status = _convert_to_epics_pv_value(
+                parameter.parameter_type,
+                parameter.rbv,
+                parameter.alarm_severity,
+                parameter.alarm_status,
+                pv_fields,
+            )
         elif self == PvSort.SET_AND_NO_ACTION:
-            value, severity, status = _convert_to_epics_pv_value(parameter.parameter_type, parameter.sp_no_move,
-                                                                 AlarmSeverity.No, AlarmStatus.No, pv_fields)
+            value, severity, status = _convert_to_epics_pv_value(
+                parameter.parameter_type,
+                parameter.sp_no_move,
+                AlarmSeverity.No,
+                AlarmStatus.No,
+                pv_fields,
+            )
         elif self == PvSort.CHANGED:
             value = parameter.sp_changed
         elif self == PvSort.ACTION:
@@ -230,25 +256,35 @@ class DriverParamHelper:
         if param_sort == PvSort.ACTION and not param.is_disabled and not param.is_locked:
             param.move = 1
         elif param_sort == PvSort.SP and not param.is_disabled and not param.is_locked:
-            param.sp = convert_from_epics_pv_value(param.parameter_type, value, self._pv_manager.PVDB[pv_name])
+            param.sp = convert_from_epics_pv_value(
+                param.parameter_type, value, self._pv_manager.PVDB[pv_name]
+            )
         elif param_sort == PvSort.SET_AND_NO_ACTION and not param.is_locked:
-            param.sp_no_move = convert_from_epics_pv_value(param.parameter_type, value, self._pv_manager.PVDB[pv_name])
+            param.sp_no_move = convert_from_epics_pv_value(
+                param.parameter_type, value, self._pv_manager.PVDB[pv_name]
+            )
         elif param_sort == PvSort.DEFINE_POS_SP:
-            param.define_current_value_as.new_value_sp_rbv = convert_from_epics_pv_value(param.parameter_type, value,
-                                                                                  self._pv_manager.PVDB[pv_name])
+            param.define_current_value_as.new_value_sp_rbv = convert_from_epics_pv_value(
+                param.parameter_type, value, self._pv_manager.PVDB[pv_name]
+            )
         elif param_sort == PvSort.DEFINE_POS_SET_AND_NO_ACTION:
-            param.define_current_value_as.new_value_sp = convert_from_epics_pv_value(param.parameter_type, value,
-                                                                                       self._pv_manager.PVDB[pv_name])
+            param.define_current_value_as.new_value_sp = convert_from_epics_pv_value(
+                param.parameter_type, value, self._pv_manager.PVDB[pv_name]
+            )
         elif param_sort == PvSort.DEFINE_POS_ACTION:
             param.define_current_value_as.do_action()
         elif param_sort == PvSort.LOCKED:
-            param.is_locked = convert_from_epics_pv_value(param.parameter_type, value, self._pv_manager.PVDB[pv_name])
+            param.is_locked = convert_from_epics_pv_value(
+                param.parameter_type, value, self._pv_manager.PVDB[pv_name]
+            )
         else:
             STATUS_MANAGER.update_error_log("Error: PV {} is read only".format(pv_name))
             value_accepted = False
         return value_accepted
 
-    def get_param_monitor_updates(self) -> Tuple[str, Union[float, int, str, bool], AlarmSeverity, AlarmStatus]:
+    def get_param_monitor_updates(
+        self,
+    ) -> Tuple[str, Union[float, int, str, bool], AlarmSeverity, AlarmStatus]:
         """
         This is a generator over the names and values (with alarms) of the parameters
         Returns: tuple of
@@ -261,11 +297,14 @@ class DriverParamHelper:
             parameter = self._beamline.parameter(param_name)
             if param_sort not in [PvSort.IN_MODE, PvSort.CHANGING]:
                 pv_fields = self._pv_manager.PVDB[pv_name]
-                value, alarm_severity, alarm_status = param_sort.get_from_parameter(parameter, pv_fields)
+                value, alarm_severity, alarm_status = param_sort.get_from_parameter(
+                    parameter, pv_fields
+                )
                 yield pv_name, value, alarm_severity, alarm_status
 
-    def get_param_update_from_event(self, pv_name: str, param_type: BeamlineParameterType, update: ParameterUpdateBase)\
-            -> Tuple[str, Union[float, int, str, bool], AlarmSeverity, AlarmStatus]:
+    def get_param_update_from_event(
+        self, pv_name: str, param_type: BeamlineParameterType, update: ParameterUpdateBase
+    ) -> Tuple[str, Union[float, int, str, bool], AlarmSeverity, AlarmStatus]:
         """
         Given an update event get the update information for updating a pv field
         Args:
@@ -281,6 +320,7 @@ class DriverParamHelper:
 
         """
         pv_fields = self._pv_manager.PVDB[pv_name]
-        value, severity, status = _convert_to_epics_pv_value(param_type, update.value, update.alarm_severity,
-                                                             update.alarm_status, pv_fields)
+        value, severity, status = _convert_to_epics_pv_value(
+            param_type, update.value, update.alarm_severity, update.alarm_status, pv_fields
+        )
         return pv_name, value, severity, status

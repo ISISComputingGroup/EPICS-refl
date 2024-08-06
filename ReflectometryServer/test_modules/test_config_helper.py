@@ -14,15 +14,15 @@ class TestConfigHelper(unittest.TestCase):
     def setUp(self):
         ConfigHelper.reset()
 
-    def test_GIVEN_no_beam_line_constants_added_WHEN_get_beamline_and_config_helper_THEN_constants_are_empty(self):
-
+    def test_GIVEN_no_beam_line_constants_added_WHEN_get_beamline_and_config_helper_THEN_constants_are_empty(
+        self,
+    ):
         result = get_configured_beamline()
 
         assert_that(result.beamline_constants, is_([]))
         assert_that(ConfigHelper.constants, is_([]))
 
     def test_GIVEN_no_components_added_WHEN_get_beamline_THEN_components_are_empty(self):
-
         result = get_configured_beamline()
 
         assert_that(ConfigHelper.components, is_([]))
@@ -38,7 +38,10 @@ class TestConfigHelper(unittest.TestCase):
 
         result = get_configured_beamline()
 
-        assert_that(result.beamline_constants, only_contains(expected_constant1, expected_constant2, expected_constant3))
+        assert_that(
+            result.beamline_constants,
+            only_contains(expected_constant1, expected_constant2, expected_constant3),
+        )
 
     def test_GIVEN_beam_line_components_added_WHEN_get_beamline_THEN_beam_line_has_components(self):
         expected1 = Component("1", PositionAndAngle(0, 10, 90))
@@ -54,7 +57,6 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(ConfigHelper.components, only_contains(expected1, expected2, expected3))
 
     def test_GIVEN_no_parameters_added_WHEN_get_beamline_THEN_parameters_are_empty(self):
-
         result = get_configured_beamline()
 
         assert_that(ConfigHelper.parameters, is_([]))
@@ -77,7 +79,6 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(result.parameters.values(), only_contains(expected1, expected2))
 
     def test_GIVEN_no_mode_added_WHEN_get_beamline_THEN_modes_are_empty(self):
-
         result = get_configured_beamline()
 
         assert_that(ConfigHelper.modes, is_([]))
@@ -110,7 +111,9 @@ class TestConfigHelper(unittest.TestCase):
 
         assert_that(result.get_param_names_in_mode(), only_contains(expected_name1))
 
-    def test_GIVEN_multiple_parameter_with_modes_WHEN_get_beamline_THEN_parameter_in_given_mode(self):
+    def test_GIVEN_multiple_parameter_with_modes_WHEN_get_beamline_THEN_parameter_in_given_mode(
+        self,
+    ):
         param_name1 = "param1"
         param_name2 = "param2"
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
@@ -131,7 +134,9 @@ class TestConfigHelper(unittest.TestCase):
         result.active_mode = mode2
         assert_that(result.get_param_names_in_mode(), only_contains(param_name1, param_name2))
 
-    def test_GIVEN_multiple_parameter_with_modes_and_inits_WHEN_get_beamline_THEN_parameter_in_given_mode(self):
+    def test_GIVEN_multiple_parameter_with_modes_and_inits_WHEN_get_beamline_THEN_parameter_in_given_mode(
+        self,
+    ):
         param_name1 = "param1"
         param_name2 = "param2"
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
@@ -167,7 +172,6 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(result, has_entry(expected_name1, expected_init))
 
     def test_GIVEN_no_driver_added_WHEN_get_beamline_THEN_drivers_are_empty(self):
-
         result = get_configured_beamline()
 
         assert_that(ConfigHelper.drivers, is_([]))
@@ -181,40 +185,63 @@ class TestConfigHelper(unittest.TestCase):
 
         assert_that(result.drivers, only_contains(driver))
 
-    def test_GIVEN_add_slits_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
-
+    def test_GIVEN_add_slits_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(
+        self,
+    ):
         with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_wrapper_mock:
-
             add_slit_parameters(1)
 
             result = ConfigHelper.parameters
 
-            assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG"))
+            assert_that(
+                [parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG")
+            )
 
-            assert_that([call[0][0] for call in jaws_wrapper_mock.call_args_list], only_contains("MOT:JAWS1"))
-            assert_that([call[0][1] for call in jaws_wrapper_mock.call_args_list], contains_exactly(True, False))
-            assert_that([call[0][2] for call in jaws_wrapper_mock.call_args_list], contains_exactly(True, True))
+            assert_that(
+                [call[0][0] for call in jaws_wrapper_mock.call_args_list],
+                only_contains("MOT:JAWS1"),
+            )
+            assert_that(
+                [call[0][1] for call in jaws_wrapper_mock.call_args_list],
+                contains_exactly(True, False),
+            )
+            assert_that(
+                [call[0][2] for call in jaws_wrapper_mock.call_args_list],
+                contains_exactly(True, True),
+            )
 
-    def test_GIVEN_add_slits_and_gaps_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_and_centres_exist(self):
-
+    def test_GIVEN_add_slits_and_gaps_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_and_centres_exist(
+        self,
+    ):
         with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_wrapper_mock:
-
             add_slit_parameters(1, include_centres=True)
 
             result = ConfigHelper.parameters
 
-            assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1VC", "S1HG", "S1HC"))
+            assert_that(
+                [parameter.name for parameter in result],
+                contains_inanyorder("S1VG", "S1VC", "S1HG", "S1HC"),
+            )
 
-            assert_that([call[0][0] for call in jaws_wrapper_mock.call_args_list], only_contains("MOT:JAWS1"))
-            assert_that([call[0][1] for call in jaws_wrapper_mock.call_args_list], contains(True, True, False, False))
-            assert_that([call[0][2] for call in jaws_wrapper_mock.call_args_list], contains(True, False, True, False))
+            assert_that(
+                [call[0][0] for call in jaws_wrapper_mock.call_args_list],
+                only_contains("MOT:JAWS1"),
+            )
+            assert_that(
+                [call[0][1] for call in jaws_wrapper_mock.call_args_list],
+                contains(True, True, False, False),
+            )
+            assert_that(
+                [call[0][2] for call in jaws_wrapper_mock.call_args_list],
+                contains(True, False, True, False),
+            )
 
-
-    def test_GIVEN_add_slits_and_gaps_into_modes_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
+    def test_GIVEN_add_slits_and_gaps_into_modes_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(
+        self,
+    ):
         mode = add_mode("mode")
         mode1 = add_mode("mode1")
         with patch("ReflectometryServer.config_helper.create_jaws_pv_driver"):
-
             add_slit_parameters(1, modes=[mode, mode1], include_centres=True)
 
         result = ConfigHelper.mode_params
@@ -222,106 +249,156 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(result[mode], contains_inanyorder("S1VG", "S1VC", "S1HG", "S1HC"))
         assert_that(result[mode1], contains_inanyorder("S1VG", "S1VC", "S1HG", "S1HC"))
 
-    def test_GIVEN_add_slits_and_gaps_excluding_VC_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist_except_VC(self):
-
+    def test_GIVEN_add_slits_and_gaps_excluding_VC_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist_except_VC(
+        self,
+    ):
         with patch("ReflectometryServer.config_helper.create_jaws_pv_driver"):
-
             add_slit_parameters(1, exclude="VC", include_centres=True)
 
         result = ConfigHelper.parameters
 
-        assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG", "S1HC"))
+        assert_that(
+            [parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG", "S1HC")
+        )
 
-    def test_GIVEN_add_slits_and_gaps_excluding_VC_using_helper_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist_except_VC(self):
-
+    def test_GIVEN_add_slits_and_gaps_excluding_VC_using_helper_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist_except_VC(
+        self,
+    ):
         with patch("ReflectometryServer.config_helper.create_jaws_pv_driver"):
-
             add_slit_parameters(1, exclude=SlitAxes.VertCent, include_centres=True)
 
         result = ConfigHelper.parameters
 
-        assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG", "S1HC"))
+        assert_that(
+            [parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG", "S1HC")
+        )
 
-    def test_GIVEN_add_slits_with_beam_blocker_N_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
-
+    def test_GIVEN_add_slits_with_beam_blocker_N_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(
+        self,
+    ):
         with patch("ReflectometryServer.config_helper.create_blade_pv_driver") as blade_drivers:
             with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_driver:
-
                 add_slit_parameters(1, beam_blocker="N")
 
                 result = ConfigHelper.parameters
 
-                assert_that([parameter.name for parameter in result], contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1N", "S1S"))
+                assert_that(
+                    [parameter.name for parameter in result],
+                    contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1N", "S1S"),
+                )
 
-                assert_that([call[0][0] for call in blade_drivers.call_args_list], only_contains("MOT:JAWS1"))
-                assert_that([call[0][1] for call in blade_drivers.call_args_list], contains_exactly("N", "S"))
+                assert_that(
+                    [call[0][0] for call in blade_drivers.call_args_list],
+                    only_contains("MOT:JAWS1"),
+                )
+                assert_that(
+                    [call[0][1] for call in blade_drivers.call_args_list],
+                    contains_exactly("N", "S"),
+                )
 
-    def test_GIVEN_add_slits_with_beam_blocker_S_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
-
+    def test_GIVEN_add_slits_with_beam_blocker_S_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(
+        self,
+    ):
         with patch("ReflectometryServer.config_helper.create_blade_pv_driver") as blade_drivers:
             with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_driver:
-
                 add_slit_parameters(1, beam_blocker="S")
 
                 result = ConfigHelper.parameters
 
                 parameters = {parameter.name: parameter for parameter in result}
-                assert_that(parameters.keys(), contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1N", "S1S"))
+                assert_that(
+                    parameters.keys(), contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1N", "S1S")
+                )
                 assert_that(parameters["S1BLOCK"].options, contains_inanyorder("No", "South"))
 
-                assert_that([call[0][0] for call in blade_drivers.call_args_list], only_contains("MOT:JAWS1"))
-                assert_that([call[0][1] for call in blade_drivers.call_args_list], contains_exactly("N", "S"))
+                assert_that(
+                    [call[0][0] for call in blade_drivers.call_args_list],
+                    only_contains("MOT:JAWS1"),
+                )
+                assert_that(
+                    [call[0][1] for call in blade_drivers.call_args_list],
+                    contains_exactly("N", "S"),
+                )
 
-    def test_GIVEN_add_slits_with_beam_blocker_E_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
-
+    def test_GIVEN_add_slits_with_beam_blocker_E_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(
+        self,
+    ):
         with patch("ReflectometryServer.config_helper.create_blade_pv_driver") as blade_drivers:
             with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_driver:
-
                 add_slit_parameters(1, beam_blocker="E")
 
                 result = ConfigHelper.parameters
 
                 parameters = {parameter.name: parameter for parameter in result}
-                assert_that(parameters.keys(), contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1E", "S1W"))
+                assert_that(
+                    parameters.keys(), contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1E", "S1W")
+                )
                 assert_that(parameters["S1BLOCK"].options, contains_inanyorder("No", "East"))
 
-                assert_that([call[0][0] for call in blade_drivers.call_args_list], only_contains("MOT:JAWS1"))
-                assert_that([call[0][1] for call in blade_drivers.call_args_list], contains_exactly("E", "W"))
+                assert_that(
+                    [call[0][0] for call in blade_drivers.call_args_list],
+                    only_contains("MOT:JAWS1"),
+                )
+                assert_that(
+                    [call[0][1] for call in blade_drivers.call_args_list],
+                    contains_exactly("E", "W"),
+                )
 
-    def test_GIVEN_add_slits_with_beam_blocker_EN_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
-
+    def test_GIVEN_add_slits_with_beam_blocker_EN_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(
+        self,
+    ):
         with patch("ReflectometryServer.config_helper.create_blade_pv_driver") as blade_drivers:
             with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_driver:
-
                 add_slit_parameters(1, beam_blocker="EN")
 
                 result = ConfigHelper.parameters
 
                 parameters = {parameter.name: parameter for parameter in result}
-                assert_that(parameters.keys(), contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1E", "S1W", "S1S", "S1N"))
-                assert_that(parameters["S1BLOCK"].options, contains_inanyorder("No", "East", "North"))
+                assert_that(
+                    parameters.keys(),
+                    contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1E", "S1W", "S1S", "S1N"),
+                )
+                assert_that(
+                    parameters["S1BLOCK"].options, contains_inanyorder("No", "East", "North")
+                )
 
-                assert_that([call[0][0] for call in blade_drivers.call_args_list], only_contains("MOT:JAWS1"))
-                assert_that([call[0][1] for call in blade_drivers.call_args_list], contains_inanyorder("N", "S", "E", "W"))
+                assert_that(
+                    [call[0][0] for call in blade_drivers.call_args_list],
+                    only_contains("MOT:JAWS1"),
+                )
+                assert_that(
+                    [call[0][1] for call in blade_drivers.call_args_list],
+                    contains_inanyorder("N", "S", "E", "W"),
+                )
 
-    def test_GIVEN_add_slits_with_beam_blocker_EN_and_exclude_W_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(self):
-
+    def test_GIVEN_add_slits_with_beam_blocker_EN_and_exclude_W_WHEN_get_parameters_in_config_THEN_parameters_for_all_slit_gaps_exist(
+        self,
+    ):
         with patch("ReflectometryServer.config_helper.create_blade_pv_driver") as blade_drivers:
             with patch("ReflectometryServer.config_helper.create_jaws_pv_driver") as jaws_driver:
-
                 add_slit_parameters(1, beam_blocker="EN", exclude=["W"])
 
                 result = ConfigHelper.parameters
 
                 parameters = {parameter.name: parameter for parameter in result}
-                assert_that(parameters.keys(), contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1E", "S1S", "S1N"))
-                assert_that(parameters["S1BLOCK"].options, contains_inanyorder("No", "East", "North"))
+                assert_that(
+                    parameters.keys(),
+                    contains_inanyorder("S1VG", "S1HG", "S1BLOCK", "S1E", "S1S", "S1N"),
+                )
+                assert_that(
+                    parameters["S1BLOCK"].options, contains_inanyorder("No", "East", "North")
+                )
 
-                assert_that([call[0][0] for call in blade_drivers.call_args_list], only_contains("MOT:JAWS1"))
-                assert_that([call[0][1] for call in blade_drivers.call_args_list], contains_inanyorder("N", "S", "E"))
+                assert_that(
+                    [call[0][0] for call in blade_drivers.call_args_list],
+                    only_contains("MOT:JAWS1"),
+                )
+                assert_that(
+                    [call[0][1] for call in blade_drivers.call_args_list],
+                    contains_inanyorder("N", "S", "E"),
+                )
 
     def test_GIVEN_no_beam_start_added_WHEN_get_beamline_THEN_beamstart_is_none(self):
-
         result = get_configured_beamline()
 
         assert_that(ConfigHelper.beam_start, is_(None))
@@ -337,7 +414,6 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(comp.beam_path_set_point.get_outgoing_beam(), is_(expected_beam_start))
 
     def test_GIVEN_no_footprint_added_WHEN_get_beamline_THEN_footprint_is_none(self):
-
         result = get_configured_beamline()
 
         assert_that(ConfigHelper.footprint_setup, is_(None))
@@ -348,13 +424,17 @@ class TestConfigHelper(unittest.TestCase):
         param = AxisParameter("name", comp, ChangeAxis.POSITION)
         expected_sample_length = 10
 
-        footprint = add_footprint_setup(FootprintSetup(1, 2, 3, 4, 5, param, param, param, param, param, -1, 1))
+        footprint = add_footprint_setup(
+            FootprintSetup(1, 2, 3, 4, 5, param, param, param, param, param, -1, 1)
+        )
         footprint.sample_length = expected_sample_length
 
         result = get_configured_beamline()
         assert_that(result.footprint_manager.get_sample_length(), is_(expected_sample_length))
 
-    def test_GIVEN_beam_line_parameter_driver_and_component_added_at_marker_WHEN_get_parameters_THEN_inserted_at_right_place(self):
+    def test_GIVEN_beam_line_parameter_driver_and_component_added_at_marker_WHEN_get_parameters_THEN_inserted_at_right_place(
+        self,
+    ):
         comp1 = Component("1", PositionAndAngle(0, 0, 1))
         expected1 = AxisParameter("param1", comp1, ChangeAxis.POSITION)
         driver1 = IocDriver(comp1, ChangeAxis.POSITION, create_mock_axis("MOT0101", 1, 1))
@@ -397,7 +477,9 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(actual, is_(expected))
 
     @parameterized.expand([("True", True), ("false", False), ("Nonesense", False)])
-    def test_GIVEN_optional_is_set_to_string_WHEN_checking_optional_is_set_THEN_return_expected_bool(self, string, expected):
+    def test_GIVEN_optional_is_set_to_string_WHEN_checking_optional_is_set_THEN_return_expected_bool(
+        self, string, expected
+    ):
         macros = {"OPTIONAL_1": string}
         optional_id = 1
 
@@ -405,7 +487,9 @@ class TestConfigHelper(unittest.TestCase):
 
         assert_that(actual, is_(expected))
 
-    def test_WHEN_creating_mode_correction_with_helper_method_THEN_mode_select_correction_returned(self):
+    def test_WHEN_creating_mode_correction_with_helper_method_THEN_mode_select_correction_returned(
+        self,
+    ):
         correction = 1
         mode_name = "nr"
 
@@ -413,7 +497,9 @@ class TestConfigHelper(unittest.TestCase):
 
         assert_that(result, instance_of(ModeSelectCorrection))
 
-    def test_GIVEN_value_and_mode_WHEN_creating_mode_correction_with_helper_method_THEN_default_correction_is_0(self):
+    def test_GIVEN_value_and_mode_WHEN_creating_mode_correction_with_helper_method_THEN_default_correction_is_0(
+        self,
+    ):
         correction = 1
         mode_name = "nr"
         mode_correction = as_mode_correction(correction, [mode_name])
@@ -422,7 +508,9 @@ class TestConfigHelper(unittest.TestCase):
 
         assert_that(result, is_(0))
 
-    def test_GIVEN_value_and_mode_WHEN_creating_mode_correction_with_helper_method_THEN_correction_in_mode_behaves_correctly(self):
+    def test_GIVEN_value_and_mode_WHEN_creating_mode_correction_with_helper_method_THEN_correction_in_mode_behaves_correctly(
+        self,
+    ):
         correction = 1
         mode_name = "nr"
         mock_beamline = MockBeamline()
@@ -435,5 +523,5 @@ class TestConfigHelper(unittest.TestCase):
         assert_that(result, is_(correction * (-1)))  # correction is subtracted
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

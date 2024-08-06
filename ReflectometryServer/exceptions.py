@@ -7,6 +7,7 @@ class BeamlineConfigurationInvalidException(Exception):
     """
     Exception for when a parameter is not initialized.
     """
+
     def __init__(self, err):
         self.message = str(err)
 
@@ -18,6 +19,7 @@ class ParameterNotInitializedException(Exception):
     """
     Exception for when a parameter is not initialized.
     """
+
     def __init__(self, err):
         self.message = str(err)
 
@@ -37,18 +39,21 @@ class BeamlineConfigurationParkAutosaveInvalidException(Exception):
         self.max_sequence = max_sequence
 
     def __str__(self):
-        return f"The component {self.component_name} appears to be in the middle of a parking sequence, " \
-               f"{self.sequence} of {self.max_sequence} steps. The error was found on axis {self.axis_name} but " \
-               f"other axes may be involved. Please contact an instrument scientists and have them move the " \
-               f"component back into the beam before anything else is moved. The positions can be found in the " \
-               f"configuration file. The autosave position has now been overwritten so restarting the reflectometry " \
-               f"server will not work."
+        return (
+            f"The component {self.component_name} appears to be in the middle of a parking sequence, "
+            f"{self.sequence} of {self.max_sequence} steps. The error was found on axis {self.axis_name} but "
+            f"other axes may be involved. Please contact an instrument scientists and have them move the "
+            f"component back into the beam before anything else is moved. The positions can be found in the "
+            f"configuration file. The autosave position has now been overwritten so restarting the reflectometry "
+            f"server will not work."
+        )
 
 
 class AxisNotWithinSoftLimitsException(Exception):
     """
     Raised when a component's proposed setpoint is outside its soft limits.
     """
+
     def __init__(self, err):
         self.message = str(err)
 

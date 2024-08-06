@@ -18,19 +18,20 @@ Run all inst server tests
 """
 
 # Standard imports
+import argparse
 import os
 import sys
 import unittest
 
 import xmlrunner
-import argparse
 from coverage import Coverage
+
 try:
     from contextlib import contextmanager, nullcontext
 except ImportError:
     from contextlib2 import contextmanager, nullcontext
 
-DEFAULT_DIRECTORY = os.path.join('.', 'test-reports')
+DEFAULT_DIRECTORY = os.path.join(".", "test-reports")
 
 
 @contextmanager
@@ -43,14 +44,20 @@ def coverage_analysis():
         cov.stop()
         cov.report()
         print("------  SAVING COVERAGE REPORTS ------ ")
-        cov.xml_report(outfile=os.path.join(".", 'cobertura.xml'))
+        cov.xml_report(outfile=os.path.join(".", "cobertura.xml"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # get output directory from command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--output_dir', nargs=1, type=str, default=[DEFAULT_DIRECTORY],
-                        help='The directory to save the test reports')
+    parser.add_argument(
+        "-o",
+        "--output_dir",
+        nargs=1,
+        type=str,
+        default=[DEFAULT_DIRECTORY],
+        help="The directory to save the test reports",
+    )
     args = parser.parse_args()
     xml_dir = args.output_dir[0]
 

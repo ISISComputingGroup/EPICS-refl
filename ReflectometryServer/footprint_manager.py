@@ -1,6 +1,7 @@
 """
 Manager for the footprint calc.
 """
+
 from enum import Enum
 
 from ReflectometryServer.footprint_calc import *
@@ -14,6 +15,7 @@ class FootprintSort(Enum):
     """
     Enum for the type of footprint calculator
     """
+
     SP = 0
     RBV = 1
     SP_RBV = 2
@@ -39,6 +41,7 @@ class FootprintManager:
     """
     Holds instances of the footprint calculator and manages access to them.
     """
+
     def __init__(self, footprint_setup):
         """
         Args:
@@ -136,5 +139,3 @@ class FootprintManager:
         elif sort is FootprintSort.RBV:
             return self._footprint_calc_rbv
         return None
-
-

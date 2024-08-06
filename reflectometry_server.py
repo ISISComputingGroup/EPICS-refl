@@ -1,42 +1,35 @@
 """
 Reflectometry Server
 """
+
 import logging.config
-import sys
 import os
+import sys
+from threading import Thread
 
 from pcaspy import SimpleServer
-from threading import Thread
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-logging.config.dictConfig({
-    'version': 1,
-    'disable_existing_loggers': False,  # this fixes the problem
-    'formatters': {
-        'standard': {
-            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+logging.config.dictConfig(
+    {
+        "version": 1,
+        "disable_existing_loggers": False,  # this fixes the problem
+        "formatters": {
+            "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
         },
-    },
-    'handlers': {
-        'default': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        '': {
-            'handlers': ['default'],
-            'level': 'DEBUG',
-            'propagate': True
-             },
-        'pcaspy': {
-                'handlers': ['default'],
-                'level': 'INFO',
-                'propagate': True
+        "handlers": {
+            "default": {
+                "level": "DEBUG",
+                "class": "logging.StreamHandler",
             },
+        },
+        "loggers": {
+            "": {"handlers": ["default"], "level": "DEBUG", "propagate": True},
+            "pcaspy": {"handlers": ["default"], "level": "INFO", "propagate": True},
+        },
     }
-})
+)
 
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
@@ -46,12 +39,17 @@ except ImportError:
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
     from ReflectometryServer.ChannelAccess.reflectometry_driver import ReflectometryDriver
 
-from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
-from ReflectometryServer.ChannelAccess.constants import REFLECTOMETRY_PREFIX, MYPVPREFIX, DEFAULT_ASG_RULES, \
-    REFL_IOC_NAME
-from ReflectometryServer.ChannelAccess.pv_manager import PVManager
-from server_common.helpers import register_ioc_start, get_macro_values
 from server_common.channel_access import ChannelAccess
+from server_common.helpers import get_macro_values, register_ioc_start
+
+from ReflectometryServer.beamline_configuration import create_beamline_from_configuration
+from ReflectometryServer.ChannelAccess.constants import (
+    DEFAULT_ASG_RULES,
+    MYPVPREFIX,
+    REFL_IOC_NAME,
+    REFLECTOMETRY_PREFIX,
+)
+from ReflectometryServer.ChannelAccess.pv_manager import PVManager
 
 
 def process_ca_loop():
@@ -60,8 +58,9 @@ def process_ca_loop():
         try:
             SERVER.process(0.1)
             ChannelAccess.poll()
-        except Exception as err:
+        except Exception:
             break
+
 
 logger.info("Initialising...")
 logger.info("Prefix: {}".format(REFLECTOMETRY_PREFIX))
@@ -78,8 +77,12 @@ pv_manager = PVManager()
 SERVER.createPV(REFLECTOMETRY_PREFIX, pv_manager.PVDB)
 
 # Run heartbeat IOC, this is done with a different prefix
-SERVER.createPV(prefix="{pv_prefix}CS:IOC:{ioc_name}:DEVIOS:".format(pv_prefix=MYPVPREFIX, ioc_name=REFL_IOC_NAME),
-                pvdb={"HEARTBEAT": {"type": "int", "value": 0}})
+SERVER.createPV(
+    prefix="{pv_prefix}CS:IOC:{ioc_name}:DEVIOS:".format(
+        pv_prefix=MYPVPREFIX, ioc_name=REFL_IOC_NAME
+    ),
+    pvdb={"HEARTBEAT": {"type": "int", "value": 0}},
+)
 
 driver = ReflectometryDriver(SERVER, pv_manager)
 

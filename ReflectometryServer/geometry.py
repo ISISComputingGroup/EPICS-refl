@@ -1,15 +1,16 @@
 """
 Objects and classes that handle geometry
 """
-from math import radians, sin, cos
 
 from enum import Enum
+from math import cos, radians, sin
 
 
 class Position:
     """
     The beam position and direction
     """
+
     def __init__(self, y, z):
         self.z = float(z)
         self.y = float(y)
@@ -64,7 +65,7 @@ class PositionAndAngle(Position):
 
         """
         try:
-            y, z, angle = autosave_read_value[len(PositionAndAngle.__name__)+1:-1].split(",")
+            y, z, angle = autosave_read_value[len(PositionAndAngle.__name__) + 1 : -1].split(",")
             return PositionAndAngle(float(y), float(z), float(angle))
         except (TypeError, ValueError):
             raise ValueError("Converting from string to {}".format(PositionAndAngle.__name__))
@@ -95,17 +96,18 @@ class ChangeAxis(Enum):
 
     NB Usually POSITION is used instead of HEIGHT and ANGLE instead of PHI so they track the beam.
     """
-    POSITION = 0    # tracking position in collimation axis (i.e. height for horizontal samples)
-    ANGLE = 1       # tracking angle in plane of collimation
-    SEESAW = 2      # Tip of bench
-    PHI = 3         # angle like pitch
-    CHI = 4         # angle like yaw
-    PSI = 5         # angle like roll
-    HEIGHT = 6      # height axis perpendicular to beam and the floor
-    TRANS = 7       # translation axis perpendicular to beam and parallel to the floor
-    LONG_AXIS = 8   # axis along the beam
+
+    POSITION = 0  # tracking position in collimation axis (i.e. height for horizontal samples)
+    ANGLE = 1  # tracking angle in plane of collimation
+    SEESAW = 2  # Tip of bench
+    PHI = 3  # angle like pitch
+    CHI = 4  # angle like yaw
+    PSI = 5  # angle like roll
+    HEIGHT = 6  # height axis perpendicular to beam and the floor
+    TRANS = 7  # translation axis perpendicular to beam and parallel to the floor
+    LONG_AXIS = 8  # axis along the beam
     JACK_FRONT = 9  # on the bench the jack at the front of the table
     JACK_REAR = 10  # on the bench the jack at the rear of the table
-    SLIDE = 11      # on the bench the horizontal slide
+    SLIDE = 11  # on the bench the horizontal slide
     DISPLACEMENT_POSITION = 12
     DISPLACEMENT_ANGLE = 13

@@ -1,8 +1,9 @@
 """
 Footprint calculations.
 """
+
 from itertools import combinations
-from math import sin, tan, atan, degrees, radians, pi
+from math import atan, degrees, pi, radians, sin, tan
 
 S1_ID = "SLIT1"
 S2_ID = "SLIT2"
@@ -15,6 +16,7 @@ class BaseFootprintSetup:
     """
     Blank setup for a footprint calculation (for default use).
     """
+
     def __init__(self, theta=None, lambda_min=0, lambda_max=0):
         self.lambda_min = float(lambda_min)
         self.lambda_max = float(lambda_max)
@@ -28,8 +30,22 @@ class FootprintSetup(BaseFootprintSetup):
     """
     Normal setup for a footprint calculation.
     """
-    def __init__(self, pos_s1, pos_s2, pos_s3, pos_s4, pos_sample, s1vg, s2vg, s3vg, s4vg, theta,
-                 lambda_min, lambda_max):
+
+    def __init__(
+        self,
+        pos_s1,
+        pos_s2,
+        pos_s3,
+        pos_s4,
+        pos_sample,
+        s1vg,
+        s2vg,
+        s3vg,
+        s4vg,
+        theta,
+        lambda_min,
+        lambda_max,
+    ):
         """
         Args:
             pos_s1: Z Position of slit 1 (along the beam)
@@ -46,17 +62,19 @@ class FootprintSetup(BaseFootprintSetup):
             lambda_max: Maximum lambda for this beamline
         """
         super(FootprintSetup, self).__init__(theta, lambda_min, lambda_max)
-        self.positions = {S1_ID: 0.0,
-                          S2_ID: float(pos_s2 - pos_s1),
-                          S3_ID: float(pos_s3 - pos_s1),
-                          S4_ID: float(pos_s4 - pos_s1),
-                          SA_ID: float(pos_sample - pos_s1),
-                          }
-        self.gap_params = {S1_ID: s1vg,
-                           S2_ID: s2vg,
-                           S3_ID: s3vg,
-                           S4_ID: s4vg,
-                           }
+        self.positions = {
+            S1_ID: 0.0,
+            S2_ID: float(pos_s2 - pos_s1),
+            S3_ID: float(pos_s3 - pos_s1),
+            S4_ID: float(pos_s4 - pos_s1),
+            SA_ID: float(pos_sample - pos_s1),
+        }
+        self.gap_params = {
+            S1_ID: s1vg,
+            S2_ID: s2vg,
+            S3_ID: s3vg,
+            S4_ID: s4vg,
+        }
 
 
 class FootprintCalculator:
@@ -78,7 +96,7 @@ class FootprintCalculator:
         Returns: correct value of the parameter to use for calculation.
 
         """
-        raise NotImplemented("This must be implemented in the sub class")
+        raise NotImplementedError("This must be implemented in the sub class")
 
     def update_gaps(self):
         """
@@ -161,7 +179,7 @@ class FootprintCalculator:
 
         Args:
             comp (String): The key of the component for which to get the gap size
-            
+
         Returns: The gap size of the component or its equivalent for the sample reflection.
         """
         if comp is SA_ID:
@@ -231,8 +249,13 @@ class FootprintCalculator:
         Returns: The slit gaps for slit 1 and 2
         """
         theta_deg = degrees(theta_rad)
-        sv1 = 2 * self.distance(S1_ID, SA_ID) * tan(resolution * theta_deg) - footprint * sin(theta_deg)
-        sv2 = self.distance(S1_ID, S2_ID) * (footprint * sin(theta_deg)) / self.distance(S1_ID, SA_ID) - sv1
+        sv1 = 2 * self.distance(S1_ID, SA_ID) * tan(resolution * theta_deg) - footprint * sin(
+            theta_deg
+        )
+        sv2 = (
+            self.distance(S1_ID, S2_ID) * (footprint * sin(theta_deg)) / self.distance(S1_ID, SA_ID)
+            - sv1
+        )
         return sv1, sv2
 
 
@@ -240,6 +263,7 @@ class FootprintCalculatorSetpoint(FootprintCalculator):
     """
     Calculates the footprint based on the setpoint values of beamline parameters.
     """
+
     def __init__(self, setup):
         """
         Args:
@@ -258,6 +282,7 @@ class FootprintCalculatorSetpointReadback(FootprintCalculator):
     """
     Calculates the footprint based on the setpoint readback values of beamline parameters.
     """
+
     def __init__(self, setup):
         """
         Args:
@@ -276,6 +301,7 @@ class FootprintCalculatorReadback(FootprintCalculator):
     """
     Calculates the footprint based on the readback values of beamline parameters.
     """
+
     def __init__(self, setup):
         """
         Args:
