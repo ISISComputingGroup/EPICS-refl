@@ -1,6 +1,7 @@
 """
 Driver for the reflectometry server.
 """
+
 import logging
 from functools import partial
 from typing import Optional
@@ -60,6 +61,7 @@ class ReflectometryDriver(Driver):
     The driver which provides an interface for the reflectometry server to channel access by creating PVs and processing
     incoming CA get and put requests.
     """
+
     _driver_help: Optional[DriverParamHelper]
     _beamline: Optional[Beamline]
 
@@ -145,10 +147,15 @@ class ReflectometryDriver(Driver):
                 elif is_pv_name_this_field(SERVER_MESSAGE, reason):
                     # The server message has the active errors in the beginning so truncation happens at the end.
                     truncated_string = "<truncated>"
-                    server_message_max_character_size = self._pv_manager.PVDB[SERVER_MESSAGE]["count"]
+                    server_message_max_character_size = self._pv_manager.PVDB[SERVER_MESSAGE][
+                        "count"
+                    ]
                     message = STATUS_MANAGER.message
                     if len(message) > server_message_max_character_size:
-                        return message[:server_message_max_character_size - len(truncated_string)] + truncated_string
+                        return (
+                            message[: server_message_max_character_size - len(truncated_string)]
+                            + truncated_string
+                        )
                     else:
                         return message
                 elif is_pv_name_this_field(SERVER_ERROR_LOG, reason):
@@ -165,7 +172,8 @@ class ReflectometryDriver(Driver):
         except Exception as e:
             STATUS_MANAGER.update_error_log("Exception when reading parameter {}".format(reason), e)
             STATUS_MANAGER.update_active_problems(
-                ProblemInfo("PV Value read caused exception.", reason, Severity.MAJOR_ALARM))
+                ProblemInfo("PV Value read caused exception.", reason, Severity.MAJOR_ALARM)
+            )
             return
 
         return self.getParam(reason)
@@ -194,8 +202,11 @@ class ReflectometryDriver(Driver):
                     new_mode_name = beamline_mode_enums[value]
                     self._beamline.active_mode = new_mode_name
                 except ValueError:
-                    STATUS_MANAGER.update_error_log("Invalid value entered for mode. (Possible modes: {})".format(
-                        ",".join(self._beamline.mode_names)))
+                    STATUS_MANAGER.update_error_log(
+                        "Invalid value entered for mode. (Possible modes: {})".format(
+                            ",".join(self._beamline.mode_names)
+                        )
+                    )
                     value_accepted = False
             elif is_pv_name_this_field(SAMPLE_LENGTH, reason):
                 self._footprint_manager.set_sample_length(value)
@@ -209,9 +220,12 @@ class ReflectometryDriver(Driver):
                 self._update_param_both_pv_and_pv_val(reason, value)
                 self.update_monitors()
         except Exception as e:
-            STATUS_MANAGER.update_error_log("PV Value {} for PV {} rejected by server: {}".format(value, reason, e), e)
-            STATUS_MANAGER.update_active_problems(ProblemInfo("PV Value rejected by server.", reason,
-                                                              Severity.MINOR_ALARM))
+            STATUS_MANAGER.update_error_log(
+                "PV Value {} for PV {} rejected by server: {}".format(value, reason, e), e
+            )
+            STATUS_MANAGER.update_active_problems(
+                ProblemInfo("PV Value rejected by server.", reason, Severity.MINOR_ALARM)
+            )
             value_accepted = False
         return value_accepted
 
@@ -220,7 +234,12 @@ class ReflectometryDriver(Driver):
         Updates the PV values and alarms for each parameter so that changes are visible to monitors.
         """
         # with self.monitor_lock:
-        for pv_name, value, alarm_severity, alarm_status in self._driver_help.get_param_monitor_updates():
+        for (
+            pv_name,
+            value,
+            alarm_severity,
+            alarm_status,
+        ) in self._driver_help.get_param_monitor_updates():
             self._update_param_both_pv_and_pv_val(pv_name, value, alarm_severity, alarm_status)
 
         self._update_all_footprints()
@@ -242,13 +261,23 @@ class ReflectometryDriver(Driver):
             sort{ReflectometryServer.pv_manager.FootprintSort): The sort of value for which to update the footprint PVs
         """
         prefix = FootprintSort.prefix(sort)
-        self._update_param_both_pv_and_pv_val(FP_TEMPLATE.format(prefix), self._footprint_manager.get_footprint(sort))
-        self._update_param_both_pv_and_pv_val(DQQ_TEMPLATE.format(prefix), self._footprint_manager.get_resolution(sort))
-        self._update_param_both_pv_and_pv_val(QMIN_TEMPLATE.format(prefix), self._footprint_manager.get_q_min(sort))
-        self._update_param_both_pv_and_pv_val(QMAX_TEMPLATE.format(prefix), self._footprint_manager.get_q_max(sort))
+        self._update_param_both_pv_and_pv_val(
+            FP_TEMPLATE.format(prefix), self._footprint_manager.get_footprint(sort)
+        )
+        self._update_param_both_pv_and_pv_val(
+            DQQ_TEMPLATE.format(prefix), self._footprint_manager.get_resolution(sort)
+        )
+        self._update_param_both_pv_and_pv_val(
+            QMIN_TEMPLATE.format(prefix), self._footprint_manager.get_q_min(sort)
+        )
+        self._update_param_both_pv_and_pv_val(
+            QMAX_TEMPLATE.format(prefix), self._footprint_manager.get_q_max(sort)
+        )
         self.updatePVs()
 
-    def _update_param_both_pv_and_pv_val(self, pv_name, value, alarm_severity=None,  alarm_status=None):
+    def _update_param_both_pv_and_pv_val(
+        self, pv_name, value, alarm_severity=None, alarm_status=None
+    ):
         """
         Update a parameter value (both base and .VAL) and its alarms.
 
@@ -264,15 +293,18 @@ class ReflectometryDriver(Driver):
         self.setParam(pv_name + VAL_FIELD, value)
         self.setParamStatus(pv_name, alarm_status, alarm_severity)
 
-    def _update_param_listener(self, pv_name: str, param_type: BeamlineParameterType, update: ParameterUpdateBase):
+    def _update_param_listener(
+        self, pv_name: str, param_type: BeamlineParameterType, update: ParameterUpdateBase
+    ):
         """
         Listener for responding to updates from the command line parameter
         Args:
             pv_name: name of the pv
             update (NamedTuple): update from this parameter, expected to have at least a "value" attribute.
         """
-        pv_name, value, alarm_severity, alarm_status = \
+        pv_name, value, alarm_severity, alarm_status = (
             self._driver_help.get_param_update_from_event(pv_name, param_type, update)
+        )
         self._update_param_both_pv_and_pv_val(pv_name, value, alarm_severity, alarm_status)
         for pv in self._pv_manager.get_all_pvs_for_param(pv_name):
             self.updatePV(pv)
@@ -283,24 +315,37 @@ class ReflectometryDriver(Driver):
         """
         for pv_name, (param_name, param_sort) in self._pv_manager.param_names_pv_names_and_sort():
             parameter = self._beamline.parameter(param_name)
-            parameter.add_listener(ParameterInitUpdate, partial(self._update_param_listener,
-                                                                pv_name, parameter.parameter_type))
+            parameter.add_listener(
+                ParameterInitUpdate,
+                partial(self._update_param_listener, pv_name, parameter.parameter_type),
+            )
 
             if param_sort in [PvSort.ACTION, PvSort.SP]:
-                parameter.add_listener(ParameterDisabledUpdate,
-                                       partial(self._update_param_disabled, pv_name + DISP_FIELD), run_listener=True)
+                parameter.add_listener(
+                    ParameterDisabledUpdate,
+                    partial(self._update_param_disabled, pv_name + DISP_FIELD),
+                    run_listener=True,
+                )
 
             if param_sort == PvSort.RBV:
-                parameter.add_listener(ParameterReadbackUpdate, partial(self._update_param_listener,
-                                                                        pv_name, parameter.parameter_type))
+                parameter.add_listener(
+                    ParameterReadbackUpdate,
+                    partial(self._update_param_listener, pv_name, parameter.parameter_type),
+                )
 
             if param_sort == PvSort.SP_RBV:
-                parameter.add_listener(ParameterSetpointReadbackUpdate, partial(self._update_param_listener,
-                                                                                pv_name, parameter.parameter_type))
+                parameter.add_listener(
+                    ParameterSetpointReadbackUpdate,
+                    partial(self._update_param_listener, pv_name, parameter.parameter_type),
+                )
             if param_sort == PvSort.CHANGING:
-                parameter.add_listener(ParameterChangingUpdate, partial(self._update_binary_listener, pv_name))
+                parameter.add_listener(
+                    ParameterChangingUpdate, partial(self._update_binary_listener, pv_name)
+                )
             if param_sort == PvSort.RBV_AT_SP:
-                parameter.add_listener(ParameterAtSetpointUpdate, partial(self._update_binary_listener, pv_name))
+                parameter.add_listener(
+                    ParameterAtSetpointUpdate, partial(self._update_binary_listener, pv_name)
+                )
 
     def _update_binary_listener(self, pv_name, update):
         self.setParam(pv_name, update.value)
@@ -322,9 +367,9 @@ class ReflectometryDriver(Driver):
             if param_sort is PvSort.RBV:
                 if param_name in params_in_mode:
                     self._update_param_both_pv_and_pv_val(pv_name + IN_MODE_SUFFIX, 1)
-                else: 
+                else:
                     self._update_param_both_pv_and_pv_val(pv_name + IN_MODE_SUFFIX, 0)
-     
+
         mode_value = self._beamline_mode_value(mode_update.mode.name)
         self._update_param_both_pv_and_pv_val(BEAMLINE_MODE, mode_value)
         self._update_param_both_pv_and_pv_val(BEAMLINE_MODE + SP_SUFFIX, mode_value)
@@ -383,15 +428,20 @@ class ReflectometryDriver(Driver):
             if BeamlineParameterGroup.FOOTPRINT_PARAMETER in parameter.group_names:
                 parameters_to_monitor.add(parameter)
         for parameter in parameters_to_monitor:
-            parameter.add_listener(ParameterReadbackUpdate, partial(self._update_footprint, FootprintSort.RBV))
-            parameter.add_listener(ParameterSetpointReadbackUpdate,
-                                   partial(self._update_footprint, FootprintSort.SP_RBV))
+            parameter.add_listener(
+                ParameterReadbackUpdate, partial(self._update_footprint, FootprintSort.RBV)
+            )
+            parameter.add_listener(
+                ParameterSetpointReadbackUpdate,
+                partial(self._update_footprint, FootprintSort.SP_RBV),
+            )
 
     def _add_trigger_on_engineering_correction_change(self):
         """
         Add all the triggers on engineering corrections.
 
         """
+
         def _update_corrections_pv(name, correction_update):
             """
             Update the driver engineering corrections PV with new value

@@ -1,6 +1,7 @@
 """
 SimpleObservable data and classes.
 """
+
 from math import cos, radians, sin, tan
 
 import numpy as np
@@ -83,9 +84,10 @@ class DataMother:
     """
     Test data for various tests.
     """
+
     BEAMLINE_MODE_NEUTRON_REFLECTION = BeamlineMode(
-        "Neutron reflection",
-        ["slit2height", "height", "theta", "detectorheight"])
+        "Neutron reflection", ["slit2height", "height", "theta", "detectorheight"]
+    )
 
     BEAMLINE_MODE_EMPTY = BeamlineMode("Empty", [])
 
@@ -100,8 +102,12 @@ class DataMother:
         two = EmptyBeamlineParameter("two")
         three = EmptyBeamlineParameter("three")
         beamline_parameters = [one, two, three]
-        mode = BeamlineMode("all", [beamline_parameter.name for beamline_parameter in beamline_parameters])
-        naught_and_two = BeamlineMode("components1and3", [beamline_parameters[0].name, beamline_parameters[2].name])
+        mode = BeamlineMode(
+            "all", [beamline_parameter.name for beamline_parameter in beamline_parameters]
+        )
+        naught_and_two = BeamlineMode(
+            "components1and3", [beamline_parameters[0].name, beamline_parameters[2].name]
+        )
         two = BeamlineMode("just2", [beamline_parameters[2].name])
 
         beamline = Beamline([], beamline_parameters, [], [mode, naught_and_two, two])
@@ -132,7 +138,9 @@ class DataMother:
         add_driver(IocDriver(s1, ChangeAxis.POSITION, s1_axis))
 
         # theta
-        theta = add_component(ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90)))
+        theta = add_component(
+            ThetaComponent("ThetaComp_comp", PositionAndAngle(0.0, 2 * spacing, 90))
+        )
         add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE), modes=[nr, disabled])
 
         # s3
@@ -142,7 +150,9 @@ class DataMother:
         add_driver(IocDriver(s3, ChangeAxis.POSITION, s3_axis))
 
         # detector
-        detector = add_component(TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90)))
+        detector = add_component(
+            TiltingComponent("Detector_comp", PositionAndAngle(0.0, 4 * spacing, 90))
+        )
         theta.add_angle_to(detector)
         add_parameter(AxisParameter("det", detector, ChangeAxis.POSITION), modes=[nr, disabled])
         add_parameter(AxisParameter("det_angle", detector, ChangeAxis.ANGLE), modes=[nr, disabled])
@@ -151,10 +161,12 @@ class DataMother:
         det_angle_axis = create_mock_axis("MOT:MTR0105", 0, 1)
         add_driver(IocDriver(detector, ChangeAxis.ANGLE, det_angle_axis))
 
-        axes = {"s1_axis": s1_axis,
-                "s3_axis": s3_axis,
-                "det_axis": det_axis,
-                "det_angle_axis": det_angle_axis}
+        axes = {
+            "s1_axis": s1_axis,
+            "s3_axis": s3_axis,
+            "det_axis": det_axis,
+            "det_angle_axis": det_angle_axis,
+        }
 
         add_beam_start(PositionAndAngle(0.0, 0.0, 0.0))
         bl = get_configured_beamline()
@@ -186,10 +198,16 @@ class DataMother:
 
         # BEAMLINE PARAMETERS
         s1_gap = create_parameter_with_initial_value(0, SlitGapParameter, "s1_gap", s1_gap_axis)
-        theta_ang = create_parameter_with_initial_value(0, AxisParameter, "theta", theta, ChangeAxis.ANGLE)
+        theta_ang = create_parameter_with_initial_value(
+            0, AxisParameter, "theta", theta, ChangeAxis.ANGLE
+        )
         s3_gap = create_parameter_with_initial_value(0, SlitGapParameter, "s3_gap", s3_gap_axis)
-        detector_position = create_parameter_with_initial_value(0, AxisParameter, "det", detector, ChangeAxis.POSITION)
-        detector_angle = create_parameter_with_initial_value(0, AxisParameter, "det_angle", detector, ChangeAxis.ANGLE)
+        detector_position = create_parameter_with_initial_value(
+            0, AxisParameter, "det", detector, ChangeAxis.POSITION
+        )
+        detector_angle = create_parameter_with_initial_value(
+            0, AxisParameter, "det_angle", detector, ChangeAxis.ANGLE
+        )
         params = [s1_gap, theta_ang, s3_gap, detector_position, detector_angle]
 
         # MODES
@@ -205,7 +223,14 @@ class DataMother:
         return bl, axes
 
     @staticmethod
-    def beamline_sm_theta_detector(sm_angle, theta, det_offset=0, autosave_theta_not_offset=True, beam_angle=0.0, sm_angle_engineering_correction=False):
+    def beamline_sm_theta_detector(
+        sm_angle,
+        theta,
+        det_offset=0,
+        autosave_theta_not_offset=True,
+        beam_angle=0.0,
+        sm_angle_engineering_correction=False,
+    ):
         """
         Create beamline with supermirror, theta and a tilting detector.
 
@@ -224,18 +249,28 @@ class DataMother:
         # COMPONENTS
         z_sm_to_sample = 1
         z_sample_to_det = 2
-        sm_comp = ReflectingComponent("sm_comp", PositionAndAngle(0.0, 0, perp_to_floor_angle_in_mantid))
-        detector_comp = TiltingComponent("detector_comp", PositionAndAngle(0.0, z_sm_to_sample + z_sample_to_det, perp_to_floor_angle_in_mantid))
-        theta_comp = ThetaComponent("theta_comp", PositionAndAngle(0.0, z_sm_to_sample, perp_to_floor_angle_in_mantid))
+        sm_comp = ReflectingComponent(
+            "sm_comp", PositionAndAngle(0.0, 0, perp_to_floor_angle_in_mantid)
+        )
+        detector_comp = TiltingComponent(
+            "detector_comp",
+            PositionAndAngle(0.0, z_sm_to_sample + z_sample_to_det, perp_to_floor_angle_in_mantid),
+        )
+        theta_comp = ThetaComponent(
+            "theta_comp", PositionAndAngle(0.0, z_sm_to_sample, perp_to_floor_angle_in_mantid)
+        )
         theta_comp.add_angle_to(detector_comp)
 
         comps = [sm_comp, theta_comp, detector_comp]
 
         # BEAMLINE PARAMETERS
         sm_angle_param = AxisParameter("sm_angle", sm_comp, ChangeAxis.ANGLE)
-        theta_param = AxisParameter("theta", theta_comp, ChangeAxis.ANGLE, autosave=autosave_theta_not_offset)
-        detector_position_param = AxisParameter("det_pos", detector_comp, ChangeAxis.POSITION,
-                                                autosave=not autosave_theta_not_offset)
+        theta_param = AxisParameter(
+            "theta", theta_comp, ChangeAxis.ANGLE, autosave=autosave_theta_not_offset
+        )
+        detector_position_param = AxisParameter(
+            "det_pos", detector_comp, ChangeAxis.POSITION, autosave=not autosave_theta_not_offset
+        )
         detector_angle_param = AxisParameter("det_angle", detector_comp, ChangeAxis.ANGLE)
 
         params = [sm_angle_param, theta_param, detector_position_param, detector_angle_param]
@@ -245,7 +280,19 @@ class DataMother:
         if sm_angle_engineering_correction:
             grid_data_provider = GridDataFileReader("linear_theta")
             grid_data_provider.variables = ["Theta"]
-            grid_data_provider.points = np.array([[-90, ], [0.0, ], [90.0, ]])
+            grid_data_provider.points = np.array(
+                [
+                    [
+                        -90,
+                    ],
+                    [
+                        0.0,
+                    ],
+                    [
+                        90.0,
+                    ],
+                ]
+            )
             grid_data_provider.corrections = np.array([-45, 0.0, 45])
             grid_data_provider.read = lambda: None
             correction = InterpolateGridDataCorrectionFromProvider(grid_data_provider, theta_param)
@@ -258,18 +305,22 @@ class DataMother:
         beam_angle_after_sample = theta * 2 + sm_angle * 2
         supermirror_segment = (z_sm_to_sample, sm_angle)
         theta_segment = (z_sample_to_det, theta)
-        reflection_offset = DataMother._calc_reflection_offset(beam_angle, [supermirror_segment, theta_segment])
+        reflection_offset = DataMother._calc_reflection_offset(
+            beam_angle, [supermirror_segment, theta_segment]
+        )
         sm_axis = create_mock_axis("MOT:MTR0101", sm_angle + size_of_correction, 1)
         det_axis = create_mock_axis("MOT:MTR0104", reflection_offset + det_offset, 1)
-        det_angle_axis = create_mock_axis("MOT:MTR0105",  beam_start.angle + beam_angle_after_sample, 1)
+        det_angle_axis = create_mock_axis(
+            "MOT:MTR0105", beam_start.angle + beam_angle_after_sample, 1
+        )
 
-        axes = {"sm_axis": sm_axis,
-                "det_axis": det_axis,
-                "det_angle_axis": det_angle_axis}
+        axes = {"sm_axis": sm_axis, "det_axis": det_axis, "det_angle_axis": det_angle_axis}
 
-        drives = [IocDriver(sm_comp, ChangeAxis.ANGLE, sm_axis, engineering_correction=correction),
-                  IocDriver(detector_comp, ChangeAxis.POSITION, det_axis),
-                  IocDriver(detector_comp, ChangeAxis.ANGLE, det_angle_axis)]
+        drives = [
+            IocDriver(sm_comp, ChangeAxis.ANGLE, sm_axis, engineering_correction=correction),
+            IocDriver(detector_comp, ChangeAxis.POSITION, det_axis),
+            IocDriver(detector_comp, ChangeAxis.ANGLE, det_angle_axis),
+        ]
 
         # MODES
         nr_inits = {}
@@ -300,18 +351,26 @@ class DataMother:
 
             cumulative_reflection_angle = 0
             for reflection_angle in reflection_angles:
-                cumulative_reflection_angle += 2*reflection_angle
+                cumulative_reflection_angle += 2 * reflection_angle
 
             offset_1 = distance * sin(radians(beam_angle))
-            offset_2 = distance * cos(radians(beam_angle)) * tan(radians(cumulative_reflection_angle - beam_angle))
+            offset_2 = (
+                distance
+                * cos(radians(beam_angle))
+                * tan(radians(cumulative_reflection_angle - beam_angle))
+            )
             total_offset += offset_1 + offset_2
 
         return total_offset
 
     @staticmethod
-    def beamline_sm_theta_bench(sm_angle, theta_angle, driver_bench_offset, autosave_bench_not_theta=False,
-                                natural_angle=0.0):
-
+    def beamline_sm_theta_bench(
+        sm_angle,
+        theta_angle,
+        driver_bench_offset,
+        autosave_bench_not_theta=False,
+        natural_angle=0.0,
+    ):
         ConfigHelper.reset()
         test = add_mode("TEST")
 
@@ -325,28 +384,46 @@ class DataMother:
         sm_axis.trigger_rbv_change()
 
         theta = add_component(ThetaComponent("THETA", PositionAndAngle(0, 10, perp_to_floor_angle)))
-        add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE, autosave=not autosave_bench_not_theta))
+        add_parameter(
+            AxisParameter("theta", theta, ChangeAxis.ANGLE, autosave=not autosave_bench_not_theta)
+        )
 
         bench = add_component(
-            get_standard_bench(with_z_position=10, with_angle=0, perp_to_floor_angle=perp_to_floor_angle))
-        add_parameter(AxisParameter("bench_angle", bench, ChangeAxis.ANGLE, autosave=autosave_bench_not_theta))
+            get_standard_bench(
+                with_z_position=10, with_angle=0, perp_to_floor_angle=perp_to_floor_angle
+            )
+        )
+        add_parameter(
+            AxisParameter("bench_angle", bench, ChangeAxis.ANGLE, autosave=autosave_bench_not_theta)
+        )
         add_parameter(AxisParameter("bench_offset", bench, ChangeAxis.POSITION))
         bench_angle = radians(driver_bench_offset + theta_angle * 2 + sm_angle * 2)
-        bench_jack_front = create_mock_axis("MOT:MTR0102", tan(bench_angle) * PIVOT_TO_J1 - PIVOT_TO_BEAM * (1 - cos(bench_angle)), 1)
-        bench_jack_rear = create_mock_axis("MOT:MTR0103", tan(bench_angle) * PIVOT_TO_J2 - PIVOT_TO_BEAM * (1 - cos(bench_angle)), 1)
+        bench_jack_front = create_mock_axis(
+            "MOT:MTR0102",
+            tan(bench_angle) * PIVOT_TO_J1 - PIVOT_TO_BEAM * (1 - cos(bench_angle)),
+            1,
+        )
+        bench_jack_rear = create_mock_axis(
+            "MOT:MTR0103",
+            tan(bench_angle) * PIVOT_TO_J2 - PIVOT_TO_BEAM * (1 - cos(bench_angle)),
+            1,
+        )
         add_driver(IocDriver(bench, ChangeAxis.JACK_REAR, bench_jack_rear))
         add_driver(IocDriver(bench, ChangeAxis.JACK_FRONT, bench_jack_front))
         bench_jack_rear.trigger_rbv_change()
         bench_jack_front.trigger_rbv_change()
         theta.add_angle_of(bench)
 
-        return get_configured_beamline(), {"bench_jack_rear": bench_jack_rear, "bench_jack_front": bench_jack_front, "sm_angle": sm_axis}
-
-
+        return get_configured_beamline(), {
+            "bench_jack_rear": bench_jack_rear,
+            "bench_jack_front": bench_jack_front,
+            "sm_angle": sm_axis,
+        }
 
     @staticmethod
-    def beamline_sm_theta_ang_det(sm_angle, theta_angle, driver_comp_offset, autosave_bench_not_theta=False):
-
+    def beamline_sm_theta_ang_det(
+        sm_angle, theta_angle, driver_comp_offset, autosave_bench_not_theta=False
+    ):
         ConfigHelper.reset()
         test = add_mode("TEST")
 
@@ -359,11 +436,15 @@ class DataMother:
         sm_axis.trigger_rbv_change()
 
         theta = add_component(ThetaComponent("THETA", PositionAndAngle(0, 10, 90)))
-        add_parameter(AxisParameter("theta", theta, ChangeAxis.ANGLE, autosave=not autosave_bench_not_theta))
+        add_parameter(
+            AxisParameter("theta", theta, ChangeAxis.ANGLE, autosave=not autosave_bench_not_theta)
+        )
 
         DIST = 10
         bench = add_component(TiltingComponent("comp", PositionAndAngle(0, DIST, 90)))
-        add_parameter(AxisParameter("comp_angle", bench, ChangeAxis.ANGLE, autosave=autosave_bench_not_theta))
+        add_parameter(
+            AxisParameter("comp_angle", bench, ChangeAxis.ANGLE, autosave=autosave_bench_not_theta)
+        )
         comp_angle = driver_comp_offset + theta_angle * 2 + sm_angle * 2
         comp_height = create_mock_axis("MOT:MTR0102", tan(radians(comp_angle)) * DIST, 1)
         comp_ang = create_mock_axis("MOT:MTR0103", comp_angle, 1)
@@ -373,28 +454,47 @@ class DataMother:
         comp_height.trigger_rbv_change()
         theta.add_angle_of(bench)
 
-        return get_configured_beamline(), {"comp_ang": comp_ang, "comp_height": comp_height,
-                                           "sm_angle": sm_axis}
+        return get_configured_beamline(), {
+            "comp_ang": comp_ang,
+            "comp_height": comp_height,
+            "sm_angle": sm_axis,
+        }
 
     @staticmethod
-    def beamline_theta_detector(out_of_beam_pos_z, inital_pos_z, out_of_beam_pos_ang, initial_pos_ang):
+    def beamline_theta_detector(
+        out_of_beam_pos_z, inital_pos_z, out_of_beam_pos_ang, initial_pos_ang
+    ):
         ConfigHelper.reset()
         theta_comp = add_component(ThetaComponent("theta", PositionAndAngle(0, 0, 90)))
         theta = add_parameter(AxisParameter("theta", theta_comp, ChangeAxis.ANGLE))
         detector_comp = TiltingComponent("detector", PositionAndAngle(0, 1, 90))
         axis_det_z = create_mock_axis("det_z", inital_pos_z, 1)
-        add_driver(IocDriver(detector_comp, ChangeAxis.POSITION, axis_det_z,
-                             out_of_beam_positions=[OutOfBeamPosition(out_of_beam_pos_z)]))
+        add_driver(
+            IocDriver(
+                detector_comp,
+                ChangeAxis.POSITION,
+                axis_det_z,
+                out_of_beam_positions=[OutOfBeamPosition(out_of_beam_pos_z)],
+            )
+        )
         axis_det_ang = create_mock_axis("det_ang", initial_pos_ang, 1)
-        add_driver(IocDriver(detector_comp, ChangeAxis.ANGLE, axis_det_ang,
-                             out_of_beam_positions=[OutOfBeamPosition(out_of_beam_pos_ang)]))
+        add_driver(
+            IocDriver(
+                detector_comp,
+                ChangeAxis.ANGLE,
+                axis_det_ang,
+                out_of_beam_positions=[OutOfBeamPosition(out_of_beam_pos_ang)],
+            )
+        )
         det_in = add_parameter(InBeamParameter("det_in", detector_comp))
         theta_comp.add_angle_to(detector_comp)
         get_configured_beamline()
         return det_in, theta
 
     @staticmethod
-    def beamline_with_one_mode_init_param_in_mode_and_at_off_init(init_sm_angle, off_init, param_name):
+    def beamline_with_one_mode_init_param_in_mode_and_at_off_init(
+        init_sm_angle, off_init, param_name
+    ):
         super_mirror = ReflectingComponent("super mirror", PositionAndAngle(z=10, y=0, angle=90))
         smangle = AxisParameter(param_name, super_mirror, ChangeAxis.ANGLE)
         beamline_mode = BeamlineMode("mode name", [smangle.name], {smangle.name: init_sm_angle})
@@ -404,7 +504,16 @@ class DataMother:
         return Beamline([super_mirror], [smangle], [], [beamline_mode])
 
 
-def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos", llm=float('-inf'), hlm=float('inf')):
+def create_mock_axis(
+    name,
+    init_position,
+    max_velocity,
+    backlash_distance=0,
+    backlash_velocity=1,
+    direction="Pos",
+    llm=float("-inf"),
+    hlm=float("inf"),
+):
     """
     Create a mock axis
     Args:
@@ -420,12 +529,33 @@ def create_mock_axis(name, init_position, max_velocity, backlash_distance=0, bac
             mocked axis
     """
 
-    return MockMotorPVWrapper(name, init_position, max_velocity, True, backlash_distance, backlash_velocity, direction, llm, hlm)
+    return MockMotorPVWrapper(
+        name,
+        init_position,
+        max_velocity,
+        True,
+        backlash_distance,
+        backlash_velocity,
+        direction,
+        llm,
+        hlm,
+    )
 
 
 @observable(SetpointUpdate, ReadbackUpdate, IsChangingUpdate)
 class MockMotorPVWrapper:
-    def __init__(self, pv_name, init_position, max_velocity, is_vertical=True, backlash_distance=0, backlash_velocity=1, direction="Neg", llm=float('-inf'), hlm=float('inf')):
+    def __init__(
+        self,
+        pv_name,
+        init_position,
+        max_velocity,
+        is_vertical=True,
+        backlash_distance=0,
+        backlash_velocity=1,
+        direction="Neg",
+        llm=float("-inf"),
+        hlm=float("inf"),
+    ):
         self.name = pv_name
         self._value = init_position
         self.max_velocity = max_velocity
@@ -502,7 +632,7 @@ class MockChannelAccess:
     def pv_exists(self, pv):
         return pv in self._pvs.keys()
 
-    def add_monitor(self,pv, call_back_function):
+    def add_monitor(self, pv, call_back_function):
         pass
 
     def caget(self, pv):
@@ -515,13 +645,17 @@ class MockChannelAccess:
         self._pvs[pv] = value
 
 
-def create_mock_JawsCentrePVWrapper(name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"):
+def create_mock_JawsCentrePVWrapper(
+    name, init_position, max_velocity, backlash_distance=0, backlash_velocity=1, direction="Pos"
+):
     """
     Create a mock jaws centre pv wrapper for testing
     Returns: mock
     """
 
-    mock_jaws_wrapper = create_mock_axis(name, init_position, max_velocity, backlash_distance, backlash_velocity, direction)
+    mock_jaws_wrapper = create_mock_axis(
+        name, init_position, max_velocity, backlash_distance, backlash_velocity, direction
+    )
     mock_jaws_wrapper.define_position_as = Mock()
     mock_jaws_wrapper.is_vertical = False
 
@@ -535,7 +669,10 @@ PIVOT_TO_BEAM = 628
 BENCH_MIN_ANGLE = 0
 BENCH_MAX_ANGLE = 4.8
 
-def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH, vertical_mode=False, perp_to_floor_angle=90.0):
+
+def get_standard_bench(
+    with_z_position=0, with_angle=ANGLE_OF_BENCH, vertical_mode=False, perp_to_floor_angle=90.0
+):
     """
     Get the standard bench setup as per POLREF
     Args:
@@ -544,5 +681,18 @@ def get_standard_bench(with_z_position=0, with_angle=ANGLE_OF_BENCH, vertical_mo
     Returns:
         Bench setup correctly
     """
-    return BenchComponent("rear_bench", BenchSetup(0, with_z_position, perp_to_floor_angle, PIVOT_TO_J1, PIVOT_TO_J2, with_angle,
-                                                   PIVOT_TO_BEAM, BENCH_MIN_ANGLE, BENCH_MAX_ANGLE, vertical_mode))
+    return BenchComponent(
+        "rear_bench",
+        BenchSetup(
+            0,
+            with_z_position,
+            perp_to_floor_angle,
+            PIVOT_TO_J1,
+            PIVOT_TO_J2,
+            with_angle,
+            PIVOT_TO_BEAM,
+            BENCH_MIN_ANGLE,
+            BENCH_MAX_ANGLE,
+            vertical_mode,
+        ),
+    )

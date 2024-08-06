@@ -1,6 +1,7 @@
 """
 Reflectometry Server
 """
+
 import logging.config
 import os
 import sys
@@ -10,33 +11,25 @@ from pcaspy import SimpleServer
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-logging.config.dictConfig({
-    'version': 1,
-    'disable_existing_loggers': False,  # this fixes the problem
-    'formatters': {
-        'standard': {
-            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+logging.config.dictConfig(
+    {
+        "version": 1,
+        "disable_existing_loggers": False,  # this fixes the problem
+        "formatters": {
+            "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
         },
-    },
-    'handlers': {
-        'default': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        '': {
-            'handlers': ['default'],
-            'level': 'DEBUG',
-            'propagate': True
-             },
-        'pcaspy': {
-                'handlers': ['default'],
-                'level': 'INFO',
-                'propagate': True
+        "handlers": {
+            "default": {
+                "level": "DEBUG",
+                "class": "logging.StreamHandler",
             },
+        },
+        "loggers": {
+            "": {"handlers": ["default"], "level": "DEBUG", "propagate": True},
+            "pcaspy": {"handlers": ["default"], "level": "INFO", "propagate": True},
+        },
     }
-})
+)
 
 sys.path.insert(2, os.path.join(os.getenv("EPICS_KIT_ROOT"), "ISIS", "inst_servers", "master"))
 
@@ -68,6 +61,7 @@ def process_ca_loop():
         except Exception:
             break
 
+
 logger.info("Initialising...")
 logger.info("Prefix: {}".format(REFLECTOMETRY_PREFIX))
 
@@ -83,8 +77,12 @@ pv_manager = PVManager()
 SERVER.createPV(REFLECTOMETRY_PREFIX, pv_manager.PVDB)
 
 # Run heartbeat IOC, this is done with a different prefix
-SERVER.createPV(prefix="{pv_prefix}CS:IOC:{ioc_name}:DEVIOS:".format(pv_prefix=MYPVPREFIX, ioc_name=REFL_IOC_NAME),
-                pvdb={"HEARTBEAT": {"type": "int", "value": 0}})
+SERVER.createPV(
+    prefix="{pv_prefix}CS:IOC:{ioc_name}:DEVIOS:".format(
+        pv_prefix=MYPVPREFIX, ioc_name=REFL_IOC_NAME
+    ),
+    pvdb={"HEARTBEAT": {"type": "int", "value": 0}},
+)
 
 driver = ReflectometryDriver(SERVER, pv_manager)
 

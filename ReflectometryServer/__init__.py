@@ -1,10 +1,13 @@
 """
 Classes used by configuration for easy import
 """
+
 import os
 import sys
 
-epics_path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir, os.path.pardir)
+epics_path = os.path.join(
+    os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir, os.path.pardir
+)
 server_common_path = os.path.abspath(os.path.join(epics_path, "ISIS", "inst_servers", "master"))
 sys.path.insert(2, server_common_path)
 

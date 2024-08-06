@@ -13,8 +13,12 @@ def get_beamline(macros):
     # MODES
     nr = add_mode("nr")
 
-    other_config_comp = add_component(Component("other_config_comp", PositionAndAngle(0.0, 1, perp_to_floor)))
-    add_parameter(AxisParameter(OTHER_CONFIG_PARAM, other_config_comp, ChangeAxis.POSITION), modes=[nr])
+    other_config_comp = add_component(
+        Component("other_config_comp", PositionAndAngle(0.0, 1, perp_to_floor))
+    )
+    add_parameter(
+        AxisParameter(OTHER_CONFIG_PARAM, other_config_comp, ChangeAxis.POSITION), modes=[nr]
+    )
 
     add_beam_start(PositionAndAngle(0.0, 0.0, beam_angle_natural))
 

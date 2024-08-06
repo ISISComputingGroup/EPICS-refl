@@ -2,6 +2,7 @@
 Objects to help with calculating the beam path when interacting with a component. This is used for instance for the
 set points or readbacks etc.
 """
+
 import logging
 from dataclasses import dataclass
 from math import atan2, degrees, isnan
@@ -38,10 +39,10 @@ class BeamPathUpdate:
     """
     Event that is triggered when the path of the beam has changed.
     """
+
     # The source of the beam path change. (the beam path calc itself);
     # None for whole beamline
-    source: Optional['TrackingBeamPathCalc']
-
+    source: Optional["TrackingBeamPathCalc"]
 
 
 @dataclass
@@ -50,7 +51,10 @@ class BeamPathUpdateOnInit:
     Event that is triggered when the path of the beam has changed as a result of being initialised from file or motor
      rbv.
     """
-    source: 'TrackingBeamPathCalc'  # The source of the beam path change. (the beam path calc itself)
+
+    source: (
+        "TrackingBeamPathCalc"  # The source of the beam path change. (the beam path calc itself)
+    )
 
 
 @dataclass
@@ -58,15 +62,24 @@ class ComponentInBeamUpdate:
     """
     Event that is triggered when the in beam status of a component has changed.
     """
+
     value: bool
 
 
-@observable(InitUpdate, AxisChangingUpdate, AxisChangedUpdate, PhysicalMoveUpdate, ParkingSequenceUpdate, ComponentInBeamUpdate)
+@observable(
+    InitUpdate,
+    AxisChangingUpdate,
+    AxisChangedUpdate,
+    PhysicalMoveUpdate,
+    ParkingSequenceUpdate,
+    ComponentInBeamUpdate,
+)
 class InBeamManager:
     """
     Manages the in-beam status of a component as a whole by combining information from all axes on the component that
     can be parked.
     """
+
     # axes which are for associated with parking
     _parking_axes: List[ComponentAxis]
 
@@ -91,8 +104,12 @@ class InBeamManager:
             axes: The axes to add
         """
         for component_axis in axes.values():
-            component_axis.add_listener(AddOutOfBeamPositionEvent, self._on_add_out_of_beam_position)
-            component_axis.add_listener(ParkingSequenceUpdate, self._on_axis_end_of_parking_sequence_change)
+            component_axis.add_listener(
+                AddOutOfBeamPositionEvent, self._on_add_out_of_beam_position
+            )
+            component_axis.add_listener(
+                ParkingSequenceUpdate, self._on_axis_end_of_parking_sequence_change
+            )
 
     def add_rbv_in_beam_manager(self, rbv_in_beam_manager):
         """
@@ -100,7 +117,9 @@ class InBeamManager:
         Args:
             rbv_in_beam_manager: rbv in beam manager
         """
-        rbv_in_beam_manager.add_listener(ParkingSequenceUpdate, self._on_at_parking_sequence_position)
+        rbv_in_beam_manager.add_listener(
+            ParkingSequenceUpdate, self._on_at_parking_sequence_position
+        )
 
     def _on_add_out_of_beam_position(self, event: AddOutOfBeamPositionEvent):
         axis = event.source
@@ -114,14 +133,20 @@ class InBeamManager:
             # the sequence index on and cause that axis to move
             raise BeamlineConfigurationInvalidException(
                 f"Beamline component {self._name} can not have parking sequences of different lengths, the axes are "
-                f"{[axis.get_name() for axis in self._parking_axes]}")
+                f"{[axis.get_name() for axis in self._parking_axes]}"
+            )
 
         auto_saved_parking_index = parking_index_autosave.read_parameter(self._autosave_name, None)
-        if not (auto_saved_parking_index is None or auto_saved_parking_index + 1 >= self._maximum_sequence_count):
-            parking_index_autosave.write_parameter(self._autosave_name, None)  # Make it so refl ioc can start next time
-            raise BeamlineConfigurationParkAutosaveInvalidException(self._name, axis.get_name(),
-                                                                    auto_saved_parking_index,
-                                                                    self._maximum_sequence_count)
+        if not (
+            auto_saved_parking_index is None
+            or auto_saved_parking_index + 1 >= self._maximum_sequence_count
+        ):
+            parking_index_autosave.write_parameter(
+                self._autosave_name, None
+            )  # Make it so refl ioc can start next time
+            raise BeamlineConfigurationParkAutosaveInvalidException(
+                self._name, axis.get_name(), auto_saved_parking_index, self._maximum_sequence_count
+            )
 
         axis.add_listener(AxisChangingUpdate, self._propagate_axis_event)
         axis.add_listener(AxisChangedUpdate, self._propagate_axis_event)
@@ -185,16 +210,20 @@ class InBeamManager:
 
                 self._update_parking_index(new_index)  # sequence 1 before last
             else:
-                logger.info(f"Set in beam; not set parking sequence is at {self.parking_index} "
-                            f"(vals None, 0-{self._maximum_sequence_count+1})")
+                logger.info(
+                    f"Set in beam; not set parking sequence is at {self.parking_index} "
+                    f"(vals None, 0-{self._maximum_sequence_count+1})"
+                )
 
         else:
             # if fully in the beam start out parking sequence
             if self.parking_index is None:
                 self._update_parking_index(0)
             else:
-                logger.info(f"Set out of beam; not set parking sequence is at {self.parking_index} "
-                            f"(vals None, 0-{self._maximum_sequence_count+1})")
+                logger.info(
+                    f"Set out of beam; not set parking sequence is at {self.parking_index} "
+                    f"(vals None, 0-{self._maximum_sequence_count+1})"
+                )
         self._parking_sequence_started = True
         self.trigger_listeners(ComponentInBeamUpdate(is_in_beam))
 
@@ -224,7 +253,10 @@ class InBeamManager:
         Args:
             parking_sequence_update: update indicating that a parking sequence has ended
         """
-        if parking_sequence_update.parking_sequence == self.parking_index and self._parking_sequence_started:
+        if (
+            parking_sequence_update.parking_sequence == self.parking_index
+            and self._parking_sequence_started
+        ):
             if self.get_is_in_beam():
                 # axes are unparking
                 if self.parking_index == 0:
@@ -236,11 +268,17 @@ class InBeamManager:
             else:
                 # axes are parking
                 if self.parking_index is None:
-                    STATUS_MANAGER.update_error_log("Parking sequence error - the parking index is None but we are "
-                                                    "parking the axis, this should not be possible")
+                    STATUS_MANAGER.update_error_log(
+                        "Parking sequence error - the parking index is None but we are "
+                        "parking the axis, this should not be possible"
+                    )
                     STATUS_MANAGER.update_active_problems(
-                        ProblemInfo("Next park sequence triggered but manager is in beam (report error)",
-                                    "InBeamManager", AlarmSeverity.MINOR_ALARM))
+                        ProblemInfo(
+                            "Next park sequence triggered but manager is in beam (report error)",
+                            "InBeamManager",
+                            AlarmSeverity.MINOR_ALARM,
+                        )
+                    )
                 if self.parking_index + 1 < self._maximum_sequence_count:
                     self._move_axis_to(self.parking_index + 1)
                 else:
@@ -252,8 +290,10 @@ class InBeamManager:
         Args:
             new_parking_index: new index to move to
         """
-        logger.info(f"MOVE {self._name} to next parking sequence {new_parking_index}  "
-                    f"(vals None, 0-{self._maximum_sequence_count+1})")
+        logger.info(
+            f"MOVE {self._name} to next parking sequence {new_parking_index}  "
+            f"(vals None, 0-{self._maximum_sequence_count+1})"
+        )
         self._update_parking_index(new_parking_index)
         for axis in self._parking_axes:
             axis.is_changed = True
@@ -265,8 +305,10 @@ class InBeamManager:
         Args:
             new_parking_index: parking index to set
         """
-        logger.info(f"MOVE {self._name} to parking sequence {new_parking_index} "
-                    f"(vals None, 0-{self._maximum_sequence_count+1})")
+        logger.info(
+            f"MOVE {self._name} to parking sequence {new_parking_index} "
+            f"(vals None, 0-{self._maximum_sequence_count+1})"
+        )
         self.parking_index = new_parking_index
         parking_index_autosave.write_parameter(self._autosave_name, self.parking_index)
 
@@ -283,6 +325,7 @@ class TrackingBeamPathCalc:
     """
     Calculator for the beam path when it interacts with a component that can be displaced relative to the beam.
     """
+
     axis: Dict[ChangeAxis, ComponentAxis]
 
     def __init__(self, name, movement_strategy):
@@ -310,18 +353,21 @@ class TrackingBeamPathCalc:
         self.in_beam_manager.add_listener(AxisChangedUpdate, self._on_in_beam_status_update)
 
         self.axis = {
-            ChangeAxis.POSITION: BeamPathCalcAxis(ChangeAxis.POSITION,
-                                                  self._get_position_relative_to_beam,
-                                                  self._set_position_relative_to_beam,
-                                                  self._get_displacement_for,
-                                                  self._get_displacement,
-                                                  self._displacement_update,
-                                                  self._init_displacement_from_motor),
-
-            ChangeAxis.LONG_AXIS: BeamPathCalcModificationAxis(ChangeAxis.LONG_AXIS,
-                                                               self._on_long_axis_change),
-            ChangeAxis.DISPLACEMENT_POSITION: ReadOnlyBeamPathCalcAxis(ChangeAxis.DISPLACEMENT_POSITION,
-                                                                       self._get_displacement_at_intersect),
+            ChangeAxis.POSITION: BeamPathCalcAxis(
+                ChangeAxis.POSITION,
+                self._get_position_relative_to_beam,
+                self._set_position_relative_to_beam,
+                self._get_displacement_for,
+                self._get_displacement,
+                self._displacement_update,
+                self._init_displacement_from_motor,
+            ),
+            ChangeAxis.LONG_AXIS: BeamPathCalcModificationAxis(
+                ChangeAxis.LONG_AXIS, self._on_long_axis_change
+            ),
+            ChangeAxis.DISPLACEMENT_POSITION: ReadOnlyBeamPathCalcAxis(
+                ChangeAxis.DISPLACEMENT_POSITION, self._get_displacement_at_intersect
+            ),
         }
 
     def _init_displacement_from_motor(self, value):
@@ -335,7 +381,9 @@ class TrackingBeamPathCalc:
         if self.axis[ChangeAxis.POSITION].autosaved_value is None:
             logger.debug(f"Setting {self._name} displacement initial value from motor to {value}")
             self._movement_strategy.set_displacement(value)
-        self.axis[ChangeAxis.POSITION].trigger_listeners(InitUpdate())  # Tell Parameter layer and Theta
+        self.axis[ChangeAxis.POSITION].trigger_listeners(
+            InitUpdate()
+        )  # Tell Parameter layer and Theta
 
     def set_incoming_beam(self, incoming_beam, force=False, on_init=False):
         """
@@ -357,13 +405,17 @@ class TrackingBeamPathCalc:
             # beam path update
             autosaved_value = self.axis[ChangeAxis.POSITION].autosaved_value
             if autosaved_value is not None:
-                self._movement_strategy.set_distance_relative_to_beam(self._incoming_beam, autosaved_value)
+                self._movement_strategy.set_distance_relative_to_beam(
+                    self._incoming_beam, autosaved_value
+                )
             self.trigger_listeners(BeamPathUpdateOnInit(self))
         else:
             self.trigger_listeners(BeamPathUpdate(self))
 
     def _update_beam_path_axes(self):
-        self.axis[ChangeAxis.DISPLACEMENT_POSITION].set_relative_to_beam(self._get_displacement_at_intersect())
+        self.axis[ChangeAxis.DISPLACEMENT_POSITION].set_relative_to_beam(
+            self._get_displacement_at_intersect()
+        )
 
     def _on_set_incoming_beam(self, incoming_beam, on_init):
         """
@@ -424,7 +476,9 @@ class TrackingBeamPathCalc:
         Returns: the position at the point where the components possible movement intercepts the beam (the beam is
             the theta beam if set or the incoming beam if not)
         """
-        return self._movement_strategy.calculate_interception(self._theta_incoming_beam_if_set_else_incoming_beam())
+        return self._movement_strategy.calculate_interception(
+            self._theta_incoming_beam_if_set_else_incoming_beam()
+        )
 
     def _set_position_relative_to_beam(self, displacement):
         """
@@ -444,7 +498,8 @@ class TrackingBeamPathCalc:
 
         """
         return self._movement_strategy.get_distance_relative_to_beam(
-            self._theta_incoming_beam_if_set_else_incoming_beam())
+            self._theta_incoming_beam_if_set_else_incoming_beam()
+        )
 
     def _theta_incoming_beam_if_set_else_incoming_beam(self):
         """
@@ -486,8 +541,9 @@ class TrackingBeamPathCalc:
         Returns (float): displacement in mantid coordinates
         """
 
-        return self._movement_strategy.get_displacement_relative_to_beam_for(self._incoming_beam,
-                                                                             position_relative_to_beam)
+        return self._movement_strategy.get_displacement_relative_to_beam_for(
+            self._incoming_beam, position_relative_to_beam
+        )
 
     def _get_displacement_at_intersect(self):
         return self._get_displacement_for(0)
@@ -504,7 +560,8 @@ class TrackingBeamPathCalc:
             is the theta beam if set otherwise incoming beam
         """
         return self._movement_strategy.get_distance_relative_to_beam_in_mantid_coordinates(
-            self._theta_incoming_beam_if_set_else_incoming_beam())
+            self._theta_incoming_beam_if_set_else_incoming_beam()
+        )
 
     def intercept_in_mantid_coordinates(self, on_init=False):
         """
@@ -570,7 +627,9 @@ class TrackingBeamPathCalc:
             incoming_beam = disable_mode_autosave.read_parameter(self._name, None)
             if incoming_beam is None:
                 incoming_beam = PositionAndAngle(0, 0, 0)
-                logger.error("Incoming beam was not initialised for component {}".format(self._name))
+                logger.error(
+                    "Incoming beam was not initialised for component {}".format(self._name)
+                )
             self.set_incoming_beam(incoming_beam, force=True, on_init=True)
             # re trigger on init specifically so that if this is the component theta depends on theta get reset
             for axis in self.axis.values():
@@ -585,6 +644,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
     Calculator for the beam path when it interacts with a component that can be displaced and rotated relative to the
     beam. The rotation angle is set implicitly and is read only.
     """
+
     def __init__(self, name, movement_strategy, is_reflecting):
         """
         Initialise.
@@ -597,12 +657,15 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
         super(_BeamPathCalcWithAngle, self).__init__(name, movement_strategy)
         self._angular_displacement = 0.0
         self._is_reflecting = is_reflecting
-        self.axis[ChangeAxis.DISPLACEMENT_ANGLE] = ReadOnlyBeamPathCalcAxis(ChangeAxis.DISPLACEMENT_ANGLE,
-                                                                            self._get_angular_displacement_at_intersect)
+        self.axis[ChangeAxis.DISPLACEMENT_ANGLE] = ReadOnlyBeamPathCalcAxis(
+            ChangeAxis.DISPLACEMENT_ANGLE, self._get_angular_displacement_at_intersect
+        )
 
     def _update_beam_path_axes(self):
         super()._update_beam_path_axes()
-        self.axis[ChangeAxis.DISPLACEMENT_ANGLE].set_relative_to_beam(self._get_angular_displacement_at_intersect())
+        self.axis[ChangeAxis.DISPLACEMENT_ANGLE].set_relative_to_beam(
+            self._get_angular_displacement_at_intersect()
+        )
 
     def _set_angular_displacement(self, angle):
         """
@@ -656,7 +719,7 @@ class _BeamPathCalcWithAngle(TrackingBeamPathCalc):
             return self._incoming_beam
 
         target_position = self.calculate_beam_interception()
-        angle_between_beam_and_component = (self._angular_displacement - self._incoming_beam.angle)
+        angle_between_beam_and_component = self._angular_displacement - self._incoming_beam.angle
         angle = angle_between_beam_and_component * 2 + self._incoming_beam.angle
         outgoing_beam = PositionAndAngle(target_position.y, target_position.z, angle)
         return outgoing_beam
@@ -667,15 +730,18 @@ class SettableBeamPathCalcWithAngle(_BeamPathCalcWithAngle):
     Calculator for the beam path when it interacts with a component that can be displaced and rotated relative to the
     beam, and where the angle can be both read and set explicitly.
     """
+
     def __init__(self, name, movement_strategy, is_reflecting):
         super(SettableBeamPathCalcWithAngle, self).__init__(name, movement_strategy, is_reflecting)
-        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(ChangeAxis.ANGLE,
-                                                       self._get_angle_relative_to_beam,
-                                                       self._set_angle_relative_to_beam,
-                                                       self._get_angle_for,
-                                                       self._get_angular_displacement,
-                                                       self._set_angular_displacement,
-                                                       self._init_angle_from_motor)
+        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(
+            ChangeAxis.ANGLE,
+            self._get_angle_relative_to_beam,
+            self._set_angle_relative_to_beam,
+            self._get_angle_for,
+            self._get_angular_displacement,
+            self._set_angular_displacement,
+            self._init_angle_from_motor,
+        )
 
     def _init_angle_from_motor(self, angle):
         """
@@ -706,6 +772,7 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
     A reflecting beam path calculator which has a read only angle based on the angle to a list of beam path
     calculations. This is used for example for Theta where the angle is the angle to the next enabled component.
     """
+
     _angle_to: List[Tuple[TrackingBeamPathCalc, TrackingBeamPathCalc, List[ChangeAxis]]]
 
     def __init__(self, name, movement_strategy, theta_setpoint_beam_path_calc):
@@ -719,14 +786,16 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
 
         """
         super(BeamPathCalcThetaRBV, self).__init__(name, movement_strategy, is_reflecting=True)
-        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(ChangeAxis.ANGLE,
-                                                       self._get_angle_relative_to_beam,
-                                                       self._set_angle_relative_to_beam)
+        self.axis[ChangeAxis.ANGLE] = BeamPathCalcAxis(
+            ChangeAxis.ANGLE, self._get_angle_relative_to_beam, self._set_angle_relative_to_beam
+        )
 
         self.axis[ChangeAxis.ANGLE].can_define_axis_position_as = False
         self._angle_to = []
         self.theta_setpoint_beam_path_calc = theta_setpoint_beam_path_calc
-        self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
+        self._add_pre_trigger_function(
+            BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component
+        )
 
     def add_angle_to(self, readback_beam_path_calc, setpoint_beam_path_calc, axes):
         """
@@ -744,13 +813,17 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         # and add to beamline change of set point because no loop is created from the setpoint action
         for axis in axes:
             readback_beam_path_calc.axis[axis].add_listener(PhysicalMoveUpdate, self._angle_update)
-            readback_beam_path_calc.axis[axis].add_listener(AxisChangingUpdate, self._on_is_changing_change)
+            readback_beam_path_calc.axis[axis].add_listener(
+                AxisChangingUpdate, self._on_is_changing_change
+            )
         readback_beam_path_calc.in_beam_manager.add_listener(PhysicalMoveUpdate, self._angle_update)
 
         setpoint_beam_path_calc.add_listener(BeamPathUpdate, self._angle_update)
         setpoint_beam_path_calc.add_listener(BeamPathUpdateOnInit, self._angle_update)
 
-        readback_beam_path_calc.in_beam_manager.add_listener(AxisChangingUpdate, self._on_is_changing_change)
+        readback_beam_path_calc.in_beam_manager.add_listener(
+            AxisChangingUpdate, self._on_is_changing_change
+        )
 
     def _on_is_changing_change(self, _):
         """
@@ -773,7 +846,9 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         self.axis[ChangeAxis.ANGLE].is_changing = theta_is_changing
 
     def _angle_update(self, _):
-        self._set_angular_displacement(self._set_up_next_component_and_return_angle_set_by_it(self._incoming_beam))
+        self._set_angular_displacement(
+            self._set_up_next_component_and_return_angle_set_by_it(self._incoming_beam)
+        )
 
     def _set_up_next_component_and_return_angle_set_by_it(self, incoming_beam):
         """
@@ -809,15 +884,18 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
                 elif ChangeAxis.ANGLE in axes:
                     # rbv should not include setpoint offset angle
                     other_angle = readback_beam_path_calc.axis[ChangeAxis.ANGLE].get_displacement()
-                    other_setpoint_offset = set_point_beam_path_calc.axis[ChangeAxis.ANGLE].get_relative_to_beam()
+                    other_setpoint_offset = set_point_beam_path_calc.axis[
+                        ChangeAxis.ANGLE
+                    ].get_relative_to_beam()
                     angle_of_outgoing_beam = other_angle - other_setpoint_offset
                 else:
                     raise RuntimeError("Theta can not depend on the {} axes".format(axes))
 
                 angle = (angle_of_outgoing_beam - incoming_beam.angle) / 2.0 + incoming_beam.angle
                 # set the beam path for the selected component
-                readback_beam_path_calc.substitute_incoming_beam_for_displacement = \
+                readback_beam_path_calc.substitute_incoming_beam_for_displacement = (
                     self.theta_setpoint_beam_path_calc.get_outgoing_beam()
+                )
 
                 severity, status = self.calculate_alarm_based_on_axes(axes, readback_beam_path_calc)
                 self.axis[ChangeAxis.ANGLE].set_alarm(severity, status)
@@ -842,7 +920,9 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
         all_undefined = True
         for axis in axes:
             axis_severity, axis_status = readback_beam_path_calc.axis[axis].alarm
-            undefined = (axis_severity == AlarmSeverity.Invalid) and (axis_status == AlarmStatus.UDF)
+            undefined = (axis_severity == AlarmSeverity.Invalid) and (
+                axis_status == AlarmStatus.UDF
+            )
             all_undefined &= undefined
             if not undefined and axis_severity > max_severity:
                 max_severity, max_status = axis_severity, axis_status
@@ -860,14 +940,19 @@ class BeamPathCalcThetaRBV(_BeamPathCalcWithAngle):
             incoming_beam(PositionAndAngle): incoming beam
             on_init(bool): True if during initialisation
         """
-        self._angular_displacement = self._set_up_next_component_and_return_angle_set_by_it(incoming_beam)
+        self._angular_displacement = self._set_up_next_component_and_return_angle_set_by_it(
+            incoming_beam
+        )
 
     def _set_incoming_beam_at_next_angled_to_component(self):
         """
         Sets the incoming beam at the next disabled component in beam that this theta component is angled to.
         """
         for readback_beam_path_calc, _, _ in self._angle_to:
-            if not readback_beam_path_calc.incoming_beam_can_change and readback_beam_path_calc.is_in_beam:
+            if (
+                not readback_beam_path_calc.incoming_beam_can_change
+                and readback_beam_path_calc.is_in_beam
+            ):
                 readback_beam_path_calc.set_incoming_beam(self.get_outgoing_beam(), force=True)
                 break
 
@@ -878,6 +963,7 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
     beam on the component it is pointing at when in disable mode. It will only change the beam if the component is in
     the beam.
     """
+
     _angle_to: List[Tuple[TrackingBeamPathCalc, List[ChangeAxis]]]
 
     def __init__(self, name, movement_strategy):
@@ -889,8 +975,12 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         """
         super(BeamPathCalcThetaSP, self).__init__(name, movement_strategy, is_reflecting=True)
         self._angle_to = []
-        self._add_pre_trigger_function(BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component)
-        self._add_pre_trigger_function(BeamPathUpdateOnInit, self._set_incoming_beam_at_next_angled_to_component)
+        self._add_pre_trigger_function(
+            BeamPathUpdate, self._set_incoming_beam_at_next_angled_to_component
+        )
+        self._add_pre_trigger_function(
+            BeamPathUpdateOnInit, self._set_incoming_beam_at_next_angled_to_component
+        )
 
     def add_angle_to(self, beam_path_calc, axes):
         """
@@ -935,7 +1025,9 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
         for setpoint_beam_path_calc, axis in self._angle_to:
             if setpoint_beam_path_calc.is_in_beam:
                 if ChangeAxis.POSITION in axis:
-                    other_pos = setpoint_beam_path_calc.intercept_in_mantid_coordinates(on_init=True)
+                    other_pos = setpoint_beam_path_calc.intercept_in_mantid_coordinates(
+                        on_init=True
+                    )
                     this_pos = self._movement_strategy.calculate_interception(incoming_beam)
 
                     opp = other_pos.y - this_pos.y
@@ -947,11 +1039,15 @@ class BeamPathCalcThetaSP(SettableBeamPathCalcWithAngle):
 
                     angle_of_outgoing_beam = degrees(atan2(opp, adj))
                 elif ChangeAxis.ANGLE in axis:
-                    angle_of_outgoing_beam = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].get_displacement()
+                    angle_of_outgoing_beam = setpoint_beam_path_calc.axis[
+                        ChangeAxis.ANGLE
+                    ].get_displacement()
                     # if there is an auto saved offset then take this off before calculating theta
                     offset = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].autosaved_value
                     if offset is not None:
-                        init_from_motor = setpoint_beam_path_calc.axis[ChangeAxis.ANGLE].init_from_motor
+                        init_from_motor = setpoint_beam_path_calc.axis[
+                            ChangeAxis.ANGLE
+                        ].init_from_motor
                         angle_of_outgoing_beam = init_from_motor - offset
                 else:
                     raise RuntimeError("Can not set theta angle based on {} axis".format(axis))

@@ -1,6 +1,7 @@
 """
 Classes and objects describing the movement of items
 """
+
 from __future__ import division
 
 from math import fabs, radians, sqrt, tan
@@ -52,14 +53,20 @@ class LinearMovementCalc:
             y, z = self._zero_angle(y_b, self._current_position_at_zero, self._angle)
         elif fabs(angle_m % 180.0) <= ANGULAR_TOLERANCE:
             y, z = self._zero_angle(y_m, beam, beam.angle)
-        elif fabs(angle_m % 180.0 - 90) <= ANGULAR_TOLERANCE or fabs(angle_m % 180.0 + 90) <= ANGULAR_TOLERANCE:
+        elif (
+            fabs(angle_m % 180.0 - 90) <= ANGULAR_TOLERANCE
+            or fabs(angle_m % 180.0 + 90) <= ANGULAR_TOLERANCE
+        ):
             y, z = self._right_angle(z_m, beam, beam.angle)
-        elif fabs(angle_b % 180.0 - 90) <= ANGULAR_TOLERANCE or fabs(angle_b % 180.0 + 90) <= ANGULAR_TOLERANCE:
+        elif (
+            fabs(angle_b % 180.0 - 90) <= ANGULAR_TOLERANCE
+            or fabs(angle_b % 180.0 + 90) <= ANGULAR_TOLERANCE
+        ):
             y, z = self._right_angle(z_b, self._current_position_at_zero, self._angle)
         else:
             tan_b = tan(radians(angle_b))
             tan_m = tan(radians(angle_m))
-            z = 1/(tan_m - tan_b) * (y_b - y_m + z_m * tan_m - z_b * tan_b)
+            z = 1 / (tan_m - tan_b) * (y_b - y_m + z_m * tan_m - z_b * tan_b)
             y = tan_b * tan_m / (tan_b - tan_m) * (y_m / tan_m - y_b / tan_b + z_b - z_m)
 
         return Position(y, z)
@@ -124,7 +131,9 @@ class LinearMovementCalc:
         if displacement is None:
             displacement = self._displacement
 
-        return self._current_position_at_zero + position_from_radial_coords(displacement, self._angle)
+        return self._current_position_at_zero + position_from_radial_coords(
+            displacement, self._angle
+        )
 
     def set_displacement(self, displacement):
         """

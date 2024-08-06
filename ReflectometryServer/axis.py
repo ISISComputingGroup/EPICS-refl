@@ -1,6 +1,7 @@
 """
 Axis module, defining the position of a component. Contains associated events as well.
 """
+
 import logging
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
@@ -15,8 +16,9 @@ from ReflectometryServer.geometry import ChangeAxis
 logger = logging.getLogger(__name__)
 
 # Event that is triggered when the physical position of this component changes.
-PhysicalMoveUpdate = namedtuple("PhysicalMoveUpdate", [
-    "source"])  # The source of the beam path change. (the axis itself)
+PhysicalMoveUpdate = namedtuple(
+    "PhysicalMoveUpdate", ["source"]
+)  # The source of the beam path change. (the axis itself)
 
 # Event that is triggered when the changing state of the axis is updated (i.e. it starts or stops moving)
 AxisChangingUpdate = namedtuple("AxisChangingUpdate", [])
@@ -27,13 +29,18 @@ class InitUpdate:
     """
     Event that is triggered when the position or angle of the beam path calc gets an initial value.
     """
+
     pass
 
 
 # Event that happens when a value is redefine to a different value, e.g. offset is set from 2 to 3
-DefineValueAsEvent = namedtuple("DefineValueAsEvent", [
-    "new_position",  # the new value
-    "change_axis"])  # the axis it applies to of type ChangeAxis
+DefineValueAsEvent = namedtuple(
+    "DefineValueAsEvent",
+    [
+        "new_position",  # the new value
+        "change_axis",
+    ],
+)  # the axis it applies to of type ChangeAxis
 
 
 @dataclass()
@@ -41,6 +48,7 @@ class AddOutOfBeamPositionEvent:
     """
     Event that is triggered an ioc driver with a parked position is added to an axis
     """
+
     source: "ComponentAxis"
 
 
@@ -49,6 +57,7 @@ class AxisChangedUpdate:
     """
     Event when the user has changed the parameter but not yet been moved to (e.g. the yellow background)
     """
+
     is_changed_update: bool  # True if there is an unapplied updated; False otherwise
 
 
@@ -57,6 +66,7 @@ class SetRelativeToBeamUpdate:
     """
     Event when relative to beam has been updated
     """
+
     relative_to_beam: float
 
 
@@ -65,18 +75,29 @@ class ParkingSequenceUpdate:
     """
     Event when parking sequence has been updated
     """
+
     parking_sequence: Optional[int]  # the parking sequence index set
 
 
-@observable(DefineValueAsEvent, AxisChangingUpdate, PhysicalMoveUpdate, InitUpdate, AxisChangedUpdate,
-            SetRelativeToBeamUpdate, AddOutOfBeamPositionEvent, ParkingSequenceUpdate)
+@observable(
+    DefineValueAsEvent,
+    AxisChangingUpdate,
+    PhysicalMoveUpdate,
+    InitUpdate,
+    AxisChangedUpdate,
+    SetRelativeToBeamUpdate,
+    AddOutOfBeamPositionEvent,
+    ParkingSequenceUpdate,
+)
 class ComponentAxis(metaclass=ABCMeta):
     """
     A components axis of movement, allowing setting in both mantid and relative coordinates. Transmits alarms,
     changed and changes.
     """
 
-    _parking_index: Optional[int]  # The last parking sequence position moved to (rbv)/about to be moved to (sp)
+    _parking_index: Optional[
+        int
+    ]  # The last parking sequence position moved to (rbv)/about to be moved to (sp)
 
     def __init__(self, axis: ChangeAxis):
         """
@@ -209,11 +230,11 @@ class ComponentAxis(metaclass=ABCMeta):
     @is_changing.setter
     def is_changing(self, value):
         """
-         Update the changing state of the component and notifies relevant listeners. Changing is usually caused by
-         the motor axis moving.
+        Update the changing state of the component and notifies relevant listeners. Changing is usually caused by
+        the motor axis moving.
 
-         Args:
-             value: the new rotating state
+        Args:
+            value: the new rotating state
         """
         self._is_changing = value
         self.trigger_listeners(AxisChangingUpdate())
@@ -322,6 +343,7 @@ class DirectCalcAxis(ComponentAxis):
     """
     Directly connect the relative and the mantid coordinates together
     """
+
     def __init__(self, axis: ChangeAxis):
         super(DirectCalcAxis, self).__init__(axis)
         self.can_define_axis_position_as = True
@@ -390,6 +412,7 @@ class BeamPathCalcModificationAxis(DirectCalcAxis):
     This is basically a thin layer that calls the function on the direct calc axis but informs the beam path calc of
     what it's doing. This object is initialised with the functions to call.
     """
+
     def __init__(self, axis, update_calc_function):
         """
         Initialiser.
@@ -437,8 +460,17 @@ class BeamPathCalcAxis(ComponentAxis):
     This is basically a thin layer that calls the function on the axis and then delegates to the beam path calc. This
     object is initialised with the functions to call.
     """
-    def __init__(self, axis, get_relative_to_beam, set_relative_to_beam, get_displacement_for=None,
-                 get_displacement=None, set_displacement=None, init_displacement_from_motor=None):
+
+    def __init__(
+        self,
+        axis,
+        get_relative_to_beam,
+        set_relative_to_beam,
+        get_displacement_for=None,
+        get_displacement=None,
+        set_displacement=None,
+        init_displacement_from_motor=None,
+    ):
         """
         Initialiser.
         Args:
@@ -518,11 +550,14 @@ class BeamPathCalcAxis(ComponentAxis):
 
 
 class ReadOnlyBeamPathCalcAxis(BeamPathCalcAxis):
-
     def __init__(self, axis, get_relative_to_beam):
-        super(ReadOnlyBeamPathCalcAxis, self).__init__(axis, get_relative_to_beam, self._do_nothing_function,
-                                                       get_displacement=get_relative_to_beam,
-                                                       set_displacement=self._do_nothing_function)
+        super(ReadOnlyBeamPathCalcAxis, self).__init__(
+            axis,
+            get_relative_to_beam,
+            self._do_nothing_function,
+            get_displacement=get_relative_to_beam,
+            set_displacement=self._do_nothing_function,
+        )
         self.set_alarm(AlarmSeverity.No, AlarmStatus.No)
 
     def get_displacement(self):
@@ -533,4 +568,3 @@ class ReadOnlyBeamPathCalcAxis(BeamPathCalcAxis):
 
     def _do_nothing_function(self, _):
         pass
-

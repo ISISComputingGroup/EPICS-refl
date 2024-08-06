@@ -1,6 +1,7 @@
 """
 Objects to Create a beamline from the configuration.
 """
+
 import sys
 import traceback
 from importlib import import_module
@@ -31,7 +32,12 @@ def _create_beamline_in_error(error_message):
     beamline = Beamline([], [], [], [error_mode])
     try:
         STATUS_MANAGER.update_active_problems(
-            ProblemInfo("Error reading configuration: {}".format(error_message), "Configuration", Severity.MAJOR_ALARM))
+            ProblemInfo(
+                "Error reading configuration: {}".format(error_message),
+                "Configuration",
+                Severity.MAJOR_ALARM,
+            )
+        )
     except Exception as e:
         print(e)
     return beamline
@@ -70,34 +76,49 @@ def create_beamline_from_configuration(macros):
     """
 
     try:
-        print_and_log("Importing get_beamline function from config.py in {}".format(REFL_CONFIG_PATH),
-                      SEVERITY.INFO, src=REFL_IOC_NAME)
+        print_and_log(
+            "Importing get_beamline function from config.py in {}".format(REFL_CONFIG_PATH),
+            SEVERITY.INFO,
+            src=REFL_IOC_NAME,
+        )
         sys.path.insert(0, REFL_CONFIG_PATH)
         # noinspection PyUnresolvedReferences
         config_to_load = _get_config_to_load(macros)
-        print_and_log("Importing get_beamline function from {} in {}".format(config_to_load, REFL_CONFIG_PATH),
-                      SEVERITY.INFO, src=REFL_IOC_NAME)
+        print_and_log(
+            "Importing get_beamline function from {} in {}".format(
+                config_to_load, REFL_CONFIG_PATH
+            ),
+            SEVERITY.INFO,
+            src=REFL_IOC_NAME,
+        )
         config = import_module(_get_config_to_load(macros))
         beamline = config.get_beamline(macros)
 
     except ImportError as error:
-
-        print_and_log(error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME)
+        print_and_log(
+            error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME
+        )
 
         beamline = _create_beamline_in_error("Configuration not found.")
 
     except BeamlineConfigurationParkAutosaveInvalidException as error:
-        print_and_log(error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME)
+        print_and_log(
+            error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME
+        )
         traceback.print_exc(file=sys.stdout)
         beamline = _create_beamline_in_error(str(error))
 
     except BeamlineConfigurationInvalidException as error:
-        print_and_log(error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME)
+        print_and_log(
+            error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME
+        )
         traceback.print_exc(file=sys.stdout)
         beamline = _create_beamline_in_error("Beamline configuration is invalid.")
 
     except Exception as error:
-        print_and_log(error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME)
+        print_and_log(
+            error.__class__.__name__ + ": " + str(error), SEVERITY.MAJOR, src=REFL_IOC_NAME
+        )
         traceback.print_exc(file=sys.stdout)
         beamline = _create_beamline_in_error("Can not read configuration.")
 

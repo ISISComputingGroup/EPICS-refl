@@ -7,6 +7,7 @@ class BeamlineConstant:
     """
     A parameter of the beamline which is constant
     """
+
     def __init__(self, name, value, description=None):
         """
         Initialiser.

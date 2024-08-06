@@ -1,6 +1,7 @@
 """
 Wrapper for motor PVs
 """
+
 import abc
 import logging
 import threading
@@ -33,22 +34,34 @@ DEFAULT_SCALE_FACTOR = 100.0
 
 
 # An update of the setpoint value of this motor axis.
-SetpointUpdate = namedtuple("SetpointUpdate", [
-    "value",            # The new setpoint value of the axis (float)
-    "alarm_severity",   # The alarm severity of the axis, represented as an integer (see Channel Access doc)
-    "alarm_status"])    # The alarm status of the axis, represented as an integer (see Channel Access doc)
+SetpointUpdate = namedtuple(
+    "SetpointUpdate",
+    [
+        "value",  # The new setpoint value of the axis (float)
+        "alarm_severity",  # The alarm severity of the axis, represented as an integer (see Channel Access doc)
+        "alarm_status",
+    ],
+)  # The alarm status of the axis, represented as an integer (see Channel Access doc)
 
 # An update of the readback value of this motor axis.
-ReadbackUpdate = namedtuple("ReadbackUpdate", [
-    "value",            # The new readback value of the axis (float)
-    "alarm_severity",   # The alarm severity of the axis, represented as an integer (see Channel Access doc)
-    "alarm_status"])    # The alarm status of the axis, represented as an integer (see Channel Access doc)
+ReadbackUpdate = namedtuple(
+    "ReadbackUpdate",
+    [
+        "value",  # The new readback value of the axis (float)
+        "alarm_severity",  # The alarm severity of the axis, represented as an integer (see Channel Access doc)
+        "alarm_status",
+    ],
+)  # The alarm status of the axis, represented as an integer (see Channel Access doc)
 
 # An update of the is-changing state of this motor axis.
-IsChangingUpdate = namedtuple("IsChangingUpdate", [
-    "value",            # The new is-changing state of the axis (boolean)
-    "alarm_severity",   # The alarm severity of the axis, represented as an integer (see Channel Access doc)
-    "alarm_status"])    # The alarm status of the axis, represented as an integer (see Channel Access doc)
+IsChangingUpdate = namedtuple(
+    "IsChangingUpdate",
+    [
+        "value",  # The new is-changing state of the axis (boolean)
+        "alarm_severity",  # The alarm severity of the axis, represented as an integer (see Channel Access doc)
+        "alarm_status",
+    ],
+)  # The alarm status of the axis, represented as an integer (see Channel Access doc)
 
 
 class ProcessMonitorEvents:
@@ -105,7 +118,8 @@ class ProcessMonitorEvents:
         except Exception as e:
             STATUS_MANAGER.update_error_log("Failed to set motor moving pv: {}".format(e), e)
             STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Failed to update motor moving pv", "pv_wrapper", Severity.MAJOR_ALARM))
+                ProblemInfo("Failed to update motor moving pv", "pv_wrapper", Severity.MAJOR_ALARM)
+            )
 
     def process_current_triggers(self):
         """
@@ -136,6 +150,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
     """
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
     """
+
     def __init__(self, base_pv, ca=None, min_velocity_scale_factor=None):
         """
         Creates a wrapper around a PV.
@@ -184,7 +199,9 @@ class PVWrapper(metaclass=abc.ABCMeta):
         while not self._ca.pv_exists(self._rbv_pv):
             STATUS_MANAGER.update_error_log(
                 "{} does not exist. Check the PV is correct and the IOC is running. Retrying in {} s.".format(
-                    self._rbv_pv, RETRY_INTERVAL))
+                    self._rbv_pv, RETRY_INTERVAL
+                )
+            )
             time.sleep(RETRY_INTERVAL)
 
     @abc.abstractmethod
@@ -248,7 +265,8 @@ class PVWrapper(metaclass=abc.ABCMeta):
             else:
                 STATUS_MANAGER.update_error_log(
                     "Error adding monitor to {}: PV does not exist. Check the PV is correct and the IOC is running. "
-                    "Retrying in {} s.".format(pv, RETRY_INTERVAL))
+                    "Retrying in {} s.".format(pv, RETRY_INTERVAL)
+                )
                 time.sleep(RETRY_INTERVAL)
 
     def _read_pv(self, pv):
@@ -263,7 +281,9 @@ class PVWrapper(metaclass=abc.ABCMeta):
             return value
         else:
             STATUS_MANAGER.update_error_log("Could not connect to PV {}.".format(pv))
-            raise UnableToConnectToPVException(pv, "Check configuration is correct and IOC is running.")
+            raise UnableToConnectToPVException(
+                pv, "Check configuration is correct and IOC is running."
+            )
 
     def _write_pv(self, pv, value, wait=False):
         """
@@ -403,25 +423,43 @@ class PVWrapper(metaclass=abc.ABCMeta):
         """
         autosave_value = velocity_float_autosave.read_parameter(self.name, None)
         if autosave_value is not None:
-            logger.debug("Restoring {pv_name} velocity_cache with auto-save value {value}"
-                         .format(pv_name=self.name, value=autosave_value))
+            logger.debug(
+                "Restoring {pv_name} velocity_cache with auto-save value {value}".format(
+                    pv_name=self.name, value=autosave_value
+                )
+            )
             self._velocity_to_restore = autosave_value
         else:
-            logger.error("Error: Unable to initialise velocity cache from auto-save for {}."
-                         .format(self.name))
+            logger.error(
+                "Error: Unable to initialise velocity cache from auto-save for {}.".format(
+                    self.name
+                )
+            )
 
         if autosave_value is not None:
-            autosave_value = velocity_bool_autosave.read_parameter(self.name + "_velocity_restored", None)
+            autosave_value = velocity_bool_autosave.read_parameter(
+                self.name + "_velocity_restored", None
+            )
             if autosave_value is not None:
-                logger.debug("Restoring {pv_name} velocity_restored with auto-save value {value}"
-                             .format(pv_name=self.name, value=autosave_value))
+                logger.debug(
+                    "Restoring {pv_name} velocity_restored with auto-save value {value}".format(
+                        pv_name=self.name, value=autosave_value
+                    )
+                )
                 self._velocity_restored = autosave_value
             else:
                 STATUS_MANAGER.update_error_log(
                     "Error: Unable to initialise velocity_restored flag from auto-save for {}.".format(
-                        self.name))
+                        self.name
+                    )
+                )
                 STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("Unable to read autosaved velocity_restored flag", self.name, Severity.MINOR_ALARM))
+                    ProblemInfo(
+                        "Unable to read autosaved velocity_restored flag",
+                        self.name,
+                        Severity.MINOR_ALARM,
+                    )
+                )
 
     def record_no_cache_velocity(self):
         """
@@ -442,11 +480,14 @@ class PVWrapper(metaclass=abc.ABCMeta):
             self._velocity_to_restore = self.velocity
             velocity_float_autosave.write_parameter(self.name, self._velocity_to_restore)
             self._velocity_restored = False
-            velocity_bool_autosave.write_parameter(self.name + "_velocity_restored", self._velocity_restored)
+            velocity_bool_autosave.write_parameter(
+                self.name + "_velocity_restored", self._velocity_restored
+            )
         elif not self._velocity_restored and self._moving_state_cache == MTR_STOPPED:
             STATUS_MANAGER.update_error_log(
                 "Velocity for {pv_name} has not been cached as existing cache has not been restored and "
-                "is stationary.".format(pv_name=self.name))
+                "is stationary.".format(pv_name=self.name)
+            )
         elif not self._velocity_restored and self._moving_state_cache == MTR_MOVING:
             # Move interrupting current move. Leave the original cache so it can be restored once all
             # moves have been completed.
@@ -461,20 +502,31 @@ class PVWrapper(metaclass=abc.ABCMeta):
         if self._velocity_restored:
             STATUS_MANAGER.update_error_log(
                 "Velocity for {pv_name} has not been restored from cache. The cache has already been "
-                "restored previously. Hint: Are you moving the axis outside of the reflectometry server?"
-                .format(pv_name=self.name))
+                "restored previously. Hint: Are you moving the axis outside of the reflectometry server?".format(
+                    pv_name=self.name
+                )
+            )
         else:
             if self._velocity_to_restore is None:
                 STATUS_MANAGER.update_error_log(
-                    "Cannot restore velocity: velocity cache is None for {pv_name}".format(pv_name=self.name))
+                    "Cannot restore velocity: velocity cache is None for {pv_name}".format(
+                        pv_name=self.name
+                    )
+                )
                 STATUS_MANAGER.update_active_problems(
-                    ProblemInfo("Unable to restore axis velocity", self.name, Severity.MINOR_ALARM))
+                    ProblemInfo("Unable to restore axis velocity", self.name, Severity.MINOR_ALARM)
+                )
             else:
-                logger.debug("Restoring velocity cache of {value} for {pv_name}"
-                             .format(value=self._velocity_to_restore, pv_name=self.name))
+                logger.debug(
+                    "Restoring velocity cache of {value} for {pv_name}".format(
+                        value=self._velocity_to_restore, pv_name=self.name
+                    )
+                )
                 self._write_pv(self._velo_pv, self._velocity_to_restore)
             self._velocity_restored = True
-            velocity_bool_autosave.write_parameter(self.name + "_velocity_restored", self._velocity_restored)
+            velocity_bool_autosave.write_parameter(
+                self.name + "_velocity_restored", self._velocity_restored
+            )
 
     def _on_update_setpoint_value(self, new_value, alarm_severity, alarm_status):
         """
@@ -485,8 +537,9 @@ class PVWrapper(metaclass=abc.ABCMeta):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners,
-                                           SetpointUpdate(new_value, alarm_severity, alarm_status))
+        PROCESS_MONITOR_EVENTS.add_trigger(
+            self.trigger_listeners, SetpointUpdate(new_value, alarm_severity, alarm_status)
+        )
 
     def _on_update_readback_value(self, new_value, alarm_severity, alarm_status):
         """
@@ -498,8 +551,9 @@ class PVWrapper(metaclass=abc.ABCMeta):
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
 
-        PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners,
-                                           ReadbackUpdate(new_value, alarm_severity, alarm_status))
+        PROCESS_MONITOR_EVENTS.add_trigger(
+            self.trigger_listeners, ReadbackUpdate(new_value, alarm_severity, alarm_status)
+        )
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
         """
@@ -510,8 +564,11 @@ class PVWrapper(metaclass=abc.ABCMeta):
             alarm_severity (server_common.channel_access.AlarmSeverity): severity of any alarm
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
-        if self._moving_state_cache == MTR_MOVING and new_value == MTR_STOPPED \
-                and not self._moving_without_changing_velocity:
+        if (
+            self._moving_state_cache == MTR_MOVING
+            and new_value == MTR_STOPPED
+            and not self._moving_without_changing_velocity
+        ):
             self.restore_pre_move_velocity()
         self._moving_state_cache = round(new_value)
 
@@ -536,7 +593,9 @@ class PVWrapper(metaclass=abc.ABCMeta):
             alarm_status (server_common.channel_access.AlarmCondition): the alarm status
         """
         self._velocity_cache = value
-        velocity_autosave_not_read_and_not_moving = (self._velocity_restored is None and not self.is_moving)
+        velocity_autosave_not_read_and_not_moving = (
+            self._velocity_restored is None and not self.is_moving
+        )
         if self._velocity_restored or velocity_autosave_not_read_and_not_moving:
             self._velocity_to_restore = value
             logger.info(f"{self._name}: Changed velocity to restore. New value: {value} ")
@@ -616,6 +675,7 @@ class MotorPVWrapper(PVWrapper):
     """
     Wrap a low level motor PV. Provides relevant listeners and synchronization utilities.
     """
+
     def __init__(self, base_pv, ca=None, min_velocity_scale_factor=None):
         """
         Creates a wrapper around a low level motor PV.
@@ -661,13 +721,15 @@ class MotorPVWrapper(PVWrapper):
         except ValueError as ex:
             STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex), ex)
             STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Failed to redefine position", self.name, Severity.MINOR_ALARM))
+                ProblemInfo("Failed to redefine position", self.name, Severity.MINOR_ALARM)
+            )
 
 
 class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
     """
     Creates a wrapper around a jaws axis.
     """
+
     def __init__(self, base_pv, is_vertical, ca=None):
         """
         Creates a wrapper around a jaws axis.
@@ -701,7 +763,9 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
         Set the motor resolution for this axis.
         """
         motor_resolutions_pvs = self._pv_names_for_directions("MTR.MRES")
-        motor_resolutions = [self._read_pv(motor_resolutions_pv) for motor_resolutions_pv in motor_resolutions_pvs]
+        motor_resolutions = [
+            self._read_pv(motor_resolutions_pv) for motor_resolutions_pv in motor_resolutions_pvs
+        ]
         self._resolution = float(sum(motor_resolutions)) / len(motor_resolutions_pvs)
 
     def initialise(self):
@@ -720,10 +784,12 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
 
         # For jaws axes, soft limits don't apply as putting a huge number in will just open jaws up instead
         # of preventing a SP being taken
-        self._high_limit_cache = float('inf')
-        self._low_limit_cache = float('-inf')
+        self._high_limit_cache = float("inf")
+        self._low_limit_cache = float("-inf")
 
-        self._backlash_distance_cache = 0  # No backlash used as source of clash conditions on jaws sets
+        self._backlash_distance_cache = (
+            0  # No backlash used as source of clash conditions on jaws sets
+        )
         self._add_monitors()
 
     def _add_monitors(self):
@@ -735,8 +801,10 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
         self._monitor_pv(self._dmov_pv, self._on_update_moving_state)
 
         for velo_pv in self._pv_names_for_directions("MTR.VELO"):
-            self._monitor_pv(velo_pv, partial(self._on_update_individual_velocity,
-                                              source=self._strip_source_pv(velo_pv)))
+            self._monitor_pv(
+                velo_pv,
+                partial(self._on_update_individual_velocity, source=self._strip_source_pv(velo_pv)),
+            )
 
     @property
     def velocity(self):
@@ -755,11 +823,17 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
         Args:
             value (float): The value to set
         """
-        STATUS_MANAGER.update_error_log("Error: An attempt was made to write a velocity to a Jaws Axis. We do not "
-                                        "support this as we do not expect jaws to be synchronised.")
+        STATUS_MANAGER.update_error_log(
+            "Error: An attempt was made to write a velocity to a Jaws Axis. We do not "
+            "support this as we do not expect jaws to be synchronised."
+        )
         STATUS_MANAGER.update_active_problems(
-            ProblemInfo("Drivers for Jaws axes should not be synchronised. Check configuration", self.name,
-                        Severity.MINOR_ALARM))
+            ProblemInfo(
+                "Drivers for Jaws axes should not be synchronised. Check configuration",
+                self.name,
+                Severity.MINOR_ALARM,
+            )
+        )
 
     @property
     def max_velocity(self):
@@ -775,8 +849,10 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
 
         Returns (String): list of pv names for the different directions
         """
-        return ["{}:{}:{}".format(self._prefixed_pv, direction, suffix)
-                for direction in self._directions]
+        return [
+            "{}:{}:{}".format(self._prefixed_pv, direction, suffix)
+            for direction in self._directions
+        ]
 
     def _on_update_individual_velocity(self, value, _alarm_severity, _alarm_status, source=None):
         self._velocities[source] = value
@@ -807,7 +883,8 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
             if key in pv:
                 return key
         STATUS_MANAGER.update_error_log(
-            "Wrapper for {} received event from unexpected source: {}".format(self.name, pv))
+            "Wrapper for {} received event from unexpected source: {}".format(self.name, pv)
+        )
 
     def define_position_as(self, new_position):
         """
@@ -817,13 +894,20 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
         """
         try:
             mtr1, mtr2 = self._pv_names_for_directions("MTR")
-            logger.info("Defining position for axis {name} to {corrected_value}. "
-                        "From sp {sp} and rbv {rbv}.".format(name=self.name, corrected_value=new_position,
-                                                             sp=self.sp, rbv=self.rbv))
+            logger.info(
+                "Defining position for axis {name} to {corrected_value}. "
+                "From sp {sp} and rbv {rbv}.".format(
+                    name=self.name, corrected_value=new_position, sp=self.sp, rbv=self.rbv
+                )
+            )
             for motor in self._pv_names_for_directions("MTR"):
                 rbv = self._read_pv("{}.RBV".format(motor))
                 sp = self._read_pv("{}".format(motor))
-                logger.info("    Motor {name} initially at rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
+                logger.info(
+                    "    Motor {name} initially at rbv {rbv} sp {sp}".format(
+                        name=motor, rbv=rbv, sp=sp
+                    )
+                )
 
             with motor_in_set_mode(mtr1), motor_in_set_mode(mtr2):
                 # Ensure the position has been redefined before leaving the "Set" context, otherwise the motor moves
@@ -832,17 +916,21 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
             for motor in self._pv_names_for_directions("MTR"):
                 rbv = self._read_pv("{}.RBV".format(motor))
                 sp = self._read_pv("{}".format(motor))
-                logger.info("    Motor {name} moved to rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp))
+                logger.info(
+                    "    Motor {name} moved to rbv {rbv} sp {sp}".format(name=motor, rbv=rbv, sp=sp)
+                )
         except ValueError as ex:
             STATUS_MANAGER.update_error_log("Can not define zero: {}".format(ex), ex)
             STATUS_MANAGER.update_active_problems(
-                ProblemInfo("Failed to redefine position", self.name, Severity.MAJOR_ALARM))
+                ProblemInfo("Failed to redefine position", self.name, Severity.MAJOR_ALARM)
+            )
 
 
 class JawsGapPVWrapper(JawsAxisPVWrapper):
     """
     Wrap the axis PVs on top of a motor record to allow easy access to all axis PV values needed.
     """
+
     def __init__(self, base_pv, is_vertical, ca=None):
         """
         Creates a wrapper around a motor PV for accessing its fields.
@@ -888,4 +976,3 @@ class JawsCentrePVWrapper(JawsAxisPVWrapper):
         self._sp_pv = "{}:{}CENT:SP".format(self._prefixed_pv, self._direction_symbol)
         self._rbv_pv = "{}:{}CENT".format(self._prefixed_pv, self._direction_symbol)
         self._dmov_pv = "{}:{}CENT:DMOV".format(self._prefixed_pv, self._direction_symbol)
-

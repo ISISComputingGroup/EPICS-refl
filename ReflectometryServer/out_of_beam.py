@@ -1,6 +1,7 @@
 """
 Module to define Out of beam position.
 """
+
 from typing import List, Optional, Tuple
 
 from ReflectometryServer.geometry import Position
@@ -10,7 +11,14 @@ class OutOfBeamPosition:
     """
     The definition of a geometry component's out of beam position.
     """
-    def __init__(self, position, tolerance: float = 1, threshold: Optional[float] = None, is_offset: bool = False):
+
+    def __init__(
+        self,
+        position,
+        tolerance: float = 1,
+        threshold: Optional[float] = None,
+        is_offset: bool = False,
+    ):
         """
         Params:
             position: The out-of-beam position along the movement axis.
@@ -61,10 +69,14 @@ class OutOfBeamLookup:
     Facilitates lookup of out-of-beam positions / status for a single axis out of a list of possible positions depending
     on where the beam intersects with that movement axis.
     """
+
     def __init__(self, positions: List[OutOfBeamPosition]):
         self._validate(positions)
-        self._sorted_out_of_beam_positions = sorted(positions, key=lambda position:
-                                                    (position.threshold is None, position.threshold), reverse=True)
+        self._sorted_out_of_beam_positions = sorted(
+            positions,
+            key=lambda position: (position.threshold is None, position.threshold),
+            reverse=True,
+        )
 
     @staticmethod
     def _validate(positions):
@@ -82,7 +94,9 @@ class OutOfBeamLookup:
                 raise ValueError("ERROR: Multiple default Out Of Beam Position defined for lookup.")
             thresholds = [entry.threshold for entry in positions]
             if len(set(thresholds)) != len(thresholds):
-                raise ValueError("ERROR: Duplicate values for threshold in different Out Of Beam positions.")
+                raise ValueError(
+                    "ERROR: Duplicate values for threshold in different Out Of Beam positions."
+                )
         else:
             raise ValueError("ERROR: No positions defined.")
 
@@ -97,16 +111,22 @@ class OutOfBeamLookup:
         Returns: The out-of-beam position
         """
         default_pos = self._sorted_out_of_beam_positions[0]
-        pos_with_threshold_below_intercept = [x for x in self._sorted_out_of_beam_positions[1:] if
-                                              x.threshold <= beam_intercept.y]
+        pos_with_threshold_below_intercept = [
+            x for x in self._sorted_out_of_beam_positions[1:] if x.threshold <= beam_intercept.y
+        ]
         if len(pos_with_threshold_below_intercept) > 0:
             position_to_use = pos_with_threshold_below_intercept[0]
         else:
             position_to_use = default_pos
         return position_to_use
 
-    def out_of_beam_status(self, beam_intercept: Position, displacement: float, distance_from_beam: float,
-                           parking_index: Optional[int]) -> Tuple[bool, bool]:
+    def out_of_beam_status(
+        self,
+        beam_intercept: Position,
+        displacement: float,
+        distance_from_beam: float,
+        parking_index: Optional[int],
+    ) -> Tuple[bool, bool]:
         """
         Checks whether a given value for displacement represents an out of beam position or at the end of the current
             sequence for a given beam interception and parking sequence number.
@@ -129,12 +149,17 @@ class OutOfBeamLookup:
             axis_position = distance_from_beam
         else:
             axis_position = displacement
-        in_beam = abs(axis_position - out_of_beam_position.get_final_position()) > out_of_beam_position.tolerance
+        in_beam = (
+            abs(axis_position - out_of_beam_position.get_final_position())
+            > out_of_beam_position.tolerance
+        )
         is_at_sequence_position = out_of_beam_position.get_sequence_position(parking_index)
         if is_at_sequence_position is None:
             at_sequence_index = True
         else:
-            at_sequence_index = abs(axis_position - is_at_sequence_position) < out_of_beam_position.tolerance
+            at_sequence_index = (
+                abs(axis_position - is_at_sequence_position) < out_of_beam_position.tolerance
+            )
 
         return in_beam, at_sequence_index
 
@@ -144,7 +169,12 @@ class OutOfBeamLookup:
         Returns: maximum sequence length for any parking sequence
 
         """
-        return max([position.get_parking_sequence_length() for position in self._sorted_out_of_beam_positions])
+        return max(
+            [
+                position.get_parking_sequence_length()
+                for position in self._sorted_out_of_beam_positions
+            ]
+        )
 
 
 class OutOfBeamSequence(OutOfBeamPosition):
@@ -152,7 +182,13 @@ class OutOfBeamSequence(OutOfBeamPosition):
     Out of Beam position which gives a sequence instead of just a fixed position.
     """
 
-    def __init__(self, sequence, tolerance: float = 1, threshold: Optional[float] = None, is_offset: bool = False):
+    def __init__(
+        self,
+        sequence,
+        tolerance: float = 1,
+        threshold: Optional[float] = None,
+        is_offset: bool = False,
+    ):
         """
         Initialise.
         Args:
@@ -175,6 +211,8 @@ class OutOfBeamSequence(OutOfBeamPosition):
         found_non_none = False
         for val in sequence:
             if val is None and found_non_none:
-                raise ValueError("ERROR: Out of beam sequence has a None between values this is not allowed")
+                raise ValueError(
+                    "ERROR: Out of beam sequence has a None between values this is not allowed"
+                )
             elif val is not None:
                 found_non_none = True
