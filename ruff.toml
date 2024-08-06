@@ -1,0 +1,72 @@
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "uk.ac.stfc.isis.ibex.opis",
+    "ReflectometryServer/test_modules/test_config/"
+]
+
+# Set the maximum line length to 100.
+line-length = 100
+indent-width = 4
+
+[lint]
+extend-select = [
+    "N",  # pep8-naming
+    # "D",  # pydocstyle (can use this later but for now causes too many errors)
+    "I",  # isort (for imports)
+    "E501",  # Line too long ({width} > {limit})
+    "E",
+    "F",
+    "ANN",
+]
+ignore = [
+    "D406",  # Section name should end with a newline ("{name}")
+    "D407",  # Missing dashed underline after section ("{name}")
+    "N999",  # Ignore this because the repo itself would need to be renamed
+    "ANN101",  # ignore this until its removed in future versions
+    "ANN102",  # ignore this until its removed in future versions
+]
+[lint.per-file-ignores]
+"{**/tests/**,/tests/**,**/*tests.py,tests/**,*tests.py,*test.py,**/*test.py,common_tests/**}" = [
+    "N802",
+    "D100",
+    "D101",
+    "D102",
+    "E501",
+    "ANN",
+]
+
+[lint.pydocstyle]
+# Use Google-style docstrings.
+convention = "google"
+
+[format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+line-ending = "auto"
