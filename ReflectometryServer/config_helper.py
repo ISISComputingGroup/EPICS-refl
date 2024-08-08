@@ -7,22 +7,28 @@ from typing import Any, Dict, List, Optional, Union
 
 from pcaspy import Severity
 
-from ReflectometryServer import (
-    Beamline,
-    BeamlineMode,
+from ReflectometryServer.beamline import Beamline, BeamlineMode
+from ReflectometryServer.beamline_constant import BeamlineConstant
+from ReflectometryServer.components import Component
+from ReflectometryServer.engineering_corrections import (
     ConstantCorrection,
-    JawsCentrePVWrapper,
-    JawsGapPVWrapper,
     ModeSelectCorrection,
-    MotorPVWrapper,
-    PVWrapper,
-    SlitGapParameter,
 )
+from ReflectometryServer.footprint_calc import FootprintSetup
+from ReflectometryServer.geometry import PositionAndAngle
+from ReflectometryServer.ioc_driver import IocDriver
 from ReflectometryServer.parameters import (
     DEFAULT_RBV_TO_SP_TOLERANCE,
     BeamlineParameter,
     DirectParameter,
     EnumParameter,
+    SlitGapParameter,
+)
+from ReflectometryServer.pv_wrapper import (
+    JawsCentrePVWrapper,
+    JawsGapPVWrapper,
+    MotorPVWrapper,
+    PVWrapper,
 )
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
@@ -53,7 +59,7 @@ class ConfigHelper:
     footprint_setup = None
 
     @classmethod
-    def reset(cls):
+    def reset(cls) -> None:
         cls.constants = []
         cls.parameters = []
         cls.components = []
@@ -65,11 +71,11 @@ class ConfigHelper:
         cls.beam_start = None
         cls.footprint_setup = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         logger.warning("This class is usually used statically")
 
 
-def get_configured_beamline():
+def get_configured_beamline() -> Beamline:
     """
     Returns: the configured beamline
     """
@@ -95,7 +101,7 @@ def get_configured_beamline():
     )
 
 
-def add_constant(constant):
+def add_constant(constant: BeamlineConstant) -> BeamlineConstant:
     """
     Add a beamline constant to the beamline configuration.
 
@@ -109,7 +115,7 @@ def add_constant(constant):
     return constant
 
 
-def add_component(component, marker=None):
+def add_component(component: Component, marker: Union[int, None] = None) -> Component:
     """
     Add a beamline component to the beamline configuration.
 
@@ -127,7 +133,7 @@ def add_component(component, marker=None):
     return component
 
 
-def add_component_marker():
+def add_component_marker() -> int:
     """
     Add a marker in the components to be filled in later. Return that position.
 
@@ -137,13 +143,20 @@ def add_component_marker():
     return len(ConfigHelper.components) - 1
 
 
-def add_parameter(parameter, modes=None, mode_inits=None, marker=None):
+def add_parameter(
+    parameter: BeamlineParameter,
+    modes: Union[List, str, None] = None,
+    mode_inits: Union[None, List] = None,
+    marker: Union[int, None] = None,
+) -> BeamlineParameter:
     """
     Add a parameter to the beamline configuration.
     Args:
         parameter: parameter to add
-        modes: a list of modes in which the parameter is in; None for not in a mode, e.g. (nr, polarised)
-        mode_inits: a list of mode and their initial value; None for no init, e.g. [(nr, 0), (polarised, 1)]
+        modes: a list of modes in which the parameter is in;
+               None for not in a mode, e.g. (nr, polarised)
+        mode_inits: a list of mode and their initial value;
+                    None for no init, e.g. [(nr, 0), (polarised, 1)]
         marker: index of location parameter should be added; None add to the end
 
     Returns:
@@ -153,7 +166,8 @@ def add_parameter(parameter, modes=None, mode_inits=None, marker=None):
         Add name to nr and polarised mode
         >>> nr = add_mode("NR")
         >>> polarised = add_mode("POLARISED")
-        >>> add_parameter(AxisParameter(ChangeAxis.POSITION, "name", component), modes=(nr, polarised))
+        >>> add_parameter(AxisParameter(ChangeAxis.POSITION, "name", component),
+            modes=(nr, polarised))
 
         Add name to nr and polarised mode but with an initial value in nr of 0
         >>> nr = add_mode("NR")
@@ -185,7 +199,7 @@ def add_parameter(parameter, modes=None, mode_inits=None, marker=None):
     return parameter
 
 
-def add_parameter_marker():
+def add_parameter_marker() -> int:
     """
     Add a marker in the parameters to be filled in later. Return that position.
 
@@ -195,7 +209,7 @@ def add_parameter_marker():
     return len(ConfigHelper.parameters) - 1
 
 
-def add_mode(name, is_disabled=False):
+def add_mode(name: str, is_disabled: bool = False) -> str:
     """
     Add a mode to the config
     Args:
@@ -213,7 +227,7 @@ def add_mode(name, is_disabled=False):
     return name
 
 
-def add_driver(driver, marker=None):
+def add_driver(driver: IocDriver, marker: Union[int, None] = None) -> IocDriver:
     """
     Add a driver to the config
     Args:
@@ -231,7 +245,7 @@ def add_driver(driver, marker=None):
     return driver
 
 
-def add_driver_marker():
+def add_driver_marker() -> int:
     """
     Add a marker in the drivers to be filled in later. Return that position.
 
@@ -241,9 +255,12 @@ def add_driver_marker():
     return len(ConfigHelper.drivers) - 1
 
 
-def create_jaws_pv_driver(jaws_pv_prefix, is_vertical, is_gap_not_centre):
+def create_jaws_pv_driver(
+    jaws_pv_prefix: str, is_vertical: bool, is_gap_not_centre: bool
+) -> Union[JawsCentrePVWrapper, JawsGapPVWrapper]:
     """
-    Create jaws pv driver. This is currently not a conventional driver and the beamline doesn't need it.
+    Create jaws pv driver. This is currently not a conventional driver
+    and the beamline doesn't need it.
     Args:
         jaws_pv_prefix: prefix for the jaw, e.g. MOT:JAWS1
         is_vertical: True if vertical; False for horizontal
@@ -277,13 +294,13 @@ class SlitAxes:
     Parameters relevant to slits. This is to avoid potential typos in the configuration file.
     """
 
-    VertGap = "VG"
-    VertCent = "VC"
-    HorGap = "HG"
-    HorCent = "HC"
+    VertGap: str = "VG"
+    VertCent: str = "VC"
+    HorGap: str = "HG"
+    HorCent: str = "HC"
 
     @staticmethod
-    def all():
+    def all() -> List[str]:
         """
         Gets all slit parameters: gaps and centres.
         :return: A list containing the gap and centre strings for templating PVs
@@ -291,7 +308,7 @@ class SlitAxes:
         return [SlitAxes.VertGap, SlitAxes.VertCent, SlitAxes.HorGap, SlitAxes.HorCent]
 
     @staticmethod
-    def gaps():
+    def gaps() -> List[str]:
         """
         Gets the gap PVs
         :return: A list containing the gap strings for templating PVs
@@ -299,7 +316,7 @@ class SlitAxes:
         return [SlitAxes.VertGap, SlitAxes.HorGap]
 
     @staticmethod
-    def centres():
+    def centres() -> List[str]:
         """
         Gets the centre PVs
         :return: A list containing the centre strings for templating PVs
@@ -315,19 +332,21 @@ def add_slit_parameters(
     exclude: List[str] = None,
     include_centres: bool = False,
     beam_blocker: Optional[str] = None,
-):
+) -> Dict[str, BeamlineParameter]:
     """
-    Add parameters for a slit, this is horizontal and vertical gaps and centres. Also add modes, mode inits and
-    tolerance if needed.
+    Add parameters for a slit, this is horizontal and vertical gaps and centres. Also add modes,
+    mode inits and tolerance if needed.
 
     Args:
         slit_number: slit number to use. Assuming pv is of the form MOT:JAWS<slit number>
-        rbv_to_sp_tolerance: tolerance to set in the parameter, shows an alarm if rbv is not within this tolerance
+        rbv_to_sp_tolerance: tolerance to set in the parameter, shows an alarm if rbv is not within
+                             this tolerance
         modes: list of modes see add_parameter for explanation
         mode_inits: list of modes and init value see add_parameter for explanation
         exclude: slit parameters to exclude, these should be one of VG, VC, HG, HC
         include_centres: True to include centres; False to just have the gaps
-        beam_blocker: string containing code for beam blocker config, N,S,E,W for each blade which blocks the beam
+        beam_blocker: string containing code for beam blocker config, N,S,E,W for each blade
+                      which blocks the beam
 
     Returns:
         slit gap parameters
@@ -361,7 +380,12 @@ def add_slit_parameters(
 
 
 def _add_beam_block(
-    slit_number, modes, mode_inits, exclude: List[str], beam_blocker: str, jaws_pv_prefix
+    slit_number: int,
+    modes: List[BeamlineMode],
+    mode_inits: List[Union[int, float, None]],
+    exclude: List[str],
+    beam_blocker: str,
+    jaws_pv_prefix: str,
 ) -> Dict[str, BeamlineParameter]:
     """
     Add beam block parameters and drivers
@@ -398,13 +422,15 @@ def _add_beam_block(
             if name in blade_names:
                 driver = create_blade_pv_driver(jaws_pv_prefix, name)
                 add_parameter(
-                    DirectParameter("S{}{}".format(slit_number, name), driver), modes, mode_inits
+                    DirectParameter("S{}{}".format(slit_number, name), driver),
+                    modes,
+                    mode_inits,
                 )
                 parameters[name] = parameter
     return parameters
 
 
-def add_beam_start(beam_start):
+def add_beam_start(beam_start: PositionAndAngle) -> PositionAndAngle:
     """
     Add the beam start position and angle
     Args:
@@ -420,7 +446,7 @@ def add_beam_start(beam_start):
     return beam_start
 
 
-def add_footprint_setup(footprint_setup):
+def add_footprint_setup(footprint_setup: FootprintSetup) -> FootprintSetup:
     """
     Add footprint setup to the beamline
     Args:
@@ -431,7 +457,8 @@ def add_footprint_setup(footprint_setup):
 
     Examples:
         >>> add_footprint_setup(FootprintSetup(z_s1, z_s2, z_s3, z_s4, z_sample,
-        >>>                                    s1_vgap_param, s2_vgap_param, s3_vgap_param, s4_vgap_param,
+        >>>                                    s1_vgap_param, s2_vgap_param, s3_vgap_param,
+        >>>                                    s4_vgap_param,
         >>>                                    theta_param_angle, lambda_min, lambda_max))
 
     """
@@ -439,7 +466,7 @@ def add_footprint_setup(footprint_setup):
     return footprint_setup
 
 
-def optional_is_set(optional_id, macros):
+def optional_is_set(optional_id: str, macros: Dict[str, str]) -> bool:
     """
     Check whether an optional macro for use in the configuration is set or not.
 
@@ -472,9 +499,12 @@ def optional_is_set(optional_id, macros):
         return False
 
 
-def as_mode_correction(correction: float, modes: List[str], default: float = 0.0):
+def as_mode_correction(
+    correction: float, modes: List[str], default: float = 0.0
+) -> ModeSelectCorrection:
     """
-    Helper method for creating a fixed offset engineering correction that gets applied for each mode in a given list.
+    Helper method for creating a fixed offset engineering correction
+      that gets applied for each mode in a given list.
 
     Args:
         correction: The value of the constant correction
