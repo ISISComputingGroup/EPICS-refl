@@ -72,7 +72,7 @@ class IocDriver:
         synchronised: bool = True,
         engineering_correction: Optional[EngineeringCorrection] = None,
         pv_wrapper_for_parameter: Optional[PVWrapperForParameter] = None,
-        ignore_soft_limits: bool = False
+        clamp_to_soft_limits: bool = False
     ):
         """
         Drive the IOC based on a component
@@ -85,7 +85,7 @@ class IocDriver:
             engineering_correction: the engineering correction to apply to the value from the component before it is
                 sent to the pv. None for no correction
             pv_wrapper_for_parameter: change the pv wrapper based on the value of a parameter
-            ignore_soft_limits: ignore soft limits for this axis when performing a compound move. 
+            clamp_to_soft_limits: ignore soft limits for this axis when performing a compound move.
         """
         self.component = component
         self.component_axis = component_axis
@@ -93,7 +93,7 @@ class IocDriver:
         self._motor_axis = None
         self._set_motor_axis(motor_axis, False)
         self._pv_wrapper_for_parameter = pv_wrapper_for_parameter
-        self._ignore_soft_limits = ignore_soft_limits
+        self._clamp_to_soft_limits = clamp_to_soft_limits
         if pv_wrapper_for_parameter is not None:
             pv_wrapper_for_parameter.parameter.add_listener(
                 ParameterSetpointReadbackUpdate, self._on_parameter_update
@@ -381,6 +381,13 @@ class IocDriver:
                 )
             else:
                 self._motor_axis.record_no_cache_velocity()
+            if self._clamp_to_soft_limits:
+                if component_sp >= self._motor_axis.hlm:
+                    self._motor_axis.sp = self._motor_axis.hlm
+                elif component_sp <= self._motor_axis.llm:
+                    self._motor_axis.sp = self._motor_axis.llm
+            else:
+                self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
 
             self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
         elif self.at_target_setpoint():
@@ -596,6 +603,11 @@ class IocDriver:
             return True, self._sp_cache, hlm, llm
 
         if self._ignore_soft_limits:
+            if component_sp > hlm:
+                self.
+                pass # TODO set to hlm here
+            if component_sp < llm:
+                pass # TODO set to llm here
             return True, component_sp, hlm, llm
 
         inside_limits = llm <= component_sp <= hlm
