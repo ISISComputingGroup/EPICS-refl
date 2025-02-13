@@ -72,6 +72,7 @@ class IocDriver:
         synchronised: bool = True,
         engineering_correction: Optional[EngineeringCorrection] = None,
         pv_wrapper_for_parameter: Optional[PVWrapperForParameter] = None,
+        ignore_soft_limits: bool = False
     ):
         """
         Drive the IOC based on a component
@@ -84,6 +85,7 @@ class IocDriver:
             engineering_correction: the engineering correction to apply to the value from the component before it is
                 sent to the pv. None for no correction
             pv_wrapper_for_parameter: change the pv wrapper based on the value of a parameter
+            ignore_soft_limits: ignore soft limits for this axis when performing a compound move. 
         """
         self.component = component
         self.component_axis = component_axis
@@ -91,6 +93,7 @@ class IocDriver:
         self._motor_axis = None
         self._set_motor_axis(motor_axis, False)
         self._pv_wrapper_for_parameter = pv_wrapper_for_parameter
+        self._ignore_soft_limits = ignore_soft_limits
         if pv_wrapper_for_parameter is not None:
             pv_wrapper_for_parameter.parameter.add_listener(
                 ParameterSetpointReadbackUpdate, self._on_parameter_update
@@ -591,6 +594,9 @@ class IocDriver:
         component_sp = self._get_component_sp()
         if self._sp_cache is None or component_sp is None:
             return True, self._sp_cache, hlm, llm
+
+        if self._ignore_soft_limits:
+            return True, component_sp, hlm, llm
 
         inside_limits = llm <= component_sp <= hlm
         return inside_limits, component_sp, hlm, llm
