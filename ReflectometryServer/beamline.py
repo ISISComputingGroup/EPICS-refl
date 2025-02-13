@@ -516,7 +516,7 @@ class Beamline:
             self._check_limits_for_all_drivers()
 
             self._perform_move_for_all_drivers(self._get_max_move_duration())
-        except (ZeroDivisionError, AxisNotWithinSoftLimitsException) as e:
+        except ZeroDivisionError as e:
             STATUS_MANAGER.update_error_log("Failed to perform beamline move: {}".format(e), e)
             STATUS_MANAGER.update_active_problems(
                 ProblemInfo("Failed to move driver", "beamline", Severity.MAJOR_ALARM)
@@ -546,7 +546,7 @@ class Beamline:
                     f"{driver.name} setpoint {component_sp} outside of limits ({llm},{hlm}), not moving"
                 )
         if len(drivers_outside_of_limits) > 0:
-            raise AxisNotWithinSoftLimitsException(str(drivers_outside_of_limits))
+            STATUS_MANAGER.update_error_log(f"Axes outside of soft limits: {drivers_outside_of_limits}")
 
     def _get_max_move_duration(self):
         """

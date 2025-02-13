@@ -47,15 +47,3 @@ class BeamlineConfigurationParkAutosaveInvalidException(Exception):
             f"configuration file. The autosave position has now been overwritten so restarting the reflectometry "
             f"server will not work."
         )
-
-
-class AxisNotWithinSoftLimitsException(Exception):
-    """
-    Raised when a component's proposed setpoint is outside its soft limits.
-    """
-
-    def __init__(self, err):
-        self.message = str(err)
-
-    def __str__(self):
-        return self.message
