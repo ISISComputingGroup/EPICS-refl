@@ -597,18 +597,14 @@ class IocDriver:
         """
         llm = self._motor_axis.llm
         hlm = self._motor_axis.hlm
-
         component_sp = self._get_component_sp()
+
+        if self._clamp_to_soft_limits:
+            # if clamping, we will always be within limits, so return true here.
+            return True, component_sp, hlm, llm
+
         if self._sp_cache is None or component_sp is None:
             return True, self._sp_cache, hlm, llm
-
-        if self._ignore_soft_limits:
-            if component_sp > hlm:
-                self.
-                pass # TODO set to hlm here
-            if component_sp < llm:
-                pass # TODO set to llm here
-            return True, component_sp, hlm, llm
 
         inside_limits = llm <= component_sp <= hlm
         return inside_limits, component_sp, hlm, llm
