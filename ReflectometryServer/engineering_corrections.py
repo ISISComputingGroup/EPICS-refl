@@ -8,7 +8,7 @@ import logging
 import os
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Callable, Dict, Generator, List, Optional, TextIO
+from typing import TYPE_CHECKING, Callable, Dict, Generator, List, Optional, TextIO
 
 import numpy as np
 from pcaspy import Severity
@@ -17,7 +17,10 @@ from server_common.observable import observable
 
 from ReflectometryServer import beamline_configuration
 from ReflectometryServer.beamline import ActiveModeUpdate
-from ReflectometryServer.parameters import BeamlineParameter
+
+if TYPE_CHECKING:
+    from ReflectometryServer.beamline import Beamline
+    from ReflectometryServer.parameters import BeamlineParameter
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 logger = logging.getLogger(__name__)
@@ -96,7 +99,7 @@ class EngineeringCorrection(metaclass=abc.ABCMeta):
         """
         return self.from_axis(setpoint, None)
 
-    def set_observe_mode_change_on(self, mode_changer) -> None:
+    def set_observe_mode_change_on(self, mode_changer: Beamline) -> None:
         """
         Allow this correction to listen to mode change events from the mode_changer.
         Defaults to not listening
@@ -311,7 +314,7 @@ class GridDataFileReader:
                     )
                 )
 
-    def _read_data(self, reader) -> None:
+    def _read_data(self, reader: csv.DictReader) -> None:
         """
         Read data from the cvs file reader and store as numpy arrays in points and corrections
         Args:
@@ -514,7 +517,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         self._correction = None
         self._set_correction(None)
 
-    def set_observe_mode_change_on(self, mode_changer) -> None:
+    def set_observe_mode_change_on(self, mode_changer: Beamline) -> None:
         """
         Allow this correction to listen to mode change events from the mode_changer
         Args:
