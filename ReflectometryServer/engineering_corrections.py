@@ -99,7 +99,7 @@ class EngineeringCorrection(metaclass=abc.ABCMeta):
         """
         return self.from_axis(setpoint, None)
 
-    def set_observe_mode_change_on(self, mode_changer: Beamline) -> None:
+    def set_observe_mode_change_on(self, mode_changer: "Beamline") -> None:
         """
         Allow this correction to listen to mode change events from the mode_changer.
         Defaults to not listening
@@ -208,8 +208,8 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
 
     def __init__(
         self,
-        user_correction_function: Callable[[float, Optional[BeamlineParameter]], float],
-        *beamline_parameters: List[BeamlineParameter],
+        user_correction_function: Callable[[float, Optional["BeamlineParameter"]], float],
+        *beamline_parameters: List["BeamlineParameter"],
     ) -> None:
         """
         Initialise.
@@ -390,7 +390,7 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
     def __init__(
         self,
         grid_data_provider: GridDataFileReader,
-        *beamline_parameters: List[BeamlineParameter],
+        *beamline_parameters: List["BeamlineParameter"],
         description: str = "Interpolated",
     ) -> None:
         """
@@ -412,8 +412,8 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
         self._default_correction = 0
 
     def _find_parameter(
-        self, parameter_name: str, beamline_parameters: List[BeamlineParameter]
-    ) -> BeamlineParameter:
+        self, parameter_name: str, beamline_parameters: List["BeamlineParameter"]
+    ) -> "BeamlineParameter":
         """
         Find the beamline parameter in the beamline parameters list
         Args:
@@ -487,7 +487,7 @@ class InterpolateGridDataCorrection(InterpolateGridDataCorrectionFromProvider):
     Generate a interpolated correction from a file containing a table of values.
     """
 
-    def __init__(self, filename: str, *beamline_parameters: List[BeamlineParameter]) -> None:
+    def __init__(self, filename: str, *beamline_parameters: List["BeamlineParameter"]) -> None:
         super(InterpolateGridDataCorrection, self).__init__(
             GridDataFileReader(filename),
             *beamline_parameters,
@@ -517,7 +517,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         self._correction = None
         self._set_correction(None)
 
-    def set_observe_mode_change_on(self, mode_changer: Beamline) -> None:
+    def set_observe_mode_change_on(self, mode_changer: "Beamline") -> None:
         """
         Allow this correction to listen to mode change events from the mode_changer
         Args:
