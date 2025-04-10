@@ -8,9 +8,9 @@ import logging
 import os
 from contextlib import contextmanager
 from typing import Dict, Optional
+from dataclasses import dataclass
 
 import numpy as np
-from attr import dataclass
 from pcaspy import Severity
 from scipy.interpolate import griddata
 from server_common.observable import observable
