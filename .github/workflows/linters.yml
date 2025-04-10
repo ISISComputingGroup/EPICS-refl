@@ -5,3 +5,16 @@ jobs:
     uses: ISISComputingGroup/reusable-workflows/.github/workflows/linters.yml@main
     with:
       compare-branch: origin/master
+  tests:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: install requirements
+        run: pip install -r requirements-dev.txt
+        env:
+          PIP_CONSTRAINT: "constraints.txt"
+      - name: run tests (windows)
+        run: python -m pytest --cov
