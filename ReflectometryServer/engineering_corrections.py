@@ -157,7 +157,7 @@ class NoCorrection(SymmetricEngineeringCorrection):
     def __init__(self) -> None:
         super(NoCorrection, self).__init__("No correction")
 
-    def correction(self, _: float) -> int:
+    def correction(self, _: float) -> float:
         """
 
         Returns: a correction of zero (i.e. no change to the value)

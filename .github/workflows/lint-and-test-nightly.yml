@@ -5,4 +5,4 @@ on:
 
 jobs:
   lint-and-test-nightly:
-   uses: ./.github/workflows/linters.yml
+   uses: ./.github/workflows/lint-and-test.yml
