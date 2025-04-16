@@ -1,4 +1,4 @@
-name: Linter
+name: Lint and test
 on: [pull_request]
 jobs:
   call-workflow:
