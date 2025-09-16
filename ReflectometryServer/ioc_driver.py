@@ -386,8 +386,6 @@ class IocDriver:
                     self._motor_axis.sp = self._motor_axis.hlm
                 elif component_sp <= self._motor_axis.llm:
                     self._motor_axis.sp = self._motor_axis.llm
-            else:
-                self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
 
             self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
         elif self.at_target_setpoint():
