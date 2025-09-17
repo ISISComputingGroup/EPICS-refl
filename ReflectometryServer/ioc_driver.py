@@ -72,8 +72,8 @@ class IocDriver:
         synchronised: bool = True,
         engineering_correction: Optional[EngineeringCorrection] = None,
         pv_wrapper_for_parameter: Optional[PVWrapperForParameter] = None,
-        ignore_soft_limits: bool = False
-    ):
+        clamp_to_soft_limits: bool = False,
+    ) -> None:
         """
         Drive the IOC based on a component
         Args:
@@ -85,7 +85,7 @@ class IocDriver:
             engineering_correction: the engineering correction to apply to the value from the component before it is
                 sent to the pv. None for no correction
             pv_wrapper_for_parameter: change the pv wrapper based on the value of a parameter
-            ignore_soft_limits: ignore soft limits for this axis when performing a compound move. 
+            clamp_to_soft_limits: ignore soft limits for this axis when performing a compound move.
         """
         self.component = component
         self.component_axis = component_axis
@@ -93,7 +93,7 @@ class IocDriver:
         self._motor_axis = None
         self._set_motor_axis(motor_axis, False)
         self._pv_wrapper_for_parameter = pv_wrapper_for_parameter
-        self._ignore_soft_limits = ignore_soft_limits
+        self._clamp_to_soft_limits = clamp_to_soft_limits
         if pv_wrapper_for_parameter is not None:
             pv_wrapper_for_parameter.parameter.add_listener(
                 ParameterSetpointReadbackUpdate, self._on_parameter_update
@@ -165,7 +165,7 @@ class IocDriver:
         if trigger_update:
             self._retrigger_motor_axis_updates(None)
 
-    def set_observe_mode_change_on(self, mode_changer):
+    def set_observe_mode_change_on(self, mode_changer) -> None:
         """
         Allow this driver to listen to mode change events from the mode_changer. It signs up the engineering correction.
         Args:
@@ -173,7 +173,7 @@ class IocDriver:
         """
         self._engineering_correction.set_observe_mode_change_on(mode_changer)
 
-    def _on_define_value_as(self, new_event):
+    def _on_define_value_as(self, new_event) -> None:
         """
         When a define value as occurs then set the value on the axis
 
@@ -194,7 +194,7 @@ class IocDriver:
         )
         self._motor_axis.define_position_as(correct_position)
 
-    def _on_correction_update(self, new_correction_value):
+    def _on_correction_update(self, new_correction_value) -> None:
         """
         When a correction update is got from the engineering correction then trigger our own correction update after
             updating description.
@@ -206,12 +206,12 @@ class IocDriver:
         )
         self.trigger_listeners(CorrectionUpdate(new_correction_value.correction, description))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{} for axis pv {} and component {}".format(
             self.__class__.__name__, self._motor_axis.name, self.component.name
         )
 
-    def initialise(self):
+    def initialise(self) -> None:
         """
         Post monitors and read initial value from the axis.
         """
@@ -221,7 +221,7 @@ class IocDriver:
                 motor_axis.initialise()
         self.initialise_setpoint()
 
-    def initialise_setpoint(self):
+    def initialise_setpoint(self) -> None:
         """
         Initialise the setpoint beam model in the component layer with an initial value read from the motor axis.
         """
@@ -362,7 +362,7 @@ class IocDriver:
             )
         return duration
 
-    def perform_move(self, move_duration, force=False):
+    def perform_move(self, move_duration, force=False) -> None:
         """
         Tells the driver to perform a move to the component set points within a given duration.
         The axis will update the set point cache when it is changed so don't need to do it here
@@ -381,6 +381,11 @@ class IocDriver:
                 )
             else:
                 self._motor_axis.record_no_cache_velocity()
+            if self._clamp_to_soft_limits:
+                if component_sp >= self._motor_axis.hlm:
+                    self._motor_axis.sp = self._motor_axis.hlm
+                elif component_sp <= self._motor_axis.llm:
+                    self._motor_axis.sp = self._motor_axis.llm
 
             self._motor_axis.sp = self._engineering_correction.to_axis(component_sp)
         elif self.at_target_setpoint():
@@ -484,7 +489,7 @@ class IocDriver:
                 displacement = out_of_beam_position.get_final_position()
         return displacement, is_to_from_park
 
-    def _on_update_rbv(self, update):
+    def _on_update_rbv(self, update) -> None:
         """
         Listener to trigger on a change of the readback value of the underlying motor.
 
@@ -499,7 +504,7 @@ class IocDriver:
             CorrectedReadbackUpdate(corrected_new_value, update.alarm_severity, update.alarm_status)
         )
 
-    def _retrigger_motor_axis_updates(self, _):
+    def _retrigger_motor_axis_updates(self, _) -> None:
         """
         Something about the axis has changed, e.g. engineering correction or motor axis change, so we should recalcuate
         anything that depends on the axis bc
@@ -514,7 +519,7 @@ class IocDriver:
         if last_changing is not None:
             self._on_update_is_changing(last_changing)
 
-    def _propagate_rbv_change(self, update):
+    def _propagate_rbv_change(self, update) -> None:
         """
         Signal that the motor readback value has changed to the middle component layer. Subclass must implement this
         method.
@@ -545,7 +550,7 @@ class IocDriver:
             in_beam_status, is_at_sequence_position = True, False
         return in_beam_status, is_at_sequence_position
 
-    def _on_update_sp(self, update):
+    def _on_update_sp(self, update) -> None:
         """
         Updates the cached set point from the axis with a new value.
 
@@ -556,7 +561,7 @@ class IocDriver:
             update.value, self._get_component_sp(True)
         )
 
-    def _on_update_is_changing(self, update):
+    def _on_update_is_changing(self, update) -> None:
         """
         Updates the cached is_moving field for the motor record with a new value if the underlying motor rbv is changing
 
@@ -590,13 +595,14 @@ class IocDriver:
         """
         llm = self._motor_axis.llm
         hlm = self._motor_axis.hlm
-
         component_sp = self._get_component_sp()
+
+        if self._clamp_to_soft_limits:
+            # if clamping, we will always be within limits, so return true here.
+            return True, component_sp, hlm, llm
+
         if self._sp_cache is None or component_sp is None:
             return True, self._sp_cache, hlm, llm
-
-        if self._ignore_soft_limits:
-            return True, component_sp, hlm, llm
 
         inside_limits = llm <= component_sp <= hlm
         return inside_limits, component_sp, hlm, llm
@@ -622,5 +628,5 @@ class IocDriver:
         if self._motor_axis != new_axis:
             self._set_motor_axis(new_axis, True)
 
-    def _move_to_parking_sequence(self, _: ParkingSequenceUpdate):
+    def _move_to_parking_sequence(self, _: ParkingSequenceUpdate) -> None:
         self.perform_move(0)
