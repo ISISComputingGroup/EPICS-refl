@@ -1,0 +1,21 @@
+name: Lint and test
+on: [pull_request, workflow_call]
+jobs:
+  call-workflow:
+    uses: ISISComputingGroup/reusable-workflows/.github/workflows/linters.yml@main
+    with:
+      compare-branch: origin/master
+      runs-on: windows-latest
+  tests:
+    runs-on: "windows-latest"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: install requirements
+        run: pip install -r requirements-dev.txt
+        env:
+          PIP_CONSTRAINT: "constraints.txt"
+      - name: run tests (windows)
+        run: python -m pytest --cov

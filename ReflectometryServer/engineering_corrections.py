@@ -7,23 +7,27 @@ import csv
 import logging
 import os
 from contextlib import contextmanager
-from typing import Dict, Optional
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Callable, Dict, Generator, List, Optional, TextIO
 
 import numpy as np
-from attr import dataclass
 from pcaspy import Severity
 from scipy.interpolate import griddata
 from server_common.observable import observable
 
 from ReflectometryServer import beamline_configuration
 from ReflectometryServer.beamline import ActiveModeUpdate
+
+if TYPE_CHECKING:
+    from ReflectometryServer.beamline import Beamline
+    from ReflectometryServer.parameters import BeamlineParameter
 from ReflectometryServer.server_status_manager import STATUS_MANAGER, ProblemInfo
 
 logger = logging.getLogger(__name__)
 
 
-# The column name in the engineering correction interpolation data file to label the column which contains the
-# IOCDriver's setpoint values
+# The column name in the engineering correction interpolation data file to label the column which
+# contains the IOCDriver's setpoint values
 COLUMN_NAME_FOR_DRIVER_SETPOINT = "DRIVER"
 
 
@@ -52,7 +56,7 @@ class EngineeringCorrection(metaclass=abc.ABCMeta):
     Base class for all engineering correction
     """
 
-    def __init__(self, description):
+    def __init__(self, description: str) -> None:
         """
         Constructor.
         Args:
@@ -61,7 +65,7 @@ class EngineeringCorrection(metaclass=abc.ABCMeta):
         self.description = description
 
     @abc.abstractmethod
-    def to_axis(self, setpoint):
+    def to_axis(self, setpoint: float) -> float:
         """
         Correct a value sent to an axis using the correction
         Args:
@@ -72,7 +76,7 @@ class EngineeringCorrection(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def from_axis(self, value, setpoint):
+    def from_axis(self, value: float, setpoint: float) -> float:
         """
         Correct a value from the axis using the correction
         Args:
@@ -82,10 +86,11 @@ class EngineeringCorrection(metaclass=abc.ABCMeta):
         Returns: the corrected value
         """
 
-    def init_from_axis(self, setpoint):
+    def init_from_axis(self, setpoint: float) -> float:
         """
-        Get a value from the axis without a setpoint. This may be possible in a small number of cases. If not this
-        should return EngineeringCorrectionNotPossible
+        Get a value from the axis without a setpoint. This may be possible in
+        a small number of cases.
+        If not this should return EngineeringCorrectionNotPossible
         Args:
             setpoint: value to convert from the axis as an initial value,
 
@@ -94,9 +99,10 @@ class EngineeringCorrection(metaclass=abc.ABCMeta):
         """
         return self.from_axis(setpoint, None)
 
-    def set_observe_mode_change_on(self, mode_changer):
+    def set_observe_mode_change_on(self, mode_changer: "Beamline") -> None:
         """
-        Allow this correction to listen to mode change events from the mode_changer. Defaults to not listening
+        Allow this correction to listen to mode change events from the mode_changer.
+        Defaults to not listening
         Args:
             mode_changer: object that can be observed for mode change events
         """
@@ -105,17 +111,17 @@ class EngineeringCorrection(metaclass=abc.ABCMeta):
 
 class SymmetricEngineeringCorrection(EngineeringCorrection, metaclass=abc.ABCMeta):
     """
-    Base class for engineering corrections which are symmetric for both to axis and from axis directions. Correction is
-    added to the value when sent to an axis.
+    Base class for engineering corrections which are symmetric for both to axis and from axis
+    directions. Correction is added to the value when sent to an axis.
     """
 
     @abc.abstractmethod
-    def correction(self, setpoint):
+    def correction(self, setpoint: float) -> float:
         """
         Returns: Correction to apply to the value
         """
 
-    def to_axis(self, setpoint):
+    def to_axis(self, setpoint: float) -> float:
         """
         Correct a value sent to the the axis using the correction
         Args:
@@ -128,7 +134,7 @@ class SymmetricEngineeringCorrection(EngineeringCorrection, metaclass=abc.ABCMet
         self.trigger_listeners(CorrectionUpdate(correction, self.description))
         return setpoint + correction
 
-    def from_axis(self, value, setpoint):
+    def from_axis(self, value: float, setpoint: float) -> float:
         """
         Correct a value read from the axis using the correction
         Args:
@@ -148,10 +154,10 @@ class NoCorrection(SymmetricEngineeringCorrection):
     An engineering correction which does not change the value.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(NoCorrection, self).__init__("No correction")
 
-    def correction(self, _):
+    def correction(self, _: float) -> float:
         """
 
         Returns: a correction of zero (i.e. no change to the value)
@@ -165,7 +171,7 @@ class ConstantCorrection(SymmetricEngineeringCorrection):
     A correction which adds a constant to the set point value when it is passed to the motor.
     """
 
-    def __init__(self, offset):
+    def __init__(self, offset: float) -> None:
         """
         Initialize.
         Args:
@@ -174,7 +180,7 @@ class ConstantCorrection(SymmetricEngineeringCorrection):
         super(ConstantCorrection, self).__init__("Constant Correction")
         self._offset = offset
 
-    def correction(self, _):
+    def correction(self, _: float) -> float:
         """
 
         Returns: a constant correction value.
@@ -182,10 +188,10 @@ class ConstantCorrection(SymmetricEngineeringCorrection):
         """
         return self._offset
 
-    def init_from_axis(self, setpoint):
+    def init_from_axis(self, setpoint: float) -> float:
         """
-        Get a value from the axis without a setpoint. This may be possible in a small number of cases. If not this
-        should return EngineeringCorrectionNotPossible
+        Get a value from the axis without a setpoint. This may be possible in a small number of
+        cases. If not this should return EngineeringCorrectionNotPossible
         Args:
             setpoint: value to convert from the axis as an initial value,
 
@@ -200,15 +206,21 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
     A correction which is calculated from a user function.
     """
 
-    def __init__(self, user_correction_function, *beamline_parameters):
+    def __init__(
+        self,
+        user_correction_function: Callable[[float, Optional["BeamlineParameter"]], float],
+        *beamline_parameters: List["BeamlineParameter"],
+    ) -> None:
         """
         Initialise.
         Args:
-            user_correction_function (func): function which when called with the set point for this driver and any
-                additional beamline parameters returns a constant which is added to that set point when that setpoint
-                is sent to an IOC and is removed from the read-back when that read-back is read from the IOC
-            beamline_parameters (ReflectometryServer.parameters.BeamlineParameter): beamline parameters to use in the
-                user function, listed in the order they should be used in the user function
+            user_correction_function (func): function which when called with the set point for this
+              driver and any additional beamline parameters returns a constant which is added to
+              that set point when that setpoint is sent to an IOC and is removed from the read-back
+              when that read-back is read from the IOC
+            beamline_parameters (ReflectometryServer.parameters.BeamlineParameter): beamline
+             parameters to use in the user function,
+             listed in the order they should be used in the user function
         """
         super(UserFunctionCorrection, self).__init__(
             "User function correction {}".format(user_correction_function.__name__)
@@ -216,7 +228,7 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
         self._user_correction_function = user_correction_function
         self._beamline_parameters = beamline_parameters
 
-    def correction(self, setpoint):
+    def correction(self, setpoint: float) -> float:
         """
         Correction as calculated by the provided user function.
         Args:
@@ -233,8 +245,9 @@ class UserFunctionCorrection(SymmetricEngineeringCorrection):
                     param.name for param in self._beamline_parameters if param.sp_rbv is None
                 ]
                 STATUS_MANAGER.update_error_log(
-                    "Engineering correction, '{}', raised exception '{}' is this because you have not coped with "
-                    "non-autosaved value, {}".format(self.description, ex, non_initialised_params),
+                    f"Engineering correction, '{self.description}', raised exception '{ex}' "
+                    f"is this because you have not coped with "
+                    f"non-autosaved value, {non_initialised_params}",
                     ex,
                 )
                 STATUS_MANAGER.update_active_problems(
@@ -268,7 +281,7 @@ class GridDataFileReader:
     Read a file with point data in.
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         """
         Initialise.
         Args:
@@ -279,7 +292,7 @@ class GridDataFileReader:
         self.points = None  # the points where the corrections are defined type: ndarray
         self.corrections = None  # the data corrections type: ndarray
 
-    def read(self):
+    def read(self) -> None:
         """
         Perform the read of the file. Storing points in this instance of the class.
         """
@@ -301,7 +314,7 @@ class GridDataFileReader:
                     )
                 )
 
-    def _read_data(self, reader):
+    def _read_data(self, reader: csv.DictReader) -> None:
         """
         Read data from the cvs file reader and store as numpy arrays in points and corrections
         Args:
@@ -323,7 +336,7 @@ class GridDataFileReader:
         self.points = np.array(points)
         self.corrections = np.array(corrections)
 
-    def _read_header(self, row):
+    def _read_header(self, row: int) -> None:
         """
         Read the header row and places it in variables
         Args:
@@ -340,7 +353,7 @@ class GridDataFileReader:
 
     @staticmethod
     @contextmanager
-    def _open_file(filename):
+    def _open_file(filename: str) -> Generator[TextIO, None, None]:
         """
         Open the file as a context.
         Args:
@@ -360,10 +373,11 @@ class GridDataFileReader:
 
 class _DummyBeamlineParameter:
     """
-    A dummy beamline parameter which returns the axis setpoint to make the list of beamline parameters easy to construct
+    A dummy beamline parameter which returns the axis setpoint to make the list of
+     beamline parameters easy to construct
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.sp_rbv = 0
         self.name = COLUMN_NAME_FOR_DRIVER_SETPOINT
 
@@ -373,13 +387,18 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
     Generate a interpolated correction from a table of values.
     """
 
-    def __init__(self, grid_data_provider, *beamline_parameters, description="Interpolated"):
+    def __init__(
+        self,
+        grid_data_provider: GridDataFileReader,
+        *beamline_parameters: List["BeamlineParameter"],
+        description: str = "Interpolated",
+    ) -> None:
         """
         Initialise.
         Args:
             grid_data_provider (GridDataFileReader): the provider of grid data
-            beamline_parameters (ReflectometryServer.parameters.BeamlineParameter): beamline parameters to use in the
-                interpolation
+            beamline_parameters (ReflectometryServer.parameters.BeamlineParameter): beamline
+            parameters to use in the interpolation
         """
         super(InterpolateGridDataCorrectionFromProvider, self).__init__(description)
         self._grid_data_provider = grid_data_provider
@@ -392,7 +411,9 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
 
         self._default_correction = 0
 
-    def _find_parameter(self, parameter_name, beamline_parameters):
+    def _find_parameter(
+        self, parameter_name: str, beamline_parameters: List["BeamlineParameter"]
+    ) -> "BeamlineParameter":
         """
         Find the beamline parameter in the beamline parameters list
         Args:
@@ -400,7 +421,8 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
             beamline_parameters: possible parameters
 
         Returns:
-            special driver parameter if the name is driver otherwise the beamline parameter associated with the name
+            special driver parameter if the name is driver otherwise the beamline parameter
+             associated with the name
         """
         if parameter_name.upper() == COLUMN_NAME_FOR_DRIVER_SETPOINT:
             return self.set_point_value_as_parameter
@@ -422,7 +444,7 @@ class InterpolateGridDataCorrectionFromProvider(SymmetricEngineeringCorrection):
             )
         return named_parameters[0]
 
-    def correction(self, setpoint):
+    def correction(self, setpoint: float) -> float:
         """
         Correction as interpolated from the grid data provided
         Args:
@@ -465,7 +487,7 @@ class InterpolateGridDataCorrection(InterpolateGridDataCorrectionFromProvider):
     Generate a interpolated correction from a file containing a table of values.
     """
 
-    def __init__(self, filename, *beamline_parameters):
+    def __init__(self, filename: str, *beamline_parameters: List["BeamlineParameter"]) -> None:
         super(InterpolateGridDataCorrection, self).__init__(
             GridDataFileReader(filename),
             *beamline_parameters,
@@ -482,7 +504,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         self,
         default_correction: EngineeringCorrection,
         corrections_for_mode: Dict[str, EngineeringCorrection],
-    ):
+    ) -> None:
         """
         Initialisation.
         Args:
@@ -495,7 +517,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         self._correction = None
         self._set_correction(None)
 
-    def set_observe_mode_change_on(self, mode_changer):
+    def set_observe_mode_change_on(self, mode_changer: "Beamline") -> None:
         """
         Allow this correction to listen to mode change events from the mode_changer
         Args:
@@ -506,7 +528,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         for correction in self._corrections_for_mode.values():
             correction.set_observe_mode_change_on(mode_changer)
 
-    def _mode_updated(self, update: ActiveModeUpdate):
+    def _mode_updated(self, update: ActiveModeUpdate) -> None:
         """
         Update the correction that this correction uses based on mode
         Args:
@@ -515,7 +537,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         self._set_correction(update.mode.name)
         self.trigger_listeners(CorrectionRecalculate("mode change"))
 
-    def _set_correction(self, mode_name: Optional[str]):
+    def _set_correction(self, mode_name: Optional[str]) -> None:
         """
         Sets the correction that is being used based on the mode.
         Remove listeners from last mode and add listeners for new mode.
@@ -532,7 +554,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         self._correction.add_listener(CorrectionRecalculate, self._on_recalculation_update)
         self.description = "Mode Selected: {}".format(self._correction.description)
 
-    def _on_recalculation_update(self, update: CorrectionRecalculate):
+    def _on_recalculation_update(self, update: CorrectionRecalculate) -> None:
         """
         When the correction for the selected correction requests a recalculation then request a
         recalculation
@@ -541,7 +563,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         """
         self.trigger_listeners(update)
 
-    def _on_correction_update(self, update: CorrectionUpdate):
+    def _on_correction_update(self, update: CorrectionUpdate) -> None:
         """
         When the selected correction issues a correction update then call correction update.
         Args:
@@ -550,7 +572,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         self.description = "Mode Selected: {}".format(update.description)
         self.trigger_listeners(CorrectionUpdate(update.correction, self.description))
 
-    def from_axis(self, value, setpoint):
+    def from_axis(self, value: float, setpoint: float) -> float:
         """
         Correct a value from the axis using the correction for the mode
         Args:
@@ -562,7 +584,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         correction = self._correction.from_axis(value, setpoint)
         return correction
 
-    def to_axis(self, setpoint):
+    def to_axis(self, setpoint: float) -> float:
         """
         Correct a value sent to an axis using the correction based on the mode
         Args:
@@ -573,7 +595,7 @@ class ModeSelectCorrection(EngineeringCorrection):
         correction = self._correction.to_axis(setpoint)
         return correction
 
-    def init_from_axis(self, setpoint):
+    def init_from_axis(self, setpoint: float) -> float:
         """
         Get a value from the axis without a setpoint from the correction for this mode
         Args:

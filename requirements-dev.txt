@@ -1,0 +1,9 @@
+-r requirements.txt
+
+mock
+pytest
+pytest-cov
+ruff
+pyright
+parameterized
+PyHamcrest
