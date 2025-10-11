@@ -2,7 +2,7 @@ import unittest
 from math import isnan, radians, tan
 
 from CaChannel._ca import AlarmSeverity
-from hamcrest import *
+from hamcrest import assert_that, calling, close_to, is_, raises
 from mock import Mock, call, patch
 from parameterized import parameterized, parameterized_class
 from server_common.channel_access import AlarmStatus
@@ -797,7 +797,7 @@ class TestComponentInitialisation(unittest.TestCase):
 
 class TestComponentAlarms(unittest.TestCase):
     ALARM_SEVERITY = AlarmSeverity.Major
-    ALARM_STATUS = AlarmStatus.Lolo
+    ALARM_STATUS = AlarmStatus.LoLo
     ALARM = (ALARM_SEVERITY, ALARM_STATUS)
     UNDEFINED = (AlarmSeverity.Invalid, AlarmStatus.UDF)
 
@@ -1130,7 +1130,6 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
     def test_GIVEN_axis_updated_WHEN_get_axis_THEN_updated_value_is_read(self):
         expected_result = 10
         bench = get_standard_bench()
-        param = AxisParameter("PARAM", bench, self.axis)
 
         bench.beam_path_rbv.axis[self.axis].set_displacement(
             CorrectedReadbackUpdate(expected_result, None, None)
@@ -1140,9 +1139,8 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
         assert_that(result, is_(expected_result))
 
     def test_GIVEN_axis_updated_with_alarm_WHEN_get_see_saw_THEN_alarm_updated(self):
-        expected_result = (AlarmSeverity.Major, AlarmStatus.Lolo)
+        expected_result = (AlarmSeverity.Major, AlarmStatus.LoLo)
         bench = get_standard_bench()
-        param = AxisParameter("PARAM", bench, self.axis)
 
         bench.beam_path_rbv.axis[self.axis].set_displacement(
             CorrectedReadbackUpdate(expected_result, *expected_result)
@@ -1157,9 +1155,8 @@ class TestDirectAxisWithBenchComponent(unittest.TestCase):
         def mylistener(pyhsical_move):
             self.physical_move = pyhsical_move
 
-        expected_result = (AlarmSeverity.Major, AlarmStatus.Lolo)
+        expected_result = (AlarmSeverity.Major, AlarmStatus.LoLo)
         bench = get_standard_bench(with_z_position=0)
-        param = AxisParameter("PARAM", bench, self.axis)
         bench.beam_path_rbv.axis[self.axis].add_listener(PhysicalMoveUpdate, mylistener)
 
         bench.beam_path_rbv.axis[self.axis].set_displacement(
