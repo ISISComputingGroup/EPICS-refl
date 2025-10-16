@@ -855,7 +855,9 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
             for direction in self._directions
         ]
 
-    def _on_update_individual_velocity(self, value, _alarm_severity, _alarm_status, source=None) -> None:
+    def _on_update_individual_velocity(
+        self, value, _alarm_severity, _alarm_status, source=None
+    ) -> None:
         self._velocities[source] = value
 
     def _on_update_moving_state(self, new_value, alarm_severity, alarm_status) -> None:
