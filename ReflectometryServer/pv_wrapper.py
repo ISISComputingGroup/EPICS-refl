@@ -9,9 +9,9 @@ import time
 from collections import namedtuple
 from functools import partial
 
+ from genie_python.genie_advanced import motor_in_set_mode
 from pcaspy import Severity
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
-from server_common.helpers import motor_in_set_mode
 from server_common.observable import observable
 
 from ReflectometryServer.ChannelAccess.constants import (
