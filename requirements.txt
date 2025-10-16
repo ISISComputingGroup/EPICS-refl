@@ -2,3 +2,4 @@ pcaspy@git+https://github.com/ISISComputingGroup/pcaspy
 CaChannel@git+https://github.com/ISISComputingGroup/CaChannel.git
 server_common@git+https://github.com/ISISComputingGroup/server_common.git
 scipy
+genie_python

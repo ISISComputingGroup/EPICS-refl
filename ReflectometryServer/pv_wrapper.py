@@ -8,10 +8,11 @@ import threading
 import time
 from collections import namedtuple
 from functools import partial
+from typing import NoReturn
 
+from genie_python.genie_advanced import motor_in_set_mode
 from pcaspy import Severity
 from server_common.channel_access import ChannelAccess, UnableToConnectToPVException
-from server_common.helpers import motor_in_set_mode
 from server_common.observable import observable
 
 from ReflectometryServer.ChannelAccess.constants import (
@@ -69,13 +70,13 @@ class ProcessMonitorEvents:
     Collect updates produced and only apply the latest ones.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.triggers_lock = threading.RLock()
         self.triggers = {}
         self._process_triggers = threading.Event()
         self._process_triggers.clear()
 
-    def add_trigger(self, trigger_fn, update, start_processing=True):
+    def add_trigger(self, trigger_fn, update, start_processing=True) -> None:
         """
         Add a trigger to be called. These are stored by update type so that future updates can overwrite previous
         updates
@@ -90,7 +91,7 @@ class ProcessMonitorEvents:
                 self._process_triggers.set()
                 threading.Thread(target=self.process_triggers_loop).start()
 
-    def process_triggers_loop(self):
+    def process_triggers_loop(self) -> None:
         """
         Process triggers on the list while process triggers is True
         """
@@ -107,7 +108,7 @@ class ProcessMonitorEvents:
                 logger.error("Exception occurred in process events: {}".format(e))
         self._set_motor_moving_pv(0)
 
-    def _set_motor_moving_pv(self, value):
+    def _set_motor_moving_pv(self, value) -> None:
         """
         Set/clear the motor is moving pv to indicate we are calculating the readback value
         Args:
@@ -121,7 +122,7 @@ class ProcessMonitorEvents:
                 ProblemInfo("Failed to update motor moving pv", "pv_wrapper", Severity.MAJOR_ALARM)
             )
 
-    def process_current_triggers(self):
+    def process_current_triggers(self) -> None:
         """
         Process the current event set clearing the process triggers if the list becomes empty.
         """
@@ -151,7 +152,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
     Wrap a single motor axis. Provides relevant listeners and synchronization utilities.
     """
 
-    def __init__(self, base_pv, ca=None, min_velocity_scale_factor=None):
+    def __init__(self, base_pv, ca=None, min_velocity_scale_factor=None) -> None:
         """
         Creates a wrapper around a PV.
 
@@ -192,7 +193,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
 
         self._block_until_pv_available()
 
-    def _block_until_pv_available(self):
+    def _block_until_pv_available(self) -> None:
         """
         Blocks the process until the PV this driver is pointing at is available.
         """
@@ -211,13 +212,13 @@ class PVWrapper(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def _set_resolution(self):
+    def _set_resolution(self) -> NoReturn:
         """
         Set the motor resolution for this axis. Must be overridden in subclass.
         """
         raise NotImplementedError()
 
-    def initialise(self):
+    def initialise(self) -> None:
         """
         Initialise PVWrapper values once the beamline is ready.
         """
@@ -235,7 +236,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
         self._init_velocity_to_restore()
         self._add_monitors()
 
-    def _add_monitors(self):
+    def _add_monitors(self) -> None:
         """
         Add monitors to the relevant motor PVs.
         """
@@ -249,7 +250,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
         self._monitor_pv(self._highlim_pv, self._on_update_highlim)
         self._monitor_pv(self._lowlim_pv, self._on_update_lowlim)
 
-    def _monitor_pv(self, pv, call_back_function):
+    def _monitor_pv(self, pv, call_back_function) -> None:
         """
         Adds a monitor function to a given PV.
 
@@ -285,7 +286,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
                 pv, "Check configuration is correct and IOC is running."
             )
 
-    def _write_pv(self, pv, value, wait=False):
+    def _write_pv(self, pv, value, wait=False) -> None:
         """
         Write a value to a given PV.
 
@@ -296,7 +297,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
         """
         self._ca.caput(pv, value, wait=wait, safe_not_quick=False)
 
-    def _write_pv_with_retry(self, pv, value, retry_count=5):
+    def _write_pv_with_retry(self, pv, value, retry_count=5) -> None:
         """
         Write a value to a given PV, check it was successful and retry if not.
         Note that a retry implies wait=True (completion callback).
@@ -330,7 +331,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
         return self._read_pv(self._sp_pv)
 
     @sp.setter
-    def sp(self, value):
+    def sp(self, value) -> None:
         """
         Writes a value to the underlying setpoint PV
 
@@ -355,7 +356,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
         return self._velocity_cache
 
     @velocity.setter
-    def velocity(self, value):
+    def velocity(self, value) -> None:
         """
         Writes a value to the underlying velocity PV's VAL field.
 
@@ -414,7 +415,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
     def llm(self):
         return self._low_limit_cache
 
-    def _init_velocity_to_restore(self):
+    def _init_velocity_to_restore(self) -> None:
         """
         Initialise the velocity cache for the current axis.
 
@@ -461,13 +462,13 @@ class PVWrapper(metaclass=abc.ABCMeta):
                     )
                 )
 
-    def record_no_cache_velocity(self):
+    def record_no_cache_velocity(self) -> None:
         """
         Record that we didn't cache the velocity so that we don't try to restore it
         """
         self._moving_without_changing_velocity = True
 
-    def cache_velocity(self):
+    def cache_velocity(self) -> None:
         """
         Cache the current axis velocity.
 
@@ -493,7 +494,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
             # moves have been completed.
             pass
 
-    def restore_pre_move_velocity(self):
+    def restore_pre_move_velocity(self) -> None:
         """
         Restore the cached axis velocity.
 
@@ -528,7 +529,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
                 self.name + "_velocity_restored", self._velocity_restored
             )
 
-    def _on_update_setpoint_value(self, new_value, alarm_severity, alarm_status):
+    def _on_update_setpoint_value(self, new_value, alarm_severity, alarm_status) -> None:
         """
         React to an update in the setpoint value of the underlying motor axis.
 
@@ -541,7 +542,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
             self.trigger_listeners, SetpointUpdate(new_value, alarm_severity, alarm_status)
         )
 
-    def _on_update_readback_value(self, new_value, alarm_severity, alarm_status):
+    def _on_update_readback_value(self, new_value, alarm_severity, alarm_status) -> None:
         """
         React to an update in the readback value of the underlying motor axis.
 
@@ -555,7 +556,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
             self.trigger_listeners, ReadbackUpdate(new_value, alarm_severity, alarm_status)
         )
 
-    def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
+    def _on_update_moving_state(self, new_value, alarm_severity, alarm_status) -> None:
         """
         React to an update in the motion status of the underlying motor axis.
 
@@ -576,13 +577,13 @@ class PVWrapper(metaclass=abc.ABCMeta):
         PROCESS_MONITOR_EVENTS.add_trigger(self.trigger_listeners, changing_update)
 
     # noinspection PyMethodMayBeStatic
-    def _dmov_to_bool(self, value):
+    def _dmov_to_bool(self, value) -> bool:
         """
         Converts the inverted dmov (0=True, 1=False) to the standard format
         """
         return not value
 
-    def _on_update_velocity(self, value, _alarm_severity, _alarm_status):
+    def _on_update_velocity(self, value, _alarm_severity, _alarm_status) -> None:
         """
         React to an update in the velocity of the underlying motor axis: save value to be restored later if the update
         is not issued by reflectometry server itself.
@@ -607,7 +608,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
         """
         return self._dmov_to_bool(self._moving_state_cache)
 
-    def _on_update_backlash_distance(self, value, _alarm_severity, _alarm_status):
+    def _on_update_backlash_distance(self, value, _alarm_severity, _alarm_status) -> None:
         """
         React to an update in the backlash distance of the underlying motor axis.
 
@@ -618,7 +619,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
         """
         self._backlash_distance_cache = value
 
-    def _on_update_backlash_velocity(self, value, _alarm_severity, _alarm_status):
+    def _on_update_backlash_velocity(self, value, _alarm_severity, _alarm_status) -> None:
         """
         React to an update in the backlash velocity of the underlying motor axis.
 
@@ -629,7 +630,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
         """
         self._backlash_velocity_cache = value
 
-    def _on_update_highlim(self, value, _alarm_severity, _alarm_status):
+    def _on_update_highlim(self, value, _alarm_severity, _alarm_status) -> None:
         """
         React to an update in the high soft limit of the underlying motor axis.
 
@@ -640,7 +641,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
         """
         self._high_limit_cache = value
 
-    def _on_update_lowlim(self, value, _alarm_severity, _alarm_status):
+    def _on_update_lowlim(self, value, _alarm_severity, _alarm_status) -> None:
         """
         React to an update in the low soft limit of the underlying motor axis.
 
@@ -651,7 +652,7 @@ class PVWrapper(metaclass=abc.ABCMeta):
         """
         self._low_limit_cache = value
 
-    def _on_update_direction(self, value, _alarm_severity, _alarm_status):
+    def _on_update_direction(self, value, _alarm_severity, _alarm_status) -> None:
         """
         React to an update in the direction of the underlying motor axis.
 
@@ -676,7 +677,7 @@ class MotorPVWrapper(PVWrapper):
     Wrap a low level motor PV. Provides relevant listeners and synchronization utilities.
     """
 
-    def __init__(self, base_pv, ca=None, min_velocity_scale_factor=None):
+    def __init__(self, base_pv, ca=None, min_velocity_scale_factor=None) -> None:
         """
         Creates a wrapper around a low level motor PV.
 
@@ -687,7 +688,7 @@ class MotorPVWrapper(PVWrapper):
         """
         super(MotorPVWrapper, self).__init__(base_pv, ca, min_velocity_scale_factor)
 
-    def _set_pvs(self):
+    def _set_pvs(self) -> None:
         """
         Define relevant PVs for this type of axis.
         """
@@ -703,13 +704,13 @@ class MotorPVWrapper(PVWrapper):
         self._highlim_pv = "{}.HLM".format(self._prefixed_pv)
         self._lowlim_pv = "{}.LLM".format(self._prefixed_pv)
 
-    def _set_resolution(self):
+    def _set_resolution(self) -> None:
         """
         Set the motor resolution for this axis.
         """
         self._resolution = self._read_pv("{}.MRES".format(self._prefixed_pv))
 
-    def define_position_as(self, new_position):
+    def define_position_as(self, new_position) -> None:
         """
         Set the current position in the underlying hardware as the new position without moving anything
         Args:
@@ -730,7 +731,7 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
     Creates a wrapper around a jaws axis.
     """
 
-    def __init__(self, base_pv, is_vertical, ca=None):
+    def __init__(self, base_pv, is_vertical, ca=None) -> None:
         """
         Creates a wrapper around a jaws axis.
 
@@ -747,7 +748,7 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
 
         super(JawsAxisPVWrapper, self).__init__(base_pv, ca)
 
-    def _set_directions(self):
+    def _set_directions(self) -> None:
         """
         Set the direction keys used in PVs for this jaws axis.
         """
@@ -758,7 +759,7 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
             self._directions = ["JE", "JW"]
             self._direction_symbol = "H"
 
-    def _set_resolution(self):
+    def _set_resolution(self) -> None:
         """
         Set the motor resolution for this axis.
         """
@@ -768,7 +769,7 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
         ]
         self._resolution = float(sum(motor_resolutions)) / len(motor_resolutions_pvs)
 
-    def initialise(self):
+    def initialise(self) -> None:
         """
         Initialise JawsAxisPVWrapper values once the beamline is ready.
         """
@@ -792,7 +793,7 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
         )
         self._add_monitors()
 
-    def _add_monitors(self):
+    def _add_monitors(self) -> None:
         """
         Add monitors to the relevant motor PVs.
         """
@@ -816,7 +817,7 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
         return min([motor_velocities])
 
     @velocity.setter
-    def velocity(self, value):
+    def velocity(self, value) -> None:
         """
         Writes a value to the underlying velocity PV's VAL field.
 
@@ -854,10 +855,12 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
             for direction in self._directions
         ]
 
-    def _on_update_individual_velocity(self, value, _alarm_severity, _alarm_status, source=None):
+    def _on_update_individual_velocity(
+        self, value, _alarm_severity, _alarm_status, source=None
+    ) -> None:
         self._velocities[source] = value
 
-    def _on_update_moving_state(self, new_value, alarm_severity, alarm_status):
+    def _on_update_moving_state(self, new_value, alarm_severity, alarm_status) -> None:
         """
         React to an update in the motion status of the underlying motor axis.
 
@@ -886,7 +889,7 @@ class JawsAxisPVWrapper(PVWrapper, metaclass=abc.ABCMeta):
             "Wrapper for {} received event from unexpected source: {}".format(self.name, pv)
         )
 
-    def define_position_as(self, new_position):
+    def define_position_as(self, new_position) -> None:
         """
         Set the current position in the underlying hardware as the new position without moving anything
         Args:
@@ -931,7 +934,7 @@ class JawsGapPVWrapper(JawsAxisPVWrapper):
     Wrap the axis PVs on top of a motor record to allow easy access to all axis PV values needed.
     """
 
-    def __init__(self, base_pv, is_vertical, ca=None):
+    def __init__(self, base_pv, is_vertical, ca=None) -> None:
         """
         Creates a wrapper around a motor PV for accessing its fields.
         Args:
@@ -942,7 +945,7 @@ class JawsGapPVWrapper(JawsAxisPVWrapper):
         super(JawsGapPVWrapper, self).__init__(base_pv, is_vertical, ca)
         self._name = "{}:{}GAP".format(self._name, self._direction_symbol)
 
-    def _set_pvs(self):
+    def _set_pvs(self) -> None:
         """
         Define relevant PVs for this type of axis.
         """
@@ -957,7 +960,7 @@ class JawsCentrePVWrapper(JawsAxisPVWrapper):
     height.
     """
 
-    def __init__(self, base_pv, is_vertical, ca=None):
+    def __init__(self, base_pv, is_vertical, ca=None) -> None:
         """
         Creates a wrapper around a motor PV for accessing its fields.
 
@@ -969,7 +972,7 @@ class JawsCentrePVWrapper(JawsAxisPVWrapper):
         super(JawsCentrePVWrapper, self).__init__(base_pv, is_vertical, ca)
         self._name = "{}:{}CENT".format(self._name, self._direction_symbol)
 
-    def _set_pvs(self):
+    def _set_pvs(self) -> None:
         """
         Define relevant PVs for this type of axis.
         """
