@@ -6,6 +6,7 @@ jobs:
     with:
       compare-branch: origin/master
       runs-on: windows-latest
+      python-ver: "3.12"  # keep in sync with python version used for tests below
   tests:
     runs-on: "windows-latest"
     steps:
@@ -14,8 +15,6 @@ jobs:
         with:
           python-version: '3.12'
       - name: install requirements
-        run: pip install -r requirements-dev.txt
-        env:
-          PIP_CONSTRAINT: "constraints.txt"
+        run: pip install -r requirements-dev.txt --constraint constraints.txt --build-constraint constraints.txt
       - name: run tests (windows)
         run: python -m pytest --cov
